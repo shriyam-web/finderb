@@ -64,7 +64,14 @@ export default function PricingPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-24">
             {packages.map((pkg) => (
-              <PricingCard key={pkg.title} {...pkg} />
+              <PricingCard 
+                key={pkg.title} 
+                plan={pkg.title} 
+                price={`₹${pkg.price}`} 
+                features={pkg.features} 
+                recommended={pkg.isRecommended} 
+                buttonText="Get Started" 
+              />
             ))}
           </div>
 
