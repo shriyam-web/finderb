@@ -66,7 +66,7 @@ export default function BusinessDetailPage({ params }: { params: Promise<{ id: s
                       <Star size={16} fill="white" />
                       <span className="font-bold">{business.rating}</span>
                     </div>
-                    <span className="text-gray-400 underline">{business.reviews} verified reviews</span>
+                    <span className="text-gray-400 underline">{business.reviewsCount} verified reviews</span>
                   </div>
                   <div className="flex items-center gap-2 text-gray-500">
                     <MapPin size={18} className="text-secondary" />
