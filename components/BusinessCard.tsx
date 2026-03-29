@@ -9,38 +9,50 @@ interface BusinessCardProps {
 
 export default function BusinessCard({ business }: BusinessCardProps) {
   return (
-    <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 hover:shadow-xl transition-all group">
-      <div className="relative h-48 w-full overflow-hidden">
+    <div className="bg-white rounded-[2rem] overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100/50 hover:shadow-[0_20px_50px_rgba(0,0,0,0.1)] transition-all duration-500 group">
+      <div className="relative h-56 w-full overflow-hidden">
         <Image
           src={business.image}
           alt={business.name}
           fill
-          className="object-cover group-hover:scale-110 transition-transform duration-500"
+          className="object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
         />
-        <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-lg flex items-center gap-1 shadow-sm">
-          <Star className="text-yellow-400 fill-yellow-400" size={16} />
-          <span className="text-sm font-bold text-gray-800">{business.rating}</span>
+        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
+        <div className="absolute top-4 right-4 bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-sm border border-white/20">
+          <Star className="text-yellow-400 fill-yellow-400" size={14} />
+          <span className="text-[11px] font-black text-primary uppercase tracking-wider">{business.rating}</span>
+        </div>
+        <div className="absolute top-4 left-4">
+           <div className="bg-secondary/90 backdrop-blur-md text-white text-[8px] font-black px-2.5 py-1 rounded-full uppercase tracking-widest shadow-lg">
+             Verified
+           </div>
         </div>
       </div>
-      <div className="p-5">
-        <div className="flex justify-between items-start mb-2">
-          <h3 className="text-lg font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
+      <div className="p-6">
+        <div className="flex justify-between items-start mb-1">
+          <h3 className="text-xl font-black text-primary group-hover:text-secondary transition-colors tracking-tight uppercase leading-tight">
             {business.name}
           </h3>
         </div>
-        <p className="text-blue-600 text-sm font-semibold mb-3">{business.category}</p>
-        <div className="flex items-center gap-2 text-gray-500 text-sm mb-4">
-          <MapPin size={16} />
+        <p className="text-secondary text-[9px] font-black uppercase tracking-[0.2em] mb-4">{business.category}</p>
+        
+        <div className="flex items-center gap-2.5 text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-6 bg-gray-50/50 p-2 rounded-lg border border-gray-100/50">
+          <MapPin size={12} className="text-secondary" />
           <span>{business.location}</span>
         </div>
-        <div className="flex items-center justify-between pt-4 border-t border-gray-50">
-          <span className="text-gray-900 font-bold">{business.priceRange.split('-')[0]} <span className="text-xs text-gray-500 font-normal">starts from</span></span>
+
+        <div className="flex items-center justify-between pt-6 border-t border-gray-100">
+          <div className="flex flex-col">
+            <span className="text-[8px] text-gray-400 font-bold uppercase tracking-widest mb-0.5">Starts From</span>
+            <span className="text-primary font-black text-lg tracking-tighter">
+              {business.priceRange.split('-')[0]}
+            </span>
+          </div>
           <Link 
             href={`/business/${business.id}`}
-            className="flex items-center gap-1 text-blue-600 font-bold text-sm hover:gap-2 transition-all"
+            className="flex items-center justify-center w-12 h-12 bg-gray-50 text-primary rounded-2xl hover:bg-primary hover:text-white transition-all duration-500 hover:shadow-lg hover:shadow-primary/20"
           >
-            View Details
-            <ArrowRight size={16} />
+            <ArrowRight size={20} />
           </Link>
         </div>
       </div>

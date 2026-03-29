@@ -42,3 +42,12 @@ body {
 .shadow-premium-hover {
   box-shadow: 0 20px 40px -10px rgba(0, 46, 126, 0.15);
 }
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
