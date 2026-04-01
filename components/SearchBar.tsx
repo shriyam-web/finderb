@@ -47,7 +47,7 @@ export default function SearchBar() {
   };
 
   return (
-    <div className="w-full flex flex-col gap-2 relative z-[100]">
+    <div className="w-full flex flex-col gap-2 relative z-10">
       <div className="w-full bg-white rounded-xl border-2 border-gray-100 focus-within:border-primary transition-all flex flex-col md:flex-row items-stretch md:items-center overflow-hidden">
         
         {/* Location Search */}
@@ -67,7 +67,7 @@ export default function SearchBar() {
           />
           
           {showLocationSuggestions && (
-            <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-100 rounded-xl overflow-hidden z-[110] p-2">
+            <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-100 rounded-xl overflow-hidden z-20 p-2">
               <p className="text-[8px] font-medium text-gray-400 mb-2 px-3 pt-1">Popular Cities</p>
               <div className="space-y-0.5">
                 {popularCities.map((city) => (
@@ -109,7 +109,7 @@ export default function SearchBar() {
           </button>
 
           {showSearchSuggestions && (
-            <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-100 rounded-xl overflow-hidden z-[110] p-2">
+            <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-100 rounded-xl overflow-hidden z-20 p-2">
               <p className="text-[8px] font-medium text-gray-400 mb-2 px-3 pt-1">Trending Searches</p>
               <div className="space-y-0.5">
                 {trendingSearches.map((search) => (

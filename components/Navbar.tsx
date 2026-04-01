@@ -9,6 +9,7 @@ import { Menu, X, User, Briefcase, Globe, Megaphone, Users, UserCircle, HelpCirc
 export default function Navbar({ whiteText: initialWhiteText = false }: { whiteText?: boolean }) {
   const [isOpen, setIsOpen] = useState(false);
   const [currentLang, setCurrentLang] = useState('English');
+  const [isLangOpen, setIsLangOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [isLoggedIn] = useState(false); // Mock for now
   const pathname = usePathname();
@@ -39,10 +40,10 @@ export default function Navbar({ whiteText: initialWhiteText = false }: { whiteT
   const isLight = false; // Background is no longer transparent, so we don't need white text mode
 
   return (
-    <nav className={`fixed top-0 w-full z-50 transition-all duration-700 ${
+    <nav className={`fixed top-0 w-full z-[1000] transition-all duration-700 ${
       scrolled 
-        ? 'bg-white border-b border-gray-100 shadow-md py-3' 
-        : 'bg-white py-6 border-b border-gray-50'
+        ? 'bg-white border-b border-gray-100 shadow-md py-2 sm:py-3' 
+        : 'bg-white py-3 sm:py-6 border-b border-gray-50'
     }`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center gap-4">
@@ -154,24 +155,38 @@ export default function Navbar({ whiteText: initialWhiteText = false }: { whiteT
 
       {/* Mobile Menu */}
       {isOpen && (
-        <div className="lg:hidden fixed inset-0 top-[72px] bg-white/95 backdrop-blur-2xl z-50 overflow-y-auto animate-in fade-in slide-in-from-bottom-5 duration-500">
+        <div className="lg:hidden fixed inset-0 top-[60px] sm:top-[72px] bg-white/95 backdrop-blur-2xl z-[1001] overflow-y-auto animate-in fade-in slide-in-from-bottom-5 duration-500">
           <div className="p-6 space-y-8">
             <div className="space-y-4">
-              <p className="text-[10px] font-medium text-gray-400 ml-2">Select Language</p>
-              <div className="grid grid-cols-2 gap-3">
-                {languages.map((lang) => (
-                  <button
-                    key={lang}
-                    onClick={() => {
-                      setCurrentLang(lang);
-                      setIsOpen(false);
-                    }}
-                    className={`flex items-center justify-center py-4 rounded-3xl text-xs font-medium transition-all ${currentLang === lang ? 'bg-primary text-white shadow-xl shadow-primary/20 scale-[1.02]' : 'bg-gray-50 text-gray-600 hover:bg-gray-100'}`}
-                  >
-                    {lang}
-                  </button>
-                ))}
-              </div>
+              <button 
+                onClick={() => setIsLangOpen(!isLangOpen)}
+                className="w-full flex items-center justify-between p-5 bg-gray-50/50 hover:bg-white text-gray-700 rounded-3xl transition-all font-medium tracking-tight border border-transparent"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="p-2 bg-white rounded-xl shadow-sm">
+                    <Globe size={20} className="text-gray-400" />
+                  </div>
+                  <span>Select Language ({currentLang})</span>
+                </div>
+                <ChevronDown className={`transition-transform duration-300 ${isLangOpen ? 'rotate-180' : ''}`} size={18} />
+              </button>
+              
+              {isLangOpen && (
+                <div className="grid grid-cols-2 gap-3 animate-in fade-in slide-in-from-top-2 duration-300 px-2">
+                  {languages.map((lang) => (
+                    <button
+                      key={lang}
+                      onClick={() => {
+                        setCurrentLang(lang);
+                        setIsLangOpen(false);
+                      }}
+                      className={`flex items-center justify-center py-4 rounded-3xl text-xs font-medium transition-all ${currentLang === lang ? 'bg-primary text-white shadow-xl shadow-primary/20 scale-[1.02]' : 'bg-gray-50 text-gray-600 hover:bg-gray-100'}`}
+                    >
+                      {lang}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="space-y-4">
