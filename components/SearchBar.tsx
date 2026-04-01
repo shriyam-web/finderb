@@ -58,22 +58,23 @@ export default function SearchBar() {
           <input
             type="text"
             placeholder="City..."
+            aria-label="Search by city"
             value={location}
             onChange={(e) => setLocation(e.target.value)}
             onFocus={() => setShowLocationSuggestions(true)}
             onBlur={() => setTimeout(() => setShowLocationSuggestions(false), 200)}
-            className="w-full pl-11 pr-4 py-4 bg-transparent border-none focus:ring-0 text-gray-900 font-bold text-sm placeholder:text-gray-400 placeholder:font-medium"
+            className="w-full pl-11 pr-4 py-4 bg-transparent border-none focus:ring-0 text-gray-900 font-medium text-sm placeholder:text-gray-400"
           />
           
           {showLocationSuggestions && (
             <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-100 rounded-xl overflow-hidden z-[110] p-2">
-              <p className="text-[8px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2 px-3 pt-1">Popular Cities</p>
+              <p className="text-[8px] font-medium text-gray-400 mb-2 px-3 pt-1">Popular Cities</p>
               <div className="space-y-0.5">
                 {popularCities.map((city) => (
                   <button
                     key={city}
                     onClick={() => setLocation(city)}
-                    className="w-full text-left px-3 py-2 hover:bg-gray-50 rounded-lg transition-colors flex items-center gap-3 text-xs font-bold text-gray-700"
+                    className="w-full text-left px-3 py-2 hover:bg-gray-50 rounded-lg transition-colors flex items-center gap-3 text-xs font-medium text-gray-700"
                   >
                     <MapPin size={12} className="text-gray-300" />
                     {city}
@@ -92,14 +93,16 @@ export default function SearchBar() {
           <input
             type="text"
             placeholder="Search for services, professionals..."
+            aria-label="Search for services or professionals"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onFocus={() => setShowSearchSuggestions(true)}
             onBlur={() => setTimeout(() => setShowSearchSuggestions(false), 200)}
-            className="w-full pl-11 pr-12 py-4 bg-transparent border-none focus:ring-0 text-gray-900 font-bold text-sm placeholder:text-gray-400 placeholder:font-medium"
+            className="w-full pl-11 pr-12 py-4 bg-transparent border-none focus:ring-0 text-gray-900 font-medium text-sm placeholder:text-gray-400"
           />
           <button 
             onClick={handleVoiceSearch}
+            aria-label="Voice search"
             className={`absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-lg transition-all ${isListening ? 'bg-red-50 text-red-500 animate-pulse' : 'text-gray-400 hover:bg-gray-50 hover:text-primary'}`}
           >
             <Mic size={16} />
@@ -107,13 +110,13 @@ export default function SearchBar() {
 
           {showSearchSuggestions && (
             <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-100 rounded-xl overflow-hidden z-[110] p-2">
-              <p className="text-[8px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2 px-3 pt-1">Trending Searches</p>
+              <p className="text-[8px] font-medium text-gray-400 mb-2 px-3 pt-1">Trending Searches</p>
               <div className="space-y-0.5">
                 {trendingSearches.map((search) => (
                   <button
                     key={search}
                     onClick={() => setQuery(search)}
-                    className="w-full text-left px-3 py-2 hover:bg-gray-50 rounded-lg transition-colors flex items-center gap-3 text-xs font-bold text-gray-700"
+                    className="w-full text-left px-3 py-2 hover:bg-gray-50 rounded-lg transition-colors flex items-center gap-3 text-xs font-medium text-gray-700"
                   >
                     <TrendingUp size={12} className="text-gray-300" />
                     {search}
@@ -126,7 +129,7 @@ export default function SearchBar() {
 
         {/* Search CTA */}
         <div className="p-2 md:pr-2">
-          <button className="w-full md:w-auto bg-primary hover:bg-secondary text-white font-black px-8 py-3 rounded-lg transition-all active:scale-95 text-xs uppercase tracking-widest">
+          <button className="w-full md:w-auto bg-primary hover:bg-secondary text-white font-medium px-8 py-3 rounded-lg transition-all active:scale-95 text-xs">
             Search
           </button>
         </div>

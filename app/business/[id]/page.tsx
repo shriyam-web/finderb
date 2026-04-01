@@ -1,8 +1,7 @@
 'use client';
 
 import { use } from 'react';
-import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
+import PricingCard from '@/components/PricingCard';
 import { featuredBusinesses } from '@/lib/mockData';
 import Image from 'next/image';
 import { Star, MapPin, Phone, Mail, Globe, Clock, CheckCircle2, MessageSquare, Share2, Heart } from 'lucide-react';
@@ -13,11 +12,9 @@ export default function BusinessDetailPage({ params }: { params: Promise<{ id: s
 
   return (
     <div className="min-h-screen flex flex-col bg-white">
-      <Navbar />
-      
-      <main className="flex-1 pt-16">
+      <main className="flex-1 pt-24 lg:pt-32">
         {/* Gallery Section */}
-        <div className="grid grid-cols-1 md:grid-cols-4 h-[400px] md:h-[500px] gap-2 p-2">
+        <div className="grid grid-cols-1 md:grid-cols-4 h-[300px] sm:h-[400px] md:h-[500px] gap-2 p-2">
           <div className="md:col-span-2 relative overflow-hidden rounded-2xl group">
             <Image src={business.image} alt={business.name} fill className="object-cover group-hover:scale-105 transition-transform duration-700" priority />
           </div>
@@ -48,7 +45,7 @@ export default function BusinessDetailPage({ params }: { params: Promise<{ id: s
                 <div className="flex flex-wrap items-center justify-between gap-4">
                   <div className="space-y-2">
                     <span className="bg-accent text-secondary px-4 py-1 rounded-full text-xs font-black uppercase tracking-widest">{business.category}</span>
-                    <h1 className="text-4xl md:text-5xl font-black text-primary tracking-tight">{business.name}</h1>
+                    <h1 className="text-3xl md:text-5xl font-black text-primary tracking-tighter leading-tight">{business.name}</h1>
                   </div>
                   <div className="flex gap-3">
                     <button className="p-3 rounded-2xl border border-gray-100 hover:bg-accent transition-all text-gray-500 hover:text-secondary">
@@ -100,6 +97,29 @@ export default function BusinessDetailPage({ params }: { params: Promise<{ id: s
                       <span className="font-bold text-primary">{service}</span>
                     </div>
                   ))}
+                </div>
+              </div>
+
+              {/* Pricing Section */}
+              <div className="space-y-8 pt-8 border-t border-gray-100">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-2xl font-black text-primary">Service Packages</h2>
+                  <span className="text-gray-400 text-sm font-bold uppercase tracking-widest">Pricing Plans</span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <PricingCard
+                    plan="Basic Plan"
+                    price="₹1,499"
+                    features={['Basic Consultation', 'Standard Service', '3 Months Support', 'Essential Features']}
+                    buttonText="Choose Basic"
+                  />
+                  <PricingCard
+                    plan="Premium Plan"
+                    price="₹3,999"
+                    features={['Priority Consultation', 'Advanced Service', '1 Year Support', 'Premium Features', 'Free Follow-up']}
+                    recommended={true}
+                    buttonText="Go Premium"
+                  />
                 </div>
               </div>
 
@@ -190,8 +210,6 @@ export default function BusinessDetailPage({ params }: { params: Promise<{ id: s
           </div>
         </div>
       </main>
-
-      <Footer />
     </div>
   );
 }

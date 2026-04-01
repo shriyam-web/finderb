@@ -13,7 +13,7 @@ export default function Footer() {
           <div className="space-y-8">
             <Link href="/" className="flex items-center group">
               <Image 
-                src="/boomb logo.png" 
+                src="/logo-n.png" 
                 alt="Boomb Logo" 
                 width={140} 
                 height={40} 
@@ -22,13 +22,13 @@ export default function Footer() {
               />
             </Link>
             <div className="space-y-4">
-              <h4 className="text-primary font-black text-xs uppercase tracking-widest">About Boomb</h4>
+              <h4 className="text-primary font-medium text-xs">About Boomb</h4>
               <p className="text-gray-500 text-sm leading-relaxed font-medium">
                 Boomb is India's premier discovery platform, connecting millions of users with verified local businesses, services, and entertainment. We simplify your search for quality and trust.
               </p>
             </div>
             <div className="space-y-4">
-              <h4 className="text-primary font-black text-xs uppercase tracking-widest">Our Services</h4>
+              <h4 className="text-primary font-medium text-xs">Our Services</h4>
               <p className="text-gray-400 text-xs leading-relaxed font-medium italic">
                 Verified Professionals • Real-time Bookings • Community Reviews • Local Discovery • Business Scaling
               </p>
@@ -37,34 +37,34 @@ export default function Footer() {
 
           {/* Quick Links & FAQs */}
           <div>
-            <h3 className="text-gray-900 font-black text-sm mb-8 uppercase tracking-[0.2em]">Quick Links</h3>
+            <h3 className="text-gray-900 font-medium text-sm mb-8">Quick Links</h3>
             <ul className="space-y-4">
-              <li><Link href="/about" className="text-sm hover:text-secondary font-bold transition-colors uppercase tracking-wider">About Us</Link></li>
-              <li><Link href="/pricing" className="text-sm hover:text-secondary font-bold transition-colors uppercase tracking-wider">Pricing Plans</Link></li>
-              <li><Link href="/business/register" className="text-sm hover:text-secondary font-bold transition-colors uppercase tracking-wider">List Your Business</Link></li>
-              <li><Link href="/faqs" className="text-sm hover:text-secondary font-bold transition-colors uppercase tracking-wider">FAQs</Link></li>
-              <li><Link href="/contact" className="text-sm hover:text-secondary font-bold transition-colors uppercase tracking-wider">Contact Us</Link></li>
-              <li><Link href="/blog" className="text-sm hover:text-secondary font-bold transition-colors uppercase tracking-wider">Latest News</Link></li>
+              <li><Link href="/about" className="text-sm hover:text-secondary font-medium transition-colors">About Us</Link></li>
+              <li><Link href="/pricing" className="text-sm hover:text-secondary font-medium transition-colors">Pricing Plans</Link></li>
+              <li><Link href="/business/register" className="text-sm hover:text-secondary font-medium transition-colors">List Your Business</Link></li>
+              <li><Link href="/faqs" className="text-sm hover:text-secondary font-medium transition-colors">FAQs</Link></li>
+              <li><Link href="/contact" className="text-sm hover:text-secondary font-medium transition-colors">Contact Us</Link></li>
+              <li><Link href="/blog" className="text-sm hover:text-secondary font-medium transition-colors">Latest News</Link></li>
             </ul>
           </div>
 
           {/* Popular Categories */}
           <div>
-            <h3 className="text-gray-900 font-black text-sm mb-8 uppercase tracking-[0.2em]">Popular Categories</h3>
+            <h3 className="text-gray-900 font-medium text-sm mb-8">Popular Categories</h3>
             <ul className="space-y-4">
-              <li><Link href="/categories/real-estate" className="text-sm hover:text-secondary font-bold transition-colors uppercase tracking-wider">Real Estate</Link></li>
-              <li><Link href="/categories/doctors" className="text-sm hover:text-secondary font-bold transition-colors uppercase tracking-wider">Doctors</Link></li>
-              <li><Link href="/categories/restaurants" className="text-sm hover:text-secondary font-bold transition-colors uppercase tracking-wider">Restaurants</Link></li>
-              <li><Link href="/categories/repairs-services" className="text-sm hover:text-secondary font-bold transition-colors uppercase tracking-wider">Repairs & Services</Link></li>
-              <li><Link href="/categories/hotels" className="text-sm hover:text-secondary font-bold transition-colors uppercase tracking-wider">Hotels & Stay</Link></li>
-              <li><Link href="/categories/gym" className="text-sm hover:text-secondary font-bold transition-colors uppercase tracking-wider">Fitness & Gyms</Link></li>
+              <li><Link href="/categories/real-estate" className="text-sm hover:text-secondary font-medium transition-colors">Real Estate</Link></li>
+              <li><Link href="/categories/doctors" className="text-sm hover:text-secondary font-medium transition-colors">Doctors</Link></li>
+              <li><Link href="/categories/restaurants" className="text-sm hover:text-secondary font-medium transition-colors">Restaurants</Link></li>
+              <li><Link href="/categories/repairs-services" className="text-sm hover:text-secondary font-medium transition-colors">Repairs & Services</Link></li>
+              <li><Link href="/categories/hotels" className="text-sm hover:text-secondary font-medium transition-colors">Hotels & Stay</Link></li>
+              <li><Link href="/categories/gym" className="text-sm hover:text-secondary font-medium transition-colors">Fitness & Gyms</Link></li>
             </ul>
           </div>
 
           {/* Follow Us & Contact */}
           <div className="space-y-10">
             <div>
-              <h3 className="text-gray-900 font-black text-sm mb-6 uppercase tracking-[0.2em]">Follow Us</h3>
+              <h3 className="text-gray-900 font-medium text-sm mb-6">Follow Us</h3>
               <div className="flex space-x-4">
                 <Link href="#" className="w-10 h-10 flex items-center justify-center rounded-xl bg-gray-50 text-gray-400 hover:bg-secondary hover:text-white transition-all shadow-sm border border-gray-100">
                   <FaFacebook size={18} />
@@ -81,7 +81,7 @@ export default function Footer() {
               </div>
             </div>
             <div className="space-y-4">
-              <h3 className="text-gray-900 font-black text-sm mb-6 uppercase tracking-[0.2em]">Contact</h3>
+              <h3 className="text-gray-900 font-medium text-sm mb-6">Contact</h3>
               <div className="flex items-center gap-3 text-sm font-medium">
                 <Mail size={16} className="text-secondary" />
                 <span>support@boomb.com</span>
@@ -96,10 +96,10 @@ export default function Footer() {
 
         {/* Bottom Bar */}
         <div className="border-t border-gray-100 pt-10 flex flex-col md:flex-row justify-between items-center gap-6">
-          <p className="text-[10px] text-gray-400 font-black uppercase tracking-[0.2em]">
+          <p className="text-[10px] text-gray-400 font-medium">
             © {new Date().getFullYear()} Boomb Technologies Pvt Ltd. All rights reserved.
           </p>
-          <div className="flex space-x-8 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">
+          <div className="flex space-x-8 text-[10px] font-medium text-gray-400">
             <Link href="/privacy" className="hover:text-secondary transition-colors">Privacy Policy</Link>
             <Link href="/terms" className="hover:text-secondary transition-colors">Terms of Service</Link>
             <Link href="/cookies" className="hover:text-secondary transition-colors">Cookie Policy</Link>

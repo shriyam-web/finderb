@@ -12,11 +12,11 @@ export default async function CategoryPage({ params }: { params: Promise<{ categ
     : businesses.filter(b => b.category.toLowerCase().replace(' ', '-') === categorySlug);
 
   return (
-    <div className="bg-accent/30 min-h-screen py-12">
+    <div className="bg-accent/30 min-h-screen pt-24 pb-12 lg:pt-32">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-12">
-          <h1 className="text-4xl font-black text-primary mb-4">{currentCategory.name}</h1>
+          <h1 className="text-3xl md:text-4xl lg:text-5xl font-black text-primary mb-4 tracking-tight">{currentCategory.name}</h1>
           <p className="text-gray-500 font-medium">Found {filteredBusinesses.length} businesses matching your criteria</p>
         </div>
 

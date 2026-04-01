@@ -19,12 +19,12 @@ import Link from 'next/link';
 import Image from 'next/image';
 
 const WORDS = [
-  "thousands of businesses", 
-  "across 300+ cities in India", 
-  "verified professionals",
-  "top-rated local services",
+  "verified professionals", 
+  "top-rated local services", 
+  "300+ cities in India", 
+  "premium local businesses",
   "trusted by millions",
-  "thousands of businesses" // For seamless loop
+  "verified professionals" // For seamless loop
 ];
 
 export default function Home() {
@@ -56,40 +56,40 @@ export default function Home() {
   return (
     <div className="flex flex-col bg-white selection:bg-primary/10">
       {/* Hero Section */}
-      <section className="relative pt-12 pb-12 overflow-hidden bg-gradient-to-br from-white via-gray-50/50 to-white">
+      <section className="relative pt-24 pb-16 lg:pt-32 lg:pb-24 overflow-hidden bg-gradient-to-br from-white via-gray-50/50 to-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid lg:grid-cols-12 gap-8 items-center">
-            {/* Left: Content */}
-            <div className="lg:col-span-6 space-y-8">
+            <div className="lg:col-span-6 space-y-8 text-left">
               <div className="space-y-4">
-                <h1 className="text-4xl md:text-5xl font-black text-primary leading-[1.1] tracking-tight">
-                  Search Across <br />
-                  <div className="h-[1.4em] overflow-hidden relative mt-1 text-secondary">
+                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-primary leading-[1.1]">
+                  India's Premier <br />
+                  <span className="text-secondary">Local Service Engine</span>
+                  <div className="h-[1.3em] overflow-hidden relative mt-2 text-gray-300 md:text-gray-400 text-xl sm:text-2xl lg:text-4xl">
                     <div 
                       className={`${isTransitioning ? 'transition-transform duration-700' : ''} ease-in-out`}
                       style={{ transform: `translateY(-${index * (100 / WORDS.length)}%)` }}
                     >
                       {WORDS.map((word, i) => (
-                        <div key={i} className="h-[1.4em] flex items-center whitespace-nowrap">
+                        <div key={i} className="h-[1.3em] flex items-center justify-start whitespace-nowrap">
                           {word}
                         </div>
                       ))}
                     </div>
                   </div>
                 </h1>
-                <p className="text-gray-500 text-base md:text-lg font-medium leading-relaxed max-w-md">
-                  Connect with verified professionals and explore top-rated services in your city.
+                <p className="text-gray-500 text-sm md:text-base font-medium leading-relaxed max-w-xl lg:mx-0">
+                  Boomb connects you with verified professionals and elite services across India. Discovery redefined.
                 </p>
               </div>
 
-              <div className="w-full max-w-xl">
+              <div className="w-full max-w-2xl lg:mx-0">
                 <SearchBar />
               </div>
             </div>
 
             {/* Right: Popular Category Grid - Big with Photos */}
-            <div className="lg:col-span-6 mt-8 lg:mt-0">
-              <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+            <div className="lg:col-span-6 mt-12 lg:mt-0">
+              <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
                 {popularCategories.map((cat) => {
                   // @ts-ignore
                   const IconComponent = LucideIcons[cat.icon] || LucideIcons.HelpCircle;
@@ -111,8 +111,8 @@ export default function Home() {
                         <div className="w-7 h-7 rounded-lg bg-white/10 backdrop-blur-md flex items-center justify-center text-white mb-2 group-hover:bg-secondary transition-colors border border-white/10">
                           <IconComponent size={14} />
                         </div>
-                        <h3 className="text-[10px] font-black text-white leading-tight uppercase tracking-[0.05em] mb-0.5">{cat.name}</h3>
-                        <p className="text-[7px] font-bold text-white/50 uppercase tracking-widest">{cat.businessCount}+ Pros</p>
+                        <h3 className="text-[10px] font-medium text-white leading-tight mb-0.5">{cat.name}</h3>
+                        <p className="text-[7px] text-white/50">{cat.businessCount}+ Pros</p>
                       </div>
                     </Link>
                   );
@@ -125,14 +125,14 @@ export default function Home() {
           <div className="mt-12 pt-8 border-t border-gray-100">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse"></div>
-              <h2 className="text-[10px] font-black text-primary uppercase tracking-[0.3em]">Explore More</h2>
+              <h2 className="text-[10px] font-medium text-primary">Explore Premium Categories</h2>
             </div>
             <div className="flex flex-wrap gap-2">
               {otherCategories.map((cat) => (
                 <Link 
                   key={cat.id} 
                   href={`/categories/${cat.slug}`}
-                  className="px-4 py-2 rounded-full bg-gray-50 hover:bg-secondary hover:text-white text-[10px] font-bold text-gray-500 transition-all uppercase tracking-widest border border-gray-100 hover:border-secondary"
+                  className="px-4 py-2 rounded-full bg-gray-50 hover:bg-secondary hover:text-white text-[10px] font-medium text-gray-500 transition-all border border-gray-100 hover:border-secondary"
                 >
                   {cat.name}
                 </Link>
@@ -145,7 +145,7 @@ export default function Home() {
       {/* City Cards - Horizontal Scrolling */}
       <section className="py-16 bg-gray-50/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-2xl font-black text-primary uppercase tracking-tight mb-8">Cities Boomb is Present In</h2>
+          <h2 className="text-xl sm:text-2xl font-medium text-primary mb-8">Verified Local Services Across Major Indian Cities</h2>
           <div className="flex overflow-x-auto pb-4 gap-6 scrollbar-hide">
             {cities.map((city) => (
               <Link 
@@ -162,8 +162,8 @@ export default function Home() {
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
                 <div className="absolute bottom-6 left-6">
-                  <h3 className="text-xl font-black text-white">{city.name}</h3>
-                  <p className="text-white/60 text-xs font-bold uppercase tracking-widest">Explore Services</p>
+                  <h3 className="text-xl font-bold text-white">{city.name}</h3>
+                  <p className="text-white/60 text-xs font-medium">Explore Services</p>
                 </div>
               </Link>
             ))}
@@ -175,8 +175,8 @@ export default function Home() {
       <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between mb-10">
-            <h2 className="text-2xl font-black text-primary uppercase tracking-tight">Latest Movies</h2>
-            <Link href="/movies" className="text-sm font-bold text-secondary hover:underline">See All</Link>
+            <h2 className="text-xl sm:text-2xl font-medium text-primary">Latest Movies & Entertainment Near You</h2>
+            <Link href="/movies" className="text-sm font-medium text-secondary hover:underline">See All</Link>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             {movies.map((movie) => (
@@ -194,12 +194,12 @@ export default function Home() {
                       <Play size={24} fill="white" />
                     </div>
                   </div>
-                  <div className="absolute top-4 right-4 bg-secondary text-white px-2 py-1 rounded-lg text-[10px] font-black flex items-center gap-1 shadow-lg">
+                  <div className="absolute top-4 right-4 bg-secondary text-white px-2 py-1 rounded-lg text-[10px] font-medium flex items-center gap-1 shadow-lg">
                     <Star size={10} fill="white" /> {movie.rating}
                   </div>
                 </div>
-                <h3 className="font-black text-primary group-hover:text-secondary transition-colors">{movie.title}</h3>
-                <p className="text-gray-400 text-xs font-bold uppercase tracking-widest">{movie.genre}</p>
+                <h3 className="font-bold text-primary group-hover:text-secondary transition-colors">{movie.title}</h3>
+                <p className="text-gray-400 text-xs font-medium">{movie.genre}</p>
               </div>
             ))}
           </div>
@@ -211,10 +211,10 @@ export default function Home() {
         <div className="absolute top-0 right-0 w-1/2 h-full bg-secondary/5 -skew-x-12 translate-x-1/2 blur-3xl"></div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="mb-12">
-            <h2 className="text-3xl font-black uppercase tracking-tight mb-2">Explore Tourist Places Near You</h2>
-            <p className="text-gray-400 font-medium">Discover the best attractions and hidden gems in your vicinity.</p>
+            <h2 className="text-2xl sm:text-3xl font-medium mb-2">Discover Top-Rated Tourist Places & Local Attractions</h2>
+            <p className="text-gray-400 font-medium">Find the best attractions and hidden gems in your vicinity.</p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
             {touristPlaces.map((place) => (
               <div key={place.id} className="group relative h-[420px] rounded-3xl overflow-hidden shadow-2xl bg-gray-800">
                 <Image 
@@ -228,9 +228,9 @@ export default function Home() {
                 <div className="absolute bottom-8 left-8 right-8">
                   <div className="flex items-center gap-2 text-secondary mb-2">
                     <MapPin size={14} />
-                    <span className="text-[10px] font-black uppercase tracking-widest">{place.location}</span>
+                    <span className="text-[10px] font-medium">{place.location}</span>
                   </div>
-                  <h3 className="text-2xl font-black mb-1">{place.name}</h3>
+                  <h3 className="text-2xl font-bold mb-1">{place.name}</h3>
                   <p className="text-white/60 text-sm font-medium">{place.distance}</p>
                 </div>
               </div>
@@ -242,12 +242,12 @@ export default function Home() {
       {/* Featured Businesses */}
       <section className="py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-end mb-16">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-16 gap-6">
             <div className="space-y-3">
-              <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-secondary">Curated Selection</span>
-              <h2 className="text-4xl font-black text-primary tracking-tighter leading-tight">Featured Businesses</h2>
+              <span className="text-[10px] font-medium text-secondary">Curated Selection</span>
+              <h2 className="text-3xl sm:text-4xl font-bold text-primary tracking-tighter leading-tight">Premium Featured Local Businesses</h2>
             </div>
-            <Link href="/categories/all" className="group flex items-center gap-3 text-xs font-black uppercase tracking-[0.2em] text-gray-400 hover:text-primary transition-all">
+            <Link href="/categories/all" className="group flex items-center gap-3 text-xs font-medium text-gray-400 hover:text-primary transition-all">
               Explore All <ArrowRight size={14} className="group-hover:translate-x-2 transition-transform" />
             </Link>
           </div>
@@ -262,8 +262,8 @@ export default function Home() {
       {/* Testimonials */}
       <section className="py-24 bg-gray-50/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl font-black text-primary uppercase tracking-tight mb-20">What Our Users Say</h2>
-          <div className="grid md:grid-cols-3 gap-12">
+          <h2 className="text-2xl sm:text-3xl font-medium text-primary mb-12 sm:mb-20">Trusted by Millions: Real User Testimonials</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-12">
             {testimonials.map((t) => (
               <div key={t.id} className="bg-white p-10 rounded-[2.5rem] shadow-sm hover:shadow-xl transition-all duration-500 border border-gray-100 text-left relative group">
                 <div className="absolute -top-6 left-10 w-12 h-12 rounded-2xl bg-secondary flex items-center justify-center text-white shadow-lg shadow-secondary/30 group-hover:scale-110 transition-transform">
@@ -281,8 +281,8 @@ export default function Home() {
                     />
                   </div>
                   <div>
-                    <h4 className="font-black text-primary text-sm uppercase tracking-wider">{t.name}</h4>
-                    <p className="text-gray-400 text-[10px] font-bold uppercase tracking-[0.2em]">{t.role}</p>
+                    <h4 className="font-bold text-primary text-sm">{t.name}</h4>
+                    <p className="text-gray-400 text-[10px] font-medium">{t.role}</p>
                   </div>
                 </div>
               </div>
@@ -294,11 +294,11 @@ export default function Home() {
       {/* Articles */}
       <section className="py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between mb-16">
-            <h2 className="text-3xl font-black text-primary uppercase tracking-tight">Latest Articles</h2>
-            <Link href="/blog" className="text-xs font-black text-secondary hover:underline uppercase tracking-widest">Read Blog</Link>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-16 gap-4">
+            <h2 className="text-2xl sm:text-3xl font-medium text-primary">Local Insights & Expert Articles from Boomb</h2>
+            <Link href="/blog" className="text-xs font-medium text-secondary hover:underline whitespace-nowrap">Read Blog</Link>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10">
             {articles.map((article) => (
               <div key={article.id} className="group cursor-pointer">
                 <div className="relative h-72 rounded-[2rem] overflow-hidden mb-8 shadow-md bg-gray-100">

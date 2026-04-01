@@ -252,9 +252,9 @@ export const cities: City[] = [
   { id: '1', name: 'Mumbai', image: 'https://images.unsplash.com/photo-1529253355930-ddbe423a2ac7?auto=format&fit=crop&q=80&w=800' },
   { id: '2', name: 'Delhi', image: 'https://images.unsplash.com/photo-1515091943-9d5c0ad475af?auto=format&fit=crop&q=80&w=800' },
   { id: '3', name: 'Bangalore', image: 'https://images.unsplash.com/photo-1596176530529-78163a4f7af2?auto=format&fit=crop&q=80&w=800' },
-  { id: '4', name: 'Hyderabad', image: 'https://images.unsplash.com/photo-1605715245184-7f13d48980a6?auto=format&fit=crop&q=80&w=800' },
+  { id: '4', name: 'Hyderabad', image: 'https://images.unsplash.com/photo-1617503752587-97d2103a96ea?auto=format&fit=crop&q=80&w=800' },
   { id: '5', name: 'Chennai', image: 'https://images.unsplash.com/photo-1582510003544-4d00b7f74220?auto=format&fit=crop&q=80&w=800' },
-  { id: '6', name: 'Kolkata', image: 'https://images.unsplash.com/photo-1558431382-bb7b38c1905c?auto=format&fit=crop&q=80&w=800' },
+  { id: '6', name: 'Kolkata', image: 'https://images.unsplash.com/photo-1601004113227-6f0270a4a836?auto=format&fit=crop&q=80&w=800' },
 ];
 
 export interface Movie {
@@ -282,8 +282,8 @@ export interface TouristPlace {
 
 export const touristPlaces: TouristPlace[] = [
   { id: '1', name: 'Marine Drive', location: 'Mumbai', image: 'https://images.unsplash.com/photo-1567157577867-05ccb1388e66?auto=format&fit=crop&q=80&w=800', distance: '5 km away' },
-  { id: '2', name: 'Gateway of India', location: 'Mumbai', image: 'https://images.unsplash.com/photo-1566375638495-950982362799?auto=format&fit=crop&q=80&w=800', distance: '8 km away' },
-  { id: '3', name: 'Elephanta Caves', location: 'Gharapuri', image: 'https://images.unsplash.com/photo-1590424564537-586b464817a0?auto=format&fit=crop&q=80&w=800', distance: '15 km away' },
+  { id: '2', name: 'Gateway of India', location: 'Mumbai', image: 'https://images.unsplash.com/photo-1598410610010-092523275704?auto=format&fit=crop&q=80&w=800', distance: '8 km away' },
+  { id: '3', name: 'Elephanta Caves', location: 'Gharapuri', image: 'https://images.unsplash.com/photo-1623126838382-77759d58548c?auto=format&fit=crop&q=80&w=800', distance: '15 km away' },
 ];
 
 export interface Article {
@@ -296,6 +296,6 @@ export interface Article {
 
 export const articles: Article[] = [
   { id: '1', title: 'Top 10 Places to Visit in Mumbai', excerpt: 'Discover the hidden gems of the city of dreams.', image: 'https://images.unsplash.com/photo-1529253355930-ddbe423a2ac7?auto=format&fit=crop&q=80&w=800', date: 'Oct 15, 2024' },
-  { id: '2', title: 'Best Street Food in Delhi', excerpt: 'A guide to the most delicious street food in the capital.', image: 'https://images.unsplash.com/photo-1501339819398-ee49a3136b23?auto=format&fit=crop&q=80&w=800', date: 'Oct 12, 2024' },
+  { id: '2', title: 'Best Street Food in Delhi', excerpt: 'A guide to the most delicious street food in the capital.', image: 'https://images.unsplash.com/photo-1585938389612-a552a28d6914?auto=format&fit=crop&q=80&w=800', date: 'Oct 12, 2024' },
   { id: '3', title: 'How to Choose the Right Gym', excerpt: 'Everything you need to know before joining a fitness center.', image: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&q=80&w=800', date: 'Oct 10, 2024' },
 ];

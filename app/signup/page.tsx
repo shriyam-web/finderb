@@ -5,13 +5,12 @@ import { FaGoogle, FaGithub } from 'react-icons/fa6';
 
 export default function SignupPage() {
   return (
-    <div className="min-h-[80vh] flex items-center justify-center bg-accent px-4 py-12">
+    <div className="min-h-[80vh] flex items-center justify-center bg-accent px-4 pt-24 pb-12 lg:pt-32">
       <div className="max-w-md w-full bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100">
         <div className="p-8 md:p-12">
           <div className="text-center mb-10">
-            <Link href="/" className="inline-flex items-center gap-2 mb-6">
-              <Image src="/logo.png" alt="Boomb" width={32} height={32} />
-              <span className="text-2xl font-black text-primary">Boomb</span>
+            <Link href="/" className="inline-flex items-center mb-6">
+              <Image src="/logo-n.png" alt="Boomb" width={150} height={50} className="h-12 w-auto" priority />
             </Link>
             <h2 className="text-3xl font-black text-gray-900">Create Account</h2>
             <p className="text-gray-500 mt-2 font-medium">Join thousands of users discovering local services</p>
