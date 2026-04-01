@@ -47,8 +47,8 @@ export default function SearchBar() {
   };
 
   return (
-    <div className="w-full flex flex-col gap-2 relative z-10">
-      <div className="w-full bg-white rounded-xl border-2 border-gray-100 focus-within:border-primary transition-all flex flex-col md:flex-row items-stretch md:items-center overflow-hidden">
+    <div className="w-full flex flex-col gap-2 relative z-[1002]">
+      <div className="w-full bg-white rounded-xl border-2 border-gray-100 focus-within:border-primary transition-all flex flex-col md:flex-row items-stretch md:items-center">
         
         {/* Location Search */}
         <div className="relative flex-grow md:w-[30%] border-b md:border-b-0 md:border-r border-gray-100">

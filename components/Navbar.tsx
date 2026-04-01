@@ -4,7 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
-import { Menu, X, User, Briefcase, Globe, Megaphone, Users, UserCircle, HelpCircle, ChevronDown, Home } from 'lucide-react';
+import { Menu, X, User, Briefcase, Globe, Megaphone, Users, UserCircle, HelpCircle, ChevronDown, Home, ArrowRight } from 'lucide-react';
 
 export default function Navbar({ whiteText: initialWhiteText = false }: { whiteText?: boolean }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -155,24 +155,24 @@ export default function Navbar({ whiteText: initialWhiteText = false }: { whiteT
 
       {/* Mobile Menu */}
       {isOpen && (
-        <div className="lg:hidden fixed inset-0 top-[60px] sm:top-[72px] bg-white/95 backdrop-blur-2xl z-[1001] overflow-y-auto animate-in fade-in slide-in-from-bottom-5 duration-500">
-          <div className="p-6 space-y-8">
-            <div className="space-y-4">
+        <div className="lg:hidden fixed inset-0 top-[60px] sm:top-[72px] bg-white/98 backdrop-blur-3xl z-[1001] overflow-y-auto animate-in fade-in slide-in-from-bottom-5 duration-500">
+          <div className="p-4 space-y-6">
+            <div className="space-y-3">
               <button 
                 onClick={() => setIsLangOpen(!isLangOpen)}
-                className="w-full flex items-center justify-between p-4 bg-gray-50/50 hover:bg-white text-gray-700 rounded-2xl transition-all text-sm font-medium tracking-tight border border-transparent"
+                className="w-full flex items-center justify-between p-3.5 bg-gray-50/50 hover:bg-white text-gray-700 rounded-2xl transition-all text-xs font-semibold tracking-tight border border-gray-100/50 shadow-sm"
               >
-                <div className="flex items-center gap-4">
-                  <div className="p-2 bg-white rounded-xl shadow-sm">
-                    <Globe size={18} className="text-gray-400" />
+                <div className="flex items-center gap-3">
+                  <div className="p-1.5 bg-white rounded-lg shadow-sm border border-gray-50">
+                    <Globe size={16} className="text-primary" />
                   </div>
-                  <span>Select Language ({currentLang})</span>
+                  <span>{currentLang}</span>
                 </div>
-                <ChevronDown className={`transition-transform duration-300 ${isLangOpen ? 'rotate-180' : ''}`} size={16} />
+                <ChevronDown className={`transition-transform duration-300 ${isLangOpen ? 'rotate-180' : ''} text-gray-400`} size={14} />
               </button>
               
               {isLangOpen && (
-                <div className="grid grid-cols-2 gap-2 animate-in fade-in slide-in-from-top-2 duration-300 px-2">
+                <div className="grid grid-cols-2 gap-2 animate-in fade-in slide-in-from-top-2 duration-300">
                   {languages.map((lang) => (
                     <button
                       key={lang}
@@ -180,7 +180,7 @@ export default function Navbar({ whiteText: initialWhiteText = false }: { whiteT
                         setCurrentLang(lang);
                         setIsLangOpen(false);
                       }}
-                      className={`flex items-center justify-center py-3 rounded-2xl text-xs font-medium transition-all ${currentLang === lang ? 'bg-primary text-white shadow-xl shadow-primary/20 scale-[1.02]' : 'bg-gray-50 text-gray-600 hover:bg-gray-100'}`}
+                      className={`flex items-center justify-center py-2.5 rounded-xl text-[10px] font-bold transition-all ${currentLang === lang ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'bg-gray-50 text-gray-600 border border-gray-100/50'}`}
                     >
                       {lang}
                     </button>
@@ -189,66 +189,60 @@ export default function Navbar({ whiteText: initialWhiteText = false }: { whiteT
               )}
             </div>
 
-            <div className="space-y-3">
-              <p className="text-[10px] font-medium text-gray-400 ml-2">Menu</p>
-              <div className="grid grid-cols-1 gap-2.5">
+            <div className="space-y-2">
+              <p className="text-[9px] font-bold text-gray-400 ml-1 tracking-widest uppercase">Navigation</p>
+              <div className="grid grid-cols-2 gap-2">
                 {menuItems.map((item) => (
                   <Link 
                     key={item.name} 
                     href={item.href} 
-                    className="flex items-center justify-between p-4 bg-gray-50/50 hover:bg-white hover:shadow-xl hover:shadow-gray-200/50 text-gray-700 hover:text-primary rounded-2xl transition-all text-sm font-medium tracking-tight border border-transparent hover:border-gray-100"
+                    className="flex items-center gap-3 p-3 bg-gray-50/50 hover:bg-white hover:shadow-md text-gray-700 hover:text-primary rounded-2xl transition-all text-[11px] font-bold border border-gray-100/50"
                     onClick={() => setIsOpen(false)}
                   >
-                    <div className="flex items-center gap-4">
-                      <div className="p-2 bg-white rounded-xl shadow-sm">
-                        <item.icon size={18} className="text-gray-400" />
-                      </div>
-                      {item.name}
+                    <div className="p-1.5 bg-white rounded-lg shadow-sm">
+                      <item.icon size={14} className="text-gray-400" />
                     </div>
-                    <ChevronDown className="-rotate-90 text-gray-300" size={16} />
+                    {item.name}
                   </Link>
                 ))}
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-3 pt-6 border-t border-gray-100">
+            <div className="grid grid-cols-1 gap-2.5 pt-4 border-t border-gray-100">
               <Link 
                 href="/business/register" 
-                className="flex items-center justify-between p-4 bg-gradient-to-r from-primary via-blue-600 to-indigo-600 text-white rounded-[2rem] shadow-2xl shadow-primary/30"
+                className="flex items-center justify-between p-3.5 bg-gradient-to-r from-primary via-blue-600 to-indigo-600 text-white rounded-2xl shadow-xl shadow-primary/20"
                 onClick={() => setIsOpen(false)}
               >
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3">
                   <div className="p-2 bg-white/20 rounded-xl backdrop-blur-md">
-                    <Briefcase size={22} className="text-white" />
+                    <Briefcase size={18} className="text-white" />
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-[9px] font-medium text-white/60 leading-none mb-1">For Partners</span>
-                    <span className="text-base font-medium tracking-tight">Register Business</span>
+                    <span className="text-[8px] font-bold text-white/70 leading-none mb-0.5 uppercase tracking-wider">Partners</span>
+                    <span className="text-xs font-bold">Register Business</span>
                   </div>
                 </div>
-                <ChevronDown className="-rotate-90 text-white/40" size={20} />
+                <ArrowRight className="text-white/60" size={16} />
               </Link>
 
               <Link 
                 href={authItem.href} 
-                className="flex items-center justify-between p-4 bg-white border-2 border-gray-100 text-primary rounded-[2rem] shadow-sm"
+                className="flex items-center justify-between p-3.5 bg-white border border-gray-100 text-primary rounded-2xl shadow-sm"
                 onClick={() => setIsOpen(false)}
               >
-                <div className="flex items-center gap-4">
-                  <div className="p-2 bg-gray-50 rounded-xl text-gray-400">
-                    <authItem.icon size={22} />
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-gray-50 rounded-xl text-gray-400 border border-gray-100">
+                    <authItem.icon size={18} />
                   </div>
-                  <span className="text-base font-medium tracking-tight">{authItem.name}</span>
+                  <span className="text-xs font-bold">{authItem.name}</span>
                 </div>
-                <ChevronDown className="-rotate-90 text-gray-200" size={20} />
+                <ArrowRight className="text-gray-300" size={16} />
               </Link>
             </div>
           </div>
         </div>
       )}
-
-
-
     </nav>
   );
 }
