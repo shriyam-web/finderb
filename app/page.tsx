@@ -89,7 +89,7 @@ export default function Home() {
 
             {/* Right: Popular Category Grid - Big with Photos */}
             <div className="lg:col-span-6 mt-12 lg:mt-0">
-              <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
+              <div className="grid grid-cols-4 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-4 gap-2 sm:gap-4">
                 {popularCategories.map((cat) => {
                   // @ts-ignore
                   const IconComponent = LucideIcons[cat.icon] || LucideIcons.HelpCircle;
@@ -178,9 +178,9 @@ export default function Home() {
             <h2 className="text-xl sm:text-2xl font-medium text-primary">Latest Movies & Entertainment Near You</h2>
             <Link href="/movies" className="text-sm font-medium text-secondary hover:underline">See All</Link>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="flex overflow-x-auto pb-8 gap-6 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
             {movies.map((movie) => (
-              <div key={movie.id} className="group cursor-pointer">
+              <div key={movie.id} className="group cursor-pointer min-w-[200px] sm:min-w-[240px] shrink-0">
                 <div className="relative aspect-[2/3] rounded-2xl overflow-hidden mb-4 shadow-lg bg-gray-100">
                   <Image 
                     src={movie.image} 
@@ -214,9 +214,9 @@ export default function Home() {
             <h2 className="text-2xl sm:text-3xl font-medium mb-2">Discover Top-Rated Tourist Places & Local Attractions</h2>
             <p className="text-gray-400 font-medium">Find the best attractions and hidden gems in your vicinity.</p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="flex overflow-x-auto pb-8 gap-6 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
             {touristPlaces.map((place) => (
-              <div key={place.id} className="group relative h-[420px] rounded-3xl overflow-hidden shadow-2xl bg-gray-800">
+              <div key={place.id} className="group relative h-[420px] min-w-[300px] sm:min-w-[400px] rounded-3xl overflow-hidden shadow-2xl bg-gray-800 shrink-0">
                 <Image 
                   src={place.image} 
                   alt={place.name} 
@@ -251,9 +251,11 @@ export default function Home() {
               Explore All <ArrowRight size={14} className="group-hover:translate-x-2 transition-transform" />
             </Link>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="flex overflow-x-auto pb-8 gap-6 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
             {featuredBusinesses.map((biz) => (
-              <BusinessCard key={biz.id} business={biz} />
+              <div key={biz.id} className="min-w-[280px] sm:min-w-[320px] shrink-0">
+                <BusinessCard business={biz} />
+              </div>
             ))}
           </div>
         </div>
@@ -263,9 +265,9 @@ export default function Home() {
       <section className="py-24 bg-gray-50/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-2xl sm:text-3xl font-medium text-primary mb-12 sm:mb-20">Trusted by Millions: Real User Testimonials</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-12">
+          <div className="flex overflow-x-auto pb-12 gap-8 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
             {testimonials.map((t) => (
-              <div key={t.id} className="bg-white p-10 rounded-[2.5rem] shadow-sm hover:shadow-xl transition-all duration-500 border border-gray-100 text-left relative group">
+              <div key={t.id} className="bg-white p-10 rounded-[2.5rem] shadow-sm hover:shadow-xl transition-all duration-500 border border-gray-100 text-left relative group min-w-[300px] sm:min-w-[400px] shrink-0">
                 <div className="absolute -top-6 left-10 w-12 h-12 rounded-2xl bg-secondary flex items-center justify-center text-white shadow-lg shadow-secondary/30 group-hover:scale-110 transition-transform">
                   <Star size={24} fill="white" />
                 </div>
@@ -298,9 +300,9 @@ export default function Home() {
             <h2 className="text-2xl sm:text-3xl font-medium text-primary">Local Insights & Expert Articles from Boomb</h2>
             <Link href="/blog" className="text-xs font-medium text-secondary hover:underline whitespace-nowrap">Read Blog</Link>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10">
+          <div className="flex overflow-x-auto pb-8 gap-10 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
             {articles.map((article) => (
-              <div key={article.id} className="group cursor-pointer">
+              <div key={article.id} className="group cursor-pointer min-w-[300px] sm:min-w-[400px] shrink-0">
                 <div className="relative h-72 rounded-[2rem] overflow-hidden mb-8 shadow-md bg-gray-100">
                   <Image 
                     src={article.image} 

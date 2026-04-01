@@ -36,13 +36,13 @@ export default function Navbar({ whiteText: initialWhiteText = false }: { whiteT
 
   const languages = ['English', 'Hindi', 'Bengali', 'Tamil', 'Telugu'];
 
-  const isLight = !scrolled && whiteText;
+  const isLight = false; // Background is no longer transparent, so we don't need white text mode
 
   return (
     <nav className={`fixed top-0 w-full z-50 transition-all duration-700 ${
       scrolled 
-        ? 'bg-white/70 backdrop-blur-2xl border-b border-gray-100/50 shadow-[0_8px_30px_rgb(0,0,0,0.04)] py-3' 
-        : 'bg-transparent py-6'
+        ? 'bg-white border-b border-gray-100 shadow-md py-3' 
+        : 'bg-white py-6 border-b border-gray-50'
     }`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center gap-4">
@@ -52,7 +52,7 @@ export default function Navbar({ whiteText: initialWhiteText = false }: { whiteT
               alt="Boomb Logo" 
               width={180} 
               height={60} 
-              className="h-11 w-auto object-contain transition-all duration-500 group-hover:scale-105"
+              className="h-8 sm:h-11 w-auto object-contain transition-all duration-500 group-hover:scale-105"
               priority
               quality={100}
             />
