@@ -10,6 +10,8 @@ export default function SearchBar() {
   const [showLocationSuggestions, setShowLocationSuggestions] = useState(false);
   const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const [showVoiceModal, setShowVoiceModal] = useState(false);
+  const [transcript, setTranscript] = useState('');
 
   useEffect(() => {
     if (!location) {
@@ -25,7 +27,7 @@ export default function SearchBar() {
   ];
 
   const popularCities = [
-    'Mumbai', 'Delhi', 'Bangalore', 'Hyderabad', 'Ahmedabad', 'Chennai', 'Kolkata', 'Pune'
+    'Mumbai', 'Delhi', 'Bangalore', 'Hyderabad', 'Ahmedabad', 'Chennai', 'Kolkata', 'Pune', 'Jaipur', 'Chandigarh'
   ];
 
   const handleVoiceSearch = () => {
@@ -33,13 +35,61 @@ export default function SearchBar() {
       const SpeechRecognition = (window as any).webkitSpeechRecognition || (window as any).speechRecognition;
       const recognition = new SpeechRecognition();
       recognition.lang = 'en-IN';
-      recognition.onstart = () => setIsListening(true);
-      recognition.onend = () => setIsListening(false);
-      recognition.onresult = (event: any) => {
-        const transcript = event.results[0][0].transcript;
-        setQuery(transcript);
-        setShowSearchSuggestions(true);
+      recognition.interimResults = true;
+      
+      recognition.onstart = () => {
+        setIsListening(true);
+        setShowVoiceModal(true);
+        setTranscript('Listening...');
       };
+      
+      recognition.onerror = (event: any) => {
+        console.error('Speech recognition error:', event.error);
+        setIsListening(false);
+        if (event.error === 'no-speech') {
+          setTranscript('No voice detected');
+        } else {
+          setTranscript('Could not connect...');
+        }
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+        // Check if nothing was detected
+        setTranscript((prev) => {
+          if (prev === 'Listening...' || !prev) {
+            return 'No voice detected';
+          }
+          return prev;
+        });
+        
+        // Delay closing modal to let user see the final status
+        setTimeout(() => setShowVoiceModal(false), 2500);
+      };
+
+      recognition.onresult = (event: any) => {
+        let finalTranscript = '';
+        let interimTranscript = '';
+
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          if (event.results[i].isFinal) {
+            finalTranscript += event.results[i][0].transcript;
+          } else {
+            interimTranscript += event.results[i][0].transcript;
+          }
+        }
+
+        const currentDisplay = (finalTranscript + interimTranscript).trim();
+        if (currentDisplay) {
+          setTranscript(currentDisplay);
+        }
+
+        if (finalTranscript) {
+          setQuery(finalTranscript.trim());
+          setShowSearchSuggestions(true);
+        }
+      };
+      
       recognition.start();
     } else {
       alert('Voice search is not supported in your browser.');
@@ -47,8 +97,8 @@ export default function SearchBar() {
   };
 
   return (
-    <div className="w-full flex flex-col gap-2 relative z-[1002]">
-      <div className="w-full bg-white rounded-xl border-2 border-gray-100 focus-within:border-primary transition-all flex flex-col md:flex-row items-stretch md:items-center">
+    <div className="w-full flex flex-col gap-2 relative z-[10]">
+      <div className="w-full bg-white rounded-xl shadow-md transition-all flex flex-col md:flex-row items-stretch md:items-center">
         
         {/* Location Search */}
         <div className="relative flex-grow md:w-[30%] border-b md:border-b-0 md:border-r border-gray-100">
@@ -134,6 +184,70 @@ export default function SearchBar() {
           </button>
         </div>
       </div>
+
+      {/* Voice Search Modal */}
+      {showVoiceModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[10000] flex items-center justify-center p-4 animate-in fade-in duration-300">
+          <div className="bg-white rounded-[2.5rem] shadow-2xl p-10 w-full max-w-sm text-center relative overflow-hidden animate-in zoom-in-95 duration-300 ring-1 ring-gray-100">
+            {/* Close Button */}
+            <button 
+              onClick={() => setShowVoiceModal(false)}
+              className="absolute top-6 right-6 p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-400"
+            >
+              <X size={24} />
+            </button>
+
+            <div className="space-y-12">
+              <div className="space-y-2">
+                <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+                  boomb voice search
+                </h2>
+                <p className="text-gray-400 text-sm font-medium">Listening for your command...</p>
+              </div>
+
+              <div className="relative flex items-center justify-center h-48">
+                {/* Colorful Rings */}
+                {isListening && (
+                  <>
+                    <div className="absolute w-24 h-24 rounded-full border-2 border-blue-400/30 animate-[voice-ring_2s_infinite]" />
+                    <div className="absolute w-24 h-24 rounded-full border-2 border-purple-400/30 animate-[voice-ring_2s_infinite_0.4s]" />
+                    <div className="absolute w-24 h-24 rounded-full border-2 border-pink-400/30 animate-[voice-ring_2s_infinite_0.8s]" />
+                    <div className="absolute w-24 h-24 rounded-full border-2 border-emerald-400/30 animate-[voice-ring_2s_infinite_1.2s]" />
+                  </>
+                )}
+
+                {/* Central Mic Button */}
+                <div className={`relative z-10 w-28 h-28 rounded-full flex items-center justify-center transition-all duration-500 shadow-2xl ${
+                  isListening 
+                    ? 'bg-gradient-to-tr from-blue-600 via-purple-600 to-pink-600 scale-110 shadow-purple-500/20' 
+                    : 'bg-gray-100'
+                }`}>
+                  <div className={`absolute inset-0 rounded-full bg-white/10 ${isListening ? 'animate-pulse' : ''}`} />
+                  <Mic 
+                    size={48} 
+                    className={`transition-all duration-300 ${isListening ? 'text-white' : 'text-gray-400'}`} 
+                  />
+                </div>
+              </div>
+
+              <div className="min-h-[4.5rem] flex flex-col items-center justify-center bg-gray-50/50 rounded-2xl p-4">
+                <p className={`text-xl font-semibold tracking-tight transition-all duration-300 ${
+                  isListening ? 'text-gray-900' : 'text-gray-400'
+                }`}>
+                  {transcript || (isListening ? '...' : 'Stopped')}
+                </p>
+                {isListening && (
+                  <div className="flex gap-1.5 mt-3">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                    <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                    <div className="w-2 h-2 bg-pink-500 rounded-full animate-bounce"></div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

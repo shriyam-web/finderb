@@ -1,24 +1,30 @@
 @import "tailwindcss";
 
 @theme {
-  --color-primary: #002e7e; /* Dark Blue */
-  --color-secondary: #00baf2; /* Light Blue */
-  --color-accent: #f5fafd; /* Light background for sections */
+  --color-primary: #0f172a; /* Slate 900 - Modern Navy */
+  --color-secondary: #2563eb; /* Blue 600 - Clean Professional Blue */
+  --color-accent: #f8fafc; /* Slate 50 - Very light background */
   --animate-float: float 6s ease-in-out infinite;
   --animate-float-delayed: float 6s ease-in-out 3s infinite;
+  --animate-voice-ring: voice-ring 2s cubic-bezier(0, 0, 0.2, 1) infinite;
   --font-sans: var(--font-inter), 'Inter', system-ui, -apple-system, sans-serif;
 
   @keyframes float {
     0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-20px); }
+    50% { transform: translateY(-10px); }
+  }
+
+  @keyframes voice-ring {
+    0% { transform: scale(1); opacity: 0.8; }
+    100% { transform: scale(2.5); opacity: 0; }
   }
 }
 
 :root {
   --background: #ffffff;
-  --foreground: #171717;
-  --primary: #002e7e;
-  --secondary: #00baf2;
+  --foreground: #020617;
+  --primary: #0f172a;
+  --secondary: #2563eb;
 }
 
 body {

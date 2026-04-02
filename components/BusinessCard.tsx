@@ -10,55 +10,68 @@ interface BusinessCardProps {
 
 export default function BusinessCard({ business, isPremium = false }: BusinessCardProps) {
   return (
-    <div className={`bg-white rounded-[2rem] overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.04)] border transition-all duration-500 group ${isPremium ? 'border-secondary/20 ring-1 ring-secondary/5' : 'border-gray-100/50 hover:shadow-[0_20px_50px_rgba(0,0,0,0.1)]'}`}>
-      <div className="relative h-56 w-full overflow-hidden">
+    <div className={`group relative bg-white rounded-[2.5rem] overflow-hidden transition-all duration-700 ${
+      isPremium 
+        ? 'border-2 border-secondary/20 shadow-[0_20px_50px_rgba(0,186,242,0.1)] hover:shadow-secondary/20' 
+        : 'border border-gray-100 hover:shadow-2xl'
+    } hover:-translate-y-2`}>
+      <div className="relative h-64 w-full overflow-hidden">
         <Image
           src={business.image}
           alt={business.name}
           fill
-          className="object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
+          className="object-cover group-hover:scale-110 transition-transform duration-1000 ease-out"
+          sizes="(max-width: 768px) 100vw, 33vw"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-60"></div>
+        <div className="absolute inset-0 bg-gradient-to-t from-primary/80 via-transparent to-transparent opacity-60 group-hover:opacity-40 transition-opacity"></div>
         
         {isPremium && (
-          <div className="absolute top-4 left-4 z-10">
-            <div className="bg-gradient-to-r from-secondary to-blue-500 text-white text-[9px] font-bold px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1.5 border border-white/20 uppercase tracking-wider">
-              <Star size={10} fill="white" />
-              Premium Partner
+          <div className="absolute top-5 left-5 z-10">
+            <div className="bg-secondary/90 backdrop-blur-md text-white text-[10px] font-bold px-4 py-2 rounded-2xl shadow-xl flex items-center gap-2 border border-white/20 uppercase tracking-widest">
+              <Star size={12} fill="white" className="animate-pulse" />
+              Premium
             </div>
           </div>
         )}
 
-        <div className="absolute top-4 right-4 bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-sm border border-white/20">
+        <div className="absolute top-5 right-5 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-2xl flex items-center gap-1.5 shadow-lg border border-white/20">
           <Star className="text-yellow-400 fill-yellow-400" size={14} />
-          <span className="text-[11px] font-bold text-primary">{business.rating}</span>
+          <span className="text-xs font-bold text-primary">{business.rating}</span>
         </div>
       </div>
-      <div className="p-6">
-        <div className="flex justify-between items-start mb-1.5">
-          <h3 className="text-xl font-bold text-primary group-hover:text-secondary transition-colors tracking-tight leading-tight line-clamp-1">
+
+      <div className="p-8">
+        <div className="flex justify-between items-start mb-2">
+          <h3 className="text-2xl font-bold text-primary group-hover:text-secondary transition-colors tracking-tight leading-tight line-clamp-1">
             {business.name}
           </h3>
         </div>
-        <p className="text-secondary text-[10px] font-bold uppercase tracking-widest mb-4">{business.category}</p>
         
-        <div className="flex items-center gap-2.5 text-gray-500 text-[10px] font-medium mb-6 bg-gray-50/50 p-2.5 rounded-xl border border-gray-100/50">
-          <MapPin size={12} className="text-secondary" />
+        <div className="flex items-center gap-2 mb-6">
+          <span className="px-3 py-1 bg-primary/5 text-secondary text-[10px] font-bold uppercase tracking-widest rounded-lg border border-secondary/10">
+            {business.category}
+          </span>
+        </div>
+        
+        <div className="flex items-center gap-3 text-gray-500 text-xs font-medium mb-8 bg-gray-50/50 p-4 rounded-2xl border border-gray-100/50 group-hover:bg-white group-hover:border-secondary/20 transition-all">
+          <MapPin size={14} className="text-secondary" />
           <span className="line-clamp-1">{business.location}</span>
         </div>
 
-        <div className="flex items-center justify-between pt-5 border-t border-gray-100">
+        <div className="flex items-center justify-between pt-6 border-t border-gray-100">
           <div className="flex flex-col">
-            <span className="text-[9px] text-gray-400 font-bold uppercase tracking-tighter mb-0.5">EST. PRICE</span>
-            <span className="text-primary font-bold text-xl tracking-tighter">
-              {business.priceRange.split('-')[0]}
-            </span>
+            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Starts From</span>
+            <div className="flex items-baseline gap-1">
+              <span className="text-primary font-black text-2xl tracking-tighter">
+                {business.priceRange.split('-')[0]}
+              </span>
+            </div>
           </div>
           <Link 
             href={`/business/${business.id}`}
-            className="flex items-center justify-center w-12 h-12 bg-gray-50 text-primary rounded-2xl hover:bg-primary hover:text-white transition-all duration-500 hover:shadow-xl hover:shadow-primary/20 border border-gray-100/50"
+            className="flex items-center justify-center w-14 h-14 bg-primary text-white rounded-[1.25rem] hover:bg-secondary transition-all duration-500 hover:shadow-2xl hover:shadow-secondary/40 group-hover:rotate-6 active:scale-90"
           >
-            <ArrowRight size={20} />
+            <ArrowRight size={24} />
           </Link>
         </div>
       </div>

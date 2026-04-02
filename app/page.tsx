@@ -56,7 +56,7 @@ export default function Home() {
   return (
     <div className="flex flex-col bg-white selection:bg-primary/10">
       {/* Hero Section */}
-      <section className="relative pt-20 pb-8 lg:pt-32 lg:pb-24 overflow-hidden bg-gradient-to-br from-white via-gray-50/50 to-white">
+      <section className="relative pt-20 pb-4 lg:pt-32 lg:pb-12 bg-gradient-to-br from-white via-gray-50/50 to-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid lg:grid-cols-12 gap-8 items-center">
             <div className="lg:col-span-6 space-y-6 lg:space-y-8 text-left">
@@ -122,7 +122,7 @@ export default function Home() {
           </div>
 
           {/* Smaller Buttons for More Categories */}
-          <div className="mt-8 lg:mt-12 pt-6 lg:pt-8 border-t border-gray-100">
+          <div className="mt-2 lg:mt-6 pt-2 lg:pt-4 border-t border-gray-100">
             <div className="flex items-center gap-3 mb-4 lg:mb-6">
               <div className="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse"></div>
               <h2 className="text-[10px] font-medium text-primary">Explore Premium Categories</h2>
@@ -143,7 +143,7 @@ export default function Home() {
       </section>
 
       {/* City Cards - Horizontal Scrolling */}
-      <section className="py-12 lg:py-16 bg-gray-50/50">
+      <section className="py-8 lg:py-16 bg-gray-50/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 className="text-lg sm:text-2xl font-medium text-primary mb-6 lg:mb-8">Verified Local Services Across Major Indian Cities</h2>
           <div className="flex overflow-x-auto pb-4 gap-4 lg:gap-6 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
@@ -240,84 +240,122 @@ export default function Home() {
       </section>
 
       {/* Featured Businesses */}
-      <section className="py-16 lg:py-24 bg-white">
+      <section className="py-20 lg:py-28 bg-white relative overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 lg:mb-16 gap-4">
-            <div className="space-y-2 lg:space-y-3">
-              <span className="text-[9px] sm:text-[10px] font-bold text-secondary uppercase tracking-widest">Premium Collection</span>
-              <h2 className="text-2xl sm:text-4xl font-bold text-primary tracking-tight leading-tight">Featured Local Businesses</h2>
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-12 lg:mb-20 gap-8">
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-1 bg-secondary rounded-full"></div>
+                <span className="text-xs font-black text-secondary uppercase tracking-[0.3em]">Premium Collection</span>
+              </div>
+              <h2 className="text-3xl sm:text-5xl font-black text-primary tracking-tighter leading-none">Featured Local Businesses</h2>
             </div>
-            <Link href="/categories/all" className="group flex items-center gap-2 text-xs font-bold text-gray-400 hover:text-primary transition-all">
-              EXPLORE ALL <ArrowRight size={12} className="group-hover:translate-x-1 transition-transform" />
+            <Link href="/categories/all" className="group flex items-center gap-3 px-6 py-3 bg-gray-50 hover:bg-primary hover:text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-sm">
+              Explore All <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
             </Link>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+          
+          <div className="flex overflow-x-auto pb-10 gap-6 lg:grid lg:grid-cols-3 lg:gap-8 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
             {featuredBusinesses.slice(0, 3).map((biz) => (
-              <BusinessCard key={biz.id} business={biz} isPremium={true} />
+              <div key={biz.id} className="min-w-[300px] sm:min-w-0 w-full">
+                <BusinessCard business={biz} isPremium={true} />
+              </div>
             ))}
           </div>
         </div>
+        <div className="absolute top-0 right-0 w-64 h-64 bg-secondary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
       </section>
 
       {/* Testimonials */}
-      <section className="py-16 lg:py-24 bg-gray-50/50 overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-xl sm:text-3xl font-bold text-primary mb-10 sm:mb-20 tracking-tight">Trusted by Millions: User Stories</h2>
-          <div className="flex overflow-x-auto pb-8 lg:pb-12 gap-6 lg:gap-8 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
+      <section className="py-20 lg:py-32 bg-gray-50/50 relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-gray-200 to-transparent"></div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col items-center text-center mb-12 lg:mb-24">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-white rounded-xl sm:rounded-2xl shadow-sm border border-gray-100 mb-4 sm:mb-6 transition-transform hover:scale-105">
+              <span className="flex h-1.5 w-1.5 rounded-full bg-secondary animate-ping"></span>
+              <span className="text-[8px] sm:text-[10px] font-black text-primary uppercase tracking-[0.2em]">User Feedback</span>
+            </div>
+            <h2 className="text-2xl sm:text-6xl font-black text-primary tracking-tighter leading-tight max-w-3xl">
+              Trusted by Millions: <br />
+              <span className="text-secondary">Real Stories</span> from Boomb
+            </h2>
+          </div>
+          
+          <div className="flex overflow-x-auto pb-10 gap-4 sm:gap-10 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
             {testimonials.map((t) => (
-              <div key={t.id} className="bg-white p-6 sm:p-10 rounded-2xl sm:rounded-[2.5rem] shadow-sm hover:shadow-xl transition-all duration-500 border border-gray-100 text-left relative group min-w-[280px] sm:min-w-[400px] shrink-0">
-                <div className="absolute -top-4 left-6 sm:-top-6 sm:left-10 w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-secondary flex items-center justify-center text-white shadow-lg shadow-secondary/30 group-hover:scale-110 transition-transform">
-                  <Star size={20} className="sm:size-6" fill="white" />
+              <div key={t.id} className="bg-white pt-14 pb-6 px-6 sm:pt-24 sm:pb-10 sm:px-10 rounded-[2rem] sm:rounded-[3rem] shadow-xl sm:shadow-2xl shadow-gray-200/40 hover:shadow-secondary/10 transition-all duration-700 border border-white text-left relative group min-w-[280px] sm:min-w-[400px] max-w-[320px] sm:max-w-[450px] h-[350px] sm:h-[450px] shrink-0 hover:-translate-y-2 flex flex-col justify-between">
+                <div className="absolute -top-4 left-6 sm:-top-5 sm:left-8 w-10 h-10 sm:w-16 sm:h-16 rounded-xl sm:rounded-[1.5rem] bg-primary flex items-center justify-center text-white shadow-xl sm:shadow-2xl shadow-primary/30 group-hover:bg-secondary group-hover:-rotate-12 transition-all duration-700 ease-out z-20">
+                  <Star size={20} className="sm:size-8" fill="white" />
                 </div>
-                <p className="text-gray-600 font-medium leading-relaxed italic mb-6 sm:mb-8 pt-2 sm:pt-4 text-sm sm:text-base line-clamp-4">"{t.content}"</p>
-                <div className="flex items-center gap-3 sm:gap-4 mt-auto">
-                  <div className="relative w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl overflow-hidden border border-gray-100">
-                    <Image 
-                      src={t.avatar} 
-                      alt={t.name} 
-                      fill 
-                      className="object-cover" 
-                      sizes="56px"
-                    />
+                
+                <div className="relative flex-grow">
+                  <span className="absolute -top-3 -left-1 text-5xl sm:text-8xl text-gray-50 font-serif leading-none select-none">"</span>
+                  <p className="text-gray-600 font-medium leading-relaxed italic pt-4 sm:pt-8 text-sm sm:text-xl line-clamp-6 sm:line-clamp-none relative z-10">
+                    {t.content}
+                  </p>
+                </div>
+
+                <div className="flex items-center justify-between border-t border-gray-50 pt-6 sm:pt-10 mt-auto">
+                  <div className="flex items-center gap-3 sm:gap-6">
+                    <div className="relative w-12 h-12 sm:w-20 sm:h-20 rounded-xl sm:rounded-[2.5rem] overflow-hidden border border-gray-100 group-hover:border-secondary transition-all duration-500 group-hover:scale-105">
+                      <Image 
+                        src={t.avatar} 
+                        alt={t.name} 
+                        fill 
+                        className="object-cover" 
+                        sizes="80px"
+                      />
+                    </div>
+                    <div>
+                      <h4 className="font-black text-primary text-sm sm:text-2xl tracking-tight">{t.name}</h4>
+                      <p className="text-secondary text-[8px] sm:text-xs font-black uppercase tracking-[0.2em] sm:tracking-[0.3em] mt-0.5 sm:mt-1">{t.role}</p>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="font-bold text-primary text-xs sm:text-sm">{t.name}</h4>
-                    <p className="text-gray-400 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider">{t.role}</p>
+                  <div className="hidden sm:flex items-center gap-1 text-yellow-400">
+                    {[...Array(5)].map((_, i) => (
+                      <Star key={i} size={16} fill="currentColor" />
+                    ))}
                   </div>
                 </div>
               </div>
             ))}
           </div>
         </div>
+        <div className="absolute bottom-0 right-0 w-96 h-96 bg-primary/5 rounded-full blur-3xl translate-y-1/2 translate-x-1/2"></div>
       </section>
 
       {/* Articles */}
       <section className="py-16 lg:py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-10 lg:mb-16 gap-4">
-            <h2 className="text-xl sm:text-3xl font-bold text-primary tracking-tight">Local Insights & Expert Articles</h2>
-            <Link href="/blog" className="text-xs font-bold text-secondary hover:underline uppercase tracking-wider">Read All Stories</Link>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-10 lg:mb-16 gap-6">
+            <div className="space-y-2">
+              <h2 className="text-2xl sm:text-4xl font-black text-primary tracking-tight">Local Insights & Expert Articles</h2>
+              <div className="w-12 h-1 bg-secondary rounded-full"></div>
+            </div>
+            <Link href="/blog" className="group flex items-center gap-2 text-xs font-bold text-secondary hover:text-primary transition-all uppercase tracking-widest">
+              Read All Stories <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+            </Link>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 lg:gap-12">
+          <div className="flex overflow-x-auto pb-10 gap-8 lg:grid lg:grid-cols-3 lg:gap-12 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
             {articles.slice(0, 3).map((article) => (
-              <div key={article.id} className="group cursor-pointer">
-                <div className="relative h-48 sm:h-64 rounded-2xl sm:rounded-[2rem] overflow-hidden mb-4 sm:mb-6 shadow-md bg-gray-100">
+              <div key={article.id} className="group cursor-pointer min-w-[320px] sm:min-w-0 w-full">
+                <div className="relative h-64 sm:h-72 rounded-[2.5rem] overflow-hidden mb-6 shadow-2xl shadow-gray-200/50 bg-gray-100">
                   <Image 
                     src={article.image} 
                     alt={article.title} 
                     fill 
-                    className="object-cover group-hover:scale-110 transition-transform duration-700" 
+                    className="object-cover group-hover:scale-110 transition-transform duration-1000" 
                     sizes="(max-width: 768px) 100vw, 33vw"
                   />
-                  <div className="absolute top-4 left-4 bg-white/95 backdrop-blur-sm px-3 py-1.5 rounded-full flex items-center gap-2 shadow-sm border border-gray-100/50">
-                    <Calendar size={10} className="text-secondary" />
-                    <span className="text-[9px] font-bold text-gray-700 uppercase tracking-widest">{article.date}</span>
+                  <div className="absolute top-5 left-5 bg-white/90 backdrop-blur-md px-4 py-2 rounded-2xl flex items-center gap-2 shadow-lg border border-white/20">
+                    <Calendar size={12} className="text-secondary" />
+                    <span className="text-[10px] font-bold text-gray-700 uppercase tracking-widest">{article.date}</span>
                   </div>
                 </div>
-                <h3 className="text-lg sm:text-xl font-bold text-primary group-hover:text-secondary transition-colors mb-2 sm:mb-3 leading-tight tracking-tight line-clamp-2">{article.title}</h3>
-                <p className="text-gray-500 font-medium text-xs sm:text-sm line-clamp-2 mb-4 leading-relaxed">{article.excerpt}</p>
-                <div className="flex items-center gap-2 text-[10px] font-bold text-secondary uppercase tracking-widest group-hover:gap-3 transition-all">
-                  CONTINUE READING <ArrowRight size={12} />
+                <h3 className="text-xl sm:text-2xl font-black text-primary group-hover:text-secondary transition-colors mb-3 leading-tight tracking-tight line-clamp-2">{article.title}</h3>
+                <p className="text-gray-500 font-medium text-sm sm:text-base line-clamp-2 mb-6 leading-relaxed">{article.excerpt}</p>
+                <div className="flex items-center gap-3 text-[10px] font-bold text-secondary uppercase tracking-[0.2em] group-hover:gap-4 transition-all">
+                  CONTINUE READING <ArrowRight size={14} />
                 </div>
               </div>
             ))}
@@ -326,28 +364,30 @@ export default function Home() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-16 lg:py-28 bg-primary relative overflow-hidden">
-        <div className="max-w-5xl mx-auto px-4 text-center space-y-8 lg:space-y-12 relative z-10">
-          <div className="space-y-4 lg:space-y-6">
-            <h2 className="text-3xl sm:text-5xl lg:text-7xl font-bold text-white tracking-tight leading-none">
-              Ready to grow your business? <br className="hidden sm:block" />
+      <section className="py-20 lg:py-32 bg-primary relative overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 text-center space-y-10 lg:space-y-16 relative z-10">
+          <div className="space-y-6 lg:space-y-8">
+            <h2 className="text-4xl sm:text-6xl lg:text-8xl font-black text-white tracking-tighter leading-[0.9]">
+              Ready to grow <br className="hidden sm:block" />
+              your business? <br />
               <span className="text-secondary">Join Boomb today.</span>
             </h2>
-            <p className="text-blue-100/60 text-sm sm:text-lg lg:text-xl font-medium max-w-2xl mx-auto">
-              Join 50,000+ elite business owners already scaling their reach on Boomb's discovery network.
+            <p className="text-blue-100/60 text-base sm:text-xl lg:text-2xl font-medium max-w-3xl mx-auto leading-relaxed">
+              Join 50,000+ elite business owners already scaling their reach on India's premier discovery network.
             </p>
           </div>
-          <div className="flex flex-col sm:flex-row justify-center gap-4 lg:gap-6">
-            <Link href="/business/register" className="bg-white text-primary px-8 lg:px-12 py-4 lg:py-5 rounded-xl sm:rounded-2xl font-bold hover:bg-secondary hover:text-white transition-all active:scale-95 uppercase tracking-widest text-[10px] sm:text-xs">
+          <div className="flex flex-col sm:flex-row justify-center gap-4 sm:gap-8">
+            <Link href="/business/register" className="bg-white text-primary px-10 sm:px-14 py-5 sm:py-6 rounded-[2rem] font-black hover:bg-secondary hover:text-white transition-all active:scale-95 uppercase tracking-widest text-xs sm:text-sm shadow-2xl shadow-black/20 hover:shadow-secondary/40">
               List Your Business
             </Link>
-            <Link href="/pricing" className="bg-transparent border-2 border-white/20 text-white px-8 lg:px-12 py-4 lg:py-5 rounded-xl sm:rounded-2xl font-bold hover:bg-white hover:text-primary transition-all active:scale-95 uppercase tracking-widest text-[10px] sm:text-xs">
+            <Link href="/pricing" className="bg-white/5 backdrop-blur-xl border-2 border-white/10 text-white px-10 sm:px-14 py-5 sm:py-6 rounded-[2rem] font-black hover:bg-white hover:text-primary transition-all active:scale-95 uppercase tracking-widest text-xs sm:text-sm">
               View Growth Plans
             </Link>
           </div>
         </div>
-        <div className="absolute top-0 right-0 w-full h-full bg-[radial-gradient(circle_at_top_right,rgba(0,186,242,0.15),transparent_50%)]"></div>
-        <div className="absolute bottom-0 left-0 w-full h-full bg-[radial-gradient(circle_at_bottom_left,rgba(0,186,242,0.15),transparent_50%)]"></div>
+        <div className="absolute top-0 right-0 w-full h-full bg-[radial-gradient(circle_at_top_right,rgba(0,186,242,0.2),transparent_60%)]"></div>
+        <div className="absolute bottom-0 left-0 w-full h-full bg-[radial-gradient(circle_at_bottom_left,rgba(0,186,242,0.2),transparent_60%)]"></div>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[radial-gradient(circle_at_center,rgba(0,186,242,0.05),transparent_70%)]"></div>
       </section>
     </div>
   );

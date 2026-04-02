@@ -255,6 +255,10 @@ export const cities: City[] = [
   { id: '4', name: 'Hyderabad', image: 'https://images.unsplash.com/photo-1617503752587-97d2103a96ea?auto=format&fit=crop&q=80&w=800' },
   { id: '5', name: 'Chennai', image: 'https://images.unsplash.com/photo-1582510003544-4d00b7f74220?auto=format&fit=crop&q=80&w=800' },
   { id: '6', name: 'Kolkata', image: 'https://images.unsplash.com/photo-1601004113227-6f0270a4a836?auto=format&fit=crop&q=80&w=800' },
+  { id: '7', name: 'Pune', image: 'https://images.unsplash.com/photo-1562076044-24637748437d?auto=format&fit=crop&q=80&w=800' },
+  { id: '8', name: 'Ahmedabad', image: 'https://images.unsplash.com/photo-1627319020037-eb4a4a159e1e?auto=format&fit=crop&q=80&w=800' },
+  { id: '9', name: 'Jaipur', image: 'https://images.unsplash.com/photo-1599661046289-e31897846e41?auto=format&fit=crop&q=80&w=800' },
+  { id: '10', name: 'Chandigarh', image: 'https://images.unsplash.com/photo-1616423640203-0931551221f7?auto=format&fit=crop&q=80&w=800' },
 ];
 
 export interface Movie {

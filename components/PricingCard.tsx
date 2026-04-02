@@ -13,35 +13,35 @@ interface PricingCardProps {
 
 export default function PricingCard({ plan, price, oldPrice, features, recommended, buttonText, period = 'month', onClick }: PricingCardProps) {
   return (
-    <div className={`relative bg-white rounded-[2.5rem] p-10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border ${recommended ? 'border-secondary/20 shadow-[0_20px_60px_-15px_rgba(0,186,242,0.15)] scale-105 z-10' : 'border-gray-100 hover:shadow-[0_20px_50px_rgba(0,0,0,0.08)] transition-all duration-500'}`}>
+    <div className={`relative bg-white rounded-2xl p-6 shadow-sm border transition-all duration-300 ${recommended ? 'border-blue-600 shadow-xl shadow-blue-50 scale-105 z-10' : 'border-slate-100 hover:border-blue-200 hover:shadow-md'}`}>
       {recommended && (
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-secondary text-white text-[10px] font-medium px-6 py-2 rounded-full shadow-xl shadow-secondary/20">
-          Most Popular
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-blue-600 text-white text-[9px] font-bold px-4 py-1 rounded-full shadow-lg shadow-blue-100 uppercase tracking-wider">
+          Recommended
         </div>
       )}
-      <div className="mb-10 text-center">
-        <h3 className="text-sm font-medium text-primary mb-4">{plan}</h3>
+      <div className="mb-6 text-center">
+        <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">{plan}</h3>
         {oldPrice && (
-          <div className="text-gray-400 line-through font-medium text-sm mb-1">{oldPrice}</div>
+          <div className="text-slate-300 line-through font-bold text-[10px] mb-0.5">{oldPrice}</div>
         )}
-        <div className="flex items-baseline justify-center gap-1">
-          <span className="text-5xl font-black text-primary tracking-tighter">{price}</span>
-          <span className="text-gray-400 font-medium text-xs">/{period}</span>
+        <div className="flex items-baseline justify-center gap-0.5">
+          <span className="text-3xl font-extrabold text-slate-900 tracking-tight">{price}</span>
+          <span className="text-slate-400 font-bold text-[10px]">/{period}</span>
         </div>
       </div>
-      <ul className="space-y-5 mb-10">
+      <ul className="space-y-3 mb-6">
         {features.map((feature, index) => (
-          <li key={index} className="flex items-center gap-4 text-gray-500 group">
-            <div className={`flex-shrink-0 w-6 h-6 rounded-lg flex items-center justify-center transition-colors ${recommended ? 'bg-secondary/10 text-secondary' : 'bg-gray-50 text-gray-400'}`}>
-              <Check size={14} strokeWidth={3} />
+          <li key={index} className="flex items-center gap-3 text-slate-600 group">
+            <div className={`flex-shrink-0 w-5 h-5 rounded-md flex items-center justify-center transition-colors ${recommended ? 'bg-blue-50 text-blue-600' : 'bg-slate-50 text-slate-400'}`}>
+              <Check size={12} strokeWidth={4} />
             </div>
-            <span className="text-[11px] font-medium group-hover:text-primary transition-colors">{feature}</span>
+            <span className="text-[11px] font-medium tracking-tight group-hover:text-slate-900 transition-colors">{feature}</span>
           </li>
         ))}
       </ul>
       <button 
         onClick={onClick}
-        className={`w-full py-5 rounded-2xl font-medium transition-all duration-500 text-[10px] active:scale-95 ${recommended ? 'bg-secondary text-white hover:bg-primary shadow-xl shadow-secondary/20 hover:shadow-primary/20' : 'bg-gray-50 text-primary hover:bg-gray-100'}`}
+        className={`w-full py-3 rounded-xl font-bold transition-all duration-300 text-[10px] uppercase tracking-widest active:scale-95 ${recommended ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-100' : 'bg-slate-900 text-white hover:bg-slate-800'}`}
       >
         {buttonText}
       </button>

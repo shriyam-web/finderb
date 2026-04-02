@@ -4,12 +4,23 @@ import { Mail, Phone, MapPin, ExternalLink } from 'lucide-react';
 import { FaFacebook, FaTwitter, FaInstagram, FaLinkedin } from 'react-icons/fa6';
 
 export default function Footer() {
+  const topCities = [
+    'Bangalore', 'Mumbai', 'Delhi', 'Hyderabad', 'Chennai', 
+    'Pune', 'Ahmedabad', 'Kolkata', 'Jaipur', 'Lucknow'
+  ];
+
+  const popularSearches = [
+    'Best Plumbers near me', 'Top rated Restaurants', 'Verified Doctors in India',
+    'Real Estate Agents', 'Local Gyms & Fitness', 'Professional CA Services',
+    'Wedding Photographers', 'Home Cleaning Services', 'Emergency Hospital services'
+  ];
+
   return (
     <footer className="bg-white border-t border-gray-100 text-gray-600 pt-24 pb-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-20">
           
-          {/* About & Services Brief */}
+          {/* About & SEO Description */}
           <div className="space-y-8">
             <Link href="/" className="flex items-center group">
               <Image 
@@ -22,87 +33,110 @@ export default function Footer() {
               />
             </Link>
             <div className="space-y-4">
-              <h4 className="text-primary font-medium text-xs">About Boomb</h4>
+              <h4 className="text-primary font-black text-[10px] uppercase tracking-widest">About Boomb</h4>
               <p className="text-gray-500 text-sm leading-relaxed font-medium">
-                Boomb is India's premier discovery platform, connecting millions of users with verified local businesses, services, and entertainment. We simplify your search for quality and trust.
-              </p>
-            </div>
-            <div className="space-y-4">
-              <h4 className="text-primary font-medium text-xs">Our Services</h4>
-              <p className="text-gray-400 text-xs leading-relaxed font-medium italic">
-                Verified Professionals • Real-time Bookings • Community Reviews • Local Discovery • Business Scaling
+                Boomb is India's premier **local discovery platform**, connecting millions of users with **verified local businesses**, professional services, and entertainment. We are your go-to destination for finding **top-rated plumbers, doctors, restaurants, and real estate** across 500+ cities in India.
               </p>
             </div>
           </div>
 
-          {/* Quick Links & FAQs */}
+          {/* Business Links */}
           <div>
-            <h3 className="text-gray-900 font-medium text-sm mb-8">Quick Links</h3>
+            <h3 className="text-gray-900 font-black text-sm mb-8 tracking-tight">Business Solutions</h3>
             <ul className="space-y-4">
-              <li><Link href="/about" className="text-sm hover:text-secondary font-medium transition-colors">About Us</Link></li>
-              <li><Link href="/pricing" className="text-sm hover:text-secondary font-medium transition-colors">Pricing Plans</Link></li>
-              <li><Link href="/business/register" className="text-sm hover:text-secondary font-medium transition-colors">List Your Business</Link></li>
-              <li><Link href="/faqs" className="text-sm hover:text-secondary font-medium transition-colors">FAQs</Link></li>
-              <li><Link href="/contact" className="text-sm hover:text-secondary font-medium transition-colors">Contact Us</Link></li>
-              <li><Link href="/blog" className="text-sm hover:text-secondary font-medium transition-colors">Latest News</Link></li>
+              <li><Link href="/business/register" className="text-sm hover:text-secondary font-medium transition-colors flex items-center gap-2 group">List Your Business <ExternalLink size={12} className="opacity-0 group-hover:opacity-100 transition-opacity" /></Link></li>
+              <li><Link href="/advertisements" className="text-sm hover:text-secondary font-medium transition-colors">Advertise with Us</Link></li>
+              <li><Link href="/pricing" className="text-sm hover:text-secondary font-medium transition-colors">Premium Plans</Link></li>
+              <li><Link href="/hirings" className="text-sm hover:text-secondary font-medium transition-colors">Careers</Link></li>
+              <li><Link href="/contact" className="text-sm hover:text-secondary font-medium transition-colors">Contact Support</Link></li>
             </ul>
           </div>
 
-          {/* Popular Categories */}
+          {/* Popular Categories for SEO */}
           <div>
-            <h3 className="text-gray-900 font-medium text-sm mb-8">Popular Categories</h3>
+            <h3 className="text-gray-900 font-black text-sm mb-8 tracking-tight">Top Categories</h3>
             <ul className="space-y-4">
-              <li><Link href="/categories/real-estate" className="text-sm hover:text-secondary font-medium transition-colors">Real Estate</Link></li>
-              <li><Link href="/categories/doctors" className="text-sm hover:text-secondary font-medium transition-colors">Doctors</Link></li>
-              <li><Link href="/categories/restaurants" className="text-sm hover:text-secondary font-medium transition-colors">Restaurants</Link></li>
-              <li><Link href="/categories/repairs-services" className="text-sm hover:text-secondary font-medium transition-colors">Repairs & Services</Link></li>
-              <li><Link href="/categories/hotels" className="text-sm hover:text-secondary font-medium transition-colors">Hotels & Stay</Link></li>
-              <li><Link href="/categories/gym" className="text-sm hover:text-secondary font-medium transition-colors">Fitness & Gyms</Link></li>
+              <li><Link href="/categories/real-estate" className="text-sm hover:text-secondary font-medium transition-colors">Real Estate & Property</Link></li>
+              <li><Link href="/categories/doctors" className="text-sm hover:text-secondary font-medium transition-colors">Doctors & Healthcare</Link></li>
+              <li><Link href="/categories/restaurants" className="text-sm hover:text-secondary font-medium transition-colors">Top Rated Restaurants</Link></li>
+              <li><Link href="/categories/repairs-services" className="text-sm hover:text-secondary font-medium transition-colors">Home Repairs & Services</Link></li>
+              <li><Link href="/categories/education" className="text-sm hover:text-secondary font-medium transition-colors">Education & Coaching</Link></li>
+              <li><Link href="/categories/finance" className="text-sm hover:text-secondary font-medium transition-colors">Finance & Legal Services</Link></li>
             </ul>
           </div>
 
-          {/* Follow Us & Contact */}
+          {/* Follow Us & App Links */}
           <div className="space-y-10">
             <div>
-              <h3 className="text-gray-900 font-medium text-sm mb-6">Follow Us</h3>
-              <div className="flex space-x-4">
-                <Link href="#" className="w-10 h-10 flex items-center justify-center rounded-xl bg-gray-50 text-gray-400 hover:bg-secondary hover:text-white transition-all shadow-sm border border-gray-100">
-                  <FaFacebook size={18} />
-                </Link>
-                <Link href="#" className="w-10 h-10 flex items-center justify-center rounded-xl bg-gray-50 text-gray-400 hover:bg-secondary hover:text-white transition-all shadow-sm border border-gray-100">
-                  <FaTwitter size={18} />
-                </Link>
-                <Link href="#" className="w-10 h-10 flex items-center justify-center rounded-xl bg-gray-50 text-gray-400 hover:bg-secondary hover:text-white transition-all shadow-sm border border-gray-100">
-                  <FaInstagram size={18} />
-                </Link>
-                <Link href="#" className="w-10 h-10 flex items-center justify-center rounded-xl bg-gray-50 text-gray-400 hover:bg-secondary hover:text-white transition-all shadow-sm border border-gray-100">
-                  <FaLinkedin size={18} />
-                </Link>
+              <h3 className="text-gray-900 font-black text-sm mb-6 tracking-tight">Follow Our Journey</h3>
+              <div className="flex space-x-3">
+                {[
+                  { icon: FaFacebook, href: '#' },
+                  { icon: FaTwitter, href: '#' },
+                  { icon: FaInstagram, href: '#' },
+                  { icon: FaLinkedin, href: '#' }
+                ].map((social, i) => (
+                  <Link key={i} href={social.href} className="w-10 h-10 flex items-center justify-center rounded-xl bg-gray-50 text-gray-400 hover:bg-secondary hover:text-white transition-all shadow-sm border border-gray-100">
+                    <social.icon size={18} />
+                  </Link>
+                ))}
               </div>
             </div>
             <div className="space-y-4">
-              <h3 className="text-gray-900 font-medium text-sm mb-6">Contact</h3>
-              <div className="flex items-center gap-3 text-sm font-medium">
-                <Mail size={16} className="text-secondary" />
-                <span>support@boomb.com</span>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Get our mobile app</p>
+              <div className="flex flex-wrap gap-2">
+                <div className="h-10 px-4 bg-gray-900 text-white rounded-xl flex items-center gap-2 cursor-not-allowed grayscale hover:grayscale-0 transition-all">
+                  <div className="text-[8px] font-bold leading-none">Coming soon on <br/><span className="text-sm">App Store</span></div>
+                </div>
+                <div className="h-10 px-4 bg-gray-900 text-white rounded-xl flex items-center gap-2 cursor-not-allowed grayscale hover:grayscale-0 transition-all">
+                  <div className="text-[8px] font-bold leading-none">Coming soon on <br/><span className="text-sm">Google Play</span></div>
+                </div>
               </div>
-              <div className="flex items-center gap-3 text-sm font-medium">
-                <Phone size={16} className="text-secondary" />
-                <span>+91 1800-123-4567</span>
-              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* SEO - Cities & Searches */}
+        <div className="border-t border-gray-100 py-12 space-y-10">
+          <div className="space-y-4">
+            <h4 className="text-xs font-black text-gray-900 uppercase tracking-widest">Top Cities in India</h4>
+            <div className="flex flex-wrap gap-x-6 gap-y-3">
+              {topCities.map((city) => (
+                <Link key={city} href={`/cities/${city.toLowerCase()}`} className="text-xs font-medium text-gray-500 hover:text-secondary transition-colors underline decoration-gray-200 underline-offset-4 decoration-1">
+                  {city}
+                </Link>
+              ))}
+              <Link href="/cities" className="text-xs font-black text-primary hover:underline underline-offset-4 decoration-2">View All Cities</Link>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <h4 className="text-xs font-black text-gray-900 uppercase tracking-widest">Popular Searches</h4>
+            <div className="flex flex-wrap gap-2">
+              {popularSearches.map((search) => (
+                <Link key={search} href={`/search?q=${search.replace(/ /g, '+')}`} className="px-3 py-1.5 bg-gray-50 hover:bg-white border border-gray-100 text-[10px] font-bold text-gray-500 hover:text-primary hover:border-primary/20 rounded-lg transition-all">
+                  {search}
+                </Link>
+              ))}
             </div>
           </div>
         </div>
 
         {/* Bottom Bar */}
         <div className="border-t border-gray-100 pt-10 flex flex-col md:flex-row justify-between items-center gap-6">
-          <p className="text-[10px] text-gray-400 font-medium">
-            © {new Date().getFullYear()} Boomb Technologies Pvt Ltd. All rights reserved.
-          </p>
-          <div className="flex space-x-8 text-[10px] font-medium text-gray-400">
-            <Link href="/privacy" className="hover:text-secondary transition-colors">Privacy Policy</Link>
-            <Link href="/terms" className="hover:text-secondary transition-colors">Terms of Service</Link>
-            <Link href="/cookies" className="hover:text-secondary transition-colors">Cookie Policy</Link>
+          <div className="space-y-2 text-center md:text-left">
+            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
+              © {new Date().getFullYear()} Boomb Technologies Pvt Ltd.
+            </p>
+            <p className="text-[10px] text-gray-400 font-medium max-w-xl">
+              Boomb helps you find the best services and businesses in your locality. Verified profiles, user reviews, and instant contact details for thousands of categories.
+            </p>
+          </div>
+          <div className="flex flex-wrap justify-center gap-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+            <Link href="/privacy" className="hover:text-secondary transition-colors">Privacy</Link>
+            <Link href="/terms" className="hover:text-secondary transition-colors">Terms</Link>
+            <Link href="/sitemap" className="hover:text-secondary transition-colors">Sitemap</Link>
+            <Link href="/cookies" className="hover:text-secondary transition-colors">Cookies</Link>
           </div>
         </div>
       </div>
