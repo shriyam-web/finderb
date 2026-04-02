@@ -14,7 +14,7 @@ export default function Navbar({ whiteText: initialWhiteText = false }: { whiteT
   const [isLoggedIn] = useState(false); // Mock for now
   const pathname = usePathname();
 
-  const whiteText = initialWhiteText || pathname === '/business/register';
+  const whiteText = initialWhiteText;
 
   useEffect(() => {
     const handleScroll = () => {
