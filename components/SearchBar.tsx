@@ -98,35 +98,48 @@ export default function SearchBar() {
 
   return (
     <div className="w-full flex flex-col gap-2 relative z-[10]">
-      <div className="w-full bg-white rounded-xl shadow-md transition-all flex flex-col md:flex-row items-stretch md:items-center">
+      <div className="w-full bg-transparent flex flex-col md:flex-row items-stretch md:items-center">
         
         {/* Location Search */}
-        <div className="relative flex-grow md:w-[30%] border-b md:border-b-0 md:border-r border-gray-100">
-          <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
-            <MapPin size={16} />
+        <div className="relative flex-grow md:w-[35%] group">
+          <div className="absolute left-4 top-1/2 -translate-y-1/2 text-secondary group-focus-within:scale-110 transition-transform">
+            <MapPin size={20} />
           </div>
           <input
             type="text"
-            placeholder="City..."
+            placeholder="Search location..."
             aria-label="Search by city"
             value={location}
             onChange={(e) => setLocation(e.target.value)}
             onFocus={() => setShowLocationSuggestions(true)}
             onBlur={() => setTimeout(() => setShowLocationSuggestions(false), 200)}
-            className="w-full pl-11 pr-4 py-4 bg-transparent border-none focus:ring-0 text-gray-900 font-medium text-sm placeholder:text-gray-400"
+            className="w-full pl-12 pr-10 py-5 bg-transparent border-none focus:ring-0 text-gray-900 font-semibold text-base placeholder:text-gray-400 placeholder:font-medium"
           />
+          <button 
+            className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-secondary transition-colors"
+            title="Detect my location"
+            onClick={() => setLocation('Detecting...')}
+          >
+            <ChevronDown size={18} />
+          </button>
           
           {showLocationSuggestions && (
-            <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-100 rounded-xl overflow-hidden z-20 p-2">
-              <p className="text-[8px] font-medium text-gray-400 mb-2 px-3 pt-1">Popular Cities</p>
-              <div className="space-y-0.5">
+            <div className="absolute top-[calc(100%+8px)] left-0 right-0 bg-white border border-gray-100 rounded-2xl shadow-2xl overflow-hidden z-20 p-3 animate-in fade-in slide-in-from-top-2 duration-200">
+              <div className="flex items-center gap-2 px-3 py-2 mb-2 text-secondary bg-secondary/5 rounded-xl cursor-pointer hover:bg-secondary/10 transition-colors">
+                <MapPin size={14} />
+                <span className="text-xs font-bold uppercase tracking-wider">Detect Current Location</span>
+              </div>
+              <p className="text-[10px] font-bold text-gray-400 mb-2 px-3 pt-1 uppercase tracking-widest">Popular Cities</p>
+              <div className="grid grid-cols-2 gap-1">
                 {popularCities.map((city) => (
                   <button
                     key={city}
                     onClick={() => setLocation(city)}
-                    className="w-full text-left px-3 py-2 hover:bg-gray-50 rounded-lg transition-colors flex items-center gap-3 text-xs font-medium text-gray-700"
+                    className="w-full text-left px-3 py-2.5 hover:bg-gray-50 rounded-xl transition-all flex items-center gap-3 text-sm font-semibold text-gray-700"
                   >
-                    <MapPin size={12} className="text-gray-300" />
+                    <div className="w-6 h-6 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400 group-hover:bg-white transition-colors">
+                      <MapPin size={12} />
+                    </div>
                     {city}
                   </button>
                 ))}
@@ -135,41 +148,49 @@ export default function SearchBar() {
           )}
         </div>
 
+        {/* Separator */}
+        <div className="hidden md:block w-px h-10 bg-gray-100 mx-2"></div>
+
         {/* Main Search */}
-        <div className="relative flex-grow md:w-[55%]">
-          <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
-            <Search size={16} />
+        <div className="relative flex-grow md:w-[50%] group">
+          <div className="absolute left-4 top-1/2 -translate-y-1/2 text-secondary group-focus-within:scale-110 transition-transform">
+            <Search size={20} />
           </div>
           <input
             type="text"
-            placeholder="Search for services, professionals..."
+            placeholder="What are you looking for?"
             aria-label="Search for services or professionals"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onFocus={() => setShowSearchSuggestions(true)}
             onBlur={() => setTimeout(() => setShowSearchSuggestions(false), 200)}
-            className="w-full pl-11 pr-12 py-4 bg-transparent border-none focus:ring-0 text-gray-900 font-medium text-sm placeholder:text-gray-400"
+            className="w-full pl-12 pr-12 py-5 bg-transparent border-none focus:ring-0 text-gray-900 font-semibold text-base placeholder:text-gray-400 placeholder:font-medium"
           />
           <button 
             onClick={handleVoiceSearch}
             aria-label="Voice search"
-            className={`absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-lg transition-all ${isListening ? 'bg-red-50 text-red-500 animate-pulse' : 'text-gray-400 hover:bg-gray-50 hover:text-primary'}`}
+            className={`absolute right-4 top-1/2 -translate-y-1/2 p-2.5 rounded-xl transition-all ${isListening ? 'bg-red-50 text-red-500 animate-pulse' : 'text-gray-400 hover:bg-gray-50 hover:text-secondary'}`}
           >
-            <Mic size={16} />
+            <Mic size={20} />
           </button>
 
           {showSearchSuggestions && (
-            <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-100 rounded-xl overflow-hidden z-20 p-2">
-              <p className="text-[8px] font-medium text-gray-400 mb-2 px-3 pt-1">Trending Searches</p>
-              <div className="space-y-0.5">
+            <div className="absolute top-[calc(100%+8px)] left-0 right-0 bg-white border border-gray-100 rounded-2xl shadow-2xl overflow-hidden z-20 p-3 animate-in fade-in slide-in-from-top-2 duration-200">
+              <p className="text-[10px] font-bold text-gray-400 mb-2 px-3 pt-1 uppercase tracking-widest">Trending Searches</p>
+              <div className="space-y-1">
                 {trendingSearches.map((search) => (
                   <button
                     key={search}
                     onClick={() => setQuery(search)}
-                    className="w-full text-left px-3 py-2 hover:bg-gray-50 rounded-lg transition-colors flex items-center gap-3 text-xs font-medium text-gray-700"
+                    className="w-full text-left px-4 py-3 hover:bg-secondary/5 rounded-xl transition-all flex items-center justify-between group"
                   >
-                    <TrendingUp size={12} className="text-gray-300" />
-                    {search}
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-gray-50 text-gray-400 group-hover:bg-white group-hover:text-secondary transition-colors">
+                        <TrendingUp size={14} />
+                      </div>
+                      <span className="text-sm font-semibold text-gray-700 group-hover:text-secondary transition-colors">{search}</span>
+                    </div>
+                    <ChevronDown size={14} className="text-gray-300 -rotate-90 group-hover:translate-x-1 transition-all" />
                   </button>
                 ))}
               </div>
@@ -178,9 +199,9 @@ export default function SearchBar() {
         </div>
 
         {/* Search CTA */}
-        <div className="p-2 md:pr-2">
-          <button className="w-full md:w-auto bg-primary hover:bg-secondary text-white font-medium px-8 py-3 rounded-lg transition-all active:scale-95 text-xs">
-            Search
+        <div className="p-2 md:pr-0">
+          <button className="w-full md:w-auto bg-gradient-to-r from-secondary to-purple-600 hover:shadow-lg hover:shadow-secondary/30 text-white font-bold px-10 py-4 rounded-xl transition-all active:scale-95 text-sm uppercase tracking-widest">
+            Find Now
           </button>
         </div>
       </div>

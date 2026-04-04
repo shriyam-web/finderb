@@ -13,20 +13,24 @@ export default function CategoryCard({ category }: CategoryCardProps) {
   return (
     <Link 
       href={`/categories/${category.slug}`}
-      className="bg-white p-8 border-r border-b border-gray-100 hover:bg-white hover:z-10 hover:shadow-[0_0_50px_-12px_rgba(0,0,0,0.12)] transition-all duration-500 group flex flex-col items-center text-center first:border-l last:border-r sm:border-l-0"
+      className="relative group bg-white p-6 rounded-2xl shadow-soft hover:shadow-premium transition-all duration-500 flex flex-col items-center text-center border border-gray-50 hover:border-secondary/20 overflow-hidden"
     >
-      <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 group-hover:scale-110 group-hover:bg-secondary group-hover:text-white transition-all duration-500 mb-5 shadow-sm group-hover:shadow-lg group-hover:shadow-secondary/30">
-        <IconComponent size={24} />
+      <div className="absolute inset-0 bg-gradient-to-br from-secondary/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+      
+      <div className="relative w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 group-hover:scale-110 group-hover:bg-gradient-to-br group-hover:from-secondary group-hover:to-purple-600 group-hover:text-white transition-all duration-500 mb-5 shadow-sm group-hover:shadow-lg group-hover:shadow-secondary/30">
+        <IconComponent size={28} strokeWidth={1.5} />
       </div>
-      <h3 className="text-[11px] font-medium text-primary group-hover:text-secondary transition-colors leading-tight">
+      
+      <h3 className="relative text-sm font-bold text-primary group-hover:text-secondary transition-colors leading-tight mb-2">
         {category.name}
       </h3>
-      <div className="mt-3 flex items-center gap-2">
-        <span className="h-px w-3 bg-gray-100 group-hover:bg-secondary/30 transition-colors"></span>
-        <p className="text-[9px] font-medium text-gray-400 group-hover:text-gray-600 transition-colors">
-          {category.businessCount}+ Pros
-        </p>
-        <span className="h-px w-3 bg-gray-100 group-hover:bg-secondary/30 transition-colors"></span>
+      
+      <p className="relative text-[10px] font-bold text-gray-400 group-hover:text-gray-600 transition-colors uppercase tracking-widest">
+        {category.businessCount}+ Pros
+      </p>
+
+      <div className="relative mt-4 flex items-center gap-2 text-secondary font-bold text-[10px] opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-500 uppercase tracking-widest">
+        Top providers <LucideIcons.ArrowRight size={10} />
       </div>
     </Link>
   );

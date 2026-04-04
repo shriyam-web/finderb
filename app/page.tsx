@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import SearchBar from '@/components/SearchBar';
 import CategoryCard from '@/components/CategoryCard';
 import BusinessCard from '@/components/BusinessCard';
@@ -14,7 +15,7 @@ import {
   articles 
 } from '@/lib/mockData';
 import * as LucideIcons from 'lucide-react';
-import { ArrowRight, CheckCircle2, Star, MapPin, Calendar, Play } from 'lucide-react';
+import { ArrowRight, CheckCircle2, Star, MapPin, Calendar, Play, ShieldCheck, Zap, Search, Phone, MessageSquare, Heart, Sparkles, History, X, Mic, Send } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 
@@ -27,9 +28,37 @@ const WORDS = [
   "verified professionals" // For seamless loop
 ];
 
-export default function Home() {
+function HomeContent() {
   const [index, setIndex] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(true);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const activeTabFromUrl = searchParams.get('tab');
+  
+  const [activeMobileTab, setActiveMobileTab] = useState(
+    activeTabFromUrl === 'ai' ? 'AI Search' : 'Search'
+  );
+
+  useEffect(() => {
+    if (activeTabFromUrl === 'ai') {
+      setActiveMobileTab('AI Search');
+    } else if (activeTabFromUrl === 'boomb-ai') {
+      setActiveMobileTab('Boomb Ai');
+    } else {
+      setActiveMobileTab('Search');
+    }
+  }, [activeTabFromUrl]);
+
+  const handleTabChange = (label: string) => {
+    setActiveMobileTab(label);
+    if (label === 'AI Search') {
+      router.push('/?tab=ai', { scroll: false });
+    } else if (label === 'Boomb Ai') {
+      router.push('/?tab=boomb-ai', { scroll: false });
+    } else {
+      router.push('/', { scroll: false });
+    }
+  };
 
   const sortedCategories = [...categories].sort((a, b) => b.businessCount - a.businessCount);
   const popularCategories = sortedCategories.slice(0, 12);
@@ -53,123 +82,201 @@ export default function Home() {
     }
   }, [index]);
 
+  useEffect(() => {
+    if (activeMobileTab === 'Boomb Ai') {
+      const timer = setTimeout(() => {
+        handleTabChange('AI Search');
+      }, 3000); // 3 seconds delay
+      return () => clearTimeout(timer);
+    }
+  }, [activeMobileTab]);
+
   return (
     <div className="flex flex-col bg-white selection:bg-primary/10">
       {/* Hero Section */}
-      <section className="relative pt-20 pb-4 lg:pt-32 lg:pb-12 bg-gradient-to-br from-white via-gray-50/50 to-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-12 gap-8 items-center">
-            <div className="lg:col-span-6 space-y-6 lg:space-y-8 text-left">
-              <div className="space-y-3 lg:space-y-4">
-                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-primary leading-[1.1]">
-                  India's Premier <br />
-                  <span className="text-secondary">Local Service Engine</span>
-                  <div className="h-[1.3em] overflow-hidden relative mt-2 text-gray-300 md:text-gray-400 text-lg sm:text-2xl lg:text-4xl">
-                    <div 
-                      className={`${isTransitioning ? 'transition-transform duration-700' : ''} ease-in-out`}
-                      style={{ transform: `translateY(-${index * (100 / WORDS.length)}%)` }}
-                    >
-                      {WORDS.map((word, i) => (
-                        <div key={i} className="h-[1.3em] flex items-center justify-start whitespace-nowrap">
-                          {word}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </h1>
-                <p className="text-gray-500 text-xs md:text-base font-medium leading-relaxed max-w-xl lg:mx-0">
-                  Boomb connects you with verified professionals and elite services across India. Discovery redefined.
-                </p>
-              </div>
-
-              <div className="w-full max-w-2xl lg:mx-0">
-                <SearchBar />
-              </div>
-            </div>
-
-            {/* Right: Popular Category Grid - Big with Photos */}
-            <div className="lg:col-span-6 mt-8 lg:mt-0">
-              <div className="grid grid-cols-4 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-4 gap-2 sm:gap-4">
-                {popularCategories.map((cat) => {
-                  // @ts-ignore
-                  const IconComponent = LucideIcons[cat.icon] || LucideIcons.HelpCircle;
-                  return (
-                    <Link 
-                      key={cat.id} 
-                      href={`/categories/${cat.slug}`} 
-                      className="group relative aspect-[4/5] rounded-xl sm:rounded-2xl overflow-hidden border border-gray-100 hover:border-secondary transition-all duration-500 hover:shadow-xl hover:shadow-secondary/20"
-                    >
-                      <Image 
-                        src={cat.image} 
-                        alt={cat.name} 
-                        fill 
-                        className="object-cover opacity-90 group-hover:opacity-100 group-hover:scale-110 transition-all duration-700" 
-                        sizes="(max-width: 768px) 33vw, 15vw"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-primary/95 via-primary/20 to-transparent opacity-80 group-hover:opacity-90 transition-opacity"></div>
-                      <div className="absolute bottom-2 left-2 right-2 sm:bottom-3 sm:left-3 sm:right-3">
-                        <div className="w-5 h-5 sm:w-7 sm:h-7 rounded sm:rounded-lg bg-white/10 backdrop-blur-md flex items-center justify-center text-white mb-1 sm:mb-2 group-hover:bg-secondary transition-colors border border-white/10">
-                          <IconComponent className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                        </div>
-                        <h3 className="text-[8px] sm:text-[10px] font-medium text-white leading-tight mb-0.5">{cat.name}</h3>
-                        <p className="text-[6px] sm:text-[7px] text-white/50">{cat.businessCount}+ Pros</p>
-                      </div>
-                    </Link>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-
-          {/* Smaller Buttons for More Categories */}
-          <div className="mt-2 lg:mt-6 pt-2 lg:pt-4 border-t border-gray-100">
-            <div className="flex items-center gap-3 mb-4 lg:mb-6">
-              <div className="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse"></div>
-              <h2 className="text-[10px] font-medium text-primary">Explore Premium Categories</h2>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {otherCategories.map((cat) => (
-                <Link 
-                  key={cat.id} 
-                  href={`/categories/${cat.slug}`}
-                  className="px-3 py-1.5 rounded-full bg-gray-50 hover:bg-secondary hover:text-white text-[9px] sm:text-[10px] font-medium text-gray-500 transition-all border border-gray-100 hover:border-secondary"
-                >
-                  {cat.name}
-                </Link>
-              ))}
-            </div>
-          </div>
+      <section className="relative pt-16 pb-12 lg:pt-32 lg:pb-24 overflow-hidden">
+        {/* Animated Background Elements */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full -z-10">
+          <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[60%] bg-secondary/5 blur-[120px] rounded-full animate-pulse"></div>
+          <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[60%] bg-purple-500/5 blur-[120px] rounded-full animate-pulse" style={{ animationDelay: '2s' }}></div>
         </div>
-      </section>
 
-      {/* City Cards - Horizontal Scrolling */}
-      <section className="py-8 lg:py-16 bg-gray-50/50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-lg sm:text-2xl font-medium text-primary mb-6 lg:mb-8">Verified Local Services Across Major Indian Cities</h2>
-          <div className="flex overflow-x-auto pb-4 gap-4 lg:gap-6 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
-            {cities.map((city) => (
-              <Link 
-                key={city.id} 
-                href={`/city/${city.name.toLowerCase()}`}
-                className="relative min-w-[180px] sm:min-w-[220px] h-[240px] sm:h-[300px] rounded-2xl sm:rounded-3xl overflow-hidden group shrink-0 shadow-lg"
-              >
-                <Image 
-                  src={city.image} 
-                  alt={city.name} 
-                  fill 
-                  className="object-cover group-hover:scale-110 transition-transform duration-700" 
-                  sizes="220px"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
-                <div className="absolute bottom-4 left-4 sm:bottom-6 sm:left-6">
-                  <h3 className="text-lg sm:text-xl font-bold text-white">{city.name}</h3>
-                  <p className="text-white/60 text-[10px] font-medium">Explore Services</p>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-8">
+          <div className="space-y-4 max-w-4xl mx-auto">
+            <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-primary leading-[1.1]">
+              Find Trusted Services <br />
+              <span className="bg-gradient-to-r from-secondary to-purple-600 bg-clip-text text-transparent">Near You — Instantly</span>
+            </h1>
+            
+            <div className="flex flex-col items-center justify-center space-y-2">
+              <div className="h-[1.5em] overflow-hidden relative text-gray-400 text-base sm:text-lg font-medium">
+                <div 
+                  className={`${isTransitioning ? 'transition-transform duration-700' : ''} ease-in-out flex flex-col items-center`}
+                  style={{ transform: `translateY(-${index * (100 / WORDS.length)}%)` }}
+                >
+                  {WORDS.map((word, i) => (
+                    <div key={i} className="h-[1.5em] flex items-center justify-center whitespace-nowrap">
+                      {word}
+                    </div>
+                  ))}
                 </div>
-              </Link>
+              </div>
+            </div>
+          </div>
+
+          <div className="w-full max-w-3xl mx-auto transform hover:scale-[1.01] transition-all duration-500">
+            <div className="bg-white p-2 rounded-2xl shadow-2xl shadow-secondary/10 border border-gray-100">
+              <SearchBar />
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Quick Search:</span>
+            {['Salon', 'Plumber', 'AC Repair', 'Cleaning', 'Electrician'].map((tag) => (
+              <button 
+                key={tag}
+                className="px-3 py-1.5 rounded-full bg-white border border-gray-100 text-xs font-bold text-gray-500 hover:border-secondary hover:text-secondary hover:shadow-md transition-all active:scale-95"
+              >
+                {tag}
+              </button>
             ))}
           </div>
         </div>
       </section>
+
+      {/* Category Section */}
+      <section className="py-20 bg-muted/50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6">
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-1 bg-secondary rounded-full"></div>
+                <span className="text-xs font-bold text-secondary uppercase tracking-[0.3em]">Explore Categories</span>
+              </div>
+              <h2 className="text-3xl sm:text-5xl font-extrabold text-primary tracking-tight">What do you need <span className="text-secondary">help</span> with?</h2>
+            </div>
+            <Link href="/categories/all" className="group flex items-center gap-2 text-sm font-bold text-primary hover:text-secondary transition-colors">
+              View all categories <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-6">
+            {popularCategories.map((cat) => (
+              <CategoryCard key={cat.id} category={cat} />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Trust Layer / Featured Section */}
+      <section className="py-24 bg-white overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid lg:grid-cols-2 gap-16 items-center">
+            <div className="space-y-10">
+              <div className="space-y-4">
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-50 rounded-full text-emerald-600 border border-emerald-100">
+                  <CheckCircle2 size={16} />
+                  <span className="text-xs font-bold uppercase tracking-widest">Trust First Platform</span>
+                </div>
+                <h2 className="text-4xl sm:text-6xl font-extrabold text-primary tracking-tight leading-[1.1]">
+                  Book with <span className="text-secondary">Confidence.</span>
+                </h2>
+                <p className="text-gray-500 text-lg font-medium leading-relaxed max-w-xl">
+                  Every professional on Boomb is strictly verified. We prioritize your safety and satisfaction above everything else.
+                </p>
+              </div>
+
+              <div className="grid sm:grid-cols-2 gap-6">
+                {[
+                  { title: 'Verified Pros', desc: 'Background checked experts', icon: ShieldCheck },
+                  { title: 'Best Prices', desc: 'No hidden costs, ever', icon: Star },
+                  { title: 'Instant Booking', desc: 'Confirm in 30 seconds', icon: Zap },
+                  { title: '24/7 Support', desc: 'We are here to help you', icon: ArrowRight },
+                ].map((item, i) => (
+                  <div key={i} className="flex gap-4 p-4 rounded-2xl bg-muted/50 border border-gray-100 hover:border-secondary/20 transition-all group">
+                    <div className="w-12 h-12 rounded-xl bg-white shadow-sm flex items-center justify-center text-secondary group-hover:bg-secondary group-hover:text-white transition-all">
+                      <item.icon size={20} />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-primary">{item.title}</h4>
+                      <p className="text-xs text-gray-500 font-medium">{item.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-tr from-secondary/20 to-purple-600/20 blur-[100px] -z-10 rounded-full animate-pulse"></div>
+              <div className="bg-white p-8 rounded-[3rem] shadow-2xl border border-gray-100 relative overflow-hidden">
+                <div className="flex items-center gap-4 mb-8">
+                  <div className="w-16 h-16 rounded-full bg-secondary/10 flex items-center justify-center text-secondary">
+                    <Star size={32} fill="currentColor" />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-extrabold text-primary">4.9/5 Rating</h3>
+                    <p className="text-sm text-gray-400 font-bold uppercase tracking-widest">Across 1M+ Bookings</p>
+                  </div>
+                </div>
+
+                <div className="space-y-6">
+                  {testimonials.slice(0, 2).map((t) => (
+                    <div key={t.id} className="p-6 rounded-2xl bg-muted/30 border border-gray-50">
+                      <div className="flex gap-1 text-yellow-400 mb-3">
+                        {[...Array(5)].map((_, i) => <Star key={i} size={14} fill="currentColor" />)}
+                      </div>
+                      <p className="text-gray-600 font-medium italic mb-4">"{t.content}"</p>
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-gray-200 overflow-hidden">
+                          <Image src={`https://i.pravatar.cc/150?u=${t.id}`} alt={t.name} width={40} height={40} className="object-cover" />
+                        </div>
+                        <div>
+                          <h5 className="font-bold text-sm text-primary">{t.name}</h5>
+                          <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{t.role}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Quick Actions / Mobile Bottom Bar */}
+      <div className="fixed bottom-0 left-0 right-0 z-[100] md:hidden">
+        <div className="mx-4 mb-4 bg-primary/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl p-2 flex items-center justify-around">
+          {[
+            { icon: Search, label: 'Search' },
+            { icon: Sparkles, label: 'Boomb Ai' },
+            { icon: History, label: 'history' },
+            { icon: Heart, label: 'saved' },
+          ].map((item, i) => (
+            <button 
+              key={i} 
+              onClick={() => handleTabChange(item.label)}
+              className={`flex flex-col items-center gap-1.5 p-2 px-3 transition-all duration-500 group relative ${
+                activeMobileTab === item.label 
+                  ? 'text-white' 
+                  : 'text-white/60 hover:text-white'
+              }`}
+            >
+              {item.label === 'Boomb Ai' && (
+                <div className={`absolute inset-0 bg-gradient-to-tr from-secondary via-purple-600 to-pink-500 rounded-xl shadow-lg shadow-secondary/40 animate-pulse -z-10 transition-all duration-500 ${activeMobileTab === 'Boomb Ai' ? 'scale-110 blur-[1px] opacity-100' : 'scale-0 opacity-0'}`}></div>
+              )}
+              <item.icon size={item.label === 'Boomb Ai' ? 22 : 20} className={`group-active:scale-110 transition-transform ${item.label === 'Boomb Ai' && activeMobileTab === 'Boomb Ai' ? 'animate-bounce' : ''}`} />
+              <span className={`text-[9px] font-black uppercase tracking-tighter ${activeMobileTab === item.label ? 'opacity-100' : 'opacity-70'}`}>{item.label}</span>
+              {item.label === 'Boomb Ai' && activeMobileTab === 'Boomb Ai' && (
+                <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-pink-500"></span>
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
 
       {/* Latest Movies */}
       <section className="py-12 lg:py-16 bg-white">
@@ -221,100 +328,23 @@ export default function Home() {
                   src={place.image} 
                   alt={place.name} 
                   fill 
-                  className="object-cover opacity-70 group-hover:opacity-100 group-hover:scale-110 transition-all duration-700" 
-                  sizes="(max-width: 768px) 100vw, 33vw"
+                  className="object-cover opacity-70 group-hover:scale-105 transition-transform duration-700"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent"></div>
-                <div className="absolute bottom-4 left-4 right-4 sm:bottom-8 sm:left-8 sm:right-8">
-                  <div className="flex items-center gap-2 text-secondary mb-1 sm:mb-2">
-                    <MapPin size={12} className="sm:size-[14px]" />
-                    <span className="text-[9px] sm:text-[10px] font-medium uppercase tracking-wider">{place.location}</span>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent"></div>
+                <div className="absolute bottom-0 left-0 p-6 sm:p-10 space-y-4">
+                  <div className="flex items-center gap-2">
+                    <MapPin size={16} className="text-secondary" />
+                    <span className="text-xs font-bold uppercase tracking-widest text-gray-300">{place.location}</span>
                   </div>
-                  <h3 className="text-xl sm:text-2xl font-bold mb-1 line-clamp-1">{place.name}</h3>
-                  <p className="text-white/60 text-xs font-medium">{place.distance}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Featured Businesses */}
-      <section className="py-20 lg:py-28 bg-white relative overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-12 lg:mb-20 gap-8">
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-1 bg-secondary rounded-full"></div>
-                <span className="text-xs font-black text-secondary uppercase tracking-[0.3em]">Premium Collection</span>
-              </div>
-              <h2 className="text-3xl sm:text-5xl font-black text-primary tracking-tighter leading-none">Featured Local Businesses</h2>
-            </div>
-            <Link href="/categories/all" className="group flex items-center gap-3 px-6 py-3 bg-gray-50 hover:bg-primary hover:text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-sm">
-              Explore All <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
-            </Link>
-          </div>
-          
-          <div className="flex overflow-x-auto pb-10 gap-6 lg:grid lg:grid-cols-3 lg:gap-8 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
-            {featuredBusinesses.slice(0, 3).map((biz) => (
-              <div key={biz.id} className="min-w-[300px] sm:min-w-0 w-full">
-                <BusinessCard business={biz} isPremium={true} />
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="absolute top-0 right-0 w-64 h-64 bg-secondary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
-      </section>
-
-      {/* Testimonials */}
-      <section className="py-20 lg:py-32 bg-gray-50/50 relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-gray-200 to-transparent"></div>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col items-center text-center mb-12 lg:mb-24">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 bg-white rounded-xl sm:rounded-2xl shadow-sm border border-gray-100 mb-4 sm:mb-6 transition-transform hover:scale-105">
-              <span className="flex h-1.5 w-1.5 rounded-full bg-secondary animate-ping"></span>
-              <span className="text-[8px] sm:text-[10px] font-black text-primary uppercase tracking-[0.2em]">User Feedback</span>
-            </div>
-            <h2 className="text-2xl sm:text-6xl font-black text-primary tracking-tighter leading-tight max-w-3xl">
-              Trusted by Millions: <br />
-              <span className="text-secondary">Real Stories</span> from Boomb
-            </h2>
-          </div>
-          
-          <div className="flex overflow-x-auto pb-10 gap-4 sm:gap-10 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
-            {testimonials.map((t) => (
-              <div key={t.id} className="bg-white pt-14 pb-6 px-6 sm:pt-24 sm:pb-10 sm:px-10 rounded-[2rem] sm:rounded-[3rem] shadow-xl sm:shadow-2xl shadow-gray-200/40 hover:shadow-secondary/10 transition-all duration-700 border border-white text-left relative group min-w-[280px] sm:min-w-[400px] max-w-[320px] sm:max-w-[450px] h-[350px] sm:h-[450px] shrink-0 hover:-translate-y-2 flex flex-col justify-between">
-                <div className="absolute -top-4 left-6 sm:-top-5 sm:left-8 w-10 h-10 sm:w-16 sm:h-16 rounded-xl sm:rounded-[1.5rem] bg-primary flex items-center justify-center text-white shadow-xl sm:shadow-2xl shadow-primary/30 group-hover:bg-secondary group-hover:-rotate-12 transition-all duration-700 ease-out z-20">
-                  <Star size={20} className="sm:size-8" fill="white" />
-                </div>
-                
-                <div className="relative flex-grow">
-                  <span className="absolute -top-3 -left-1 text-5xl sm:text-8xl text-gray-50 font-serif leading-none select-none">"</span>
-                  <p className="text-gray-600 font-medium leading-relaxed italic pt-4 sm:pt-8 text-sm sm:text-xl line-clamp-6 sm:line-clamp-none relative z-10">
-                    {t.content}
-                  </p>
-                </div>
-
-                <div className="flex items-center justify-between border-t border-gray-50 pt-6 sm:pt-10 mt-auto">
-                  <div className="flex items-center gap-3 sm:gap-6">
-                    <div className="relative w-12 h-12 sm:w-20 sm:h-20 rounded-xl sm:rounded-[2.5rem] overflow-hidden border border-gray-100 group-hover:border-secondary transition-all duration-500 group-hover:scale-105">
-                      <Image 
-                        src={t.avatar} 
-                        alt={t.name} 
-                        fill 
-                        className="object-cover" 
-                        sizes="80px"
-                      />
+                  <h3 className="text-2xl sm:text-4xl font-black">{place.name}</h3>
+                  <div className="flex items-center gap-6">
+                    <div className="flex items-center gap-2">
+                      <Star size={16} className="text-yellow-400" fill="currentColor" />
+                      <span className="text-sm font-bold">{place.rating}</span>
                     </div>
-                    <div>
-                      <h4 className="font-black text-primary text-sm sm:text-2xl tracking-tight">{t.name}</h4>
-                      <p className="text-secondary text-[8px] sm:text-xs font-black uppercase tracking-[0.2em] sm:tracking-[0.3em] mt-0.5 sm:mt-1">{t.role}</p>
+                    <div className="flex items-center gap-2 text-gray-400">
+                      <span className="text-sm font-medium">Popular destination</span>
                     </div>
-                  </div>
-                  <div className="hidden sm:flex items-center gap-1 text-yellow-400">
-                    {[...Array(5)].map((_, i) => (
-                      <Star key={i} size={16} fill="currentColor" />
-                    ))}
                   </div>
                 </div>
               </div>
@@ -389,6 +419,102 @@ export default function Home() {
         <div className="absolute bottom-0 left-0 w-full h-full bg-[radial-gradient(circle_at_bottom_left,rgba(0,186,242,0.2),transparent_60%)]"></div>
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[radial-gradient(circle_at_center,rgba(0,186,242,0.05),transparent_70%)]"></div>
       </section>
+
+      {/* Boomb AI Modal */}
+      {activeMobileTab === 'Boomb Ai' && (
+        <div className="fixed inset-0 z-[1000] bg-primary/40 backdrop-blur-2xl md:hidden flex flex-col items-center justify-center p-8 transition-all duration-700 animate-in fade-in zoom-in-95">
+          <button 
+            onClick={() => handleTabChange('Search')}
+            className="absolute top-10 right-8 text-white/50 hover:text-white transition-colors p-3 bg-white/10 rounded-full"
+          >
+            <X size={28} />
+          </button>
+          
+          <div className="relative group mb-12">
+            <div className="absolute inset-0 bg-gradient-to-tr from-secondary via-purple-600 to-pink-500 blur-[80px] opacity-60 group-hover:opacity-100 transition-opacity animate-pulse"></div>
+            <div className="relative w-32 h-32 bg-white rounded-[2.5rem] flex items-center justify-center shadow-2xl transform hover:scale-110 transition-transform duration-700">
+              <Sparkles size={60} className="text-secondary animate-bounce" />
+            </div>
+          </div>
+          
+          <div className="text-center space-y-6 max-w-sm">
+            <h2 className="text-5xl font-black text-white tracking-tighter leading-tight">Boomb <span className="text-secondary">AI</span> is <br />Almost Ready.</h2>
+            <p className="text-white/60 font-medium text-lg leading-relaxed">We're training India's most powerful service assistant just for you.</p>
+          </div>
+          
+          <div className="mt-16 w-full max-w-xs space-y-4">
+            <div className="bg-white/5 border border-white/10 rounded-[2rem] p-6 backdrop-blur-md">
+              <div className="flex items-center gap-4 text-white">
+                <div className="w-2 h-2 rounded-full bg-secondary animate-ping"></div>
+                <span className="text-[10px] font-black uppercase tracking-[0.2em]">Learning from 1M+ requests...</span>
+              </div>
+            </div>
+            
+            <button 
+              onClick={() => handleTabChange('Search')}
+              className="w-full bg-white text-primary py-5 rounded-[2rem] font-black uppercase tracking-widest text-xs shadow-2xl shadow-black/20 hover:scale-105 active:scale-95 transition-all"
+            >
+              Take me back
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* AI Search Interface */}
+      {activeMobileTab === 'AI Search' && (
+        <div className="fixed inset-0 z-[1001] bg-primary flex flex-col p-6 animate-in fade-in slide-in-from-bottom-20 duration-500 overflow-hidden selection:bg-secondary/20">
+          <div className="flex-1 flex flex-col items-center justify-around text-center py-10 sm:py-20 max-w-5xl mx-auto w-full">
+            <div className="space-y-4">
+              <h2 className="text-3xl sm:text-6xl lg:text-7xl font-black text-white tracking-tighter leading-[1.1]">How can I <span className="text-secondary underline decoration-4 lg:decoration-8 underline-offset-8 lg:underline-offset-[12px]">help</span> you today?</h2>
+              <p className="text-white/40 font-medium text-xs sm:text-lg">Search for anything, ask for recommendations</p>
+            </div>
+
+            <div className="relative group w-full max-w-[160px] sm:max-w-[300px] aspect-square flex items-center justify-center">
+              {/* Voice Rings */}
+              <div className="absolute inset-0 bg-secondary/20 rounded-full animate-voice-ring"></div>
+              <div className="absolute inset-0 bg-secondary/10 rounded-full animate-voice-ring" style={{ animationDelay: '0.5s' }}></div>
+              <div className="absolute inset-0 bg-secondary/5 rounded-full animate-voice-ring" style={{ animationDelay: '1s' }}></div>
+              
+              <button className="relative w-20 h-20 sm:w-32 sm:h-32 bg-secondary rounded-full flex items-center justify-center text-white shadow-[0_0_50px_rgba(79,70,229,0.4)] hover:scale-110 active:scale-90 transition-all duration-500">
+                <Mic size={32} className="animate-pulse sm:scale-125" />
+              </button>
+            </div>
+
+            <div className="w-full space-y-4">
+              <p className="text-[9px] sm:text-[11px] font-black text-white/20 uppercase tracking-[0.3em]">Try asking</p>
+              <div className="flex flex-wrap justify-center gap-2">
+                {['"Find top plumbers nearby"', '"Best AC repair for home"', '"Salons with 4.5+ rating"', '"Emergency electricians"'].map((q, i) => (
+                  <button key={i} className="px-4 py-2 sm:px-8 sm:py-4 bg-white/5 border border-white/10 rounded-2xl text-[9px] sm:text-xs text-white/70 font-bold hover:bg-white/10 hover:border-white/20 transition-all">
+                    {q}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="pb-6 max-w-3xl mx-auto w-full mt-auto">
+            <div className="relative group">
+              <div className="absolute -inset-1 bg-gradient-to-r from-secondary to-purple-600 rounded-[2.2rem] blur opacity-20 group-hover:opacity-40 transition duration-1000"></div>
+              <input 
+                type="text" 
+                placeholder="Ask Boomb AI anything..."
+                className="relative w-full bg-white/5 border border-white/10 rounded-[2rem] px-6 py-4 sm:py-8 text-white text-xs sm:text-base font-medium focus:ring-2 focus:ring-secondary transition-all outline-none backdrop-blur-xl"
+              />
+              <button className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 sm:w-14 sm:h-14 bg-white rounded-2xl flex items-center justify-center text-primary hover:bg-secondary hover:text-white hover:scale-105 transition-all shadow-xl">
+                <Send size={16} className="sm:scale-110" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <HomeContent />
+    </Suspense>
   );
 }

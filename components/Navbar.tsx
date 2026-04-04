@@ -2,19 +2,21 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { useState, useEffect } from 'react';
-import { usePathname } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { Menu, X, User, Briefcase, Globe, Megaphone, Users, UserCircle, HelpCircle, ChevronDown, Home, ArrowRight } from 'lucide-react';
 
-export default function Navbar({ whiteText: initialWhiteText = false }: { whiteText?: boolean }) {
+function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: boolean }) {
   const [isOpen, setIsOpen] = useState(false);
   const [currentLang, setCurrentLang] = useState('English');
   const [isLangOpen, setIsLangOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [isLoggedIn] = useState(false); // Mock for now
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const isAiTab = searchParams.get('tab') === 'ai';
 
-  const whiteText = initialWhiteText;
+  const whiteText = initialWhiteText || isAiTab;
 
   useEffect(() => {
     const handleScroll = () => {
@@ -103,7 +105,7 @@ export default function Navbar({ whiteText: initialWhiteText = false }: { whiteT
             <div className="flex items-center gap-3 ml-2">
               <Link 
                 href="/business/register" 
-                className="relative flex items-center gap-2 px-7 py-3 bg-gradient-to-br from-primary via-blue-600 to-indigo-600 text-white rounded-2xl shadow-xl shadow-primary/20 hover:shadow-primary/40 hover:-translate-y-1 transition-all duration-500 font-medium text-xs group overflow-hidden"
+                className="relative flex items-center gap-2 px-7 py-3 bg-gradient-to-r from-secondary to-purple-600 text-white rounded-2xl shadow-xl shadow-secondary/20 hover:shadow-secondary/40 hover:-translate-y-1 transition-all duration-500 font-bold text-xs group overflow-hidden uppercase tracking-widest"
               >
                 <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
                 <Briefcase size={16} className="relative z-10 group-hover:scale-110 group-hover:rotate-12 transition-transform duration-500" />
@@ -128,12 +130,12 @@ export default function Navbar({ whiteText: initialWhiteText = false }: { whiteT
             {/* Register and Login outside of hamburger on mobile too */}
             <Link 
               href="/business/register" 
-              className={`flex items-center gap-1.5 px-3 py-2.5 rounded-xl font-bold text-[9px] uppercase tracking-widest transition-all shadow-xl shadow-primary/10 ${
+              className={`flex items-center gap-1.5 px-3 py-2.5 rounded-xl font-bold text-[9px] uppercase tracking-widest transition-all shadow-xl ${
                 scrolled 
-                  ? 'bg-gradient-to-br from-primary via-blue-600 to-indigo-600 text-white' 
+                  ? 'bg-gradient-to-r from-secondary to-purple-600 text-white shadow-secondary/10' 
                   : isLight 
                     ? 'bg-white text-primary hover:bg-white/90' 
-                    : 'bg-gradient-to-br from-primary via-blue-600 to-indigo-600 text-white'
+                    : 'bg-gradient-to-r from-secondary to-purple-600 text-white shadow-secondary/10'
               }`}
             >
               <Briefcase size={12} />
@@ -304,5 +306,13 @@ export default function Navbar({ whiteText: initialWhiteText = false }: { whiteT
         </div>
       </div>
     </nav>
+  );
+}
+
+export default function Navbar(props: { whiteText?: boolean }) {
+  return (
+    <Suspense fallback={null}>
+      <NavbarContent {...props} />
+    </Suspense>
   );
 }
