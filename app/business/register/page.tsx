@@ -105,27 +105,83 @@ function RegisterFormContent() {
   const prevStep = () => setStep((s) => Math.max(s - 1, 1));
 
   const handleRegistration = async () => {
-    if (!formData.fullName || !formData.businessName || !formData.category || !formData.publicPhone || !formData.businessAddress) {
-      alert('Please fill all compulsory fields');
+    // Validate all required fields
+    if (!formData.fullName) {
+      alert('Please enter your full name');
       return;
     }
+    if (!formData.email) {
+      alert('Please enter your email address');
+      return;
+    }
+    if (!formData.password) {
+      alert('Please enter a password');
+      return;
+    }
+    if (!mobile) {
+      alert('Mobile number is required');
+      return;
+    }
+    if (!formData.businessName) {
+      alert('Please enter your business name');
+      return;
+    }
+    if (!formData.category) {
+      alert('Please select a business category');
+      return;
+    }
+    if (!formData.city) {
+      alert('Please enter your city');
+      return;
+    }
+    if (!formData.state) {
+      alert('Please enter your state');
+      return;
+    }
+    if (!formData.publicPhone) {
+      alert('Please enter your business phone number');
+      return;
+    }
+    if (!formData.businessAddress) {
+      alert('Please enter your business address');
+      return;
+    }
+
     setLoading(true);
     try {
-      const result = await registerBusiness({
+      const registrationData = {
         ...formData,
         mobile,
         selectedPlan,
         billingCycle
+      };
+
+      console.log('Sending registration data:', {
+        fullName: registrationData.fullName,
+        email: registrationData.email,
+        mobile: registrationData.mobile,
+        businessName: registrationData.businessName,
+        category: registrationData.category,
+        city: registrationData.city,
+        state: registrationData.state,
+        publicPhone: registrationData.publicPhone,
+        businessAddress: registrationData.businessAddress,
+        selectedPlan: registrationData.selectedPlan,
+        billingCycle: registrationData.billingCycle,
       });
+
+      const result = await registerBusiness(registrationData);
 
       if (result.success) {
         setRegisteredBusiness(result.business);
         setStep(3);
       } else {
-        alert(result.error || 'Registration failed');
+        console.error('Registration failed:', result.error);
+        alert(result.error || 'Registration failed. Please try again.');
       }
-    } catch (error) {
-      alert('An unexpected error occurred');
+    } catch (error: any) {
+      console.error('Registration error:', error);
+      alert('An unexpected error occurred: ' + (error.message || 'Unknown error'));
     } finally {
       setLoading(false);
     }

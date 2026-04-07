@@ -48,6 +48,12 @@ export async function registerBusiness(formData: any) {
     return { success: true, business };
   } catch (error: any) {
     console.error('Registration Error:', error);
+    console.error('Error details:', {
+      code: error.code,
+      message: error.message,
+      meta: error.meta,
+      stack: error.stack
+    });
 
     // Handle specific database errors
     if (error.code === 'P2002') {
@@ -61,11 +67,16 @@ export async function registerBusiness(formData: any) {
     }
 
     // Handle connection errors
-    if (error.message?.includes('connect') || error.message?.includes('ECONNREFUSED')) {
-      return { success: false, error: 'Database connection error. Please try again later.' };
+    if (error.message?.includes('connect') || error.message?.includes('ECONNREFUSED') || error.message?.includes('timeout')) {
+      return { success: false, error: 'Database connection error. Please ensure your Vercel environment variables are set and try again.' };
     }
 
-    return { success: false, error: error.message || 'Something went wrong during registration' };
+    // Handle validation errors
+    if (error.code === 'P2025') {
+      return { success: false, error: 'Record not found. Please check your input and try again.' };
+    }
+
+    return { success: false, error: error.message || 'Something went wrong during registration. Please try again.' };
   }
 }
 
