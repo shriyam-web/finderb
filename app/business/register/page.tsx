@@ -6,14 +6,14 @@ import Link from 'next/link';
 import Image from 'next/image';
 import Script from 'next/script';
 import { registerBusiness, updateBusinessKYC, updateBusinessPayment } from '@/app/actions/business';
-import { 
-  CheckCircle2, 
-  ChevronRight, 
-  Star, 
-  Users, 
-  Store, 
-  TrendingUp, 
-  MessageSquare, 
+import {
+  CheckCircle2,
+  ChevronRight,
+  Star,
+  Users,
+  Store,
+  TrendingUp,
+  MessageSquare,
   Briefcase,
   Image as ImageIcon,
   HelpCircle,
@@ -71,7 +71,7 @@ function RegisterFormContent() {
     publicPhone: '',
     businessAddress: ''
   });
-  
+
   const [kycData, setKycData] = useState({
     panNumber: '',
     aadharNumber: '',
@@ -90,7 +90,7 @@ function RegisterFormContent() {
 
   const nextStep = async () => {
     if (step === 1) {
-      if (!formData.fullName || (!formData.workEmail && !formData.email)) {
+      if (!formData.fullName || !formData.email) {
         alert('Please fill all details');
         return;
       }
@@ -101,11 +101,11 @@ function RegisterFormContent() {
       window.location.href = `/business/dashboard?id=${registeredBusiness?.id}`;
     }
   };
-  
+
   const prevStep = () => setStep((s) => Math.max(s - 1, 1));
 
   const handleRegistration = async () => {
-    if (!formData.fullName || !formData.businessName || !formData.category) {
+    if (!formData.fullName || !formData.businessName || !formData.category || !formData.publicPhone || !formData.businessAddress) {
       alert('Please fill all compulsory fields');
       return;
     }
@@ -201,12 +201,12 @@ function RegisterFormContent() {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4 pt-16 animate-in fade-in duration-500">
         <div className="w-full max-w-4xl bg-white rounded-2xl shadow-xl overflow-hidden flex flex-col md:flex-row border border-gray-100 min-h-[500px]">
-          
+
           {/* Professional Sidebar - Refined */}
           <div className={`w-full md:w-72 bg-blue-700 text-white flex flex-col justify-between relative overflow-hidden shrink-0 transition-all duration-500 ${isSidebarOpen ? 'max-h-[1000px] py-10' : 'max-h-16 md:max-h-none py-4 md:py-10'}`}>
             <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-3xl -mr-24 -mt-24"></div>
             <div className="absolute bottom-0 left-0 w-32 h-32 bg-blue-400/20 rounded-full blur-2xl -ml-16 -mb-16"></div>
-            
+
             <div className="relative z-10 px-8">
               <div className="flex items-center justify-between mb-12">
                 <Link href="/" className="inline-flex items-center gap-3">
@@ -214,14 +214,14 @@ function RegisterFormContent() {
                   <span className="text-base font-black tracking-tighter italic uppercase">BOOMB</span>
                 </Link>
                 {/* Mobile Toggle */}
-                <button 
+                <button
                   onClick={() => setIsSidebarOpen(!isSidebarOpen)}
                   className="md:hidden p-2 bg-white/10 rounded-xl"
                 >
                   <ChevronDown size={20} className={`transition-transform duration-300 ${isSidebarOpen ? 'rotate-180' : ''}`} />
                 </button>
               </div>
-              
+
               <div className={`space-y-6 transition-all duration-500 ${isSidebarOpen ? 'opacity-100 block' : 'opacity-0 hidden md:opacity-100 md:block'}`}>
                 {stepLabels.map((label, i) => (
                   <div key={i} className="flex items-center gap-4 group cursor-default">
@@ -229,7 +229,7 @@ function RegisterFormContent() {
                       {step > i + 1 ? <CheckCircle2 size={16} /> : <span className="text-xs">{i + 1}</span>}
                     </div>
                     <div className="flex flex-col text-left">
-                      <span className={`text-[9px] font-black uppercase tracking-[0.2em] leading-none mb-1 transition-all duration-500 ${step === i + 1 ? 'text-blue-100' : 'text-blue-400'}`}>Step 0{i+1}</span>
+                      <span className={`text-[9px] font-black uppercase tracking-[0.2em] leading-none mb-1 transition-all duration-500 ${step === i + 1 ? 'text-blue-100' : 'text-blue-400'}`}>Step 0{i + 1}</span>
                       <span className={`text-[11px] font-black uppercase tracking-widest transition-all duration-500 ${step === i + 1 ? 'text-white' : 'text-blue-300/50'}`}>{label}</span>
                     </div>
                   </div>
@@ -260,13 +260,13 @@ function RegisterFormContent() {
           {/* Right Main Content */}
           <div className="flex-grow p-6 md:p-10 flex flex-col relative bg-white">
             <div className="absolute top-6 right-6 flex items-center gap-4 z-20">
-              <Link 
-                href="/business/login" 
+              <Link
+                href="/business/login"
                 className="hidden sm:block text-[9px] font-bold text-gray-400 uppercase tracking-wider hover:text-blue-600 transition-colors"
               >
                 Already have an account? Login
               </Link>
-              <button 
+              <button
                 onClick={() => setShowForm(false)}
                 className="w-8 h-8 bg-gray-50 hover:bg-gray-100 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-900 transition-all"
               >
@@ -293,12 +293,12 @@ function RegisterFormContent() {
                       <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider ml-0.5 group-focus-within:text-blue-600 transition-colors">Full Name</label>
                       <div className="relative">
                         <User className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-blue-600 transition-colors" size={16} />
-                        <input 
+                        <input
                           name="fullName"
                           value={formData.fullName}
                           onChange={handleChange}
-                          className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-blue-600 outline-none font-medium text-gray-900 transition-all placeholder:text-gray-300 text-sm" 
-                          placeholder="Your legal name" 
+                          className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-blue-600 outline-none font-medium text-gray-900 transition-all placeholder:text-gray-300 text-sm"
+                          placeholder="Your legal name"
                         />
                       </div>
                     </div>
@@ -306,12 +306,12 @@ function RegisterFormContent() {
                       <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider ml-0.5 group-focus-within:text-blue-600 transition-colors">Email Address</label>
                       <div className="relative">
                         <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-blue-600 transition-colors" size={16} />
-                        <input 
+                        <input
                           name="email"
                           value={formData.email}
                           onChange={handleChange}
-                          className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-blue-600 outline-none font-medium text-gray-900 transition-all placeholder:text-gray-300 text-sm" 
-                          placeholder="Professional email address" 
+                          className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-blue-600 outline-none font-medium text-gray-900 transition-all placeholder:text-gray-300 text-sm"
+                          placeholder="Professional email address"
                         />
                       </div>
                     </div>
@@ -319,13 +319,13 @@ function RegisterFormContent() {
                       <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider ml-0.5 group-focus-within:text-blue-600 transition-colors">Password</label>
                       <div className="relative">
                         <ShieldCheck className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-blue-600 transition-colors" size={16} />
-                        <input 
+                        <input
                           name="password"
                           type="password"
                           value={formData.password}
                           onChange={handleChange}
-                          className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-blue-600 outline-none font-medium text-gray-900 transition-all placeholder:text-gray-300 text-sm" 
-                          placeholder="Create a strong password" 
+                          className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-blue-600 outline-none font-medium text-gray-900 transition-all placeholder:text-gray-300 text-sm"
+                          placeholder="Create a strong password"
                         />
                       </div>
                     </div>
@@ -333,11 +333,11 @@ function RegisterFormContent() {
                       <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider ml-0.5">Verified Mobile</label>
                       <div className="relative">
                         <Smartphone className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-300" size={16} />
-                        <input 
-                          value={mobile} 
-                          readOnly 
-                          disabled 
-                          className="w-full pl-10 pr-4 py-3 bg-gray-100 border border-gray-100 rounded-xl font-medium text-gray-500 cursor-not-allowed text-sm" 
+                        <input
+                          value={mobile}
+                          readOnly
+                          disabled
+                          className="w-full pl-10 pr-4 py-3 bg-gray-100 border border-gray-100 rounded-xl font-medium text-gray-500 cursor-not-allowed text-sm"
                         />
                         <CheckCircle2 className="absolute right-3.5 top-1/2 -translate-y-1/2 text-green-500" size={14} />
                       </div>
@@ -357,19 +357,19 @@ function RegisterFormContent() {
                       <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider ml-0.5 group-focus-within:text-blue-600 transition-colors">Business Name</label>
                       <div className="relative">
                         <Building2 className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-blue-600 transition-colors" size={16} />
-                        <input 
+                        <input
                           name="businessName"
                           value={formData.businessName}
                           onChange={handleChange}
-                          className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-blue-600 outline-none font-medium text-gray-900 transition-all placeholder:text-gray-300 text-sm" 
-                          placeholder="Official entity name" 
+                          className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-blue-600 outline-none font-medium text-gray-900 transition-all placeholder:text-gray-300 text-sm"
+                          placeholder="Official entity name"
                         />
                       </div>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                       <div className="group space-y-1.5">
                         <label className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.15em] ml-1 group-focus-within:text-blue-600 transition-colors">Category</label>
-                        <select 
+                        <select
                           name="category"
                           value={formData.category}
                           onChange={handleChange}
@@ -383,12 +383,12 @@ function RegisterFormContent() {
                         <label className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.15em] ml-1 group-focus-within:text-blue-600 transition-colors">City</label>
                         <div className="relative">
                           <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-blue-600 transition-colors" size={18} />
-                          <input 
+                          <input
                             name="city"
                             value={formData.city}
                             onChange={handleChange}
-                            className="w-full pl-11 pr-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:bg-white focus:border-blue-600 outline-none font-semibold text-gray-900 transition-all placeholder:text-gray-300 text-sm" 
-                            placeholder="e.g. Mumbai" 
+                            className="w-full pl-11 pr-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:bg-white focus:border-blue-600 outline-none font-semibold text-gray-900 transition-all placeholder:text-gray-300 text-sm"
+                            placeholder="e.g. Mumbai"
                           />
                         </div>
                       </div>
@@ -398,12 +398,12 @@ function RegisterFormContent() {
                         <label className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.15em] ml-1 group-focus-within:text-blue-600 transition-colors">State</label>
                         <div className="relative">
                           <Globe className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-blue-600 transition-colors" size={18} />
-                          <input 
+                          <input
                             name="state"
                             value={formData.state}
                             onChange={handleChange}
-                            className="w-full pl-11 pr-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:bg-white focus:border-blue-600 outline-none font-semibold text-gray-900 transition-all placeholder:text-gray-300 text-sm" 
-                            placeholder="e.g. Maharashtra" 
+                            className="w-full pl-11 pr-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:bg-white focus:border-blue-600 outline-none font-semibold text-gray-900 transition-all placeholder:text-gray-300 text-sm"
+                            placeholder="e.g. Maharashtra"
                           />
                         </div>
                       </div>
@@ -411,23 +411,23 @@ function RegisterFormContent() {
                         <label className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.15em] ml-1 group-focus-within:text-blue-600 transition-colors">Customer Support No.</label>
                         <div className="relative">
                           <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-blue-600 transition-colors" size={18} />
-                          <input 
+                          <input
                             name="publicPhone"
                             value={formData.publicPhone}
                             onChange={handleChange}
-                            className="w-full pl-11 pr-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:bg-white focus:border-blue-600 outline-none font-semibold text-gray-900 transition-all placeholder:text-gray-300 text-sm" 
-                            placeholder="Contact for leads" 
+                            className="w-full pl-11 pr-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:bg-white focus:border-blue-600 outline-none font-semibold text-gray-900 transition-all placeholder:text-gray-300 text-sm"
+                            placeholder="Contact for leads"
                           />
                         </div>
                       </div>
                     </div>
                     <div className="group space-y-1.5">
                       <label className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.15em] ml-1 group-focus-within:text-blue-600 transition-colors">Business Address</label>
-                      <textarea 
+                      <textarea
                         name="businessAddress"
                         value={formData.businessAddress}
                         onChange={handleChange}
-                        className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:bg-white focus:border-blue-600 outline-none font-semibold text-gray-900 transition-all placeholder:text-gray-300 text-sm" 
+                        className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:bg-white focus:border-blue-600 outline-none font-semibold text-gray-900 transition-all placeholder:text-gray-300 text-sm"
                         rows={2}
                         placeholder="Complete physical address"
                       />
@@ -447,12 +447,12 @@ function RegisterFormContent() {
                     <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight leading-tight">Registration <br /><span className="text-blue-600 font-black italic">Successful</span></h2>
                     <p className="text-gray-400 font-medium text-sm">Your unique business identifier has been created.</p>
                   </div>
-                  
+
                   <div className="bg-gray-50 rounded-3xl p-6 border border-gray-100 max-w-sm mx-auto group relative">
                     <p className="text-[9px] font-bold text-gray-400 uppercase tracking-[0.25em] mb-3">Business ID</p>
                     <div className="flex items-center justify-center gap-3">
                       <span className="text-2xl font-extrabold text-blue-600 tracking-tight">{registeredBusiness.registrationNumber}</span>
-                      <button 
+                      <button
                         onClick={() => {
                           navigator.clipboard.writeText(registeredBusiness.registrationNumber);
                           alert('Copied!');
@@ -463,7 +463,7 @@ function RegisterFormContent() {
                       </button>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center gap-3 justify-center text-gray-400 bg-gray-50/50 py-3 px-6 rounded-2xl border border-gray-100 text-xs font-semibold italic">
                     <ShieldCheck size={16} className="text-green-500" />
                     <span>Proceed for KYC later from your dashboard.</span>
@@ -474,7 +474,7 @@ function RegisterFormContent() {
 
             {/* Navigation Controls */}
             <div className="mt-12 flex items-center justify-between pt-8 border-t border-gray-50">
-              <button 
+              <button
                 onClick={prevStep}
                 disabled={step === 1 || step === 3}
                 className={`flex items-center gap-1.5 px-6 py-4 font-bold text-[10px] uppercase tracking-widest transition-all ${step === 1 || step === 3 ? 'opacity-0 pointer-events-none' : 'text-gray-400 hover:text-gray-900'}`}
@@ -482,8 +482,8 @@ function RegisterFormContent() {
                 <ChevronLeft size={16} />
                 Back
               </button>
-              
-              <button 
+
+              <button
                 onClick={nextStep}
                 className="flex items-center gap-3 px-10 py-5 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] shadow-2xl shadow-blue-500/20 transition-all hover:scale-[1.02] active:scale-95 group"
               >
@@ -525,7 +525,7 @@ function RegisterFormContent() {
                   <div className="flex items-center gap-2 pl-4 pr-2 py-3 border-r border-slate-100">
                     <span className="text-slate-400 font-bold text-sm">+91</span>
                   </div>
-                  <input 
+                  <input
                     type="tel"
                     value={mobile}
                     onChange={(e) => {
@@ -535,7 +535,7 @@ function RegisterFormContent() {
                     placeholder="Enter Mobile No."
                     className="flex-grow px-4 py-3 bg-transparent outline-none font-bold text-slate-900 placeholder:text-slate-300 text-sm"
                   />
-                  <button 
+                  <button
                     onClick={handleStartNow}
                     className="bg-blue-600 text-white px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-blue-700 transition-all active:scale-95 shadow-lg shadow-blue-200 whitespace-nowrap"
                   >
@@ -546,7 +546,7 @@ function RegisterFormContent() {
 
               <div className="flex items-center gap-2">
                 <p className="text-[10px] text-slate-400 font-medium uppercase tracking-widest">
-                  Already Registered? 
+                  Already Registered?
                 </p>
                 <Link href="/business/login" className="text-[10px] text-blue-600 font-black uppercase tracking-widest hover:underline">
                   Login Here
@@ -705,7 +705,7 @@ function RegisterFormContent() {
                     <div className="flex items-center gap-2 pl-4 pr-2 py-3 border-r border-slate-100">
                       <span className="text-slate-400 font-bold text-sm">+91</span>
                     </div>
-                    <input 
+                    <input
                       type="tel"
                       value={mobile}
                       onChange={(e) => {
@@ -715,7 +715,7 @@ function RegisterFormContent() {
                       placeholder="Enter Mobile No."
                       className="flex-grow px-4 py-3 bg-transparent outline-none font-bold text-slate-900 placeholder:text-slate-300 text-sm"
                     />
-                    <button 
+                    <button
                       onClick={handleStartNow}
                       className="bg-blue-600 text-white px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-blue-700 transition-all active:scale-95 shadow-lg shadow-blue-200"
                     >
@@ -726,7 +726,7 @@ function RegisterFormContent() {
 
                 <div className="mt-4 flex items-center justify-center gap-2">
                   <p className="text-[10px] text-slate-400 font-medium uppercase tracking-widest">
-                    Already Registered? 
+                    Already Registered?
                   </p>
                   <Link href="/business/login" className="text-[10px] text-blue-600 font-black uppercase tracking-widest hover:underline">
                     Login Here
@@ -762,7 +762,7 @@ function RegisterFormContent() {
       <section className="py-24 bg-slate-50 border-t border-slate-100">
         <div className="max-w-7xl mx-auto px-4 text-center space-y-8">
           <h2 className="text-3xl sm:text-5xl font-black text-slate-900 tracking-tight">Ready to <span className="text-blue-600">Grow?</span></h2>
-          <button 
+          <button
             onClick={() => {
               window.scrollTo({ top: 0, behavior: 'smooth' });
               document.getElementById('mobile-input')?.focus();

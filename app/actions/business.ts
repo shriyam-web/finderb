@@ -11,7 +11,7 @@ export async function registerBusiness(formData: any) {
     const business = await prisma.business.create({
       data: {
         fullName: formData.fullName,
-        workEmail: formData.workEmail || formData.email,
+        workEmail: formData.email, // Use email as workEmail since that's what the form collects
         email: formData.email,
         mobile: formData.mobile,
         businessName: formData.businessName,
