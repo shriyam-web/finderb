@@ -1,9 +1,13 @@
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 
+if (process.env.NODE_ENV !== 'production') {
+  require('dotenv').config({ override: true });
+}
+
 const databaseUrl =
-  process.env.DATABASE_URL ||
   process.env.DIRECT_URL ||
+  process.env.DATABASE_URL ||
   process.env.DB_URL;
 
 if (!databaseUrl) {
