@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -39,7 +39,7 @@ import {
 import { Globe } from 'lucide-react';
 import { categories } from '@/lib/mockData';
 
-export default function BusinessRegisterPage() {
+function RegisterFormContent() {
   const searchParams = useSearchParams();
   const [mobile, setMobile] = useState('');
   const [showForm, setShowForm] = useState(false);
@@ -775,5 +775,17 @@ export default function BusinessRegisterPage() {
         </div>
       </section>
     </div>
+  );
+}
+
+export default function BusinessRegisterPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    }>
+      <RegisterFormContent />
+    </Suspense>
   );
 }
