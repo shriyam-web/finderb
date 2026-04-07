@@ -3,6 +3,7 @@ import { prisma } from './lib/prisma';
 async function main() {
   try {
     console.log('Attempting to connect to database...');
+    console.log('DB_URL from process.env:', process.env.DB_URL);
     console.log('DATABASE_URL from process.env:', process.env.DATABASE_URL);
     const result = await prisma.$queryRaw`SELECT 1 as test`;
     console.log('Connection successful:', result);

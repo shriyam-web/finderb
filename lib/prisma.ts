@@ -12,7 +12,7 @@ export const prisma =
   new PrismaClient({
     log: ['query'],
     adapter: new PrismaPg(new Pool({ 
-      connectionString: process.env.DATABASE_URL,
+      connectionString: process.env.DB_URL || process.env.DATABASE_URL,
       ssl: { rejectUnauthorized: false }
     })),
   });
