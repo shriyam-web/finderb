@@ -5,13 +5,29 @@ import { revalidatePath } from 'next/cache';
 
 export async function registerBusiness(formData: any) {
   try {
+    console.log('Registration attempt with data:', {
+      fullName: formData.fullName,
+      email: formData.email,
+      mobile: formData.mobile,
+      businessName: formData.businessName,
+      category: formData.category,
+      hasPassword: !!formData.password,
+      hasPublicPhone: !!formData.publicPhone,
+      hasBusinessAddress: !!formData.businessAddress
+    });
+
+    // Validate required fields
+    if (!formData.fullName || !formData.email || !formData.mobile || !formData.businessName || !formData.category || !formData.publicPhone || !formData.businessAddress) {
+      return { success: false, error: 'All required fields must be filled' };
+    }
+
     // Generate a unique registration number
     const regNo = `BOOMB-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
 
     const business = await prisma.business.create({
       data: {
         fullName: formData.fullName,
-        workEmail: formData.email, // Use email as workEmail since that's what the form collects
+        workEmail: formData.email,
         email: formData.email,
         mobile: formData.mobile,
         businessName: formData.businessName,
@@ -32,7 +48,24 @@ export async function registerBusiness(formData: any) {
     return { success: true, business };
   } catch (error: any) {
     console.error('Registration Error:', error);
-    return { success: false, error: error.message || 'Something went wrong' };
+
+    // Handle specific database errors
+    if (error.code === 'P2002') {
+      // Unique constraint violation
+      if (error.meta?.target?.includes('mobile')) {
+        return { success: false, error: 'This mobile number is already registered. Please use a different number or try logging in.' };
+      }
+      if (error.meta?.target?.includes('email')) {
+        return { success: false, error: 'This email address is already registered. Please use a different email or try logging in.' };
+      }
+    }
+
+    // Handle connection errors
+    if (error.message?.includes('connect') || error.message?.includes('ECONNREFUSED')) {
+      return { success: false, error: 'Database connection error. Please try again later.' };
+    }
+
+    return { success: false, error: error.message || 'Something went wrong during registration' };
   }
 }
 
