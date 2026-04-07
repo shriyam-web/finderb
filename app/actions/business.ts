@@ -56,7 +56,7 @@ export async function registerBusiness(formData: any) {
     console.log('[REGISTER] Creating business record...');
 
     const { data: business, error } = await supabase
-      .from('business')
+      .from('Business')
       .insert({
         fullName: formData.fullName,
         workEmail: formData.email,
@@ -103,7 +103,7 @@ export async function updateBusinessKYC(id: string, kycData: any) {
     const supabase = createClient(await cookies());
 
     const { data: business, error } = await supabase
-      .from('business')
+      .from('Business')
       .update({
         panNumber: kycData.panNumber,
         aadharNumber: kycData.aadharNumber,
@@ -140,7 +140,7 @@ export async function updateBusinessPayment(id: string, paymentData: any) {
     const supabase = createClient(await cookies());
 
     const { data: business, error } = await supabase
-      .from('business')
+      .from('Business')
       .update({
         paymentStatus: 'completed',
         paymentId: paymentData.paymentId,
@@ -175,7 +175,7 @@ export async function getBusiness(id: string) {
     const supabase = createClient(await cookies());
 
     const { data: business, error } = await supabase
-      .from('business')
+      .from('Business')
       .select('*')
       .eq('id', id)
       .single();
@@ -210,7 +210,7 @@ export async function loginBusiness(email: string, password: string) {
     const supabase = createClient(await cookies());
 
     const { data: business, error } = await supabase
-      .from('business')
+      .from('Business')
       .select('*')
       .or(`workEmail.eq.${email},email.eq.${email}`)
       .single();
