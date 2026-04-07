@@ -58,6 +58,7 @@ export async function registerBusiness(formData: any) {
     const { data: business, error } = await supabase
       .from('Business')
       .insert({
+        id: crypto.randomUUID(),
         fullName: formData.fullName,
         workEmail: formData.email,
         email: formData.email,
