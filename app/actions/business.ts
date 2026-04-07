@@ -163,10 +163,6 @@ export async function updateBusinessPayment(id: string, paymentData: any) {
     return { success: false, error: errorMessage };
   }
 }
-const errorMessage = handleError(error, 'Payment Update');
-return { success: false, error: errorMessage };
-  }
-}
 
 export async function getBusiness(id: string) {
   try {
