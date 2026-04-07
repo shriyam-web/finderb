@@ -15,6 +15,10 @@ function handleError(error: any, context: string): string {
   }
 
   // Handle specific database errors
+  if (error?.code === 'P1001') {
+    return 'Cannot reach the database server. Verify your Vercel DATABASE_URL and that outbound access to Supabase is allowed.';
+  }
+
   if (error?.code === 'P2002') {
     const target = error.meta?.target;
     if (Array.isArray(target) && target.includes('mobile')) {

@@ -17,6 +17,15 @@ const globalForPrisma = global as unknown as { prisma?: PrismaClient };
 
 process.env.DATABASE_URL = databaseUrl;
 
+try {
+  const parsedUrl = new URL(databaseUrl);
+  console.log(
+    `✓ Prisma runtime DB target: host=${parsedUrl.hostname} port=${parsedUrl.port || '5432'} sslmode=${parsedUrl.searchParams.get('sslmode') || 'default'}`
+  );
+} catch (parseError) {
+  console.warn('⚠️ Unable to parse DATABASE_URL for runtime logging');
+}
+
 const prismaConfig: ConstructorParameters<typeof PrismaClient>[0] = {
   adapter: new PrismaPg(databaseUrl),
   log: ['query', 'error'] as Array<'query' | 'error'>,
