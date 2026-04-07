@@ -1,6 +1,7 @@
 'use server';
 
-import { prisma } from '@/lib/prisma';
+import { createClient } from '@/utils/supabase/server';
+import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 
 // Safe error handler wrapper
@@ -9,29 +10,19 @@ function handleError(error: any, context: string): string {
 
   const msg = error?.message || String(error) || 'An unexpected error occurred';
 
-  // Handle Prisma initialization errors
-  if (msg.includes('DATABASE_URL') || msg.includes('database') || msg.includes('connection')) {
-    return 'Database configuration error. Please ensure environment variables are set in Vercel.';
+  // Handle Supabase errors
+  if (error?.code === 'PGRST116') {
+    return 'Record not found.';
   }
 
-  // Handle specific database errors
-  if (error?.code === 'P1001') {
-    return 'Cannot reach the database server. Verify your Vercel DATABASE_URL and that outbound access to Supabase is allowed.';
-  }
-
-  if (error?.code === 'P2002') {
-    const target = error.meta?.target;
-    if (Array.isArray(target) && target.includes('mobile')) {
+  if (error?.code === '23505') {
+    if (msg.includes('mobile')) {
       return 'This mobile number is already registered.';
     }
-    if (Array.isArray(target) && target.includes('email')) {
+    if (msg.includes('email')) {
       return 'This email already exists.';
     }
     return 'Duplicate entry found.';
-  }
-
-  if (error?.code === 'P2025') {
-    return 'Record not found.';
   }
 
   if (msg.includes('connect') || msg.includes('ECONNREFUSED') || msg.includes('timeout')) {
@@ -60,14 +51,13 @@ export async function registerBusiness(formData: any) {
     // Generate a unique registration number
     const regNo = `BOOMB-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
 
-    if (!prisma) {
-      return { success: false, error: 'Database client not initialized. Check DATABASE_URL environment variable.' };
-    }
+    const supabase = createClient(await cookies());
 
     console.log('[REGISTER] Creating business record...');
 
-    const business = await prisma.business.create({
-      data: {
+    const { data: business, error } = await supabase
+      .from('business')
+      .insert({
         fullName: formData.fullName,
         workEmail: formData.email,
         email: formData.email,
@@ -83,8 +73,13 @@ export async function registerBusiness(formData: any) {
         billingCycle: formData.billingCycle || 'monthly',
         registrationNumber: regNo,
         password: formData.password,
-      },
-    });
+      })
+      .select()
+      .single();
+
+    if (error) {
+      throw error;
+    }
 
     console.log('[REGISTER] ✓ Success:', business.id);
     revalidatePath('/business');
@@ -105,9 +100,11 @@ export async function updateBusinessKYC(id: string, kycData: any) {
 
     console.log('Updating KYC for business:', id);
 
-    const business = await prisma.business.update({
-      where: { id },
-      data: {
+    const supabase = createClient(await cookies());
+
+    const { data: business, error } = await supabase
+      .from('business')
+      .update({
         panNumber: kycData.panNumber,
         aadharNumber: kycData.aadharNumber,
         panUrl: kycData.panUrl,
@@ -115,8 +112,14 @@ export async function updateBusinessKYC(id: string, kycData: any) {
         msmeGstUrl: kycData.msmeGstUrl,
         kycStatus: 'submitted',
         hasVerifiedBadge: !!kycData.msmeGstUrl,
-      },
-    });
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      throw error;
+    }
 
     revalidatePath(`/business/${id}`);
     return { success: true, business };
@@ -134,20 +137,32 @@ export async function updateBusinessPayment(id: string, paymentData: any) {
 
     console.log('Updating payment for business:', id);
 
-    const business = await prisma.business.update({
-      where: { id },
-      data: {
+    const supabase = createClient(await cookies());
+
+    const { data: business, error } = await supabase
+      .from('business')
+      .update({
         paymentStatus: 'completed',
         paymentId: paymentData.paymentId,
         orderId: paymentData.orderId,
         selectedPlan: paymentData.selectedPlan,
         billingCycle: paymentData.billingCycle,
-      },
-    });
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      throw error;
+    }
 
     revalidatePath(`/business/${id}`);
     return { success: true, business };
   } catch (error: any) {
+    const errorMessage = handleError(error, 'Payment Update');
+    return { success: false, error: errorMessage };
+  }
+}
     const errorMessage = handleError(error, 'Payment Update');
     return { success: false, error: errorMessage };
   }
@@ -161,12 +176,19 @@ export async function getBusiness(id: string) {
 
     console.log('Fetching business:', id);
 
-    const business = await prisma.business.findUnique({
-      where: { id },
-    });
+    const supabase = createClient(await cookies());
 
-    if (!business) {
-      return { success: false, error: 'Business not found' };
+    const { data: business, error } = await supabase
+      .from('business')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return { success: false, error: 'Business not found' };
+      }
+      throw error;
     }
 
     return { success: true, business };
@@ -189,18 +211,20 @@ export async function loginBusiness(email: string, password: string) {
 
     console.log('Login attempt with email:', email);
 
-    const business = await prisma.business.findFirst({
-      where: {
-        OR: [
-          { workEmail: email },
-          { email: email }
-        ]
-      }
-    });
+    const supabase = createClient(await cookies());
 
-    if (!business) {
-      console.log('No business found with email:', email);
-      return { success: false, error: 'Business account not found. Please check your email or register a new account.' };
+    const { data: business, error } = await supabase
+      .from('business')
+      .select('*')
+      .or(`workEmail.eq.${email},email.eq.${email}`)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        console.log('No business found with email:', email);
+        return { success: false, error: 'Business account not found. Please check your email or register a new account.' };
+      }
+      throw error;
     }
 
     if (business.password !== password) {
