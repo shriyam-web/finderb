@@ -3,8 +3,42 @@
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 
+// Safe error handler wrapper
+function handleError(error: any, context: string): string {
+  console.error(`${context} Error:`, error);
+
+  // Handle specific database errors
+  if (error?.code === 'P2002') {
+    const target = error.meta?.target;
+    if (Array.isArray(target) && target.includes('mobile')) {
+      return 'This mobile number is already registered.';
+    }
+    if (Array.isArray(target) && target.includes('email')) {
+      return 'This email already exists.';
+    }
+    return 'Duplicate entry found.';
+  }
+
+  if (error?.code === 'P2025') {
+    return 'Record not found.';
+  }
+
+  const msg = error?.message || 'An unexpected error occurred';
+
+  if (msg.includes('connect') || msg.includes('ECONNREFUSED') || msg.includes('timeout')) {
+    return 'Database connection failed. Please check your configuration.';
+  }
+
+  return msg;
+}
+
 export async function registerBusiness(formData: any) {
   try {
+    // Validate required fields first
+    if (!formData.fullName || !formData.email || !formData.mobile || !formData.businessName || !formData.category || !formData.publicPhone || !formData.businessAddress) {
+      return { success: false, error: 'All required fields must be filled' };
+    }
+
     console.log('Registration attempt with data:', {
       fullName: formData.fullName,
       email: formData.email,
@@ -15,11 +49,6 @@ export async function registerBusiness(formData: any) {
       hasPublicPhone: !!formData.publicPhone,
       hasBusinessAddress: !!formData.businessAddress
     });
-
-    // Validate required fields
-    if (!formData.fullName || !formData.email || !formData.mobile || !formData.businessName || !formData.category || !formData.publicPhone || !formData.businessAddress) {
-      return { success: false, error: 'All required fields must be filled' };
-    }
 
     // Generate a unique registration number
     const regNo = `BOOMB-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
@@ -47,41 +76,19 @@ export async function registerBusiness(formData: any) {
     revalidatePath('/business');
     return { success: true, business };
   } catch (error: any) {
-    console.error('Registration Error:', error);
-    console.error('Error details:', {
-      code: error.code,
-      message: error.message,
-      meta: error.meta,
-      stack: error.stack
-    });
-
-    // Handle specific database errors
-    if (error.code === 'P2002') {
-      // Unique constraint violation
-      if (error.meta?.target?.includes('mobile')) {
-        return { success: false, error: 'This mobile number is already registered. Please use a different number or try logging in.' };
-      }
-      if (error.meta?.target?.includes('email')) {
-        return { success: false, error: 'This email address is already registered. Please use a different email or try logging in.' };
-      }
-    }
-
-    // Handle connection errors
-    if (error.message?.includes('connect') || error.message?.includes('ECONNREFUSED') || error.message?.includes('timeout')) {
-      return { success: false, error: 'Database connection error. Please ensure your Vercel environment variables are set and try again.' };
-    }
-
-    // Handle validation errors
-    if (error.code === 'P2025') {
-      return { success: false, error: 'Record not found. Please check your input and try again.' };
-    }
-
-    return { success: false, error: error.message || 'Something went wrong during registration. Please try again.' };
+    const errorMessage = handleError(error, 'Registration');
+    return { success: false, error: errorMessage };
   }
 }
 
 export async function updateBusinessKYC(id: string, kycData: any) {
   try {
+    if (!id) {
+      return { success: false, error: 'Business ID is required' };
+    }
+
+    console.log('Updating KYC for business:', id);
+
     const business = await prisma.business.update({
       where: { id },
       data: {
@@ -98,13 +105,19 @@ export async function updateBusinessKYC(id: string, kycData: any) {
     revalidatePath(`/business/${id}`);
     return { success: true, business };
   } catch (error: any) {
-    console.error('KYC Update Error:', error);
-    return { success: false, error: error.message || 'Something went wrong' };
+    const errorMessage = handleError(error, 'KYC Update');
+    return { success: false, error: errorMessage };
   }
 }
 
 export async function updateBusinessPayment(id: string, paymentData: any) {
   try {
+    if (!id) {
+      return { success: false, error: 'Business ID is required' };
+    }
+
+    console.log('Updating payment for business:', id);
+
     const business = await prisma.business.update({
       where: { id },
       data: {
@@ -119,24 +132,47 @@ export async function updateBusinessPayment(id: string, paymentData: any) {
     revalidatePath(`/business/${id}`);
     return { success: true, business };
   } catch (error: any) {
-    console.error('Payment Update Error:', error);
-    return { success: false, error: error.message || 'Something went wrong' };
+    const errorMessage = handleError(error, 'Payment Update');
+    return { success: false, error: errorMessage };
   }
 }
 
 export async function getBusiness(id: string) {
   try {
+    if (!id) {
+      return { success: false, error: 'Business ID is required' };
+    }
+
+    console.log('Fetching business:', id);
+
     const business = await prisma.business.findUnique({
       where: { id },
     });
+
+    if (!business) {
+      return { success: false, error: 'Business not found' };
+    }
+
     return { success: true, business };
   } catch (error: any) {
-    return { success: false, error: error.message };
+    const errorMessage = handleError(error, 'Get Business');
+    return { success: false, error: errorMessage };
   }
 }
 
 export async function loginBusiness(email: string, password: string) {
   try {
+    // Validate inputs
+    if (!email || !password) {
+      return { success: false, error: 'Email and password are required' };
+    }
+
+    if (!email.includes('@')) {
+      return { success: false, error: 'Please enter a valid email address' };
+    }
+
+    console.log('Login attempt with email:', email);
+
     const business = await prisma.business.findFirst({
       where: {
         OR: [
@@ -147,16 +183,19 @@ export async function loginBusiness(email: string, password: string) {
     });
 
     if (!business) {
-      return { success: false, error: 'Business not found' };
+      console.log('No business found with email:', email);
+      return { success: false, error: 'Business account not found. Please check your email or register a new account.' };
     }
 
     if (business.password !== password) {
-      return { success: false, error: 'Incorrect password' };
+      console.log('Incorrect password for business:', business.id);
+      return { success: false, error: 'Incorrect password. Please try again.' };
     }
 
+    console.log('Login successful for business:', business.id);
     return { success: true, businessId: business.id };
   } catch (error: any) {
-    console.error('Login Error:', error);
-    return { success: false, error: error.message || 'Something went wrong' };
+    const errorMessage = handleError(error, 'Login');
+    return { success: false, error: errorMessage };
   }
 }

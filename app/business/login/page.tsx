@@ -20,19 +20,29 @@ export default function BusinessLoginPage() {
       setError('Please enter both email and password');
       return;
     }
-    
+
+    if (!email.includes('@')) {
+      setError('Please enter a valid email address');
+      return;
+    }
+
     setLoading(true);
     setError('');
-    
+
     try {
+      console.log('Attempting login with email:', email);
       const result = await loginBusiness(email, password);
+
       if (result.success) {
+        console.log('Login successful, redirecting to dashboard...');
         router.push(`/business/dashboard?id=${result.businessId}`);
       } else {
+        console.error('Login failed:', result.error);
         setError(result.error || 'Login failed');
       }
-    } catch (err) {
-      setError('An unexpected error occurred');
+    } catch (err: any) {
+      console.error('Login error:', err);
+      setError(err.message || 'An unexpected error occurred');
     } finally {
       setLoading(false);
     }
@@ -54,11 +64,11 @@ export default function BusinessLoginPage() {
           <div className="p-8 md:p-12">
             <div className="text-center mb-10">
               <Link href="/" className="inline-flex items-center gap-2 mb-8 group">
-                <Image 
-                  src="/logo-n.png" 
-                  alt="Boomb Logo" 
-                  width={150} 
-                  height={50} 
+                <Image
+                  src="/logo-n.png"
+                  alt="Boomb Logo"
+                  width={150}
+                  height={50}
                   className="h-10 w-auto object-contain transition-transform duration-300 group-hover:scale-105"
                 />
               </Link>
@@ -82,8 +92,8 @@ export default function BusinessLoginPage() {
                   <div className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-600 transition-colors">
                     <Mail size={20} />
                   </div>
-                  <input 
-                    type="email" 
+                  <input
+                    type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="name@business.com"
@@ -101,8 +111,8 @@ export default function BusinessLoginPage() {
                   <div className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-600 transition-colors">
                     <Lock size={20} />
                   </div>
-                  <input 
-                    type="password" 
+                  <input
+                    type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
@@ -111,7 +121,7 @@ export default function BusinessLoginPage() {
                 </div>
               </div>
 
-              <button 
+              <button
                 type="submit"
                 disabled={loading}
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-5 rounded-2xl shadow-xl shadow-blue-100 transition-all active:scale-[0.98] flex items-center justify-center gap-2 group disabled:opacity-70"
@@ -131,7 +141,7 @@ export default function BusinessLoginPage() {
             </div>
           </div>
         </div>
-        
+
         <p className="mt-8 text-center text-gray-400 text-sm font-medium">
           &copy; {new Date().getFullYear()} Boomb Local Search. All rights reserved.
         </p>
