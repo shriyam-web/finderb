@@ -55,6 +55,7 @@ export async function registerBusiness(formData: any) {
 
     console.log('[REGISTER] Creating business record...');
 
+    const now = new Date().toISOString();
     const { data: business, error } = await supabase
       .from('Business')
       .insert({
@@ -74,6 +75,8 @@ export async function registerBusiness(formData: any) {
         billingCycle: formData.billingCycle || 'monthly',
         registrationNumber: regNo,
         password: formData.password,
+        createdAt: now,
+        updatedAt: now,
       })
       .select()
       .single();
