@@ -256,7 +256,7 @@ function RegisterFormContent() {
   if (showForm) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4 pt-16 animate-in fade-in duration-500">
-        <div className="w-full max-w-4xl bg-white rounded-2xl shadow-xl overflow-hidden flex flex-col md:flex-row border border-gray-100 min-h-[500px]">
+        <div className="w-full max-w-full sm:max-w-4xl mx-auto bg-white rounded-2xl shadow-xl overflow-hidden flex flex-col md:flex-row border border-gray-100 md:min-h-[500px]">
 
           {/* Professional Sidebar - Refined */}
           <div className={`w-full md:w-72 bg-blue-700 text-white flex flex-col justify-between relative overflow-hidden shrink-0 transition-all duration-500 ${isSidebarOpen ? 'max-h-[1000px] py-10' : 'max-h-16 md:max-h-none py-4 md:py-10'}`}>
@@ -529,11 +529,11 @@ function RegisterFormContent() {
             </div>
 
             {/* Navigation Controls */}
-            <div className="mt-12 flex items-center justify-between pt-8 border-t border-gray-50">
+            <div className="mt-12 flex flex-col sm:flex-row items-center justify-between gap-4 pt-8 border-t border-gray-50">
               <button
                 onClick={prevStep}
                 disabled={step === 1 || step === 3}
-                className={`flex items-center gap-1.5 px-6 py-4 font-bold text-[10px] uppercase tracking-widest transition-all ${step === 1 || step === 3 ? 'opacity-0 pointer-events-none' : 'text-gray-400 hover:text-gray-900'}`}
+                className={`flex items-center justify-center gap-1.5 px-6 py-4 font-bold text-[10px] uppercase tracking-widest transition-all w-full sm:w-auto ${step === 1 || step === 3 ? 'opacity-0 pointer-events-none' : 'text-gray-400 hover:text-gray-900'}`}
               >
                 <ChevronLeft size={16} />
                 Back
@@ -541,7 +541,7 @@ function RegisterFormContent() {
 
               <button
                 onClick={nextStep}
-                className="flex items-center gap-3 px-10 py-5 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] shadow-2xl shadow-blue-500/20 transition-all hover:scale-[1.02] active:scale-95 group"
+                className="flex items-center justify-center gap-3 px-10 py-5 w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] shadow-2xl shadow-blue-500/20 transition-all hover:scale-[1.02] active:scale-95 group"
               >
                 {step === 3 ? 'Finish Registration' : 'Next Step'}
                 <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
@@ -576,12 +576,13 @@ function RegisterFormContent() {
                 </p>
               </div>
 
-              <div className="bg-white p-2 rounded-2xl shadow-xl shadow-blue-900/5 border border-slate-100 max-w-md">
-                <div className="flex items-center">
-                  <div className="flex items-center gap-2 pl-4 pr-2 py-3 border-r border-slate-100">
+              <div className="bg-white p-2 rounded-2xl shadow-xl shadow-blue-900/5 border border-slate-100 w-full max-w-full sm:max-w-md">
+                <div className="flex flex-col sm:flex-row sm:items-center w-full">
+                  <div className="flex items-center gap-2 pl-4 pr-2 py-3 border-b border-slate-100 sm:border-b-0 sm:border-r sm:py-3">
                     <span className="text-slate-400 font-bold text-sm">+91</span>
                   </div>
                   <input
+                    id="mobile-input"
                     type="tel"
                     value={mobile}
                     onChange={(e) => {
@@ -613,7 +614,7 @@ function RegisterFormContent() {
                 By continuing, you agree to our <Link href="/terms" className="underline">Terms of Use</Link>, <Link href="/privacy" className="underline">Privacy</Link> & <Link href="/policy" className="underline">Infringement Policy</Link>
               </p>
 
-              <div className="grid grid-cols-3 gap-8 pt-4 border-t border-slate-200/60">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-4 border-t border-slate-200/60">
                 {stats.map((stat, i) => (
                   <div key={i} className="space-y-1">
                     <h4 className="text-xl sm:text-2xl font-black text-slate-900">{stat.value}</h4>
@@ -623,7 +624,7 @@ function RegisterFormContent() {
               </div>
             </div>
 
-            <div className="hidden lg:block relative">
+            <div className="hidden md:block relative">
               <div className="absolute inset-0 bg-gradient-to-tr from-blue-600/20 to-indigo-600/20 blur-[100px] -z-10 rounded-full animate-pulse"></div>
               <div className="relative bg-white p-8 rounded-[3rem] shadow-2xl border border-slate-100">
                 <div className="grid grid-cols-2 gap-4">
