@@ -14,8 +14,8 @@ export const prisma =
   globalForPrisma.prisma ||
   new PrismaClient({
     log: ['query'],
-    adapter: new PrismaPg(new Pool({ 
-      connectionString: process.env.DB_URL || process.env.DATABASE_URL,
+    adapter: new PrismaPg(new Pool({
+      connectionString: process.env.DATABASE_URL,
       ssl: { rejectUnauthorized: false }
     })),
   });
