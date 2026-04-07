@@ -5,6 +5,9 @@ import * as dotenv from 'dotenv';
 
 dotenv.config({ override: true });
 
+// Prevent Prisma from using the environment variable directly
+process.env.DATABASE_URL = "";
+
 const globalForPrisma = global as unknown as { prisma: PrismaClient };
 
 export const prisma =
