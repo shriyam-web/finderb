@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
 
 const databaseUrl =
   process.env.DATABASE_URL ||
@@ -17,6 +18,7 @@ const globalForPrisma = global as unknown as { prisma?: PrismaClient };
 process.env.DATABASE_URL = databaseUrl;
 
 const prismaConfig: ConstructorParameters<typeof PrismaClient>[0] = {
+  adapter: new PrismaPg(databaseUrl),
   log: ['query', 'error'] as Array<'query' | 'error'>,
   errorFormat: 'pretty',
 };
