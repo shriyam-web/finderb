@@ -116,6 +116,7 @@ export async function updateBusinessKYC(id: string, kycData: any) {
         msmeGstUrl: kycData.msmeGstUrl,
         kycStatus: 'submitted',
         hasVerifiedBadge: !!kycData.msmeGstUrl,
+        updatedAt: new Date().toISOString(),
       })
       .eq('id', id)
       .select()
@@ -151,6 +152,7 @@ export async function updateBusinessPayment(id: string, paymentData: any) {
         orderId: paymentData.orderId,
         selectedPlan: paymentData.selectedPlan,
         billingCycle: paymentData.billingCycle,
+        updatedAt: new Date().toISOString(),
       })
       .eq('id', id)
       .select()
