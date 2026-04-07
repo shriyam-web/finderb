@@ -7,6 +7,13 @@ import { revalidatePath } from 'next/cache';
 function handleError(error: any, context: string): string {
   console.error(`${context} Error:`, error);
 
+  const msg = error?.message || String(error) || 'An unexpected error occurred';
+
+  // Handle Prisma initialization errors
+  if (msg.includes('DATABASE_URL') || msg.includes('database') || msg.includes('connection')) {
+    return 'Database configuration error. Please ensure environment variables are set in Vercel.';
+  }
+
   // Handle specific database errors
   if (error?.code === 'P2002') {
     const target = error.meta?.target;
@@ -23,35 +30,37 @@ function handleError(error: any, context: string): string {
     return 'Record not found.';
   }
 
-  const msg = error?.message || 'An unexpected error occurred';
-
   if (msg.includes('connect') || msg.includes('ECONNREFUSED') || msg.includes('timeout')) {
     return 'Database connection failed. Please check your configuration.';
+  }
+
+  if (msg.includes('Server Components render')) {
+    return 'Server error occurred. Please check Vercel logs for details.';
   }
 
   return msg;
 }
 
 export async function registerBusiness(formData: any) {
+  const startTime = Date.now();
+
   try {
     // Validate required fields first
     if (!formData.fullName || !formData.email || !formData.mobile || !formData.businessName || !formData.category || !formData.publicPhone || !formData.businessAddress) {
       return { success: false, error: 'All required fields must be filled' };
     }
 
-    console.log('Registration attempt with data:', {
-      fullName: formData.fullName,
-      email: formData.email,
-      mobile: formData.mobile,
-      businessName: formData.businessName,
-      category: formData.category,
-      hasPassword: !!formData.password,
-      hasPublicPhone: !!formData.publicPhone,
-      hasBusinessAddress: !!formData.businessAddress
-    });
+    console.log('✓ [REGISTER] Validation passed');
+    console.log('[REGISTER] Attempting database operation...');
 
     // Generate a unique registration number
     const regNo = `BOOMB-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+
+    if (!prisma) {
+      return { success: false, error: 'Database client not initialized. Check DATABASE_URL environment variable.' };
+    }
+
+    console.log('[REGISTER] Creating business record...');
 
     const business = await prisma.business.create({
       data: {
@@ -73,9 +82,12 @@ export async function registerBusiness(formData: any) {
       },
     });
 
+    console.log('[REGISTER] ✓ Success:', business.id);
     revalidatePath('/business');
     return { success: true, business };
   } catch (error: any) {
+    const duration = Date.now() - startTime;
+    console.error(`[REGISTER] ✗ Failed after ${duration}ms:`, error);
     const errorMessage = handleError(error, 'Registration');
     return { success: false, error: errorMessage };
   }
