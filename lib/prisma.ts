@@ -6,9 +6,9 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 const databaseUrl =
-  process.env.DIRECT_URL ||
+  process.env.DB_URL ||
   process.env.DATABASE_URL ||
-  process.env.DB_URL;
+  process.env.DIRECT_URL;
 
 if (!databaseUrl) {
   const message =
