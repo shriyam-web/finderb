@@ -1,12 +1,45 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Mail, Lock, Briefcase, ChevronRight, ArrowLeft } from 'lucide-react';
+import { loginBusiness } from '@/app/actions/business';
+import { useRouter } from 'next/navigation';
 
 export default function BusinessLoginPage() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const router = useRouter();
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password) {
+      setError('Please enter both email and password');
+      return;
+    }
+    
+    setLoading(true);
+    setError('');
+    
+    try {
+      const result = await loginBusiness(email, password);
+      if (result.success) {
+        router.push(`/business/dashboard?id=${result.businessId}`);
+      } else {
+        setError(result.error || 'Login failed');
+      }
+    } catch (err) {
+      setError('An unexpected error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-accent px-4 py-12 relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center bg-blue-50/20 px-4 pt-44 pb-24 relative overflow-hidden">
       {/* Background Decorative Elements */}
       <div className="absolute top-0 left-0 w-96 h-96 bg-blue-100 rounded-full blur-[100px] opacity-50 -translate-x-1/2 -translate-y-1/2"></div>
       <div className="absolute bottom-0 right-0 w-96 h-96 bg-blue-50 rounded-full blur-[100px] opacity-50 translate-x-1/2 translate-y-1/2"></div>
@@ -36,7 +69,13 @@ export default function BusinessLoginPage() {
               <p className="text-gray-500 mt-2 font-medium">Manage your listings and leads</p>
             </div>
 
-            <form className="space-y-6">
+            {error && (
+              <div className="mb-6 p-4 bg-red-50 border border-red-100 text-red-600 text-sm font-bold rounded-2xl animate-in fade-in slide-in-from-top-2">
+                {error}
+              </div>
+            )}
+
+            <form onSubmit={handleLogin} className="space-y-6">
               <div className="space-y-2">
                 <label className="text-sm font-bold text-gray-700 ml-1 uppercase tracking-widest">Work Email</label>
                 <div className="relative group">
@@ -45,6 +84,8 @@ export default function BusinessLoginPage() {
                   </div>
                   <input 
                     type="email" 
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     placeholder="name@business.com"
                     className="w-full pl-14 pr-4 py-5 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-600 font-medium transition-all"
                   />
@@ -62,15 +103,21 @@ export default function BusinessLoginPage() {
                   </div>
                   <input 
                     type="password" 
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
                     className="w-full pl-14 pr-4 py-5 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-600 font-medium transition-all"
                   />
                 </div>
               </div>
 
-              <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-5 rounded-2xl shadow-xl shadow-blue-100 transition-all active:scale-[0.98] flex items-center justify-center gap-2 group">
-                Login to Dashboard
-                <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" />
+              <button 
+                type="submit"
+                disabled={loading}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-5 rounded-2xl shadow-xl shadow-blue-100 transition-all active:scale-[0.98] flex items-center justify-center gap-2 group disabled:opacity-70"
+              >
+                {loading ? 'Logging in...' : 'Login to Dashboard'}
+                {!loading && <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" />}
               </button>
             </form>
 
@@ -79,7 +126,7 @@ export default function BusinessLoginPage() {
                 Not listed on Boomb yet?
               </p>
               <Link href="/business/register" className="inline-flex items-center gap-2 bg-blue-50 text-blue-600 font-black px-8 py-3 rounded-xl hover:bg-blue-600 hover:text-white transition-all">
-                List Business for FREE
+                List Your Business
               </Link>
             </div>
           </div>

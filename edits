@@ -1,0 +1,11 @@
+Vj!d8d8KBy-8n2h database password in supabase 
+
+direct connection string : postgresql://postgres:[YOUR-PASSWORD]@db.lbarmiysgcdwyhgsyqit.supabase.co:5432/postgres 
+
+publishable key : sb_publishable_gUJnajKfnD-9oPXHHqb7NQ_Tq4VDUkl 
+
+project url : https://lbarmiysgcdwyhgsyqit.supabase.co 
+
+connection string : postgresql://postgres:[YOUR-PASSWORD]@db.lbarmiysgcdwyhgsyqit.supabase.co:5432/postgres
+
+ensure now that the connection with database is built, these are supabase credentials above

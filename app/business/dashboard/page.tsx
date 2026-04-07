@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { 
   LayoutDashboard, 
   List, 
@@ -24,14 +25,34 @@ import {
   Rocket,
   Star,
   Menu,
-  X
+  X,
+  AlertCircle,
+  CreditCard
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { getBusiness } from '@/app/actions/business';
 
-export default function BusinessDashboard() {
+function DashboardContent() {
+  const searchParams = useSearchParams();
+  const id = searchParams.get('id');
   const [activeTab, setActiveTab] = useState('overview');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [business, setBusiness] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchBusiness = async () => {
+      if (id) {
+        const res = await getBusiness(id);
+        if (res.success) {
+          setBusiness(res.business);
+        }
+      }
+      setLoading(false);
+    };
+    fetchBusiness();
+  }, [id]);
 
   const menuItems = [
     { id: 'overview', label: 'Performance', icon: LayoutDashboard },
@@ -46,6 +67,18 @@ export default function BusinessDashboard() {
     { label: 'New Leads', value: '42', change: '+18.2%', isUp: true, icon: Users, sub: 'high intent buyers' },
     { label: 'Avg. Rating', value: '4.8', change: '-2.1%', isUp: false, icon: TrendingUp, sub: '840 reviews total' },
   ];
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="w-10 h-10 border-[3px] border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  const businessName = business?.businessName || 'Your Business';
+  const isKycPending = business?.kycStatus === 'pending';
+  const isPaymentPending = business?.paymentStatus === 'pending';
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex flex-col lg:flex-row">
@@ -80,14 +113,14 @@ export default function BusinessDashboard() {
             <Image src="/logo-w2.png" alt="Boomb Logo" width={140} height={40} className="h-10 w-auto transition-transform group-hover:scale-105" />
           </Link>
           <div className="mt-4 inline-flex items-center gap-2 bg-blue-600/20 px-4 py-1.5 rounded-full text-blue-400 font-black text-[10px] uppercase tracking-widest border border-blue-400/20">
-            <ShieldCheck size={12} /> Verified Partner
+            <ShieldCheck size={12} /> {business?.isVerified ? 'Verified Partner' : 'Standard Partner'}
           </div>
         </div>
 
         {/* Mobile Sidebar Brand Info */}
         <div className="p-8 lg:hidden border-b border-white/5">
           <div className="inline-flex items-center gap-2 bg-blue-600/20 px-4 py-1.5 rounded-full text-blue-400 font-black text-[10px] uppercase tracking-widest border border-blue-400/20">
-            <ShieldCheck size={12} /> Verified Partner
+            <ShieldCheck size={12} /> {business?.isVerified ? 'Verified Partner' : 'Standard Partner'}
           </div>
         </div>
 
@@ -121,11 +154,17 @@ export default function BusinessDashboard() {
               </div>
               <div>
                 <p className="font-black text-xs uppercase tracking-widest">Growth Plan</p>
-                <p className="text-[10px] text-blue-100 font-bold">12 Days remaining</p>
+                <p className="text-[10px] text-blue-100 font-bold">{isPaymentPending ? 'Action Required' : 'Active'}</p>
               </div>
-              <button className="w-full bg-white text-blue-600 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-blue-50 transition-all shadow-lg">
-                Renew
-              </button>
+              {isPaymentPending ? (
+                <Link href={`/business/payment/${id}`} className="block w-full text-center bg-white text-blue-600 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-blue-50 transition-all shadow-lg">
+                  Upgrade Now
+                </Link>
+              ) : (
+                <button className="w-full bg-white text-blue-600 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-blue-50 transition-all shadow-lg">
+                  Manage Plan
+                </button>
+              )}
             </div>
           </div>
           
@@ -146,7 +185,7 @@ export default function BusinessDashboard() {
             <h1 className="text-3xl md:text-5xl font-black text-gray-900 tracking-tight capitalize">
               {activeTab === 'overview' ? 'Overview' : activeTab}
             </h1>
-            <p className="text-gray-500 text-sm md:text-lg font-medium">Tracking performance for <span className="text-blue-600 font-black">Precision Plumbers</span></p>
+            <p className="text-gray-500 text-sm md:text-lg font-medium">Tracking performance for <span className="text-blue-600 font-black">{businessName}</span></p>
           </div>
           
           <div className="flex items-center gap-3 md:gap-4">
@@ -163,6 +202,40 @@ export default function BusinessDashboard() {
 
         {activeTab === 'overview' && (
           <div className="space-y-8 md:space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-700">
+            {/* Urgent Actions */}
+            {(isKycPending || isPaymentPending) && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {isKycPending && (
+                  <div className="bg-amber-50 border border-amber-100 rounded-[32px] p-6 flex items-start gap-4">
+                    <div className="w-12 h-12 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center shrink-0">
+                      <AlertCircle size={24} />
+                    </div>
+                    <div className="flex-grow space-y-2">
+                      <h4 className="font-black text-amber-900 text-sm uppercase tracking-wider">KYC Verification Pending</h4>
+                      <p className="text-amber-700 text-xs font-medium">Your business is not yet verified. Submit documents to get the verified badge.</p>
+                      <Link href={`/business/kyc/${id}`} className="inline-flex items-center gap-2 text-amber-900 font-black text-[10px] uppercase tracking-widest hover:underline pt-2">
+                        Complete KYC <ChevronRight size={14} />
+                      </Link>
+                    </div>
+                  </div>
+                )}
+                {isPaymentPending && (
+                  <div className="bg-blue-50 border border-blue-100 rounded-[32px] p-6 flex items-start gap-4">
+                    <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center shrink-0">
+                      <CreditCard size={24} />
+                    </div>
+                    <div className="flex-grow space-y-2">
+                      <h4 className="font-black text-blue-900 text-sm uppercase tracking-wider">Payment Required</h4>
+                      <p className="text-blue-700 text-xs font-medium">Activate your Growth Pro plan to unlock all premium features and leads.</p>
+                      <Link href={`/business/payment/${id}`} className="inline-flex items-center gap-2 text-blue-900 font-black text-[10px] uppercase tracking-widest hover:underline pt-2">
+                        Process Payment <ChevronRight size={14} />
+                      </Link>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Stats */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-8">
               {stats.map((stat) => (
@@ -278,44 +351,36 @@ export default function BusinessDashboard() {
 
                 <div className="bg-gray-900 rounded-[32px] md:rounded-[48px] shadow-premium p-8 md:p-12 text-white space-y-6 md:space-y-8 relative overflow-hidden group">
                   <div className="absolute top-[-10%] right-[-10%] w-32 h-32 bg-blue-600/30 rounded-full blur-3xl group-hover:scale-125 transition-transform duration-1000"></div>
-                  <h3 className="text-xl md:text-2xl font-black relative z-10">Quick Actions</h3>
-                  <div className="grid grid-cols-2 gap-3 md:gap-4 relative z-10">
-                    {[
-                      { label: 'Edit Info', icon: Settings },
-                      { label: 'Ad Center', icon: Rocket },
-                      { label: 'Support', icon: MessageSquare },
-                      { label: 'Reviews', icon: Star },
-                    ].map((btn, i) => (
-                      <button key={i} className="bg-white/5 border border-white/10 p-4 md:p-6 rounded-2xl md:rounded-3xl hover:bg-blue-600 transition-all group/btn flex flex-col items-center gap-2 md:gap-3">
-                        <btn.icon size={18} className="text-blue-400 group-hover/btn:text-white transition-colors md:w-5 md:h-5" />
-                        <span className="text-[8px] md:text-[9px] font-black uppercase tracking-widest group-hover/btn:text-white text-center">{btn.label}</span>
-                      </button>
-                    ))}
+                  <div className="relative z-10 space-y-6">
+                    <div className="w-14 h-14 bg-white/10 backdrop-blur-xl rounded-2xl flex items-center justify-center">
+                      <Star className="text-amber-400 fill-amber-400" size={28} />
+                    </div>
+                    <div className="space-y-2">
+                      <h4 className="text-2xl font-black italic tracking-tight">Pro Insights</h4>
+                      <p className="text-gray-400 text-xs font-bold uppercase tracking-widest leading-relaxed">Boost your conversion by 40% with optimized profile images.</p>
+                    </div>
+                    <button className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-blue-400 hover:text-blue-300 transition-colors">
+                      Learn More <ChevronRight size={16} />
+                    </button>
                   </div>
                 </div>
               </div>
             </div>
           </div>
         )}
-
-        {activeTab !== 'overview' && (
-          <div className="bg-white rounded-[32px] md:rounded-[56px] shadow-premium border border-gray-100 p-10 md:p-24 text-center animate-in fade-in slide-in-from-bottom-8 duration-700">
-            <div className="w-20 h-20 md:w-32 md:h-32 bg-gray-50 rounded-full flex items-center justify-center text-gray-300 mx-auto mb-6 md:mb-10 border-4 border-white shadow-xl">
-              <Clock size={40} className="md:w-16 md:h-16" />
-            </div>
-            <h3 className="text-2xl md:text-3xl font-black text-gray-900 mb-4 md:mb-6 capitalize">{activeTab} section coming soon</h3>
-            <p className="text-gray-500 font-medium max-w-sm mx-auto mb-8 md:mb-10 text-sm md:text-lg leading-relaxed">
-              We are working hard to integrate advanced {activeTab} tools into your portal.
-            </p>
-            <button 
-              onClick={() => setActiveTab('overview')} 
-              className="inline-flex items-center gap-2 md:gap-3 bg-gray-900 text-white px-8 md:px-10 py-4 md:py-5 rounded-2xl md:rounded-3xl font-black hover:bg-blue-600 transition-all shadow-xl shadow-gray-900/20 active:scale-95 uppercase tracking-widest text-[10px] md:text-xs"
-            >
-              Back to Overview <ChevronRight size={18} />
-            </button>
-          </div>
-        )}
       </main>
     </div>
+  );
+}
+
+export default function BusinessDashboard() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="w-10 h-10 border-[3px] border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    }>
+      <DashboardContent />
+    </Suspense>
   );
 }

@@ -1,0 +1,48 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider   = "prisma-client-js"
+  engineType = "library"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Business {
+  id              String   @id @default(cuid())
+  fullName        String
+  workEmail       String
+  email           String?
+  mobile          String   @unique
+  businessName    String
+  category        String
+  location        String?
+  city            String?
+  state           String?
+  publicPhone     String
+  businessAddress String
+  selectedPlan    String
+  billingCycle    String
+  isVerified      Boolean  @default(false)
+  password        String?
+  
+  // KYC & Registration
+  registrationNumber String? @unique
+  panNumber         String?
+  aadharNumber      String?
+  panUrl            String?
+  aadharUrl         String?
+  msmeGstUrl        String?
+  kycStatus         String   @default("pending")
+  hasVerifiedBadge  Boolean  @default(false)
+  
+  // Payment
+  paymentStatus     String   @default("pending")
+  paymentId         String?
+  orderId           String?
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
