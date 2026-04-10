@@ -105,22 +105,22 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
             <div className="flex items-center gap-3 ml-2">
               <Link 
                 href="/business/register" 
-                className="relative flex items-center gap-2 px-7 py-3 bg-gradient-to-r from-secondary to-purple-600 text-white rounded-2xl shadow-xl shadow-secondary/20 hover:shadow-secondary/40 hover:-translate-y-1 transition-all duration-500 font-bold text-xs group overflow-hidden uppercase tracking-widest"
+                className="relative flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-secondary to-purple-600 text-white rounded-xl shadow-lg shadow-secondary/10 hover:shadow-secondary/30 hover:-translate-y-0.5 transition-all duration-500 font-bold text-[10px] group overflow-hidden uppercase tracking-widest"
               >
                 <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
-                <Briefcase size={16} className="relative z-10 group-hover:scale-110 group-hover:rotate-12 transition-transform duration-500" />
+                <Briefcase size={14} className="relative z-10 group-hover:scale-110 group-hover:rotate-12 transition-transform duration-500" />
                 <span className="relative z-10">Register Business</span>
               </Link>
 
               <Link 
                 href={authItem.href} 
-                className={`flex items-center gap-2 px-6 py-3 border-2 rounded-2xl transition-all duration-500 font-medium text-xs shadow-sm hover:shadow-lg ${
+                className={`flex items-center gap-2 px-4 py-2.5 border rounded-xl transition-all duration-500 font-semibold text-[10px] uppercase tracking-wider shadow-sm hover:shadow-md ${
                   isLight 
                     ? 'bg-white/10 backdrop-blur-md text-white border-white/20 hover:bg-white/20' 
                     : 'bg-white/50 backdrop-blur-md text-primary border-primary/10 hover:bg-white hover:border-primary/30'
                 }`}
               >
-                {isLoggedIn && <authItem.icon size={18} className="text-secondary" />}
+                {isLoggedIn && <authItem.icon size={16} className="text-secondary" />}
                 <span>{authItem.name}</span>
               </Link>
             </div>
@@ -130,7 +130,7 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
             {/* Register and Login outside of hamburger on mobile too */}
             <Link 
               href="/business/register" 
-              className={`flex items-center gap-1.5 px-3 py-2.5 rounded-xl font-bold text-[9px] uppercase tracking-widest transition-all shadow-xl ${
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg font-bold text-[8px] uppercase tracking-widest transition-all shadow-lg ${
                 scrolled 
                   ? 'bg-gradient-to-r from-secondary to-purple-600 text-white shadow-secondary/10' 
                   : isLight 
@@ -138,14 +138,14 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
                     : 'bg-gradient-to-r from-secondary to-purple-600 text-white shadow-secondary/10'
               }`}
             >
-              <Briefcase size={12} />
+              <Briefcase size={10} />
               <span className="hidden min-[380px]:inline">Register Business</span>
               <span className="min-[380px]:hidden">Register</span>
             </Link>
 
             <Link 
               href={authItem.href} 
-              className={`flex items-center gap-1.5 px-3 py-2.5 rounded-xl font-bold text-[9px] uppercase tracking-widest transition-all border shadow-sm ${
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg font-bold text-[8px] uppercase tracking-widest transition-all border shadow-sm ${
                 isLoggedIn 
                   ? (scrolled 
                     ? 'text-primary bg-primary/5 border-primary/10' 
@@ -160,7 +160,7 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
               }`}
             >
               {isLoggedIn ? (
-                <UserCircle size={18} className="text-secondary" />
+                <UserCircle size={16} className="text-secondary" />
               ) : (
                 <span>Login/ Signup</span>
               )}

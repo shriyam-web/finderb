@@ -3,13 +3,14 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Mail, Lock, Briefcase, ChevronRight, ArrowLeft } from 'lucide-react';
+import { Mail, Lock, Briefcase, ChevronRight, ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import { loginBusiness } from '@/app/actions/business';
 import { useRouter } from 'next/navigation';
 
 export default function BusinessLoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const router = useRouter();
@@ -37,7 +38,7 @@ export default function BusinessLoginPage() {
         console.log('Login successful, redirecting to dashboard...');
         router.push(`/business/dashboard?id=${result.businessId}`);
       } else {
-        console.error('Login failed:', result.error);
+        console.warn('Login failed:', result.error);
         setError(result.error || 'Login failed');
       }
     } catch (err: any) {
@@ -49,103 +50,119 @@ export default function BusinessLoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-blue-50/20 px-4 pt-44 pb-24 relative overflow-hidden">
-      {/* Background Decorative Elements */}
-      <div className="absolute top-0 left-0 w-96 h-96 bg-blue-100 rounded-full blur-[100px] opacity-50 -translate-x-1/2 -translate-y-1/2"></div>
-      <div className="absolute bottom-0 right-0 w-96 h-96 bg-blue-50 rounded-full blur-[100px] opacity-50 translate-x-1/2 translate-y-1/2"></div>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 p-6">
+      {/* Background Subtle Gradient */}
+      <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-blue-100/40 via-transparent to-transparent -z-10" />
+      <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_var(--tw-gradient-stops))] from-purple-100/40 via-transparent to-transparent -z-10" />
 
-      <div className="max-w-md w-full relative z-10">
-        <Link href="/business/register" className="inline-flex items-center gap-2 text-gray-500 hover:text-blue-600 font-bold mb-8 transition-colors group">
-          <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
-          Back to Registration
+      <div className="w-full max-w-sm">
+        <Link 
+          href="/business/register" 
+          className="group inline-flex items-center gap-2 text-slate-500 hover:text-blue-600 font-semibold mb-8 transition-all"
+        >
+          <div className="p-1.5 rounded-lg bg-white shadow-sm border border-slate-100 group-hover:border-blue-100 group-hover:bg-blue-50 transition-all">
+            <ArrowLeft size={14} />
+          </div>
+          <span className="text-sm">Back to Join</span>
         </Link>
 
-        <div className="bg-white rounded-[40px] shadow-2xl overflow-hidden border border-blue-50/50">
-          <div className="p-8 md:p-12">
-            <div className="text-center mb-10">
-              <Link href="/" className="inline-flex items-center gap-2 mb-8 group">
-                <Image
-                  src="/logo-n.png"
-                  alt="Boomb Logo"
-                  width={150}
-                  height={50}
-                  className="h-10 w-auto object-contain transition-transform duration-300 group-hover:scale-105"
+        <div className="bg-white/70 backdrop-blur-xl rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.05)] border border-white p-8 md:p-10">
+          <div className="mb-10">
+            <Link href="/" className="inline-block mb-6">
+              <Image
+                src="/logo-n.png"
+                alt="Boomb"
+                width={120}
+                height={40}
+                className="h-8 w-auto object-contain"
+              />
+            </Link>
+            <div className="space-y-1">
+              <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Welcome back</h2>
+              <p className="text-slate-500 text-sm font-medium">Business Partner Portal</p>
+            </div>
+          </div>
+
+          {error && (
+            <div className="mb-6 p-4 bg-red-50/50 border border-red-100/50 text-red-600 text-xs font-semibold rounded-2xl">
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleLogin} className="space-y-5">
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Work Email</label>
+              <div className="relative group">
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors pointer-events-none">
+                  <Mail size={18} />
+                </div>
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="name@company.com"
+                  className="w-full pl-11 pr-4 py-4 bg-slate-50/50 border border-slate-100 rounded-2xl focus:bg-white focus:border-blue-500/30 focus:ring-4 focus:ring-blue-500/5 outline-none font-medium transition-all placeholder:text-slate-300 text-sm"
                 />
-              </Link>
-              <div className="flex items-center justify-center gap-2 mb-2">
-                <span className="bg-blue-600 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest shadow-lg shadow-blue-200">Business</span>
               </div>
-              <h2 className="text-3xl font-black text-gray-900">Partner Login</h2>
-              <p className="text-gray-500 mt-2 font-medium">Manage your listings and leads</p>
             </div>
 
-            {error && (
-              <div className="mb-6 p-4 bg-red-50 border border-red-100 text-red-600 text-sm font-bold rounded-2xl animate-in fade-in slide-in-from-top-2">
-                {error}
+            <div className="space-y-1.5">
+              <div className="flex justify-between items-center px-1">
+                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Password</label>
+                <Link href="#" className="text-[11px] font-bold text-blue-600 hover:text-blue-700">Forgot?</Link>
               </div>
-            )}
-
-            <form onSubmit={handleLogin} className="space-y-6">
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-gray-700 ml-1 uppercase tracking-widest">Work Email</label>
-                <div className="relative group">
-                  <div className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-600 transition-colors">
-                    <Mail size={20} />
-                  </div>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="name@business.com"
-                    className="w-full pl-14 pr-4 py-5 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-600 font-medium transition-all"
-                  />
+              <div className="relative group">
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors pointer-events-none">
+                  <Lock size={18} />
                 </div>
+                <input
+                  type={showPassword ? "text" : "password"}
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full pl-11 pr-12 py-4 bg-slate-50/50 border border-slate-100 rounded-2xl focus:bg-white focus:border-blue-500/30 focus:ring-4 focus:ring-blue-500/5 outline-none font-medium transition-all placeholder:text-slate-300 text-sm"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
               </div>
-
-              <div className="space-y-2">
-                <div className="flex justify-between items-center ml-1">
-                  <label className="text-sm font-bold text-gray-700 uppercase tracking-widest">Password</label>
-                  <Link href="#" className="text-xs font-bold text-blue-600 hover:underline">Forgot Password?</Link>
-                </div>
-                <div className="relative group">
-                  <div className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-600 transition-colors">
-                    <Lock size={20} />
-                  </div>
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full pl-14 pr-4 py-5 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-600 font-medium transition-all"
-                  />
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-5 rounded-2xl shadow-xl shadow-blue-100 transition-all active:scale-[0.98] flex items-center justify-center gap-2 group disabled:opacity-70"
-              >
-                {loading ? 'Logging in...' : 'Login to Dashboard'}
-                {!loading && <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" />}
-              </button>
-            </form>
-
-            <div className="mt-12 text-center pt-8 border-t border-gray-50">
-              <p className="text-gray-500 font-medium mb-4">
-                Not listed on Boomb yet?
-              </p>
-              <Link href="/business/register" className="inline-flex items-center gap-2 bg-blue-50 text-blue-600 font-black px-8 py-3 rounded-xl hover:bg-blue-600 hover:text-white transition-all">
-                List Your Business
-              </Link>
             </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-4 rounded-2xl shadow-lg shadow-slate-200 transition-all active:scale-[0.98] flex items-center justify-center gap-2 group disabled:opacity-70 disabled:active:scale-100 mt-2"
+            >
+              <span>{loading ? 'Authenticating...' : 'Sign In'}</span>
+              {!loading && <ChevronRight size={18} className="group-hover:translate-x-0.5 transition-transform" />}
+            </button>
+          </form>
+
+          <div className="mt-10 text-center">
+            <p className="text-slate-400 text-xs font-medium mb-4">
+              New to Boomb?
+            </p>
+            <Link 
+              href="/business/register" 
+              className="inline-flex items-center gap-2 text-slate-900 font-bold text-sm hover:text-blue-600 transition-colors"
+            >
+              Create Business Account
+              <ArrowLeft size={14} className="rotate-180" />
+            </Link>
           </div>
         </div>
 
-        <p className="mt-8 text-center text-gray-400 text-sm font-medium">
-          &copy; {new Date().getFullYear()} Boomb Local Search. All rights reserved.
+        <p className="mt-10 text-center text-slate-400 text-[11px] font-medium tracking-wide">
+          &copy; {new Date().getFullYear()} BOOMB INDIA &bull; PARTNER PORTAL
         </p>
       </div>
     </div>
   );
+
 }

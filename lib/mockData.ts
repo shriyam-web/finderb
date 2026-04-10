@@ -22,98 +22,98 @@ export interface Category {
 }
 
 export const categories: Category[] = [
-  { 
-    id: '1', 
-    name: 'Real Estate', 
-    icon: 'Home', 
+  {
+    id: '1',
+    name: 'Real Estate',
+    icon: 'Home',
     image: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&q=80&w=800',
     slug: 'real-estate',
     businessCount: 1500
   },
-  { 
-    id: '2', 
-    name: 'Doctors', 
-    icon: 'UserPlus', 
+  {
+    id: '2',
+    name: 'Doctors',
+    icon: 'UserPlus',
     image: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&q=80&w=800',
     slug: 'doctors',
     businessCount: 2800
   },
-  { 
-    id: '3', 
-    name: 'Repairs & Services', 
-    icon: 'Wrench', 
+  {
+    id: '3',
+    name: 'Repairs & Services',
+    icon: 'Wrench',
     image: 'https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?auto=format&fit=crop&q=80&w=800',
     slug: 'repairs-services',
     businessCount: 3200
   },
-  { 
-    id: '4', 
-    name: 'Restaurants', 
-    icon: 'Utensils', 
+  {
+    id: '4',
+    name: 'Restaurants',
+    icon: 'Utensils',
     image: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&q=80&w=800',
     slug: 'restaurants',
     businessCount: 4500
   },
-  { 
-    id: '5', 
-    name: 'Hotels', 
-    icon: 'Hotel', 
+  {
+    id: '5',
+    name: 'Hotels',
+    icon: 'Hotel',
     image: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&q=80&w=800',
     slug: 'hotels',
     businessCount: 1200
   },
-  { 
-    id: '6', 
-    name: 'B2B', 
-    icon: 'Briefcase', 
+  {
+    id: '6',
+    name: 'B2B',
+    icon: 'Briefcase',
     image: 'https://images.unsplash.com/photo-1542744173-8e7e53415bb0?auto=format&fit=crop&q=80&w=800',
     slug: 'b2b',
     businessCount: 900
   },
-  { 
-    id: '7', 
-    name: 'College', 
-    icon: 'GraduationCap', 
+  {
+    id: '7',
+    name: 'College',
+    icon: 'GraduationCap',
     image: 'https://images.unsplash.com/photo-152305085306e-8a3d3ecf047d?auto=format&fit=crop&q=80&w=800',
     slug: 'college',
     businessCount: 350
   },
-  { 
-    id: '8', 
-    name: 'Beauty Spa', 
-    icon: 'Scissors', 
+  {
+    id: '8',
+    name: 'Beauty Spa',
+    icon: 'Scissors',
     image: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&q=80&w=800',
     slug: 'beauty-spa',
     businessCount: 1800
   },
-  { 
-    id: '9', 
-    name: 'Gym', 
-    icon: 'Dumbbell', 
+  {
+    id: '9',
+    name: 'Gym',
+    icon: 'Dumbbell',
     image: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&q=80&w=800',
     slug: 'gym',
     businessCount: 1100
   },
-  { 
-    id: '10', 
-    name: 'PG/Hostel', 
-    icon: 'Bed', 
+  {
+    id: '10',
+    name: 'PG/Hostel',
+    icon: 'Bed',
     image: 'https://images.unsplash.com/photo-1595526114035-0d45ed16cfbf?auto=format&fit=crop&q=80&w=800',
     slug: 'pg-hostel',
     businessCount: 750
   },
-  { 
-    id: '11', 
-    name: 'Automobile', 
-    icon: 'Car', 
+  {
+    id: '11',
+    name: 'Automobile',
+    icon: 'Car',
     image: 'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&q=80&w=800',
     slug: 'automobile',
     businessCount: 1400
   },
-  { 
-    id: '12', 
-    name: 'Electronics', 
-    icon: 'Tv', 
+  {
+    id: '12',
+    name: 'Electronics',
+    icon: 'Tv',
     image: 'https://images.unsplash.com/photo-1498049794561-7780e7231661?auto=format&fit=crop&q=80&w=800',
     slug: 'electronics',
     businessCount: 2000

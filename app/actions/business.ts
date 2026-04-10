@@ -51,6 +51,8 @@ export async function registerBusiness(formData: any) {
     // Generate a unique registration number
     const regNo = `BOOMB-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
 
+    const normalizedEmail = formData.email.toLowerCase().trim();
+
     const supabase = createClient(await cookies());
 
     console.log('[REGISTER] Creating business record...');
@@ -61,17 +63,17 @@ export async function registerBusiness(formData: any) {
       .insert({
         id: crypto.randomUUID(),
         fullName: formData.fullName,
-        workEmail: formData.email,
-        email: formData.email,
-        mobile: formData.mobile,
+        workEmail: normalizedEmail,
+        email: normalizedEmail,
+        mobile: formData.mobile.trim(),
         businessName: formData.businessName,
         category: formData.category,
         location: formData.location || `${formData.city}, ${formData.state}`,
         city: formData.city,
         state: formData.state,
-        publicPhone: formData.publicPhone,
+        publicPhone: formData.publicPhone.trim(),
         businessAddress: formData.businessAddress,
-        selectedPlan: formData.selectedPlan || 'pro',
+        selectedPlan: formData.selectedPlan || 'free',
         billingCycle: formData.billingCycle || 'monthly',
         registrationNumber: regNo,
         password: formData.password,
@@ -213,23 +215,26 @@ export async function loginBusiness(email: string, password: string) {
 
     console.log('Login attempt with email:', email);
 
+    const normalizedEmail = email.toLowerCase().trim();
+    const cleanPassword = password.trim();
+
     const supabase = createClient(await cookies());
 
     const { data: business, error } = await supabase
       .from('Business')
       .select('*')
-      .or(`workEmail.eq.${email},email.eq.${email}`)
+      .or(`workEmail.eq.${normalizedEmail},email.eq.${normalizedEmail}`)
       .single();
 
     if (error) {
       if (error.code === 'PGRST116') {
-        console.log('No business found with email:', email);
+        console.log('No business found with email:', normalizedEmail);
         return { success: false, error: 'Business account not found. Please check your email or register a new account.' };
       }
       throw error;
     }
 
-    if (business.password !== password) {
+    if (business.password !== cleanPassword) {
       console.log('Incorrect password for business:', business.id);
       return { success: false, error: 'Incorrect password. Please try again.' };
     }

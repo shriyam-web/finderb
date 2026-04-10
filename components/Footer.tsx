@@ -5,7 +5,7 @@ import { FaFacebook, FaTwitter, FaInstagram, FaLinkedin } from 'react-icons/fa6'
 
 export default function Footer() {
   const topCities = [
-    'Bangalore', 'Mumbai', 'Delhi', 'Hyderabad', 'Chennai', 
+    'Bangalore', 'Mumbai', 'Delhi', 'Hyderabad', 'Chennai',
     'Pune', 'Ahmedabad', 'Kolkata', 'Jaipur', 'Lucknow'
   ];
 
@@ -19,15 +19,15 @@ export default function Footer() {
     <footer className="bg-white border-t border-gray-100 text-gray-600 pt-24 pb-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-20">
-          
+
           {/* About & SEO Description */}
           <div className="space-y-8">
             <Link href="/" className="flex items-center group">
-              <Image 
-                src="/logo-n.png" 
-                alt="Boomb Logo" 
-                width={140} 
-                height={40} 
+              <Image
+                src="/logo-n.png"
+                alt="Boomb Logo"
+                width={140}
+                height={40}
                 className="h-9 w-auto object-contain transition-transform group-hover:scale-105"
                 quality={100}
               />
@@ -35,7 +35,7 @@ export default function Footer() {
             <div className="space-y-4">
               <h4 className="text-primary font-black text-[10px] uppercase tracking-widest">About Boomb</h4>
               <p className="text-gray-500 text-sm leading-relaxed font-medium">
-                Boomb is India's premier **local discovery platform**, connecting millions of users with **verified local businesses**, professional services, and entertainment. We are your go-to destination for finding **top-rated plumbers, doctors, restaurants, and real estate** across 500+ cities in India.
+                Boomb is India's premier local discovery platform, connecting millions of users with verified local businesses, professional services, and entertainment. We are your go-to destination for finding top-rated plumbers, doctors, restaurants, and real estate across 500+ cities in India.
               </p>
             </div>
           </div>
@@ -86,10 +86,10 @@ export default function Footer() {
               <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Get our mobile app</p>
               <div className="flex flex-wrap gap-2">
                 <div className="h-10 px-4 bg-gray-900 text-white rounded-xl flex items-center gap-2 cursor-not-allowed grayscale hover:grayscale-0 transition-all">
-                  <div className="text-[8px] font-bold leading-none">Coming soon on <br/><span className="text-sm">App Store</span></div>
+                  <div className="text-[8px] font-bold leading-none">Coming soon on <br /><span className="text-sm">App Store</span></div>
                 </div>
                 <div className="h-10 px-4 bg-gray-900 text-white rounded-xl flex items-center gap-2 cursor-not-allowed grayscale hover:grayscale-0 transition-all">
-                  <div className="text-[8px] font-bold leading-none">Coming soon on <br/><span className="text-sm">Google Play</span></div>
+                  <div className="text-[8px] font-bold leading-none">Coming soon on <br /><span className="text-sm">Google Play</span></div>
                 </div>
               </div>
             </div>
@@ -97,7 +97,7 @@ export default function Footer() {
         </div>
 
         {/* SEO - Cities & Searches */}
-        <div className="border-t border-gray-100 py-12 space-y-10">
+        <div className="border-t border-gray-100 py-0 space-y-10">
           <div className="space-y-4">
             <h4 className="text-xs font-black text-gray-900 uppercase tracking-widest">Top Cities in India</h4>
             <div className="flex flex-wrap gap-x-6 gap-y-3">

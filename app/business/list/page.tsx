@@ -3,15 +3,15 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { 
-  CheckCircle2, 
-  Star, 
-  TrendingUp, 
-  Smartphone, 
-  MapPin, 
-  ArrowRight, 
-  Users, 
-  Store, 
+import {
+  CheckCircle2,
+  Star,
+  TrendingUp,
+  Smartphone,
+  MapPin,
+  ArrowRight,
+  Users,
+  Store,
   Briefcase,
   Image as ImageIcon,
   HelpCircle,
@@ -59,7 +59,7 @@ export default function BusinessListLandingPage() {
   const steps = [
     { title: 'Create Account', desc: 'Enter your mobile number to get started', step: 1 },
     { title: 'Enter Business Details', desc: 'Add name, address, business hours and photos', step: 2 },
-    { title: 'Select Categories', desc: 'Add relevant categories to your premium listing page', step: 3 },
+    { title: 'Select Categories', desc: 'Add relevant categories to your business listing page', step: 3 },
   ];
 
   const faqs = [
@@ -69,7 +69,7 @@ export default function BusinessListLandingPage() {
     },
     {
       q: 'Can I list my business on Boomb?',
-      a: 'Yes, any legitimate business can list on Boomb. We offer premium plans that provide high visibility and verified leads to help your business grow.'
+      a: 'Yes, any legitimate business can list on Boomb for free. We also offer premium plans that provide high visibility and verified leads to help your business grow.'
     },
     {
       q: 'I already have a website and social media. Do I still need Boomb?',
@@ -94,8 +94,8 @@ export default function BusinessListLandingPage() {
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             <div className="space-y-8">
               <div className="space-y-4">
-                <h1 className="text-4xl sm:text-6xl font-black text-slate-900 tracking-tight leading-[1.1]">
-                  Premium Business Listing <br />
+                <h1 className="text-4xl sm:text-6xl font-black text-slate-900 tracking-tight leading-[1.3]">
+                  Free Business Listing <br />
                   <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">with India’s No. 1 Local Search Engine</span>
                 </h1>
                 <p className="text-slate-500 text-lg font-medium leading-relaxed max-w-xl">
@@ -108,14 +108,14 @@ export default function BusinessListLandingPage() {
                   <div className="flex items-center gap-2 pl-4 pr-2 py-3 border-r border-slate-100">
                     <span className="text-slate-400 font-bold text-sm">+91</span>
                   </div>
-                  <input 
+                  <input
                     type="tel"
                     value={mobile}
                     onChange={(e) => setMobile(e.target.value)}
                     placeholder="Enter Mobile No."
                     className="flex-grow px-4 py-3 bg-transparent outline-none font-bold text-slate-900 placeholder:text-slate-300 text-sm"
                   />
-                  <Link 
+                  <Link
                     href={`/business/register?mobile=${mobile}`}
                     className="bg-blue-600 text-white px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-blue-700 transition-all active:scale-95 shadow-lg shadow-blue-200 whitespace-nowrap"
                   >
@@ -276,14 +276,14 @@ export default function BusinessListLandingPage() {
                     <div className="flex items-center gap-2 pl-4 pr-2 py-3 border-r border-slate-100">
                       <span className="text-slate-400 font-bold text-sm">+91</span>
                     </div>
-                    <input 
+                    <input
                       type="tel"
                       value={mobile}
                       onChange={(e) => setMobile(e.target.value)}
                       placeholder="Enter Mobile No."
                       className="flex-grow px-4 py-3 bg-transparent outline-none font-bold text-slate-900 placeholder:text-slate-300 text-sm"
                     />
-                    <Link 
+                    <Link
                       href={`/business/register?mobile=${mobile}`}
                       className="bg-blue-600 text-white px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-blue-700 transition-all active:scale-95 shadow-lg shadow-blue-200"
                     >
@@ -357,7 +357,7 @@ export default function BusinessListLandingPage() {
       <section className="py-24 bg-blue-600 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2"></div>
         <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2"></div>
-        
+
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-8 relative z-10 text-white">
           <h2 className="text-3xl sm:text-5xl font-black tracking-tight leading-tight">
             List Your Business on <br /> Boomb Today
@@ -371,14 +371,14 @@ export default function BusinessListLandingPage() {
                 <div className="flex items-center gap-2 pl-4 pr-2 py-3 border-r border-slate-100">
                   <span className="text-slate-400 font-bold text-sm">+91</span>
                 </div>
-                <input 
+                <input
                   type="tel"
                   value={mobile}
                   onChange={(e) => setMobile(e.target.value)}
                   placeholder="Enter Mobile No."
                   className="flex-grow px-4 py-3 bg-transparent outline-none font-bold text-slate-900 placeholder:text-slate-300 text-sm"
                 />
-                <Link 
+                <Link
                   href={`/business/register?mobile=${mobile}`}
                   className="bg-blue-600 text-white px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-blue-700 transition-all active:scale-95"
                 >

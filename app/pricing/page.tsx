@@ -48,10 +48,10 @@ export default function PricingPage() {
           <div className="text-center max-w-3xl mx-auto mb-12 space-y-6">
             <span className="bg-secondary/10 text-secondary px-6 py-2 rounded-full font-black text-xs uppercase tracking-widest shadow-sm">Transparent Pricing</span>
             <h1 className="text-4xl md:text-6xl font-black text-primary tracking-tight leading-[1.1]">
-              One Simple, <span className="text-secondary">Affordable Plan</span>
+              Free Listing, <span className="text-secondary">Paid Leads</span>
             </h1>
             <p className="text-gray-500 text-lg font-medium leading-relaxed">
-              No complex tiers. Just one premium plan with everything you need to grow your local business.
+              List your business for free today. Upgrade to Growth Pro only when you want to unlock customer leads and direct inquiries.
             </p>
           </div>
 

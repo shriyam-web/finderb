@@ -5,14 +5,14 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import SearchBar from '@/components/SearchBar';
 import CategoryCard from '@/components/CategoryCard';
 import BusinessCard from '@/components/BusinessCard';
-import { 
-  categories, 
-  featuredBusinesses, 
-  testimonials, 
-  cities, 
-  movies, 
-  touristPlaces, 
-  articles 
+import {
+  categories,
+  featuredBusinesses,
+  testimonials,
+  cities,
+  movies,
+  touristPlaces,
+  articles
 } from '@/lib/mockData';
 import * as LucideIcons from 'lucide-react';
 import { ArrowRight, CheckCircle2, Star, MapPin, Calendar, Play, ShieldCheck, Zap, Search, Phone, MessageSquare, Heart, Sparkles, History, X, Mic, Send } from 'lucide-react';
@@ -20,9 +20,9 @@ import Link from 'next/link';
 import Image from 'next/image';
 
 const WORDS = [
-  "verified professionals", 
-  "top-rated local services", 
-  "300+ cities in India", 
+  "verified professionals",
+  "top-rated local services",
+  "300+ cities in India",
   "premium local businesses",
   "trusted by millions",
   "verified professionals" // For seamless loop
@@ -34,7 +34,7 @@ function HomeContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const activeTabFromUrl = searchParams.get('tab');
-  
+
   const [activeMobileTab, setActiveMobileTab] = useState(
     activeTabFromUrl === 'ai' ? 'AI Search' : 'Search'
   );
@@ -77,7 +77,7 @@ function HomeContent() {
       const timer = setTimeout(() => {
         setIsTransitioning(false);
         setIndex(0);
-      }, 700); 
+      }, 700);
       return () => clearTimeout(timer);
     }
   }, [index]);
@@ -94,28 +94,29 @@ function HomeContent() {
   return (
     <div className="flex flex-col bg-white selection:bg-primary/10">
       {/* Hero Section */}
-      <section className="relative pt-16 pb-12 lg:pt-32 lg:pb-24 overflow-hidden">
+      <section className="relative pt-16 pb-6 lg:pt-24 lg:pb-8 overflow-hidden">
         {/* Animated Background Elements */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full -z-10">
           <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[60%] bg-secondary/5 blur-[120px] rounded-full animate-pulse"></div>
           <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[60%] bg-purple-500/5 blur-[120px] rounded-full animate-pulse" style={{ animationDelay: '2s' }}></div>
         </div>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-8">
-          <div className="space-y-4 max-w-4xl mx-auto">
-            <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-primary leading-[1.1]">
-              Find Trusted Services <br />
-              <span className="bg-gradient-to-r from-secondary to-purple-600 bg-clip-text text-transparent">Near You — Instantly</span>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-6 lg:space-y-8">
+          <div className="space-y-3 max-w-4xl mx-auto pt-3">
+
+            <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight text-primary leading-[1.3]">
+              Everything you need, <br />
+              <span className="bg-gradient-to-r from-secondary via-purple-600 to-pink-500 bg-clip-text text-transparent">all in one place.</span>
             </h1>
-            
-            <div className="flex flex-col items-center justify-center space-y-2">
-              <div className="h-[1.5em] overflow-hidden relative text-gray-400 text-base sm:text-lg font-medium">
-                <div 
+
+            <div className="flex flex-col items-center justify-center">
+              <div className="h-[1.1em] overflow-hidden relative text-slate-400 text-sm sm:text-base font-semibold">
+                <div
                   className={`${isTransitioning ? 'transition-transform duration-700' : ''} ease-in-out flex flex-col items-center`}
                   style={{ transform: `translateY(-${index * (100 / WORDS.length)}%)` }}
                 >
                   {WORDS.map((word, i) => (
-                    <div key={i} className="h-[1.5em] flex items-center justify-center whitespace-nowrap">
+                    <div key={i} className="h-[1.3em] flex items-center justify-center whitespace-nowrap">
                       {word}
                     </div>
                   ))}
@@ -124,18 +125,18 @@ function HomeContent() {
             </div>
           </div>
 
-          <div className="w-full max-w-3xl mx-auto transform hover:scale-[1.01] transition-all duration-500">
-            <div className="bg-white p-2 rounded-2xl shadow-2xl shadow-secondary/10 border border-gray-100">
+          <div className="w-full max-w-md mx-auto transform hover:scale-[1.01] transition-all duration-500">
+            <div className="bg-white/90 backdrop-blur-xl p-0 rounded-2xl shadow-[0_15px_35px_rgba(0,0,0,0.05)] border border-white ring-1 ring-black/[0.02]">
               <SearchBar />
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
-            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Quick Search:</span>
+          <div className="flex flex-wrap items-center justify-center gap-2 pt-1 lg:pt-2">
+            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mr-1">Top Searches:</span>
             {['Salon', 'Plumber', 'AC Repair', 'Cleaning', 'Electrician'].map((tag) => (
-              <button 
+              <button
                 key={tag}
-                className="px-3 py-1.5 rounded-full bg-white border border-gray-100 text-xs font-bold text-gray-500 hover:border-secondary hover:text-secondary hover:shadow-md transition-all active:scale-95"
+                className="px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-100 text-[10px] font-bold text-slate-500 hover:bg-white hover:border-secondary/20 hover:text-secondary hover:shadow-sm transition-all active:scale-95"
               >
                 {tag}
               </button>
@@ -145,14 +146,11 @@ function HomeContent() {
       </section>
 
       {/* Category Section */}
-      <section className="py-20 bg-muted/50">
+      <section className="pt-6 pb-20 bg-muted/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6">
+          <div className="flex flex-col md:flex-row justify-between items-start mb-8 gap-6">
             <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-1 bg-secondary rounded-full"></div>
-                <span className="text-xs font-bold text-secondary uppercase tracking-[0.3em]">Explore Categories</span>
-              </div>
+
               <h2 className="text-3xl sm:text-5xl font-extrabold text-primary tracking-tight">What do you need <span className="text-secondary">help</span> with?</h2>
             </div>
             <Link href="/categories/all" className="group flex items-center gap-2 text-sm font-bold text-primary hover:text-secondary transition-colors">
@@ -245,33 +243,42 @@ function HomeContent() {
       </section>
 
       {/* Quick Actions / Mobile Bottom Bar */}
-      <div className="fixed bottom-0 left-0 right-0 z-[100] md:hidden">
-        <div className="mx-4 mb-4 bg-primary/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl p-2 flex items-center justify-around">
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] z-[100] md:hidden">
+        <div className="bg-white/90 backdrop-blur-2xl border border-white/50 rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.15)] p-1.5 flex items-center justify-around">
           {[
             { icon: Search, label: 'Search' },
             { icon: Sparkles, label: 'Boomb Ai' },
             { icon: History, label: 'history' },
             { icon: Heart, label: 'saved' },
           ].map((item, i) => (
-            <button 
-              key={i} 
+            <button
+              key={i}
               onClick={() => handleTabChange(item.label)}
-              className={`flex flex-col items-center gap-1.5 p-2 px-3 transition-all duration-500 group relative ${
-                activeMobileTab === item.label 
-                  ? 'text-white' 
-                  : 'text-white/60 hover:text-white'
-              }`}
+              className={`flex flex-col items-center gap-1 p-3 px-4 transition-all duration-300 group relative rounded-2xl ${activeMobileTab === item.label
+                ? 'text-slate-900 bg-slate-50'
+                : 'text-slate-400 hover:text-slate-600'
+                }`}
             >
-              {item.label === 'Boomb Ai' && (
-                <div className={`absolute inset-0 bg-gradient-to-tr from-secondary via-purple-600 to-pink-500 rounded-xl shadow-lg shadow-secondary/40 animate-pulse -z-10 transition-all duration-500 ${activeMobileTab === 'Boomb Ai' ? 'scale-110 blur-[1px] opacity-100' : 'scale-0 opacity-0'}`}></div>
-              )}
-              <item.icon size={item.label === 'Boomb Ai' ? 22 : 20} className={`group-active:scale-110 transition-transform ${item.label === 'Boomb Ai' && activeMobileTab === 'Boomb Ai' ? 'animate-bounce' : ''}`} />
-              <span className={`text-[9px] font-black uppercase tracking-tighter ${activeMobileTab === item.label ? 'opacity-100' : 'opacity-70'}`}>{item.label}</span>
-              {item.label === 'Boomb Ai' && activeMobileTab === 'Boomb Ai' && (
+              {item.label === 'Boomb Ai' && activeMobileTab !== 'Boomb Ai' && (
                 <span className="absolute -top-1 -right-1 flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-pink-500"></span>
                 </span>
+              )}
+              <item.icon
+                size={20}
+                className={`transition-all duration-300 ${activeMobileTab === item.label
+                  ? 'scale-110 text-secondary'
+                  : 'group-active:scale-95'
+                  }`}
+              />
+              <span className={`text-[9px] font-bold uppercase tracking-wider transition-all duration-300 ${activeMobileTab === item.label ? 'opacity-100 scale-100' : 'opacity-70 scale-95'
+                }`}>
+                {item.label}
+              </span>
+
+              {activeMobileTab === item.label && (
+                <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-secondary rounded-full"></div>
               )}
             </button>
           ))}
@@ -289,11 +296,11 @@ function HomeContent() {
             {movies.map((movie) => (
               <div key={movie.id} className="group cursor-pointer min-w-[160px] sm:min-w-[240px] shrink-0">
                 <div className="relative aspect-[2/3] rounded-xl sm:rounded-2xl overflow-hidden mb-3 sm:mb-4 shadow-lg bg-gray-100">
-                  <Image 
-                    src={movie.image} 
-                    alt={movie.title} 
-                    fill 
-                    className="object-cover group-hover:scale-105 transition-transform duration-500" 
+                  <Image
+                    src={movie.image}
+                    alt={movie.title}
+                    fill
+                    className="object-cover group-hover:scale-105 transition-transform duration-500"
                     sizes="(max-width: 768px) 50vw, 25vw"
                   />
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
@@ -324,10 +331,10 @@ function HomeContent() {
           <div className="flex overflow-x-auto pb-4 lg:pb-8 gap-4 lg:gap-6 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
             {touristPlaces.map((place) => (
               <div key={place.id} className="group relative h-[320px] sm:h-[420px] min-w-[260px] sm:min-w-[400px] rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl bg-gray-800 shrink-0">
-                <Image 
-                  src={place.image} 
-                  alt={place.name} 
-                  fill 
+                <Image
+                  src={place.image}
+                  alt={place.name}
+                  fill
                   className="object-cover opacity-70 group-hover:scale-105 transition-transform duration-700"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent"></div>
@@ -370,11 +377,11 @@ function HomeContent() {
             {articles.slice(0, 3).map((article) => (
               <div key={article.id} className="group cursor-pointer min-w-[320px] sm:min-w-0 w-full">
                 <div className="relative h-64 sm:h-72 rounded-[2.5rem] overflow-hidden mb-6 shadow-2xl shadow-gray-200/50 bg-gray-100">
-                  <Image 
-                    src={article.image} 
-                    alt={article.title} 
-                    fill 
-                    className="object-cover group-hover:scale-110 transition-transform duration-1000" 
+                  <Image
+                    src={article.image}
+                    alt={article.title}
+                    fill
+                    className="object-cover group-hover:scale-110 transition-transform duration-1000"
                     sizes="(max-width: 768px) 100vw, 33vw"
                   />
                   <div className="absolute top-5 left-5 bg-white/90 backdrop-blur-md px-4 py-2 rounded-2xl flex items-center gap-2 shadow-lg border border-white/20">
@@ -397,9 +404,8 @@ function HomeContent() {
       <section className="py-20 lg:py-32 bg-primary relative overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 text-center space-y-10 lg:space-y-16 relative z-10">
           <div className="space-y-6 lg:space-y-8">
-            <h2 className="text-4xl sm:text-6xl lg:text-8xl font-black text-white tracking-tighter leading-[0.9]">
-              Ready to grow <br className="hidden sm:block" />
-              your business? <br />
+            <h2 className="text-4xl sm:text-6xl lg:text-5xl font-black text-white tracking-tighter leading-[1.3]">
+              Ready to grow your business?
               <span className="text-secondary">Join Boomb today.</span>
             </h2>
             <p className="text-blue-100/60 text-base sm:text-xl lg:text-2xl font-medium max-w-3xl mx-auto leading-relaxed">
@@ -407,10 +413,10 @@ function HomeContent() {
             </p>
           </div>
           <div className="flex flex-col sm:flex-row justify-center gap-4 sm:gap-8">
-            <Link href="/business/register" className="bg-white text-primary px-10 sm:px-14 py-5 sm:py-6 rounded-[2rem] font-black hover:bg-secondary hover:text-white transition-all active:scale-95 uppercase tracking-widest text-xs sm:text-sm shadow-2xl shadow-black/20 hover:shadow-secondary/40">
+            <Link href="/business/register" className="bg-white text-primary px-10 sm:px-14 py-5 sm:py-6 rounded-[2rem] font-black hover:bg-blue hover:text-black transition-all active:scale-95 uppercase tracking-widest text-xs sm:text-sm shadow-2xl shadow-black/20 hover:shadow-secondary/40">
               List Your Business
             </Link>
-            <Link href="/pricing" className="bg-white/5 backdrop-blur-xl border-2 border-white/10 text-white px-10 sm:px-14 py-5 sm:py-6 rounded-[2rem] font-black hover:bg-white hover:text-primary transition-all active:scale-95 uppercase tracking-widest text-xs sm:text-sm">
+            <Link href="/pricing" className="bg-white/5 backdrop-blur-xl border-2 border-white/10 text-white px-10 sm:px-14 py-5 sm:py-6 rounded-[2rem]   hover:text-black transition-all active:scale-95 uppercase tracking-widest text-xs sm:text-sm">
               View Growth Plans
             </Link>
           </div>
@@ -423,25 +429,25 @@ function HomeContent() {
       {/* Boomb AI Modal */}
       {activeMobileTab === 'Boomb Ai' && (
         <div className="fixed inset-0 z-[1000] bg-primary/40 backdrop-blur-2xl md:hidden flex flex-col items-center justify-center p-8 transition-all duration-700 animate-in fade-in zoom-in-95">
-          <button 
+          <button
             onClick={() => handleTabChange('Search')}
             className="absolute top-10 right-8 text-white/50 hover:text-white transition-colors p-3 bg-white/10 rounded-full"
           >
             <X size={28} />
           </button>
-          
+
           <div className="relative group mb-12">
             <div className="absolute inset-0 bg-gradient-to-tr from-secondary via-purple-600 to-pink-500 blur-[80px] opacity-60 group-hover:opacity-100 transition-opacity animate-pulse"></div>
             <div className="relative w-32 h-32 bg-white rounded-[2.5rem] flex items-center justify-center shadow-2xl transform hover:scale-110 transition-transform duration-700">
               <Sparkles size={60} className="text-secondary animate-bounce" />
             </div>
           </div>
-          
+
           <div className="text-center space-y-6 max-w-sm">
             <h2 className="text-5xl font-black text-white tracking-tighter leading-tight">Boomb <span className="text-secondary">AI</span> is <br />Almost Ready.</h2>
             <p className="text-white/60 font-medium text-lg leading-relaxed">We're training India's most powerful service assistant just for you.</p>
           </div>
-          
+
           <div className="mt-16 w-full max-w-xs space-y-4">
             <div className="bg-white/5 border border-white/10 rounded-[2rem] p-6 backdrop-blur-md">
               <div className="flex items-center gap-4 text-white">
@@ -449,8 +455,8 @@ function HomeContent() {
                 <span className="text-[10px] font-black uppercase tracking-[0.2em]">Learning from 1M+ requests...</span>
               </div>
             </div>
-            
-            <button 
+
+            <button
               onClick={() => handleTabChange('Search')}
               className="w-full bg-white text-primary py-5 rounded-[2rem] font-black uppercase tracking-widest text-xs shadow-2xl shadow-black/20 hover:scale-105 active:scale-95 transition-all"
             >
@@ -474,7 +480,7 @@ function HomeContent() {
               <div className="absolute inset-0 bg-secondary/20 rounded-full animate-voice-ring"></div>
               <div className="absolute inset-0 bg-secondary/10 rounded-full animate-voice-ring" style={{ animationDelay: '0.5s' }}></div>
               <div className="absolute inset-0 bg-secondary/5 rounded-full animate-voice-ring" style={{ animationDelay: '1s' }}></div>
-              
+
               <button className="relative w-20 h-20 sm:w-32 sm:h-32 bg-secondary rounded-full flex items-center justify-center text-white shadow-[0_0_50px_rgba(79,70,229,0.4)] hover:scale-110 active:scale-90 transition-all duration-500">
                 <Mic size={32} className="animate-pulse sm:scale-125" />
               </button>
@@ -495,8 +501,8 @@ function HomeContent() {
           <div className="pb-6 max-w-3xl mx-auto w-full mt-auto">
             <div className="relative group">
               <div className="absolute -inset-1 bg-gradient-to-r from-secondary to-purple-600 rounded-[2.2rem] blur opacity-20 group-hover:opacity-40 transition duration-1000"></div>
-              <input 
-                type="text" 
+              <input
+                type="text"
                 placeholder="Ask Boomb AI anything..."
                 className="relative w-full bg-white/5 border border-white/10 rounded-[2rem] px-6 py-4 sm:py-8 text-white text-xs sm:text-base font-medium focus:ring-2 focus:ring-secondary transition-all outline-none backdrop-blur-xl"
               />

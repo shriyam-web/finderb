@@ -54,7 +54,7 @@ function RegisterFormContent() {
 
   const [step, setStep] = useState(1);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState('pro');
+  const [selectedPlan, setSelectedPlan] = useState('free');
   const [billingCycle, setBillingCycle] = useState('monthly');
   const [loading, setLoading] = useState(false);
   const [registeredBusiness, setRegisteredBusiness] = useState<any>(null);
@@ -90,10 +90,22 @@ function RegisterFormContent() {
 
   const nextStep = async () => {
     if (step === 1) {
-      if (!formData.fullName || !formData.email) {
-        alert('Please fill all details');
+      if (!formData.fullName || !formData.email || !formData.password) {
+        alert('Please fill all required details');
         return;
       }
+
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(formData.email)) {
+        alert('Please enter a valid email address');
+        return;
+      }
+
+      if (formData.password.length < 6) {
+        alert('Password must be at least 6 characters long');
+        return;
+      }
+
       setStep(2);
     } else if (step === 2) {
       handleRegistration();
@@ -110,18 +122,23 @@ function RegisterFormContent() {
       alert('Please enter your full name');
       return;
     }
-    if (!formData.email) {
-      alert('Please enter your email address');
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!formData.email || !emailRegex.test(formData.email)) {
+      alert('Please enter a valid email address');
       return;
     }
-    if (!formData.password) {
-      alert('Please enter a password');
+
+    if (!formData.password || formData.password.length < 6) {
+      alert('Password must be at least 6 characters long');
       return;
     }
-    if (!mobile) {
-      alert('Mobile number is required');
+
+    if (!mobile || mobile.length < 10) {
+      alert('Valid mobile number is required');
       return;
     }
+
     if (!formData.businessName) {
       alert('Please enter your business name');
       return;
@@ -138,8 +155,8 @@ function RegisterFormContent() {
       alert('Please enter your state');
       return;
     }
-    if (!formData.publicPhone) {
-      alert('Please enter your business phone number');
+    if (!formData.publicPhone || formData.publicPhone.length < 10) {
+      alert('Please enter a valid 10-digit business phone number');
       return;
     }
     if (!formData.businessAddress) {
@@ -567,31 +584,31 @@ function RegisterFormContent() {
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             <div className="space-y-8">
               <div className="space-y-4">
-                <h1 className="text-4xl sm:text-6xl font-black text-slate-900 tracking-tight leading-[1.1]">
-                  Premium Business Listing <br />
+                <h1 className="text-4xl sm:text-6xl font-black text-slate-900 tracking-tight leading-[1.3]">
+                  Free Business Listing <br />
                   <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">with India’s No. 1 Local Search Engine</span>
                 </h1>
                 <p className="text-slate-500 text-lg font-medium leading-relaxed max-w-xl">
-                  Get Discovered & Create Your Online Business. Respond to Customer Reviews, Showcase Your Products & Scale Your Growth.
+                  Get Discovered & Create Your Online Business for Free. Upgrade later to unlock premium leads and grow faster.
                 </p>
               </div>
 
               <div className="bg-white p-2 rounded-2xl shadow-xl shadow-blue-900/5 border border-slate-100 w-full max-w-full sm:max-w-md">
                 <div className="flex flex-col sm:flex-row sm:items-center w-full">
                   <div className="flex items-center gap-2 pl-4 pr-2 py-3 border-b border-slate-100 sm:border-b-0 sm:border-r sm:py-3">
-                    <span className="text-slate-400 font-bold text-sm">+91</span>
+                    <span className="text-slate-400 font-bold text-sm">+91 <input
+                      id="mobile-input"
+                      type="tel"
+                      value={mobile}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                        setMobile(val);
+                      }}
+                      placeholder="Enter Mobile No."
+                      className="flex-grow px-4 py-3 bg-transparent outline-none font-bold text-slate-900 placeholder:text-slate-300 text-sm"
+                    /></span>
                   </div>
-                  <input
-                    id="mobile-input"
-                    type="tel"
-                    value={mobile}
-                    onChange={(e) => {
-                      const val = e.target.value.replace(/\D/g, '').slice(0, 10);
-                      setMobile(val);
-                    }}
-                    placeholder="Enter Mobile No."
-                    className="flex-grow px-4 py-3 bg-transparent outline-none font-bold text-slate-900 placeholder:text-slate-300 text-sm"
-                  />
+
                   <button
                     onClick={handleStartNow}
                     className="bg-blue-600 text-white px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-blue-700 transition-all active:scale-95 shadow-lg shadow-blue-200 whitespace-nowrap"

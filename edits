@@ -9,3 +9,56 @@ project url : https://lbarmiysgcdwyhgsyqit.supabase.co
 connection string : postgresql://postgres:[YOUR-PASSWORD]@db.lbarmiysgcdwyhgsyqit.supabase.co:5432/postgres
 
 ensure now that the connection with database is built, these are supabase credentials above
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+2. On the admin panel [done by Priya] : 
+
+- The merchant manual approval process will be added when a new merchant does the registration. Database configuration required for it.
+- We will be able to create/update/delete merchant categories from admin panel.
