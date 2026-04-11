@@ -56,15 +56,6 @@ export default function BusinessLoginPage() {
       <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_var(--tw-gradient-stops))] from-purple-100/40 via-transparent to-transparent -z-10" />
 
       <div className="w-full max-w-sm">
-        <Link 
-          href="/business/register" 
-          className="group inline-flex items-center gap-2 text-slate-500 hover:text-blue-600 font-semibold mb-8 transition-all"
-        >
-          <div className="p-1.5 rounded-lg bg-white shadow-sm border border-slate-100 group-hover:border-blue-100 group-hover:bg-blue-50 transition-all">
-            <ArrowLeft size={14} />
-          </div>
-          <span className="text-sm">Back to Join</span>
-        </Link>
 
         <div className="bg-white/70 backdrop-blur-xl rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.05)] border border-white p-8 md:p-10">
           <div className="mb-10">
@@ -148,8 +139,8 @@ export default function BusinessLoginPage() {
             <p className="text-slate-400 text-xs font-medium mb-4">
               New to Boomb?
             </p>
-            <Link 
-              href="/business/register" 
+            <Link
+              href="/business/register"
               className="inline-flex items-center gap-2 text-slate-900 font-bold text-sm hover:text-blue-600 transition-colors"
             >
               Create Business Account
