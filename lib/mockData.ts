@@ -221,14 +221,14 @@ export const testimonials: Testimonial[] = [
     id: '1',
     name: 'Rahul Sharma',
     role: 'Homeowner',
-    content: 'Boomb made it so easy to find a reliable plumber when I had an emergency. The service was quick and the pricing was transparent.',
+    content: 'FinderB made it so easy to find a reliable plumber when I had an emergency. The service was quick and the pricing was transparent.',
     avatar: 'https://i.pravatar.cc/150?u=rahul'
   },
   {
     id: '2',
     name: 'Priya Patel',
     role: 'Business Owner',
-    content: 'I listed my salon on Boomb and saw a 30% increase in new customers within the first month. Highly recommended for local businesses!',
+    content: 'I listed my salon on FinderB and saw a 30% increase in new customers within the first month. Highly recommended for local businesses!',
     avatar: 'https://i.pravatar.cc/150?u=priya'
   },
   {

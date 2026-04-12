@@ -55,7 +55,7 @@ export default function AdvertisePage() {
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-secondary via-orange-500 to-secondary bg-[length:200%_auto] animate-gradient">Precision</span>
             </h1>
             <p className="text-gray-500 text-xl md:text-2xl font-medium leading-relaxed max-w-3xl mx-auto">
-              Connect with your local audience at the exact moment they're looking for your services. Boomb's ad platform is built for maximum ROI.
+              Connect with your local audience at the exact moment they're looking for your services. FinderB's ad platform is built for maximum ROI.
             </p>
             <div className="flex flex-wrap justify-center gap-6 pt-4">
               <Link href="/business/register" className="bg-primary text-white px-10 py-5 rounded-2xl font-black text-lg hover:bg-secondary transition-all shadow-2xl shadow-primary/20 active:scale-95">
@@ -134,7 +134,7 @@ export default function AdvertisePage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center relative z-10">
               <div className="space-y-12">
                 <div className="space-y-4">
-                  <span className="text-secondary font-black uppercase tracking-[0.3em] text-xs">Why Boomb Ads?</span>
+                  <span className="text-secondary font-black uppercase tracking-[0.3em] text-xs">Why FinderB Ads?</span>
                   <h2 className="text-5xl md:text-6xl font-black text-white tracking-tight">Results you can <br />actually see</h2>
                 </div>
                 
@@ -209,7 +209,7 @@ export default function AdvertisePage() {
                 <span className="text-primary-foreground underline decoration-white/30 underline-offset-8">local presence?</span>
               </h2>
               <p className="text-blue-50 text-xl md:text-2xl font-medium max-w-2xl mx-auto leading-relaxed">
-                Join thousands of businesses growing with Boomb. Our experts are ready to help you launch.
+                Join thousands of businesses growing with FinderB. Our experts are ready to help you launch.
               </p>
               <div className="flex flex-col sm:flex-row gap-6 justify-center pt-6">
                 <Link href="/business/register" className="bg-white text-secondary px-12 py-6 rounded-2xl font-black text-xl hover:bg-primary hover:text-white transition-all shadow-2xl active:scale-95">

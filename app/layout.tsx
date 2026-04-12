@@ -10,29 +10,29 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: {
-    default: "Boomb | India's #1 Local Services & Business Discovery Platform",
-    template: "%s | Boomb"
+    default: "FinderB | India's #1 Local Services & Business Discovery Platform",
+    template: "%s | FinderB"
   },
-  description: "Boomb is India's premier discovery engine for verified local services, businesses, and professionals. Explore 300+ cities to find top-rated services, movies, attractions, and more. Trusted by millions for professional excellence.",
-  keywords: ["local services", "verified professionals", "business directory", "India local search", "Boomb services", "local attractions", "top-rated businesses", "premium local services", "verified businesses India", "service discovery engine"],
-  authors: [{ name: "Boomb" }],
-  creator: "Boomb",
-  publisher: "Boomb Inc.",
-  metadataBase: new URL("https://boomb.in"),
+  description: "FinderB is India's premier discovery engine for verified local services, businesses, and professionals. Explore 300+ cities to find top-rated services, movies, attractions, and more. Trusted by millions for professional excellence.",
+  keywords: ["local services", "verified professionals", "business directory", "India local search", "FinderB services", "local attractions", "top-rated businesses", "premium local services", "verified businesses India", "service discovery engine"],
+  authors: [{ name: "FinderB" }],
+  creator: "FinderB",
+  publisher: "FinderB Inc.",
+  metadataBase: new URL("https://finderb.in"),
   alternates: {
     canonical: "/",
   },
   openGraph: {
-    title: "Boomb - Discover the Best Local Services Near You",
+    title: "FinderB - Discover the Best Local Services Near You",
     description: "Your gateway to professional local services and verified businesses across 300+ cities in India. Experience premium local discovery.",
-    url: "https://boomb.in",
-    siteName: "Boomb",
+    url: "https://finderb.in",
+    siteName: "FinderB",
     images: [
       {
-        url: "/boomb logo.png",
+        url: "/logo1.png",
         width: 1200,
         height: 630,
-        alt: "Boomb - India's Premier Local Discovery Platform",
+        alt: "FinderB - India's Premier Local Discovery Platform",
       },
     ],
     locale: "en_IN",
@@ -40,9 +40,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Boomb - India's #1 Local Services Platform",
-    description: "Find verified professionals and top-rated services in your city with Boomb. Trusted discovery for your local needs.",
-    images: ["/boomb logo.png"],
+    title: "FinderB - India's #1 Local Services Platform",
+    description: "Find verified professionals and top-rated services in your city with FinderB. Trusted discovery for your local needs.",
+    images: ["/logo1.png"],
   },
   robots: {
     index: true,
@@ -60,19 +60,23 @@ export const metadata: Metadata = {
     google: "google-site-verification-placeholder", // User should replace this
   },
   category: "Business",
+  icons: {
+    icon: "/icon.png",
+    apple: "/icon.png",
+  },
 };
 
 const jsonLd = [
   {
     "@context": "https://schema.org",
     "@type": "WebSite",
-    "name": "Boomb",
-    "url": "https://boomb.in",
+    "name": "FinderB",
+    "url": "https://finderb.in",
     "potentialAction": {
       "@type": "SearchAction",
       "target": {
         "@type": "EntryPoint",
-        "urlTemplate": "https://boomb.in/search?q={search_term_string}"
+        "urlTemplate": "https://finderb.in/search?q={search_term_string}"
       },
       "query-input": "required name=search_term_string"
     }
@@ -80,15 +84,15 @@ const jsonLd = [
   {
     "@context": "https://schema.org",
     "@type": "Organization",
-    "name": "Boomb",
-    "url": "https://boomb.in",
-    "logo": "https://boomb.in/boomb%20logo.png",
-    "description": "Boomb is India's premium local discovery platform connecting users with verified professionals and top-rated services across 300+ cities.",
+    "name": "FinderB",
+    "url": "https://finderb.in",
+    "logo": "https://finderb.in/logo1.png",
+    "description": "FinderB is India's premium local discovery platform connecting users with verified professionals and top-rated services across 300+ cities.",
     "sameAs": [
-      "https://facebook.com/boomb",
-      "https://twitter.com/boomb",
-      "https://instagram.com/boomb",
-      "https://linkedin.com/company/boomb"
+      "https://facebook.com/finderb",
+      "https://twitter.com/finderb",
+      "https://instagram.com/finderb",
+      "https://linkedin.com/company/finderb"
     ],
     "contactPoint": {
       "@type": "ContactPoint",

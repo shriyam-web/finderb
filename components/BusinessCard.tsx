@@ -25,19 +25,19 @@ export default function BusinessCard({ business, isPremium = false }: BusinessCa
         {/* Badges */}
         <div className="absolute top-4 left-4 flex flex-col gap-2 z-10">
           {isPremium && (
-            <div className="bg-gradient-to-r from-secondary to-purple-600 text-white text-[9px] font-bold px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1.5 border border-white/20 uppercase tracking-widest">
+            <div className="bg-gradient-to-r from-primary to-secondary text-white text-[9px] font-bold px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1.5 border border-white/20 uppercase tracking-widest">
               <Star size={10} fill="white" />
               Verified
             </div>
           )}
-          <div className="bg-emerald-500 text-white text-[9px] font-bold px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1.5 border border-white/20 uppercase tracking-widest animate-pulse">
+          <div className="bg-secondary text-white text-[9px] font-bold px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1.5 border border-white/20 uppercase tracking-widest">
             <Zap size={10} fill="white" />
             Available Now
           </div>
         </div>
 
         <div className="absolute top-4 right-4 bg-white/95 backdrop-blur-md px-2.5 py-1 rounded-xl flex items-center gap-1 shadow-lg border border-white/20">
-          <Star className="text-yellow-400 fill-yellow-400" size={12} />
+          <Star className="text-secondary fill-secondary" size={12} />
           <span className="text-xs font-bold text-primary">{business.rating}</span>
         </div>
 
@@ -78,7 +78,7 @@ export default function BusinessCard({ business, isPremium = false }: BusinessCa
           </div>
           <Link 
             href={`/business/${business.id}`}
-            className="bg-secondary hover:bg-purple-600 text-white font-bold px-6 py-3 rounded-xl transition-all shadow-md hover:shadow-lg hover:shadow-secondary/30 active:scale-95 text-[11px] uppercase tracking-widest"
+            className="bg-secondary hover:bg-primary text-white font-bold px-6 py-3 rounded-xl transition-all shadow-md hover:shadow-lg hover:shadow-secondary/30 active:scale-95 text-[11px] uppercase tracking-widest"
           >
             Book Now
           </Link>

@@ -186,7 +186,7 @@ export default function HiringsPage() {
             <div className="text-center relative z-10 space-y-20">
               <div className="space-y-4">
                 <span className="text-secondary font-black uppercase tracking-[0.3em] text-xs">Perks & Benefits</span>
-                <h2 className="text-5xl md:text-6xl font-black text-white tracking-tight">Life at Boomb</h2>
+                <h2 className="text-5xl md:text-6xl font-black text-white tracking-tight">Life at FinderB</h2>
               </div>
               
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-12">

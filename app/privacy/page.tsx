@@ -102,7 +102,7 @@ export default function PrivacyPage() {
                                 <div className="space-y-4 text-gray-700">
                                     <p>If you have any questions about this Privacy Policy, please contact us at:</p>
                                     <div className="bg-gray-50 rounded-xl p-6">
-                                        <p><strong>Email:</strong> privacy@boomb.com</p>
+                                        <p><strong>Email:</strong> privacy@finderb.in</p>
                                         <p><strong>Address:</strong> 123 Business Street, Tech City, Karnataka, India - 560001</p>
                                     </div>
                                 </div>

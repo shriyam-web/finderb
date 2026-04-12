@@ -51,8 +51,8 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
         <div className="flex justify-between items-center gap-4">
           <Link href="/" className="flex-shrink-0 flex items-center group">
             <Image 
-              src={isLight ? "/logo-w2.png" : "/logo-n.png"} 
-              alt="Boomb Logo" 
+              src="/logo1.png" 
+              alt="FinderB Logo" 
               width={180} 
               height={60} 
               className="h-8 sm:h-11 w-auto object-contain transition-all duration-500 group-hover:scale-105"
@@ -105,7 +105,7 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
             <div className="flex items-center gap-3 ml-2">
               <Link 
                 href="/business/register" 
-                className="relative flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-secondary to-purple-600 text-white rounded-xl shadow-lg shadow-secondary/10 hover:shadow-secondary/30 hover:-translate-y-0.5 transition-all duration-500 font-bold text-[10px] group overflow-hidden uppercase tracking-widest"
+                className="relative flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-primary to-secondary text-white rounded-xl shadow-lg shadow-secondary/10 hover:shadow-secondary/30 hover:-translate-y-0.5 transition-all duration-500 font-bold text-[10px] group overflow-hidden uppercase tracking-widest"
               >
                 <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
                 <Briefcase size={14} className="relative z-10 group-hover:scale-110 group-hover:rotate-12 transition-transform duration-500" />
@@ -132,10 +132,10 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
               href="/business/register" 
               className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg font-bold text-[8px] uppercase tracking-widest transition-all shadow-lg ${
                 scrolled 
-                  ? 'bg-gradient-to-r from-secondary to-purple-600 text-white shadow-secondary/10' 
+                  ? 'bg-gradient-to-r from-primary to-secondary text-white shadow-secondary/10' 
                   : isLight 
                     ? 'bg-white text-primary hover:bg-white/90' 
-                    : 'bg-gradient-to-r from-secondary to-purple-600 text-white shadow-secondary/10'
+                    : 'bg-gradient-to-r from-primary to-secondary text-white shadow-secondary/10'
               }`}
             >
               <Briefcase size={10} />
@@ -198,8 +198,8 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
           <div className="flex justify-between items-center p-4 border-b border-gray-100">
             <Link href="/" className="flex-shrink-0" onClick={() => setIsOpen(false)}>
               <Image 
-                src="/logo-n.png" 
-                alt="Boomb Logo" 
+                src="/logo1.png" 
+                alt="FinderB Logo" 
                 width={120} 
                 height={40} 
                 className="h-8 w-auto object-contain"
@@ -275,7 +275,7 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
               <div className="grid grid-cols-1 gap-3">
                 <Link 
                   href="/business/register" 
-                  className="flex items-center justify-between p-4 bg-gradient-to-br from-primary via-blue-600 to-indigo-600 text-white rounded-2xl shadow-xl shadow-primary/20"
+                  className="flex items-center justify-between p-4 bg-gradient-to-br from-primary to-secondary text-white rounded-2xl shadow-xl shadow-primary/20"
                   onClick={() => setIsOpen(false)}
                 >
                   <div className="flex items-center gap-3">

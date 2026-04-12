@@ -74,7 +74,7 @@ export default function BusinessDetailPage({ params }: { params: Promise<{ id: s
                     <div className="flex flex-wrap items-center gap-2">
                       <div className="flex items-center gap-1.5 bg-blue-600 text-white px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border border-blue-700 shadow-sm">
                         <ShieldCheck size={14} className="fill-white/20" />
-                        Boomb Verified
+                        FinderB Verified
                       </div>
                       <div className="flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border border-emerald-100">
                         <Zap size={14} />
@@ -186,7 +186,7 @@ export default function BusinessDetailPage({ params }: { params: Promise<{ id: s
                         {business.description}
                       </p>
                       <p className="text-slate-500 leading-relaxed font-medium text-base">
-                        At <span className="text-blue-600 font-black">Boomb</span>, we verify every detail of our partner businesses. {business.name} has been a cornerstone of professional excellence in {business.location} for over a decade, consistently delivering premium service standards that our users trust.
+                        At <span className="text-blue-600 font-black">FinderB</span>, we verify every detail of our partner businesses. {business.name} has been a cornerstone of professional excellence in {business.location} for over a decade, consistently delivering premium service standards that our users trust.
                       </p>
                     </div>
                     
@@ -280,7 +280,7 @@ export default function BusinessDetailPage({ params }: { params: Promise<{ id: s
                           <ShieldCheck size={20} className="text-white fill-white/20" />
                         </div>
                         <div>
-                          <p className="text-white font-black text-sm uppercase tracking-widest leading-none">Boomb Trust Seal</p>
+                          <p className="text-white font-black text-sm uppercase tracking-widest leading-none">FinderB Trust Seal</p>
                           <p className="text-blue-400 font-bold text-[10px] uppercase tracking-wider">Verified Business</p>
                         </div>
                       </div>

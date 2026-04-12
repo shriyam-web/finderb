@@ -200,7 +200,7 @@ export default function SearchBar() {
 
         {/* Search CTA */}
         <div className="p-2 md:pr-0">
-          <button className="w-full md:w-auto bg-gradient-to-r from-secondary to-purple-600 hover:shadow-lg hover:shadow-secondary/30 text-white font-bold px-10 py-4 rounded-xl transition-all active:scale-95 text-sm uppercase tracking-widest">
+          <button className="w-full md:w-auto bg-gradient-to-r from-primary to-secondary hover:shadow-lg hover:shadow-secondary/30 text-white font-bold px-10 py-4 rounded-xl transition-all active:scale-95 text-sm uppercase tracking-widest">
             Find Now
           </button>
         </div>
@@ -220,8 +220,8 @@ export default function SearchBar() {
 
             <div className="space-y-12">
               <div className="space-y-2">
-                <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-                  boomb voice search
+                <h2 className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                  FinderB voice search
                 </h2>
                 <p className="text-gray-400 text-sm font-medium">Listening for your command...</p>
               </div>
@@ -230,17 +230,17 @@ export default function SearchBar() {
                 {/* Colorful Rings */}
                 {isListening && (
                   <>
-                    <div className="absolute w-24 h-24 rounded-full border-2 border-blue-400/30 animate-[voice-ring_2s_infinite]" />
-                    <div className="absolute w-24 h-24 rounded-full border-2 border-purple-400/30 animate-[voice-ring_2s_infinite_0.4s]" />
-                    <div className="absolute w-24 h-24 rounded-full border-2 border-pink-400/30 animate-[voice-ring_2s_infinite_0.8s]" />
-                    <div className="absolute w-24 h-24 rounded-full border-2 border-emerald-400/30 animate-[voice-ring_2s_infinite_1.2s]" />
+                    <div className="absolute w-24 h-24 rounded-full border-2 border-primary/30 animate-[voice-ring_2s_infinite]" />
+                    <div className="absolute w-24 h-24 rounded-full border-2 border-secondary/30 animate-[voice-ring_2s_infinite_0.4s]" />
+                    <div className="absolute w-24 h-24 rounded-full border-2 border-primary/30 animate-[voice-ring_2s_infinite_0.8s]" />
+                    <div className="absolute w-24 h-24 rounded-full border-2 border-secondary/30 animate-[voice-ring_2s_infinite_1.2s]" />
                   </>
                 )}
 
                 {/* Central Mic Button */}
                 <div className={`relative z-10 w-28 h-28 rounded-full flex items-center justify-center transition-all duration-500 shadow-2xl ${
                   isListening 
-                    ? 'bg-gradient-to-tr from-blue-600 via-purple-600 to-pink-600 scale-110 shadow-purple-500/20' 
+                    ? 'bg-gradient-to-tr from-primary to-secondary scale-110 shadow-secondary/20' 
                     : 'bg-gray-100'
                 }`}>
                   <div className={`absolute inset-0 rounded-full bg-white/10 ${isListening ? 'animate-pulse' : ''}`} />
@@ -259,9 +259,9 @@ export default function SearchBar() {
                 </p>
                 {isListening && (
                   <div className="flex gap-1.5 mt-3">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-                    <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-                    <div className="w-2 h-2 bg-pink-500 rounded-full animate-bounce"></div>
+                    <div className="w-2 h-2 bg-primary rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                    <div className="w-2 h-2 bg-secondary rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                    <div className="w-2 h-2 bg-primary rounded-full animate-bounce"></div>
                   </div>
                 )}
               </div>

@@ -24,8 +24,8 @@ export default function Footer() {
           <div className="space-y-8">
             <Link href="/" className="flex items-center group">
               <Image
-                src="/logo-n.png"
-                alt="Boomb Logo"
+                src="/logo1.png"
+                alt="FinderB Logo"
                 width={140}
                 height={40}
                 className="h-9 w-auto object-contain transition-transform group-hover:scale-105"
@@ -33,9 +33,9 @@ export default function Footer() {
               />
             </Link>
             <div className="space-y-4">
-              <h4 className="text-primary font-black text-[10px] uppercase tracking-widest">About Boomb</h4>
+              <h4 className="text-primary font-black text-[10px] uppercase tracking-widest">About FinderB</h4>
               <p className="text-gray-500 text-sm leading-relaxed font-medium">
-                Boomb is India's premier local discovery platform, connecting millions of users with verified local businesses, professional services, and entertainment. We are your go-to destination for finding top-rated plumbers, doctors, restaurants, and real estate across 500+ cities in India.
+                FinderB is India's premier local discovery platform, connecting millions of users with verified local businesses, professional services, and entertainment. We are your go-to destination for finding top-rated plumbers, doctors, restaurants, and real estate across 500+ cities in India.
               </p>
             </div>
           </div>
@@ -126,10 +126,10 @@ export default function Footer() {
         <div className="border-t border-gray-100 pt-10 flex flex-col md:flex-row justify-between items-center gap-6">
           <div className="space-y-2 text-center md:text-left">
             <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
-              © {new Date().getFullYear()} Boomb Technologies Pvt Ltd.
+              © {new Date().getFullYear()} FinderB Technologies Pvt Ltd.
             </p>
             <p className="text-[10px] text-gray-400 font-medium max-w-xl">
-              Boomb helps you find the best services and businesses in your locality. Verified profiles, user reviews, and instant contact details for thousands of categories.
+              FinderB helps you find the best services and businesses in your locality. Verified profiles, user reviews, and instant contact details for thousands of categories.
             </p>
           </div>
           <div className="flex flex-wrap justify-center gap-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest">

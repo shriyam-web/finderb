@@ -42,8 +42,8 @@ function HomeContent() {
   useEffect(() => {
     if (activeTabFromUrl === 'ai') {
       setActiveMobileTab('AI Search');
-    } else if (activeTabFromUrl === 'boomb-ai') {
-      setActiveMobileTab('Boomb Ai');
+    } else if (activeTabFromUrl === 'finderb-ai') {
+      setActiveMobileTab('FinderB Ai');
     } else {
       setActiveMobileTab('Search');
     }
@@ -53,8 +53,8 @@ function HomeContent() {
     setActiveMobileTab(label);
     if (label === 'AI Search') {
       router.push('/?tab=ai', { scroll: false });
-    } else if (label === 'Boomb Ai') {
-      router.push('/?tab=boomb-ai', { scroll: false });
+    } else if (label === 'FinderB Ai') {
+      router.push('/?tab=finderb-ai', { scroll: false });
     } else {
       router.push('/', { scroll: false });
     }
@@ -83,7 +83,7 @@ function HomeContent() {
   }, [index]);
 
   useEffect(() => {
-    if (activeMobileTab === 'Boomb Ai') {
+    if (activeMobileTab === 'FinderB Ai') {
       const timer = setTimeout(() => {
         handleTabChange('AI Search');
       }, 3000); // 3 seconds delay
@@ -97,8 +97,8 @@ function HomeContent() {
       <section className="relative pt-16 pb-6 lg:pt-24 lg:pb-8 overflow-hidden">
         {/* Animated Background Elements */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full -z-10">
-          <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[60%] bg-secondary/5 blur-[120px] rounded-full animate-pulse"></div>
-          <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[60%] bg-purple-500/5 blur-[120px] rounded-full animate-pulse" style={{ animationDelay: '2s' }}></div>
+          <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[60%] bg-primary/5 blur-[120px] rounded-full animate-pulse"></div>
+          <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[60%] bg-secondary/5 blur-[120px] rounded-full animate-pulse" style={{ animationDelay: '2s' }}></div>
         </div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-6 lg:space-y-8">
@@ -106,7 +106,7 @@ function HomeContent() {
 
             <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight text-primary leading-[1.3]">
               Everything you need, <br />
-              <span className="bg-gradient-to-r from-secondary via-purple-600 to-pink-500 bg-clip-text text-transparent">all in one place.</span>
+              <span className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">all in one place.</span>
             </h1>
 
             <div className="flex flex-col items-center justify-center">
@@ -172,15 +172,15 @@ function HomeContent() {
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             <div className="space-y-10">
               <div className="space-y-4">
-                <div className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-50 rounded-full text-emerald-600 border border-emerald-100">
-                  <CheckCircle2 size={16} />
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/5 rounded-full text-primary border border-primary/10">
+                  <CheckCircle2 size={16} className="text-secondary" />
                   <span className="text-xs font-bold uppercase tracking-widest">Trust First Platform</span>
                 </div>
                 <h2 className="text-4xl sm:text-6xl font-extrabold text-primary tracking-tight leading-[1.1]">
                   Book with <span className="text-secondary">Confidence.</span>
                 </h2>
                 <p className="text-gray-500 text-lg font-medium leading-relaxed max-w-xl">
-                  Every professional on Boomb is strictly verified. We prioritize your safety and satisfaction above everything else.
+                  Every professional on FinderB is strictly verified. We prioritize your safety and satisfaction above everything else.
                 </p>
               </div>
 
@@ -205,7 +205,7 @@ function HomeContent() {
             </div>
 
             <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-tr from-secondary/20 to-purple-600/20 blur-[100px] -z-10 rounded-full animate-pulse"></div>
+              <div className="absolute inset-0 bg-gradient-to-tr from-primary/10 to-secondary/10 blur-[100px] -z-10 rounded-full"></div>
               <div className="bg-white p-8 rounded-[3rem] shadow-2xl border border-gray-100 relative overflow-hidden">
                 <div className="flex items-center gap-4 mb-8">
                   <div className="w-16 h-16 rounded-full bg-secondary/10 flex items-center justify-center text-secondary">
@@ -220,7 +220,7 @@ function HomeContent() {
                 <div className="space-y-6">
                   {testimonials.slice(0, 2).map((t) => (
                     <div key={t.id} className="p-6 rounded-2xl bg-muted/30 border border-gray-50">
-                      <div className="flex gap-1 text-yellow-400 mb-3">
+                      <div className="flex gap-1 text-secondary mb-3">
                         {[...Array(5)].map((_, i) => <Star key={i} size={14} fill="currentColor" />)}
                       </div>
                       <p className="text-gray-600 font-medium italic mb-4">"{t.content}"</p>
@@ -247,7 +247,7 @@ function HomeContent() {
         <div className="bg-white/90 backdrop-blur-2xl border border-white/50 rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.15)] p-1.5 flex items-center justify-around">
           {[
             { icon: Search, label: 'Search' },
-            { icon: Sparkles, label: 'Boomb Ai' },
+            { icon: Sparkles, label: 'FinderB Ai' },
             { icon: History, label: 'history' },
             { icon: Heart, label: 'saved' },
           ].map((item, i) => (
@@ -259,10 +259,10 @@ function HomeContent() {
                 : 'text-slate-400 hover:text-slate-600'
                 }`}
             >
-              {item.label === 'Boomb Ai' && activeMobileTab !== 'Boomb Ai' && (
+              {item.label === 'FinderB Ai' && activeMobileTab !== 'FinderB Ai' && (
                 <span className="absolute -top-1 -right-1 flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-pink-500"></span>
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-secondary"></span>
                 </span>
               )}
               <item.icon
@@ -346,7 +346,7 @@ function HomeContent() {
                   <h3 className="text-2xl sm:text-4xl font-black">{place.name}</h3>
                   <div className="flex items-center gap-6">
                     <div className="flex items-center gap-2">
-                      <Star size={16} className="text-yellow-400" fill="currentColor" />
+                      <Star size={16} className="text-secondary" fill="currentColor" />
                       <span className="text-sm font-bold">{place.rating}</span>
                     </div>
                     <div className="flex items-center gap-2 text-gray-400">
@@ -406,9 +406,9 @@ function HomeContent() {
           <div className="space-y-6 lg:space-y-8">
             <h2 className="text-4xl sm:text-6xl lg:text-5xl font-black text-white tracking-tighter leading-[1.3]">
               Ready to grow your business?
-              <span className="text-secondary">Join Boomb today.</span>
+              <span className="text-secondary">Join FinderB today.</span>
             </h2>
-            <p className="text-blue-100/60 text-base sm:text-xl lg:text-2xl font-medium max-w-3xl mx-auto leading-relaxed">
+            <p className="text-secondary/60 text-base sm:text-xl lg:text-2xl font-medium max-w-3xl mx-auto leading-relaxed">
               Join 50,000+ elite business owners already scaling their reach on India's premier discovery network.
             </p>
           </div>
@@ -426,8 +426,8 @@ function HomeContent() {
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[radial-gradient(circle_at_center,rgba(0,186,242,0.05),transparent_70%)]"></div>
       </section>
 
-      {/* Boomb AI Modal */}
-      {activeMobileTab === 'Boomb Ai' && (
+      {/* FinderB AI Modal */}
+      {activeMobileTab === 'FinderB Ai' && (
         <div className="fixed inset-0 z-[1000] bg-primary/40 backdrop-blur-2xl md:hidden flex flex-col items-center justify-center p-8 transition-all duration-700 animate-in fade-in zoom-in-95">
           <button
             onClick={() => handleTabChange('Search')}
@@ -444,7 +444,7 @@ function HomeContent() {
           </div>
 
           <div className="text-center space-y-6 max-w-sm">
-            <h2 className="text-5xl font-black text-white tracking-tighter leading-tight">Boomb <span className="text-secondary">AI</span> is <br />Almost Ready.</h2>
+            <h2 className="text-5xl font-black text-white tracking-tighter leading-tight">FinderB <span className="text-secondary">AI</span> is <br />Almost Ready.</h2>
             <p className="text-white/60 font-medium text-lg leading-relaxed">We're training India's most powerful service assistant just for you.</p>
           </div>
 
@@ -503,7 +503,7 @@ function HomeContent() {
               <div className="absolute -inset-1 bg-gradient-to-r from-secondary to-purple-600 rounded-[2.2rem] blur opacity-20 group-hover:opacity-40 transition duration-1000"></div>
               <input
                 type="text"
-                placeholder="Ask Boomb AI anything..."
+                placeholder="Ask FinderB AI anything..."
                 className="relative w-full bg-white/5 border border-white/10 rounded-[2rem] px-6 py-4 sm:py-8 text-white text-xs sm:text-base font-medium focus:ring-2 focus:ring-secondary transition-all outline-none backdrop-blur-xl"
               />
               <button className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 sm:w-14 sm:h-14 bg-white rounded-2xl flex items-center justify-center text-primary hover:bg-secondary hover:text-white hover:scale-105 transition-all shadow-xl">

@@ -28,7 +28,7 @@ export default function PolicyPage() {
                             <div>
                                 <h2 className="text-2xl font-black text-primary mb-6">1. Copyright Infringement</h2>
                                 <div className="space-y-4 text-gray-700">
-                                    <p>Boomb respects the intellectual property rights of others and expects its users to do the same. It is our policy to respond to clear notices of alleged copyright infringement.</p>
+                                    <p>FinderB respects the intellectual property rights of others and expects its users to do the same. It is our policy to respond to clear notices of alleged copyright infringement.</p>
                                     <p>If you believe that your work has been copied in a way that constitutes copyright infringement, please provide our designated agent with the following information:</p>
                                     <ul className="list-disc pl-6 space-y-2">
                                         <li>A physical or electronic signature of the copyright owner or authorized person</li>
@@ -59,7 +59,7 @@ export default function PolicyPage() {
                             <div>
                                 <h2 className="text-2xl font-black text-primary mb-6">3. Repeat Infringers</h2>
                                 <div className="space-y-4 text-gray-700">
-                                    <p>Boomb will terminate the accounts of users who are determined to be repeat infringers of copyright or other intellectual property rights.</p>
+                                    <p>FinderB will terminate the accounts of users who are determined to be repeat infringers of copyright or other intellectual property rights.</p>
                                     <p>A repeat infringer is a user who has been notified of infringing activity more than once.</p>
                                 </div>
                             </div>
@@ -67,7 +67,7 @@ export default function PolicyPage() {
                             <div>
                                 <h2 className="text-2xl font-black text-primary mb-6">4. Trademark Infringement</h2>
                                 <div className="space-y-4 text-gray-700">
-                                    <p>Boomb prohibits the use of trademarks, service marks, or trade dress that are likely to cause confusion about the source or sponsorship of goods or services.</p>
+                                    <p>FinderB prohibits the use of trademarks, service marks, or trade dress that are likely to cause confusion about the source or sponsorship of goods or services.</p>
                                     <p>If you believe that your trademark has been infringed, please contact us with the relevant details.</p>
                                 </div>
                             </div>
@@ -78,9 +78,9 @@ export default function PolicyPage() {
                                     <p>For copyright infringement claims or counter-notifications, please contact our designated agent:</p>
                                     <div className="bg-gray-50 rounded-xl p-6">
                                         <p><strong>Copyright Agent</strong></p>
-                                        <p><strong>Email:</strong> copyright@boomb.com</p>
+                                        <p><strong>Email:</strong> copyright@finderb.in</p>
                                         <p><strong>Address:</strong> 123 Business Street, Tech City, Karnataka, India - 560001</p>
-                                        <p><strong>Phone:</strong> +91 1800-BOOMB-HELP</p>
+                                        <p><strong>Phone:</strong> +91 1800-FINDERB-HELP</p>
                                     </div>
                                 </div>
                             </div>
@@ -89,7 +89,7 @@ export default function PolicyPage() {
                                 <h2 className="text-2xl font-black text-primary mb-6">6. Changes to This Policy</h2>
                                 <div className="space-y-4 text-gray-700">
                                     <p>We reserve the right to modify this Infringement Policy at any time. Changes will be effective immediately upon posting on our website.</p>
-                                    <p>Your continued use of Boomb after any such changes constitutes your acceptance of the new policy.</p>
+                                    <p>Your continued use of FinderB after any such changes constitutes your acceptance of the new policy.</p>
                                 </div>
                             </div>
                         </div>

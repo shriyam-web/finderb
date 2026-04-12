@@ -61,8 +61,8 @@ export default function BusinessLoginPage() {
           <div className="mb-10">
             <Link href="/" className="inline-block mb-6">
               <Image
-                src="/logo-n.png"
-                alt="Boomb"
+                src="/logo1.png"
+                alt="FinderB"
                 width={120}
                 height={40}
                 className="h-8 w-auto object-contain"
@@ -137,7 +137,7 @@ export default function BusinessLoginPage() {
 
           <div className="mt-10 text-center">
             <p className="text-slate-400 text-xs font-medium mb-4">
-              New to Boomb?
+              New to FinderB?
             </p>
             <Link
               href="/business/register"
@@ -150,7 +150,7 @@ export default function BusinessLoginPage() {
         </div>
 
         <p className="mt-10 text-center text-slate-400 text-[11px] font-medium tracking-wide">
-          &copy; {new Date().getFullYear()} BOOMB INDIA &bull; PARTNER PORTAL
+          &copy; {new Date().getFullYear()} FINDERB INDIA &bull; PARTNER PORTAL
         </p>
       </div>
     </div>

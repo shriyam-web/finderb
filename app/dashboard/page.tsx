@@ -41,7 +41,7 @@ export default function UserDashboard() {
       {/* Mobile Header */}
       <div className="lg:hidden bg-white p-4 flex items-center justify-between sticky top-0 z-[60] shadow-sm border-b border-gray-100">
         <Link href="/" className="group">
-          <Image src="/logo-n.png" alt="Boomb Logo" width={100} height={30} className="h-8 w-auto" />
+          <Image src="/logo1.png" alt="FinderB Logo" width={100} height={30} className="h-8 w-auto" />
         </Link>
         <button 
           onClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -66,7 +66,7 @@ export default function UserDashboard() {
       `}>
         <div className="p-10 hidden lg:block">
           <Link href="/" className="group">
-            <Image src="/logo-n.png" alt="Boomb Logo" width={140} height={40} className="h-10 w-auto transition-transform group-hover:scale-105" />
+            <Image src="/logo1.png" alt="FinderB Logo" width={140} height={40} className="h-10 w-auto transition-transform group-hover:scale-105" />
           </Link>
           <div className="mt-4 inline-flex items-center gap-2 bg-blue-50 px-4 py-1.5 rounded-full text-blue-600 font-black text-[10px] uppercase tracking-widest border border-blue-100/50">
             <ShieldCheck size={12} /> Personal Account

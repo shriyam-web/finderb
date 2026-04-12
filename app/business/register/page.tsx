@@ -223,7 +223,7 @@ function RegisterFormContent() {
       name: 'Mr. Ashim Kumar Mondal',
       business: 'Astrologer Sri Ashimanandaji Jyotish Mahamohopadhay',
       role: 'Astrologers',
-      testimonial: 'I started with a small investment in one city, and today, Boomb has helped me expand across five states with a 35% to 40% increase in business growth.',
+      testimonial: 'I started with a small investment in one city, and today, FinderB has helped me expand across five states with a 35% to 40% increase in business growth.',
       duration: 'Customer since 1 year',
       image: 'https://i.pravatar.cc/150?u=ashim'
     },
@@ -231,7 +231,7 @@ function RegisterFormContent() {
       name: 'Rajesh Chhabria',
       business: 'Chhabria and Sons',
       role: 'Tile Dealers',
-      testimonial: 'From 1 showroom to 4 in 20 years, Boomb’s growing returns have helped us to dominate the market.',
+      testimonial: 'From 1 showroom to 4 in 20 years, FinderB’s growing returns have helped us to dominate the market.',
       duration: 'Customer since 14 years',
       image: 'https://i.pravatar.cc/150?u=rajesh'
     },
@@ -239,7 +239,7 @@ function RegisterFormContent() {
       name: 'Varshini',
       business: 'V2 Makeover',
       role: 'Makeup Artists',
-      testimonial: 'Genuine leads from Boomb keep my business active and support me as a woman entrepreneur.',
+      testimonial: 'Genuine leads from FinderB keep my business active and support me as a woman entrepreneur.',
       duration: 'Customer since 4 year',
       image: 'https://i.pravatar.cc/150?u=varshini'
     }
@@ -253,19 +253,19 @@ function RegisterFormContent() {
 
   const faqs = [
     {
-      q: 'What are the benefits of listing a business on Boomb?',
-      a: 'Listing on Boomb helps you reach millions of potential customers, build trust, and grow your business online with a professional presence and verified leads.'
+      q: 'What are the benefits of listing a business on FinderB?',
+      a: 'Listing on FinderB helps you reach millions of potential customers, build trust, and grow your business online with a professional presence and verified leads.'
     },
     {
-      q: 'Can I list my business on Boomb?',
-      a: 'Yes, any legitimate business can list on Boomb. We offer premium plans that provide high visibility and verified leads to help your business grow.'
+      q: 'Can I list my business on FinderB?',
+      a: 'Yes, any legitimate business can list on FinderB. We offer premium plans that provide high visibility and verified leads to help your business grow.'
     },
     {
-      q: 'I already have a website and social media. Do I still need Boomb?',
-      a: 'Absolutely! Boomb is a leading local search engine that connects you with users who are specifically searching for your services in your local area, converting intent into sales.'
+      q: 'I already have a website and social media. Do I still need FinderB?',
+      a: 'Absolutely! FinderB is a leading local search engine that connects you with users who are specifically searching for your services in your local area, converting intent into sales.'
     },
     {
-      q: 'Do I need to download the Boomb App to manage my listing?',
+      q: 'Do I need to download the FinderB App to manage my listing?',
       a: 'While our app provides a great mobile experience, you can easily manage your business listing through our responsive web dashboard on any device.'
     }
   ];
@@ -283,8 +283,8 @@ function RegisterFormContent() {
             <div className="relative z-10 px-8">
               <div className="flex items-center justify-between mb-12">
                 <Link href="/" className="inline-flex items-center gap-3">
-                  <div className="w-8 h-8 bg-white rounded-xl flex items-center justify-center text-blue-700 font-black italic text-sm shadow-lg shadow-blue-900/20">B</div>
-                  <span className="text-base font-black tracking-tighter italic uppercase">BOOMB</span>
+                  <div className="w-8 h-8 bg-white rounded-xl flex items-center justify-center text-blue-700 font-black italic text-sm shadow-lg shadow-blue-900/20">F</div>
+                  <span className="text-base font-black tracking-tighter italic uppercase">FINDERB</span>
                 </Link>
                 {/* Mobile Toggle */}
                 <button
@@ -677,7 +677,7 @@ function RegisterFormContent() {
                 <div className="w-10 h-1 bg-blue-600 rounded-full"></div>
                 <span className="text-xs font-bold text-blue-600 uppercase tracking-[0.3em]">Growth Stories</span>
               </div>
-              <h2 className="text-3xl sm:text-5xl font-black text-slate-900 tracking-tight">Real Success with <span className="text-blue-600">Boomb.</span></h2>
+              <h2 className="text-3xl sm:text-5xl font-black text-slate-900 tracking-tight">Real Success with <span className="text-blue-600">FinderB.</span></h2>
             </div>
             <Link href="/stories" className="group flex items-center gap-2 text-sm font-bold text-slate-900 hover:text-blue-600 transition-colors">
               See All Stories <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
@@ -748,7 +748,7 @@ function RegisterFormContent() {
               <div className="space-y-4">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-1 bg-blue-600 rounded-full"></div>
-                  <span className="text-xs font-bold text-blue-600 uppercase tracking-[0.3em]">Why Choose Boomb</span>
+                  <span className="text-xs font-bold text-blue-600 uppercase tracking-[0.3em]">Why Choose FinderB</span>
                 </div>
                 <h2 className="text-3xl sm:text-5xl font-black text-slate-900 tracking-tight leading-[1.1]">
                   Connect with New Customers & <span className="text-blue-600">Grow Your Business</span>
@@ -757,7 +757,7 @@ function RegisterFormContent() {
 
               <div className="space-y-8">
                 {[
-                  { title: 'PREMIUM BUSINESS LISTING PAGE', desc: 'Having a presence on Boomb helps you build trust with your potential customers. Enrich your business details so that people can find you online easily.' },
+                  { title: 'PREMIUM BUSINESS LISTING PAGE', desc: 'Having a presence on FinderB helps you build trust with your potential customers. Enrich your business details so that people can find you online easily.' },
                   { title: 'INCREASE ENGAGEMENT', desc: 'Increase customer engagement by responding to their reviews and questions. Upload photos and videos to showcase your business online.' },
                   { title: 'TARGETED REACH', desc: 'Rank higher in search and get more exposure in front of your potential customers who are actively searching for your services.' },
                 ].map((item, i) => (

@@ -16,8 +16,8 @@ export default function LoginPage() {
             <div className="text-center mb-10">
               <Link href="/" className="inline-flex items-center mb-8 group">
                 <Image 
-                  src="/logo-n.png" 
-                  alt="Boomb" 
+                  src="/logo1.png" 
+                  alt="FinderB" 
                   width={150} 
                   height={50} 
                   className="h-11 w-auto object-contain transition-transform duration-500 group-hover:scale-105" 
@@ -88,7 +88,7 @@ export default function LoginPage() {
         </div>
         
         <p className="mt-10 text-center text-gray-400 text-[10px] font-bold uppercase tracking-widest">
-          © {new Date().getFullYear()} Boomb Local Search. All rights reserved.
+          © {new Date().getFullYear()} FinderB Local Search. All rights reserved.
         </p>
       </div>
     </div>

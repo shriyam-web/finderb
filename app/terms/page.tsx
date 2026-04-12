@@ -28,7 +28,7 @@ export default function TermsPage() {
                             <div>
                                 <h2 className="text-2xl font-black text-primary mb-6">1. Acceptance of Terms</h2>
                                 <div className="space-y-4 text-gray-700">
-                                    <p>By accessing and using Boomb, you accept and agree to be bound by the terms and provision of this agreement.</p>
+                                    <p>By accessing and using FinderB, you accept and agree to be bound by the terms and provision of this agreement.</p>
                                     <p>If you do not agree to abide by the above, please do not use this service.</p>
                                 </div>
                             </div>
@@ -36,8 +36,8 @@ export default function TermsPage() {
                             <div>
                                 <h2 className="text-2xl font-black text-primary mb-6">2. Use License</h2>
                                 <div className="space-y-4 text-gray-700">
-                                    <p>Permission is granted to temporarily use Boomb for personal and business use.</p>
-                                    <p>This license shall automatically terminate if you violate any of these restrictions and may be terminated by Boomb at any time.</p>
+                                    <p>Permission is granted to temporarily use FinderB for personal and business use.</p>
+                                    <p>This license shall automatically terminate if you violate any of these restrictions and may be terminated by FinderB at any time.</p>
                                     <ul className="list-disc pl-6 space-y-2">
                                         <li>You must not modify or copy the materials</li>
                                         <li>You must not use the materials for any commercial purpose</li>
@@ -92,7 +92,7 @@ export default function TermsPage() {
                             <div>
                                 <h2 className="text-2xl font-black text-primary mb-6">7. Limitation of Liability</h2>
                                 <div className="space-y-4 text-gray-700">
-                                    <p>In no event shall Boomb, nor its directors, employees, partners, agents, suppliers, or affiliates, be liable for any indirect, incidental, special, consequential, or punitive damages.</p>
+                                    <p>In no event shall FinderB, nor its directors, employees, partners, agents, suppliers, or affiliates, be liable for any indirect, incidental, special, consequential, or punitive damages.</p>
                                     <p>This includes without limitation, loss of profits, data, use, goodwill, or other intangible losses, resulting from your use of the service.</p>
                                 </div>
                             </div>
@@ -102,7 +102,7 @@ export default function TermsPage() {
                                 <div className="space-y-4 text-gray-700">
                                     <p>If you have any questions about these Terms of Use, please contact us at:</p>
                                     <div className="bg-gray-50 rounded-xl p-6">
-                                        <p><strong>Email:</strong> legal@boomb.com</p>
+                                        <p><strong>Email:</strong> legal@finderb.com</p>
                                         <p><strong>Address:</strong> 123 Business Street, Tech City, Karnataka, India - 560001</p>
                                     </div>
                                 </div>

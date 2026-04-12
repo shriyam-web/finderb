@@ -136,7 +136,7 @@ export default function PricingPage() {
               Ready to take your business <br /> to the next level?
             </h2>
             <p className="text-blue-100 text-lg font-medium max-w-2xl mx-auto">
-              Join 6.2 Lakh+ happy business owners who are already growing with Boomb.
+              Join 6.2 Lakh+ happy business owners who are already growing with FinderB.
             </p>
             <div className="flex flex-col sm:flex-row gap-6 justify-center pt-4">
               <Link href="/business/register" className="bg-white text-primary px-10 py-5 rounded-2xl font-black text-lg hover:bg-secondary hover:text-white transition-all shadow-xl active:scale-95 flex items-center justify-center">

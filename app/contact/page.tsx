@@ -34,7 +34,7 @@ export default function ContactPage() {
                                     </div>
                                     <div>
                                         <h3 className="font-bold text-lg text-primary mb-1">Email Support</h3>
-                                        <p className="text-gray-600">support@boomb.com</p>
+                                        <p className="text-gray-600">support@finderb.in</p>
                                         <p className="text-sm text-gray-500 mt-1">We respond within 24 hours</p>
                                     </div>
                                 </div>
@@ -45,7 +45,7 @@ export default function ContactPage() {
                                     </div>
                                     <div>
                                         <h3 className="font-bold text-lg text-primary mb-1">Phone Support</h3>
-                                        <p className="text-gray-600">+91 1800-BOOMB-HELP</p>
+                                        <p className="text-gray-600">+91 1800-FINDERB-HELP</p>
                                         <p className="text-sm text-gray-500 mt-1">Mon-Fri 9AM-6PM IST</p>
                                     </div>
                                 </div>

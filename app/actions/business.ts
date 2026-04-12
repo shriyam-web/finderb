@@ -49,7 +49,7 @@ export async function registerBusiness(formData: any) {
     console.log('[REGISTER] Attempting database operation...');
 
     // Generate a unique registration number
-    const regNo = `BOOMB-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+    const regNo = `FINDERB-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
 
     const normalizedEmail = formData.email.toLowerCase().trim();
 

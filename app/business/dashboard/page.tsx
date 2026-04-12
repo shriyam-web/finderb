@@ -129,7 +129,7 @@ function DashboardContent() {
       {/* Mobile Header */}
       <div className="lg:hidden bg-white p-4 flex items-center justify-between sticky top-0 z-[60] border-b border-gray-100">
         <Link href="/" className="group">
-          <Image src="/logo.png" alt="Boomb Logo" width={100} height={30} className="h-8 w-auto" />
+          <Image src="/logo1.png" alt="FinderB Logo" width={100} height={30} className="h-8 w-auto" />
         </Link>
         <button 
           onClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -155,9 +155,9 @@ function DashboardContent() {
         <div className="p-8 hidden lg:block">
           <Link href="/" className="group flex items-center gap-3">
             <div className="bg-indigo-600 w-10 h-10 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-600/20 group-hover:scale-105 transition-transform">
-              <span className="text-white font-black text-xl">B</span>
+              <span className="text-white font-black text-xl">F</span>
             </div>
-            <Image src="/logo.png" alt="Boomb Logo" width={110} height={32} className="h-8 w-auto" />
+            <Image src="/logo1.png" alt="FinderB Logo" width={110} height={32} className="h-8 w-auto" />
           </Link>
           <div className="mt-6 flex items-center gap-2 bg-indigo-50 px-3 py-1.5 rounded-lg text-indigo-700 font-bold text-[10px] uppercase tracking-wider border border-indigo-100">
             <HiOutlineShieldCheck size={14} /> {business?.isVerified ? 'Verified Partner' : 'Standard Partner'}

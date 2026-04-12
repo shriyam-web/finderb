@@ -10,7 +10,7 @@ export default function SignupPage() {
         <div className="p-8 md:p-12">
           <div className="text-center mb-10">
             <Link href="/" className="inline-flex items-center mb-6">
-              <Image src="/logo-n.png" alt="Boomb" width={150} height={50} className="h-12 w-auto" priority />
+              <Image src="/logo1.png" alt="FinderB" width={150} height={50} className="h-12 w-auto" priority />
             </Link>
             <h2 className="text-3xl font-black text-gray-900">Create Account</h2>
             <p className="text-gray-500 mt-2 font-medium">Join thousands of users discovering local services</p>

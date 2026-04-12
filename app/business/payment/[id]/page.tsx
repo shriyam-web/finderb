@@ -43,7 +43,7 @@ export default function PaymentPage({ params }: { params: Promise<{ id: string }
           billingCycle
         });
         if (result.success) {
-          alert('Payment Successful! Welcome to Boomb Business.');
+          alert('Payment Successful! Welcome to FinderB Business.');
           router.push(`/business/dashboard?id=${id}`);
         } else {
           alert(result.error || 'Payment update failed');
@@ -71,8 +71,8 @@ export default function PaymentPage({ params }: { params: Promise<{ id: string }
           
           <div className="relative z-10 space-y-12">
             <Link href="/" className="inline-flex items-center gap-2">
-              <div className="w-7 h-7 bg-white rounded-lg flex items-center justify-center text-blue-600 font-bold italic">B</div>
-              <span className="text-lg font-extrabold tracking-tighter italic">BOOMB</span>
+              <div className="w-7 h-7 bg-white rounded-lg flex items-center justify-center text-blue-600 font-bold italic">F</div>
+              <span className="text-lg font-extrabold tracking-tighter italic">FINDERB</span>
             </Link>
 
             <div className="space-y-6">

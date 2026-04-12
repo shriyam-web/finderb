@@ -16,10 +16,10 @@ export default function AboutPage() {
             </div>
             <h1 className="text-5xl md:text-8xl font-black text-primary tracking-tight leading-[0.95] max-w-5xl mx-auto">
               Connecting India to <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-secondary to-orange-500">Local Excellence</span>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">Local Excellence</span>
             </h1>
             <p className="text-gray-500 text-xl md:text-2xl font-medium leading-relaxed max-w-3xl mx-auto">
-              Boomb is India's premier discovery platform, dedicated to bridging the gap between quality local businesses and the people who need them.
+              FinderB is India's premier discovery platform, dedicated to bridging the gap between quality local businesses and the people who need them.
             </p>
           </div>
         </section>
@@ -84,7 +84,7 @@ export default function AboutPage() {
                 <Globe size={300} className="text-primary/10 animate-[spin_20s_linear_infinite]" />
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="w-48 h-48 bg-white rounded-full shadow-2xl flex items-center justify-center p-8">
-                    <img src="/logo.png" alt="Boomb Logo" className="w-full h-auto" />
+                    <img src="/logo1.png" alt="FinderB Logo" className="w-full h-auto" />
                   </div>
                 </div>
               </div>
@@ -107,7 +107,7 @@ export default function AboutPage() {
         <section className="max-w-7xl mx-auto px-4 mb-40">
           <div className="text-center space-y-4 mb-20">
             <span className="text-secondary font-black uppercase tracking-[0.3em] text-xs">Core Values</span>
-            <h2 className="text-5xl md:text-6xl font-black text-primary tracking-tight">The Boomb Way</h2>
+            <h2 className="text-5xl md:text-6xl font-black text-primary tracking-tight">The FinderB Way</h2>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
@@ -121,7 +121,7 @@ export default function AboutPage() {
               },
               { 
                 title: 'Trust & Safety', 
-                desc: 'We maintain strict verification standards to ensure every business on Boomb is legitimate.',
+                desc: 'We maintain strict verification standards to ensure every business on FinderB is legitimate.',
                 icon: ShieldCheck,
                 bg: 'bg-blue-50',
                 color: 'text-blue-500'
@@ -159,7 +159,7 @@ export default function AboutPage() {
                 <span className="text-primary-foreground underline decoration-white/30 underline-offset-8">local revolution</span>
               </h2>
               <p className="text-blue-50 text-xl md:text-2xl font-medium max-w-2xl mx-auto leading-relaxed">
-                Whether you're a business looking to grow or a user looking for excellence, Boomb is your partner.
+                Whether you're a business looking to grow or a user looking for excellence, FinderB is your partner.
               </p>
               <div className="flex flex-col sm:flex-row gap-6 justify-center pt-8">
                 <Link href="/business/register" className="bg-white text-secondary px-12 py-6 rounded-2xl font-black text-xl hover:bg-primary hover:text-white transition-all shadow-2xl active:scale-95">
