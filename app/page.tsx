@@ -98,35 +98,45 @@ function HomeContent() {
     <div className="flex flex-col bg-white selection:bg-primary/10">
       {/* Featured Categories Strip */}
       <section className="pt-20 lg:pt-28 bg-white">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-1">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+
+          {/* 1 Row - 4 Cards */}
+          <div className="grid grid-cols-4 gap-2 sm:gap-3">
             {[
-              { name: 'Real Estate', image: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&q=80&w=400', href: '/categories/real-estate', color: 'from-blue-500/20' },
-              { name: 'Admissions', image: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&q=80&w=400', href: '/categories/admissions', color: 'from-purple-500/20' },
-              { name: 'B2B', image: 'https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&q=80&w=400', href: '/categories/b2b', color: 'from-orange-500/20' },
-              { name: 'Job', image: 'https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?auto=format&fit=crop&q=80&w=400', href: '/categories/job', color: 'from-green-500/20' },
+              { name: 'Real Estate', image: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&q=80&w=400', href: '/categories/real-estate' },
+              { name: 'Admissions', image: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&q=80&w=400', href: '/categories/admissions' },
+              { name: 'B2B', image: 'https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&q=80&w=400', href: '/categories/b2b' },
+              { name: 'Job', image: 'https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?auto=format&fit=crop&q=80&w=400', href: '/categories/job' },
             ].map((item) => (
               <Link
                 key={item.name}
                 href={item.href}
-                className="group relative h-16 sm:h-20 rounded-xl overflow-hidden shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-500"
+                className="group relative h-24 sm:h-28 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all duration-300"
               >
+                {/* Image */}
                 <Image
                   src={item.image}
                   alt={item.name}
                   fill
-                  className="object-cover transition-transform duration-700 group-hover:scale-110"
+                  className="object-cover transition-transform duration-500 group-hover:scale-105"
                 />
-                <div className={`absolute inset-0 bg-gradient-to-t ${item.color} to-transparent opacity-60 group-hover:opacity-40 transition-opacity`} />
-                <div className="absolute inset-0 bg-black/40 group-hover:bg-black/30 transition-colors" />
-                <div className="absolute inset-0 flex items-center justify-center p-2">
-                  <h3 className="text-white text-[10px] sm:text-xs font-black uppercase tracking-widest text-center drop-shadow-lg">
-                    {item.name} 
+
+                {/* Overlay */}
+                <div className="absolute inset-0 bg-black/55 group-hover:bg-black/45 transition-colors duration-300" />
+
+                {/* Bottom-left Text */}
+                <div className="absolute bottom-2 left-2 right-1">
+                  <h3
+                    className="!text-white text-[10px] sm:text-xs font-semibold uppercase tracking-wide leading-tight drop-shadow-md"
+                    style={{ color: "#ffffff" }}
+                  >
+                    {item.name}
                   </h3>
                 </div>
               </Link>
             ))}
           </div>
+
         </div>
       </section>
 
