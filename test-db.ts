@@ -16,6 +16,10 @@ async function main() {
     const businesses = await prisma.business.findMany();
     console.log('Business table query successful, count:', businesses.length);
 
+    // Try to query the user table
+    const users = await prisma.user.findMany();
+    console.log('User table query successful, count:', users.length);
+
   } catch (error: any) {
     console.error('Connection failed:', error.message || error);
     if (error.code) {

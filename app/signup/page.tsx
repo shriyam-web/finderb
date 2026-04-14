@@ -1,9 +1,46 @@
+'use client';
+
+import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Mail, Lock, User } from 'lucide-react';
+import { Mail, Lock, User, AlertCircle } from 'lucide-react';
 import { FaGoogle, FaGithub } from 'react-icons/fa6';
+import { registerUser } from '@/app/actions/user';
+import { useRouter } from 'next/navigation';
 
 export default function SignupPage() {
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const router = useRouter();
+
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!fullName || !email || !password) {
+      setError('Please fill in all fields');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    try {
+      const result = await registerUser({ fullName, email, password });
+      if (result.success) {
+        // Redirect to dashboard after successful signup
+        router.push('/dashboard');
+      } else {
+        setError(result.error || 'Registration failed');
+      }
+    } catch (err: any) {
+      setError(err.message || 'An unexpected error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-[80vh] flex items-center justify-center bg-accent px-4 pt-24 pb-12 lg:pt-32">
       <div className="max-w-md w-full bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100">
@@ -16,7 +53,14 @@ export default function SignupPage() {
             <p className="text-gray-500 mt-2 font-medium">Join thousands of users discovering local services</p>
           </div>
 
-          <form className="space-y-6">
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-2xl flex items-center gap-3 text-red-600 text-sm font-bold">
+              <AlertCircle size={20} />
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSignup} className="space-y-6">
             <div className="space-y-2">
               <label className="text-sm font-bold text-gray-700 ml-1">Full Name</label>
               <div className="relative">
@@ -24,7 +68,10 @@ export default function SignupPage() {
                 <input 
                   type="text" 
                   placeholder="John Doe"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
                   className="w-full pl-12 pr-4 py-4 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-500 font-medium"
+                  required
                 />
               </div>
             </div>
@@ -36,7 +83,10 @@ export default function SignupPage() {
                 <input 
                   type="email" 
                   placeholder="name@company.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   className="w-full pl-12 pr-4 py-4 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-500 font-medium"
+                  required
                 />
               </div>
             </div>
@@ -48,13 +98,20 @@ export default function SignupPage() {
                 <input 
                   type="password" 
                   placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   className="w-full pl-12 pr-4 py-4 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-500 font-medium"
+                  required
                 />
               </div>
             </div>
 
-            <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-2xl shadow-lg shadow-blue-100 transition-all active:scale-[0.98]">
-              Create Account
+            <button 
+              type="submit"
+              disabled={loading}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-2xl shadow-lg shadow-blue-100 transition-all active:scale-[0.98] disabled:opacity-70"
+            >
+              {loading ? 'Creating Account...' : 'Create Account'}
             </button>
           </form>
 

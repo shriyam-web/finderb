@@ -1,48 +1,75 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider   = "prisma-client-js"
   engineType = "library"
 }
 
 datasource db {
-  provider  = "postgresql"
+  provider = "postgresql"
 }
 
 model Business {
-  id              String   @id @default(cuid())
-  fullName        String
-  workEmail       String
-  email           String?
-  mobile          String   @unique
-  businessName    String
-  category        String
-  location        String?
-  city            String?
-  state           String?
-  publicPhone     String
-  businessAddress String
-  selectedPlan    String
-  billingCycle    String
-  isVerified      Boolean  @default(false)
-  password        String?
-  
-  // KYC & Registration
-  registrationNumber String? @unique
-  panNumber         String?
-  aadharNumber      String?
-  panUrl            String?
-  aadharUrl         String?
-  msmeGstUrl        String?
-  kycStatus         String   @default("pending")
-  hasVerifiedBadge  Boolean  @default(false)
-  
-  // Payment
-  paymentStatus     String   @default("pending")
-  paymentId         String?
-  orderId           String?
-  
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id                                                     String       @id @default(cuid())
+  fullName                                               String
+  workEmail                                              String
+  mobile                                                 String       @unique
+  businessName                                           String
+  category                                               String
+  location                                               String?
+  publicPhone                                            String
+  businessAddress                                        String
+  selectedPlan                                           String
+  billingCycle                                           String
+  isVerified                                             Boolean      @default(false)
+  registrationNumber                                     String?      @unique
+  panNumber                                              String?
+  aadharNumber                                           String?
+  panUrl                                                 String?
+  aadharUrl                                              String?
+  msmeGstUrl                                             String?
+  kycStatus                                              String       @default("pending")
+  hasVerifiedBadge                                       Boolean      @default(false)
+  paymentStatus                                          String       @default("pending")
+  paymentId                                              String?
+  orderId                                                String?
+  createdAt                                              DateTime     @default(now())
+  updatedAt                                              DateTime     @updatedAt
+  city                                                   String?
+  email                                                  String?
+  password                                               String?
+  state                                                  String?
+  categories_categories_position_1_business_idToBusiness categories[] @relation("categories_position_1_business_idToBusiness")
+  categories_categories_position_2_business_idToBusiness categories[] @relation("categories_position_2_business_idToBusiness")
+  categories_categories_position_3_business_idToBusiness categories[] @relation("categories_position_3_business_idToBusiness")
+}
+
+model categories {
+  id                                                   String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                                                 String    @unique
+  type                                                 String    @default("Merchant")
+  items_count                                          Int       @default(0)
+  status                                               String    @default("Active")
+  banner                                               String?   @default("Not Set")
+  fixed_slots                                          Int       @default(0)
+  position_1_business_id                               String?
+  position_2_business_id                               String?
+  position_3_business_id                               String?
+  created_at                                           DateTime  @default(now()) @db.Timestamp(6)
+  updated_at                                           DateTime  @default(now()) @db.Timestamp(6)
+  Business_categories_position_1_business_idToBusiness Business? @relation("categories_position_1_business_idToBusiness", fields: [position_1_business_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  Business_categories_position_2_business_idToBusiness Business? @relation("categories_position_2_business_idToBusiness", fields: [position_2_business_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  Business_categories_position_3_business_idToBusiness Business? @relation("categories_position_3_business_idToBusiness", fields: [position_3_business_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([status])
+  @@index([type])
+}
+
+model User {
+  id            String   @id @default(cuid())
+  fullName      String
+  email         String   @unique
+  password      String
+  favorites     String[] @default([])
+  searchHistory String[] @default([])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }

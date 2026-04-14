@@ -60,7 +60,10 @@ function HomeContent() {
     }
   };
 
-  const sortedCategories = [...categories].sort((a, b) => b.businessCount - a.businessCount);
+  const excludedSlugs = ['real-estate', 'admissions', 'b2b', 'job'];
+  const sortedCategories = [...categories]
+    .filter(cat => !excludedSlugs.includes(cat.slug))
+    .sort((a, b) => b.businessCount - a.businessCount);
   const popularCategories = sortedCategories.slice(0, 12);
   const otherCategories = sortedCategories.slice(12);
 
@@ -93,16 +96,51 @@ function HomeContent() {
 
   return (
     <div className="flex flex-col bg-white selection:bg-primary/10">
+      {/* Featured Categories Strip */}
+      <section className="pt-20 lg:pt-28 bg-white">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-1">
+            {[
+              { name: 'Real Estate', image: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&q=80&w=400', href: '/categories/real-estate', color: 'from-blue-500/20' },
+              { name: 'Admissions', image: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&q=80&w=400', href: '/categories/admissions', color: 'from-purple-500/20' },
+              { name: 'B2B', image: 'https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&q=80&w=400', href: '/categories/b2b', color: 'from-orange-500/20' },
+              { name: 'Job', image: 'https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?auto=format&fit=crop&q=80&w=400', href: '/categories/job', color: 'from-green-500/20' },
+            ].map((item) => (
+              <Link
+                key={item.name}
+                href={item.href}
+                className="group relative h-16 sm:h-20 rounded-xl overflow-hidden shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-500"
+              >
+                <Image
+                  src={item.image}
+                  alt={item.name}
+                  fill
+                  className="object-cover transition-transform duration-700 group-hover:scale-110"
+                />
+                <div className={`absolute inset-0 bg-gradient-to-t ${item.color} to-transparent opacity-60 group-hover:opacity-40 transition-opacity`} />
+                <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors" />
+                <div className="absolute bottom-3 left-3 sm:bottom-4 sm:left-4">
+                  <h3 className="text-white text-xs sm:text-sm font-black uppercase tracking-widest drop-shadow-md">
+                    {item.name}
+                  </h3>
+                  <div className="h-0.5 w-0 group-hover:w-full bg-white transition-all duration-500 mt-1" />
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Hero Section */}
-      <section className="relative pt-16 pb-6 lg:pt-24 lg:pb-8 overflow-hidden">
+      <section className="relative pt-6 pb-6 lg:pt-12 lg:pb-8">
         {/* Animated Background Elements */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full -z-10">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full -z-10 overflow-hidden">
           <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[60%] bg-primary/5 blur-[120px] rounded-full animate-pulse"></div>
           <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[60%] bg-secondary/5 blur-[120px] rounded-full animate-pulse" style={{ animationDelay: '2s' }}></div>
         </div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-6 lg:space-y-8">
-          <div className="space-y-3 max-w-4xl mx-auto pt-3">
+          <div className="space-y-3 max-w-4xl mx-auto pt-1">
 
             <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight text-primary leading-[1.3]">
               Everything you need, <br />
@@ -125,13 +163,13 @@ function HomeContent() {
             </div>
           </div>
 
-          <div className="w-full max-w-md mx-auto transform hover:scale-[1.01] transition-all duration-500">
+          <div className="w-full max-w-md mx-auto transform  transition-all duration-500 relative z-50">
             <div className="bg-white/90 backdrop-blur-xl p-0 rounded-2xl shadow-[0_15px_35px_rgba(0,0,0,0.05)] border border-white ring-1 ring-black/[0.02]">
               <SearchBar />
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center justify-center gap-2 pt-1 lg:pt-2">
+          {/* <div className="flex flex-wrap items-center justify-center gap-2 pt-1 lg:pt-2">
             <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mr-1">Top Searches:</span>
             {['Salon', 'Plumber', 'AC Repair', 'Cleaning', 'Electrician'].map((tag) => (
               <button
@@ -141,12 +179,12 @@ function HomeContent() {
                 {tag}
               </button>
             ))}
-          </div>
+          </div> */}
         </div>
       </section>
 
       {/* Category Section */}
-      <section className="pt-6 pb-20 bg-muted/50">
+      <section className="pt-4 pb-20 bg-muted/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row justify-between items-start mb-8 gap-6">
             <div className="space-y-4">

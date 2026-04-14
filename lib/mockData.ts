@@ -287,8 +287,8 @@ export interface TouristPlace {
 
 export const touristPlaces: TouristPlace[] = [
   { id: '1', name: 'Marine Drive', location: 'Mumbai', image: 'https://images.unsplash.com/photo-1567157577867-05ccb1388e66?auto=format&fit=crop&q=80&w=800', distance: '5 km away', rating: 4.8 },
-  { id: '2', name: 'Gateway of India', location: 'Mumbai', image: 'https://images.unsplash.com/photo-1598410610010-092523275704?auto=format&fit=crop&q=80&w=800', distance: '8 km away', rating: 4.7 },
-  { id: '3', name: 'Elephanta Caves', location: 'Gharapuri', image: 'https://images.unsplash.com/photo-1623126838382-77759d58548c?auto=format&fit=crop&q=80&w=800', distance: '15 km away', rating: 4.5 },
+  { id: '2', name: 'Gateway of India', location: 'Mumbai', image: 'https://images.unsplash.com/photo-1570160897040-30430aac2ec3?auto=format&fit=crop&q=80&w=800', distance: '8 km away', rating: 4.7 },
+  { id: '3', name: 'Elephanta Caves', location: 'Gharapuri', image: 'https://images.unsplash.com/photo-1514222139-b786bb23c82e?auto=format&fit=crop&q=80&w=800', distance: '15 km away', rating: 4.5 },
 ];
 
 export interface Article {

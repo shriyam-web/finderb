@@ -19,12 +19,25 @@ export default function SearchBar() {
     }
   }, []);
 
+  const [currentPlaceholderIndex, setCurrentPlaceholderIndex] = useState(0);
+
   const trendingSearches = [
     'Plumbers in South Delhi',
     'Best Electricians near me',
     'Gyms in New Delhi',
-    'Professional Cleaning Services'
+    'Professional Cleaning Services',
+    'Ac repair in Delhi',
+    'Painters near me',
+    'Yoga classes in Bangalore',
+    'Web developers in Mumbai'
   ];
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentPlaceholderIndex((prev) => (prev + 1) % trendingSearches.length);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [trendingSearches.length]);
 
   const popularCities = [
     'Mumbai', 'Delhi', 'Bangalore', 'Hyderabad', 'Ahmedabad', 'Chennai', 'Kolkata', 'Pune', 'Jaipur', 'Chandigarh'
@@ -113,7 +126,7 @@ export default function SearchBar() {
             onChange={(e) => setLocation(e.target.value)}
             onFocus={() => setShowLocationSuggestions(true)}
             onBlur={() => setTimeout(() => setShowLocationSuggestions(false), 200)}
-            className="w-full pl-12 pr-10 py-5 bg-transparent border-none focus:ring-0 text-gray-900 font-semibold text-base placeholder:text-gray-400 placeholder:font-medium"
+            className="w-full pl-12 pr-10 py-3.5 bg-transparent border-none focus:ring-0 text-gray-900 font-semibold text-sm placeholder:text-gray-400 placeholder:font-medium transition-all duration-300"
           />
           <button 
             className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-secondary transition-colors"
@@ -158,13 +171,13 @@ export default function SearchBar() {
           </div>
           <input
             type="text"
-            placeholder="What are you looking for?"
+            placeholder={`Search for "${trendingSearches[currentPlaceholderIndex]}"`}
             aria-label="Search for services or professionals"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onFocus={() => setShowSearchSuggestions(true)}
             onBlur={() => setTimeout(() => setShowSearchSuggestions(false), 200)}
-            className="w-full pl-12 pr-12 py-5 bg-transparent border-none focus:ring-0 text-gray-900 font-semibold text-base placeholder:text-gray-400 placeholder:font-medium"
+            className="w-full pl-12 pr-12 py-3.5 bg-transparent border-none focus:ring-0 text-gray-900 font-semibold text-sm placeholder:text-gray-400 placeholder:font-medium transition-all duration-300"
           />
           <button 
             onClick={handleVoiceSearch}
@@ -199,8 +212,8 @@ export default function SearchBar() {
         </div>
 
         {/* Search CTA */}
-        <div className="p-2 md:pr-0">
-          <button className="w-full md:w-auto bg-gradient-to-r from-primary to-secondary hover:shadow-lg hover:shadow-secondary/30 text-white font-bold px-10 py-4 rounded-xl transition-all active:scale-95 text-sm uppercase tracking-widest">
+        <div className="p-1 md:pr-0">
+          <button className="w-full md:w-auto bg-gradient-to-r from-primary to-secondary hover:shadow-lg hover:shadow-secondary/30 text-white font-bold px-8 py-3 rounded-xl transition-all active:scale-95 text-xs uppercase tracking-widest">
             Find Now
           </button>
         </div>
