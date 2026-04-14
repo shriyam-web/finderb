@@ -139,8 +139,8 @@ function HomeContent() {
 
         </div>
       </section>
-
-      {/* Hero Section */}
+  
+      {/* Hero */}
       <section className="relative pt-6 pb-6 lg:pt-12 lg:pb-8">
         {/* Animated Background Elements */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full -z-10 overflow-hidden">
