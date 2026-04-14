@@ -121,7 +121,7 @@ function HomeContent() {
                 <div className="absolute inset-0 bg-black/40 group-hover:bg-black/30 transition-colors" />
                 <div className="absolute inset-0 flex items-center justify-center p-2">
                   <h3 className="text-white text-[10px] sm:text-xs font-black uppercase tracking-widest text-center drop-shadow-lg">
-                    {item.name}
+                    {item.name} 
                   </h3>
                 </div>
               </Link>
