@@ -60,10 +60,6 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
     { name: 'About', href: '/about', icon: HelpCircle },
   ];
 
-  const authItem = isLoggedIn
-    ? { name: user?.fullName?.split(' ')[0] || 'Dashboard', href: '/dashboard', icon: UserCircle }
-    : { name: 'Login/ Signup', href: '/login', icon: User };
-
   const languages = ['English', 'Hindi', 'Bengali', 'Tamil', 'Telugu'];
 
   const isLight = !scrolled && whiteText;
@@ -269,53 +265,82 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
         </div>
       </div>
 
-      {/* Mobile Menu Overlay */}
-      <div
-        className={`lg:hidden fixed inset-0 bg-black/20 backdrop-blur-sm z-[10000] transition-all duration-500 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
-          }`}
-        onClick={() => setIsOpen(false)}
-      />
-
       {/* Mobile Menu Content */}
-      <div className={`lg:hidden fixed top-0 right-0 h-full w-[75%] sm:w-[50%] bg-white z-[10001] shadow-2xl transition-transform duration-500 ease-out transform ${isOpen ? 'translate-x-0' : 'translate-x-full'
+      <div className={`lg:hidden fixed inset-0 w-full h-full bg-white z-[10001] transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] transform ${isOpen ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0 pointer-events-none'
         }`}>
-        <div className="flex flex-col h-full">
-          <div className="flex justify-between items-center p-4 border-b border-gray-100">
+        <div className="flex flex-col h-full bg-white relative overflow-hidden">
+          {/* Background Decorative Elements */}
+          <div className="absolute top-[-10%] right-[-10%] w-[60%] h-[40%] bg-primary/5 blur-[100px] rounded-full" />
+          <div className="absolute bottom-[-5%] left-[-5%] w-[50%] h-[30%] bg-secondary/5 blur-[80px] rounded-full" />
+
+          {/* Header */}
+          <div className="flex justify-between items-center p-6 relative z-10 border-b border-slate-50">
             <Link href="/" className="flex-shrink-0" onClick={() => setIsOpen(false)}>
               <Image
                 src="/logo1.png"
                 alt="FinderB Logo"
-                width={120}
-                height={40}
-                className="h-8 w-auto object-contain"
+                width={140}
+                height={50}
+                className="h-9 w-auto object-contain"
               />
             </Link>
             <button
               onClick={() => setIsOpen(false)}
-              className="p-2 text-gray-500 hover:text-gray-700"
+              className="w-10 h-10 flex items-center justify-center rounded-full bg-slate-100 text-slate-900 border border-slate-200 active:scale-95 transition-all"
             >
-              <X size={24} />
+              <X size={20} />
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-4 space-y-6">
-            <div className="space-y-3">
-              <p className="text-[10px] font-bold text-gray-400 ml-1 tracking-widest uppercase">Language</p>
-              <button
-                onClick={() => setIsLangOpen(!isLangOpen)}
-                className="w-full flex items-center justify-between p-3 bg-gray-50/80 hover:bg-white text-gray-700 rounded-2xl transition-all text-xs font-bold border border-gray-100/50 shadow-sm"
-              >
-                <div className="flex items-center gap-2.5">
-                  <div className="p-1.5 bg-white rounded-lg shadow-sm border border-gray-50">
-                    <Globe size={16} className="text-primary" />
-                  </div>
-                  <span>{currentLang}</span>
-                </div>
-                <ChevronDown className={`transition-transform duration-300 ${isLangOpen ? 'rotate-180' : ''} text-gray-400`} size={14} />
-              </button>
+          {/* Navigation Links */}
+          <div className="flex-1 px-8 py-4 space-y-2 overflow-y-auto relative z-10">
+            <div className="py-2">
+              <div className="space-y-1">
+                {menuItems.map((item, idx) => (
+                  <Link
+                    key={item.name}
+                    href={item.href}
+                    onClick={() => setIsOpen(false)}
+                    className="group flex items-center justify-between py-3 px-2 rounded-2xl transition-all duration-300 active:bg-slate-50"
+                    style={{
+                      transitionDelay: `${idx * 50}ms`,
+                      transform: isOpen ? 'translateX(0)' : 'translateX(20px)',
+                      opacity: isOpen ? 1 : 0
+                    }}
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-50 text-slate-400 group-hover:text-primary group-hover:bg-primary/5 transition-colors">
+                        <item.icon size={18} />
+                      </div>
+                      <span className="text-base text-slate-800 tracking-tight">{item.name}</span>
+                    </div>
+                    <ArrowRight size={16} className="text-slate-300 group-hover:text-primary transition-all group-hover:translate-x-1" />
+                  </Link>
+                ))}
+              </div>
+            </div>
 
-              {isLangOpen && (
-                <div className="grid grid-cols-2 gap-2 animate-in fade-in slide-in-from-top-2 duration-300">
+            <div className="h-px w-full bg-slate-100 my-4" />
+
+            <div className="py-0">
+              {/* <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 px-1">Settings & Preferences</p> */}
+
+              {/* Language Selector */}
+              <div className="mb-2">
+                <button
+                  onClick={() => setIsLangOpen(!isLangOpen)}
+                  className="w-full flex items-center justify-between py-3 px-2 rounded-2xl bg-slate-50/50 border border-slate-100 active:bg-slate-100 transition-all"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-9 h-9 flex items-center justify-center rounded-xl bg-white shadow-sm text-slate-400 border border-slate-100">
+                      <Globe size={18} />
+                    </div>
+                    <span className="text-base font-semibold text-slate-800 tracking-tight">{currentLang}</span>
+                  </div>
+                  <ChevronDown className={`transition-transform duration-300 ${isLangOpen ? 'rotate-180' : ''} text-slate-400`} size={18} />
+                </button>
+
+                <div className={`grid grid-cols-2 gap-3 mt-2 px-1 transition-all duration-500 overflow-hidden ${isLangOpen ? 'max-h-[300px] opacity-100 mb-4' : 'max-h-0 opacity-0'}`}>
                   {languages.map((lang) => (
                     <button
                       key={lang}
@@ -323,95 +348,70 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
                         setCurrentLang(lang);
                         setIsLangOpen(false);
                       }}
-                      className={`flex items-center justify-center py-2.5 rounded-xl text-[10px] font-bold transition-all ${currentLang === lang
-                        ? 'bg-primary text-white shadow-lg shadow-primary/20'
-                        : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+                      className={`flex items-center justify-center py-2.5 rounded-xl text-[10px] font-bold transition-all border ${currentLang === lang
+                        ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20 scale-[1.02]'
+                        : 'bg-white text-slate-600 border-slate-100 hover:bg-slate-50 hover:border-slate-200'
                         }`}
                     >
                       {lang}
                     </button>
                   ))}
                 </div>
-              )}
-            </div>
-
-            <div className="space-y-3">
-              <p className="text-[10px] font-bold text-gray-400 ml-1 tracking-widest uppercase">Main Menu</p>
-              <div className="grid gap-2">
-                {menuItems.map((item) => (
-                  <Link
-                    key={item.name}
-                    href={item.href}
-                    onClick={() => setIsOpen(false)}
-                    className="flex items-center gap-3 p-4 bg-gray-50/80 hover:bg-white text-gray-700 rounded-2xl transition-all text-xs font-bold border border-gray-100/50 shadow-sm group"
-                  >
-                    <div className="p-2 bg-white rounded-xl shadow-sm border border-gray-50 group-hover:text-primary transition-colors">
-                      <item.icon size={18} />
-                    </div>
-                    {item.name}
-                  </Link>
-                ))}
               </div>
-            </div>
 
-            <div className="space-y-3 pt-4 border-t border-gray-100">
-              <p className="text-[10px] font-bold text-gray-400 ml-1 tracking-widest uppercase">Account</p>
-              {isLoggedIn ? (
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3 p-4 bg-primary/5 rounded-2xl border border-primary/10">
-                    <div className="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-xl flex items-center justify-center text-white font-bold shadow-sm">
-                      {user?.fullName?.split(' ').map((n: string) => n[0]).join('').toUpperCase().substring(0, 1)}
-                    </div>
-                    <div>
-                      <p className="text-xs font-bold text-gray-900">{user?.fullName}</p>
-                      <p className="text-[10px] font-medium text-gray-500">{user?.email}</p>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <Link
-                      href="/dashboard"
-                      className="flex flex-col items-center justify-center p-3 bg-gray-50 border border-gray-100 rounded-2xl text-gray-600"
-                      onClick={() => setIsOpen(false)}
-                    >
-                      <LayoutDashboard size={18} className="mb-1" />
-                      <span className="text-[10px] font-bold uppercase">Dashboard</span>
-                    </Link>
-                    <Link
-                      href="/dashboard?tab=settings"
-                      className="flex flex-col items-center justify-center p-3 bg-gray-50 border border-gray-100 rounded-2xl text-gray-600"
-                      onClick={() => setIsOpen(false)}
-                    >
-                      <Settings size={18} className="mb-1" />
-                      <span className="text-[10px] font-bold uppercase">Settings</span>
-                    </Link>
-                  </div>
-                  <button
-                    onClick={() => {
-                      handleLogout();
-                      setIsOpen(false);
-                    }}
-                    className="w-full flex items-center justify-center gap-2 p-4 bg-red-50 text-red-500 rounded-2xl border border-red-100 text-xs font-bold uppercase"
-                  >
-                    <LogOut size={18} />
-                    Log Out
-                  </button>
-                </div>
-              ) : (
+              {/* Profile/Dashboard link if logged in */}
+              {isLoggedIn && (
                 <Link
-                  href="/login"
-                  className="flex items-center justify-between p-4 bg-white border border-gray-100 text-primary rounded-2xl shadow-sm hover:border-primary/30 transition-all"
+                  href="/dashboard"
                   onClick={() => setIsOpen(false)}
+                  className="flex items-center justify-between py-3 px-2 rounded-2xl active:bg-slate-50 transition-all"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-primary/5 rounded-xl text-primary border border-primary/10">
-                      <UserCircle size={20} />
+                  <div className="flex items-center gap-4">
+                    <div className="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-50 text-slate-400">
+                      <User size={18} />
                     </div>
-                    <span className="text-xs font-bold uppercase tracking-wider">Login / Signup</span>
+                    <span className="text-base text-slate-800 tracking-tight">Account Dashboard</span>
                   </div>
-                  <ArrowRight size={18} className="text-gray-300" />
+                  <ArrowRight size={16} className="text-slate-300" />
                 </Link>
               )}
             </div>
+          </div>
+
+          {/* Footer Action */}
+          <div className="p-8 pb-12 relative z-10 border-t border-slate-50">
+            {isLoggedIn ? (
+              <button
+                onClick={() => {
+                  handleLogout();
+                  setIsOpen(false);
+                }}
+                className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl bg-slate-50 text-red-500 font-bold text-xs border border-red-50 active:scale-95 transition-all"
+              >
+                <LogOut size={18} />
+                Sign Out
+              </button>
+            ) : (
+              <div className="space-y-3">
+                <Link
+                  href="/login"
+                  onClick={() => setIsOpen(false)}
+                  className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl bg-primary text-white font-bold text-xs shadow-xl shadow-primary/20 active:scale-95 transition-all"
+                >
+                  <User size={18} />
+                  Login to Account
+                </Link>
+                <Link
+                  href="/business/register"
+                  onClick={() => setIsOpen(false)}
+                  className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl bg-white text-slate-900 font-bold text-xs border border-slate-200 active:scale-95 transition-all"
+                >
+                  <Briefcase size={18} className="text-secondary" />
+                  Register Business
+                </Link>
+              </div>
+            )}
+            <p className="text-center text-[9px] text-slate-400 font-medium mt-6 uppercase tracking-widest opacity-60">FinderB v2.0 • Made with ❤️</p>
           </div>
         </div>
       </div>

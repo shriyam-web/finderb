@@ -43,7 +43,7 @@ function HomeContent() {
     if (activeTabFromUrl === 'ai') {
       setActiveMobileTab('AI Search');
     } else if (activeTabFromUrl === 'finderb-ai') {
-      setActiveMobileTab('FinderB Ai');
+      setActiveMobileTab('FinderB AI');
     } else {
       setActiveMobileTab('Search');
     }
@@ -53,7 +53,7 @@ function HomeContent() {
     setActiveMobileTab(label);
     if (label === 'AI Search') {
       router.push('/?tab=ai', { scroll: false });
-    } else if (label === 'FinderB Ai') {
+    } else if (label === 'FinderB AI') {
       router.push('/?tab=finderb-ai', { scroll: false });
     } else {
       router.push('/', { scroll: false });
@@ -86,7 +86,7 @@ function HomeContent() {
   }, [index]);
 
   useEffect(() => {
-    if (activeMobileTab === 'FinderB Ai') {
+    if (activeMobileTab === 'FinderB AI') {
       const timer = setTimeout(() => {
         handleTabChange('AI Search');
       }, 3000); // 3 seconds delay
@@ -118,12 +118,11 @@ function HomeContent() {
                   className="object-cover transition-transform duration-700 group-hover:scale-110"
                 />
                 <div className={`absolute inset-0 bg-gradient-to-t ${item.color} to-transparent opacity-60 group-hover:opacity-40 transition-opacity`} />
-                <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors" />
-                <div className="absolute bottom-3 left-3 sm:bottom-4 sm:left-4">
-                  <h3 className="text-white text-xs sm:text-sm font-black uppercase tracking-widest drop-shadow-md">
+                <div className="absolute inset-0 bg-black/40 group-hover:bg-black/30 transition-colors" />
+                <div className="absolute inset-0 flex items-center justify-center p-2">
+                  <h3 className="text-white text-[10px] sm:text-xs font-black uppercase tracking-widest text-center drop-shadow-lg">
                     {item.name}
                   </h3>
-                  <div className="h-0.5 w-0 group-hover:w-full bg-white transition-all duration-500 mt-1" />
                 </div>
               </Link>
             ))}
@@ -281,13 +280,13 @@ function HomeContent() {
       </section>
 
       {/* Quick Actions / Mobile Bottom Bar */}
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] z-[100] md:hidden">
-        <div className="bg-white/90 backdrop-blur-2xl border border-white/50 rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.15)] p-1.5 flex items-center justify-around">
+      <div className="fixed bottom-0 left-0 w-full z-[100] md:hidden bg-white/95 backdrop-blur-2xl border-t border-slate-200">
+        <div className="flex items-center justify-around p-1 pb-safe">
           {[
             { icon: Search, label: 'Search' },
-            { icon: Sparkles, label: 'FinderB Ai' },
-            { icon: History, label: 'history' },
-            { icon: Heart, label: 'saved' },
+            { icon: Sparkles, label: 'FinderB AI' },
+            { icon: History, label: 'History' },
+            { icon: Heart, label: 'Saved' },
           ].map((item, i) => (
             <button
               key={i}
