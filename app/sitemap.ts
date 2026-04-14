@@ -2,13 +2,13 @@ import { MetadataRoute } from 'next'
 import { categories, cities, businesses } from '@/lib/mockData'
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = 'https://finderb.in'
+  const baseUrl = 'https://finderb.com'
 
   // Dynamic category routes
   const categoryUrls = categories.map((category) => ({
     url: `${baseUrl}/categories/${category.slug}`,
     lastModified: new Date(),
-    changeFrequency: 'weekly' as const,
+    changeFrequency: 'daily' as const,
     priority: 0.8,
   }))
 
