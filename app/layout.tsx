@@ -18,14 +18,14 @@ export const metadata: Metadata = {
   authors: [{ name: "FinderB" }],
   creator: "FinderB",
   publisher: "FinderB Inc.",
-  metadataBase: new URL("https://finderb.in"),
+  metadataBase: new URL("https://finderb.com"),
   alternates: {
     canonical: "/",
   },
   openGraph: {
     title: "FinderB - Discover the Best Local Services Near You",
     description: "Your gateway to professional local services and verified businesses across 300+ cities in India. Experience premium local discovery.",
-    url: "https://finderb.in",
+    url: "https://finderb.com",
     siteName: "FinderB",
     images: [
       {
@@ -71,12 +71,12 @@ const jsonLd = [
     "@context": "https://schema.org",
     "@type": "WebSite",
     "name": "FinderB",
-    "url": "https://finderb.in",
+    "url": "https://finderb.com",
     "potentialAction": {
       "@type": "SearchAction",
       "target": {
         "@type": "EntryPoint",
-        "urlTemplate": "https://finderb.in/search?q={search_term_string}"
+        "urlTemplate": "https://finderb.com/search?q={search_term_string}"
       },
       "query-input": "required name=search_term_string"
     }
@@ -85,8 +85,8 @@ const jsonLd = [
     "@context": "https://schema.org",
     "@type": "Organization",
     "name": "FinderB",
-    "url": "https://finderb.in",
-    "logo": "https://finderb.in/logo1.png",
+    "url": "https://finderb.com",
+    "logo": "https://finderb.com/logo1.png",
     "description": "FinderB is India's premium local discovery platform connecting users with verified professionals and top-rated services across 300+ cities.",
     "sameAs": [
       "https://facebook.com/finderb",

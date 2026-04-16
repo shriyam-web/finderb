@@ -78,7 +78,7 @@ export default function PolicyPage() {
                                     <p>For copyright infringement claims or counter-notifications, please contact our designated agent:</p>
                                     <div className="bg-gray-50 rounded-xl p-6">
                                         <p><strong>Copyright Agent</strong></p>
-                                        <p><strong>Email:</strong> copyright@finderb.in</p>
+                                        <p><strong>Email:</strong> copyright@finderb.com</p>
                                         <p><strong>Address:</strong> 123 Business Street, Tech City, Karnataka, India - 560001</p>
                                         <p><strong>Phone:</strong> +91 1800-FINDERB-HELP</p>
                                     </div>

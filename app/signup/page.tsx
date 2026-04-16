@@ -23,6 +23,22 @@ export default function SignupPage() {
       return;
     }
 
+    if (fullName.trim().length < 2) {
+      setError('Full name must be at least 2 characters long');
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setError('Please enter a valid email address');
+      return;
+    }
+
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters long');
+      return;
+    }
+
     setLoading(true);
     setError('');
 

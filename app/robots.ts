@@ -7,6 +7,6 @@ export default function robots(): MetadataRoute.Robots {
       allow: '/',
       disallow: ['/private/', '/dashboard/', '/login/', '/signup/'],
     },
-    sitemap: 'https://finderb.in/sitemap.xml', // Replace with your production URL
+    sitemap: 'https://finderb.com/sitemap.xml', // Replace with your production URL
   }
 }

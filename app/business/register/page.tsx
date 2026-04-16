@@ -39,6 +39,15 @@ import {
 import { Globe } from 'lucide-react';
 import { categories } from '@/lib/mockData';
 
+const indianStates = [
+  'Andaman and Nicobar Islands', 'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 
+  'Chandigarh', 'Chhattisgarh', 'Dadra and Nagar Haveli and Daman and Diu', 'Delhi', 'Goa', 
+  'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jammu and Kashmir', 'Jharkhand', 'Karnataka', 
+  'Kerala', 'Ladakh', 'Lakshadweep', 'Madhya Pradesh', 'Maharashtra', 'Manipur', 'Meghalaya', 
+  'Mizoram', 'Nagaland', 'Odisha', 'Puducherry', 'Punjab', 'Rajasthan', 'Sikkim', 'Tamil Nadu', 
+  'Telangana', 'Tripura', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal'
+];
+
 function RegisterFormContent() {
   const searchParams = useSearchParams();
   const [mobile, setMobile] = useState('');
@@ -283,8 +292,8 @@ function RegisterFormContent() {
             <div className="relative z-10 px-8">
               <div className="flex items-center justify-between mb-12">
                 <Link href="/" className="inline-flex items-center gap-3">
-                  <div className="w-8 h-8 bg-white rounded-xl flex items-center justify-center text-blue-700 font-black italic text-sm shadow-lg shadow-blue-900/20">F</div>
-                  <span className="text-base font-black tracking-tighter italic uppercase">FINDERB</span>
+                  <div className="w-8 h-8 bg-white rounded-xl flex items-center justify-center text-blue-700 font-bold italic text-sm shadow-lg shadow-blue-900/20">F</div>
+                  <span className="text-base font-bold tracking-tighter italic uppercase">FINDERB</span>
                 </Link>
                 {/* Mobile Toggle */}
                 <button
@@ -298,12 +307,12 @@ function RegisterFormContent() {
               <div className={`space-y-6 transition-all duration-500 ${isSidebarOpen ? 'opacity-100 block' : 'opacity-0 hidden md:opacity-100 md:block'}`}>
                 {stepLabels.map((label, i) => (
                   <div key={i} className="flex items-center gap-4 group cursor-default">
-                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center border-2 transition-all duration-500 ${step > i + 1 ? 'bg-green-500 border-green-500 text-white shadow-lg shadow-green-500/30' : step === i + 1 ? 'bg-white border-white text-blue-700 font-black shadow-lg shadow-blue-900/20' : 'border-blue-400/30 text-blue-300/50'}`}>
+                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center border-2 transition-all duration-500 ${step > i + 1 ? 'bg-green-500 border-green-500 text-white shadow-lg shadow-green-500/30' : step === i + 1 ? 'bg-white border-white text-blue-700 font-bold shadow-lg shadow-blue-900/20' : 'border-blue-400/30 text-blue-300/50'}`}>
                       {step > i + 1 ? <CheckCircle2 size={16} /> : <span className="text-xs">{i + 1}</span>}
                     </div>
                     <div className="flex flex-col text-left">
-                      <span className={`text-[9px] font-black uppercase tracking-[0.2em] leading-none mb-1 transition-all duration-500 ${step === i + 1 ? 'text-blue-100' : 'text-blue-400'}`}>Step 0{i + 1}</span>
-                      <span className={`text-[11px] font-black uppercase tracking-widest transition-all duration-500 ${step === i + 1 ? 'text-white' : 'text-blue-300/50'}`}>{label}</span>
+                      <span className={`text-[9px] font-bold uppercase tracking-[0.2em] leading-none mb-1 transition-all duration-500 ${step === i + 1 ? 'text-blue-100' : 'text-blue-400'}`}>Step 0{i + 1}</span>
+                      <span className={`text-[11px] font-semibold uppercase tracking-widest transition-all duration-500 ${step === i + 1 ? 'text-white' : 'text-blue-300/50'}`}>{label}</span>
                     </div>
                   </div>
                 ))}
@@ -358,12 +367,12 @@ function RegisterFormContent() {
               {step === 1 && (
                 <div className="animate-in fade-in slide-in-from-right-2 duration-300 space-y-6">
                   <div className="space-y-1">
-                    <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Create your <span className="text-blue-600">Workspace</span></h2>
+                    <h2 className="text-2xl font-semibold text-gray-900 tracking-tight">Create your <span className="text-blue-600">Workspace</span></h2>
                     <p className="text-gray-500 font-medium text-xs">Enter your professional details to get started</p>
                   </div>
                   <div className="space-y-4">
                     <div className="group space-y-1">
-                      <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider ml-0.5 group-focus-within:text-blue-600 transition-colors">Full Name</label>
+                      <label className="text-[9px] font-semibold text-gray-400 uppercase tracking-wider ml-0.5 group-focus-within:text-blue-600 transition-colors">Full Name</label>
                       <div className="relative">
                         <User className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-blue-600 transition-colors" size={16} />
                         <input
@@ -376,7 +385,7 @@ function RegisterFormContent() {
                       </div>
                     </div>
                     <div className="group space-y-1">
-                      <label className="text-[9px] font-bold text-gray-400 uppercase tracking-wider ml-0.5 group-focus-within:text-blue-600 transition-colors">Email Address</label>
+                      <label className="text-[9px] font-semibold text-gray-400 uppercase tracking-wider ml-0.5 group-focus-within:text-blue-600 transition-colors">Email Address</label>
                       <div className="relative">
                         <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-blue-600 transition-colors" size={16} />
                         <input
@@ -471,13 +480,18 @@ function RegisterFormContent() {
                         <label className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.15em] ml-1 group-focus-within:text-blue-600 transition-colors">State</label>
                         <div className="relative">
                           <Globe className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-blue-600 transition-colors" size={18} />
-                          <input
+                          <select
                             name="state"
                             value={formData.state}
                             onChange={handleChange}
-                            className="w-full pl-11 pr-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:bg-white focus:border-blue-600 outline-none font-semibold text-gray-900 transition-all placeholder:text-gray-300 text-sm"
-                            placeholder="e.g. Maharashtra"
-                          />
+                            className="w-full pl-11 pr-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:bg-white focus:border-blue-600 outline-none font-semibold text-gray-900 transition-all text-sm appearance-none"
+                          >
+                            <option value="">Select state</option>
+                            {indianStates.map(state => (
+                              <option key={state} value={state}>{state}</option>
+                            ))}
+                          </select>
+                          <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-300 pointer-events-none" size={18} />
                         </div>
                       </div>
                       <div className="group space-y-1.5">
@@ -517,7 +531,7 @@ function RegisterFormContent() {
                     </div>
                   </div>
                   <div className="space-y-3">
-                    <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight leading-tight">Registration <br /><span className="text-blue-600 font-black italic">Successful</span></h2>
+                    <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight leading-tight">Registration <br /><span className="text-blue-600 font-bold italic">Successful</span></h2>
                     <p className="text-gray-400 font-medium text-sm">Your unique business identifier has been created.</p>
                   </div>
 
@@ -558,7 +572,7 @@ function RegisterFormContent() {
 
               <button
                 onClick={nextStep}
-                className="flex items-center justify-center gap-3 px-10 py-5 w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] shadow-2xl shadow-blue-500/20 transition-all hover:scale-[1.02] active:scale-95 group"
+                className="flex items-center justify-center gap-3 px-10 py-5 w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold text-[11px] uppercase tracking-[0.2em] shadow-2xl shadow-blue-500/20 transition-all hover:scale-[1.02] active:scale-95 group"
               >
                 {step === 3 ? 'Finish Registration' : 'Next Step'}
                 <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
@@ -584,7 +598,7 @@ function RegisterFormContent() {
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             <div className="space-y-8">
               <div className="space-y-4">
-                <h1 className="text-4xl sm:text-6xl font-black text-slate-900 tracking-tight leading-[1.3]">
+                <h1 className="text-4xl sm:text-6xl font-bold text-slate-900 tracking-tight leading-[1.3]">
                   Free Business Listing <br />
                   <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">with India’s No. 1 Local Search Engine</span>
                 </h1>
@@ -611,7 +625,7 @@ function RegisterFormContent() {
 
                   <button
                     onClick={handleStartNow}
-                    className="bg-blue-600 text-white px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-blue-700 transition-all active:scale-95 shadow-lg shadow-blue-200 whitespace-nowrap"
+                    className="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-blue-700 transition-all active:scale-95 shadow-lg shadow-blue-200 whitespace-nowrap"
                   >
                     Start Now
                   </button>
@@ -622,7 +636,7 @@ function RegisterFormContent() {
                 <p className="text-[10px] text-slate-400 font-medium uppercase tracking-widest">
                   Already Registered?
                 </p>
-                <Link href="/business/login" className="text-[10px] text-blue-600 font-black uppercase tracking-widest hover:underline">
+                <Link href="/business/login" className="text-[10px] text-blue-600 font-bold uppercase tracking-widest hover:underline">
                   Login Here
                 </Link>
               </div>
@@ -634,7 +648,7 @@ function RegisterFormContent() {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-4 border-t border-slate-200/60">
                 {stats.map((stat, i) => (
                   <div key={i} className="space-y-1">
-                    <h4 className="text-xl sm:text-2xl font-black text-slate-900">{stat.value}</h4>
+                    <h4 className="text-xl sm:text-2xl font-bold text-slate-900">{stat.value}</h4>
                     <p className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">{stat.label}</p>
                   </div>
                 ))}
@@ -677,7 +691,7 @@ function RegisterFormContent() {
                 <div className="w-10 h-1 bg-blue-600 rounded-full"></div>
                 <span className="text-xs font-bold text-blue-600 uppercase tracking-[0.3em]">Growth Stories</span>
               </div>
-              <h2 className="text-3xl sm:text-5xl font-black text-slate-900 tracking-tight">Real Success with <span className="text-blue-600">FinderB.</span></h2>
+              <h2 className="text-3xl sm:text-5xl font-bold text-slate-900 tracking-tight">Real Success with <span className="text-blue-600">FinderB.</span></h2>
             </div>
             <Link href="/stories" className="group flex items-center gap-2 text-sm font-bold text-slate-900 hover:text-blue-600 transition-colors">
               See All Stories <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
@@ -693,7 +707,7 @@ function RegisterFormContent() {
                       <Image src={story.image} alt={story.name} width={56} height={56} className="object-cover" />
                     </div>
                     <div>
-                      <h4 className="font-black text-slate-900 leading-tight">{story.name}</h4>
+                      <h4 className="font-bold text-slate-900 leading-tight">{story.name}</h4>
                       <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest">{story.role}</p>
                     </div>
                   </div>
@@ -704,7 +718,7 @@ function RegisterFormContent() {
                 </div>
                 <div className="p-6 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{story.duration}</span>
-                  <button onClick={() => setShowForm(true)} className="text-[10px] font-black text-blue-600 uppercase tracking-widest hover:underline">Visit Business</button>
+                  <button onClick={() => setShowForm(true)} className="text-[10px] font-bold text-blue-600 uppercase tracking-widest hover:underline">Visit Business</button>
                 </div>
               </div>
             ))}
@@ -717,7 +731,7 @@ function RegisterFormContent() {
         <div className="absolute top-0 right-0 w-1/2 h-full bg-blue-600/5 -skew-x-12 translate-x-1/2 blur-3xl"></div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
           <div className="max-w-3xl mx-auto space-y-4 mb-20">
-            <h2 className="text-3xl sm:text-5xl font-black tracking-tight">Get Your Premium Business Listing in <span className="text-blue-400">3 Simple Steps</span></h2>
+            <h2 className="text-3xl sm:text-5xl font-bold tracking-tight">Get Your Premium Business Listing in <span className="text-blue-400">3 Simple Steps</span></h2>
           </div>
 
           <div className="grid md:grid-cols-3 gap-12">
@@ -726,12 +740,12 @@ function RegisterFormContent() {
                 {i < 2 && (
                   <div className="hidden md:block absolute top-10 left-[60%] w-[80%] h-px bg-gradient-to-r from-blue-500/50 to-transparent"></div>
                 )}
-                <div className="w-20 h-20 rounded-[2rem] bg-blue-600 text-white mx-auto flex items-center justify-center text-3xl font-black shadow-2xl shadow-blue-900/40 relative z-10">
+                <div className="w-20 h-20 rounded-[2rem] bg-blue-600 text-white mx-auto flex items-center justify-center text-3xl font-bold shadow-2xl shadow-blue-900/40 relative z-10">
                   {step.step}
                 </div>
                 <div className="space-y-2">
                   <h4 className="text-xl font-bold uppercase tracking-widest">Step 0{step.step}</h4>
-                  <h3 className="text-2xl font-black text-blue-400">{step.title}</h3>
+                  <h3 className="text-2xl font-bold text-blue-400">{step.title}</h3>
                   <p className="text-slate-400 font-medium max-w-[200px] mx-auto text-sm">{step.desc}</p>
                 </div>
               </div>
@@ -750,7 +764,7 @@ function RegisterFormContent() {
                   <div className="w-10 h-1 bg-blue-600 rounded-full"></div>
                   <span className="text-xs font-bold text-blue-600 uppercase tracking-[0.3em]">Why Choose FinderB</span>
                 </div>
-                <h2 className="text-3xl sm:text-5xl font-black text-slate-900 tracking-tight leading-[1.1]">
+                <h2 className="text-3xl sm:text-5xl font-bold text-slate-900 tracking-tight leading-[1.1]">
                   Connect with New Customers & <span className="text-blue-600">Grow Your Business</span>
                 </h2>
               </div>
@@ -766,7 +780,7 @@ function RegisterFormContent() {
                       <CheckCircle2 size={24} />
                     </div>
                     <div className="space-y-2">
-                      <h4 className="font-black text-slate-900 text-sm uppercase tracking-widest">{item.title}</h4>
+                      <h4 className="font-bold text-slate-900 text-sm uppercase tracking-widest">{item.title}</h4>
                       <p className="text-slate-500 text-sm font-medium leading-relaxed">{item.desc}</p>
                     </div>
                   </div>
@@ -791,7 +805,7 @@ function RegisterFormContent() {
                     />
                     <button
                       onClick={handleStartNow}
-                      className="bg-blue-600 text-white px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-blue-700 transition-all active:scale-95 shadow-lg shadow-blue-200"
+                      className="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-blue-700 transition-all active:scale-95 shadow-lg shadow-blue-200"
                     >
                       Start Now
                     </button>
@@ -802,7 +816,7 @@ function RegisterFormContent() {
                   <p className="text-[10px] text-slate-400 font-medium uppercase tracking-widest">
                     Already Registered?
                   </p>
-                  <Link href="/business/login" className="text-[10px] text-blue-600 font-black uppercase tracking-widest hover:underline">
+                  <Link href="/business/login" className="text-[10px] text-blue-600 font-bold uppercase tracking-widest hover:underline">
                     Login Here
                   </Link>
                 </div>
@@ -814,7 +828,7 @@ function RegisterFormContent() {
               <div className="relative bg-white p-10 rounded-[3rem] shadow-2xl border border-slate-100 space-y-8">
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <h4 className="font-black text-slate-900 uppercase tracking-widest text-sm">Common Questions</h4>
+                    <h4 className="font-bold text-slate-900 uppercase tracking-widest text-sm">Common Questions</h4>
                     <HelpCircle className="text-blue-600" size={20} />
                   </div>
                   <div className="space-y-4">
@@ -835,13 +849,13 @@ function RegisterFormContent() {
       {/* Footer-like CTA */}
       <section className="py-24 bg-slate-50 border-t border-slate-100">
         <div className="max-w-7xl mx-auto px-4 text-center space-y-8">
-          <h2 className="text-3xl sm:text-5xl font-black text-slate-900 tracking-tight">Ready to <span className="text-blue-600">Grow?</span></h2>
+          <h2 className="text-3xl sm:text-5xl font-bold text-slate-900 tracking-tight">Ready to <span className="text-blue-600">Grow?</span></h2>
           <button
             onClick={() => {
               window.scrollTo({ top: 0, behavior: 'smooth' });
               document.getElementById('mobile-input')?.focus();
             }}
-            className="inline-flex items-center gap-3 px-12 py-5 bg-blue-600 text-white rounded-[2rem] font-black text-sm uppercase tracking-[0.2em] shadow-2xl shadow-blue-500/20 hover:bg-blue-700 transition-all active:scale-95 group"
+            className="inline-flex items-center gap-3 px-12 py-5 bg-blue-600 text-white rounded-[2rem] font-bold text-sm uppercase tracking-[0.2em] shadow-2xl shadow-blue-500/20 hover:bg-blue-700 transition-all active:scale-95 group"
           >
             List Your Business Now
             <ArrowRight size={20} className="group-hover:translate-x-1.5 transition-transform" />

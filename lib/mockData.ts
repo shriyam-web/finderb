@@ -295,12 +295,58 @@ export interface Article {
   id: string;
   title: string;
   excerpt: string;
+  content: string;
   image: string;
   date: string;
 }
 
 export const articles: Article[] = [
-  { id: '1', title: 'Top 10 Places to Visit in Mumbai', excerpt: 'Discover the hidden gems of the city of dreams.', image: 'https://images.unsplash.com/photo-1529253355930-ddbe423a2ac7?auto=format&fit=crop&q=80&w=800', date: 'Oct 15, 2024' },
-  { id: '2', title: 'Best Street Food in Delhi', excerpt: 'A guide to the most delicious street food in the capital.', image: 'https://images.unsplash.com/photo-1585938389612-a552a28d6914?auto=format&fit=crop&q=80&w=800', date: 'Oct 12, 2024' },
-  { id: '3', title: 'How to Choose the Right Gym', excerpt: 'Everything you need to know before joining a fitness center.', image: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&q=80&w=800', date: 'Oct 10, 2024' },
+  {
+    id: '1',
+    title: 'Top 10 Places to Visit in Mumbai',
+    excerpt: 'Discover the hidden gems of the city of dreams.',
+    content: 'Mumbai, the city of dreams, is a vibrant metropolis that offers a unique blend of history, culture, and modernity. From the iconic Gateway of India to the serene Marine Drive, there is something for everyone in this bustling city. In this article, we explore the top 10 places you must visit in Mumbai, including hidden gems like the Elephanta Caves and the bustling markets of Colaba.',
+    image: 'https://images.unsplash.com/photo-1529253355930-ddbe423a2ac7?auto=format&fit=crop&q=80&w=800',
+    date: 'Oct 15, 2024'
+  },
+  {
+    id: '2',
+    title: 'Best Street Food in Delhi',
+    excerpt: 'A guide to the most delicious street food in the capital.',
+    content: 'Delhi is a food lover\'s paradise, and its street food is legendary. From the spicy chaat of Chandni Chowk to the succulent kebabs of Karol Bagh, the capital offers a culinary journey like no other. This guide takes you through the must-try street foods in Delhi, providing tips on where to find the best flavors and how to navigate the city\'s vibrant food scene.',
+    image: 'https://images.unsplash.com/photo-1585938389612-a552a28d6914?auto=format&fit=crop&q=80&w=800',
+    date: 'Oct 12, 2024'
+  },
+  {
+    id: '3',
+    title: 'How to Choose the Right Gym',
+    excerpt: 'Everything you need to know before joining a fitness center.',
+    content: 'Choosing the right gym is crucial for staying motivated and achieving your fitness goals. With so many options available, it can be overwhelming to decide. We break down the key factors to consider, such as location, equipment, personal training services, and membership costs. Whether you are a beginner or an experienced athlete, this guide will help you find the perfect fitness center for your needs.',
+    image: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&q=80&w=800',
+    date: 'Oct 10, 2024'
+  },
+  {
+    id: '4',
+    title: 'Home Maintenance Tips for Monsoon',
+    excerpt: 'Prepare your home for the rainy season with these essential tips.',
+    content: 'The monsoon season brings relief from the heat but also presents challenges for home maintenance. From preventing dampness to ensuring proper drainage, there are several steps you can take to protect your home. We provide practical tips on waterproofing your roof, checking electrical connections, and maintaining your garden during the rains.',
+    image: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&q=80&w=800',
+    date: 'Oct 08, 2024'
+  },
+  {
+    id: '5',
+    title: 'Finding the Best Schools in Bangalore',
+    excerpt: 'A comprehensive guide to top-rated educational institutions.',
+    content: 'Bangalore is home to some of India\'s most prestigious schools, offering a range of curricula from CBSE and ICSE to International Baccalaureate. This guide helps parents navigate the school admission process in Bangalore, highlighting the top-rated institutions based on academic excellence, extracurricular activities, and infrastructure.',
+    image: 'https://images.unsplash.com/photo-152305085306e-8a3d3ecf047d?auto=format&fit=crop&q=80&w=800',
+    date: 'Oct 05, 2024'
+  },
+  {
+    id: '6',
+    title: 'Weekend Getaways from Hyderabad',
+    excerpt: 'Perfect short trips to refresh your mind and soul.',
+    content: 'If you are looking to escape the hustle and bustle of Hyderabad for a weekend, there are several beautiful destinations just a short drive away. From the historical charm of Warangal to the scenic beauty of Ananthagiri Hills, we list the best weekend getaways from Hyderabad for every type of traveler.',
+    image: 'https://images.unsplash.com/photo-1617503752587-97d2103a96ea?auto=format&fit=crop&q=80&w=800',
+    date: 'Oct 02, 2024'
+  },
 ];

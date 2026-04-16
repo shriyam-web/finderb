@@ -205,12 +205,69 @@ function HomeContent() {
             </Link>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-6">
+          <div className="grid grid-cols-4 lg:grid-cols-4 gap-2 sm:gap-6 mb-12">
             {popularCategories.map((cat) => (
               <CategoryCard key={cat.id} category={cat} />
             ))}
           </div>
+
+          <div className="flex justify-center">
+            <Link 
+              href="/categories/all" 
+              className="bg-primary text-white px-10 py-4 rounded-2xl font-bold hover:bg-secondary transition-all active:scale-95 uppercase tracking-widest text-xs shadow-lg"
+            >
+              Explore All Categories
+            </Link>
+          </div>
         </div>
+      </section>
+
+      {/* Merchant Profiles Section */}
+      <section className="py-20 bg-slate-50 overflow-hidden relative">
+        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-gray-200 to-transparent"></div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-8">
+            <div className="space-y-4 max-w-2xl">
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-secondary/10 rounded-full text-secondary border border-secondary/10">
+                <Sparkles size={14} fill="currentColor" />
+                <span className="text-[10px] font-black uppercase tracking-[0.2em]">Top Rated Merchants</span>
+              </div>
+              <h2 className="text-4xl sm:text-6xl font-black text-primary tracking-tight leading-[1.1]">
+                Partner <span className="text-secondary">Merchants.</span>
+              </h2>
+              <p className="text-gray-500 text-lg font-medium leading-relaxed">
+                Connect with the most trusted service providers and businesses in your area, handpicked for quality and reliability.
+              </p>
+            </div>
+            
+            {/* Filters */}
+            <div className="flex flex-wrap gap-3">
+              {[
+                { label: 'Top Rated', icon: Star },
+                { label: 'Best Discount', icon: Zap },
+                { label: 'Nearest', icon: MapPin },
+              ].map((filter) => (
+                <button
+                  key={filter.label}
+                  className="px-6 py-3 rounded-2xl bg-white border border-gray-100 text-xs font-bold text-gray-600 hover:border-secondary hover:text-secondary hover:shadow-xl hover:shadow-secondary/10 transition-all flex items-center gap-2 group"
+                >
+                  <filter.icon size={14} className="group-hover:scale-110 transition-transform" />
+                  {filter.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Horizontal Scrolling List */}
+          <div className="flex overflow-x-auto pb-12 gap-6 lg:gap-8 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
+            {featuredBusinesses.map((business) => (
+              <div key={business.id} className="min-w-[260px] sm:min-w-[320px] shrink-0">
+                <BusinessCard business={business} isPremium={true} compact={true} />
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-gray-200 to-transparent"></div>
       </section>
 
       {/* Trust Layer / Featured Section */}
@@ -368,36 +425,43 @@ function HomeContent() {
       </section>
 
       {/* Explore Tourist Places */}
-      <section className="py-16 lg:py-20 bg-gray-900 text-white overflow-hidden relative">
-        <div className="absolute top-0 right-0 w-1/2 h-full bg-secondary/5 -skew-x-12 translate-x-1/2 blur-3xl"></div>
+      <section className="py-16 lg:py-24 bg-slate-50 overflow-hidden relative">
+        <div className="absolute top-0 right-0 w-1/3 h-full bg-primary/5 -skew-x-12 translate-x-1/4 blur-3xl"></div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="mb-8 lg:mb-12">
-            <h2 className="text-xl sm:text-3xl font-medium mb-2">Discover Top-Rated Tourist Places & Local Attractions</h2>
-            <p className="text-gray-400 text-sm font-medium">Find the best attractions and hidden gems in your vicinity.</p>
+          <div className="mb-10 lg:mb-16">
+            <h2 className="text-2xl sm:text-4xl font-bold mb-3 text-primary tracking-tight">Discover Top-Rated Tourist Places & Local Attractions</h2>
+            <p className="text-gray-500 text-sm sm:text-base font-medium max-w-2xl">Find the best attractions and hidden gems in your vicinity, curated for the best experience.</p>
           </div>
-          <div className="flex overflow-x-auto pb-4 lg:pb-8 gap-4 lg:gap-6 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
+          <div className="flex overflow-x-auto pb-8 lg:pb-12 gap-6 lg:gap-8 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
             {touristPlaces.map((place) => (
-              <div key={place.id} className="group relative h-[320px] sm:h-[420px] min-w-[260px] sm:min-w-[400px] rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl bg-gray-800 shrink-0">
+              <div key={place.id} className="group relative h-[350px] sm:h-[450px] min-w-[280px] sm:min-w-[420px] rounded-3xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-500 bg-white shrink-0">
                 <Image
                   src={place.image}
                   alt={place.name}
                   fill
-                  className="object-cover opacity-70 group-hover:scale-105 transition-transform duration-700"
+                  className="object-cover group-hover:scale-105 transition-transform duration-1000"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent"></div>
-                <div className="absolute bottom-0 left-0 p-6 sm:p-10 space-y-4">
-                  <div className="flex items-center gap-2">
-                    <MapPin size={16} className="text-secondary" />
-                    <span className="text-xs font-bold uppercase tracking-widest text-gray-300">{place.location}</span>
-                  </div>
-                  <h3 className="text-2xl sm:text-4xl font-black">{place.name}</h3>
-                  <div className="flex items-center gap-6">
-                    <div className="flex items-center gap-2">
-                      <Star size={16} className="text-secondary" fill="currentColor" />
-                      <span className="text-sm font-bold">{place.rating}</span>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+                <div className="absolute bottom-0 left-0 p-8 sm:p-10 w-full">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="px-3 py-1 bg-white/20 backdrop-blur-md rounded-full border border-white/30">
+                      <div className="flex items-center gap-1.5">
+                        <MapPin size={12} className="text-secondary" />
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-white">{place.location}</span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2 text-gray-400">
-                      <span className="text-sm font-medium">Popular destination</span>
+                  </div>
+                  <h3 className="text-2xl sm:text-4xl font-bold text-white mb-4 tracking-tight">{place.name}</h3>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-1.5 bg-secondary px-3 py-1 rounded-full text-white shadow-lg">
+                        <Star size={14} fill="currentColor" />
+                        <span className="text-xs font-bold">{place.rating}</span>
+                      </div>
+                      <span className="text-xs font-medium text-white/80">Popular destination</span>
+                    </div>
+                    <div className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white group-hover:bg-secondary group-hover:border-secondary transition-all">
+                      <ArrowRight size={18} />
                     </div>
                   </div>
                 </div>
@@ -405,25 +469,24 @@ function HomeContent() {
             ))}
           </div>
         </div>
-        <div className="absolute bottom-0 right-0 w-96 h-96 bg-primary/5 rounded-full blur-3xl translate-y-1/2 translate-x-1/2"></div>
       </section>
 
-      {/* Articles */}
-      <section className="py-16 lg:py-24 bg-white">
+      {/* Blog & Articles */}
+      <section className="py-20 lg:py-28 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-10 lg:mb-16 gap-6">
-            <div className="space-y-2">
-              <h2 className="text-2xl sm:text-4xl font-black text-primary tracking-tight">Local Insights & Expert Articles</h2>
-              <div className="w-12 h-1 bg-secondary rounded-full"></div>
+          <div className="flex flex-col sm:flex-row items-end justify-between mb-12 lg:mb-16 gap-6">
+            <div className="space-y-3">
+              <h2 className="text-3xl sm:text-5xl font-bold text-primary tracking-tight">Blog & Local Insights</h2>
+              <p className="text-gray-500 text-sm sm:text-lg font-medium">Expert guides, local stories and business tips.</p>
             </div>
-            <Link href="/blog" className="group flex items-center gap-2 text-xs font-bold text-secondary hover:text-primary transition-all uppercase tracking-widest">
+            <Link href="/blog" className="group flex items-center gap-2 text-[10px] font-bold text-secondary hover:text-primary transition-all uppercase tracking-widest bg-secondary/5 px-6 py-3 rounded-full border border-secondary/10">
               Read All Stories <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
             </Link>
           </div>
-          <div className="flex overflow-x-auto pb-10 gap-8 lg:grid lg:grid-cols-3 lg:gap-12 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
-            {articles.slice(0, 3).map((article) => (
-              <div key={article.id} className="group cursor-pointer min-w-[320px] sm:min-w-0 w-full">
-                <div className="relative h-64 sm:h-72 rounded-[2.5rem] overflow-hidden mb-6 shadow-2xl shadow-gray-200/50 bg-gray-100">
+          <div className="flex overflow-x-auto pb-12 gap-8 lg:gap-10 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
+            {articles.map((article) => (
+              <Link key={article.id} href={`/blog/${article.id}`} className="group cursor-pointer min-w-[300px] sm:min-w-[420px] shrink-0">
+                <div className="relative h-64 sm:h-80 rounded-[2.5rem] overflow-hidden mb-8 shadow-xl group-hover:shadow-2xl transition-all duration-500 bg-gray-50">
                   <Image
                     src={article.image}
                     alt={article.title}
@@ -431,17 +494,17 @@ function HomeContent() {
                     className="object-cover group-hover:scale-110 transition-transform duration-1000"
                     sizes="(max-width: 768px) 100vw, 33vw"
                   />
-                  <div className="absolute top-5 left-5 bg-white/90 backdrop-blur-md px-4 py-2 rounded-2xl flex items-center gap-2 shadow-lg border border-white/20">
+                  <div className="absolute bottom-6 left-6 bg-white/90 backdrop-blur-md px-5 py-2.5 rounded-2xl flex items-center gap-2 shadow-lg border border-white/20">
                     <Calendar size={12} className="text-secondary" />
                     <span className="text-[10px] font-bold text-gray-700 uppercase tracking-widest">{article.date}</span>
                   </div>
                 </div>
-                <h3 className="text-xl sm:text-2xl font-black text-primary group-hover:text-secondary transition-colors mb-3 leading-tight tracking-tight line-clamp-2">{article.title}</h3>
+                <h3 className="text-xl sm:text-2xl font-bold text-primary group-hover:text-secondary transition-colors mb-4 leading-tight tracking-tight line-clamp-2">{article.title}</h3>
                 <p className="text-gray-500 font-medium text-sm sm:text-base line-clamp-2 mb-6 leading-relaxed">{article.excerpt}</p>
-                <div className="flex items-center gap-3 text-[10px] font-bold text-secondary uppercase tracking-[0.2em] group-hover:gap-4 transition-all">
+                <div className="flex items-center gap-2 text-[10px] font-bold text-secondary uppercase tracking-[0.2em] group-hover:gap-3 transition-all">
                   CONTINUE READING <ArrowRight size={14} />
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         </div>
@@ -453,9 +516,9 @@ function HomeContent() {
           <div className="space-y-6 lg:space-y-8">
             <h2 className="text-4xl sm:text-6xl lg:text-5xl font-black text-white tracking-tighter leading-[1.3]">
               Ready to grow your business?
-              <span className="text-secondary">Join FinderB today.</span>
+              <span className="text-white block sm:inline"> Join FinderB today.</span>
             </h2>
-            <p className="text-secondary/60 text-base sm:text-xl lg:text-2xl font-medium max-w-3xl mx-auto leading-relaxed">
+            <p className="text-white/60 text-base sm:text-xl lg:text-2xl font-medium max-w-3xl mx-auto leading-relaxed">
               Join 50,000+ elite business owners already scaling their reach on India's premier discovery network.
             </p>
           </div>

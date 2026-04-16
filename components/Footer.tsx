@@ -33,8 +33,8 @@ export default function Footer() {
               />
             </Link>
             <div className="space-y-4">
-              <h4 className="text-primary font-black text-[10px] uppercase tracking-widest">About FinderB</h4>
-              <p className="text-gray-500 text-sm leading-relaxed font-medium">
+              <h4 className="text-primary font-semibold text-[10px] uppercase tracking-widest">About FinderB</h4>
+              <p className="text-gray-500 text-sm leading-relaxed font-normal">
                 FinderB is India's premier local discovery platform, connecting millions of users with verified local businesses, professional services, and entertainment. We are your go-to destination for finding top-rated plumbers, doctors, restaurants, and real estate across 500+ cities in India.
               </p>
             </div>
@@ -42,33 +42,33 @@ export default function Footer() {
 
           {/* Business Links */}
           <div>
-            <h3 className="text-gray-900 font-black text-sm mb-8 tracking-tight">Business Solutions</h3>
+            <h3 className="text-gray-900 font-semibold text-sm mb-8 tracking-tight">Business Solutions</h3>
             <ul className="space-y-4">
-              <li><Link href="/business/register" className="text-sm hover:text-secondary font-medium transition-colors flex items-center gap-2 group">List Your Business <ExternalLink size={12} className="opacity-0 group-hover:opacity-100 transition-opacity" /></Link></li>
-              <li><Link href="/advertisements" className="text-sm hover:text-secondary font-medium transition-colors">Advertise with Us</Link></li>
-              <li><Link href="/pricing" className="text-sm hover:text-secondary font-medium transition-colors">Premium Plans</Link></li>
-              <li><Link href="/hirings" className="text-sm hover:text-secondary font-medium transition-colors">Careers</Link></li>
-              <li><Link href="/contact" className="text-sm hover:text-secondary font-medium transition-colors">Contact Support</Link></li>
+              <li><Link href="/business/register" className="text-sm hover:text-secondary font-normal transition-colors flex items-center gap-2 group">List Your Business <ExternalLink size={12} className="opacity-0 group-hover:opacity-100 transition-opacity" /></Link></li>
+              <li><Link href="/advertisements" className="text-sm hover:text-secondary font-normal transition-colors">Advertise with Us</Link></li>
+              <li><Link href="/pricing" className="text-sm hover:text-secondary font-normal transition-colors">Premium Plans</Link></li>
+              <li><Link href="/hirings" className="text-sm hover:text-secondary font-normal transition-colors">Careers</Link></li>
+              <li><Link href="/contact" className="text-sm hover:text-secondary font-normal transition-colors">Contact Support</Link></li>
             </ul>
           </div>
 
           {/* Popular Categories for SEO */}
           <div>
-            <h3 className="text-gray-900 font-black text-sm mb-8 tracking-tight">Top Categories</h3>
+            <h3 className="text-gray-900 font-semibold text-sm mb-8 tracking-tight">Top Categories</h3>
             <ul className="space-y-4">
-              <li><Link href="/categories/real-estate" className="text-sm hover:text-secondary font-medium transition-colors">Real Estate & Property</Link></li>
-              <li><Link href="/categories/doctors" className="text-sm hover:text-secondary font-medium transition-colors">Doctors & Healthcare</Link></li>
-              <li><Link href="/categories/restaurants" className="text-sm hover:text-secondary font-medium transition-colors">Top Rated Restaurants</Link></li>
-              <li><Link href="/categories/repairs-services" className="text-sm hover:text-secondary font-medium transition-colors">Home Repairs & Services</Link></li>
-              <li><Link href="/categories/education" className="text-sm hover:text-secondary font-medium transition-colors">Education & Coaching</Link></li>
-              <li><Link href="/categories/finance" className="text-sm hover:text-secondary font-medium transition-colors">Finance & Legal Services</Link></li>
+              <li><Link href="/categories/real-estate" className="text-sm hover:text-secondary font-normal transition-colors">Real Estate & Property</Link></li>
+              <li><Link href="/categories/doctors" className="text-sm hover:text-secondary font-normal transition-colors">Doctors & Healthcare</Link></li>
+              <li><Link href="/categories/restaurants" className="text-sm hover:text-secondary font-normal transition-colors">Top Rated Restaurants</Link></li>
+              <li><Link href="/categories/repairs-services" className="text-sm hover:text-secondary font-normal transition-colors">Home Repairs & Services</Link></li>
+              <li><Link href="/categories/education" className="text-sm hover:text-secondary font-normal transition-colors">Education & Coaching</Link></li>
+              <li><Link href="/categories/finance" className="text-sm hover:text-secondary font-normal transition-colors">Finance & Legal Services</Link></li>
             </ul>
           </div>
 
           {/* Follow Us & App Links */}
           <div className="space-y-10">
             <div>
-              <h3 className="text-gray-900 font-black text-sm mb-6 tracking-tight">Follow Our Journey</h3>
+              <h3 className="text-gray-900 font-semibold text-sm mb-6 tracking-tight">Follow Our Journey</h3>
               <div className="flex space-x-3">
                 {[
                   { icon: FaFacebook, href: '#' },
@@ -83,13 +83,13 @@ export default function Footer() {
               </div>
             </div>
             <div className="space-y-4">
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Get our mobile app</p>
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Get our mobile app</p>
               <div className="flex flex-wrap gap-2">
                 <div className="h-10 px-4 bg-gray-900 text-white rounded-xl flex items-center gap-2 cursor-not-allowed grayscale hover:grayscale-0 transition-all">
-                  <div className="text-[8px] font-bold leading-none">Coming soon on <br /><span className="text-sm">App Store</span></div>
+                  <div className="text-[8px] font-semibold leading-none">Coming soon on <br /><span className="text-sm">App Store</span></div>
                 </div>
                 <div className="h-10 px-4 bg-gray-900 text-white rounded-xl flex items-center gap-2 cursor-not-allowed grayscale hover:grayscale-0 transition-all">
-                  <div className="text-[8px] font-bold leading-none">Coming soon on <br /><span className="text-sm">Google Play</span></div>
+                  <div className="text-[8px] font-semibold leading-none">Coming soon on <br /><span className="text-sm">Google Play</span></div>
                 </div>
               </div>
             </div>
@@ -99,22 +99,22 @@ export default function Footer() {
         {/* SEO - Cities & Searches */}
         <div className="border-t border-gray-100 py-0 space-y-10">
           <div className="space-y-4">
-            <h4 className="text-xs font-black text-gray-900 uppercase tracking-widest">Top Cities in India</h4>
+            <h4 className="text-xs font-semibold text-gray-900 uppercase tracking-widest">Top Cities in India</h4>
             <div className="flex flex-wrap gap-x-6 gap-y-3">
               {topCities.map((city) => (
-                <Link key={city} href={`/cities/${city.toLowerCase()}`} className="text-xs font-medium text-gray-500 hover:text-secondary transition-colors underline decoration-gray-200 underline-offset-4 decoration-1">
+                <Link key={city} href={`/cities/${city.toLowerCase()}`} className="text-xs font-normal text-gray-500 hover:text-secondary transition-colors underline decoration-gray-200 underline-offset-4 decoration-1">
                   {city}
                 </Link>
               ))}
-              <Link href="/cities" className="text-xs font-black text-primary hover:underline underline-offset-4 decoration-2">View All Cities</Link>
+              <Link href="/cities" className="text-xs font-semibold text-primary hover:underline underline-offset-4 decoration-2">View All Cities</Link>
             </div>
           </div>
 
           <div className="space-y-4">
-            <h4 className="text-xs font-black text-gray-900 uppercase tracking-widest">Popular Searches</h4>
+            <h4 className="text-xs font-semibold text-gray-900 uppercase tracking-widest">Popular Searches</h4>
             <div className="flex flex-wrap gap-2">
               {popularSearches.map((search) => (
-                <Link key={search} href={`/search?q=${search.replace(/ /g, '+')}`} className="px-3 py-1.5 bg-gray-50 hover:bg-white border border-gray-100 text-[10px] font-bold text-gray-500 hover:text-primary hover:border-primary/20 rounded-lg transition-all">
+                <Link key={search} href={`/search?q=${search.replace(/ /g, '+')}`} className="px-3 py-1.5 bg-gray-50 hover:bg-white border border-gray-100 text-[10px] font-semibold text-gray-500 hover:text-primary hover:border-primary/20 rounded-lg transition-all">
                   {search}
                 </Link>
               ))}
@@ -125,14 +125,14 @@ export default function Footer() {
         {/* Bottom Bar */}
         <div className="border-t border-gray-100 pt-10 flex flex-col md:flex-row justify-between items-center gap-6">
           <div className="space-y-2 text-center md:text-left">
-            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
+            <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">
               © {new Date().getFullYear()} FinderB Technologies Pvt Ltd.
             </p>
-            <p className="text-[10px] text-gray-400 font-medium max-w-xl">
+            <p className="text-[10px] text-gray-400 font-normal max-w-xl">
               FinderB helps you find the best services and businesses in your locality. Verified profiles, user reviews, and instant contact details for thousands of categories.
             </p>
           </div>
-          <div className="flex flex-wrap justify-center gap-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+          <div className="flex flex-wrap justify-center gap-6 text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
             <Link href="/privacy" className="hover:text-secondary transition-colors">Privacy</Link>
             <Link href="/terms" className="hover:text-secondary transition-colors">Terms</Link>
             <Link href="/sitemap" className="hover:text-secondary transition-colors">Sitemap</Link>
