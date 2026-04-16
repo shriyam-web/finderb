@@ -474,7 +474,7 @@ function HomeContent() {
       {/* Blog & Articles */}
       <section className="py-20 lg:py-28 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col sm:flex-row items-end justify-between mb-12 lg:mb-16 gap-6">
+          <div className="flex flex-col sm:flex-row items-start justify-between mb-12 lg:mb-16 gap-6">
             <div className="space-y-3">
               <h2 className="text-3xl sm:text-5xl font-bold text-primary tracking-tight">Blog & Local Insights</h2>
               <p className="text-gray-500 text-sm sm:text-lg font-medium">Expert guides, local stories and business tips.</p>
@@ -514,9 +514,9 @@ function HomeContent() {
       <section className="py-20 lg:py-32 bg-primary relative overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 text-center space-y-10 lg:space-y-16 relative z-10">
           <div className="space-y-6 lg:space-y-8">
-            <h2 className="text-4xl sm:text-6xl lg:text-5xl font-black text-white tracking-tighter leading-[1.3]">
+            <h2 className="text-4xl sm:text-6xl lg:text-5xl text-white tracking-tighter leading-[1.3]">
               Ready to grow your business?
-              <span className="text-white block sm:inline"> Join FinderB today.</span>
+              <span className="text-yellow text-orange block sm:inline"> Join FinderB today.</span>
             </h2>
             <p className="text-white/60 text-base sm:text-xl lg:text-2xl font-medium max-w-3xl mx-auto leading-relaxed">
               Join 50,000+ elite business owners already scaling their reach on India's premier discovery network.
