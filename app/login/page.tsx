@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Mail, Lock, ChevronRight, AlertCircle, CheckCircle2, Eye, EyeOff } from 'lucide-react';
@@ -154,9 +154,5 @@ function LoginContent() {
 }
 
 export default function LoginPage() {
-  return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <LoginContent />
-    </Suspense>
-  );
+  return <LoginContent />;
 }

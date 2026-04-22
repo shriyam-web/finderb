@@ -19,6 +19,7 @@ export interface Category {
   image: string;
   slug: string;
   businessCount: number;
+  color?: string;
 }
 
 export const categories: Category[] = [
@@ -28,7 +29,8 @@ export const categories: Category[] = [
     icon: 'Home',
     image: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&q=80&w=800',
     slug: 'real-estate',
-    businessCount: 1500
+    businessCount: 1500,
+    color: '#3B82F6' // Blue
   },
   {
     id: '2',
@@ -36,7 +38,8 @@ export const categories: Category[] = [
     icon: 'UserPlus',
     image: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&q=80&w=800',
     slug: 'doctors',
-    businessCount: 2800
+    businessCount: 2800,
+    color: '#EF4444' // Red
   },
   {
     id: '3',
@@ -44,7 +47,8 @@ export const categories: Category[] = [
     icon: 'Wrench',
     image: 'https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?auto=format&fit=crop&q=80&w=800',
     slug: 'repairs-services',
-    businessCount: 3200
+    businessCount: 3200,
+    color: '#F59E0B' // Amber
   },
   {
     id: '4',
@@ -52,7 +56,8 @@ export const categories: Category[] = [
     icon: 'Utensils',
     image: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&q=80&w=800',
     slug: 'restaurants',
-    businessCount: 4500
+    businessCount: 4500,
+    color: '#10B981' // Emerald
   },
   {
     id: '5',
@@ -60,7 +65,8 @@ export const categories: Category[] = [
     icon: 'Hotel',
     image: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&q=80&w=800',
     slug: 'hotels',
-    businessCount: 1200
+    businessCount: 1200,
+    color: '#8B5CF6' // Violet
   },
   {
     id: '6',
@@ -68,7 +74,8 @@ export const categories: Category[] = [
     icon: 'Briefcase',
     image: 'https://images.unsplash.com/photo-1542744173-8e7e53415bb0?auto=format&fit=crop&q=80&w=800',
     slug: 'b2b',
-    businessCount: 900
+    businessCount: 900,
+    color: '#6366F1' // Indigo
   },
   {
     id: '7',
@@ -76,7 +83,8 @@ export const categories: Category[] = [
     icon: 'GraduationCap',
     image: 'https://images.unsplash.com/photo-152305085306e-8a3d3ecf047d?auto=format&fit=crop&q=80&w=800',
     slug: 'college',
-    businessCount: 350
+    businessCount: 350,
+    color: '#EC4899' // Pink
   },
   {
     id: '8',
@@ -84,7 +92,8 @@ export const categories: Category[] = [
     icon: 'Scissors',
     image: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&q=80&w=800',
     slug: 'beauty-spa',
-    businessCount: 1800
+    businessCount: 1800,
+    color: '#F43F5E' // Rose
   },
   {
     id: '9',
@@ -92,7 +101,8 @@ export const categories: Category[] = [
     icon: 'Dumbbell',
     image: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&q=80&w=800',
     slug: 'gym',
-    businessCount: 1100
+    businessCount: 1100,
+    color: '#06B6D4' // Cyan
   },
   {
     id: '10',
@@ -100,7 +110,8 @@ export const categories: Category[] = [
     icon: 'Bed',
     image: 'https://images.unsplash.com/photo-1595526114035-0d45ed16cfbf?auto=format&fit=crop&q=80&w=800',
     slug: 'pg-hostel',
-    businessCount: 750
+    businessCount: 750,
+    color: '#84CC16' // Lime
   },
   {
     id: '11',
@@ -108,7 +119,8 @@ export const categories: Category[] = [
     icon: 'Car',
     image: 'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&q=80&w=800',
     slug: 'automobile',
-    businessCount: 1400
+    businessCount: 1400,
+    color: '#475569' // Slate
   },
   {
     id: '12',
@@ -116,28 +128,29 @@ export const categories: Category[] = [
     icon: 'Tv',
     image: 'https://images.unsplash.com/photo-1498049794561-7780e7231661?auto=format&fit=crop&q=80&w=800',
     slug: 'electronics',
-    businessCount: 2000
+    businessCount: 2000,
+    color: '#0EA5E9' // Sky
   },
-  { id: '13', name: 'Plumbers', icon: 'Wrench', image: 'https://images.unsplash.com/photo-1581244277943-fe4a9c777189?auto=format&fit=crop&q=80&w=800', slug: 'plumbers', businessCount: 450 },
-  { id: '14', name: 'Electricians', icon: 'Zap', image: 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?auto=format&fit=crop&q=80&w=800', slug: 'electricians', businessCount: 380 },
-  { id: '15', name: 'Cleaning', icon: 'Sparkles', image: 'https://images.unsplash.com/photo-1581578731548-c64695ce6958?auto=format&fit=crop&q=80&w=800', slug: 'cleaning', businessCount: 290 },
-  { id: '16', name: 'Painters', icon: 'Palette', image: 'https://images.unsplash.com/photo-1589939705384-5185138a04b9?auto=format&fit=crop&q=80&w=800', slug: 'painters', businessCount: 120 },
-  { id: '17', name: 'Carpenters', icon: 'Hammer', image: 'https://images.unsplash.com/photo-1533090161767-e6ffed986c88?auto=format&fit=crop&q=80&w=800', slug: 'carpenters', businessCount: 85 },
-  { id: '18', name: 'Packers & Movers', icon: 'Truck', image: 'https://images.unsplash.com/photo-1600518464441-9154a4dba216?auto=format&fit=crop&q=80&w=800', slug: 'packers-movers', businessCount: 210 },
-  { id: '19', name: 'Pest Control', icon: 'Bug', image: 'https://images.unsplash.com/photo-1587314168485-3236d6710814?auto=format&fit=crop&q=80&w=800', slug: 'pest-control', businessCount: 95 },
-  { id: '20', name: 'AC Repair', icon: 'Wind', image: 'https://images.unsplash.com/photo-1558227691-41ea78d1f631?auto=format&fit=crop&q=80&w=800', slug: 'ac-repair', businessCount: 160 },
-  { id: '21', name: 'Wedding Planner', icon: 'Heart', image: 'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&q=80&w=800', slug: 'wedding-planner', businessCount: 75 },
-  { id: '22', name: 'Catering', icon: 'Coffee', image: 'https://images.unsplash.com/photo-1555244162-803834f70033?auto=format&fit=crop&q=80&w=800', slug: 'catering', businessCount: 130 },
-  { id: '23', name: 'Photography', icon: 'Camera', image: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&q=80&w=800', slug: 'photography', businessCount: 190 },
-  { id: '24', name: 'Yoga Classes', icon: 'Activity', image: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&q=80&w=800', slug: 'yoga', businessCount: 110 },
-  { id: '25', name: 'Lawyers', icon: 'Scale', image: 'https://images.unsplash.com/photo-1505664194779-8beaceb93744?auto=format&fit=crop&q=80&w=800', slug: 'lawyers', businessCount: 420 },
-  { id: '26', name: 'Architecture', icon: 'PencilRuler', image: 'https://images.unsplash.com/photo-1503387762-592dea58ef21?auto=format&fit=crop&q=80&w=800', slug: 'architecture', businessCount: 140 },
-  { id: '27', name: 'Interior Design', icon: 'Layout', image: 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&q=80&w=800', slug: 'interior-design', businessCount: 310 },
-  { id: '28', name: 'Car Wash', icon: 'Waves', image: 'https://images.unsplash.com/photo-1520340356584-f9917d1eea6f?auto=format&fit=crop&q=80&w=800', slug: 'car-wash', businessCount: 180 },
-  { id: '29', name: 'Pet Care', icon: 'Dog', image: 'https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?auto=format&fit=crop&q=80&w=800', slug: 'pet-care', businessCount: 65 },
-  { id: '30', name: 'Event Management', icon: 'Music', image: 'https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?auto=format&fit=crop&q=80&w=800', slug: 'event-management', businessCount: 240 },
-  { id: '31', name: 'Tutors', icon: 'BookOpen', image: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&q=80&w=800', slug: 'tutors', businessCount: 550 },
-  { id: '32', name: 'Dance Classes', icon: 'Framer', image: 'https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?auto=format&fit=crop&q=80&w=800', slug: 'dance-classes', businessCount: 90 },
+  { id: '13', name: 'Plumbers', icon: 'Wrench', image: 'https://images.unsplash.com/photo-1581244277943-fe4a9c777189?auto=format&fit=crop&q=80&w=800', slug: 'plumbers', businessCount: 450, color: '#3B82F6' },
+  { id: '14', name: 'Electricians', icon: 'Zap', image: 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?auto=format&fit=crop&q=80&w=800', slug: 'electricians', businessCount: 380, color: '#EAB308' },
+  { id: '15', name: 'Cleaning', icon: 'Sparkles', image: 'https://images.unsplash.com/photo-1581578731548-c64695ce6958?auto=format&fit=crop&q=80&w=800', slug: 'cleaning', businessCount: 290, color: '#06B6D4' },
+  { id: '16', name: 'Painters', icon: 'Palette', image: 'https://images.unsplash.com/photo-1589939705384-5185138a04b9?auto=format&fit=crop&q=80&w=800', slug: 'painters', businessCount: 120, color: '#F43F5E' },
+  { id: '17', name: 'Carpenters', icon: 'Hammer', image: 'https://images.unsplash.com/photo-1533090161767-e6ffed986c88?auto=format&fit=crop&q=80&w=800', slug: 'carpenters', businessCount: 85, color: '#B45309' },
+  { id: '18', name: 'Packers & Movers', icon: 'Truck', image: 'https://images.unsplash.com/photo-1600518464441-9154a4dba216?auto=format&fit=crop&q=80&w=800', slug: 'packers-movers', businessCount: 210, color: '#6366F1' },
+  { id: '19', name: 'Pest Control', icon: 'Bug', image: 'https://images.unsplash.com/photo-1587314168485-3236d6710814?auto=format&fit=crop&q=80&w=800', slug: 'pest-control', businessCount: 95, color: '#10B981' },
+  { id: '20', name: 'AC Repair', icon: 'Wind', image: 'https://images.unsplash.com/photo-1558227691-41ea78d1f631?auto=format&fit=crop&q=80&w=800', slug: 'ac-repair', businessCount: 160, color: '#0EA5E9' },
+  { id: '21', name: 'Wedding Planner', icon: 'Heart', image: 'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&q=80&w=800', slug: 'wedding-planner', businessCount: 75, color: '#EC4899' },
+  { id: '22', name: 'Catering', icon: 'Coffee', image: 'https://images.unsplash.com/photo-1555244162-803834f70033?auto=format&fit=crop&q=80&w=800', slug: 'catering', businessCount: 130, color: '#F97316' },
+  { id: '23', name: 'Photography', icon: 'Camera', image: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&q=80&w=800', slug: 'photography', businessCount: 190, color: '#8B5CF6' },
+  { id: '24', name: 'Yoga Classes', icon: 'Activity', image: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&q=80&w=800', slug: 'yoga', businessCount: 110, color: '#10B981' },
+  { id: '25', name: 'Lawyers', icon: 'Scale', image: 'https://images.unsplash.com/photo-1505664194779-8beaceb93744?auto=format&fit=crop&q=80&w=800', slug: 'lawyers', businessCount: 420, color: '#475569' },
+  { id: '26', name: 'Architecture', icon: 'PencilRuler', image: 'https://images.unsplash.com/photo-1503387762-592dea58ef21?auto=format&fit=crop&q=80&w=800', slug: 'architecture', businessCount: 140, color: '#6366F1' },
+  { id: '27', name: 'Interior Design', icon: 'Layout', image: 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&q=80&w=800', slug: 'interior-design', businessCount: 310, color: '#8B5CF6' },
+  { id: '28', name: 'Car Wash', icon: 'Waves', image: 'https://images.unsplash.com/photo-1520340356584-f9917d1eea6f?auto=format&fit=crop&q=80&w=800', slug: 'car-wash', businessCount: 180, color: '#06B6D4' },
+  { id: '29', name: 'Pet Care', icon: 'Dog', image: 'https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?auto=format&fit=crop&q=80&w=800', slug: 'pet-care', businessCount: 65, color: '#F97316' },
+  { id: '30', name: 'Event Management', icon: 'Music', image: 'https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?auto=format&fit=crop&q=80&w=800', slug: 'event-management', businessCount: 240, color: '#EC4899' },
+  { id: '31', name: 'Tutors', icon: 'BookOpen', image: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&q=80&w=800', slug: 'tutors', businessCount: 550, color: '#F59E0B' },
+  { id: '32', name: 'Dance Classes', icon: 'Framer', image: 'https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?auto=format&fit=crop&q=80&w=800', slug: 'dance-classes', businessCount: 90, color: '#8B5CF6' },
 ];
 
 export const businesses: Business[] = [
@@ -349,4 +362,40 @@ export const articles: Article[] = [
     image: 'https://images.unsplash.com/photo-1617503752587-97d2103a96ea?auto=format&fit=crop&q=80&w=800',
     date: 'Oct 02, 2024'
   },
+];
+
+export interface NewsArticle {
+  id: string;
+  title: string;
+  excerpt: string;
+  image: string;
+  date: string;
+  category: string;
+}
+
+export const newsArticles: NewsArticle[] = [
+  {
+    id: '1',
+    title: 'FinderB Expands to 50 New Cities',
+    excerpt: 'We are excited to announce our expansion into 50 more cities across India, bringing our verified services to even more users.',
+    image: 'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?auto=format&fit=crop&q=80&w=800',
+    date: 'Oct 20, 2024',
+    category: 'Expansion'
+  },
+  {
+    id: '2',
+    title: 'Introducing AI-Powered Search',
+    excerpt: 'Our new AI search helps you find the perfect service provider in seconds by understanding your natural language requests.',
+    image: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&q=80&w=800',
+    date: 'Oct 18, 2024',
+    category: 'Technology'
+  },
+  {
+    id: '3',
+    title: 'Top Rated Merchants of the Month',
+    excerpt: 'Check out the businesses that have received the highest ratings and best reviews from our community this month.',
+    image: 'https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&q=80&w=800',
+    date: 'Oct 15, 2024',
+    category: 'Community'
+  }
 ];

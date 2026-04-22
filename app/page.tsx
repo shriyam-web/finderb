@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import SearchBar from '@/components/SearchBar';
 import CategoryCard from '@/components/CategoryCard';
@@ -12,7 +12,8 @@ import {
   cities,
   movies,
   touristPlaces,
-  articles
+  articles,
+  newsArticles
 } from '@/lib/mockData';
 import * as LucideIcons from 'lucide-react';
 import { ArrowRight, CheckCircle2, Star, MapPin, Calendar, Play, ShieldCheck, Zap, Search, Phone, MessageSquare, Heart, Sparkles, History, X, Mic, Send } from 'lucide-react';
@@ -226,35 +227,26 @@ function HomeContent() {
       <section className="py-20 bg-slate-50 overflow-hidden relative">
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-gray-200 to-transparent"></div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-8">
-            <div className="space-y-4 max-w-2xl">
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-secondary/10 rounded-full text-secondary border border-secondary/10">
-                <Sparkles size={14} fill="currentColor" />
-                <span className="text-[10px] font-black uppercase tracking-[0.2em]">Top Rated Merchants</span>
-              </div>
-              <h2 className="text-4xl sm:text-6xl font-black text-primary tracking-tight leading-[1.1]">
-                Partner <span className="text-secondary">Merchants.</span>
-              </h2>
-              <p className="text-gray-500 text-lg font-medium leading-relaxed">
-                Connect with the most trusted service providers and businesses in your area, handpicked for quality and reliability.
-              </p>
-            </div>
+          <div className="flex flex-col md:flex-row justify-end mb-12 gap-8">
             
             {/* Filters */}
-            <div className="flex flex-wrap gap-3">
-              {[
-                { label: 'Top Rated', icon: Star },
-                { label: 'Best Discount', icon: Zap },
-                { label: 'Nearest', icon: MapPin },
-              ].map((filter) => (
-                <button
-                  key={filter.label}
-                  className="px-6 py-3 rounded-2xl bg-white border border-gray-100 text-xs font-bold text-gray-600 hover:border-secondary hover:text-secondary hover:shadow-xl hover:shadow-secondary/10 transition-all flex items-center gap-2 group"
-                >
-                  <filter.icon size={14} className="group-hover:scale-110 transition-transform" />
-                  {filter.label}
-                </button>
-              ))}
+            <div className="flex items-center gap-4 bg-white/50 backdrop-blur-sm p-2 rounded-[2rem] border border-gray-100 shadow-sm">
+              <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-4 hidden sm:block">Filter by:</span>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { label: 'Top Rated', icon: Star },
+                  { label: 'Best Discount', icon: Zap },
+                  { label: 'Nearest', icon: MapPin },
+                ].map((filter) => (
+                  <button
+                    key={filter.label}
+                    className="px-5 py-2.5 rounded-2xl bg-white border border-gray-50 text-[10px] font-bold text-gray-500 hover:border-secondary/30 hover:text-secondary hover:shadow-lg hover:shadow-secondary/5 transition-all flex items-center gap-2 group whitespace-nowrap"
+                  >
+                    <filter.icon size={12} className="group-hover:scale-110 transition-transform text-secondary/70" />
+                    {filter.label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -290,17 +282,24 @@ function HomeContent() {
 
               <div className="grid sm:grid-cols-2 gap-6">
                 {[
-                  { title: 'Verified Pros', desc: 'Background checked experts', icon: ShieldCheck },
-                  { title: 'Best Prices', desc: 'No hidden costs, ever', icon: Star },
-                  { title: 'Instant Booking', desc: 'Confirm in 30 seconds', icon: Zap },
-                  { title: '24/7 Support', desc: 'We are here to help you', icon: ArrowRight },
+                  { title: 'Verified Pros', desc: 'Background checked experts', icon: ShieldCheck, color: '#3B82F6' },
+                  { title: 'Best Prices', desc: 'No hidden costs, ever', icon: Star, color: '#F59E0B' },
+                  { title: 'Instant Booking', desc: 'Confirm in 30 seconds', icon: Zap, color: '#10B981' },
+                  { title: '24/7 Support', desc: 'We are here to help you', icon: ArrowRight, color: '#8B5CF6' },
                 ].map((item, i) => (
-                  <div key={i} className="flex gap-4 p-4 rounded-2xl bg-muted/50 border border-gray-100 hover:border-secondary/20 transition-all group">
-                    <div className="w-12 h-12 rounded-xl bg-white shadow-sm flex items-center justify-center text-secondary group-hover:bg-secondary group-hover:text-white transition-all">
-                      <item.icon size={20} />
+                  <div key={i} className="flex gap-4 p-4 rounded-2xl bg-white border border-gray-100 hover:border-transparent hover:shadow-xl transition-all group relative overflow-hidden">
+                    <div 
+                      className="absolute inset-0 opacity-0 group-hover:opacity-[0.02] transition-opacity duration-500"
+                      style={{ backgroundColor: item.color }}
+                    ></div>
+                    <div 
+                      className="w-12 h-12 rounded-xl bg-white shadow-sm flex items-center justify-center transition-all duration-500 group-hover:-translate-y-1 group-hover:shadow-lg [perspective:1000px] border border-gray-50 group-hover:border-transparent"
+                      style={{ color: item.color }}
+                    >
+                      <item.icon size={22} className="group-hover:scale-110 transition-transform" />
                     </div>
-                    <div>
-                      <h4 className="font-bold text-primary">{item.title}</h4>
+                    <div className="relative z-10">
+                      <h4 className="font-bold text-slate-900 group-hover:text-primary transition-colors">{item.title}</h4>
                       <p className="text-xs text-gray-500 font-medium">{item.desc}</p>
                     </div>
                   </div>
@@ -471,6 +470,59 @@ function HomeContent() {
         </div>
       </section>
 
+      {/* FinderB News */}
+      <section className="py-16 lg:py-24 bg-slate-50 relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent"></div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col md:flex-row items-end justify-between mb-12 gap-6">
+            <div className="space-y-4">
+              <div className="inline-flex items-center gap-2 px-3 py-1 bg-secondary/10 rounded-full text-secondary border border-secondary/20">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-secondary"></span>
+                </span>
+                <span className="text-[10px] font-black uppercase tracking-[0.2em]">Latest Updates</span>
+              </div>
+              <h2 className="text-4xl sm:text-6xl font-black text-primary tracking-tighter">FinderB <span className="text-secondary">News.</span></h2>
+              <p className="text-gray-500 text-lg font-medium max-w-xl">Stay updated with the latest happenings, expansions, and technical breakthroughs at FinderB.</p>
+            </div>
+          </div>
+
+          <div className="flex overflow-x-auto pb-8 gap-8 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
+            {newsArticles.map((item) => (
+              <div key={item.id} className="group bg-white rounded-3xl p-6 shadow-sm hover:shadow-xl transition-all duration-500 border border-slate-100 flex flex-col h-full min-w-[140px] md:min-w-[200px] shrink-0">
+                <div className="relative aspect-[16/9] rounded-2xl overflow-hidden mb-6 shadow-md">
+                  <Image
+                    src={item.image}
+                    alt={item.title}
+                    fill
+                    className="object-cover group-hover:scale-105 transition-transform duration-700"
+                  />
+                  <div className="absolute top-4 left-4">
+                    <span className="px-3 py-1 bg-white/90 backdrop-blur-md rounded-full text-[10px] font-bold text-primary uppercase tracking-wider shadow-sm">
+                      {item.category}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 mb-4 text-slate-400">
+                  <Calendar size={14} />
+                  <span className="text-[10px] font-bold uppercase tracking-widest">{item.date}</span>
+                </div>
+                <h3 className="text-xl font-bold text-primary group-hover:text-secondary transition-colors mb-4 line-clamp-2 leading-tight">
+                  {item.title}
+                </h3>
+                <p className="text-slate-500 text-sm font-medium line-clamp-3 mb-6 flex-grow">
+                  {item.excerpt}
+                </p>
+                <div className="flex items-center gap-2 text-[10px] font-black text-secondary uppercase tracking-[0.2em] group-hover:gap-3 transition-all cursor-pointer">
+                  Read Full Story <ArrowRight size={14} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Blog & Articles */}
       <section className="py-20 lg:py-28 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -514,10 +566,14 @@ function HomeContent() {
       <section className="py-20 lg:py-32 bg-primary relative overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 text-center space-y-10 lg:space-y-16 relative z-10">
           <div className="space-y-6 lg:space-y-8">
-            <h2 className="text-4xl sm:text-6xl lg:text-5xl text-white tracking-tighter leading-[1.3]">
-              Ready to grow your business?
-              <span className="text-yellow text-orange block sm:inline"> Join FinderB today.</span>
-            </h2>
+           <h2 className="text-4xl sm:text-6xl lg:text-5xl tracking-tighter leading-[1.3]">
+  <span className="text-white">
+    Take your business to the next level.
+  </span>{' '}
+  <span className="text-yellow-400">
+    Join FinderB today.
+  </span>
+</h2>
             <p className="text-white/60 text-base sm:text-xl lg:text-2xl font-medium max-w-3xl mx-auto leading-relaxed">
               Join 50,000+ elite business owners already scaling their reach on India's premier discovery network.
             </p>
@@ -628,9 +684,5 @@ function HomeContent() {
 }
 
 export default function Home() {
-  return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <HomeContent />
-    </Suspense>
-  );
+  return <HomeContent />;
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { 
   HiOutlineSquares2X2,
@@ -539,13 +539,5 @@ function DashboardContent() {
 }
 
 export default function BusinessDashboard() {
-  return (
-    <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="w-10 h-10 border-[3px] border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    }>
-      <DashboardContent />
-    </Suspense>
-  );
+  return <DashboardContent />;
 }

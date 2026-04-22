@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -867,13 +867,5 @@ function RegisterFormContent() {
 }
 
 export default function BusinessRegisterPage() {
-  return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    }>
-      <RegisterFormContent />
-    </Suspense>
-  );
+  return <RegisterFormContent />;
 }

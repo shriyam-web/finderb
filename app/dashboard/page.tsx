@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect } from 'react';
 import {
   User as UserIcon,
   Settings,
@@ -267,13 +267,5 @@ function DashboardContent() {
 }
 
 export default function UserDashboard() {
-  return (
-    <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <div className="w-5 h-5 border-2 border-gray-200 border-t-gray-800 rounded-full animate-spin"></div>
-      </div>
-    }>
-      <DashboardContent />
-    </Suspense>
-  );
+  return <DashboardContent />;
 }
