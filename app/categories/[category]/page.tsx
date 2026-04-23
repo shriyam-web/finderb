@@ -11,10 +11,10 @@ export default async function CategoryPage({ params }: { params: Promise<{ categ
     getBusinessesByCategory(categorySlug)
   ]);
 
-  const allCategories = catResult.success ? catResult.categories : [];
+  const allCategories = catResult.success && catResult.categories ? catResult.categories : [];
   const currentCategory = allCategories.find((c: any) => c.slug === categorySlug) || { name: categorySlug === 'all' ? 'All Services' : categorySlug };
   
-  const filteredBusinesses = bizResult.success ? bizResult.businesses : [];
+  const filteredBusinesses = bizResult.success && bizResult.businesses ? bizResult.businesses : [];
 
   return (
     <div className="bg-accent/30 min-h-screen pt-24 pb-12 lg:pt-32">
