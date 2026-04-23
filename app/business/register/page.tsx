@@ -58,7 +58,7 @@ function RegisterFormContent() {
   useEffect(() => {
     async function fetchCats() {
       const res = await getCategories();
-      if (res.success) {
+      if (res.success && res.categories) {
         setLiveCategories(res.categories);
       }
     }
