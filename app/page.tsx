@@ -17,7 +17,8 @@ import {
 } from '@/lib/mockData';
 import { getFeaturedBusinesses } from '@/app/actions/business';
 import { getCategories } from '@/app/actions/category';
-import { Business, Category } from '@/lib/mockData';
+import { getMovies } from '@/app/actions/movie';
+import { Business, Category, Movie } from '@/lib/mockData';
 import * as LucideIcons from 'lucide-react';
 import { ArrowRight, CheckCircle2, Star, MapPin, Calendar, Play, ShieldCheck, Zap, Search, Phone, MessageSquare, Heart, Sparkles, History, X, Mic, Send } from 'lucide-react';
 import Link from 'next/link';
@@ -44,12 +45,14 @@ function HomeContent() {
   );
   const [realBusinesses, setRealBusinesses] = useState<Business[]>(mockFeaturedBusinesses);
   const [realCategories, setRealCategories] = useState<Category[]>(categories);
+  const [realMovies, setRealMovies] = useState<Movie[]>(movies);
 
   useEffect(() => {
     async function fetchData() {
-      const [bizResult, catResult] = await Promise.all([
+      const [bizResult, catResult, movieResult] = await Promise.all([
         getFeaturedBusinesses(),
-        getCategories()
+        getCategories(),
+        getMovies()
       ]);
 
       if (bizResult.success && bizResult.businesses && bizResult.businesses.length > 0) {
@@ -58,6 +61,10 @@ function HomeContent() {
 
       if (catResult.success && catResult.categories && catResult.categories.length > 0) {
         setRealCategories(catResult.categories);
+      }
+
+      if (movieResult.success && movieResult.movies && movieResult.movies.length > 0) {
+        setRealMovies(movieResult.movies);
       }
     }
     fetchData();
@@ -425,7 +432,7 @@ function HomeContent() {
             <Link href="/movies" className="text-xs sm:text-sm font-medium text-secondary hover:underline">See All</Link>
           </div>
           <div className="flex overflow-x-auto pb-4 lg:pb-8 gap-4 lg:gap-6 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
-            {movies.map((movie) => (
+            {realMovies.map((movie) => (
               <div key={movie.id} className="group cursor-pointer min-w-[160px] sm:min-w-[240px] shrink-0">
                 <div className="relative aspect-[2/3] rounded-xl sm:rounded-2xl overflow-hidden mb-3 sm:mb-4 shadow-lg bg-gray-100">
                   <Image
