@@ -1,15 +1,20 @@
-import { businesses, categories } from '@/lib/mockData';
+import { getCategories } from '@/app/actions/category';
+import { getBusinessesByCategory } from '@/app/actions/business';
 import BusinessCard from '@/components/BusinessCard';
 import { Filter, ChevronDown, Star, MapPin } from 'lucide-react';
 
 export default async function CategoryPage({ params }: { params: Promise<{ category: string }> }) {
   const categorySlug = (await params).category;
   
-  const currentCategory = categories.find(c => c.slug === categorySlug) || { name: 'All Services' };
+  const [catResult, bizResult] = await Promise.all([
+    getCategories(),
+    getBusinessesByCategory(categorySlug)
+  ]);
+
+  const allCategories = catResult.success ? catResult.categories : [];
+  const currentCategory = allCategories.find((c: any) => c.slug === categorySlug) || { name: categorySlug === 'all' ? 'All Services' : categorySlug };
   
-  const filteredBusinesses = categorySlug === 'all' 
-    ? businesses 
-    : businesses.filter(b => b.category.toLowerCase().replace(' ', '-') === categorySlug);
+  const filteredBusinesses = bizResult.success ? bizResult.businesses : [];
 
   return (
     <div className="bg-accent/30 min-h-screen pt-24 pb-12 lg:pt-32">

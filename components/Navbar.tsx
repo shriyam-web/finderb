@@ -55,7 +55,6 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
 
   const menuItems = [
     { name: 'Home', href: '/', icon: Home },
-    { name: 'FinderB Career', href: '/hirings', icon: Users },
     { name: 'Advertise', href: '/advertisements', icon: Megaphone },
     { name: 'About', href: '/about', icon: HelpCircle },
   ];

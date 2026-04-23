@@ -37,7 +37,8 @@ import {
   ChevronDown
 } from 'lucide-react';
 import { Globe } from 'lucide-react';
-import { categories } from '@/lib/mockData';
+import { categories as mockCategories } from '@/lib/mockData';
+import { getCategories } from '@/app/actions/category';
 
 const indianStates = [
   'Andaman and Nicobar Islands', 'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 
@@ -52,6 +53,17 @@ function RegisterFormContent() {
   const searchParams = useSearchParams();
   const [mobile, setMobile] = useState('');
   const [showForm, setShowForm] = useState(false);
+  const [liveCategories, setLiveCategories] = useState<any[]>(mockCategories);
+
+  useEffect(() => {
+    async function fetchCats() {
+      const res = await getCategories();
+      if (res.success) {
+        setLiveCategories(res.categories);
+      }
+    }
+    fetchCats();
+  }, []);
 
   useEffect(() => {
     const m = searchParams.get('mobile');
@@ -458,7 +470,7 @@ function RegisterFormContent() {
                           className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:bg-white focus:border-blue-600 outline-none font-semibold text-gray-900 transition-all appearance-none text-sm"
                         >
                           <option value="">Select category</option>
-                          {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                          {liveCategories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
                         </select>
                       </div>
                       <div className="group space-y-1.5">

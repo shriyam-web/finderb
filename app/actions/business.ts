@@ -246,3 +246,76 @@ export async function loginBusiness(email: string, password: string) {
     return { success: false, error: errorMessage };
   }
 }
+
+export async function getFeaturedBusinesses() {
+  try {
+    const supabase = createClient(await cookies());
+
+    const { data: businesses, error } = await supabase
+      .from('Business')
+      .select('*')
+      .limit(10);
+
+    if (error) {
+      throw error;
+    }
+
+    // Map DB fields to the expected Business interface
+    const mappedBusinesses = businesses.map((b: any) => ({
+      id: b.id,
+      name: b.businessName,
+      category: b.category,
+      rating: 4.5, // Default for now
+      reviewsCount: 0, // Default for now
+      location: b.location || b.city || 'Location not specified',
+      description: b.businessAddress,
+      contact: b.publicPhone,
+      services: [], // Default for now
+      image: 'https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&q=80&w=800', // Default placeholder
+      priceRange: b.selectedPlan === 'free' ? 'Free' : 'Premium'
+    }));
+
+    return { success: true, businesses: mappedBusinesses };
+  } catch (error: any) {
+    const errorMessage = handleError(error, 'Get Featured Businesses');
+    return { success: false, error: errorMessage };
+  }
+}
+
+export async function getBusinessesByCategory(categoryName: string) {
+  try {
+    const supabase = createClient(await cookies());
+
+    let query = supabase.from('Business').select('*');
+    
+    if (categoryName !== 'all') {
+      // Find the category to get the exact name if possible, or use the slug
+      query = query.ilike('category', `%${categoryName.replace(/-/g, ' ')}%`);
+    }
+
+    const { data: businesses, error } = await query;
+
+    if (error) {
+      throw error;
+    }
+
+    const mappedBusinesses = businesses.map((b: any) => ({
+      id: b.id,
+      name: b.businessName,
+      category: b.category,
+      rating: 4.5,
+      reviewsCount: 0,
+      location: b.location || b.city || 'Location not specified',
+      description: b.businessAddress,
+      contact: b.publicPhone,
+      services: [],
+      image: 'https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&q=80&w=800',
+      priceRange: b.selectedPlan === 'free' ? 'Free' : 'Premium'
+    }));
+
+    return { success: true, businesses: mappedBusinesses };
+  } catch (error: any) {
+    const errorMessage = handleError(error, 'Get Businesses By Category');
+    return { success: false, error: errorMessage };
+  }
+}

@@ -7,7 +7,7 @@ import CategoryCard from '@/components/CategoryCard';
 import BusinessCard from '@/components/BusinessCard';
 import {
   categories,
-  featuredBusinesses,
+  featuredBusinesses as mockFeaturedBusinesses,
   testimonials,
   cities,
   movies,
@@ -15,6 +15,9 @@ import {
   articles,
   newsArticles
 } from '@/lib/mockData';
+import { getFeaturedBusinesses } from '@/app/actions/business';
+import { getCategories } from '@/app/actions/category';
+import { Business, Category } from '@/lib/mockData';
 import * as LucideIcons from 'lucide-react';
 import { ArrowRight, CheckCircle2, Star, MapPin, Calendar, Play, ShieldCheck, Zap, Search, Phone, MessageSquare, Heart, Sparkles, History, X, Mic, Send } from 'lucide-react';
 import Link from 'next/link';
@@ -39,6 +42,26 @@ function HomeContent() {
   const [activeMobileTab, setActiveMobileTab] = useState(
     activeTabFromUrl === 'ai' ? 'AI Search' : 'Search'
   );
+  const [realBusinesses, setRealBusinesses] = useState<Business[]>(mockFeaturedBusinesses);
+  const [realCategories, setRealCategories] = useState<Category[]>(categories);
+
+  useEffect(() => {
+    async function fetchData() {
+      const [bizResult, catResult] = await Promise.all([
+        getFeaturedBusinesses(),
+        getCategories()
+      ]);
+
+      if (bizResult.success && bizResult.businesses && bizResult.businesses.length > 0) {
+        setRealBusinesses(bizResult.businesses);
+      }
+
+      if (catResult.success && catResult.categories && catResult.categories.length > 0) {
+        setRealCategories(catResult.categories);
+      }
+    }
+    fetchData();
+  }, []);
 
   useEffect(() => {
     if (activeTabFromUrl === 'ai') {
@@ -62,11 +85,11 @@ function HomeContent() {
   };
 
   const excludedSlugs = ['real-estate', 'admissions', 'b2b', 'job'];
-  const sortedCategories = [...categories]
+  const sortedCategories = [...realCategories]
     .filter(cat => !excludedSlugs.includes(cat.slug))
     .sort((a, b) => b.businessCount - a.businessCount);
-  const popularCategories = sortedCategories.slice(0, 12);
-  const otherCategories = sortedCategories.slice(12);
+  const popularCategories = sortedCategories.slice(0, 18);
+  const otherCategories = sortedCategories.slice(18);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -101,13 +124,14 @@ function HomeContent() {
       <section className="pt-20 lg:pt-28 bg-white">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
 
-          {/* 1 Row - 4 Cards */}
-          <div className="grid grid-cols-4 gap-2 sm:gap-3">
+          {/* 1 Row - 5 Cards */}
+          <div className="grid grid-cols-5 gap-2 sm:gap-3">
             {[
               { name: 'Real Estate', image: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&q=80&w=400', href: '/categories/real-estate' },
               { name: 'Admissions', image: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&q=80&w=400', href: '/categories/admissions' },
               { name: 'B2B', image: 'https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&q=80&w=400', href: '/categories/b2b' },
               { name: 'Job', image: 'https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?auto=format&fit=crop&q=80&w=400', href: '/categories/job' },
+              { name: 'FinderB News', image: 'https://images.unsplash.com/photo-1495020689067-958852a7765e?auto=format&fit=crop&q=80&w=400', href: '#news' },
             ].map((item) => (
               <Link
                 key={item.name}
@@ -206,7 +230,7 @@ function HomeContent() {
             </Link>
           </div>
 
-          <div className="grid grid-cols-4 lg:grid-cols-4 gap-2 sm:gap-6 mb-12">
+          <div className="grid grid-cols-6 sm:grid-cols-4 lg:grid-cols-6 gap-2 sm:gap-6 mb-12">
             {popularCategories.map((cat) => (
               <CategoryCard key={cat.id} category={cat} />
             ))}
@@ -227,32 +251,37 @@ function HomeContent() {
       <section className="py-20 bg-slate-50 overflow-hidden relative">
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-gray-200 to-transparent"></div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row justify-end mb-12 gap-8">
+          <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-6">
+            <h2 className="text-2xl sm:text-4xl font-extrabold text-primary tracking-tight w-full md:w-auto">
+              Recommended <span className="text-secondary">Merchants</span>
+            </h2>
             
             {/* Filters */}
-            <div className="flex items-center gap-4 bg-white/50 backdrop-blur-sm p-2 rounded-[2rem] border border-gray-100 shadow-sm">
-              <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-4 hidden sm:block">Filter by:</span>
-              <div className="flex flex-wrap gap-2">
-                {[
-                  { label: 'Top Rated', icon: Star },
-                  { label: 'Best Discount', icon: Zap },
-                  { label: 'Nearest', icon: MapPin },
-                ].map((filter) => (
-                  <button
-                    key={filter.label}
-                    className="px-5 py-2.5 rounded-2xl bg-white border border-gray-50 text-[10px] font-bold text-gray-500 hover:border-secondary/30 hover:text-secondary hover:shadow-lg hover:shadow-secondary/5 transition-all flex items-center gap-2 group whitespace-nowrap"
-                  >
-                    <filter.icon size={12} className="group-hover:scale-110 transition-transform text-secondary/70" />
-                    {filter.label}
-                  </button>
-                ))}
+            <div className="w-full md:w-auto overflow-x-auto pb-2 md:pb-0 scrollbar-hide">
+              <div className="flex items-center gap-3 bg-white/50 backdrop-blur-sm p-1.5 rounded-2xl md:rounded-[2rem] border border-gray-100 shadow-sm min-w-max">
+                <span className="text-[9px] font-black uppercase tracking-widest text-gray-400 ml-3 hidden sm:block">Filter:</span>
+                <div className="flex gap-2">
+                  {[
+                    { label: 'Top Rated', icon: Star },
+                    { label: 'Best Discount', icon: Zap },
+                    { label: 'Nearest', icon: MapPin },
+                  ].map((filter) => (
+                    <button
+                      key={filter.label}
+                      className="px-4 md:px-5 py-2 md:py-2.5 rounded-xl md:rounded-2xl bg-white border border-gray-50 text-[10px] font-bold text-gray-500 hover:border-secondary/30 hover:text-secondary hover:shadow-lg hover:shadow-secondary/5 transition-all flex items-center gap-2 group whitespace-nowrap"
+                    >
+                      <filter.icon size={12} className="group-hover:scale-110 transition-transform text-secondary/70" />
+                      {filter.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
 
           {/* Horizontal Scrolling List */}
           <div className="flex overflow-x-auto pb-12 gap-6 lg:gap-8 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
-            {featuredBusinesses.map((business) => (
+            {realBusinesses.map((business) => (
               <div key={business.id} className="min-w-[260px] sm:min-w-[320px] shrink-0">
                 <BusinessCard business={business} isPremium={true} compact={true} />
               </div>
@@ -471,7 +500,7 @@ function HomeContent() {
       </section>
 
       {/* FinderB News */}
-      <section className="py-16 lg:py-24 bg-slate-50 relative overflow-hidden">
+      <section id="news" className="py-16 lg:py-24 bg-slate-50 relative overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent"></div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row items-end justify-between mb-12 gap-6">
