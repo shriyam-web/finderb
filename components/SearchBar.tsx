@@ -14,10 +14,62 @@ export default function SearchBar() {
   const [transcript, setTranscript] = useState('');
 
   useEffect(() => {
-    if (!location) {
+    async function detectLocation() {
+      try {
+        // Try to get location from IP first for a smooth experience
+        const response = await fetch('https://ipapi.co/json/');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.city) {
+            setLocation(data.city);
+            return;
+          }
+        }
+      } catch (error) {
+        console.error('Error detecting location via IP:', error);
+      }
+      
+      // Fallback to default if IP detection fails
+      if (!location) {
+        setLocation('Delhi');
+      }
+    }
+
+    detectLocation();
+  }, []);
+
+  const detectExactLocation = () => {
+    setLocation('Detecting...');
+    if (typeof window !== 'undefined' && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          try {
+            const { latitude, longitude } = position.coords;
+            // Use reverse geocoding to get city name
+            const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
+            if (response.ok) {
+              const data = await response.json();
+              const city = data.address.city || data.address.town || data.address.village || data.address.state;
+              if (city) {
+                setLocation(city);
+                return;
+              }
+            }
+            setLocation('Delhi');
+          } catch (error) {
+            console.error('Error reverse geocoding:', error);
+            setLocation('Delhi');
+          }
+        },
+        (error) => {
+          console.error('Geolocation error:', error);
+          setLocation('Delhi');
+        }
+      );
+    } else {
       setLocation('Delhi');
     }
-  }, []);
+  };
 
   const [currentPlaceholderIndex, setCurrentPlaceholderIndex] = useState(0);
 
@@ -131,14 +183,17 @@ export default function SearchBar() {
           <button 
             className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-secondary transition-colors"
             title="Detect my location"
-            onClick={() => setLocation('Detecting...')}
+            onClick={detectExactLocation}
           >
             <ChevronDown size={18} />
           </button>
           
           {showLocationSuggestions && (
             <div className="absolute top-[calc(100%+8px)] left-0 right-0 bg-white border border-gray-100 rounded-2xl shadow-2xl overflow-hidden z-20 p-3 animate-in fade-in slide-in-from-top-2 duration-200">
-              <div className="flex items-center gap-2 px-3 py-2 mb-2 text-secondary bg-secondary/5 rounded-xl cursor-pointer hover:bg-secondary/10 transition-colors">
+              <div 
+                onClick={detectExactLocation}
+                className="flex items-center gap-2 px-3 py-2 mb-2 text-secondary bg-secondary/5 rounded-xl cursor-pointer hover:bg-secondary/10 transition-colors"
+              >
                 <MapPin size={14} />
                 <span className="text-xs font-bold uppercase tracking-wider">Detect Current Location</span>
               </div>
