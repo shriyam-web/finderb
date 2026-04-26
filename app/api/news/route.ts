@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
     
     // Map categories to more reliable RSS feeds that provide descriptions
     const categoryFeeds: Record<string, string> = {
-      technology: "https://www.thehindu.com/sci-tech/technology/feeder/default.rss",
+      technology: "https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml",
       business: "https://economictimes.indiatimes.com/rssfeedsdefault.cms",
       startups: "https://yourstory.com/feed",
       local: "https://www.thehindu.com/news/national/feeder/default.rss"
@@ -18,7 +18,15 @@ export async function GET(request: NextRequest) {
 
     const feedUrl = categoryFeeds[category.toLowerCase()] || `https://news.google.com/rss/search?q=${encodeURIComponent(category + " India")}&hl=en-IN&gl=IN&ceid=IN:en`;
     
-    const feed = await parser.parseURL(feedUrl);
+    let feed;
+    try {
+      feed = await parser.parseURL(feedUrl);
+    } catch (error) {
+      console.error(`Error parsing primary feed ${feedUrl}:`, error);
+      // Fallback to Google News if primary feed fails
+      const fallbackUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(category + " India")}&hl=en-IN&gl=IN&ceid=IN:en`;
+      feed = await parser.parseURL(fallbackUrl);
+    }
 
     const techImages = [
       "https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&q=80&w=800",
@@ -33,7 +41,15 @@ export async function GET(request: NextRequest) {
       "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?auto=format&fit=crop&q=80&w=800",
     ];
 
-    const articles = feed.items.slice(0, 10).map((item, index) => {
+    const items = Array.isArray(feed.items) ? feed.items.slice(0, 10) : [];
+    if (items.length === 0) {
+      return NextResponse.json(
+        { success: false, error: 'No news items were found for this category' },
+        { status: 502 }
+      );
+    }
+
+    const articles = items.map((item, index) => {
       // Google News description often contains HTML lists of related articles. 
       // We try to extract a meaningful snippet or clean the HTML.
       let snippet = item.contentSnippet || item.content || "";
