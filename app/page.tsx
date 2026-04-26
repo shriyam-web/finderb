@@ -49,6 +49,7 @@ function HomeContent() {
   const [realMovies, setRealMovies] = useState<Movie[]>(movies);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isAiLoading, setIsAiLoading] = useState(false);
+  const [aiLoadProgress, setAiLoadProgress] = useState(0);
   const [protectedTab, setProtectedTab] = useState<string | null>(null);
 
   useEffect(() => {
@@ -94,14 +95,29 @@ function HomeContent() {
 
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout>;
+    let interval: ReturnType<typeof setInterval>;
+
     if (activeMobileTab === 'FinderB AI' && isAiLoading) {
+      setAiLoadProgress(0);
+      interval = setInterval(() => {
+        setAiLoadProgress((prev) => {
+          const next = Math.min(prev + 6, 100);
+          return next;
+        });
+      }, 120);
+
       timer = setTimeout(() => {
+        setAiLoadProgress(100);
         setIsAiLoading(false);
         setActiveMobileTab('AI Search');
         router.push('/?tab=ai', { scroll: false });
       }, 2200);
     }
-    return () => clearTimeout(timer);
+
+    return () => {
+      clearTimeout(timer);
+      clearInterval(interval);
+    };
   }, [activeMobileTab, isAiLoading, router]);
 
   const handleTabChange = (label: string) => {
@@ -116,6 +132,7 @@ function HomeContent() {
     if (label === 'FinderB AI') {
       setProtectedTab(null);
       setActiveMobileTab('FinderB AI');
+      setAiLoadProgress(0);
       setIsAiLoading(true);
       router.push('/?tab=finderb-ai', { scroll: false });
       return;
@@ -667,10 +684,24 @@ function HomeContent() {
             </p>
           </div>
 
-          <div className="mt-10 w-full max-w-xs space-y-4">
+          <div className="mt-10 w-full max-w-md space-y-4">
             <div className="rounded-[2rem] bg-white/10 border border-white/10 p-5 text-white/80 text-sm font-semibold text-center">
               Stand by while our assistant gets sharper and more useful.
             </div>
+
+            <div className="space-y-3">
+              <div className="flex items-center justify-between text-sm text-white/80 font-semibold">
+                <span>Loading progress</span>
+                <span>{aiLoadProgress}%</span>
+              </div>
+              <div className="h-3 rounded-full bg-white/10 overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-secondary transition-all duration-300"
+                  style={{ width: `${aiLoadProgress}%` }}
+                />
+              </div>
+            </div>
+
             <button
               onClick={() => handleTabChange('Home')}
               className="w-full bg-secondary text-white py-4 rounded-[2rem] font-black uppercase tracking-widest text-xs shadow-2xl shadow-black/20 hover:scale-105 active:scale-95 transition-all"
