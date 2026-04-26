@@ -18,6 +18,7 @@ import {
 import { getFeaturedBusinesses } from '@/app/actions/business';
 import { getCategories } from '@/app/actions/category';
 import { getMovies } from '@/app/actions/movie';
+import { getSession } from '@/app/actions/user';
 import { Business, Category, Movie } from '@/lib/mockData';
 import * as LucideIcons from 'lucide-react';
 import { ArrowRight, CheckCircle2, Star, MapPin, Calendar, Play, ShieldCheck, Zap, Search, Phone, MessageSquare, Heart, Sparkles, History, X, Mic, Send } from 'lucide-react';
@@ -46,6 +47,9 @@ function HomeContent() {
   const [realBusinesses, setRealBusinesses] = useState<Business[]>(mockFeaturedBusinesses);
   const [realCategories, setRealCategories] = useState<Category[]>(categories);
   const [realMovies, setRealMovies] = useState<Movie[]>(movies);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isAiLoading, setIsAiLoading] = useState(false);
+  const [protectedTab, setProtectedTab] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchData() {
@@ -80,19 +84,63 @@ function HomeContent() {
     }
   }, [activeTabFromUrl]);
 
+  useEffect(() => {
+    const checkSession = async () => {
+      const result = await getSession();
+      setIsLoggedIn(!!result?.success);
+    };
+    checkSession();
+  }, []);
+
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout>;
+    if (activeMobileTab === 'FinderB AI' && isAiLoading) {
+      timer = setTimeout(() => {
+        setIsAiLoading(false);
+        setActiveMobileTab('AI Search');
+        router.push('/?tab=ai', { scroll: false });
+      }, 2200);
+    }
+    return () => clearTimeout(timer);
+  }, [activeMobileTab, isAiLoading, router]);
+
   const handleTabChange = (label: string) => {
-    setActiveMobileTab(label);
-    if (label === 'AI Search') {
-      router.push('/?tab=ai', { scroll: false });
-    } else if (label === 'FinderB AI') {
-      router.push('/?tab=finderb-ai', { scroll: false });
-    } else if (label === 'Home') {
+    if (label === 'Home') {
+      setProtectedTab(null);
+      setActiveMobileTab('Home');
       router.push('/', { scroll: false });
       window.scrollTo({ top: 0, behavior: 'smooth' });
-    } else {
-      // For History and Saved, we can just set the tab for now
-      // or navigate if there are specific pages
+      return;
     }
+
+    if (label === 'FinderB AI') {
+      setProtectedTab(null);
+      setActiveMobileTab('FinderB AI');
+      setIsAiLoading(true);
+      router.push('/?tab=finderb-ai', { scroll: false });
+      return;
+    }
+
+    if (label === 'AI Search') {
+      setProtectedTab(null);
+      setActiveMobileTab('AI Search');
+      router.push('/?tab=ai', { scroll: false });
+      return;
+    }
+
+    if (label === 'History' || label === 'Saved') {
+      if (!isLoggedIn) {
+        setProtectedTab(label);
+        setActiveMobileTab(label);
+        return;
+      }
+      setProtectedTab(null);
+      setActiveMobileTab(label);
+      router.push(`/?tab=${label.toLowerCase()}`, { scroll: false });
+      return;
+    }
+
+    setActiveMobileTab(label);
   };
 
   const excludedSlugs = ['real-estate', 'admissions', 'b2b', 'job'];
@@ -119,15 +167,6 @@ function HomeContent() {
       return () => clearTimeout(timer);
     }
   }, [index]);
-
-  useEffect(() => {
-    if (activeMobileTab === 'FinderB AI') {
-      const timer = setTimeout(() => {
-        handleTabChange('AI Search');
-      }, 3000); // 3 seconds delay
-      return () => clearTimeout(timer);
-    }
-  }, [activeMobileTab]);
 
   return (
     <div className="flex flex-col bg-white selection:bg-primary/10">
@@ -389,7 +428,7 @@ function HomeContent() {
       <div className="fixed bottom-0 left-0 w-full z-[100] md:hidden bg-white/95 backdrop-blur-2xl border-t border-slate-200">
         <div className="flex items-center justify-around p-1 pb-safe">
           {[
-            { icon: Search, label: 'Search' },
+            { icon: Search, label: 'Home' },
             { icon: Sparkles, label: 'FinderB AI' },
             { icon: History, label: 'History' },
             { icon: Heart, label: 'Saved' },
@@ -402,7 +441,7 @@ function HomeContent() {
                 : 'text-slate-400 hover:text-slate-600'
                 }`}
             >
-              {item.label === 'FinderB Ai' && activeMobileTab !== 'FinderB Ai' && (
+              {item.label === 'FinderB AI' && activeMobileTab !== 'FinderB AI' && (
                 <span className="absolute -top-1 -right-1 flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-secondary"></span>
@@ -601,41 +640,95 @@ function HomeContent() {
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[radial-gradient(circle_at_center,rgba(0,186,242,0.05),transparent_70%)]"></div>
       </section>
 
-      {/* FinderB AI Modal */}
-      {activeMobileTab === 'FinderB Ai' && (
-        <div className="fixed inset-0 z-[1000] bg-primary/40 backdrop-blur-2xl md:hidden flex flex-col items-center justify-center p-8 transition-all duration-700 animate-in fade-in zoom-in-95">
+      {/* FinderB AI loader */}
+      {activeMobileTab === 'FinderB AI' && isAiLoading && (
+        <div className="fixed inset-0 z-[1000] bg-primary/95 backdrop-blur-2xl md:hidden flex flex-col items-center justify-center p-8 transition-all duration-700 animate-in fade-in zoom-in-95">
           <button
-            onClick={() => handleTabChange('Search')}
-            className="absolute top-10 right-8 text-white/50 hover:text-white transition-colors p-3 bg-white/10 rounded-full"
+            onClick={() => handleTabChange('Home')}
+            className="absolute top-10 right-8 text-white/60 hover:text-white transition-colors p-3 bg-white/10 rounded-full"
           >
             <X size={28} />
           </button>
 
-          <div className="relative group mb-12">
-            <div className="absolute inset-0 bg-gradient-to-tr from-secondary via-purple-600 to-pink-500 blur-[80px] opacity-60 group-hover:opacity-100 transition-opacity animate-pulse"></div>
-            <div className="relative w-32 h-32 bg-white rounded-[2.5rem] flex items-center justify-center shadow-2xl transform hover:scale-110 transition-transform duration-700">
-              <Sparkles size={60} className="text-secondary animate-bounce" />
-            </div>
-          </div>
-
-          <div className="text-center space-y-6 max-w-sm">
-            <h2 className="text-5xl font-black text-white tracking-tighter leading-tight">FinderB <span className="text-secondary">AI</span> is <br />Almost Ready.</h2>
-            <p className="text-white/60 font-medium text-lg leading-relaxed">We're training India's most powerful service assistant just for you.</p>
-          </div>
-
-          <div className="mt-16 w-full max-w-xs space-y-4">
-            <div className="bg-white/5 border border-white/10 rounded-[2rem] p-6 backdrop-blur-md">
-              <div className="flex items-center gap-4 text-white">
-                <div className="w-2 h-2 rounded-full bg-secondary animate-ping"></div>
-                <span className="text-[10px] font-black uppercase tracking-[0.2em]">Learning from 1M+ requests...</span>
+          <div className="relative mb-12">
+            <div className="absolute inset-0 bg-gradient-to-tr from-secondary via-purple-600 to-pink-500 blur-[120px] opacity-80 animate-pulse"></div>
+            <div className="relative w-36 h-36 rounded-full bg-white/10 border border-white/20 flex items-center justify-center shadow-2xl overflow-hidden">
+              <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-secondary via-purple-500 to-blue-500 opacity-60 animate-spin"></div>
+              <div className="relative w-20 h-20 rounded-full bg-primary flex items-center justify-center shadow-xl">
+                <Sparkles size={48} className="text-secondary animate-pulse" />
               </div>
             </div>
+          </div>
 
+          <div className="text-center space-y-5 max-w-md">
+            <h2 className="text-4xl sm:text-5xl font-black text-white tracking-tight">FinderB AI is loading</h2>
+            <p className="text-white/75 font-medium text-sm sm:text-base leading-relaxed">
+              Preparing a very cool AI experience for you. This will only take a moment.
+            </p>
+          </div>
+
+          <div className="mt-10 w-full max-w-xs space-y-4">
+            <div className="rounded-[2rem] bg-white/10 border border-white/10 p-5 text-white/80 text-sm font-semibold text-center">
+              Stand by while our assistant gets sharper and more useful.
+            </div>
             <button
-              onClick={() => handleTabChange('Search')}
-              className="w-full bg-white text-primary py-5 rounded-[2rem] font-black uppercase tracking-widest text-xs shadow-2xl shadow-black/20 hover:scale-105 active:scale-95 transition-all"
+              onClick={() => handleTabChange('Home')}
+              className="w-full bg-secondary text-white py-4 rounded-[2rem] font-black uppercase tracking-widest text-xs shadow-2xl shadow-black/20 hover:scale-105 active:scale-95 transition-all"
             >
-              Take me back
+              Return Home
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Auth prompt for protected tabs */}
+      {protectedTab && !isLoggedIn && (
+        <div className="fixed inset-0 z-[1002] bg-black/70 md:hidden flex items-center justify-center p-6">
+          <div className="w-full max-w-md rounded-[2rem] bg-white shadow-2xl border border-slate-200 p-8 text-center">
+            <div className="mb-6 rounded-full bg-secondary/10 inline-flex p-4">
+              {protectedTab === 'Saved' ? <Heart size={28} className="text-secondary" /> : <History size={28} className="text-secondary" />}
+            </div>
+            <h2 className="text-2xl font-black text-primary mb-3">Please Sign in first</h2>
+            <p className="text-sm text-slate-500 mb-6">
+              You need to sign in to access your {protectedTab.toLowerCase()} section.
+            </p>
+            <button
+              onClick={() => router.push('/login')}
+              className="w-full bg-secondary text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs hover:shadow-xl transition-all"
+            >
+              Go to Sign In Page
+            </button>
+            <button
+              onClick={() => {
+                setProtectedTab(null);
+                setActiveMobileTab('Home');
+              }}
+              className="w-full mt-4 border border-slate-200 text-slate-700 py-4 rounded-2xl font-semibold uppercase tracking-widest text-xs hover:bg-slate-50 transition-all"
+            >
+              Back to Home
+            </button>
+          </div>
+        </div>
+      )}
+
+      {(activeMobileTab === 'History' || activeMobileTab === 'Saved') && isLoggedIn && (
+        <div className="fixed inset-0 z-[1002] bg-black/70 md:hidden flex items-center justify-center p-6">
+          <div className="w-full max-w-md rounded-[2rem] bg-white shadow-2xl border border-slate-200 p-8 text-center">
+            <div className="mb-6 rounded-full bg-secondary/10 inline-flex p-4">
+              {activeMobileTab === 'Saved' ? <Heart size={28} className="text-secondary" /> : <History size={28} className="text-secondary" />}
+            </div>
+            <h2 className="text-2xl font-black text-primary mb-3">{activeMobileTab}</h2>
+            <p className="text-sm text-slate-500 mb-6">
+              Your {activeMobileTab.toLowerCase()} will appear here once you have saved items or history.
+            </p>
+            <button
+              onClick={() => {
+                setActiveMobileTab('Home');
+                router.push('/', { scroll: false });
+              }}
+              className="w-full bg-secondary text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs hover:shadow-xl transition-all"
+            >
+              Back to Home
             </button>
           </div>
         </div>
