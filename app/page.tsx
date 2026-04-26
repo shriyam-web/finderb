@@ -52,16 +52,17 @@ function HomeContent() {
   const [aiLoadProgress, setAiLoadProgress] = useState(0);
   const [protectedTab, setProtectedTab] = useState<string | null>(null);
 
-  const aiLoadStage =
-    aiLoadProgress < 20
-      ? 'Initializing assistant'
-      : aiLoadProgress < 45
-      ? 'Loading knowledge base'
-      : aiLoadProgress < 70
-      ? 'Tuning suggestions'
-      : aiLoadProgress < 90
-      ? 'Checking search quality'
-      : 'Ready to launch';
+  const aiLoadStages = [
+    { threshold: 15, label: 'Initializing assistant' },
+    { threshold: 40, label: 'Loading knowledge base' },
+    { threshold: 65, label: 'Tuning suggestions' },
+    { threshold: 90, label: 'Checking search quality' },
+    { threshold: 100, label: 'Ready to launch' }
+  ];
+
+  const aiLoadStage = aiLoadStages.find(stage => aiLoadProgress <= stage.threshold)?.label || 'Launching';
+
+  const visibleAiTasks = aiLoadStages.filter(stage => aiLoadProgress >= stage.threshold - 15);
 
   useEffect(() => {
     async function fetchData() {
@@ -698,12 +699,25 @@ function HomeContent() {
                   style={{ width: `${aiLoadProgress}%` }}
                 />
               </div>
-              <div className="grid grid-cols-2 gap-2 text-[11px] uppercase tracking-[0.26em] text-white/40">
-                <span className={aiLoadProgress >= 10 ? 'text-white' : 'text-white/30'}>Init</span>
-                <span className={aiLoadProgress >= 35 ? 'text-white' : 'text-white/30'}>Knowledge</span>
-                <span className={aiLoadProgress >= 65 ? 'text-white' : 'text-white/30'}>Tuning</span>
-                <span className={aiLoadProgress >= 90 ? 'text-white' : 'text-white/30'}>Launch</span>
+              <div className="grid grid-cols-2 gap-3 text-[11px] uppercase tracking-[0.26em] text-white/40">
+                {aiLoadStages.map((stage) => (
+                  <span
+                    key={stage.label}
+                    className={aiLoadProgress >= stage.threshold ? 'text-white font-semibold' : 'text-white/30'}
+                  >
+                    {stage.label.split(' ')[0]}
+                  </span>
+                ))}
               </div>
+            </div>
+
+            <div className="rounded-[2rem] bg-white/5 border border-white/10 p-4 text-left text-sm text-white/70 space-y-2">
+              {visibleAiTasks.map((stage) => (
+                <div key={stage.label} className="flex items-center gap-2">
+                  <span className="h-2.5 w-2.5 rounded-full bg-secondary" />
+                  <span>{stage.label}</span>
+                </div>
+              ))}
             </div>
 
             <button
