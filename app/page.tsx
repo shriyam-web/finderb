@@ -52,6 +52,17 @@ function HomeContent() {
   const [aiLoadProgress, setAiLoadProgress] = useState(0);
   const [protectedTab, setProtectedTab] = useState<string | null>(null);
 
+  const aiLoadStage =
+    aiLoadProgress < 20
+      ? 'Initializing assistant'
+      : aiLoadProgress < 45
+      ? 'Loading knowledge base'
+      : aiLoadProgress < 70
+      ? 'Tuning suggestions'
+      : aiLoadProgress < 90
+      ? 'Checking search quality'
+      : 'Ready to launch';
+
   useEffect(() => {
     async function fetchData() {
       const [bizResult, catResult, movieResult] = await Promise.all([
@@ -660,14 +671,7 @@ function HomeContent() {
       {/* FinderB AI loader */}
       {activeMobileTab === 'FinderB AI' && isAiLoading && (
         <div className="fixed inset-0 z-[1000] bg-primary/95 backdrop-blur-2xl md:hidden flex flex-col items-center justify-center p-8 transition-all duration-700 animate-in fade-in zoom-in-95">
-          <button
-            onClick={() => handleTabChange('Home')}
-            className="absolute top-10 right-8 text-white/60 hover:text-white transition-colors p-3 bg-white/10 rounded-full"
-          >
-            <X size={28} />
-          </button>
-
-          <div className="relative mb-12">
+              <div className="relative mb-12">
             <div className="absolute inset-0 bg-gradient-to-tr from-secondary via-purple-600 to-pink-500 blur-[120px] opacity-80 animate-pulse"></div>
             <div className="relative w-36 h-36 rounded-full bg-white/10 border border-white/20 flex items-center justify-center shadow-2xl overflow-hidden">
               <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-secondary via-purple-500 to-blue-500 opacity-60 animate-spin"></div>
@@ -677,21 +681,15 @@ function HomeContent() {
             </div>
           </div>
 
-          <div className="text-center space-y-5 max-w-md">
+          <div className="text-center space-y-4 max-w-md">
             <h2 className="text-4xl sm:text-5xl font-black text-white tracking-tight">FinderB AI is loading</h2>
-            <p className="text-white/75 font-medium text-sm sm:text-base leading-relaxed">
-              Preparing a very cool AI experience for you. This will only take a moment.
-            </p>
+            <p className="text-white/70 font-medium text-sm sm:text-base">Getting your smart search ready.</p>
           </div>
 
           <div className="mt-10 w-full max-w-md space-y-4">
-            <div className="rounded-[2rem] bg-white/10 border border-white/10 p-5 text-white/80 text-sm font-semibold text-center">
-              Stand by while our assistant gets sharper and more useful.
-            </div>
-
             <div className="space-y-3">
               <div className="flex items-center justify-between text-sm text-white/80 font-semibold">
-                <span>Loading progress</span>
+                <span>{aiLoadStage}</span>
                 <span>{aiLoadProgress}%</span>
               </div>
               <div className="h-3 rounded-full bg-white/10 overflow-hidden">
@@ -699,6 +697,12 @@ function HomeContent() {
                   className="h-full rounded-full bg-secondary transition-all duration-300"
                   style={{ width: `${aiLoadProgress}%` }}
                 />
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-[11px] uppercase tracking-[0.26em] text-white/40">
+                <span className={aiLoadProgress >= 10 ? 'text-white' : 'text-white/30'}>Init</span>
+                <span className={aiLoadProgress >= 35 ? 'text-white' : 'text-white/30'}>Knowledge</span>
+                <span className={aiLoadProgress >= 65 ? 'text-white' : 'text-white/30'}>Tuning</span>
+                <span className={aiLoadProgress >= 90 ? 'text-white' : 'text-white/30'}>Launch</span>
               </div>
             </div>
 
