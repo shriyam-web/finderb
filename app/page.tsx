@@ -20,7 +20,7 @@ import { getCategories } from '@/app/actions/category';
 import { getMovies } from '@/app/actions/movie';
 import { Business, Category, Movie } from '@/lib/mockData';
 import * as LucideIcons from 'lucide-react';
-import { ArrowRight, CheckCircle2, Star, MapPin, Calendar, Play, ShieldCheck, Zap, Search, Phone, MessageSquare, Heart, Sparkles, History, X, Mic, Send } from 'lucide-react';
+import { ArrowRight, CheckCircle2, Star, MapPin, Calendar, Play, ShieldCheck, Zap, Search, Phone, MessageSquare, Heart, Sparkles, History, X, Mic, Send, Home } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 
@@ -41,7 +41,7 @@ function HomeContent() {
   const activeTabFromUrl = searchParams.get('tab');
 
   const [activeMobileTab, setActiveMobileTab] = useState(
-    activeTabFromUrl === 'ai' ? 'AI Search' : 'Search'
+    activeTabFromUrl === 'ai' ? 'AI Search' : 'Home'
   );
   const [realBusinesses, setRealBusinesses] = useState<Business[]>(mockFeaturedBusinesses);
   const [realCategories, setRealCategories] = useState<Category[]>(categories);
@@ -76,7 +76,7 @@ function HomeContent() {
     } else if (activeTabFromUrl === 'finderb-ai') {
       setActiveMobileTab('FinderB AI');
     } else {
-      setActiveMobileTab('Search');
+      setActiveMobileTab('Home');
     }
   }, [activeTabFromUrl]);
 
@@ -86,8 +86,12 @@ function HomeContent() {
       router.push('/?tab=ai', { scroll: false });
     } else if (label === 'FinderB AI') {
       router.push('/?tab=finderb-ai', { scroll: false });
-    } else {
+    } else if (label === 'Home') {
       router.push('/', { scroll: false });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      // For History and Saved, we can just set the tab for now
+      // or navigate if there are specific pages
     }
   };
 
