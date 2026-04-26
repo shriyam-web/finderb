@@ -42,6 +42,15 @@ import { getCategories } from '@/app/actions/category';
 import { Country, State, City } from 'country-state-city';
 import { SearchableSelect } from '@/components/SearchableSelect';
 
+function getCountryFlag(isoCode: string) {
+  if (!isoCode) return '';
+  return isoCode
+    .toUpperCase()
+    .split('')
+    .map((char) => String.fromCodePoint(0x1f1e6 + char.charCodeAt(0) - 65))
+    .join('');
+}
+
 function RegisterFormContent() {
   const searchParams = useSearchParams();
   const [mobile, setMobile] = useState('');
@@ -91,7 +100,7 @@ function RegisterFormContent() {
   });
 
   const countryOptions = Country.getAllCountries().map(c => ({
-    label: c.name,
+    label: `${getCountryFlag(c.isoCode)} ${c.name}`,
     value: c.isoCode
   }));
 
