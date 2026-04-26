@@ -2,15 +2,37 @@
 
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { Calendar, ArrowRight } from 'lucide-react';
+import { 
+  Calendar, 
+  ArrowRight, 
+  Cpu, 
+  Briefcase, 
+  Trophy, 
+  Target, 
+  Film, 
+  Scale, 
+  Home, 
+  MapPin, 
+  Rocket 
+} from 'lucide-react';
 import { NewsArticle } from '@/lib/mockData';
 
-const NEWS_CATEGORIES = ['Technology', 'Business', 'Sports', 'Cricket', 'Bollywood', 'Politics', 'Real Estate', 'Local', 'Startups'];
+const NEWS_CATEGORIES = [
+  { name: 'Technology', icon: Cpu },
+  { name: 'Business', icon: Briefcase },
+  { name: 'Sports', icon: Trophy },
+  { name: 'Cricket', icon: Target },
+  { name: 'Bollywood', icon: Film },
+  { name: 'Politics', icon: Scale },
+  { name: 'Real Estate', icon: Home },
+  { name: 'Local', icon: MapPin },
+  { name: 'Startups', icon: Rocket },
+];
 
 export default function NewsWidget() {
   const [news, setNews] = useState<NewsArticle[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedCategory, setSelectedCategory] = useState<string>(NEWS_CATEGORIES[0]);
+  const [selectedCategory, setSelectedCategory] = useState<string>(NEWS_CATEGORIES[0].name);
 
   const fetchNews = async (category: string) => {
     setLoading(true);
@@ -67,15 +89,16 @@ export default function NewsWidget() {
         <div className="flex overflow-x-auto gap-2 pb-2 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
           {categories.map((category) => (
             <button
-              key={category}
-              onClick={() => setSelectedCategory(category)}
-              className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all whitespace-nowrap border ${
-                selectedCategory === category
+              key={category.name}
+              onClick={() => setSelectedCategory(category.name)}
+              className={`px-3 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-wider transition-all whitespace-nowrap border flex items-center gap-1.5 ${
+                selectedCategory === category.name
                   ? 'bg-secondary text-white border-secondary shadow-md scale-105'
                   : 'bg-white text-slate-500 border-slate-100 hover:border-secondary/30 hover:text-secondary'
               }`}
             >
-              {category}
+              <category.icon size={12} />
+              {category.name}
             </button>
           ))}
         </div>
@@ -106,15 +129,16 @@ export default function NewsWidget() {
       <div className="flex overflow-x-auto gap-2 pb-2 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
         {categories.map((category) => (
           <button
-            key={category}
-            onClick={() => setSelectedCategory(category)}
-            className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all whitespace-nowrap border ${
-              selectedCategory === category
+            key={category.name}
+            onClick={() => setSelectedCategory(category.name)}
+            className={`px-3 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-wider transition-all whitespace-nowrap border flex items-center gap-1.5 ${
+              selectedCategory === category.name
                 ? 'bg-secondary text-white border-secondary shadow-md scale-105'
                 : 'bg-white text-slate-500 border-slate-100 hover:border-secondary/30 hover:text-secondary'
             }`}
           >
-            {category}
+            <category.icon size={12} />
+            {category.name}
           </button>
         ))}
       </div>
