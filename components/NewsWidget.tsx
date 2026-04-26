@@ -45,6 +45,7 @@ export default function NewsWidget() {
             <div className="h-2 bg-slate-200 rounded w-full mb-1"></div>
             <div className="h-2 bg-slate-200 rounded w-full mb-1"></div>
             <div className="h-2 bg-slate-200 rounded w-full mb-1"></div>
+            <div className="h-2 bg-slate-200 rounded w-full mb-1"></div>
             <div className="h-2 bg-slate-200 rounded w-5/6"></div>
           </div>
         ))}
@@ -105,7 +106,7 @@ export default function NewsWidget() {
             </h3>
           </div>
 
-          <div className="h-[90px] mb-4 overflow-hidden">
+          <div className="h-[110px] mb-4 overflow-hidden">
             <p className="text-slate-500 text-[11px] sm:text-[10px] font-medium line-clamp-6 leading-relaxed">
               {item.excerpt}
             </p>

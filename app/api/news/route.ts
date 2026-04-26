@@ -7,9 +7,18 @@ export async function GET(request: NextRequest) {
     const category = searchParams.get('category') || 'technology';
 
     const parser = new Parser();
-    const feed = await parser.parseURL(
-      `https://news.google.com/rss/search?q=${encodeURIComponent(category + " India")}&hl=en-IN&gl=IN&ceid=IN:en`
-    );
+    
+    // Map categories to more reliable RSS feeds that provide descriptions
+    const categoryFeeds: Record<string, string> = {
+      technology: "https://gadgets360.com/rss/feeds",
+      business: "https://economictimes.indiatimes.com/rssfeedsdefault.cms",
+      startups: "https://yourstory.com/feed",
+      local: "https://www.thehindu.com/news/national/feeder/default.rss"
+    };
+
+    const feedUrl = categoryFeeds[category.toLowerCase()] || `https://news.google.com/rss/search?q=${encodeURIComponent(category + " India")}&hl=en-IN&gl=IN&ceid=IN:en`;
+    
+    const feed = await parser.parseURL(feedUrl);
 
     const techImages = [
       "https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&q=80&w=800",
@@ -24,16 +33,32 @@ export async function GET(request: NextRequest) {
       "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?auto=format&fit=crop&q=80&w=800",
     ];
 
-    const articles = feed.items.slice(0, 10).map((item, index) => ({
-      id: item.guid || item.link || Math.random().toString(),
-      title: item.title,
-      link: item.link,
-      excerpt: item.contentSnippet || item.content || "",
-      date: item.pubDate ? new Date(item.pubDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : "Recently",
-      category: category.charAt(0).toUpperCase() + category.slice(1),
-      source: (item as any).source?.title || "News",
-      image: `${techImages[index % techImages.length]}&sig=${index}`,
-    }));
+    const articles = feed.items.slice(0, 10).map((item, index) => {
+      // Google News description often contains HTML lists of related articles. 
+      // We try to extract a meaningful snippet or clean the HTML.
+      let snippet = item.contentSnippet || item.content || "";
+      
+      // If it looks like HTML, try to strip it roughly if contentSnippet didn't
+      if (snippet.includes('<')) {
+        snippet = snippet.replace(/<[^>]*>?/gm, ' ').replace(/\s+/g, ' ').trim();
+      }
+
+      // If snippet is too short or just contains "This RSS feed...", clear it
+      if (snippet.length < 20 || snippet.includes('RSS feed')) {
+        snippet = item.title || ""; // Fallback to title if no description
+      }
+
+      return {
+        id: item.guid || item.link || Math.random().toString(),
+        title: item.title,
+        link: item.link,
+        excerpt: snippet,
+        date: item.pubDate ? new Date(item.pubDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : "Recently",
+        category: category.charAt(0).toUpperCase() + category.slice(1),
+        source: (item as any).source?.title || feed.title?.split(' - ')[0] || "News",
+        image: `${techImages[index % techImages.length]}&sig=${index}`,
+      };
+    });
 
     return NextResponse.json({ success: true, articles });
   } catch (error) {
