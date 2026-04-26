@@ -20,7 +20,7 @@ import { getCategories } from '@/app/actions/category';
 import { getMovies } from '@/app/actions/movie';
 import { Business, Category, Movie } from '@/lib/mockData';
 import * as LucideIcons from 'lucide-react';
-import { ArrowRight, CheckCircle2, Star, MapPin, Calendar, Play, ShieldCheck, Zap, Search, Phone, MessageSquare, Heart, Sparkles, History, X, Mic, Send, Home } from 'lucide-react';
+import { ArrowRight, CheckCircle2, Star, MapPin, Calendar, Play, ShieldCheck, Zap, Search, Phone, MessageSquare, Heart, Sparkles, History, X, Mic, Send } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 
