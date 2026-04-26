@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { Calendar, ArrowRight } from 'lucide-react';
 import { NewsArticle } from '@/lib/mockData';
 
-const NEWS_CATEGORIES = ['Technology', 'Business', 'Startups', 'Local'];
+const NEWS_CATEGORIES = ['Technology', 'Business', 'Sports', 'Cricket', 'Bollywood', 'Politics', 'Real Estate', 'Local', 'Startups'];
 
 export default function NewsWidget() {
   const [news, setNews] = useState<NewsArticle[]>([]);
