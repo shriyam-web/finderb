@@ -770,7 +770,11 @@ function HomeContent() {
         <div className="fixed inset-0 z-[1001] bg-primary flex flex-col p-6 animate-in fade-in slide-in-from-bottom-20 duration-500 overflow-hidden selection:bg-secondary/20">
           <div className="flex-1 flex flex-col items-center justify-around text-center py-10 sm:py-20 max-w-5xl mx-auto w-full">
             <div className="space-y-4">
-              <h2 className="text-3xl sm:text-6xl lg:text-7xl font-black text-white tracking-tighter leading-[1.1]">How can I <span className="text-secondary underline decoration-4 lg:decoration-8 underline-offset-8 lg:underline-offset-[12px]">help</span> you today?</h2>
+              <h2 className="text-3xl sm:text-6xl lg:text-7xl font-black text-white tracking-tighter leading-[1.1]">
+                <span className="text-white">How can I </span>
+                <span className="text-secondary underline decoration-4 lg:decoration-8 underline-offset-8 lg:underline-offset-[12px]">help</span>
+                <span className="text-white"> you today?</span>
+              </h2>
               <p className="text-white/40 font-medium text-xs sm:text-lg">Search for anything, ask for recommendations</p>
             </div>
 
