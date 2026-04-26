@@ -41,7 +41,9 @@ export default function NewsWidget() {
             <div className="bg-slate-200 aspect-[16/9] rounded-xl mb-4"></div>
             <div className="h-2 bg-slate-200 rounded w-1/4 mb-3"></div>
             <div className="h-4 bg-slate-200 rounded w-3/4 mb-3"></div>
-            <div className="h-2 bg-slate-200 rounded w-full mb-2"></div>
+            <div className="h-2 bg-slate-200 rounded w-full mb-1"></div>
+            <div className="h-2 bg-slate-200 rounded w-full mb-1"></div>
+            <div className="h-2 bg-slate-200 rounded w-full mb-1"></div>
             <div className="h-2 bg-slate-200 rounded w-5/6"></div>
           </div>
         ))}
@@ -77,7 +79,7 @@ export default function NewsWidget() {
             rel="noopener noreferrer"
             className="group bg-white rounded-2xl p-4 shadow-sm hover:shadow-xl transition-all duration-500 border border-slate-100 flex flex-col min-w-[220px] md:min-w-[260px] shrink-0"
           >
-          <div className="relative aspect-[16/9] rounded-xl overflow-hidden mb-4 shadow-sm">
+          <div className="relative aspect-[21/9] sm:aspect-[16/9] rounded-xl overflow-hidden mb-3 shadow-sm hidden sm:block">
             <Image
               src={item.image}
               alt={item.title}
@@ -95,14 +97,27 @@ export default function NewsWidget() {
               )}
             </div>
           </div>
+
+          {/* Mobile Badges */}
+          <div className="flex sm:hidden gap-2 mb-2">
+            <span className="px-2 py-0.5 bg-secondary text-white rounded-full text-[7px] font-bold uppercase tracking-wider">
+              {item.category}
+            </span>
+            {item.source && (
+              <span className="px-2 py-0.5 bg-slate-100 text-slate-500 rounded-full text-[7px] font-bold uppercase tracking-wider">
+                {item.source}
+              </span>
+            )}
+          </div>
+
           <div className="flex items-center gap-2 mb-2 text-slate-400">
             <Calendar size={10} />
             <span className="text-[8px] font-bold uppercase tracking-widest">{item.date}</span>
           </div>
-          <h3 className="text-sm font-bold text-primary group-hover:text-secondary transition-colors mb-2 line-clamp-2 leading-tight">
+          <h3 className="text-sm font-bold text-primary group-hover:text-secondary transition-colors mb-2 line-clamp-2 sm:line-clamp-3 leading-tight">
             {item.title}
           </h3>
-          <p className="text-slate-500 text-[10px] font-medium line-clamp-2 mb-4 flex-grow">
+          <p className="text-slate-500 text-[11px] sm:text-[10px] font-medium line-clamp-6 mb-4 flex-grow leading-relaxed">
             {item.excerpt}
           </p>
           <div className="flex items-center gap-2 text-[8px] font-black text-secondary uppercase tracking-[0.2em] group-hover:gap-3 transition-all mt-auto">
