@@ -371,31 +371,7 @@ export interface NewsArticle {
   image: string;
   date: string;
   category: string;
+  source?: string;
+  link?: string;
 }
 
-export const newsArticles: NewsArticle[] = [
-  {
-    id: '1',
-    title: 'FinderB Expands to 50 New Cities',
-    excerpt: 'We are excited to announce our expansion into 50 more cities across India, bringing our verified services to even more users.',
-    image: 'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?auto=format&fit=crop&q=80&w=800',
-    date: 'Oct 20, 2024',
-    category: 'Expansion'
-  },
-  {
-    id: '2',
-    title: 'Introducing AI-Powered Search',
-    excerpt: 'Our new AI search helps you find the perfect service provider in seconds by understanding your natural language requests.',
-    image: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&q=80&w=800',
-    date: 'Oct 18, 2024',
-    category: 'Technology'
-  },
-  {
-    id: '3',
-    title: 'Top Rated Merchants of the Month',
-    excerpt: 'Check out the businesses that have received the highest ratings and best reviews from our community this month.',
-    image: 'https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&q=80&w=800',
-    date: 'Oct 15, 2024',
-    category: 'Community'
-  }
-];

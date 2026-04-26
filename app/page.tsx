@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import SearchBar from '@/components/SearchBar';
 import CategoryCard from '@/components/CategoryCard';
 import BusinessCard from '@/components/BusinessCard';
+import NewsWidget from '@/components/NewsWidget';
 import {
   categories,
   featuredBusinesses as mockFeaturedBusinesses,
@@ -12,8 +13,7 @@ import {
   cities,
   movies,
   touristPlaces,
-  articles,
-  newsArticles
+  articles
 } from '@/lib/mockData';
 import { getFeaturedBusinesses } from '@/app/actions/business';
 import { getCategories } from '@/app/actions/category';
@@ -289,7 +289,7 @@ function HomeContent() {
           {/* Horizontal Scrolling List */}
           <div className="flex overflow-x-auto pb-12 gap-6 lg:gap-8 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
             {realBusinesses.map((business) => (
-              <div key={business.id} className="min-w-[260px] sm:min-w-[320px] shrink-0">
+              <div key={business.id} className="min-w-[220px] sm:min-w-[260px] shrink-0">
                 <BusinessCard business={business} isPremium={true} compact={true} />
               </div>
             ))}
@@ -524,38 +524,7 @@ function HomeContent() {
             </div>
           </div>
 
-          <div className="flex overflow-x-auto pb-8 gap-8 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
-            {newsArticles.map((item) => (
-              <div key={item.id} className="group bg-white rounded-3xl p-6 shadow-sm hover:shadow-xl transition-all duration-500 border border-slate-100 flex flex-col h-full min-w-[140px] md:min-w-[200px] shrink-0">
-                <div className="relative aspect-[16/9] rounded-2xl overflow-hidden mb-6 shadow-md">
-                  <Image
-                    src={item.image}
-                    alt={item.title}
-                    fill
-                    className="object-cover group-hover:scale-105 transition-transform duration-700"
-                  />
-                  <div className="absolute top-4 left-4">
-                    <span className="px-3 py-1 bg-white/90 backdrop-blur-md rounded-full text-[10px] font-bold text-primary uppercase tracking-wider shadow-sm">
-                      {item.category}
-                    </span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 mb-4 text-slate-400">
-                  <Calendar size={14} />
-                  <span className="text-[10px] font-bold uppercase tracking-widest">{item.date}</span>
-                </div>
-                <h3 className="text-xl font-bold text-primary group-hover:text-secondary transition-colors mb-4 line-clamp-2 leading-tight">
-                  {item.title}
-                </h3>
-                <p className="text-slate-500 text-sm font-medium line-clamp-3 mb-6 flex-grow">
-                  {item.excerpt}
-                </p>
-                <div className="flex items-center gap-2 text-[10px] font-black text-secondary uppercase tracking-[0.2em] group-hover:gap-3 transition-all cursor-pointer">
-                  Read Full Story <ArrowRight size={14} />
-                </div>
-              </div>
-            ))}
-          </div>
+          <NewsWidget />
         </div>
       </section>
 
@@ -573,8 +542,8 @@ function HomeContent() {
           </div>
           <div className="flex overflow-x-auto pb-12 gap-8 lg:gap-10 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
             {articles.map((article) => (
-              <Link key={article.id} href={`/blog/${article.id}`} className="group cursor-pointer min-w-[300px] sm:min-w-[420px] shrink-0">
-                <div className="relative h-64 sm:h-80 rounded-[2.5rem] overflow-hidden mb-8 shadow-xl group-hover:shadow-2xl transition-all duration-500 bg-gray-50">
+              <Link key={article.id} href={`/blog/${article.id}`} className="group cursor-pointer min-w-[240px] sm:min-w-[320px] shrink-0">
+                <div className="relative h-48 sm:h-64 rounded-[2rem] overflow-hidden mb-6 shadow-xl group-hover:shadow-2xl transition-all duration-500 bg-gray-50">
                   <Image
                     src={article.image}
                     alt={article.title}

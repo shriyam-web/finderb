@@ -34,7 +34,9 @@ import {
   User,
   Phone,
   LayoutDashboard,
-  ChevronDown
+  ChevronDown,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { Globe } from 'lucide-react';
 import { categories as mockCategories } from '@/lib/mockData';
@@ -80,6 +82,7 @@ function RegisterFormContent() {
   const [selectedPlan, setSelectedPlan] = useState('free');
   const [billingCycle, setBillingCycle] = useState('monthly');
   const [loading, setLoading] = useState(false);
+  const [passwordVisible, setPasswordVisible] = useState(false);
   const [registeredBusiness, setRegisteredBusiness] = useState<any>(null);
   const [formData, setFormData] = useState({
     fullName: '',
@@ -445,12 +448,20 @@ function RegisterFormContent() {
                         <ShieldCheck className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-blue-600 transition-colors" size={16} />
                         <input
                           name="password"
-                          type="password"
+                          type={passwordVisible ? 'text' : 'password'}
                           value={formData.password}
                           onChange={handleChange}
-                          className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-blue-600 outline-none font-medium text-gray-900 transition-all placeholder:text-gray-300 text-sm"
+                          className="w-full pl-10 pr-12 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-blue-600 outline-none font-medium text-gray-900 transition-all placeholder:text-gray-300 text-sm"
                           placeholder="Create a strong password"
                         />
+                        <button
+                          type="button"
+                          onClick={() => setPasswordVisible((prev) => !prev)}
+                          className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-blue-600 transition-colors"
+                          aria-label={passwordVisible ? 'Hide password' : 'Show password'}
+                        >
+                          {passwordVisible ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </button>
                       </div>
                     </div>
                     <div className="group space-y-1 opacity-80">
