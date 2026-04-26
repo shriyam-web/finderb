@@ -681,7 +681,7 @@ function HomeContent() {
           </div>
 
           <div className="text-center space-y-4 max-w-md">
-            <h2 className="text-4xl sm:text-5xl font-black text-white tracking-tight">FinderB AI is loading</h2>
+            <h2 className="text-4xl sm:text-5xl font-black !text-white tracking-tight">FinderB AI is loading</h2>
             <p className="text-white/70 font-medium text-sm sm:text-base">Getting your smart search ready.</p>
           </div>
 
