@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
     
     // Map categories to more reliable RSS feeds that provide descriptions
     const categoryFeeds: Record<string, string> = {
-      technology: "https://gadgets360.com/rss/feeds",
+      technology: "https://www.thehindu.com/sci-tech/technology/feeder/default.rss",
       business: "https://economictimes.indiatimes.com/rssfeedsdefault.cms",
       startups: "https://yourstory.com/feed",
       local: "https://www.thehindu.com/news/national/feeder/default.rss"
