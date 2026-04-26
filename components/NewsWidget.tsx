@@ -38,7 +38,7 @@ export default function NewsWidget() {
       <div className="flex overflow-x-auto pb-8 gap-4 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
         {[1, 2, 3, 4].map((i) => (
           <div key={i} className="animate-pulse bg-white rounded-2xl p-4 border border-slate-100 min-w-[220px] md:min-w-[260px] shrink-0">
-            <div className="bg-slate-200 aspect-[16/9] rounded-xl mb-4"></div>
+            <div className="bg-slate-200 aspect-video rounded-xl mb-4"></div>
             <div className="h-2 bg-slate-200 rounded w-1/4 mb-3"></div>
             <div className="h-4 bg-slate-200 rounded w-3/4 mb-3"></div>
             <div className="h-2 bg-slate-200 rounded w-full mb-1"></div>
@@ -79,7 +79,7 @@ export default function NewsWidget() {
             rel="noopener noreferrer"
             className="group bg-white rounded-2xl p-4 shadow-sm hover:shadow-xl transition-all duration-500 border border-slate-100 flex flex-col min-w-[220px] md:min-w-[260px] shrink-0"
           >
-          <div className="relative aspect-[21/9] sm:aspect-[16/9] rounded-xl overflow-hidden mb-3 shadow-sm hidden sm:block">
+          <div className="relative aspect-video rounded-xl overflow-hidden mb-3 shadow-sm block">
             <Image
               src={item.image}
               alt={item.title}
@@ -98,8 +98,8 @@ export default function NewsWidget() {
             </div>
           </div>
 
-          {/* Mobile Badges */}
-          <div className="flex sm:hidden gap-2 mb-2">
+          {/* Mobile Badges (Hidden as we show the image now) */}
+          <div className="hidden sm:hidden gap-2 mb-2">
             <span className="px-2 py-0.5 bg-secondary text-white rounded-full text-[7px] font-bold uppercase tracking-wider">
               {item.category}
             </span>
@@ -117,7 +117,7 @@ export default function NewsWidget() {
           <h3 className="text-sm font-bold text-primary group-hover:text-secondary transition-colors mb-2 line-clamp-2 sm:line-clamp-3 leading-tight">
             {item.title}
           </h3>
-          <p className="text-slate-500 text-[11px] sm:text-[10px] font-medium line-clamp-6 mb-4 flex-grow leading-relaxed">
+          <p className="text-slate-500 text-[11px] sm:text-[10px] font-medium line-clamp-5 mb-4 flex-grow leading-relaxed">
             {item.excerpt}
           </p>
           <div className="flex items-center gap-2 text-[8px] font-black text-secondary uppercase tracking-[0.2em] group-hover:gap-3 transition-all mt-auto">
