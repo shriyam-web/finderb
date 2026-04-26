@@ -62,8 +62,6 @@ function HomeContent() {
 
   const aiLoadStage = aiLoadStages.find(stage => aiLoadProgress <= stage.threshold)?.label || 'Launching';
 
-  const visibleAiTasks = aiLoadStages.filter(stage => aiLoadProgress >= stage.threshold - 15);
-
   useEffect(() => {
     async function fetchData() {
       const [bizResult, catResult, movieResult] = await Promise.all([
@@ -699,25 +697,6 @@ function HomeContent() {
                   style={{ width: `${aiLoadProgress}%` }}
                 />
               </div>
-              <div className="grid grid-cols-2 gap-3 text-[11px] uppercase tracking-[0.26em] text-white/40">
-                {aiLoadStages.map((stage) => (
-                  <span
-                    key={stage.label}
-                    className={aiLoadProgress >= stage.threshold ? 'text-white font-semibold' : 'text-white/30'}
-                  >
-                    {stage.label.split(' ')[0]}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            <div className="rounded-[2rem] bg-white/5 border border-white/10 p-4 text-left text-sm text-white/70 space-y-2">
-              {visibleAiTasks.map((stage) => (
-                <div key={stage.label} className="flex items-center gap-2">
-                  <span className="h-2.5 w-2.5 rounded-full bg-secondary" />
-                  <span>{stage.label}</span>
-                </div>
-              ))}
             </div>
 
             <button
