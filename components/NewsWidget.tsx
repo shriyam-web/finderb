@@ -37,10 +37,11 @@ export default function NewsWidget() {
     return (
       <div className="flex overflow-x-auto pb-8 gap-4 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
         {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="animate-pulse bg-white rounded-2xl p-4 border border-slate-100 min-w-[220px] md:min-w-[260px] shrink-0">
-            <div className="bg-slate-200 aspect-video rounded-xl mb-4"></div>
+          <div key={i} className="animate-pulse bg-white rounded-2xl p-4 border border-slate-100 min-w-[240px] md:min-w-[280px] w-[240px] md:w-[280px] shrink-0">
+            <div className="bg-slate-200 h-32 md:h-40 w-full rounded-xl mb-4"></div>
             <div className="h-2 bg-slate-200 rounded w-1/4 mb-3"></div>
             <div className="h-4 bg-slate-200 rounded w-3/4 mb-3"></div>
+            <div className="h-2 bg-slate-200 rounded w-full mb-1"></div>
             <div className="h-2 bg-slate-200 rounded w-full mb-1"></div>
             <div className="h-2 bg-slate-200 rounded w-full mb-1"></div>
             <div className="h-2 bg-slate-200 rounded w-full mb-1"></div>
@@ -77,50 +78,40 @@ export default function NewsWidget() {
             href={item.link} 
             target="_blank" 
             rel="noopener noreferrer"
-            className="group bg-white rounded-2xl p-4 shadow-sm hover:shadow-xl transition-all duration-500 border border-slate-100 flex flex-col min-w-[220px] md:min-w-[260px] shrink-0"
+            className="group bg-white rounded-2xl p-4 shadow-sm hover:shadow-xl transition-all duration-500 border border-slate-100 flex flex-col min-w-[240px] md:min-w-[280px] w-[240px] md:w-[280px] shrink-0"
           >
-          <div className="relative aspect-video rounded-xl overflow-hidden mb-3 shadow-sm block">
+          <div className="relative h-32 md:h-40 w-full rounded-xl overflow-hidden mb-3 shadow-sm block">
             <Image
               src={item.image}
               alt={item.title}
               fill
               className="object-cover group-hover:scale-105 transition-transform duration-700"
             />
-            <div className="absolute top-3 left-3 flex gap-2">
-              <span className="px-2 py-0.5 bg-secondary text-white rounded-full text-[8px] font-bold uppercase tracking-wider shadow-sm">
+            <div className="absolute top-2 left-2 flex gap-1">
+              <span className="px-1.5 py-0.5 bg-secondary text-white rounded-full text-[7px] font-bold uppercase tracking-wider shadow-sm">
                 {item.category}
               </span>
-              {item.source && (
-                <span className="px-2 py-0.5 bg-white/90 backdrop-blur-md rounded-full text-[8px] font-bold text-primary uppercase tracking-wider shadow-sm border border-slate-100">
-                  {item.source}
-                </span>
-              )}
             </div>
-          </div>
-
-          {/* Mobile Badges (Hidden as we show the image now) */}
-          <div className="hidden sm:hidden gap-2 mb-2">
-            <span className="px-2 py-0.5 bg-secondary text-white rounded-full text-[7px] font-bold uppercase tracking-wider">
-              {item.category}
-            </span>
-            {item.source && (
-              <span className="px-2 py-0.5 bg-slate-100 text-slate-500 rounded-full text-[7px] font-bold uppercase tracking-wider">
-                {item.source}
-              </span>
-            )}
           </div>
 
           <div className="flex items-center gap-2 mb-2 text-slate-400">
             <Calendar size={10} />
             <span className="text-[8px] font-bold uppercase tracking-widest">{item.date}</span>
           </div>
-          <h3 className="text-sm font-bold text-primary group-hover:text-secondary transition-colors mb-2 line-clamp-2 sm:line-clamp-3 leading-tight">
-            {item.title}
-          </h3>
-          <p className="text-slate-500 text-[11px] sm:text-[10px] font-medium line-clamp-5 mb-4 flex-grow leading-relaxed">
-            {item.excerpt}
-          </p>
-          <div className="flex items-center gap-2 text-[8px] font-black text-secondary uppercase tracking-[0.2em] group-hover:gap-3 transition-all mt-auto">
+          
+          <div className="h-10 mb-2 overflow-hidden">
+            <h3 className="text-sm font-bold text-primary group-hover:text-secondary transition-colors line-clamp-2 leading-tight">
+              {item.title}
+            </h3>
+          </div>
+
+          <div className="h-[90px] mb-4 overflow-hidden">
+            <p className="text-slate-500 text-[11px] sm:text-[10px] font-medium line-clamp-6 leading-relaxed">
+              {item.excerpt}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 text-[8px] font-black text-secondary uppercase tracking-[0.2em] group-hover:gap-3 transition-all mt-auto pt-2 border-t border-slate-50">
             Read Full Story <ArrowRight size={10} />
           </div>
         </a>
