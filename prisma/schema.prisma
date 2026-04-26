@@ -37,30 +37,41 @@ model Business {
   email                                                  String?
   password                                               String?
   state                                                  String?
+  country                                                String?
   categories_categories_position_1_business_idToBusiness categories[] @relation("categories_position_1_business_idToBusiness")
   categories_categories_position_2_business_idToBusiness categories[] @relation("categories_position_2_business_idToBusiness")
   categories_categories_position_3_business_idToBusiness categories[] @relation("categories_position_3_business_idToBusiness")
 }
 
 model categories {
-  id                                                   String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name                                                 String    @unique
-  type                                                 String    @default("Merchant")
-  items_count                                          Int       @default(0)
-  status                                               String    @default("Active")
-  banner                                               String?   @default("Not Set")
-  fixed_slots                                          Int       @default(0)
+  id                                                   String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                                                 String
+  type                                                 String       @default("Merchant")
+  items_count                                          Int          @default(0)
+  status                                               String       @default("Active")
+  banner                                               String?      @default("Not Set")
+  fixed_slots                                          Int          @default(0)
   position_1_business_id                               String?
   position_2_business_id                               String?
   position_3_business_id                               String?
-  created_at                                           DateTime  @default(now()) @db.Timestamp(6)
-  updated_at                                           DateTime  @default(now()) @db.Timestamp(6)
-  Business_categories_position_1_business_idToBusiness Business? @relation("categories_position_1_business_idToBusiness", fields: [position_1_business_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  Business_categories_position_2_business_idToBusiness Business? @relation("categories_position_2_business_idToBusiness", fields: [position_2_business_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  Business_categories_position_3_business_idToBusiness Business? @relation("categories_position_3_business_idToBusiness", fields: [position_3_business_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  created_at                                           DateTime     @default(now()) @db.Timestamp(6)
+  updated_at                                           DateTime     @default(now()) @db.Timestamp(6)
+  symbol                                               String?      @default("Not Set")
+  parent_id                                            String?      @db.Uuid
+  slug                                                 String?
+  keywords                                             String[]
+  level                                                Int?         @default(1)
+  categories                                           categories?  @relation("categoriesTocategories", fields: [parent_id], references: [id], onUpdate: NoAction)
+  other_categories                                     categories[] @relation("categoriesTocategories")
+  Business_categories_position_1_business_idToBusiness Business?    @relation("categories_position_1_business_idToBusiness", fields: [position_1_business_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  Business_categories_position_2_business_idToBusiness Business?    @relation("categories_position_2_business_idToBusiness", fields: [position_2_business_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  Business_categories_position_3_business_idToBusiness Business?    @relation("categories_position_3_business_idToBusiness", fields: [position_3_business_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
+  @@unique([name, parent_id], map: "unique_name_per_parent")
   @@index([status])
   @@index([type])
+  @@index([parent_id])
+  @@index([symbol])
 }
 
 model User {
@@ -72,4 +83,40 @@ model User {
   searchHistory String[] @default([])
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model movies {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name           String
+  description    String?
+  finderb_rating Decimal?  @db.Decimal(3, 1)
+  release_date   DateTime? @db.Date
+  poster_url     String?
+  created_at     DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime? @default(now()) @db.Timestamptz(6)
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model news {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title        String
+  content      String
+  author       String?
+  image_url    String?
+  published_at DateTime? @default(now()) @db.Timestamptz(6)
+  created_at   DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime? @default(now()) @db.Timestamptz(6)
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model tourist_places {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String
+  description String?
+  location    String
+  category    String?
+  image_url   String?
+  created_at  DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime? @default(now()) @db.Timestamptz(6)
 }

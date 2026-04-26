@@ -71,6 +71,7 @@ export async function registerBusiness(formData: any) {
         location: formData.location || `${formData.city}, ${formData.state}`,
         city: formData.city,
         state: formData.state,
+        country: formData.country,
         publicPhone: formData.publicPhone.trim(),
         businessAddress: formData.businessAddress,
         selectedPlan: formData.selectedPlan || 'free',

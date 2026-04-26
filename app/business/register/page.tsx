@@ -39,15 +39,8 @@ import {
 import { Globe } from 'lucide-react';
 import { categories as mockCategories } from '@/lib/mockData';
 import { getCategories } from '@/app/actions/category';
-
-const indianStates = [
-  'Andaman and Nicobar Islands', 'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 
-  'Chandigarh', 'Chhattisgarh', 'Dadra and Nagar Haveli and Daman and Diu', 'Delhi', 'Goa', 
-  'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jammu and Kashmir', 'Jharkhand', 'Karnataka', 
-  'Kerala', 'Ladakh', 'Lakshadweep', 'Madhya Pradesh', 'Maharashtra', 'Manipur', 'Meghalaya', 
-  'Mizoram', 'Nagaland', 'Odisha', 'Puducherry', 'Punjab', 'Rajasthan', 'Sikkim', 'Tamil Nadu', 
-  'Telangana', 'Tripura', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal'
-];
+import { Country, State, City } from 'country-state-city';
+import { SearchableSelect } from '@/components/SearchableSelect';
 
 function RegisterFormContent() {
   const searchParams = useSearchParams();
@@ -88,10 +81,38 @@ function RegisterFormContent() {
     category: '',
     location: '',
     city: '',
+    cityCode: '',
     state: '',
+    stateCode: '',
+    country: 'India',
+    countryCode: 'IN',
     publicPhone: '',
     businessAddress: ''
   });
+
+  const countryOptions = Country.getAllCountries().map(c => ({
+    label: c.name,
+    value: c.isoCode
+  }));
+
+  const stateOptions = formData.countryCode 
+    ? State.getStatesOfCountry(formData.countryCode).map(s => ({
+        label: s.name,
+        value: s.isoCode
+      }))
+    : [];
+
+  const cityOptions = (formData.countryCode && formData.stateCode)
+    ? City.getCitiesOfState(formData.countryCode, formData.stateCode).map(c => ({
+        label: c.name,
+        value: c.name
+      }))
+    : [];
+
+  const categoryOptions = liveCategories.map(c => ({
+    label: c.name,
+    value: c.name
+  }));
 
   const [kycData, setKycData] = useState({
     panNumber: '',
@@ -346,7 +367,7 @@ function RegisterFormContent() {
                   <ShieldCheck size={14} className="text-blue-200" />
                   <span className="text-[9px] font-bold uppercase tracking-wider">Verified Listing</span>
                 </div>
-                <p className="text-[9px] text-blue-100/70 leading-relaxed">Join India's most trusted discovery engine for businesses.</p>
+                <p className="text-[9px] text-blue-100/70 leading-relaxed">Join India&apos;s most trusted discovery engine for businesses.</p>
               </div>
             </div>
           </div>
@@ -461,63 +482,72 @@ function RegisterFormContent() {
                       </div>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                      <div className="group space-y-1.5">
-                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.15em] ml-1 group-focus-within:text-blue-600 transition-colors">Category</label>
-                        <select
-                          name="category"
-                          value={formData.category}
-                          onChange={handleChange}
-                          className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:bg-white focus:border-blue-600 outline-none font-semibold text-gray-900 transition-all appearance-none text-sm"
-                        >
-                          <option value="">Select category</option>
-                          {liveCategories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
-                        </select>
-                      </div>
-                      <div className="group space-y-1.5">
-                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.15em] ml-1 group-focus-within:text-blue-600 transition-colors">City</label>
-                        <div className="relative">
-                          <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-blue-600 transition-colors" size={18} />
-                          <input
-                            name="city"
-                            value={formData.city}
-                            onChange={handleChange}
-                            className="w-full pl-11 pr-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:bg-white focus:border-blue-600 outline-none font-semibold text-gray-900 transition-all placeholder:text-gray-300 text-sm"
-                            placeholder="e.g. Mumbai"
-                          />
-                        </div>
-                      </div>
+                      <SearchableSelect
+                        label="Category"
+                        options={categoryOptions}
+                        value={formData.category}
+                        onChange={(val) => setFormData(prev => ({ ...prev, category: val }))}
+                        placeholder="Select category"
+                        icon={<Briefcase size={18} />}
+                      />
+                      <SearchableSelect
+                        label="Country"
+                        options={countryOptions}
+                        value={formData.countryCode}
+                        onChange={(val) => {
+                          const countryName = countryOptions.find(c => c.value === val)?.label || '';
+                          setFormData(prev => ({ 
+                            ...prev, 
+                            countryCode: val, 
+                            country: countryName,
+                            stateCode: '',
+                            state: '',
+                            city: ''
+                          }));
+                        }}
+                        placeholder="Select country"
+                        icon={<Globe size={18} />}
+                      />
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                      <div className="group space-y-1.5">
-                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.15em] ml-1 group-focus-within:text-blue-600 transition-colors">State</label>
-                        <div className="relative">
-                          <Globe className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-blue-600 transition-colors" size={18} />
-                          <select
-                            name="state"
-                            value={formData.state}
-                            onChange={handleChange}
-                            className="w-full pl-11 pr-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:bg-white focus:border-blue-600 outline-none font-semibold text-gray-900 transition-all text-sm appearance-none"
-                          >
-                            <option value="">Select state</option>
-                            {indianStates.map(state => (
-                              <option key={state} value={state}>{state}</option>
-                            ))}
-                          </select>
-                          <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-300 pointer-events-none" size={18} />
-                        </div>
-                      </div>
-                      <div className="group space-y-1.5">
-                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.15em] ml-1 group-focus-within:text-blue-600 transition-colors">Customer Support No.</label>
-                        <div className="relative">
-                          <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-blue-600 transition-colors" size={18} />
-                          <input
-                            name="publicPhone"
-                            value={formData.publicPhone}
-                            onChange={handleChange}
-                            className="w-full pl-11 pr-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:bg-white focus:border-blue-600 outline-none font-semibold text-gray-900 transition-all placeholder:text-gray-300 text-sm"
-                            placeholder="Contact for leads"
-                          />
-                        </div>
+                      <SearchableSelect
+                        label="State"
+                        options={stateOptions}
+                        value={formData.stateCode}
+                        onChange={(val) => {
+                          const stateName = stateOptions.find(s => s.value === val)?.label || '';
+                          setFormData(prev => ({ 
+                            ...prev, 
+                            stateCode: val, 
+                            state: stateName,
+                            city: ''
+                          }));
+                        }}
+                        placeholder="Select state"
+                        icon={<MapPin size={18} />}
+                        disabled={!formData.countryCode}
+                      />
+                      <SearchableSelect
+                        label="City"
+                        options={cityOptions}
+                        value={formData.city}
+                        onChange={(val) => setFormData(prev => ({ ...prev, city: val }))}
+                        placeholder="Select city"
+                        icon={<Building2 size={18} />}
+                        disabled={!formData.stateCode}
+                      />
+                    </div>
+                    <div className="group space-y-1.5">
+                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.15em] ml-1 group-focus-within:text-blue-600 transition-colors">Customer Support No.</label>
+                      <div className="relative">
+                        <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-blue-600 transition-colors" size={18} />
+                        <input
+                          name="publicPhone"
+                          value={formData.publicPhone}
+                          onChange={handleChange}
+                          className="w-full pl-11 pr-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:bg-white focus:border-blue-600 outline-none font-semibold text-gray-900 transition-all placeholder:text-gray-300 text-sm"
+                          placeholder="Contact for leads"
+                        />
                       </div>
                     </div>
                     <div className="group space-y-1.5">
@@ -612,7 +642,7 @@ function RegisterFormContent() {
               <div className="space-y-4">
                 <h1 className="text-4xl sm:text-6xl font-bold text-slate-900 tracking-tight leading-[1.3]">
                   Free Business Listing <br />
-                  <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">with India’s No. 1 Local Search Engine</span>
+                  <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">with India&apos;s No. 1 Local Search Engine</span>
                 </h1>
                 <p className="text-slate-500 text-lg font-medium leading-relaxed max-w-xl">
                   Get Discovered & Create Your Online Business for Free. Upgrade later to unlock premium leads and grow faster.
@@ -725,7 +755,7 @@ function RegisterFormContent() {
                   </div>
                   <div className="space-y-4">
                     <h5 className="font-bold text-sm text-slate-700 line-clamp-1">{story.business}</h5>
-                    <p className="text-slate-500 text-sm font-medium italic leading-relaxed">"{story.testimonial}"</p>
+                    <p className="text-slate-500 text-sm font-medium italic leading-relaxed">&quot;{story.testimonial}&quot;</p>
                   </div>
                 </div>
                 <div className="p-6 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
