@@ -256,6 +256,7 @@ export async function getFeaturedBusinesses() {
       .from('Business')
       .select('*')
       .eq('status', 'Active')
+      .eq('isVerified', true)
       .limit(10);
 
     if (error) {
