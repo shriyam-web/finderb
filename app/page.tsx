@@ -8,7 +8,6 @@ import BusinessCard from '@/components/BusinessCard';
 import NewsWidget from '@/components/NewsWidget';
 import {
   categories,
-  featuredBusinesses as mockFeaturedBusinesses,
   testimonials,
   cities,
   movies,
@@ -44,7 +43,8 @@ function HomeContent() {
   const [activeMobileTab, setActiveMobileTab] = useState(
     activeTabFromUrl === 'ai' ? 'AI Search' : 'Home'
   );
-  const [realBusinesses, setRealBusinesses] = useState<Business[]>(mockFeaturedBusinesses);
+  const [realBusinesses, setRealBusinesses] = useState<Business[]>([]);
+  const [isBusinessesLoading, setIsBusinessesLoading] = useState(true);
   const [realCategories, setRealCategories] = useState<Category[]>(categories);
   const [realMovies, setRealMovies] = useState<Movie[]>(movies);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -81,6 +81,8 @@ function HomeContent() {
       if (movieResult.success && movieResult.movies && movieResult.movies.length > 0) {
         setRealMovies(movieResult.movies);
       }
+
+      setIsBusinessesLoading(false);
     }
     fetchData();
   }, []);
@@ -358,11 +360,23 @@ function HomeContent() {
 
           {/* Horizontal Scrolling List */}
           <div className="flex overflow-x-auto pb-12 gap-6 lg:gap-8 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
-            {realBusinesses.map((business) => (
-              <div key={business.id} className="min-w-[220px] sm:min-w-[260px] shrink-0">
-                <BusinessCard business={business} isPremium={true} compact={true} />
+            {isBusinessesLoading ? (
+              Array.from({ length: 4 }).map((_, idx) => (
+                <div key={idx} className="min-w-[220px] sm:min-w-[260px] shrink-0">
+                  <div className="h-[292px] rounded-3xl border border-gray-200 bg-white p-5 shadow-sm animate-pulse" />
+                </div>
+              ))
+            ) : realBusinesses.length > 0 ? (
+              realBusinesses.map((business) => (
+                <div key={business.id} className="min-w-[220px] sm:min-w-[260px] shrink-0">
+                  <BusinessCard business={business} isPremium={true} compact={true} />
+                </div>
+              ))
+            ) : (
+              <div className="py-20 w-full text-center text-gray-500">
+                No verified merchants are available right now. Please check back later.
               </div>
-            ))}
+            )}
           </div>
         </div>
         <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-gray-200 to-transparent"></div>
