@@ -255,6 +255,7 @@ export async function getFeaturedBusinesses() {
     const { data: businesses, error } = await supabase
       .from('Business')
       .select('*')
+      .eq('status', 'Active')
       .limit(10);
 
     if (error) {
