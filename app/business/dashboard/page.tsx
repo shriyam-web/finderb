@@ -42,7 +42,7 @@ function DashboardContent() {
   const [business, setBusiness] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [images, setImages] = useState<string[]>([]);
-  const [profilePicture, setProfilePicture] = useState<string | null>(null);
+  const [profilePictureUrl, setprofilePictureUrl] = useState<string | null>(null);
   const [updating, setUpdating] = useState(false);
 
   useEffect(() => {
@@ -52,7 +52,7 @@ function DashboardContent() {
         if (res.success) {
           setBusiness(res.business);
           setImages(res.business.images || []);
-          setProfilePicture(res.business.profilePicture || null);
+          setprofilePictureUrl(res.business.profilePictureUrl || null);
         }
       }
       setLoading(false);
@@ -68,10 +68,10 @@ function DashboardContent() {
       setImages(updatedImages);
       
       // Auto set as profile if none exists
-      let newProfilePic = profilePicture;
+      let newProfilePic = profilePictureUrl;
       if (!newProfilePic) {
         newProfilePic = newImageUrl;
-        setProfilePicture(newImageUrl);
+        setprofilePictureUrl(newImageUrl);
       }
 
       if (id) {
@@ -87,16 +87,16 @@ function DashboardContent() {
 
   const handleDeleteImage = async (urlToDelete: string) => {
     const updatedImages = images.filter(url => url !== urlToDelete);
-    let newProfilePic = profilePicture;
-    if (profilePicture === urlToDelete) {
+    let newProfilePic = profilePictureUrl;
+    if (profilePictureUrl === urlToDelete) {
       newProfilePic = updatedImages.length > 0 ? updatedImages[0] : null;
     }
     
     const prevImages = [...images];
-    const prevProfile = profilePicture;
+    const prevProfile = profilePictureUrl;
 
     setImages(updatedImages);
-    setProfilePicture(newProfilePic);
+    setprofilePictureUrl(newProfilePic);
 
     if (id) {
       setUpdating(true);
@@ -104,21 +104,21 @@ function DashboardContent() {
       setUpdating(false);
       if (!res.success) {
         setImages(prevImages);
-        setProfilePicture(prevProfile);
+        setprofilePictureUrl(prevProfile);
         alert('Failed to delete image: ' + res.error);
       }
     }
   };
 
   const handleSetProfile = async (url: string) => {
-    const prevProfile = profilePicture;
-    setProfilePicture(url);
+    const prevProfile = profilePictureUrl;
+    setprofilePictureUrl(url);
     if (id) {
       setUpdating(true);
       const res = await updateBusinessImages(id, images, url);
       setUpdating(false);
       if (!res.success) {
-        setProfilePicture(prevProfile);
+        setprofilePictureUrl(prevProfile);
         alert('Failed to set profile picture: ' + res.error);
       }
     }
@@ -608,10 +608,10 @@ function DashboardContent() {
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
                       <button 
                         onClick={() => handleSetProfile(url)}
-                        className={`p-2 rounded-lg text-white transition-all ${profilePicture === url ? 'bg-indigo-600' : 'bg-white/20 hover:bg-white/40'}`}
+                        className={`p-2 rounded-lg text-white transition-all ${profilePictureUrl === url ? 'bg-indigo-600' : 'bg-white/20 hover:bg-white/40'}`}
                         title="Set as Profile Picture"
                       >
-                        <HiOutlineStar size={18} fill={profilePicture === url ? "currentColor" : "none"} />
+                        <HiOutlineStar size={18} fill={profilePictureUrl === url ? "currentColor" : "none"} />
                       </button>
                       <button 
                         onClick={() => handleDeleteImage(url)}
@@ -621,7 +621,7 @@ function DashboardContent() {
                         <HiOutlineXMark size={18} />
                       </button>
                     </div>
-                    {profilePicture === url && (
+                    {profilePictureUrl === url && (
                       <div className="absolute top-2 left-2 bg-indigo-600 text-white text-[8px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider shadow-lg">
                         Profile
                       </div>

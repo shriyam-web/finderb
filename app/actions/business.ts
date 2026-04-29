@@ -173,7 +173,7 @@ export async function updateBusinessPayment(id: string, paymentData: any) {
   }
 }
 
-export async function updateBusinessImages(id: string, images: string[], profilePicture?: string) {
+export async function updateBusinessImages(id: string, images: string[], profilePictureUrl?: string) {
   try {
     if (!id) {
       return { success: false, error: 'Business ID is required' };
@@ -187,7 +187,7 @@ export async function updateBusinessImages(id: string, images: string[], profile
       .from('Business')
       .update({
         images: images,
-        profilePicture: profilePicture || (images.length > 0 ? images[0] : null),
+        profilePictureUrl: profilePictureUrl || (images.length > 0 ? images[0] : null),
         updatedAt: new Date().toISOString(),
       })
       .eq('id', id)
