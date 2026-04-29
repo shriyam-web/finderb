@@ -38,6 +38,8 @@ model Business {
   password                                               String?
   state                                                  String?
   country                                                String?
+  images                                                 String[]     @default([])
+  profilePicture                                         String?
   categories_categories_position_1_business_idToBusiness categories[] @relation("categories_position_1_business_idToBusiness")
   categories_categories_position_2_business_idToBusiness categories[] @relation("categories_position_2_business_idToBusiness")
   categories_categories_position_3_business_idToBusiness categories[] @relation("categories_position_3_business_idToBusiness")

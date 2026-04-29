@@ -173,6 +173,39 @@ export async function updateBusinessPayment(id: string, paymentData: any) {
   }
 }
 
+export async function updateBusinessImages(id: string, images: string[], profilePicture?: string) {
+  try {
+    if (!id) {
+      return { success: false, error: 'Business ID is required' };
+    }
+
+    console.log('Updating images for business:', id);
+
+    const supabase = createClient(await cookies());
+
+    const { data: business, error } = await supabase
+      .from('Business')
+      .update({
+        images: images,
+        profilePicture: profilePicture || (images.length > 0 ? images[0] : null),
+        updatedAt: new Date().toISOString(),
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    revalidatePath(`/business/dashboard`);
+    return { success: true, business };
+  } catch (error: any) {
+    const errorMessage = handleError(error, 'Images Update');
+    return { success: false, error: errorMessage };
+  }
+}
+
 export async function getBusiness(id: string) {
   try {
     if (!id) {

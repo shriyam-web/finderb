@@ -31,7 +31,8 @@ import {
 import { RiDashboardFill, RiListCheck, RiMessage3Line, RiSettings4Line } from 'react-icons/ri';
 import Link from 'next/link';
 import Image from 'next/image';
-import { getBusiness } from '@/app/actions/business';
+import { getBusiness, updateBusinessImages } from '@/app/actions/business';
+import { CldUploadWidget } from 'next-cloudinary';
 
 function DashboardContent() {
   const searchParams = useSearchParams();
@@ -40,6 +41,9 @@ function DashboardContent() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [business, setBusiness] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [images, setImages] = useState<string[]>([]);
+  const [profilePicture, setProfilePicture] = useState<string | null>(null);
+  const [updating, setUpdating] = useState(false);
 
   useEffect(() => {
     const fetchBusiness = async () => {
@@ -47,12 +51,78 @@ function DashboardContent() {
         const res = await getBusiness(id);
         if (res.success) {
           setBusiness(res.business);
+          setImages(res.business.images || []);
+          setProfilePicture(res.business.profilePicture || null);
         }
       }
       setLoading(false);
     };
     fetchBusiness();
   }, [id]);
+
+  const handleUploadSuccess = async (result: any) => {
+    console.log('Upload result:', result);
+    if (result.event === 'success') {
+      const newImageUrl = result.info.secure_url;
+      const updatedImages = [...images, newImageUrl].slice(0, 5);
+      setImages(updatedImages);
+      
+      // Auto set as profile if none exists
+      let newProfilePic = profilePicture;
+      if (!newProfilePic) {
+        newProfilePic = newImageUrl;
+        setProfilePicture(newImageUrl);
+      }
+
+      if (id) {
+        setUpdating(true);
+        const res = await updateBusinessImages(id, updatedImages, newProfilePic || undefined);
+        setUpdating(false);
+        if (!res.success) {
+          alert('Failed to update business images: ' + res.error);
+        }
+      }
+    }
+  };
+
+  const handleDeleteImage = async (urlToDelete: string) => {
+    const updatedImages = images.filter(url => url !== urlToDelete);
+    let newProfilePic = profilePicture;
+    if (profilePicture === urlToDelete) {
+      newProfilePic = updatedImages.length > 0 ? updatedImages[0] : null;
+    }
+    
+    const prevImages = [...images];
+    const prevProfile = profilePicture;
+
+    setImages(updatedImages);
+    setProfilePicture(newProfilePic);
+
+    if (id) {
+      setUpdating(true);
+      const res = await updateBusinessImages(id, updatedImages, newProfilePic || undefined);
+      setUpdating(false);
+      if (!res.success) {
+        setImages(prevImages);
+        setProfilePicture(prevProfile);
+        alert('Failed to delete image: ' + res.error);
+      }
+    }
+  };
+
+  const handleSetProfile = async (url: string) => {
+    const prevProfile = profilePicture;
+    setProfilePicture(url);
+    if (id) {
+      setUpdating(true);
+      const res = await updateBusinessImages(id, images, url);
+      setUpdating(false);
+      if (!res.success) {
+        setProfilePicture(prevProfile);
+        alert('Failed to set profile picture: ' + res.error);
+      }
+    }
+  };
 
   const menuItems = [
     { id: 'overview', label: 'Performance', icon: HiOutlineSquares2X2, activeIcon: RiDashboardFill },
@@ -512,6 +582,86 @@ function DashboardContent() {
                       </button>
                     </div>
                   </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'settings' && (
+          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <div className="bg-white rounded-[32px] shadow-sm p-8 border border-gray-100 space-y-8">
+              <div>
+                <h3 className="text-xl font-black text-slate-900 tracking-tight mb-2">Business Media</h3>
+                <p className="text-slate-500 text-sm">Manage your business photos. You can upload up to 5 images and select one as your profile picture.</p>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                {images.map((url, index) => (
+                  <div key={index} className="relative aspect-square rounded-2xl overflow-hidden border border-gray-100 group shadow-sm">
+                    <Image 
+                      src={url} 
+                      alt={`Business ${index + 1}`} 
+                      fill 
+                      className="object-cover transition-transform group-hover:scale-110"
+                    />
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
+                      <button 
+                        onClick={() => handleSetProfile(url)}
+                        className={`p-2 rounded-lg text-white transition-all ${profilePicture === url ? 'bg-indigo-600' : 'bg-white/20 hover:bg-white/40'}`}
+                        title="Set as Profile Picture"
+                      >
+                        <HiOutlineStar size={18} fill={profilePicture === url ? "currentColor" : "none"} />
+                      </button>
+                      <button 
+                        onClick={() => handleDeleteImage(url)}
+                        className="p-2 bg-rose-600/80 hover:bg-rose-600 rounded-lg text-white transition-all"
+                        title="Delete Image"
+                      >
+                        <HiOutlineXMark size={18} />
+                      </button>
+                    </div>
+                    {profilePicture === url && (
+                      <div className="absolute top-2 left-2 bg-indigo-600 text-white text-[8px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider shadow-lg">
+                        Profile
+                      </div>
+                    )}
+                  </div>
+                ))}
+                
+                {images.length < 5 && (
+                  <CldUploadWidget 
+                    uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET}
+                    onSuccess={handleUploadSuccess}
+                    options={{
+                      maxFiles: 5 - images.length,
+                      resourceType: 'image',
+                      clientAllowedFormats: ['png', 'jpeg', 'jpg', 'webp'],
+                      cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
+                    }}
+                  >
+                    {({ open }) => (
+                      <button 
+                        onClick={() => open()}
+                        className="aspect-square rounded-2xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center gap-2 text-gray-400 hover:border-indigo-600 hover:text-indigo-600 hover:bg-indigo-50/50 transition-all group"
+                      >
+                        <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center group-hover:bg-indigo-100/50 transition-colors">
+                          <HiOutlinePlus size={24} />
+                        </div>
+                        <span className="text-[10px] font-bold uppercase tracking-wider">Upload</span>
+                      </button>
+                    )}
+                  </CldUploadWidget>
+                )}
+              </div>
+
+              {images.length === 0 && (
+                <div className="bg-slate-50 border border-dashed border-slate-200 rounded-2xl p-12 text-center">
+                  <div className="w-16 h-16 bg-white rounded-2xl shadow-sm flex items-center justify-center mx-auto mb-4 text-slate-300">
+                    <HiOutlineBriefcase size={32} />
+                  </div>
+                  <h4 className="text-slate-900 font-bold mb-1">No Photos Yet</h4>
+                  <p className="text-slate-500 text-xs">Add photos of your business to attract more customers.</p>
                 </div>
               )}
             </div>
