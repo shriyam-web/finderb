@@ -18,14 +18,18 @@ export default function BusinessDetailPage({ params }: { params: Promise<{ id: s
           <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-12 h-[450px] md:h-[500px] lg:h-[550px] gap-3">
             {/* Main Featured Image */}
             <div className="md:col-span-2 lg:col-span-6 relative overflow-hidden rounded-2xl border-2 border-slate-100 shadow-sm group">
-              <Image 
-                src={business.image} 
-                alt={business.name} 
-                fill 
-                className="object-cover transition-transform duration-1000 group-hover:scale-105" 
-                priority 
-                sizes="(max-width: 1024px) 100vw, 50vw"
-              />
+             <Image 
+  src={
+    business.profilePictureUrl ||
+    business.image ||
+    "/fallback.jpg"
+  }
+  alt={business.name || "Business Image"}
+  fill 
+  className="object-cover transition-transform duration-1000 group-hover:scale-105" 
+  priority 
+  sizes="(max-width: 1024px) 100vw, 50vw"
+/>
               <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
               <div className="absolute bottom-6 left-6 z-10 opacity-0 group-hover:opacity-100 transition-all duration-500 translate-y-4 group-hover:translate-y-0">
                 <span className="bg-white/90 backdrop-blur-md text-slate-900 px-4 py-2 rounded-full font-black text-[10px] uppercase tracking-widest shadow-xl flex items-center gap-2">
