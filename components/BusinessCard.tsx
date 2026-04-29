@@ -14,7 +14,7 @@ export default function BusinessCard({ business, isPremium = false, compact = fa
     <div className={`group relative bg-white rounded-3xl overflow-hidden transition-all duration-500 shadow-soft hover:shadow-premium border border-gray-100/50 hover:border-secondary/20 flex flex-col h-full`}>
       {/* Image Section */}
       <div className={`relative ${compact ? 'h-40' : 'h-56'} w-full overflow-hidden`}>
-        <Image
+       <Image
   src={
     business.profilePictureUrl ||
     business.image ||
@@ -22,8 +22,8 @@ export default function BusinessCard({ business, isPremium = false, compact = fa
   }
   alt={business.name || "Business Image"}
   fill
-  className="object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
-  sizes="(max-width: 768px) 100vw, 33vw"
+  className="object-cover transition-transform duration-1000 group-hover:scale-105"
+  sizes="(max-width: 768px) 100vw, 50vw"
 />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-80 group-hover:opacity-60 transition-opacity"></div>
         
