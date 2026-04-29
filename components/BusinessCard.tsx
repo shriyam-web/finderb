@@ -15,12 +15,16 @@ export default function BusinessCard({ business, isPremium = false, compact = fa
       {/* Image Section */}
       <div className={`relative ${compact ? 'h-40' : 'h-56'} w-full overflow-hidden`}>
         <Image
-          src={business.image}
-          alt={business.name}
-          fill
-          className="object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
-          sizes="(max-width: 768px) 100vw, 33vw"
-        />
+  src={
+    business.profilePictureUrl ||
+    business.image ||
+    "/fallback.jpg"
+  }
+  alt={business.name || "Business Image"}
+  fill
+  className="object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
+  sizes="(max-width: 768px) 100vw, 33vw"
+/>
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-80 group-hover:opacity-60 transition-opacity"></div>
         
         {/* Badges */}

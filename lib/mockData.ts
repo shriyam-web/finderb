@@ -8,7 +8,10 @@ export interface Business {
   description: string;
   contact: string;
   services: string[];
-  image: string;
+  
+  image?: string; // mock
+  profilePictureUrl?: string; // real DB
+  
   priceRange: string;
 }
 

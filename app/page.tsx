@@ -512,7 +512,7 @@ function HomeContent() {
       <section className="py-12 lg:py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between mb-8 lg:mb-10">
-            <h2 className="text-lg sm:text-2xl font-medium text-primary">Latest Movies & Entertainment Near You</h2>
+            <h2 className="text-lg sm:text-2xl font-medium text-primary">Movies & Entertainment Nearby</h2>
             <Link href="/movies" className="text-xs sm:text-sm font-medium text-secondary hover:underline">See All</Link>
           </div>
           <div className="flex overflow-x-auto pb-4 lg:pb-8 gap-4 lg:gap-6 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
