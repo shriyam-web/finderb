@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { 
   HiOutlineSquares2X2,
   HiOutlineQueueList,
@@ -31,10 +31,11 @@ import {
 import { RiDashboardFill, RiListCheck, RiMessage3Line, RiSettings4Line } from 'react-icons/ri';
 import Link from 'next/link';
 import Image from 'next/image';
-import { getBusiness, updateBusinessImages } from '@/app/actions/business';
+import { getBusiness, updateBusinessImages, getBusinessSession, logoutBusiness } from '@/app/actions/business';
 import { CldUploadWidget } from 'next-cloudinary';
 
 function DashboardContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const id = searchParams.get('id');
   const [activeTab, setActiveTab] = useState('overview');
@@ -51,18 +52,40 @@ function DashboardContent() {
 
   useEffect(() => {
     const fetchBusiness = async () => {
-      if (id) {
-        const res = await getBusiness(id);
+      let currentId = id;
+
+      if (!currentId) {
+        const sessionRes = await getBusinessSession();
+        if (sessionRes && sessionRes.success) {
+          currentId = sessionRes.business.id;
+        }
+      }
+
+      if (currentId) {
+        const res = await getBusiness(currentId);
         if (res.success) {
           setBusiness(res.business);
           setImages(res.business.images || []);
           setprofilePictureUrl(res.business.profilePictureUrl || null);
+        } else if (!id) {
+          router.push('/business/login');
         }
+      } else {
+        router.push('/business/login');
       }
       setLoading(false);
     };
     fetchBusiness();
-  }, [id]);
+  }, [id, router]);
+
+  const handleLogout = async () => {
+    const res = await logoutBusiness();
+    if (res.success) {
+      router.push('/business/login');
+    } else {
+      alert('Failed to logout');
+    }
+  };
 
   const handleUploadSuccess = async (result: any) => {
     console.log('Upload result:', result);
@@ -336,10 +359,13 @@ function DashboardContent() {
             </div>
           </div>
           
-          <Link href="/business/login" className="flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm text-gray-500 hover:text-rose-600 hover:bg-rose-50 transition-all group">
+          <button 
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm text-gray-500 hover:text-rose-600 hover:bg-rose-50 transition-all group"
+          >
             <HiOutlineArrowLeftOnRectangle size={20} className="group-hover:-translate-x-0.5 transition-transform" />
             <span>Sign Out</span>
-          </Link>
+          </button>
         </div>
       </aside>
 

@@ -164,7 +164,7 @@ function RegisterFormContent() {
     } else if (step === 2) {
       handleRegistration();
     } else if (step === 3) {
-      window.location.href = `/business/dashboard?id=${registeredBusiness?.id}`;
+      window.location.href = '/business/dashboard';
     }
   };
 

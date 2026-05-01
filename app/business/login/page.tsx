@@ -36,7 +36,7 @@ export default function BusinessLoginPage() {
 
       if (result.success) {
         console.log('Login successful, redirecting to dashboard...');
-        router.push(`/business/dashboard?id=${result.businessId}`);
+        router.push('/business/dashboard');
       } else {
         console.warn('Login failed:', result.error);
         setError(result.error || 'Login failed');

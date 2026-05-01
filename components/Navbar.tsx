@@ -4,8 +4,9 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useEffect, Suspense } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { Menu, X, User, Briefcase, Globe, Megaphone, Users, UserCircle, HelpCircle, ChevronDown, Home, ArrowRight, Settings, LogOut, LayoutDashboard } from 'lucide-react';
+import { Menu, X, User, Briefcase, Globe, Megaphone, Users, UserCircle, HelpCircle, ChevronDown, Home, ArrowRight, Settings, LogOut, LayoutDashboard, Building2 } from 'lucide-react';
 import { getSession, logoutUser } from '@/app/actions/user';
+import { getBusinessSession, logoutBusiness } from '@/app/actions/business';
 import { useRouter } from 'next/navigation';
 
 function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: boolean }) {
@@ -13,9 +14,12 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
   const [currentLang, setCurrentLang] = useState('English');
   const [isLangOpen, setIsLangOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isBusinessMenuOpen, setIsBusinessMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [isBusinessLoggedIn, setIsBusinessLoggedIn] = useState(false);
+  const [business, setBusiness] = useState<any>(null);
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -25,13 +29,24 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
 
   useEffect(() => {
     const checkSession = async () => {
-      const result = await getSession();
-      if (result && result.success) {
+      // Check user session
+      const userResult = await getSession();
+      if (userResult && userResult.success) {
         setIsLoggedIn(true);
-        setUser(result.user);
+        setUser(userResult.user);
       } else {
         setIsLoggedIn(false);
         setUser(null);
+      }
+
+      // Check business session
+      const businessResult = await getBusinessSession();
+      if (businessResult && businessResult.success) {
+        setIsBusinessLoggedIn(true);
+        setBusiness(businessResult.business);
+      } else {
+        setIsBusinessLoggedIn(false);
+        setBusiness(null);
       }
     };
     checkSession();
@@ -51,6 +66,14 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
     setUser(null);
     setIsUserMenuOpen(false);
     router.push('/login');
+  };
+
+  const handleBusinessLogout = async () => {
+    await logoutBusiness();
+    setIsBusinessLoggedIn(false);
+    setBusiness(null);
+    setIsBusinessMenuOpen(false);
+    router.push('/business/login');
   };
 
   const menuItems = [
@@ -123,14 +146,71 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
 
             {/* Business and Auth Actions */}
             <div className="flex items-center gap-3 ml-2">
-              <Link
-                href="/business/register"
-                className="relative flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-primary to-secondary text-white rounded-xl shadow-lg shadow-secondary/10 hover:shadow-secondary/30 hover:-translate-y-0.5 transition-all duration-500 font-bold text-[10px] group overflow-hidden uppercase tracking-widest"
-              >
-                <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
+              {!isBusinessLoggedIn && (
+                <Link
+                  href="/business/register"
+                  className="relative flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-primary to-secondary text-white rounded-xl shadow-lg shadow-secondary/10 hover:shadow-secondary/30 hover:-translate-y-0.5 transition-all duration-500 font-bold text-[10px] group overflow-hidden uppercase tracking-widest"
+                >
+                  <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
+                  <span className="relative z-10">Register Business</span>
+                </Link>
+              )}
 
-                <span className="relative z-10">Register Business</span>
-              </Link>
+              {isBusinessLoggedIn && (
+                <div className="relative">
+                  <button
+                    onClick={() => setIsBusinessMenuOpen(!isBusinessMenuOpen)}
+                    className={`flex items-center gap-2 px-4 py-2 border rounded-xl transition-all duration-300 font-medium text-xs shadow-sm hover:shadow-md ${isLight
+                      ? 'bg-white/10 backdrop-blur-md text-white border-white/20 hover:bg-white/20'
+                      : 'bg-white/50 backdrop-blur-md text-gray-700 border-gray-200 hover:bg-white hover:border-gray-300'
+                      }`}
+                  >
+                    <div className="w-5 h-5 bg-indigo-600 rounded-full flex items-center justify-center text-[10px] text-white font-bold shadow-sm">
+                      <Briefcase size={12} />
+                    </div>
+                    <span>{business?.businessName?.split(' ')[0] || 'Business'}</span>
+                    <ChevronDown size={14} className={`transition-transform duration-300 ${isBusinessMenuOpen ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {isBusinessMenuOpen && (
+                    <>
+                      <div
+                        className="fixed inset-0 z-40"
+                        onClick={() => setIsBusinessMenuOpen(false)}
+                      />
+                      <div className="absolute top-full right-0 mt-2 w-48 bg-white border border-gray-100 rounded-2xl shadow-xl py-2 z-50 animate-in fade-in zoom-in-95 duration-200">
+                        <div className="px-4 py-2 mb-1 border-b border-gray-50">
+                          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Business Portal</p>
+                        </div>
+                        <Link
+                          href={`/business/dashboard?id=${business.id}`}
+                          onClick={() => setIsBusinessMenuOpen(false)}
+                          className="flex items-center gap-2.5 px-4 py-2.5 text-xs font-medium text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 transition-all"
+                        >
+                          <LayoutDashboard size={16} className="text-gray-400" />
+                          Dashboard
+                        </Link>
+                        <Link
+                          href={`/business/dashboard?id=${business.id}&tab=settings`}
+                          onClick={() => setIsBusinessMenuOpen(false)}
+                          className="flex items-center gap-2.5 px-4 py-2.5 text-xs font-medium text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 transition-all"
+                        >
+                          <Settings size={16} className="text-gray-400" />
+                          Settings
+                        </Link>
+                        <div className="my-1 border-t border-gray-50" />
+                        <button
+                          onClick={handleBusinessLogout}
+                          className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs font-medium text-red-500 hover:bg-red-50 transition-all"
+                        >
+                          <LogOut size={16} />
+                          Log Out
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
 
               {isLoggedIn ? (
                 <div className="relative">
@@ -211,43 +291,62 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
 
           <div className="flex lg:hidden items-center gap-2">
             {/* Register and Login outside of hamburger on mobile too */}
-            <Link
-              href="/business/register"
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg font-bold text-[8px] uppercase tracking-widest transition-all shadow-lg ${scrolled
-                ? 'bg-gradient-to-r from-primary to-secondary text-white shadow-secondary/10'
-                : isLight
-                  ? 'bg-white text-primary hover:bg-white/90'
-                  : 'bg-gradient-to-r from-primary to-secondary text-white shadow-secondary/10'
-                }`}
-            >
-              <span className="hidden min-[380px]:inline">Register Business</span>
-              <span className="min-[380px]:hidden">Register</span>
-            </Link>
-
-            <Link
-              href="/dashboard"
-              className={`flex items-center gap-2 px-3 py-2 border rounded-xl transition-all duration-300 font-medium text-[10px] shadow-sm ${isLoggedIn
-                ? (isLight
-                  ? 'bg-white/10 backdrop-blur-md text-white border-white/20 hover:bg-white/20'
-                  : 'bg-white/50 backdrop-blur-md text-gray-700 border-gray-200 hover:bg-white hover:border-gray-300')
-                : (scrolled
-                  ? 'text-primary bg-white border-primary/10 hover:border-primary/30'
+            {!isBusinessLoggedIn && (
+              <Link
+                href="/business/register"
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg font-bold text-[8px] uppercase tracking-widest transition-all shadow-lg ${scrolled
+                  ? 'bg-gradient-to-r from-primary to-secondary text-white shadow-secondary/10'
                   : isLight
-                    ? 'text-white bg-white/10 border-white/20 backdrop-blur-md hover:bg-white/20'
-                    : 'text-primary bg-white border-primary/10 hover:border-primary/30')
-                }`}
-            >
-              {isLoggedIn ? (
-                <>
-                  <div className="w-5 h-5 bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center text-[9px] text-white font-bold shadow-sm flex-shrink-0">
-                    {user?.fullName?.split(' ').map((n: string) => n[0]).join('').toUpperCase().substring(0, 1)}
-                  </div>
-                  <span className="truncate max-w-[60px]">{user?.fullName?.split(' ')[0] || 'User'}</span>
-                </>
-              ) : (
-                <span className="uppercase tracking-widest text-[8px] font-bold">Login/ Signup</span>
-              )}
-            </Link>
+                    ? 'bg-white text-primary hover:bg-white/90'
+                    : 'bg-gradient-to-r from-primary to-secondary text-white shadow-secondary/10'
+                  }`}
+              >
+                <span className="hidden min-[380px]:inline">Register Business</span>
+                <span className="min-[380px]:hidden">Register</span>
+              </Link>
+            )}
+
+            {isBusinessLoggedIn ? (
+              <Link
+                href={`/business/dashboard?id=${business.id}`}
+                className={`flex items-center gap-2 px-3 py-2 border rounded-xl transition-all duration-300 font-medium text-[10px] shadow-sm ${scrolled
+                  ? 'bg-white/50 backdrop-blur-md text-gray-700 border-gray-200 hover:bg-white hover:border-gray-300'
+                  : isLight
+                    ? 'bg-white/10 backdrop-blur-md text-white border-white/20 hover:bg-white/20'
+                    : 'bg-white/50 backdrop-blur-md text-gray-700 border-gray-200 hover:bg-white hover:border-gray-300'
+                  }`}
+              >
+                <div className="w-5 h-5 bg-indigo-600 rounded-full flex items-center justify-center text-[9px] text-white font-bold shadow-sm flex-shrink-0">
+                  <Briefcase size={10} />
+                </div>
+                <span className="truncate max-w-[60px]">{business?.businessName?.split(' ')[0] || 'Business'}</span>
+              </Link>
+            ) : (
+              <Link
+                href="/dashboard"
+                className={`flex items-center gap-2 px-3 py-2 border rounded-xl transition-all duration-300 font-medium text-[10px] shadow-sm ${isLoggedIn
+                  ? (isLight
+                    ? 'bg-white/10 backdrop-blur-md text-white border-white/20 hover:bg-white/20'
+                    : 'bg-white/50 backdrop-blur-md text-gray-700 border-gray-200 hover:bg-white hover:border-gray-300')
+                  : (scrolled
+                    ? 'text-primary bg-white border-primary/10 hover:border-primary/30'
+                    : isLight
+                      ? 'text-white bg-white/10 border-white/20 backdrop-blur-md hover:bg-white/20'
+                      : 'text-primary bg-white border-primary/10 hover:border-primary/30')
+                  }`}
+              >
+                {isLoggedIn ? (
+                  <>
+                    <div className="w-5 h-5 bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center text-[9px] text-white font-bold shadow-sm flex-shrink-0">
+                      {user?.fullName?.split(' ').map((n: string) => n[0]).join('').toUpperCase().substring(0, 1)}
+                    </div>
+                    <span className="truncate max-w-[60px]">{user?.fullName?.split(' ')[0] || 'User'}</span>
+                  </>
+                ) : (
+                  <span className="uppercase tracking-widest text-[8px] font-bold">Login/ Signup</span>
+                )}
+              </Link>
+            )}
 
             <button
               onClick={() => setIsOpen(!isOpen)}
@@ -379,7 +478,28 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
 
           {/* Footer Action */}
           <div className="p-8 pb-12 relative z-10 border-t border-slate-50">
-            {isLoggedIn ? (
+            {isBusinessLoggedIn ? (
+              <div className="space-y-3">
+                <Link
+                  href={`/business/dashboard?id=${business.id}`}
+                  onClick={() => setIsOpen(false)}
+                  className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl bg-indigo-600 text-white font-bold text-xs shadow-xl shadow-indigo-200 active:scale-95 transition-all"
+                >
+                  <LayoutDashboard size={18} />
+                  Business Dashboard
+                </Link>
+                <button
+                  onClick={() => {
+                    handleBusinessLogout();
+                    setIsOpen(false);
+                  }}
+                  className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl bg-slate-50 text-red-500 font-bold text-xs border border-red-50 active:scale-95 transition-all"
+                >
+                  <LogOut size={18} />
+                  Sign Out Business
+                </button>
+              </div>
+            ) : isLoggedIn ? (
               <button
                 onClick={() => {
                   handleLogout();

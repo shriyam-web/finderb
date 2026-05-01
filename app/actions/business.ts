@@ -89,6 +89,15 @@ export async function registerBusiness(formData: any) {
     }
 
     console.log('[REGISTER] ✓ Success:', business.id);
+    
+    // Set a cookie for the business ID to maintain session
+    (await cookies()).set('business_id', business.id, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 60 * 60 * 24 * 7, // 1 week
+      path: '/',
+    });
+
     revalidatePath('/business');
     return { success: true, business };
   } catch (error: any) {
@@ -274,10 +283,40 @@ export async function loginBusiness(email: string, password: string) {
     }
 
     console.log('Login successful for business:', business.id);
+
+    // Set a cookie for the business ID to maintain session
+    (await cookies()).set('business_id', business.id, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 60 * 60 * 24 * 7, // 1 week
+      path: '/',
+    });
+
     return { success: true, businessId: business.id };
   } catch (error: any) {
     const errorMessage = handleError(error, 'Login');
     return { success: false, error: errorMessage };
+  }
+}
+
+export async function logoutBusiness() {
+  try {
+    (await cookies()).delete('business_id');
+    revalidatePath('/business/dashboard');
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: 'Failed to logout' };
+  }
+}
+
+export async function getBusinessSession() {
+  try {
+    const businessId = (await cookies()).get('business_id')?.value;
+    if (!businessId) return null;
+    return await getBusiness(businessId);
+  } catch (error) {
+    console.error('Get Business Session Error:', error);
+    return null;
   }
 }
 
