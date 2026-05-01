@@ -47,6 +47,7 @@ function DashboardContent() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [imageToDelete, setImageToDelete] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [focusedImage, setFocusedImage] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchBusiness = async () => {
@@ -607,24 +608,38 @@ function DashboardContent() {
 
         {activeTab === 'settings' && (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            <div className="bg-white rounded-[32px] shadow-sm p-8 border border-gray-100 space-y-8">
+            <div 
+              className="bg-white rounded-[32px] shadow-sm p-8 border border-gray-100 space-y-8"
+              onClick={() => setFocusedImage(null)}
+            >
               <div>
                 <h3 className="text-xl font-black text-slate-900 tracking-tight mb-2">Business Media</h3>
                 <p className="text-slate-500 text-sm">Manage your business photos. You can upload up to 5 images and select one as your profile picture.</p>
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4" onClick={(e) => e.stopPropagation()}>
                 {images.map((url, index) => (
-                  <div key={index} className="relative aspect-square rounded-2xl overflow-hidden border border-gray-100 group shadow-sm">
+                  <div 
+                    key={index} 
+                    onClick={() => setFocusedImage(focusedImage === index ? null : index)}
+                    className="relative aspect-square rounded-2xl overflow-hidden border border-gray-100 group shadow-sm cursor-pointer"
+                  >
                     <Image 
                       src={url} 
                       alt={`Business ${index + 1}`} 
                       fill 
                       className="object-cover transition-transform group-hover:scale-110"
                     />
-                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2.5 p-3">
+                    <div className={`absolute inset-0 bg-black/60 transition-opacity flex flex-col items-center justify-center gap-2.5 p-3 ${
+                      focusedImage === index 
+                        ? 'opacity-100 pointer-events-auto' 
+                        : 'opacity-0 pointer-events-none lg:group-hover:opacity-100 lg:group-hover:pointer-events-auto'
+                    }`}>
                       <button 
-                        onClick={() => handleSetProfile(url)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSetProfile(url);
+                        }}
                         className={`w-full py-2 rounded-xl text-[9px] font-bold uppercase tracking-wider transition-all shadow-sm ${
                           profilePictureUrl === url 
                             ? 'bg-indigo-600 text-white' 
@@ -634,7 +649,8 @@ function DashboardContent() {
                         {profilePictureUrl === url ? 'Profile Pic' : 'Set as Profile Pic'}
                       </button>
                       <button 
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.stopPropagation();
                           setImageToDelete(url);
                           setShowDeleteModal(true);
                         }}
