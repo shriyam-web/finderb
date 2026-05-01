@@ -612,23 +612,25 @@ function DashboardContent() {
                       fill 
                       className="object-cover transition-transform group-hover:scale-110"
                     />
-                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
+                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2.5 p-3">
                       <button 
                         onClick={() => handleSetProfile(url)}
-                        className={`p-2 rounded-lg text-white transition-all ${profilePictureUrl === url ? 'bg-indigo-600' : 'bg-white/20 hover:bg-white/40'}`}
-                        title="Set as Profile Picture"
+                        className={`w-full py-2 rounded-xl text-[9px] font-bold uppercase tracking-wider transition-all shadow-sm ${
+                          profilePictureUrl === url 
+                            ? 'bg-indigo-600 text-white' 
+                            : 'bg-white text-slate-900 hover:bg-indigo-50'
+                        }`}
                       >
-                        <HiOutlineStar size={18} fill={profilePictureUrl === url ? "currentColor" : "none"} />
+                        {profilePictureUrl === url ? 'Profile Pic' : 'Set as Profile Pic'}
                       </button>
                       <button 
                         onClick={() => {
                           setImageToDelete(url);
                           setShowDeleteModal(true);
                         }}
-                        className="p-2 bg-rose-600/80 hover:bg-rose-600 rounded-lg text-white transition-all"
-                        title="Delete Image"
+                        className="w-full py-2 bg-rose-600 hover:bg-rose-700 rounded-xl text-white text-[9px] font-bold uppercase tracking-wider transition-all shadow-sm"
                       >
-                        <HiOutlineXMark size={18} />
+                        Delete
                       </button>
                     </div>
                     {profilePictureUrl === url && (
@@ -678,6 +680,45 @@ function DashboardContent() {
           </div>
         )}
       </main>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-[2px] z-[100] flex items-center justify-center p-4 animate-in fade-in duration-300">
+          <div className="bg-white rounded-[32px] shadow-2xl p-8 w-full max-w-sm relative overflow-hidden animate-in zoom-in-95 duration-300 border border-gray-100">
+            <div className="flex flex-col items-center text-center space-y-6">
+              <div className="w-20 h-20 bg-rose-50 rounded-3xl flex items-center justify-center text-rose-600">
+                <HiOutlineExclamationCircle size={40} />
+              </div>
+              
+              <div className="space-y-2">
+                <h3 className="text-2xl font-black text-slate-900 tracking-tight">Delete Photo?</h3>
+                <p className="text-slate-500 text-sm leading-relaxed">
+                  Are you sure you want to remove this image? This action cannot be undone.
+                </p>
+              </div>
+
+              <div className="flex gap-3 w-full pt-2">
+                <button 
+                  onClick={() => {
+                    setShowDeleteModal(false);
+                    setImageToDelete(null);
+                  }}
+                  className="flex-1 px-6 py-3.5 rounded-xl font-bold text-xs uppercase tracking-wider text-slate-600 bg-slate-50 hover:bg-slate-100 transition-all active:scale-95"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={handleDeleteImage}
+                  disabled={updating}
+                  className="flex-1 px-6 py-3.5 rounded-xl font-bold text-xs uppercase tracking-wider text-white bg-rose-600 hover:bg-rose-700 transition-all shadow-lg shadow-rose-600/20 active:scale-95 disabled:opacity-50 disabled:scale-100"
+                >
+                  {updating ? 'Deleting...' : 'Delete'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <style jsx global>{`
         .custom-scrollbar::-webkit-scrollbar {
