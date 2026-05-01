@@ -55,12 +55,30 @@ export default function BusinessCard({ business, isPremium = false, compact = fa
             <span className="text-[10px] font-bold uppercase tracking-wider drop-shadow-md">Trending in Delhi</span>
           </div>
         )}
+
+        {/* Profile Picture Avatar Overlay */}
+        {business.profilePictureUrl && (
+          <div className={`absolute -bottom-6 right-6 z-20`}>
+            <div className={`${compact ? 'w-12 h-12' : 'w-16 h-16'} rounded-2xl border-4 border-white shadow-xl overflow-hidden bg-white`}>
+              <Image 
+                src={business.profilePictureUrl} 
+                alt={business.name} 
+                width={64} 
+                height={64} 
+                className="w-full h-full object-cover"
+              />
+            </div>
+            <div className="absolute -bottom-1 -right-1 bg-emerald-500 w-4 h-4 rounded-full border-2 border-white shadow-sm flex items-center justify-center">
+              <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Content Section */}
-      <div className={`${compact ? 'p-4' : 'p-6'} flex flex-col flex-grow`}>
+      <div className={`${compact ? 'p-4' : 'p-6'} flex flex-col flex-grow ${business.profilePictureUrl ? 'pt-8' : ''}`}>
         <div className="flex justify-between items-start mb-1">
-          <h3 className={`${compact ? 'text-base' : 'text-lg'} font-extrabold text-primary group-hover:text-secondary transition-colors tracking-tight leading-tight line-clamp-1`}>
+          <h3 className={`${compact ? 'text-base' : 'text-lg'} font-extrabold text-primary group-hover:text-secondary transition-colors tracking-tight leading-tight line-clamp-1 ${business.profilePictureUrl ? 'pr-12' : ''}`}>
             {business.name}
           </h3>
         </div>

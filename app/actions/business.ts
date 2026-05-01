@@ -307,7 +307,8 @@ export async function getFeaturedBusinesses() {
       description: b.businessAddress,
       contact: b.publicPhone,
       services: [], // Default for now
-      image: 'https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&q=80&w=800', // Default placeholder
+      image: b.profilePictureUrl || 'https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&q=80&w=800', // Default placeholder
+      profilePictureUrl: b.profilePictureUrl,
       priceRange: b.selectedPlan === 'free' ? 'Free' : 'Premium'
     }));
 
@@ -345,7 +346,8 @@ export async function getBusinessesByCategory(categoryName: string) {
       description: b.businessAddress,
       contact: b.publicPhone,
       services: [],
-      image: 'https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&q=80&w=800',
+      image: b.profilePictureUrl || 'https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&q=80&w=800',
+      profilePictureUrl: b.profilePictureUrl,
       priceRange: b.selectedPlan === 'free' ? 'Free' : 'Premium'
     }));
 
