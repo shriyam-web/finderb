@@ -46,6 +46,7 @@ function DashboardContent() {
   const [updating, setUpdating] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [imageToDelete, setImageToDelete] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchBusiness = async () => {
@@ -80,7 +81,10 @@ function DashboardContent() {
         setUpdating(true);
         const res = await updateBusinessImages(id, updatedImages, newProfilePic || undefined);
         setUpdating(false);
-        if (!res.success) {
+        if (res.success) {
+          setSuccessMessage('Image uploaded successfully');
+          setTimeout(() => setSuccessMessage(null), 3000);
+        } else {
           alert('Failed to update business images: ' + res.error);
         }
       }
@@ -109,7 +113,10 @@ function DashboardContent() {
       setUpdating(true);
       const res = await updateBusinessImages(id, updatedImages, newProfilePic || undefined);
       setUpdating(false);
-      if (!res.success) {
+      if (res.success) {
+        setSuccessMessage('Image deleted successfully');
+        setTimeout(() => setSuccessMessage(null), 3000);
+      } else {
         setImages(prevImages);
         setprofilePictureUrl(prevProfile);
         alert('Failed to delete image: ' + res.error);
@@ -124,7 +131,10 @@ function DashboardContent() {
       setUpdating(true);
       const res = await updateBusinessImages(id, images, url);
       setUpdating(false);
-      if (!res.success) {
+      if (res.success) {
+        setSuccessMessage('Profile picture updated successfully');
+        setTimeout(() => setSuccessMessage(null), 3000);
+      } else {
         setprofilePictureUrl(prevProfile);
         alert('Failed to set profile picture: ' + res.error);
       }
@@ -716,6 +726,18 @@ function DashboardContent() {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Success Notification Toast */}
+      {successMessage && (
+        <div className="fixed bottom-24 lg:bottom-8 right-8 z-[100] animate-in slide-in-from-right-10 duration-500">
+          <div className="bg-slate-900 text-white px-6 py-3.5 rounded-2xl shadow-2xl flex items-center gap-3 border border-white/10 backdrop-blur-md">
+            <div className="w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center">
+              <HiOutlineShieldCheck size={14} className="text-white" />
+            </div>
+            <p className="text-xs font-bold tracking-wide">{successMessage}</p>
           </div>
         </div>
       )}
