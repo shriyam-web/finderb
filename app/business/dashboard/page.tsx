@@ -44,6 +44,8 @@ function DashboardContent() {
   const [images, setImages] = useState<string[]>([]);
   const [profilePictureUrl, setprofilePictureUrl] = useState<string | null>(null);
   const [updating, setUpdating] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [imageToDelete, setImageToDelete] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchBusiness = async () => {
@@ -85,7 +87,10 @@ function DashboardContent() {
     }
   };
 
-  const handleDeleteImage = async (urlToDelete: string) => {
+  const handleDeleteImage = async () => {
+    if (!imageToDelete) return;
+    
+    const urlToDelete = imageToDelete;
     const updatedImages = images.filter(url => url !== urlToDelete);
     let newProfilePic = profilePictureUrl;
     if (profilePictureUrl === urlToDelete) {
@@ -97,6 +102,8 @@ function DashboardContent() {
 
     setImages(updatedImages);
     setprofilePictureUrl(newProfilePic);
+    setShowDeleteModal(false);
+    setImageToDelete(null);
 
     if (id) {
       setUpdating(true);
@@ -614,7 +621,10 @@ function DashboardContent() {
                         <HiOutlineStar size={18} fill={profilePictureUrl === url ? "currentColor" : "none"} />
                       </button>
                       <button 
-                        onClick={() => handleDeleteImage(url)}
+                        onClick={() => {
+                          setImageToDelete(url);
+                          setShowDeleteModal(true);
+                        }}
                         className="p-2 bg-rose-600/80 hover:bg-rose-600 rounded-lg text-white transition-all"
                         title="Delete Image"
                       >
