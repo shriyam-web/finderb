@@ -1,13 +1,1 @@
-Movies from the supabase table movies must be live on the FinderB homepage Latest Movies & Entertainment Near You section 
-
-create table public.movies (
-  id uuid not null default gen_random_uuid (),
-  name text not null,
-  description text null,
-  finderb_rating numeric(3, 1) null,
-  release_date date null,
-  poster_url text null,
-  created_at timestamp with time zone null default CURRENT_TIMESTAMP,
-  updated_at timestamp with time zone null default CURRENT_TIMESTAMP,
-  constraint movies_pkey primary key (id)
-) TABLESPACE pg_default;
+some fields like review & their reply, daywise time exxpecting JSON?? discount range must give range suggestion in dropdown. FinderB verified will be set from admin panel, not by the merchant himself, and merchant will set his rating also?? only give the legit editable fields to the merchant, make the ui better and must fall in proper accordion based categorization

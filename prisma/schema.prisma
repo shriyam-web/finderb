@@ -38,8 +38,29 @@ model Business {
   password                                               String?
   state                                                  String?
   country                                                String?
+  status                                                 String       @default("Active")
   images                                                 String[]     @default([])
-  profilePictureUrl                                         String?
+  profilePictureUrl                                      String?
+  rating                                                 Float?
+  yearsInBusiness                                        Int?
+  displayName                                            String?
+  isFinderBVerified                                      Boolean      @default(false)
+  review                                                 Json?
+  reviewReply                                            Json?
+  latitude                                               Float?
+  longitude                                              Float?
+  website                                                String?
+  instagramUrl                                           String?
+  facebookUrl                                            String?
+  whatsappNumber                                         String?
+  youtubeUrl                                             String?
+  about                                                  String?
+  keywords                                               String[]     @default([])
+  timings                                                Json?
+  discountRange                                          String?
+  serviceCategory                                        String?
+  paymentModes                                           String[]     @default([])
+  profileQrLink                                          String?
   categories_categories_position_1_business_idToBusiness categories[] @relation("categories_position_1_business_idToBusiness")
   categories_categories_position_2_business_idToBusiness categories[] @relation("categories_position_2_business_idToBusiness")
   categories_categories_position_3_business_idToBusiness categories[] @relation("categories_position_3_business_idToBusiness")
@@ -121,4 +142,14 @@ model tourist_places {
   image_url   String?
   created_at  DateTime? @default(now()) @db.Timestamptz(6)
   updated_at  DateTime? @default(now()) @db.Timestamptz(6)
+}
+
+model admins {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email        String    @unique
+  password     String
+  role         String    @default("admin")
+  created_at   DateTime? @default(now()) @db.Timestamptz(6)
+  is_disabled  Boolean?  @default(false)
+  allowed_tabs String[]
 }

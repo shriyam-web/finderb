@@ -396,3 +396,55 @@ export async function getBusinessesByCategory(categoryName: string) {
     return { success: false, error: errorMessage };
   }
 }
+
+export async function updateBusinessProfile(id: string, profileData: any) {
+  try {
+    if (!id) {
+      return { success: false, error: 'Business ID is required' };
+    }
+
+    console.log('Updating profile for business:', id);
+
+    const supabase = createClient(await cookies());
+
+    const { data: business, error } = await supabase
+      .from('Business')
+      .update({
+        rating: profileData.rating,
+        yearsInBusiness: profileData.yearsInBusiness,
+        displayName: profileData.displayName,
+        isFinderBVerified: profileData.isFinderBVerified,
+        review: profileData.review,
+        reviewReply: profileData.reviewReply,
+        latitude: profileData.latitude,
+        longitude: profileData.longitude,
+        website: profileData.website,
+        instagramUrl: profileData.instagramUrl,
+        facebookUrl: profileData.facebookUrl,
+        whatsappNumber: profileData.whatsappNumber,
+        youtubeUrl: profileData.youtubeUrl,
+        about: profileData.about,
+        keywords: profileData.keywords,
+        email: profileData.email,
+        timings: profileData.timings,
+        discountRange: profileData.discountRange,
+        serviceCategory: profileData.serviceCategory,
+        paymentModes: profileData.paymentModes,
+        profileQrLink: profileData.profileQrLink,
+        updatedAt: new Date().toISOString(),
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    revalidatePath(`/business/dashboard`);
+    return { success: true, business };
+  } catch (error: any) {
+    const errorMessage = handleError(error, 'Profile Update');
+    return { success: false, error: errorMessage };
+  }
+}

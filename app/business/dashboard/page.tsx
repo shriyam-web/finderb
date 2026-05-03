@@ -26,12 +26,14 @@ import {
   HiOutlineBars3,
   HiOutlineXMark,
   HiOutlineExclamationCircle,
-  HiOutlineCreditCard
+  HiOutlineCreditCard,
+  HiChevronDown,
+  HiChevronUp
 } from 'react-icons/hi2';
 import { RiDashboardFill, RiListCheck, RiMessage3Line, RiSettings4Line } from 'react-icons/ri';
 import Link from 'next/link';
 import Image from 'next/image';
-import { getBusiness, updateBusinessImages, getBusinessSession, logoutBusiness } from '@/app/actions/business';
+import { getBusiness, updateBusinessImages, getBusinessSession, logoutBusiness, updateBusinessProfile } from '@/app/actions/business';
 import { CldUploadWidget } from 'next-cloudinary';
 
 function DashboardContent() {
@@ -49,6 +51,51 @@ function DashboardContent() {
   const [imageToDelete, setImageToDelete] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [focusedImage, setFocusedImage] = useState<number | null>(null);
+  const [openAccordions, setOpenAccordions] = useState<string[]>(['basic']);
+
+  const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+  const discountOptions = [
+    'No Discount',
+    '5% - 10% OFF',
+    '10% - 20% OFF',
+    '20% - 30% OFF',
+    '30% - 40% OFF',
+    'Up to 50% OFF',
+    'Special Festive Discount',
+    'Seasonal Offer'
+  ];
+
+  const toggleAccordion = (id: string) => {
+    setOpenAccordions(prev => 
+      prev.includes(id) ? prev.filter(a => a !== id) : [...prev, id]
+    );
+  };
+  
+  // New Profile Fields State
+  const [profileData, setProfileData] = useState({
+    yearsInBusiness: business?.yearsInBusiness || 0,
+    displayName: business?.displayName || '',
+    latitude: business?.latitude || 0,
+    longitude: business?.longitude || 0,
+    website: business?.website || '',
+    instagramUrl: business?.instagramUrl || '',
+    facebookUrl: business?.facebookUrl || '',
+    whatsappNumber: business?.whatsappNumber || '',
+    youtubeUrl: business?.youtubeUrl || '',
+    about: business?.about || '',
+    keywords: business?.keywords || [],
+    email: business?.email || '',
+    timings: business?.timings || {},
+    discountRange: business?.discountRange || '',
+    serviceCategory: business?.serviceCategory || '',
+    paymentModes: business?.paymentModes || [],
+    profileQrLink: business?.profileQrLink || '',
+    review: business?.review || {},
+    reviewReply: business?.reviewReply || {},
+    rating: business?.rating || 0,
+    isFinderBVerified: business?.isFinderBVerified || false,
+  });
 
   useEffect(() => {
     const fetchBusiness = async () => {
@@ -67,6 +114,29 @@ function DashboardContent() {
           setBusiness(res.business);
           setImages(res.business.images || []);
           setprofilePictureUrl(res.business.profilePictureUrl || null);
+            setProfileData({
+            rating: res.business.rating || 0,
+            yearsInBusiness: res.business.yearsInBusiness || 0,
+            displayName: res.business.displayName || '',
+            isFinderBVerified: res.business.isFinderBVerified || false,
+            review: res.business.review || {},
+            reviewReply: res.business.reviewReply || {},
+            latitude: res.business.latitude || 0,
+            longitude: res.business.longitude || 0,
+            website: res.business.website || '',
+            instagramUrl: res.business.instagramUrl || '',
+            facebookUrl: res.business.facebookUrl || '',
+            whatsappNumber: res.business.whatsappNumber || '',
+            youtubeUrl: res.business.youtubeUrl || '',
+            about: res.business.about || '',
+            keywords: res.business.keywords || [],
+            email: res.business.email || '',
+            timings: res.business.timings || {},
+            discountRange: res.business.discountRange || '',
+            serviceCategory: res.business.serviceCategory || '',
+            paymentModes: res.business.paymentModes || [],
+            profileQrLink: res.business.profileQrLink || '',
+          });
         } else if (!id) {
           router.push('/business/login');
         }
@@ -165,6 +235,27 @@ function DashboardContent() {
     }
   };
 
+  const handleUpdateProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!id) return;
+
+    setUpdating(true);
+    const res = await updateBusinessProfile(id, profileData);
+    setUpdating(false);
+
+    if (res.success) {
+      setSuccessMessage('Profile updated successfully');
+      setTimeout(() => setSuccessMessage(null), 3000);
+      setBusiness(res.business);
+    } else {
+      alert('Failed to update profile: ' + res.error);
+    }
+  };
+
+  const updateField = (field: string, value: any) => {
+    setProfileData(prev => ({ ...prev, [field]: value }));
+  };
+
   const menuItems = [
     { id: 'overview', label: 'Performance', icon: HiOutlineSquares2X2, activeIcon: RiDashboardFill },
     { id: 'listings', label: 'My Listings', icon: HiOutlineQueueList, activeIcon: RiListCheck },
@@ -178,6 +269,12 @@ function DashboardContent() {
     { label: 'New Leads', value: '42', change: '+18.2%', isUp: true, icon: HiOutlineUsers, sub: 'high intent buyers' },
     { label: 'Avg. Rating', value: '4.8', change: '-2.1%', isUp: false, icon: HiOutlineArrowTrendingUp, sub: '840 reviews total' },
   ];
+
+  const [mockSearchCount, setMockSearchCount] = useState(0);
+
+  useEffect(() => {
+    setMockSearchCount(Math.floor(Math.random() * 500) + 100);
+  }, []);
 
   if (loading) {
     return (
@@ -200,8 +297,6 @@ function DashboardContent() {
     return score;
   };
   const completionPercent = calculateCompletion();
-
-  const mockSearchCount = Math.floor(Math.random() * 500) + 100;
 
   const mockLeads = [
     { name: 'Amit Sharma', service: 'Leak Repair', status: 'New Lead', color: 'bg-blue-600', time: '14 min ago' },
@@ -728,6 +823,353 @@ function DashboardContent() {
                   <p className="text-slate-500 text-xs">Add photos of your business to attract more customers.</p>
                 </div>
               )}
+            </div>
+
+            {/* Profile Information Form */}
+            <div className="bg-white rounded-[32px] shadow-sm p-8 border border-gray-100 space-y-8">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-xl font-black text-slate-900 tracking-tight mb-2">Profile Information</h3>
+                  <p className="text-slate-500 text-sm">Update your business details, social media, and more to improve visibility.</p>
+                </div>
+                <div className="flex gap-3">
+                  <div className="bg-indigo-50 px-4 py-2 rounded-xl border border-indigo-100 flex flex-col items-center">
+                    <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">Rating</span>
+                    <span className="text-lg font-black text-indigo-700">{profileData.rating || '0.0'}</span>
+                  </div>
+                  <div className={`px-4 py-2 rounded-xl border flex flex-col items-center ${profileData.isFinderBVerified ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-slate-50 border-slate-100 text-slate-400'}`}>
+                    <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">Verified</span>
+                    <span className="text-lg font-black">{profileData.isFinderBVerified ? 'YES' : 'NO'}</span>
+                  </div>
+                </div>
+              </div>
+
+              <form onSubmit={handleUpdateProfile} className="space-y-4">
+                {/* Accordion 1: Basic Details */}
+                <div className="border border-slate-100 rounded-3xl overflow-hidden bg-slate-50/30">
+                  <button
+                    type="button"
+                    onClick={() => toggleAccordion('basic')}
+                    className="w-full px-6 py-5 flex items-center justify-between bg-white hover:bg-slate-50 transition-colors"
+                  >
+                    <h4 className="text-sm font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
+                      <div className="w-1.5 h-4 bg-indigo-600 rounded-full"></div>
+                      Basic Details
+                    </h4>
+                    {openAccordions.includes('basic') ? <HiChevronUp size={20} className="text-slate-400" /> : <HiChevronDown size={20} className="text-slate-400" />}
+                  </button>
+                  {openAccordions.includes('basic') && (
+                    <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in slide-in-from-top-2 duration-300">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Display Name</label>
+                        <input 
+                          type="text" 
+                          value={profileData.displayName}
+                          onChange={(e) => updateField('displayName', e.target.value)}
+                          className="w-full px-5 py-3.5 rounded-2xl bg-white border border-slate-100 text-slate-900 text-sm font-medium focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/5 transition-all outline-none"
+                          placeholder="Public name of your business"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Public Email</label>
+                        <input 
+                          type="email" 
+                          value={profileData.email}
+                          onChange={(e) => updateField('email', e.target.value)}
+                          className="w-full px-5 py-3.5 rounded-2xl bg-white border border-slate-100 text-slate-900 text-sm font-medium focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/5 transition-all outline-none"
+                          placeholder="contact@business.com"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Website URL</label>
+                        <input 
+                          type="text" 
+                          value={profileData.website}
+                          onChange={(e) => updateField('website', e.target.value)}
+                          className="w-full px-5 py-3.5 rounded-2xl bg-white border border-slate-100 text-slate-900 text-sm font-medium focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/5 transition-all outline-none"
+                          placeholder="https://www.business.com"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Years in Business</label>
+                        <input 
+                          type="number" 
+                          value={profileData.yearsInBusiness}
+                          onChange={(e) => updateField('yearsInBusiness', parseInt(e.target.value))}
+                          className="w-full px-5 py-3.5 rounded-2xl bg-white border border-slate-100 text-slate-900 text-sm font-medium focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/5 transition-all outline-none"
+                        />
+                      </div>
+                      <div className="space-y-2 md:col-span-2 lg:col-span-3">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">About Business</label>
+                        <textarea 
+                          value={profileData.about}
+                          onChange={(e) => updateField('about', e.target.value)}
+                          rows={4}
+                          className="w-full px-5 py-3.5 rounded-2xl bg-white border border-slate-100 text-slate-900 text-sm font-medium focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/5 transition-all outline-none resize-none"
+                          placeholder="Tell customers about your business..."
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Accordion 2: Social Presence */}
+                <div className="border border-slate-100 rounded-3xl overflow-hidden bg-slate-50/30">
+                  <button
+                    type="button"
+                    onClick={() => toggleAccordion('social')}
+                    className="w-full px-6 py-5 flex items-center justify-between bg-white hover:bg-slate-50 transition-colors"
+                  >
+                    <h4 className="text-sm font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
+                      <div className="w-1.5 h-4 bg-indigo-600 rounded-full"></div>
+                      Social Presence
+                    </h4>
+                    {openAccordions.includes('social') ? <HiChevronUp size={20} className="text-slate-400" /> : <HiChevronDown size={20} className="text-slate-400" />}
+                  </button>
+                  {openAccordions.includes('social') && (
+                    <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6 animate-in slide-in-from-top-2 duration-300">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Instagram URL</label>
+                        <input 
+                          type="text" 
+                          value={profileData.instagramUrl}
+                          onChange={(e) => updateField('instagramUrl', e.target.value)}
+                          className="w-full px-5 py-3.5 rounded-2xl bg-white border border-slate-100 text-slate-900 text-sm font-medium focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/5 transition-all outline-none"
+                          placeholder="https://instagram.com/yourbusiness"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Facebook URL</label>
+                        <input 
+                          type="text" 
+                          value={profileData.facebookUrl}
+                          onChange={(e) => updateField('facebookUrl', e.target.value)}
+                          className="w-full px-5 py-3.5 rounded-2xl bg-white border border-slate-100 text-slate-900 text-sm font-medium focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/5 transition-all outline-none"
+                          placeholder="https://facebook.com/yourbusiness"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">WhatsApp Number</label>
+                        <input 
+                          type="text" 
+                          value={profileData.whatsappNumber}
+                          onChange={(e) => updateField('whatsappNumber', e.target.value)}
+                          className="w-full px-5 py-3.5 rounded-2xl bg-white border border-slate-100 text-slate-900 text-sm font-medium focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/5 transition-all outline-none"
+                          placeholder="e.g. +91 9876543210"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">YouTube URL</label>
+                        <input 
+                          type="text" 
+                          value={profileData.youtubeUrl}
+                          onChange={(e) => updateField('youtubeUrl', e.target.value)}
+                          className="w-full px-5 py-3.5 rounded-2xl bg-white border border-slate-100 text-slate-900 text-sm font-medium focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/5 transition-all outline-none"
+                          placeholder="https://youtube.com/yourchannel"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Accordion 3: Extra Info */}
+                <div className="border border-slate-100 rounded-3xl overflow-hidden bg-slate-50/30">
+                  <button
+                    type="button"
+                    onClick={() => toggleAccordion('extra')}
+                    className="w-full px-6 py-5 flex items-center justify-between bg-white hover:bg-slate-50 transition-colors"
+                  >
+                    <h4 className="text-sm font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
+                      <div className="w-1.5 h-4 bg-indigo-600 rounded-full"></div>
+                      Extra Information
+                    </h4>
+                    {openAccordions.includes('extra') ? <HiChevronUp size={20} className="text-slate-400" /> : <HiChevronDown size={20} className="text-slate-400" />}
+                  </button>
+                  {openAccordions.includes('extra') && (
+                    <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in slide-in-from-top-2 duration-300">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Latitude</label>
+                        <input 
+                          type="number" 
+                          step="any"
+                          value={profileData.latitude}
+                          onChange={(e) => updateField('latitude', parseFloat(e.target.value))}
+                          className="w-full px-5 py-3.5 rounded-2xl bg-white border border-slate-100 text-slate-900 text-sm font-medium focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/5 transition-all outline-none"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Longitude</label>
+                        <input 
+                          type="number" 
+                          step="any"
+                          value={profileData.longitude}
+                          onChange={(e) => updateField('longitude', parseFloat(e.target.value))}
+                          className="w-full px-5 py-3.5 rounded-2xl bg-white border border-slate-100 text-slate-900 text-sm font-medium focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/5 transition-all outline-none"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Discount Range</label>
+                        <select 
+                          value={profileData.discountRange}
+                          onChange={(e) => updateField('discountRange', e.target.value)}
+                          className="w-full px-5 py-3.5 rounded-2xl bg-white border border-slate-100 text-slate-900 text-sm font-medium focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/5 transition-all outline-none appearance-none cursor-pointer"
+                        >
+                          <option value="">Select Discount Range</option>
+                          {discountOptions.map(option => (
+                            <option key={option} value={option}>{option}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Service Category</label>
+                        <input 
+                          type="text" 
+                          value={profileData.serviceCategory}
+                          onChange={(e) => updateField('serviceCategory', e.target.value)}
+                          className="w-full px-5 py-3.5 rounded-2xl bg-white border border-slate-100 text-slate-900 text-sm font-medium focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/5 transition-all outline-none"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Profile QR Link</label>
+                        <input 
+                          type="text" 
+                          value={profileData.profileQrLink}
+                          onChange={(e) => updateField('profileQrLink', e.target.value)}
+                          className="w-full px-5 py-3.5 rounded-2xl bg-white border border-slate-100 text-slate-900 text-sm font-medium focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/5 transition-all outline-none"
+                        />
+                      </div>
+                      <div className="space-y-2 md:col-span-2 lg:col-span-3">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Keywords (Comma separated)</label>
+                        <input 
+                          type="text" 
+                          value={Array.isArray(profileData.keywords) ? profileData.keywords.join(', ') : profileData.keywords}
+                          onChange={(e) => updateField('keywords', e.target.value.split(',').map(k => k.trim()))}
+                          className="w-full px-5 py-3.5 rounded-2xl bg-white border border-slate-100 text-slate-900 text-sm font-medium focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/5 transition-all outline-none"
+                          placeholder="plumbing, leaks, repairs"
+                        />
+                      </div>
+                      <div className="space-y-2 md:col-span-2 lg:col-span-3">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Payment Modes (Comma separated)</label>
+                        <input 
+                          type="text" 
+                          value={Array.isArray(profileData.paymentModes) ? profileData.paymentModes.join(', ') : profileData.paymentModes}
+                          onChange={(e) => updateField('paymentModes', e.target.value.split(',').map(m => m.trim()))}
+                          className="w-full px-5 py-3.5 rounded-2xl bg-white border border-slate-100 text-slate-900 text-sm font-medium focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/5 transition-all outline-none"
+                          placeholder="Cash, GPay, Credit Card"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Accordion 4: Reviews & Replies */}
+                <div className="border border-slate-100 rounded-3xl overflow-hidden bg-slate-50/30">
+                  <button
+                    type="button"
+                    onClick={() => toggleAccordion('reviews')}
+                    className="w-full px-6 py-5 flex items-center justify-between bg-white hover:bg-slate-50 transition-colors"
+                  >
+                    <h4 className="text-sm font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
+                      <div className="w-1.5 h-4 bg-indigo-600 rounded-full"></div>
+                      Reviews & Feedback
+                    </h4>
+                    {openAccordions.includes('reviews') ? <HiChevronUp size={20} className="text-slate-400" /> : <HiChevronDown size={20} className="text-slate-400" />}
+                  </button>
+                  {openAccordions.includes('reviews') && (
+                    <div className="p-6 space-y-6 animate-in slide-in-from-top-2 duration-300">
+                      {profileData.review && (typeof profileData.review === 'object' ? Object.keys(profileData.review).length > 0 : profileData.review.length > 0) && (
+                        <div className="bg-white p-5 rounded-2xl border border-slate-100 space-y-3">
+                          <div className="flex justify-between items-center">
+                            <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider">Latest Customer Review</span>
+                            <div className="flex text-amber-400">
+                              {[...Array(5)].map((_, i) => (
+                                <HiOutlineStar key={i} size={12} fill={i < (profileData.rating || 5) ? "currentColor" : "none"} />
+                              ))}
+                            </div>
+                          </div>
+                          <p className="text-sm text-slate-600 italic">
+                            "{typeof profileData.review === 'object' ? (profileData.review as any).content || (profileData.review as any).text || '' : profileData.review}"
+                          </p>
+                          {typeof profileData.review === 'object' && (profileData.review as any).author && (
+                            <p className="text-[10px] font-bold text-slate-400 text-right">— {(profileData.review as any).author}</p>
+                          )}
+                        </div>
+                      )}
+                      
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Your Reply to Customers</label>
+                        <textarea 
+                          value={typeof profileData.reviewReply === 'object' ? (profileData.reviewReply as any).content || '' : profileData.reviewReply}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (typeof profileData.reviewReply === 'object') {
+                              updateField('reviewReply', { ...profileData.reviewReply, content: val });
+                            } else {
+                              updateField('reviewReply', val);
+                            }
+                          }}
+                          rows={4}
+                          className="w-full px-5 py-3.5 rounded-2xl bg-white border border-slate-100 text-slate-900 text-sm focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/5 transition-all outline-none resize-none"
+                          placeholder="Type your response to customer reviews here..."
+                        />
+                        <p className="text-[10px] text-slate-400 font-medium italic ml-1">This reply will be visible to everyone viewing your business profile.</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Accordion 5: Business Timings */}
+                <div className="border border-slate-100 rounded-3xl overflow-hidden bg-slate-50/30">
+                  <button
+                    type="button"
+                    onClick={() => toggleAccordion('timings')}
+                    className="w-full px-6 py-5 flex items-center justify-between bg-white hover:bg-slate-50 transition-colors"
+                  >
+                    <h4 className="text-sm font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
+                      <div className="w-1.5 h-4 bg-indigo-600 rounded-full"></div>
+                      Business Timings
+                    </h4>
+                    {openAccordions.includes('timings') ? <HiChevronUp size={20} className="text-slate-400" /> : <HiChevronDown size={20} className="text-slate-400" />}
+                  </button>
+                  {openAccordions.includes('timings') && (
+                    <div className="p-6 animate-in slide-in-from-top-2 duration-300">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Day-wise Timings (JSON Object)</label>
+                        <textarea 
+                          value={typeof profileData.timings === 'string' ? profileData.timings : JSON.stringify(profileData.timings, null, 2)}
+                          onChange={(e) => {
+                            try {
+                              const parsed = JSON.parse(e.target.value);
+                              updateField('timings', parsed);
+                            } catch {
+                              updateField('timings', e.target.value);
+                            }
+                          }}
+                          rows={8}
+                          className="w-full px-5 py-3.5 rounded-2xl bg-white border border-slate-100 text-slate-900 text-sm font-mono text-[11px] focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/5 transition-all outline-none resize-none"
+                          placeholder='{"Mon": "9AM-6PM", "Tue": "9AM-6PM", ...}'
+                        />
+                        <p className="text-[10px] text-slate-400 font-medium italic mt-2 ml-1">Enter valid JSON object representing your weekly schedule.</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="pt-8 flex justify-end">
+                  <button
+                    type="submit"
+                    disabled={updating}
+                    className="px-12 py-4.5 bg-indigo-600 text-white rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-600/20 active:scale-95 disabled:opacity-50 disabled:scale-100 flex items-center gap-2"
+                  >
+                    {updating ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                        Saving Profile...
+                      </>
+                    ) : 'Update Business Profile'}
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         )}
