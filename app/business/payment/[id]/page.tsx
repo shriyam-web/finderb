@@ -24,7 +24,7 @@ export default function PaymentPage({ params }: { params: Promise<{ id: string }
   useEffect(() => {
     const fetchBusiness = async () => {
       const res = await getBusiness(id);
-      if (res.success) {
+      if (res.success && res.business) {
         setBusiness(res.business);
       }
     };

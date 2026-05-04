@@ -110,7 +110,7 @@ function DashboardContent() {
 
       if (currentId) {
         const res = await getBusiness(currentId);
-        if (res.success) {
+        if (res.success && res.business) {
           setBusiness(res.business);
           setImages(res.business.images || []);
           setprofilePictureUrl(res.business.profilePictureUrl || null);

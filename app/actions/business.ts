@@ -240,18 +240,16 @@ export async function getBusiness(id: string) {
 
     // Map DB fields to the expected Business interface
     const mappedBusiness = {
-      id: business.id,
+      ...business,
       name: business.businessName,
-      category: business.category,
-      rating: business.rating || 4.5,
-      reviewsCount: 0, // Default for now
       location: business.location || business.city || 'Location not specified',
       description: business.about || business.businessAddress,
       contact: business.publicPhone,
-      services: [], // Default for now
       image: business.profilePictureUrl || 'https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&q=80&w=800',
-      profilePictureUrl: business.profilePictureUrl,
-      priceRange: business.selectedPlan === 'free' ? 'Free' : 'Premium'
+      priceRange: business.selectedPlan === 'free' ? 'Free' : 'Premium',
+      rating: business.rating || 4.5,
+      reviewsCount: 0,
+      services: [],
     };
 
     return { success: true, business: mappedBusiness };
