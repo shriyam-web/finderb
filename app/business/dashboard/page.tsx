@@ -103,7 +103,7 @@ function DashboardContent() {
 
       if (!currentId) {
         const sessionRes = await getBusinessSession();
-        if (sessionRes && sessionRes.success) {
+        if (sessionRes && sessionRes.success && sessionRes.business) {
           currentId = sessionRes.business.id;
         }
       }
