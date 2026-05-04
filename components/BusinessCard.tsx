@@ -13,7 +13,7 @@ export default function BusinessCard({ business, isPremium = false, compact = fa
   return (
     <div className={`group relative bg-white rounded-3xl overflow-hidden transition-all duration-500 shadow-soft hover:shadow-premium border border-gray-100/50 hover:border-secondary/20 flex flex-col h-full`}>
       {/* Image Section */}
-      <div className={`relative ${compact ? 'h-40' : 'h-56'} w-full overflow-hidden`}>
+      <div className={`relative ${compact ? 'h-40' : 'h-56'} w-full`}>
        <Image
   src={
     business.profilePictureUrl ||
@@ -58,13 +58,13 @@ export default function BusinessCard({ business, isPremium = false, compact = fa
 
         {/* Profile Picture Avatar Overlay */}
         {business.profilePictureUrl && (
-          <div className={`absolute -bottom-6 right-6 z-20`}>
-            <div className={`${compact ? 'w-12 h-12' : 'w-16 h-16'} rounded-2xl border-4 border-white shadow-xl overflow-hidden bg-white`}>
+          <div className={`absolute -bottom-8 right-6 z-[30]`}>
+            <div className={`${compact ? 'w-14 h-14' : 'w-20 h-20'} rounded-2xl border-4 border-white shadow-xl overflow-hidden bg-white`}>
               <Image 
                 src={business.profilePictureUrl} 
                 alt={business.name} 
-                width={64} 
-                height={64} 
+                width={80} 
+                height={80} 
                 className="w-full h-full object-cover"
               />
             </div>
@@ -76,7 +76,7 @@ export default function BusinessCard({ business, isPremium = false, compact = fa
       </div>
 
       {/* Content Section */}
-      <div className={`${compact ? 'p-4' : 'p-6'} flex flex-col flex-grow ${business.profilePictureUrl ? 'pt-8' : ''}`}>
+      <div className={`${compact ? 'p-4' : 'p-6'} flex flex-col flex-grow ${business.profilePictureUrl ? (compact ? 'pt-8' : 'pt-12') : ''}`}>
         <div className="flex justify-between items-start mb-1">
           <h3 className={`${compact ? 'text-base' : 'text-lg'} font-extrabold text-primary group-hover:text-secondary transition-colors tracking-tight leading-tight line-clamp-1 ${business.profilePictureUrl ? 'pr-12' : ''}`}>
             {business.name}

@@ -1,14 +1,42 @@
 'use client';
 
-import { use } from 'react';
-import PricingCard from '@/components/PricingCard';
-import { featuredBusinesses } from '@/lib/mockData';
+import { use, useState, useEffect } from 'react';
+import { featuredBusinesses, Business } from '@/lib/mockData';
+import { getBusiness } from '@/app/actions/business';
 import Image from 'next/image';
 import { Star, MapPin, Phone, Mail, Globe, Clock, CheckCircle2, MessageSquare, Share2, Heart, ShieldCheck, Zap, Navigation, Languages } from 'lucide-react';
 
 export default function BusinessDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const business = featuredBusinesses.find((b) => b.id === id) || featuredBusinesses[0];
+  const [business, setBusiness] = useState<Business | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchData() {
+      setIsLoading(true);
+      const result = await getBusiness(id);
+      if (result.success && result.business) {
+        setBusiness(result.business);
+      } else {
+        // Fallback to mock data if not found in DB
+        const mockBusiness = featuredBusinesses.find((b) => b.id === id) || featuredBusinesses[0];
+        setBusiness(mockBusiness);
+      }
+      setIsLoading(false);
+    }
+    fetchData();
+  }, [id]);
+
+  if (isLoading || !business) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px]">Loading Profile...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50/50 selection:bg-blue-100 font-sans">
@@ -243,32 +271,6 @@ export default function BusinessDetailPage({ params }: { params: Promise<{ id: s
                           <CheckCircle2 size={20} className="text-emerald-500 opacity-0 group-hover/item:opacity-100 transition-opacity" />
                         </div>
                       ))}
-                    </div>
-                  </div>
-
-                  {/* Pricing Section */}
-                  <div className="bg-white rounded-2xl p-8 border border-slate-200 shadow-sm space-y-8">
-                    <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-                      <h2 className="text-xl font-black text-slate-900 tracking-tight">Service Plans</h2>
-                      <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg">
-                        <button className="px-4 py-1.5 bg-white rounded-md shadow-sm text-[10px] font-bold uppercase tracking-wider text-slate-900">Monthly</button>
-                        <button className="px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">Yearly</button>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <PricingCard
-                        plan="Standard"
-                        price="₹1,499"
-                        features={['Basic Support', 'Standard Response', 'Standard Service']}
-                        buttonText="Select Plan"
-                      />
-                      <PricingCard
-                        plan="Elite"
-                        price="₹3,999"
-                        features={['Priority Support', 'Express Response', 'Premium Service', 'Dedicated Pro']}
-                        recommended={true}
-                        buttonText="Go Elite"
-                      />
                     </div>
                   </div>
                 </div>
