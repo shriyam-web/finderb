@@ -424,9 +424,19 @@ export async function updateBusinessProfile(id: string, profileData: any) {
     const { data: business, error } = await supabase
       .from('Business')
       .update({
+        businessName: profileData.businessName,
+        displayName: profileData.displayName,
+        category: profileData.category,
+        email: profileData.email,
+        workEmail: profileData.email,
+        publicPhone: profileData.publicPhone,
+        businessAddress: profileData.businessAddress,
+        city: profileData.city,
+        state: profileData.state,
+        country: profileData.country,
+        location: profileData.location || (profileData.city && profileData.state ? `${profileData.city}, ${profileData.state}` : profileData.city || profileData.state || ''),
         rating: profileData.rating,
         yearsInBusiness: profileData.yearsInBusiness,
-        displayName: profileData.displayName,
         isFinderBVerified: profileData.isFinderBVerified,
         review: profileData.review,
         reviewReply: profileData.reviewReply,
@@ -439,7 +449,6 @@ export async function updateBusinessProfile(id: string, profileData: any) {
         youtubeUrl: profileData.youtubeUrl,
         about: profileData.about,
         keywords: profileData.keywords,
-        email: profileData.email,
         timings: profileData.timings,
         discountRange: profileData.discountRange,
         serviceCategory: profileData.serviceCategory,

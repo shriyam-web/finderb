@@ -76,6 +76,13 @@ function DashboardContent() {
   const [profileData, setProfileData] = useState({
     yearsInBusiness: business?.yearsInBusiness || 0,
     displayName: business?.displayName || '',
+    businessName: business?.businessName || '',
+    category: business?.category || '',
+    publicPhone: business?.publicPhone || '',
+    businessAddress: business?.businessAddress || '',
+    city: business?.city || '',
+    state: business?.state || '',
+    country: business?.country || '',
     latitude: business?.latitude || 0,
     longitude: business?.longitude || 0,
     website: business?.website || '',
@@ -118,6 +125,13 @@ function DashboardContent() {
             rating: res.business.rating || 0,
             yearsInBusiness: res.business.yearsInBusiness || 0,
             displayName: res.business.displayName || '',
+            businessName: res.business.businessName || '',
+            category: res.business.category || '',
+            publicPhone: res.business.publicPhone || '',
+            businessAddress: res.business.businessAddress || '',
+            city: res.business.city || '',
+            state: res.business.state || '',
+            country: res.business.country || '',
             isFinderBVerified: res.business.isFinderBVerified || false,
             review: res.business.review || {},
             reviewReply: res.business.reviewReply || {},
@@ -148,6 +162,8 @@ function DashboardContent() {
     fetchBusiness();
   }, [id, router]);
 
+  const businessId = id || business?.id;
+
   const handleLogout = async () => {
     const res = await logoutBusiness();
     if (res.success) {
@@ -171,9 +187,9 @@ function DashboardContent() {
         setprofilePictureUrl(newImageUrl);
       }
 
-      if (id) {
+      if (businessId) {
         setUpdating(true);
-        const res = await updateBusinessImages(id, updatedImages, newProfilePic || undefined);
+        const res = await updateBusinessImages(businessId, updatedImages, newProfilePic || undefined);
         setUpdating(false);
         if (res.success) {
           setSuccessMessage('Image uploaded successfully');
@@ -203,9 +219,9 @@ function DashboardContent() {
     setShowDeleteModal(false);
     setImageToDelete(null);
 
-    if (id) {
+    if (businessId) {
       setUpdating(true);
-      const res = await updateBusinessImages(id, updatedImages, newProfilePic || undefined);
+      const res = await updateBusinessImages(businessId, updatedImages, newProfilePic || undefined);
       setUpdating(false);
       if (res.success) {
         setSuccessMessage('Image deleted successfully');
@@ -221,9 +237,9 @@ function DashboardContent() {
   const handleSetProfile = async (url: string) => {
     const prevProfile = profilePictureUrl;
     setprofilePictureUrl(url);
-    if (id) {
+    if (businessId) {
       setUpdating(true);
-      const res = await updateBusinessImages(id, images, url);
+      const res = await updateBusinessImages(businessId, images, url);
       setUpdating(false);
       if (res.success) {
         setSuccessMessage('Profile picture updated successfully');
@@ -237,10 +253,10 @@ function DashboardContent() {
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!id) return;
+    if (!businessId) return;
 
     setUpdating(true);
-    const res = await updateBusinessProfile(id, profileData);
+    const res = await updateBusinessProfile(businessId, profileData);
     setUpdating(false);
 
     if (res.success) {
@@ -421,7 +437,7 @@ function DashboardContent() {
             </div>
             {completionPercent < 100 && (
               <Link 
-                href={isKycPending ? `/business/kyc/${id}` : isPaymentPending ? `/business/payment/${id}` : '#'}
+                href={isKycPending ? `/business/kyc/${businessId}` : isPaymentPending ? `/business/payment/${businessId}` : '#'}
                 className="flex items-center justify-between group/btn pt-1"
               >
                 <span className="text-[9px] font-bold text-slate-600 uppercase tracking-widest group-hover/btn:text-indigo-600 transition-colors">Finish Setup</span>
@@ -443,7 +459,7 @@ function DashboardContent() {
                 <p className="text-xs text-white font-semibold">{isPaymentPending ? 'Free Listing' : 'Premium Partner'}</p>
               </div>
               {isPaymentPending ? (
-                <Link href={`/business/payment/${id}`} className="block w-full text-center bg-indigo-600 text-white py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-600/20">
+                <Link href={`/business/payment/${businessId}`} className="block w-full text-center bg-indigo-600 text-white py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-600/20">
                   Activate Leads
                 </Link>
               ) : (
@@ -502,7 +518,7 @@ function DashboardContent() {
                     <div className="flex-grow space-y-1">
                       <h4 className="font-bold text-slate-900 text-sm">KYC Required</h4>
                       <p className="text-slate-500 text-xs leading-relaxed">Verification is pending. Submit documents to unlock your verified badge.</p>
-                      <Link href={`/business/kyc/${id}`} className="inline-flex items-center gap-1 text-indigo-600 font-bold text-[10px] uppercase tracking-wider hover:text-indigo-700 pt-1.5 transition-colors group/link">
+                      <Link href={`/business/kyc/${businessId}`} className="inline-flex items-center gap-1 text-indigo-600 font-bold text-[10px] uppercase tracking-wider hover:text-indigo-700 pt-1.5 transition-colors group/link">
                         Verify Now <HiOutlineChevronRight size={12} className="group-hover/link:translate-x-0.5 transition-transform" />
                       </Link>
                     </div>
@@ -516,7 +532,7 @@ function DashboardContent() {
                     <div className="flex-grow space-y-1">
                       <h4 className="font-bold text-slate-900 text-sm">Lead Activation Needed</h4>
                       <p className="text-slate-500 text-xs leading-relaxed">Your business is listed for free! Activate leads to see customer details.</p>
-                      <Link href={`/business/payment/${id}`} className="inline-flex items-center gap-1 text-indigo-600 font-bold text-[10px] uppercase tracking-wider hover:text-indigo-700 pt-1.5 transition-colors group/link">
+                      <Link href={`/business/payment/${businessId}`} className="inline-flex items-center gap-1 text-indigo-600 font-bold text-[10px] uppercase tracking-wider hover:text-indigo-700 pt-1.5 transition-colors group/link">
                         Activate Now <HiOutlineChevronRight size={12} className="group-hover/link:translate-x-0.5 transition-transform" />
                       </Link>
                     </div>
@@ -580,7 +596,7 @@ function DashboardContent() {
                         </p>
                       </div>
                       <Link 
-                        href={`/business/payment/${id}`}
+                        href={`/business/payment/${businessId}`}
                         className="inline-flex items-center gap-2 bg-slate-900 text-white px-8 py-3.5 rounded-xl font-bold text-xs uppercase tracking-wider hover:bg-indigo-600 transition-all shadow-xl shadow-slate-900/10"
                       >
                         <HiOutlineRocketLaunch size={18} /> Activate to View
@@ -867,6 +883,16 @@ function DashboardContent() {
                   {openAccordions.includes('basic') && (
                     <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in slide-in-from-top-2 duration-300">
                       <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Official Business Name</label>
+                        <input 
+                          type="text" 
+                          value={profileData.businessName}
+                          onChange={(e) => updateField('businessName', e.target.value)}
+                          className="w-full px-5 py-3.5 rounded-2xl bg-white border border-slate-100 text-slate-900 text-sm font-medium focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/5 transition-all outline-none"
+                          placeholder="Official registered name"
+                        />
+                      </div>
+                      <div className="space-y-2">
                         <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Display Name</label>
                         <input 
                           type="text" 
@@ -874,6 +900,16 @@ function DashboardContent() {
                           onChange={(e) => updateField('displayName', e.target.value)}
                           className="w-full px-5 py-3.5 rounded-2xl bg-white border border-slate-100 text-slate-900 text-sm font-medium focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/5 transition-all outline-none"
                           placeholder="Public name of your business"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Business Category</label>
+                        <input 
+                          type="text" 
+                          value={profileData.category}
+                          onChange={(e) => updateField('category', e.target.value)}
+                          className="w-full px-5 py-3.5 rounded-2xl bg-white border border-slate-100 text-slate-900 text-sm font-medium focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/5 transition-all outline-none"
+                          placeholder="e.g. Plumber, Electrician"
                         />
                       </div>
                       <div className="space-y-2">
@@ -887,6 +923,16 @@ function DashboardContent() {
                         />
                       </div>
                       <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Public Contact Number</label>
+                        <input 
+                          type="text" 
+                          value={profileData.publicPhone}
+                          onChange={(e) => updateField('publicPhone', e.target.value)}
+                          className="w-full px-5 py-3.5 rounded-2xl bg-white border border-slate-100 text-slate-900 text-sm font-medium focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/5 transition-all outline-none"
+                          placeholder="Public phone number"
+                        />
+                      </div>
+                      <div className="space-y-2">
                         <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Website URL</label>
                         <input 
                           type="text" 
@@ -897,11 +943,48 @@ function DashboardContent() {
                         />
                       </div>
                       <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Business Address</label>
+                        <input 
+                          type="text" 
+                          value={profileData.businessAddress}
+                          onChange={(e) => updateField('businessAddress', e.target.value)}
+                          className="w-full px-5 py-3.5 rounded-2xl bg-white border border-slate-100 text-slate-900 text-sm font-medium focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/5 transition-all outline-none"
+                          placeholder="Full business address"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">City</label>
+                        <input 
+                          type="text" 
+                          value={profileData.city}
+                          onChange={(e) => updateField('city', e.target.value)}
+                          className="w-full px-5 py-3.5 rounded-2xl bg-white border border-slate-100 text-slate-900 text-sm font-medium focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/5 transition-all outline-none"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">State / Province</label>
+                        <input 
+                          type="text" 
+                          value={profileData.state}
+                          onChange={(e) => updateField('state', e.target.value)}
+                          className="w-full px-5 py-3.5 rounded-2xl bg-white border border-slate-100 text-slate-900 text-sm font-medium focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/5 transition-all outline-none"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Country</label>
+                        <input 
+                          type="text" 
+                          value={profileData.country}
+                          onChange={(e) => updateField('country', e.target.value)}
+                          className="w-full px-5 py-3.5 rounded-2xl bg-white border border-slate-100 text-slate-900 text-sm font-medium focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/5 transition-all outline-none"
+                        />
+                      </div>
+                      <div className="space-y-2">
                         <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Years in Business</label>
                         <input 
                           type="number" 
                           value={profileData.yearsInBusiness}
-                          onChange={(e) => updateField('yearsInBusiness', parseInt(e.target.value))}
+                          onChange={(e) => updateField('yearsInBusiness', parseInt(e.target.value) || 0)}
                           className="w-full px-5 py-3.5 rounded-2xl bg-white border border-slate-100 text-slate-900 text-sm font-medium focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/5 transition-all outline-none"
                         />
                       </div>
