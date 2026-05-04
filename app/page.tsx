@@ -17,8 +17,9 @@ import {
 import { getFeaturedBusinesses } from '@/app/actions/business';
 import { getCategories } from '@/app/actions/category';
 import { getMovies } from '@/app/actions/movie';
+import { getTouristPlaces } from '@/app/actions/touristPlace';
 import { getSession } from '@/app/actions/user';
-import { Business, Category, Movie } from '@/lib/mockData';
+import { Business, Category, Movie, TouristPlace } from '@/lib/mockData';
 import * as LucideIcons from 'lucide-react';
 import { ArrowRight, CheckCircle2, Star, MapPin, Calendar, Play, ShieldCheck, Zap, Search, Phone, MessageSquare, Heart, Sparkles, History, X, Mic, Send } from 'lucide-react';
 import Link from 'next/link';
@@ -47,6 +48,7 @@ function HomeContent() {
   const [isBusinessesLoading, setIsBusinessesLoading] = useState(true);
   const [realCategories, setRealCategories] = useState<Category[]>(categories);
   const [realMovies, setRealMovies] = useState<Movie[]>(movies);
+  const [realTouristPlaces, setRealTouristPlaces] = useState<TouristPlace[]>(touristPlaces);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [aiLoadProgress, setAiLoadProgress] = useState(0);
@@ -64,10 +66,11 @@ function HomeContent() {
 
   useEffect(() => {
     async function fetchData() {
-      const [bizResult, catResult, movieResult] = await Promise.all([
+      const [bizResult, catResult, movieResult, touristResult] = await Promise.all([
         getFeaturedBusinesses(),
         getCategories(),
-        getMovies()
+        getMovies(),
+        getTouristPlaces()
       ]);
 
       if (bizResult.success && bizResult.businesses && bizResult.businesses.length > 0) {
@@ -80,6 +83,10 @@ function HomeContent() {
 
       if (movieResult.success && movieResult.movies && movieResult.movies.length > 0) {
         setRealMovies(movieResult.movies);
+      }
+
+      if (touristResult.success && touristResult.touristPlaces && touristResult.touristPlaces.length > 0) {
+        setRealTouristPlaces(touristResult.touristPlaces);
       }
 
       setIsBusinessesLoading(false);
@@ -552,7 +559,7 @@ function HomeContent() {
             <p className="text-gray-500 text-sm sm:text-base font-medium max-w-2xl">Find the best attractions and hidden gems in your vicinity, curated for the best experience.</p>
           </div>
           <div className="flex overflow-x-auto pb-8 lg:pb-12 gap-6 lg:gap-8 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
-            {touristPlaces.map((place) => (
+            {realTouristPlaces.map((place) => (
               <div key={place.id} className="group relative h-[350px] sm:h-[450px] min-w-[280px] sm:min-w-[420px] rounded-3xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-500 bg-white shrink-0">
                 <Image
                   src={place.image}
