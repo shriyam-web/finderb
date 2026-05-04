@@ -827,19 +827,25 @@ function DashboardContent() {
 
             {/* Profile Information Form */}
             <div className="bg-white rounded-[32px] shadow-sm p-8 border border-gray-100 space-y-8">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                  <h3 className="text-xl font-black text-slate-900 tracking-tight mb-2">Profile Information</h3>
-                  <p className="text-slate-500 text-sm">Update your business details, social media, and more to improve visibility.</p>
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-slate-50/50 p-6 rounded-[24px] border border-slate-100">
+                <div className="space-y-1">
+                  <h3 className="text-2xl font-black text-slate-900 tracking-tight">Business Profile</h3>
+                  <p className="text-slate-500 text-sm font-medium">Manage your public presence and business details</p>
                 </div>
-                <div className="flex gap-3">
-                  <div className="bg-indigo-50 px-4 py-2 rounded-xl border border-indigo-100 flex flex-col items-center">
-                    <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">Rating</span>
-                    <span className="text-lg font-black text-indigo-700">{profileData.rating || '0.0'}</span>
+                <div className="flex gap-4">
+                  <div className="bg-white px-5 py-3 rounded-2xl border border-slate-100 flex flex-col items-center shadow-sm">
+                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Live Rating</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xl font-black text-indigo-600">{profileData.rating || '0.0'}</span>
+                      <HiOutlineStar size={16} className="text-amber-400 fill-amber-400" />
+                    </div>
                   </div>
-                  <div className={`px-4 py-2 rounded-xl border flex flex-col items-center ${profileData.isFinderBVerified ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-slate-50 border-slate-100 text-slate-400'}`}>
-                    <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">Verified</span>
-                    <span className="text-lg font-black">{profileData.isFinderBVerified ? 'YES' : 'NO'}</span>
+                  <div className={`px-5 py-3 rounded-2xl border flex flex-col items-center shadow-sm ${profileData.isFinderBVerified ? 'bg-indigo-600 border-indigo-600 text-white' : 'bg-white border-slate-100 text-slate-400'}`}>
+                    <span className={`text-[9px] font-black uppercase tracking-widest mb-1 ${profileData.isFinderBVerified ? 'text-indigo-100' : 'text-slate-400'}`}>Status</span>
+                    <div className="flex items-center gap-1.5">
+                       <span className="text-xs font-black uppercase">{profileData.isFinderBVerified ? 'Verified' : 'Standard'}</span>
+                       {profileData.isFinderBVerified && <HiOutlineShieldCheck size={16} />}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1038,25 +1044,51 @@ function DashboardContent() {
                           className="w-full px-5 py-3.5 rounded-2xl bg-white border border-slate-100 text-slate-900 text-sm font-medium focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/5 transition-all outline-none"
                         />
                       </div>
-                      <div className="space-y-2 md:col-span-2 lg:col-span-3">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Keywords (Comma separated)</label>
-                        <input 
-                          type="text" 
-                          value={Array.isArray(profileData.keywords) ? profileData.keywords.join(', ') : profileData.keywords}
-                          onChange={(e) => updateField('keywords', e.target.value.split(',').map(k => k.trim()))}
-                          className="w-full px-5 py-3.5 rounded-2xl bg-white border border-slate-100 text-slate-900 text-sm font-medium focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/5 transition-all outline-none"
-                          placeholder="plumbing, leaks, repairs"
-                        />
+                      <div className="space-y-3 md:col-span-2 lg:col-span-3">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1 flex items-center gap-2">
+                          <HiOutlineStar size={14} className="text-indigo-400" />
+                          Search Keywords
+                        </label>
+                        <div className="relative group">
+                          <textarea 
+                            value={Array.isArray(profileData.keywords) ? profileData.keywords.join(', ') : profileData.keywords}
+                            onChange={(e) => updateField('keywords', e.target.value.split(',').map(k => k.trim()))}
+                            rows={2}
+                            className="w-full px-6 py-4 rounded-[24px] bg-white border border-slate-100 text-slate-900 text-sm font-medium focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/5 transition-all outline-none resize-none shadow-sm group-hover:shadow-md"
+                            placeholder="e.g. plumber, home service, repair"
+                          />
+                          <div className="absolute bottom-4 right-4 flex flex-wrap gap-1.5 max-w-[200px] justify-end pointer-events-none">
+                             {(Array.isArray(profileData.keywords) ? profileData.keywords : []).filter(Boolean).slice(0, 3).map((k, i) => (
+                               <span key={i} className="px-2.5 py-1 bg-indigo-50/80 backdrop-blur-sm text-indigo-700 rounded-lg text-[9px] font-black border border-indigo-100 shadow-sm animate-in fade-in zoom-in duration-300">
+                                 #{k}
+                               </span>
+                             ))}
+                          </div>
+                        </div>
+                        <p className="text-[10px] text-slate-400 font-medium ml-1">Type keywords separated by commas. These act as search tags for your business.</p>
                       </div>
-                      <div className="space-y-2 md:col-span-2 lg:col-span-3">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Payment Modes (Comma separated)</label>
-                        <input 
-                          type="text" 
-                          value={Array.isArray(profileData.paymentModes) ? profileData.paymentModes.join(', ') : profileData.paymentModes}
-                          onChange={(e) => updateField('paymentModes', e.target.value.split(',').map(m => m.trim()))}
-                          className="w-full px-5 py-3.5 rounded-2xl bg-white border border-slate-100 text-slate-900 text-sm font-medium focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/5 transition-all outline-none"
-                          placeholder="Cash, GPay, Credit Card"
-                        />
+                      <div className="space-y-3 md:col-span-2 lg:col-span-3">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1 flex items-center gap-2">
+                          <HiOutlineCreditCard size={14} className="text-indigo-400" />
+                          Accepted Payment Modes
+                        </label>
+                        <div className="relative group">
+                          <input 
+                            type="text" 
+                            value={Array.isArray(profileData.paymentModes) ? profileData.paymentModes.join(', ') : profileData.paymentModes}
+                            onChange={(e) => updateField('paymentModes', e.target.value.split(',').map(m => m.trim()))}
+                            className="w-full px-6 py-4 rounded-[24px] bg-white border border-slate-100 text-slate-900 text-sm font-medium focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/5 transition-all outline-none shadow-sm group-hover:shadow-md"
+                            placeholder="e.g. Cash, UPI, GPay, Credit Card"
+                          />
+                          <div className="absolute top-1/2 -translate-y-1/2 right-4 flex gap-1.5 pointer-events-none">
+                             {(Array.isArray(profileData.paymentModes) ? profileData.paymentModes : []).filter(Boolean).slice(0, 2).map((m, i) => (
+                               <div key={i} className="w-8 h-8 bg-slate-50 rounded-lg border border-slate-100 flex items-center justify-center">
+                                 <HiOutlineCreditCard size={14} className="text-slate-400" />
+                               </div>
+                             ))}
+                          </div>
+                        </div>
+                        <p className="text-[10px] text-slate-400 font-medium ml-1 italic">List all payment methods you accept (Cash, UPI, Card, etc.)</p>
                       </div>
                     </div>
                   )}
@@ -1132,41 +1164,105 @@ function DashboardContent() {
                     {openAccordions.includes('timings') ? <HiChevronUp size={20} className="text-slate-400" /> : <HiChevronDown size={20} className="text-slate-400" />}
                   </button>
                   {openAccordions.includes('timings') && (
-                    <div className="p-6 animate-in slide-in-from-top-2 duration-300">
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Day-wise Timings (JSON Object)</label>
-                        <textarea 
-                          value={typeof profileData.timings === 'string' ? profileData.timings : JSON.stringify(profileData.timings, null, 2)}
-                          onChange={(e) => {
-                            try {
-                              const parsed = JSON.parse(e.target.value);
-                              updateField('timings', parsed);
-                            } catch {
-                              updateField('timings', e.target.value);
-                            }
-                          }}
-                          rows={8}
-                          className="w-full px-5 py-3.5 rounded-2xl bg-white border border-slate-100 text-slate-900 text-sm font-mono text-[11px] focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/5 transition-all outline-none resize-none"
-                          placeholder='{"Mon": "9AM-6PM", "Tue": "9AM-6PM", ...}'
-                        />
-                        <p className="text-[10px] text-slate-400 font-medium italic mt-2 ml-1">Enter valid JSON object representing your weekly schedule.</p>
+                    <div className="p-6 space-y-4 animate-in slide-in-from-top-2 duration-300">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {days.map((day) => {
+                          const timing = (profileData.timings as any)?.[day] || 'Closed';
+                          const isClosed = timing === 'Closed';
+                          let open = '09:00';
+                          let close = '18:00';
+                          
+                          if (!isClosed && typeof timing === 'string' && timing.includes('-')) {
+                            const [o, c] = timing.split('-');
+                            open = o || '09:00';
+                            close = c || '18:00';
+                          }
+
+                          return (
+                            <div key={day} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 bg-white rounded-[24px] border border-slate-100 hover:border-indigo-100 transition-all group">
+                              <div className="flex items-center gap-3">
+                                <div className={`w-2.5 h-2.5 rounded-full ${isClosed ? 'bg-slate-200' : 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]'}`}></div>
+                                <span className="text-sm font-black text-slate-700 tracking-tight w-24">{day}</span>
+                              </div>
+                              
+                              <div className="flex items-center gap-3 w-full sm:w-auto">
+                                {!isClosed ? (
+                                  <div className="flex items-center gap-2 bg-slate-50 p-1 rounded-xl border border-slate-100/50">
+                                    <input 
+                                      type="time" 
+                                      value={open}
+                                      onChange={(e) => {
+                                        const newTiming = `${e.target.value}-${close}`;
+                                        updateField('timings', { ...profileData.timings, [day]: newTiming });
+                                      }}
+                                      className="bg-transparent px-2 py-1.5 text-[11px] font-bold text-slate-600 outline-none focus:text-indigo-600 transition-colors"
+                                    />
+                                    <span className="text-[10px] font-black text-slate-300 uppercase">to</span>
+                                    <input 
+                                      type="time" 
+                                      value={close}
+                                      onChange={(e) => {
+                                        const newTiming = `${open}-${e.target.value}`;
+                                        updateField('timings', { ...profileData.timings, [day]: newTiming });
+                                      }}
+                                      className="bg-transparent px-2 py-1.5 text-[11px] font-bold text-slate-600 outline-none focus:text-indigo-600 transition-colors"
+                                    />
+                                  </div>
+                                ) : (
+                                  <div className="flex-1 sm:flex-none text-center sm:text-left">
+                                    <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest bg-slate-50 px-4 py-2 rounded-xl border border-slate-100/50">Closed for the day</span>
+                                  </div>
+                                )}
+                                
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const newTiming = isClosed ? '09:00-18:00' : 'Closed';
+                                    updateField('timings', { ...profileData.timings, [day]: newTiming });
+                                  }}
+                                  className={`p-2.5 rounded-xl transition-all ${
+                                    isClosed 
+                                      ? 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100' 
+                                      : 'bg-rose-50 text-rose-600 hover:bg-rose-100'
+                                  }`}
+                                  title={isClosed ? 'Set Hours' : 'Mark Closed'}
+                                >
+                                  {isClosed ? <HiOutlinePlus size={18} /> : <HiOutlineXMark size={18} />}
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
+                      <p className="text-[10px] text-slate-400 font-medium italic ml-1 flex items-center gap-1.5">
+                        <HiOutlineClock size={12} />
+                        Your business hours will be displayed on your public profile.
+                      </p>
                     </div>
                   )}
                 </div>
 
-                <div className="pt-8 flex justify-end">
+                <div className="pt-10 flex flex-col sm:flex-row items-center justify-between gap-6 border-t border-slate-100 mt-10">
+                  <div className="flex items-center gap-3 text-slate-400">
+                    <HiOutlineExclamationCircle size={18} />
+                    <p className="text-[11px] font-medium italic">All changes are updated immediately on your public listing.</p>
+                  </div>
                   <button
                     type="submit"
                     disabled={updating}
-                    className="px-12 py-4.5 bg-indigo-600 text-white rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-600/20 active:scale-95 disabled:opacity-50 disabled:scale-100 flex items-center gap-2"
+                    className="w-full sm:w-auto px-10 py-4.5 bg-slate-900 text-white rounded-[20px] font-black text-xs uppercase tracking-widest hover:bg-indigo-600 transition-all shadow-xl shadow-slate-900/10 active:scale-95 disabled:opacity-50 disabled:scale-100 flex items-center justify-center gap-3 group"
                   >
                     {updating ? (
                       <>
                         <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                        Saving Profile...
+                        <span>Processing...</span>
                       </>
-                    ) : 'Update Business Profile'}
+                    ) : (
+                      <>
+                        <span>Save Changes</span>
+                        <HiOutlinePlus size={18} className="group-hover:rotate-90 transition-transform" />
+                      </>
+                    )}
                   </button>
                 </div>
               </form>
