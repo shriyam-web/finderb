@@ -11,8 +11,22 @@ export interface Business {
   
   image?: string; // mock
   profilePictureUrl?: string; // real DB
+  images?: string[];
   
   priceRange: string;
+
+  // New fields from DB
+  website?: string;
+  instagramUrl?: string;
+  facebookUrl?: string;
+  whatsappNumber?: string;
+  youtubeUrl?: string;
+  timings?: any;
+  yearsInBusiness?: number;
+  isFinderBVerified?: boolean;
+  paymentModes?: string[];
+  email?: string;
+  businessAddress?: string;
 }
 
 export interface Category {

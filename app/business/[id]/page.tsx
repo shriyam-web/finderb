@@ -69,26 +69,36 @@ export default function BusinessDetailPage({ params }: { params: Promise<{ id: s
             
             {/* Side Grid - Multiple Pics */}
             <div className="hidden md:grid md:col-span-2 lg:col-span-6 grid-cols-2 grid-rows-2 gap-3">
-              <div className="relative overflow-hidden rounded-2xl border-2 border-slate-100 shadow-sm group">
-                <Image src="https://images.unsplash.com/photo-1517646281042-749510d7f2bf?w=800&q=80" alt="Work" fill className="object-cover transition-transform duration-700 group-hover:scale-110" sizes="25vw" />
-                <div className="absolute inset-0 bg-slate-900/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-              </div>
-              <div className="relative overflow-hidden rounded-2xl border-2 border-slate-100 shadow-sm group">
-                <Image src="https://images.unsplash.com/photo-1504148455328-c376907d081c?w=800&q=80" alt="Team" fill className="object-cover transition-transform duration-700 group-hover:scale-110" sizes="25vw" />
-                <div className="absolute inset-0 bg-slate-900/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-              </div>
-              <div className="relative overflow-hidden rounded-2xl border-2 border-slate-100 shadow-sm group">
-                <Image src="https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=800&q=80" alt="Office" fill className="object-cover transition-transform duration-700 group-hover:scale-110" sizes="25vw" />
-                <div className="absolute inset-0 bg-slate-900/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-              </div>
+              {[0, 1, 2].map((idx) => (
+                <div key={idx} className="relative overflow-hidden rounded-2xl border-2 border-slate-100 shadow-sm group">
+                  <Image 
+                    src={business.images && business.images[idx+1] ? business.images[idx+1] : `https://images.unsplash.com/photo-${[
+                      '1517646281042-749510d7f2bf',
+                      '1504148455328-c376907d081c',
+                      '1621905251189-08b45d6a269e'
+                    ][idx]}?w=800&q=80`} 
+                    alt={`Business image ${idx + 2}`} 
+                    fill 
+                    className="object-cover transition-transform duration-700 group-hover:scale-110" 
+                    sizes="25vw" 
+                  />
+                  <div className="absolute inset-0 bg-slate-900/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                </div>
+              ))}
               <div className="relative overflow-hidden rounded-2xl bg-slate-900 flex items-center justify-center cursor-pointer group border-2 border-slate-100 shadow-sm">
-                <Image src="https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=80" alt="Gallery" fill className="object-cover opacity-60 group-hover:scale-110 group-hover:opacity-40 transition-all duration-700" sizes="25vw" />
+                <Image 
+                  src={business.images && business.images[4] ? business.images[4] : "https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=80"} 
+                  alt="Gallery" 
+                  fill 
+                  className="object-cover opacity-60 group-hover:scale-110 group-hover:opacity-40 transition-all duration-700" 
+                  sizes="25vw" 
+                />
                 <div className="relative z-10 text-center p-4">
                   <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center mx-auto mb-3 border border-white/30 group-hover:rotate-12 transition-transform">
                     <Zap size={20} className="text-white fill-white" />
                   </div>
                   <p className="text-white font-black text-xl tracking-tighter leading-none mb-1">View All</p>
-                  <p className="text-blue-300 font-bold text-[10px] uppercase tracking-widest">35+ Photos</p>
+                  <p className="text-blue-300 font-bold text-[10px] uppercase tracking-widest">{business.images?.length || 0} Photos</p>
                 </div>
               </div>
             </div>
@@ -104,10 +114,12 @@ export default function BusinessDetailPage({ params }: { params: Promise<{ id: s
                 <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
                   <div className="space-y-4">
                     <div className="flex flex-wrap items-center gap-2">
-                      <div className="flex items-center gap-1.5 bg-blue-600 text-white px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border border-blue-700 shadow-sm">
-                        <ShieldCheck size={14} className="fill-white/20" />
-                        FinderB Verified
-                      </div>
+                      {business.isFinderBVerified && (
+                        <div className="flex items-center gap-1.5 bg-blue-600 text-white px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border border-blue-700 shadow-sm">
+                          <ShieldCheck size={14} className="fill-white/20" />
+                          FinderB Verified
+                        </div>
+                      )}
                       <div className="flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border border-emerald-100">
                         <Zap size={14} />
                         Quick Response
@@ -139,7 +151,7 @@ export default function BusinessDetailPage({ params }: { params: Promise<{ id: s
                         <div className="h-10 w-[1px] bg-slate-200 hidden md:block"></div>
                         <div className="flex flex-col">
                           <p className="text-slate-900 font-black text-sm leading-none">
-                            12 Years
+                            {business.yearsInBusiness || 12} Years
                           </p>
                           <p className="text-slate-400 font-bold text-[10px] uppercase tracking-wider">
                             In Business
@@ -157,7 +169,7 @@ export default function BusinessDetailPage({ params }: { params: Promise<{ id: s
                       <div className="hidden md:block text-slate-300">•</div>
                       <div className="flex items-center gap-1.5 text-emerald-600 font-black text-xs uppercase tracking-widest">
                         <Clock size={16} />
-                        Open Now: 9 AM - 9 PM
+                        {business.timings ? "Check Timings Below" : "Open Now: 9 AM - 9 PM"}
                       </div>
                     </div>
                   </div>
@@ -176,11 +188,11 @@ export default function BusinessDetailPage({ params }: { params: Promise<{ id: s
 
                 {/* Quick Actions Bar - Enhanced Justdial Style */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-8 border-t border-slate-100">
-                  <button className="flex flex-col items-center justify-center gap-3 p-5 rounded-2xl bg-emerald-600 text-white hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-100 group overflow-hidden relative">
+                  <a href={`tel:${business.contact}`} className="flex flex-col items-center justify-center gap-3 p-5 rounded-2xl bg-emerald-600 text-white hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-100 group overflow-hidden relative">
                     <div className="absolute top-0 right-0 w-8 h-8 bg-white/10 rounded-bl-3xl translate-x-2 -translate-y-2"></div>
                     <Phone size={24} className="group-hover:scale-110 transition-transform relative z-10" />
                     <span className="font-black text-[11px] uppercase tracking-widest relative z-10">Call Now</span>
-                  </button>
+                  </a>
                   <button className="flex flex-col items-center justify-center gap-3 p-5 rounded-2xl bg-blue-600 text-white hover:bg-blue-700 transition-all shadow-xl shadow-blue-100 group relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-8 h-8 bg-white/10 rounded-bl-3xl translate-x-2 -translate-y-2"></div>
                     <MessageSquare size={24} className="group-hover:scale-110 transition-transform relative z-10" />
@@ -190,10 +202,10 @@ export default function BusinessDetailPage({ params }: { params: Promise<{ id: s
                     <Navigation size={24} className="group-hover:scale-110 transition-transform" />
                     <span className="font-black text-[11px] uppercase tracking-widest">Directions</span>
                   </button>
-                  <button className="flex flex-col items-center justify-center gap-3 p-5 rounded-2xl border-2 border-slate-100 bg-white text-slate-900 hover:border-blue-600 hover:text-blue-600 transition-all group">
+                  <a href={business.website || "#"} target="_blank" rel="noopener noreferrer" className={`flex flex-col items-center justify-center gap-3 p-5 rounded-2xl border-2 border-slate-100 bg-white text-slate-900 hover:border-blue-600 hover:text-blue-600 transition-all group ${!business.website && 'opacity-50 cursor-not-allowed'}`}>
                     <Globe size={24} className="group-hover:scale-110 transition-transform" />
                     <span className="font-black text-[11px] uppercase tracking-widest">Website</span>
-                  </button>
+                  </a>
                 </div>
               </div>
 
@@ -218,7 +230,7 @@ export default function BusinessDetailPage({ params }: { params: Promise<{ id: s
                         {business.description}
                       </p>
                       <p className="text-slate-500 leading-relaxed font-medium text-base">
-                        At <span className="text-blue-600 font-black">FinderB</span>, we verify every detail of our partner businesses. {business.name} has been a cornerstone of professional excellence in {business.location} for over a decade, consistently delivering premium service standards that our users trust.
+                        At <span className="text-blue-600 font-black">FinderB</span>, we verify every detail of our partner businesses. {business.name} has been a cornerstone of professional excellence in {business.location} for {business.yearsInBusiness ? `over ${business.yearsInBusiness} years` : 'over a decade'}, consistently delivering premium service standards that our users trust.
                       </p>
                     </div>
                     
@@ -229,7 +241,7 @@ export default function BusinessDetailPage({ params }: { params: Promise<{ id: s
                         </div>
                         <div>
                           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Legacy</p>
-                          <p className="text-lg font-black text-slate-900 tracking-tight">12+ Years</p>
+                          <p className="text-lg font-black text-slate-900 tracking-tight">{business.yearsInBusiness || 12}+ Years</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-5 p-6 rounded-2xl bg-slate-50 border border-slate-100 hover:bg-white hover:border-emerald-200 hover:shadow-xl hover:shadow-emerald-900/5 transition-all group/card">
@@ -315,12 +327,14 @@ export default function BusinessDetailPage({ params }: { params: Promise<{ id: s
                         <div className="space-y-3">
                           <div className="flex items-center gap-3">
                             <Mail size={16} className="text-blue-600" />
-                            <p className="text-sm font-bold text-slate-700 truncate">support@{business.name.toLowerCase().replace(/\s+/g, '')}.com</p>
+                            <p className="text-sm font-bold text-slate-700 truncate">{business.email || `support@${business.name.toLowerCase().replace(/\s+/g, '')}.com`}</p>
                           </div>
-                          <div className="flex items-center gap-3">
-                            <Globe size={16} className="text-blue-600" />
-                            <p className="text-sm font-bold text-blue-600 underline underline-offset-4 decoration-blue-100 truncate">Visit Website</p>
-                          </div>
+                          {business.website && (
+                            <a href={business.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3">
+                              <Globe size={16} className="text-blue-600" />
+                              <p className="text-sm font-bold text-blue-600 underline underline-offset-4 decoration-blue-100 truncate">Visit Website</p>
+                            </a>
+                          )}
                         </div>
                       </div>
                     </div>

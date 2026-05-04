@@ -239,8 +239,9 @@ export async function getBusiness(id: string) {
     }
 
     // Map DB fields to the expected Business interface
-    const mappedBusiness = {
+    const mappedBusiness: any = {
       ...business,
+      id: business.id,
       name: business.businessName,
       location: business.location || business.city || 'Location not specified',
       description: business.about || business.businessAddress,
@@ -248,8 +249,20 @@ export async function getBusiness(id: string) {
       image: business.profilePictureUrl || 'https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&q=80&w=800',
       priceRange: business.selectedPlan === 'free' ? 'Free' : 'Premium',
       rating: business.rating || 4.5,
-      reviewsCount: 0,
-      services: [],
+      reviewsCount: 150, // Default for now
+      services: business.serviceCategory ? [business.serviceCategory] : ['General Services'],
+      website: business.website,
+      instagramUrl: business.instagramUrl,
+      facebookUrl: business.facebookUrl,
+      whatsappNumber: business.whatsappNumber,
+      youtubeUrl: business.youtubeUrl,
+      timings: business.timings,
+      yearsInBusiness: business.yearsInBusiness || 12,
+      isFinderBVerified: business.isFinderBVerified || business.isVerified,
+      paymentModes: business.paymentModes || [],
+      email: business.email || business.workEmail,
+      businessAddress: business.businessAddress,
+      images: business.images || []
     };
 
     return { success: true, business: mappedBusiness };
