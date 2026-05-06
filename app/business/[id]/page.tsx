@@ -26,6 +26,52 @@ export default function BusinessDetailPage({ params }: { params: Promise<{ id: s
     fetchData();
   }, [id]);
 
+  const getBusinessStatus = (timings: any) => {
+    if (!timings) return { status: 'Closed', message: 'Closed today', color: 'text-slate-500', dotColor: 'bg-slate-500' };
+
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const now = new Date();
+    const currentDay = days[now.getDay()];
+    const currentTime = now.getHours() * 60 + now.getMinutes();
+
+    const todayTiming = timings[currentDay];
+
+    if (!todayTiming || todayTiming === 'Closed') {
+      return { status: 'Closed', message: 'Closed today', color: 'text-slate-500', dotColor: 'bg-slate-500' };
+    }
+
+    if (typeof todayTiming === 'string' && todayTiming.includes('-')) {
+      const [open, close] = todayTiming.split('-');
+      const [openH, openM] = open.split(':').map(Number);
+      const [closeH, closeM] = close.split(':').map(Number);
+
+      const openMinutes = openH * 60 + openM;
+      const closeMinutes = closeH * 60 + closeM;
+
+      if (currentTime >= openMinutes && currentTime < closeMinutes) {
+        const hour = closeH % 12 || 12;
+        const ampm = closeH >= 12 ? 'PM' : 'AM';
+        const formattedClose = `${hour}${closeM > 0 ? `:${closeM.toString().padStart(2, '0')}` : ''} ${ampm}`;
+        
+        return { 
+          status: 'Open', 
+          message: `Open till ${formattedClose} today`, 
+          color: 'text-emerald-600', 
+          dotColor: 'bg-emerald-500' 
+        };
+      } else {
+        return { 
+          status: 'Closed', 
+          message: 'Closed now', 
+          color: 'text-rose-600', 
+          dotColor: 'bg-rose-500' 
+        };
+      }
+    }
+
+    return { status: 'Closed', message: 'Closed today', color: 'text-slate-500', dotColor: 'bg-slate-500' };
+  };
+
   if (isLoading || !business) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">
@@ -130,10 +176,15 @@ export default function BusinessDetailPage({ params }: { params: Promise<{ id: s
                   </div>
                   <div className="space-y-0.5">
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Status</p>
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
-                      <p className="font-bold text-emerald-600">Open Now</p>
-                    </div>
+                    {(() => {
+                      const { message, color, dotColor } = getBusinessStatus(business.timings);
+                      return (
+                        <div className="flex items-center gap-1.5">
+                          <div className={`w-1.5 h-1.5 rounded-full ${dotColor} ${color === 'text-emerald-600' ? 'animate-pulse' : ''}`}></div>
+                          <p className={`font-bold ${color}`}>{message}</p>
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
               </div>
