@@ -527,7 +527,7 @@ function DashboardContent() {
                 <div className="p-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-y-8 gap-x-12">
                   <div className="space-y-1">
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Merchant ID</p>
-                    <p className="text-sm font-bold text-slate-900 font-mono">{businessId}</p>
+                    <p className="text-sm font-bold text-slate-900 font-mono">{business?.registrationNumber || 'Not Generated'}</p>
                   </div>
                   <div className="space-y-1">
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Profile Name</p>
