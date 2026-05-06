@@ -169,7 +169,13 @@ export default function BusinessDetailPage({ params }: { params: Promise<{ id: s
                       <div className="hidden md:block text-slate-300">•</div>
                       <div className="flex items-center gap-1.5 text-emerald-600 font-black text-xs uppercase tracking-widest">
                         <Clock size={16} />
-                        {business.timings ? "Check Timings Below" : "Open Now: 9 AM - 9 PM"}
+                        {(() => {
+                          const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+                          const today = days[new Date().getDay()];
+                          const timing = business.timings?.[today];
+                          if (!timing || timing.isClosed) return 'Closed Today';
+                          return `Open: ${timing.open} - ${timing.close}`;
+                        })()}
                       </div>
                     </div>
                   </div>
@@ -351,24 +357,50 @@ export default function BusinessDetailPage({ params }: { params: Promise<{ id: s
                       <h3 className="text-lg font-black text-slate-900 tracking-tight flex items-center gap-2">
                         Timings
                       </h3>
-                      <div className="flex items-center gap-1.5 text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md">
-                        <Clock size={12} />
-                        <span className="text-[10px] font-black uppercase tracking-widest">Open Now</span>
-                      </div>
+                      {business.timings ? (
+                        <div className="flex items-center gap-1.5 text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md">
+                          <Clock size={12} />
+                          <span className="text-[10px] font-black uppercase tracking-widest">
+                            {(() => {
+                              const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+                              const today = days[new Date().getDay()];
+                              const timing = business.timings[today];
+                              if (!timing || timing.isClosed) return 'Closed Today';
+                              return 'Open Now';
+                            })()}
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1.5 text-slate-400 bg-slate-50 px-2 py-1 rounded-md">
+                          <Clock size={12} />
+                          <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Not Provided</span>
+                        </div>
+                      )}
                     </div>
                     <div className="space-y-3 px-1">
-                      {[
-                        { day: 'Mon - Fri', hours: '09:00 AM - 09:00 PM' },
-                        { day: 'Saturday', hours: '10:00 AM - 07:00 PM' },
-                        { day: 'Sunday', hours: 'Closed', closed: true },
-                      ].map((item) => (
-                        <div key={item.day} className="flex justify-between items-center">
-                          <span className="text-xs font-bold text-slate-500">{item.day}</span>
-                          <span className={`text-xs font-black ${item.closed ? 'text-red-500' : 'text-slate-900'}`}>{item.hours}</span>
+                      {business.timings ? (
+                        ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((day) => {
+                          const timing = business.timings[day];
+                          return (
+                            <div key={day} className="flex justify-between items-center">
+                              <span className="text-xs font-bold text-slate-500">{day}</span>
+                              <span className={`text-xs font-black ${(!timing || timing.isClosed) ? 'text-rose-500' : 'text-slate-900'}`}>
+                                {!timing || timing.isClosed ? 'Closed' : `${timing.open} - ${timing.close}`}
+                              </span>
+                            </div>
+                          );
+                        })
+                      ) : (
+                        <div className="py-4 text-center">
+                          <p className="text-xs font-bold text-slate-400">Timings not provided by merchant.</p>
                         </div>
-                      ))}
+                      )}
                     </div>
-                    <button className="w-full py-3 rounded-lg bg-slate-50 text-slate-400 font-bold text-[10px] uppercase tracking-widest hover:bg-slate-100 transition-all border border-slate-100">Show Full Week</button>
+                    {business.timings && (
+                      <button className="w-full py-3 rounded-lg bg-slate-50 text-slate-400 font-bold text-[10px] uppercase tracking-widest hover:bg-slate-100 transition-all border border-slate-100">
+                        View Full Schedule
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
