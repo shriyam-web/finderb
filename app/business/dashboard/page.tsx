@@ -510,15 +510,15 @@ function DashboardContent() {
             {/* Merchant Info Card */}
             {activeTab === 'overview' && (
               <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden transition-all hover:shadow-md">
-                <div className="bg-slate-900 px-8 py-4 flex items-center justify-between">
-                  <h3 className="text-white font-black text-sm uppercase tracking-widest flex items-center gap-2">
-                    <HiOutlineUsers size={18} className="text-white" />
+                <div className="bg-white px-8 py-5 flex items-center justify-between border-b border-gray-100">
+                  <h3 className="text-slate-400 font-bold text-xs uppercase tracking-[0.2em] flex items-center gap-2">
+                    <HiOutlineUsers size={18} className="text-indigo-600" />
                     Merchant Information
                   </h3>
                   <Link 
                     href={`/business/${businessId}`}
                     target="_blank"
-                    className="text-[10px] font-bold text-indigo-300 uppercase tracking-widest hover:text-white transition-colors flex items-center gap-1.5 bg-white/10 px-3 py-1.5 rounded-lg"
+                    className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest hover:bg-indigo-50 transition-colors flex items-center gap-1.5 bg-indigo-50/50 px-3 py-1.5 rounded-lg"
                   >
                     <HiOutlineEye size={14} />
                     View Public Profile
