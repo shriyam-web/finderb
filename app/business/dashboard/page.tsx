@@ -512,7 +512,7 @@ function DashboardContent() {
               <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden transition-all hover:shadow-md">
                 <div className="bg-slate-900 px-8 py-4 flex items-center justify-between">
                   <h3 className="text-white font-black text-sm uppercase tracking-widest flex items-center gap-2">
-                    <HiOutlineUsers size={18} className="text-indigo-400" />
+                    <HiOutlineUsers size={18} className="text-white" />
                     Merchant Information
                   </h3>
                   <Link 
