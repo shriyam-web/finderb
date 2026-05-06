@@ -501,10 +501,7 @@ function DashboardContent() {
           </div>
           
           <div className="flex items-center gap-3">
-            <button className="flex-1 md:flex-none bg-slate-900 text-white px-6 py-3.5 rounded-xl font-bold flex items-center justify-center gap-2.5 hover:bg-indigo-600 transition-all shadow-xl shadow-slate-900/10 active:scale-[0.98] text-xs uppercase tracking-wider">
-              <HiOutlinePlus size={18} />
-              New Listing
-            </button>
+           
             <button className="w-11 h-11 md:w-12 md:h-12 bg-white rounded-xl flex items-center justify-center text-slate-400 hover:text-indigo-600 shadow-sm transition-all relative group border border-gray-100">
               <HiOutlineBell size={22} className="group-hover:rotate-12 transition-transform" />
               <span className="absolute top-3 right-3 w-2 h-2 bg-rose-500 rounded-full ring-2 ring-white"></span>
@@ -519,10 +516,10 @@ function DashboardContent() {
               <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden transition-all hover:shadow-md">
                 <button 
                   onClick={() => toggleAccordion('merchant')}
-                  className="w-full bg-slate-900 px-6 md:px-8 py-4 flex items-center justify-between text-left text-white"
+                  className="w-full bg-slate-900 px-6 md:px-8 py-4 flex items-center justify-between text-left"
                 >
-                  <h3 className="text-white !text-white text-sm tracking-widest flex items-center gap-2">
-                    <HiOutlineUsers size={18} className="text-white !text-white" />
+                  <h3 className="text-white text-sm tracking-widest flex items-center">
+                    <HiOutlineUsers size={18} className="text-white" />
                     Merchant Information
                   </h3>
                   <div className="flex items-center gap-3">
