@@ -40,67 +40,59 @@ export default function BusinessDetailPage({ params }: { params: Promise<{ id: s
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50/50 selection:bg-blue-100 font-sans">
-      <main className="flex-1 pt-20 lg:pt-28 pb-12">
-        {/* Gallery Section - High-End Mosaic Grid */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-12 h-[450px] md:h-[500px] lg:h-[550px] gap-3">
+      <main className="flex-1 pt-16 lg:pt-24 pb-12">
+        {/* Mobile First Gallery Section */}
+        <div className="max-w-7xl mx-auto md:px-6 lg:px-8">
+          {/* Mobile Scrollable Gallery */}
+          <div className="flex md:hidden overflow-x-auto snap-x snap-mandatory gap-2 px-4 pb-4 no-scrollbar">
+            {[0, 1, 2, 3, 4].map((idx) => {
+              const imgSrc = (business.images && business.images[idx]) || 
+                            (idx === 0 && (business.profilePictureUrl || business.image)) || 
+                            `https://images.unsplash.com/photo-${['1517646281042-749510d7f2bf', '1504148455328-c376907d081c', '1621905251189-08b45d6a269e', '1497366216548-37526070297c', '1497215728101-856f4ea42174'][idx]}?w=800&q=80`;
+              
+              return (
+                <div key={idx} className="flex-none w-[85%] aspect-[4/3] relative rounded-2xl overflow-hidden snap-center border border-slate-200">
+                  <Image 
+                    src={imgSrc} 
+                    alt={`${business.name} image ${idx + 1}`} 
+                    fill 
+                    className="object-cover" 
+                    priority={idx === 0}
+                    sizes="85vw"
+                  />
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Desktop Mosaic Grid */}
+          <div className="hidden md:grid grid-cols-12 h-[500px] lg:h-[600px] gap-3">
             {/* Main Featured Image */}
-            <div className="md:col-span-2 lg:col-span-6 relative overflow-hidden rounded-2xl border-2 border-slate-100 shadow-sm group">
-             <Image 
-  src={
-    business.profilePictureUrl ||
-    business.image ||
-    "/fallback.jpg"
-  }
-  alt={business.name || "Business Image"}
-  fill 
-  className="object-cover transition-transform duration-1000 group-hover:scale-105" 
-  priority 
-  sizes="(max-width: 1024px) 100vw, 50vw"
-/>
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-              <div className="absolute bottom-6 left-6 z-10 opacity-0 group-hover:opacity-100 transition-all duration-500 translate-y-4 group-hover:translate-y-0">
-                <span className="bg-white/90 backdrop-blur-md text-slate-900 px-4 py-2 rounded-full font-black text-[10px] uppercase tracking-widest shadow-xl flex items-center gap-2">
-                  <Star size={14} className="text-amber-500 fill-amber-500" />
-                  Featured Profile
-                </span>
-              </div>
+            <div className="col-span-6 relative overflow-hidden rounded-3xl border-2 border-slate-100 shadow-sm group">
+              <Image 
+                src={business.images?.[0] || business.profilePictureUrl || business.image || "/fallback.jpg"}
+                alt={business.name || "Business Image"}
+                fill 
+                className="object-cover transition-transform duration-1000 group-hover:scale-105" 
+                priority 
+                sizes="50vw"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-900/40 via-transparent to-transparent"></div>
             </div>
             
-            {/* Side Grid - Multiple Pics */}
-            <div className="hidden md:grid md:col-span-2 lg:col-span-6 grid-cols-2 grid-rows-2 gap-3">
-              {[0, 1, 2].map((idx) => (
-                <div key={idx} className="relative overflow-hidden rounded-2xl border-2 border-slate-100 shadow-sm group">
+            {/* Side Grid */}
+            <div className="col-span-6 grid grid-cols-2 grid-rows-2 gap-3">
+              {[1, 2, 3, 4].map((idx) => (
+                <div key={idx} className="relative overflow-hidden rounded-3xl border-2 border-slate-100 shadow-sm group">
                   <Image 
-                    src={business.images && business.images[idx+1] ? business.images[idx+1] : `https://images.unsplash.com/photo-${[
-                      '1517646281042-749510d7f2bf',
-                      '1504148455328-c376907d081c',
-                      '1621905251189-08b45d6a269e'
-                    ][idx]}?w=800&q=80`} 
-                    alt={`Business image ${idx + 2}`} 
+                    src={business.images?.[idx] || `https://images.unsplash.com/photo-${['1517646281042-749510d7f2bf', '1504148455328-c376907d081c', '1621905251189-08b45d6a269e', '1497366216548-37526070297c'][idx-1]}?w=800&q=80`} 
+                    alt={`Business image ${idx + 1}`} 
                     fill 
                     className="object-cover transition-transform duration-700 group-hover:scale-110" 
-                    sizes="25vw" 
+                    sizes="25vw"
                   />
-                  <div className="absolute inset-0 bg-slate-900/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                 </div>
               ))}
-              <div className="relative overflow-hidden rounded-2xl bg-slate-900 flex items-center justify-center cursor-pointer group border-2 border-slate-100 shadow-sm">
-                <Image 
-                  src={business.images && business.images[4] ? business.images[4] : "https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=80"} 
-                  alt="Gallery" 
-                  fill 
-                  className="object-cover opacity-60 group-hover:scale-110 group-hover:opacity-40 transition-all duration-700" 
-                  sizes="25vw" 
-                />
-                <div className="relative z-10 text-center p-4">
-                  <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center mx-auto mb-3 border border-white/30 group-hover:rotate-12 transition-transform">
-                    <Zap size={20} className="text-white fill-white" />
-                  </div>
-                  <p className="text-white font-black text-xl tracking-tighter leading-none mb-1">View All</p>
-                  <p className="text-blue-300 font-bold text-[10px] uppercase tracking-widest">{business.images?.length || 0} Photos</p>
-                </div>
-              </div>
             </div>
           </div>
         </div>
@@ -170,11 +162,30 @@ export default function BusinessDetailPage({ params }: { params: Promise<{ id: s
                       <div className="flex items-center gap-1.5 text-emerald-600 font-black text-xs uppercase tracking-widest">
                         <Clock size={16} />
                         {(() => {
+                          if (!business.timings || typeof business.timings !== 'object' || Object.keys(business.timings).length === 0) {
+                            return 'Time not mentioned';
+                          }
                           const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-                          const today = days[new Date().getDay()];
-                          const timing = business.timings?.[today];
+                          const now = new Date();
+                          const today = days[now.getDay()];
+                          const timing = business.timings[today];
+
                           if (!timing || timing.isClosed) return 'Closed Today';
-                          return `Open: ${timing.open} - ${timing.close}`;
+
+                          try {
+                            const [openHours, openMinutes] = timing.open.split(':').map(Number);
+                            const [closeHours, closeMinutes] = timing.close.split(':').map(Number);
+                            const currentTime = now.getHours() * 60 + now.getMinutes();
+                            const openTime = openHours * 60 + openMinutes;
+                            const closeTime = closeHours * 60 + closeMinutes;
+
+                            if (currentTime >= openTime && currentTime <= closeTime) {
+                              return `Open Now: ${timing.open} - ${timing.close}`;
+                            }
+                            return `Closed Now: Opens at ${timing.open}`;
+                          } catch (e) {
+                            return `Open: ${timing.open} - ${timing.close}`;
+                          }
                         })()}
                       </div>
                     </div>
@@ -357,7 +368,7 @@ export default function BusinessDetailPage({ params }: { params: Promise<{ id: s
                       <h3 className="text-lg font-black text-slate-900 tracking-tight flex items-center gap-2">
                         Timings
                       </h3>
-                      {business.timings ? (
+                      {business.timings && Object.keys(business.timings).length > 0 ? (
                         <div className="flex items-center gap-1.5 text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md">
                           <Clock size={12} />
                           <span className="text-[10px] font-black uppercase tracking-widest">
@@ -373,12 +384,12 @@ export default function BusinessDetailPage({ params }: { params: Promise<{ id: s
                       ) : (
                         <div className="flex items-center gap-1.5 text-slate-400 bg-slate-50 px-2 py-1 rounded-md">
                           <Clock size={12} />
-                          <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Not Provided</span>
+                          <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Time Not Mentioned</span>
                         </div>
                       )}
                     </div>
                     <div className="space-y-3 px-1">
-                      {business.timings ? (
+                      {business.timings && Object.keys(business.timings).length > 0 ? (
                         ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((day) => {
                           const timing = business.timings[day];
                           return (
@@ -392,11 +403,11 @@ export default function BusinessDetailPage({ params }: { params: Promise<{ id: s
                         })
                       ) : (
                         <div className="py-4 text-center">
-                          <p className="text-xs font-bold text-slate-400">Timings not provided by merchant.</p>
+                          <p className="text-xs font-bold text-slate-400">Timings not mentioned by merchant.</p>
                         </div>
                       )}
                     </div>
-                    {business.timings && (
+                    {business.timings && Object.keys(business.timings).length > 0 && (
                       <button className="w-full py-3 rounded-lg bg-slate-50 text-slate-400 font-bold text-[10px] uppercase tracking-widest hover:bg-slate-100 transition-all border border-slate-100">
                         View Full Schedule
                       </button>
