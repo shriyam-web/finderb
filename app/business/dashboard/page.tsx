@@ -27,8 +27,6 @@ import {
   HiOutlineXMark,
   HiOutlineExclamationCircle,
   HiOutlineCreditCard,
-  HiOutlineClipboardDocumentCheck,
-  HiOutlineClipboardDocument,
   HiChevronDown,
   HiChevronUp
 } from 'react-icons/hi2';
@@ -54,13 +52,6 @@ function DashboardContent() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [focusedImage, setFocusedImage] = useState<number | null>(null);
   const [openAccordions, setOpenAccordions] = useState<string[]>(['basic']);
-  const [copiedId, setCopiedId] = useState(false);
-
-  const handleCopyId = (id: string) => {
-    navigator.clipboard.writeText(id);
-    setCopiedId(true);
-    setTimeout(() => setCopiedId(false), 2000);
-  };
 
   const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
@@ -493,9 +484,7 @@ function DashboardContent() {
       <main className="flex-1 p-6 md:p-12 relative overflow-x-hidden">
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10 md:mb-14 relative z-10">
           <div className="space-y-1.5">
-            <div className="inline-flex items-center gap-2 bg-indigo-50 px-3 py-1 rounded-lg text-indigo-700 font-bold text-[10px] uppercase tracking-wider border border-indigo-100/50">
-              <HiOutlineBriefcase size={14} /> Professional Portal
-            </div>
+        
             <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight capitalize">
               {activeTab === 'overview' ? 'Performance' : activeTab === 'leads' ? 'Lead Center' : activeTab}
             </h1>
@@ -519,86 +508,65 @@ function DashboardContent() {
             {/* Merchant Info Card */}
             {activeTab === 'overview' && (
               <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden transition-all hover:shadow-md">
-                <button 
-                  onClick={() => toggleAccordion('merchant')}
-                  className="w-full bg-white px-6 md:px-8 py-4 md:py-5 flex items-center justify-between border-b border-gray-100 text-left"
-                >
-                  <h3 className="text-slate-400 font-bold text-xs uppercase tracking-[0.2em] flex items-center gap-2">
-                    <HiOutlineUsers size={18} className="text-indigo-600" />
+                <div className="bg-slate-900 px-8 py-4 flex items-center justify-between">
+                  <h3 className="text-white font-black text-sm uppercase tracking-widest flex items-center gap-2">
+                    <HiOutlineUsers size={18} className="text-white" />
                     Merchant Information
                   </h3>
-                  <div className="flex items-center gap-3">
-                    <Link 
-                      href={`/business/${businessId}`}
-                      target="_blank"
-                      onClick={(e) => e.stopPropagation()}
-                      className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest hover:bg-indigo-50 transition-colors flex items-center gap-1.5 bg-indigo-50/50 px-3 py-1.5 rounded-lg"
-                    >
-                      <HiOutlineEye size={14} />
-                      <span className="hidden sm:inline">View Public Profile</span>
-                    </Link>
-                    {openAccordions.includes('merchant') ? <HiChevronUp size={20} className="text-slate-400" /> : <HiChevronDown size={20} className="text-slate-400" />}
+                  <Link 
+                    href={`/business/${businessId}`}
+                    target="_blank"
+                    className="text-[10px] font-bold text-indigo-300 uppercase tracking-widest hover:text-white transition-colors flex items-center gap-1.5 bg-white/10 px-3 py-1.5 rounded-lg"
+                  >
+                    <HiOutlineEye size={14} />
+                    View Public Profile
+                  </Link>
+                </div>
+                <div className="p-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-y-8 gap-x-12">
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Merchant ID</p>
+                    <p className="text-sm font-bold text-slate-900 font-mono">{business?.registrationNumber || 'Not Generated'}</p>
                   </div>
-                </button>
-                
-                {openAccordions.includes('merchant') && (
-                  <div className="p-5 md:p-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-y-6 md:gap-y-8 gap-x-12">
-                    <div className="space-y-1">
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Merchant ID</p>
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-bold text-slate-900 font-mono">{business?.registrationNumber || 'Not Generated'}</p>
-                        {business?.registrationNumber && (
-                          <button 
-                            onClick={() => handleCopyId(business.registrationNumber)}
-                            className="p-1 text-slate-400 hover:text-indigo-600 transition-colors"
-                            title="Copy Merchant ID"
-                          >
-                            {copiedId ? <HiOutlineClipboardDocumentCheck size={16} className="text-emerald-500" /> : <HiOutlineClipboardDocument size={16} />}
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Profile Name</p>
-                      <p className="text-sm font-bold text-slate-900">{business?.businessName || business?.displayName || 'Not Set'}</p>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Email Address</p>
-                      <p className="text-sm font-bold text-slate-900">{business?.email || business?.workEmail || 'Not Set'}</p>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Phone Number</p>
-                      <p className="text-sm font-bold text-slate-900">{business?.publicPhone || business?.mobile || 'Not Set'}</p>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Payment Status</p>
-                      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                        business?.paymentStatus === 'completed' 
-                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' 
-                          : 'bg-amber-50 text-amber-700 border border-amber-100'
-                      }`}>
-                        <div className={`w-1.5 h-1.5 rounded-full ${business?.paymentStatus === 'completed' ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-                        {business?.paymentStatus || 'Pending'}
-                      </span>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">KYC Status</p>
-                      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                        business?.kycStatus === 'verified' || business?.kycStatus === 'approved'
-                          ? 'bg-indigo-50 text-indigo-700 border border-indigo-100' 
-                          : business?.kycStatus === 'submitted'
-                          ? 'bg-blue-50 text-blue-700 border border-blue-100'
-                          : 'bg-rose-50 text-rose-700 border border-rose-100'
-                      }`}>
-                        <div className={`w-1.5 h-1.5 rounded-full ${
-                          business?.kycStatus === 'verified' || business?.kycStatus === 'approved' ? 'bg-indigo-500' : 
-                          business?.kycStatus === 'submitted' ? 'bg-blue-500' : 'bg-rose-500'
-                        }`} />
-                        {business?.kycStatus || 'Pending'}
-                      </span>
-                    </div>
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Profile Name</p>
+                    <p className="text-sm font-bold text-slate-900">{business?.businessName || business?.displayName || 'Not Set'}</p>
                   </div>
-                )}
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Email Address</p>
+                    <p className="text-sm font-bold text-slate-900">{business?.email || business?.workEmail || 'Not Set'}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Phone Number</p>
+                    <p className="text-sm font-bold text-slate-900">{business?.publicPhone || business?.mobile || 'Not Set'}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Payment Status</p>
+                    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                      business?.paymentStatus === 'completed' 
+                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' 
+                        : 'bg-amber-50 text-amber-700 border border-amber-100'
+                    }`}>
+                      <div className={`w-1.5 h-1.5 rounded-full ${business?.paymentStatus === 'completed' ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                      {business?.paymentStatus || 'Pending'}
+                    </span>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">KYC Status</p>
+                    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                      business?.kycStatus === 'verified' || business?.kycStatus === 'approved'
+                        ? 'bg-indigo-50 text-indigo-700 border border-indigo-100' 
+                        : business?.kycStatus === 'submitted'
+                        ? 'bg-blue-50 text-blue-700 border border-blue-100'
+                        : 'bg-rose-50 text-rose-700 border border-rose-100'
+                    }`}>
+                      <div className={`w-1.5 h-1.5 rounded-full ${
+                        business?.kycStatus === 'verified' || business?.kycStatus === 'approved' ? 'bg-indigo-500' : 
+                        business?.kycStatus === 'submitted' ? 'bg-blue-500' : 'bg-rose-500'
+                      }`} />
+                      {business?.kycStatus || 'Pending'}
+                    </span>
+                  </div>
+                </div>
               </div>
             )}
 
