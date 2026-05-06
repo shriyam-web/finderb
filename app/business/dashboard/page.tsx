@@ -521,7 +521,7 @@ function DashboardContent() {
                   onClick={() => toggleAccordion('merchant')}
                   className="w-full bg-slate-900 px-6 md:px-8 py-4 flex items-center justify-between text-left"
                 >
-                  <h3 className="text-white font-black text-sm uppercase tracking-widest flex items-center gap-2">
+                  <h3 className="text-white text-sm tracking-widest flex items-center gap-2">
                     <HiOutlineUsers size={18} className="text-white" />
                     Merchant Information
                   </h3>
