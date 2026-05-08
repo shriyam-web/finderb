@@ -340,6 +340,8 @@ function DashboardContent() {
   const businessName = business?.businessName || 'Your Business';
   const isKycPending = business?.kycStatus === 'pending';
   const isPaymentPending = business?.paymentStatus === 'pending';
+  const isKycNotApproved = business?.kycStatus !== 'approved';
+  const isPaymentNotCompleted = business?.paymentStatus !== 'completed';
   
   // Calculate Profile Completion
   const getProfileCompletion = () => {
@@ -464,7 +466,7 @@ function DashboardContent() {
 
       {/* Sidebar */}
       <aside className={`
-        fixed lg:sticky top-0 left-0 h-screen w-72 bg-white border-r border-gray-100 flex flex-col z-[58] transition-all duration-300 ease-in-out
+        fixed lg:sticky top-0 left-0 h-screen w-72 bg-white border-r border-gray-100 flex flex-col z-[58] transition-all duration-300 ease-in-out pt-20 lg:pt-0 pb-24 lg:pb-0
         ${isSidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full lg:translate-x-0'}
       `}>
         <div className="p-8 hidden lg:block">
@@ -619,6 +621,45 @@ function DashboardContent() {
 
         {(activeTab === 'overview' || activeTab === 'leads' || activeTab === 'listings') && (
           <div className="space-y-8 md:space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            {/* Alerts for Merchant */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {isPaymentNotCompleted && (
+                <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-4 shadow-sm">
+                  <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <HiOutlineCreditCard className="text-amber-600" size={20} />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm font-bold text-amber-900">Payment Pending</p>
+                    <p className="text-xs text-amber-700 leading-relaxed font-medium">
+                      Your payment is pending. With this status, you might not be getting business. Kindly complete your payment to activate all features.
+                    </p>
+                    <Link href={`/business/payment/${businessId}`} className="inline-flex items-center gap-1.5 text-amber-600 text-[11px] font-bold uppercase tracking-wider mt-2 hover:gap-2 transition-all">
+                      Complete Payment <HiOutlineChevronRight size={14} />
+                    </Link>
+                  </div>
+                </div>
+              )}
+              {isKycNotApproved && (
+                <div className="bg-indigo-50 border border-indigo-200 rounded-2xl p-4 flex items-start gap-4 shadow-sm">
+                  <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <HiOutlineClipboardDocumentCheck className="text-indigo-600" size={20} />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm font-bold text-indigo-900">KYC Verification Pending</p>
+                    <p className="text-xs text-indigo-700 leading-relaxed font-medium">
+                      Your KYC isn't completed yet. Kindly submit your documents to get full access and higher visibility on FinderB.
+                    </p>
+                    <button 
+                      onClick={() => setActiveTab('settings')}
+                      className="inline-flex items-center gap-1.5 text-indigo-600 text-[11px] font-bold uppercase tracking-wider mt-2 hover:gap-2 transition-all"
+                    >
+                      Submit Documents <HiOutlineChevronRight size={14} />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* My Listing Preview Section */}
             {activeTab === 'listings' && (
               <div className="bg-white rounded-[32px] border border-gray-100 shadow-sm p-8 md:p-12 space-y-10">
