@@ -362,6 +362,13 @@ function DashboardContent() {
       { key: 'timings', label: 'Business Timings' },
       { key: 'yearsInBusiness', label: 'Years in Business' },
       { key: 'serviceCategory', label: 'Service Category' },
+      { key: 'website', label: 'Website' },
+      { key: 'facebookUrl', label: 'Facebook URL' },
+      { key: 'instagramUrl', label: 'Instagram URL' },
+      { key: 'youtubeUrl', label: 'Youtube URL' },
+      { key: 'whatsappNumber', label: 'Whatsapp Number' },
+      { key: 'latitude', label: 'Latitude' },
+      { key: 'longitude', label: 'Longitude' },
     ];
 
     const missingFields: string[] = [];
@@ -369,7 +376,12 @@ function DashboardContent() {
 
     fields.forEach(field => {
       const value = business?.[field.key as keyof any];
-      if (value !== undefined && value !== null && value !== '' && (typeof value !== 'object' || Object.keys(value).length > 0)) {
+      const isCompleted = value !== undefined && value !== null && value !== '' && 
+        (typeof value !== 'object' || Object.keys(value).length > 0) &&
+        (field.key !== 'latitude' || value !== 0) &&
+        (field.key !== 'longitude' || value !== 0);
+
+      if (isCompleted) {
         completedCount++;
       } else {
         missingFields.push(field.label);
