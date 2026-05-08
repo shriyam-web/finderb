@@ -810,165 +810,205 @@ function DashboardContent() {
                 </div>
               </div>
             )}
-            {/* Profile Completion Meter */}
+            {/* Profile Completion Meter - Premium Redesign */}
             {activeTab === 'overview' && completionPercent < 100 && (
-              <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 md:p-8 space-y-6">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  <div>
-                    <h3 className="text-lg font-bold text-slate-900">Complete Your Profile</h3>
-                    <p className="text-slate-500 text-sm">Boost your visibility by providing all necessary details.</p>
-                  </div>
-                  <div className="flex items-center gap-3 bg-slate-50 px-4 py-2 rounded-2xl border border-slate-100">
-                    <span className="text-2xl font-black text-indigo-600">{completionPercent}%</span>
-                    <div className="w-32 h-2.5 bg-slate-200 rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-indigo-600 rounded-full transition-all duration-1000"
-                        style={{ width: `${completionPercent}%` }}
-                      ></div>
+              <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 md:p-8 relative overflow-hidden group hover:shadow-premium-hover transition-all">
+                <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                  <HiOutlineRocketLaunch size={120} className="-rotate-12" />
+                </div>
+                
+                <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
+                  <div className="space-y-4 max-w-xl">
+                    <div>
+                      <h3 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight">Complete Your Profile</h3>
+                      <p className="text-slate-500 text-sm mt-1 leading-relaxed font-medium">
+                        Boost your visibility and trust score. Businesses with 100% profile completion receive <span className="text-indigo-600 font-bold">3x more inquiries</span>.
+                      </p>
                     </div>
+
+                    {missingFields.length > 0 && (
+                      <div className="space-y-3">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                          Next Steps to reach 100%
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {missingFields.slice(0, 4).map((field) => (
+                            <span key={field} className="px-3 py-1.5 bg-slate-50 text-slate-600 text-[10px] font-bold rounded-full border border-slate-100 hover:bg-white transition-colors">
+                              + {field}
+                            </span>
+                          ))}
+                          {missingFields.length > 4 && (
+                            <span className="px-3 py-1.5 bg-indigo-50 text-indigo-600 text-[10px] font-bold rounded-full border border-indigo-100">
+                              + {missingFields.length - 4} more
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    
+                    <button 
+                      onClick={() => setActiveTab('settings')}
+                      className="inline-flex items-center gap-2 bg-slate-900 text-white px-8 py-3 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-indigo-600 transition-all shadow-xl shadow-slate-900/10 active:scale-95 group/btn"
+                    >
+                      Finish Setup <HiOutlineChevronRight size={16} className="group-hover/btn:translate-x-1 transition-transform" />
+                    </button>
+                  </div>
+
+                  <div className="shrink-0 flex flex-col items-center gap-4 bg-slate-50 p-6 md:p-8 rounded-[2.5rem] border border-slate-100 min-w-[200px]">
+                    <div className="relative w-24 h-24 flex items-center justify-center">
+                      <svg className="w-full h-full transform -rotate-90">
+                        <circle
+                          cx="48"
+                          cy="48"
+                          r="42"
+                          stroke="currentColor"
+                          strokeWidth="8"
+                          fill="transparent"
+                          className="text-slate-200"
+                        />
+                        <circle
+                          cx="48"
+                          cy="48"
+                          r="42"
+                          stroke="currentColor"
+                          strokeWidth="8"
+                          fill="transparent"
+                          strokeDasharray={263.89}
+                          strokeDashoffset={263.89 - (263.89 * completionPercent) / 100}
+                          className="text-indigo-600 transition-all duration-1000 ease-out"
+                        />
+                      </svg>
+                      <span className="absolute text-2xl font-black text-slate-900">{completionPercent}%</span>
+                    </div>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Strength Score</p>
                   </div>
                 </div>
-
-                {missingFields.length > 0 && (
-                  <div className="space-y-3">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                      <HiOutlineExclamationCircle className="text-rose-500" size={14} />
-                      Missing Information
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {missingFields.map((field) => (
-                        <span key={field} className="px-3 py-1 bg-rose-50 text-rose-600 text-[10px] font-bold rounded-full border border-rose-100">
-                          + {field}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                
-                <button 
-                  onClick={() => setActiveTab('settings')}
-                  className="inline-flex items-center gap-2 bg-indigo-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-600/20 active:scale-95"
-                >
-                  Update Profile <HiOutlineChevronRight size={16} />
-                </button>
               </div>
             )}
 
-            {/* Merchant Info Card */}
+            {/* Merchant Info Card - Premium Look */}
             {activeTab === 'overview' && (
-              <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden transition-all hover:shadow-md">
+              <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden transition-all hover:shadow-premium-hover">
                 <button 
                   onClick={() => toggleAccordion('merchant')}
-                  className="w-full bg-white px-6 md:px-8 py-4 flex items-center justify-between text-left border-b border-gray-100"
+                  className="w-full bg-white px-6 md:px-8 py-5 flex items-center justify-between text-left"
                 >
-                  <h3 className="text-slate-900 text-sm tracking-widest flex items-center gap-1">
-                    <HiOutlineUsers size={18} className="text-indigo-600" />
-                    Merchant Information
-                  </h3>
                   <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center">
+                      <HiOutlineBriefcase size={18} />
+                    </div>
+                    <h3 className="text-slate-900 font-bold text-base tracking-tight">Merchant Information</h3>
+                  </div>
+                  <div className="flex items-center gap-4">
                     <Link 
                       href={`/business/${businessId}`}
                       target="_blank"
                       onClick={(e) => e.stopPropagation()}
-                      className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest hover:text-indigo-700 transition-colors flex items-center gap-1.5 bg-indigo-50 px-3 py-1.5 rounded-lg"
+                      className="text-xs font-bold text-indigo-600 hover:text-indigo-700 transition-colors flex items-center gap-1.5"
                     >
-                      <HiOutlineEye size={14} />
-                      <span className="hidden sm:inline">View Profile</span>
+                      <HiOutlineEye size={16} />
+                      <span className="hidden sm:inline">Public View</span>
                     </Link>
+                    <div className="h-4 w-px bg-slate-100 hidden sm:block"></div>
                     {openAccordions.includes('merchant') ? <HiChevronUp size={20} className="text-slate-400" /> : <HiChevronDown size={20} className="text-slate-400" />}
                   </div>
                 </button>
                 
                 {openAccordions.includes('merchant') && (
-                  <div className="p-5 md:p-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-y-6 md:gap-y-8 gap-x-12 animate-in fade-in slide-in-from-top-2 duration-300">
-                    <div className="space-y-1">
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Merchant ID</p>
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-bold text-slate-900 font-mono">{business?.registrationNumber || 'Not Generated'}</p>
-                        {business?.registrationNumber && (
-                          <button 
-                            onClick={() => handleCopyId(business.registrationNumber)}
-                            className="p-1 text-slate-400 hover:text-indigo-600 transition-colors"
-                            title="Copy Merchant ID"
-                          >
-                            {copiedId ? <HiOutlineClipboardDocumentCheck size={16} className="text-emerald-500" /> : <HiOutlineClipboardDocument size={16} />}
-                          </button>
-                        )}
+                  <div className="px-6 md:px-8 pb-8 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-4 border-t border-slate-50">
+                      <div className="space-y-1">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Merchant ID</p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-bold text-slate-900 font-mono bg-slate-50 px-2 py-1 rounded-md">{business?.registrationNumber || 'Not Generated'}</p>
+                          {business?.registrationNumber && (
+                            <button 
+                              onClick={() => handleCopyId(business.registrationNumber)}
+                              className="p-1 text-slate-400 hover:text-indigo-600 transition-colors"
+                            >
+                              {copiedId ? <HiOutlineClipboardDocumentCheck size={16} className="text-emerald-500" /> : <HiOutlineClipboardDocument size={16} />}
+                            </button>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Profile Name</p>
-                      <p className="text-sm font-bold text-slate-900">{business?.businessName || business?.displayName || 'Not Set'}</p>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Email Address</p>
-                      <p className="text-sm font-bold text-slate-900">{business?.email || business?.workEmail || 'Not Set'}</p>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Phone Number</p>
-                      <p className="text-sm font-bold text-slate-900">{business?.publicPhone || business?.mobile || 'Not Set'}</p>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Payment Status</p>
-                      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                        business?.paymentStatus === 'completed' 
-                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' 
-                          : 'bg-amber-50 text-amber-700 border border-amber-100'
-                      }`}>
-                        <div className={`w-1.5 h-1.5 rounded-full ${business?.paymentStatus === 'completed' ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-                        {business?.paymentStatus || 'Pending'}
-                      </span>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">KYC Status</p>
-                      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                        business?.kycStatus === 'verified' || business?.kycStatus === 'approved'
-                          ? 'bg-indigo-50 text-indigo-700 border border-indigo-100' 
-                          : business?.kycStatus === 'submitted'
-                          ? 'bg-blue-50 text-blue-700 border border-blue-100'
-                          : 'bg-rose-50 text-rose-700 border border-rose-100'
-                      }`}>
-                        <div className={`w-1.5 h-1.5 rounded-full ${
-                          business?.kycStatus === 'verified' || business?.kycStatus === 'approved' ? 'bg-indigo-500' : 
-                          business?.kycStatus === 'submitted' ? 'bg-blue-500' : 'bg-rose-500'
-                        }`} />
-                        {business?.kycStatus || 'Pending'}
-                      </span>
+                      <div className="space-y-1">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Profile Name</p>
+                        <p className="text-sm font-bold text-slate-900">{business?.businessName || business?.displayName || 'Not Set'}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Email Address</p>
+                        <p className="text-sm font-bold text-slate-900 truncate">{business?.email || business?.workEmail || 'Not Set'}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Phone Number</p>
+                        <p className="text-sm font-bold text-slate-900">{business?.publicPhone || business?.mobile || 'Not Set'}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Payment Status</p>
+                        <div>
+                          <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                            business?.paymentStatus === 'completed' 
+                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' 
+                              : 'bg-amber-50 text-amber-700 border border-amber-100'
+                          }`}>
+                            <div className={`w-1.5 h-1.5 rounded-full ${business?.paymentStatus === 'completed' ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                            {business?.paymentStatus || 'Pending'}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">KYC Status</p>
+                        <div>
+                          <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                            business?.kycStatus === 'verified' || business?.kycStatus === 'approved'
+                              ? 'bg-indigo-50 text-indigo-700 border border-indigo-100' 
+                              : business?.kycStatus === 'submitted'
+                              ? 'bg-blue-50 text-blue-700 border border-blue-100'
+                              : 'bg-rose-50 text-rose-700 border border-rose-100'
+                          }`}>
+                            <div className={`w-1.5 h-1.5 rounded-full ${
+                              business?.kycStatus === 'verified' || business?.kycStatus === 'approved' ? 'bg-indigo-500' : 
+                              business?.kycStatus === 'submitted' ? 'bg-blue-500' : 'bg-rose-500'
+                            }`} />
+                            {business?.kycStatus || 'Pending'}
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )}
               </div>
             )}
 
-            {/* Urgent Actions */}
+            {/* Urgent Actions - Compact & Premium */}
             {(isKycPending || isPaymentPending) && (activeTab === 'overview' || activeTab === 'leads') && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-5">
+              <div className="flex flex-col sm:flex-row gap-4">
                 {isKycPending && (
-                  <div className="bg-white border border-amber-100 rounded-2xl p-5 flex items-start gap-4 transition-all hover:shadow-sm">
-                    <div className="w-10 h-10 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center shrink-0 border border-amber-100/50">
-                      <HiOutlineExclamationCircle size={24} />
+                  <div className="flex-1 bg-white border border-amber-100 rounded-2xl p-4 flex items-center gap-4 transition-all hover:shadow-md hover:border-amber-200 group">
+                    <div className="w-10 h-10 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center shrink-0 border border-amber-100 group-hover:bg-amber-100 transition-colors">
+                      <HiOutlineShieldCheck size={20} />
                     </div>
-                    <div className="flex-grow space-y-1">
-                      <h4 className="font-bold text-slate-900 text-sm">KYC Required</h4>
-                      <p className="text-slate-500 text-xs leading-relaxed">Verification is pending. Submit documents to unlock your verified badge.</p>
-                      <Link href={`/business/kyc/${businessId}`} className="inline-flex items-center gap-1 text-indigo-600 font-bold text-[10px] uppercase tracking-wider hover:text-indigo-700 pt-1.5 transition-colors group/link">
-                        Verify Now <HiOutlineChevronRight size={12} className="group-hover/link:translate-x-0.5 transition-transform" />
-                      </Link>
+                    <div className="flex-grow min-w-0">
+                      <h4 className="font-bold text-slate-900 text-sm">KYC Pending</h4>
+                      <p className="text-slate-500 text-[10px] truncate">Submit documents to verify identity.</p>
                     </div>
+                    <Link href={`/business/kyc/${businessId}`} className="shrink-0 bg-amber-600 text-white px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider hover:bg-amber-700 transition-all shadow-sm">
+                      Verify
+                    </Link>
                   </div>
                 )}
                 {isPaymentPending && (
-                  <div className="bg-white border border-indigo-100 rounded-2xl p-5 flex items-start gap-4 transition-all hover:shadow-sm">
-                    <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center shrink-0 border border-indigo-100/50">
-                      <HiOutlineCreditCard size={24} />
+                  <div className="flex-1 bg-white border border-indigo-100 rounded-2xl p-4 flex items-center gap-4 transition-all hover:shadow-md hover:border-indigo-200 group">
+                    <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center shrink-0 border border-indigo-100 group-hover:bg-indigo-100 transition-colors">
+                      <HiOutlineCreditCard size={20} />
                     </div>
-                    <div className="flex-grow space-y-1">
-                      <h4 className="font-bold text-slate-900 text-sm">Lead Activation Needed</h4>
-                      <p className="text-slate-500 text-xs leading-relaxed">Your business is listed for free! Activate leads to see customer details.</p>
-                      <Link href={`/business/payment/${businessId}`} className="inline-flex items-center gap-1 text-indigo-600 font-bold text-[10px] uppercase tracking-wider hover:text-indigo-700 pt-1.5 transition-colors group/link">
-                        Activate Now <HiOutlineChevronRight size={12} className="group-hover/link:translate-x-0.5 transition-transform" />
-                      </Link>
+                    <div className="flex-grow min-w-0">
+                      <h4 className="font-bold text-slate-900 text-sm">Leads Inactive</h4>
+                      <p className="text-slate-500 text-[10px] truncate">Activate to see customer details.</p>
                     </div>
+                    <Link href={`/business/payment/${businessId}`} className="shrink-0 bg-indigo-600 text-white px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider hover:bg-indigo-700 transition-all shadow-sm">
+                      Activate
+                    </Link>
                   </div>
                 )}
               </div>

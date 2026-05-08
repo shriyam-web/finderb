@@ -30,9 +30,9 @@
   --animate-float: float 6s ease-in-out infinite;
   --animate-float-delayed: float 6s ease-in-out 3s infinite;
   --animate-voice-ring: voice-ring 2s cubic-bezier(0, 0, 0.2, 1) infinite;
-  --font-sans: var(--font-inter), 'Inter', system-ui, -apple-system, sans-serif;
-  --font-outfit: var(--font-outfit), 'Outfit', 'Inter', sans-serif;
-  --font-heading: var(--font-poppins), 'Poppins', 'Inter', sans-serif;
+  --font-sans: 'Google Sans', var(--font-inter), 'Inter', system-ui, -apple-system, sans-serif;
+  --font-outfit: 'Google Sans', var(--font-outfit), 'Outfit', 'Inter', sans-serif;
+  --font-heading: 'Google Sans', var(--font-poppins), 'Poppins', 'Inter', sans-serif;
 
   @keyframes float {
     0%, 100% { transform: translateY(0); }
@@ -57,13 +57,13 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: 'Google Sans', 'Inter', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 h1, h2, h3, h4, h5, h6 {
-  font-family: 'Poppins', 'Inter', sans-serif;
+  font-family: 'Google Sans', 'Poppins', 'Inter', sans-serif;
   color: var(--color-primary-800);
 }
 
