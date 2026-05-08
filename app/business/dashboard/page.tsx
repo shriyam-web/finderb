@@ -178,7 +178,7 @@ function DashboardContent() {
   useEffect(() => {
     const fetchNotifications = async () => {
       const supabase = createClient();
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('broadcasts')
         .select('*')
         .order('created_at', { ascending: false });
