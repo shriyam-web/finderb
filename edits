@@ -1,1 +1,7 @@
-make the performance tab good looking. Payment and Kyc badge little compact, then Merchant information section with improved look, then Complete your profile section, then everything, all must use Google Sans font, keep good ui look, premium and non ai look in /business/dashboard
+fix the z-index issue of notification in /business/dashboard 
+
+in merchant panel, you have brough Plan Status box above the menu items, bring it below menu items and sign out button now hiding behind the bottom navigation bar, send sign out button a little upwards.  
+
+make the payment and kyc badge little compact in mobile view. 
+
+throughout the dashboard use only google sans font, no other font with no artificial letter spacing
