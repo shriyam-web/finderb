@@ -314,14 +314,58 @@ function DashboardContent() {
   const isPaymentPending = business?.paymentStatus === 'pending';
   
   // Calculate Profile Completion
-  const calculateCompletion = () => {
-    let score = 40; // Base score for registration
-    if (business?.panNumber) score += 15;
-    if (business?.aadharNumber) score += 15;
-    if (business?.paymentStatus === 'completed') score += 30;
-    return score;
+  const getProfileCompletion = () => {
+    const fields = [
+      { key: 'businessName', label: 'Business Name' },
+      { key: 'category', label: 'Business Category' },
+      { key: 'publicPhone', label: 'Public Phone' },
+      { key: 'businessAddress', label: 'Address' },
+      { key: 'city', label: 'City' },
+      { key: 'state', label: 'State' },
+      { key: 'country', label: 'Country' },
+      { key: 'about', label: 'About Business' },
+      { key: 'profilePictureUrl', label: 'Profile Picture' },
+      { key: 'panNumber', label: 'PAN Number' },
+      { key: 'aadharNumber', label: 'Aadhar Number' },
+      { key: 'panUrl', label: 'PAN Document' },
+      { key: 'aadharUrl', label: 'Aadhar Document' },
+      { key: 'msmeGstUrl', label: 'MSME/GST Document' },
+      { key: 'registrationNumber', label: 'Registration Number' },
+      { key: 'timings', label: 'Business Timings' },
+      { key: 'yearsInBusiness', label: 'Years in Business' },
+      { key: 'serviceCategory', label: 'Service Category' },
+    ];
+
+    const missingFields: string[] = [];
+    let completedCount = 0;
+
+    fields.forEach(field => {
+      const value = business?.[field.key as keyof any];
+      if (value !== undefined && value !== null && value !== '' && (typeof value !== 'object' || Object.keys(value).length > 0)) {
+        completedCount++;
+      } else {
+        missingFields.push(field.label);
+      }
+    });
+
+    if (business?.images && business.images.length > 0) {
+      completedCount++;
+    } else {
+      missingFields.push('Business Images');
+    }
+    
+    if (business?.paymentModes && business.paymentModes.length > 0) {
+      completedCount++;
+    } else {
+      missingFields.push('Payment Modes');
+    }
+
+    const totalFields = fields.length + 2;
+    const percentage = Math.round((completedCount / totalFields) * 100);
+
+    return { percentage, missingFields };
   };
-  const completionPercent = calculateCompletion();
+  const { percentage: completionPercent, missingFields } = getProfileCompletion();
 
   const mockLeads = [
     { name: 'Amit Sharma', service: 'Leak Repair', status: 'New Lead', color: 'bg-blue-600', time: '14 min ago' },
@@ -385,25 +429,25 @@ function DashboardContent() {
       `}>
         <div className="p-8 hidden lg:block">
           <Link href="/" className="group flex items-center gap-3">
-            <div className="bg-indigo-600 w-10 h-10 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-600/20 group-hover:scale-105 transition-transform">
+            {/* <div className="bg-indigo-600 w-10 h-10 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-600/20 group-hover:scale-105 transition-transform">
               <span className="text-white font-black text-xl">F</span>
-            </div>
-            <Image src="/logo1.png" alt="FinderB Logo" width={110} height={32} className="h-8 w-auto" />
+            </div> */}
+            <Image src="/businesslogo.png" alt="FinderB Logo" width={130} height={40} className="h-9 w-auto" />
           </Link>
-          <div className="mt-6 flex items-center gap-2 bg-indigo-50 px-3 py-1.5 rounded-lg text-indigo-700 font-bold text-[10px] uppercase tracking-wider border border-indigo-100">
+          {/* <div className="mt-6 flex items-center gap-2 bg-indigo-50 px-3 py-1.5 rounded-lg text-indigo-700 font-bold text-[10px] uppercase tracking-wider border border-indigo-100">
             <HiOutlineShieldCheck size={14} /> {business?.isVerified ? 'Verified Partner' : 'Standard Partner'}
-          </div>
+          </div> */}
         </div>
 
         {/* Mobile Sidebar Brand Info */}
-        <div className="p-6 lg:hidden border-b border-gray-100 flex items-center justify-between">
+        {/* <div className="p-6 lg:hidden border-b border-gray-100 flex items-center justify-between">
           <div className="flex items-center gap-2 bg-indigo-50 px-3 py-1.5 rounded-lg text-indigo-700 font-bold text-[10px] uppercase tracking-wider border border-indigo-100">
             <HiOutlineShieldCheck size={14} /> {business?.isVerified ? 'Verified Partner' : 'Standard Partner'}
           </div>
           <button onClick={() => setIsSidebarOpen(false)} className="text-gray-400 hover:text-gray-900">
             <HiOutlineXMark size={24} />
           </button>
-        </div>
+        </div> */}
 
         <nav className="flex-1 px-4 space-y-1 mt-4 overflow-y-auto custom-scrollbar">
           {menuItems.map((item) => (
@@ -431,30 +475,6 @@ function DashboardContent() {
           ))}
         </nav>
 
-        {/* Profile Completion Meter */}
-        <div className="px-6 mb-4 mt-4 hidden lg:block">
-          <div className="bg-slate-50 border border-slate-100 rounded-2xl p-5 space-y-3">
-            <div className="flex justify-between items-center">
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Profile Status</span>
-              <span className="text-[10px] font-black text-indigo-600">{completionPercent}%</span>
-            </div>
-            <div className="h-1.5 bg-slate-200 rounded-full overflow-hidden">
-              <div 
-                className="h-full bg-indigo-600 rounded-full transition-all duration-1000"
-                style={{ width: `${completionPercent}%` }}
-              ></div>
-            </div>
-            {completionPercent < 100 && (
-              <Link 
-                href={isKycPending ? `/business/kyc/${businessId}` : isPaymentPending ? `/business/payment/${businessId}` : '#'}
-                className="flex items-center justify-between group/btn pt-1"
-              >
-                <span className="text-[9px] font-bold text-slate-600 uppercase tracking-widest group-hover/btn:text-indigo-600 transition-colors">Finish Setup</span>
-                <HiOutlineChevronRight size={12} className="text-slate-400 group-hover/btn:text-indigo-600 group-hover/btn:translate-x-0.5 transition-all" />
-              </Link>
-            )}
-          </div>
-        </div>
 
         <div className="p-6 border-t border-gray-100 space-y-4">
           <div className="bg-slate-900 p-5 rounded-2xl text-white relative overflow-hidden group">
@@ -509,17 +529,198 @@ function DashboardContent() {
           </div>
         </header>
 
-        {(activeTab === 'overview' || activeTab === 'leads') && (
+        {(activeTab === 'overview' || activeTab === 'leads' || activeTab === 'listings') && (
           <div className="space-y-8 md:space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            {/* My Listing Preview Section */}
+            {activeTab === 'listings' && (
+              <div className="bg-white rounded-[32px] border border-gray-100 shadow-sm p-8 md:p-12 space-y-10">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                  <div className="space-y-2">
+                    <h2 className="text-2xl font-black text-slate-900 tracking-tight">Profile Preview</h2>
+                    <p className="text-slate-500 text-sm font-medium leading-relaxed">This is how your business profile appears to potential customers on FinderB.</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Link 
+                      href={`/business/${businessId}`}
+                      target="_blank"
+                      className="inline-flex items-center gap-2 bg-indigo-600 text-white px-8 py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-600/20 active:scale-95"
+                    >
+                      <HiOutlineEye size={18} /> View Public Profile
+                    </Link>
+                  </div>
+                </div>
+
+                {/* Simulated Profile Preview Card */}
+                <div className="border border-slate-100 rounded-[40px] overflow-hidden bg-slate-50/30">
+                  <div className="relative h-64 md:h-80 bg-slate-200">
+                    {images && images.length > 0 ? (
+                      <Image 
+                        src={images[0]} 
+                        alt="Profile Cover" 
+                        fill 
+                        className="object-cover"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center text-slate-400">
+                        <HiOutlinePlus size={48} className="opacity-20" />
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-transparent"></div>
+                    <div className="absolute bottom-8 left-8 right-8 flex flex-col md:flex-row md:items-end justify-between gap-6">
+                      <div className="flex items-center gap-6">
+                        <div className="w-24 h-24 md:w-32 md:h-32 bg-white rounded-3xl border-4 border-white shadow-2xl overflow-hidden relative">
+                          {profilePictureUrl ? (
+                            <Image 
+                              src={profilePictureUrl} 
+                              alt="Logo" 
+                              fill 
+                              className="object-cover"
+                            />
+                          ) : (
+                            <div className="absolute inset-0 flex items-center justify-center bg-slate-50 text-slate-300">
+                              <HiOutlineUsers size={40} />
+                            </div>
+                          )}
+                        </div>
+                        <div className="space-y-1">
+                          <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight">{businessName}</h1>
+                          <div className="flex items-center gap-3">
+                            <span className="text-xs font-bold text-indigo-300 uppercase tracking-widest bg-white/10 px-3 py-1 rounded-lg backdrop-blur-md border border-white/10">{business?.category || 'General Business'}</span>
+                            <div className="flex items-center gap-1.5 text-amber-400">
+                              <HiOutlineStar size={16} className="fill-amber-400" />
+                              <span className="text-xs font-black text-white">{profileData.rating || '0.0'}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-8 md:p-12 grid grid-cols-1 lg:grid-cols-3 gap-12">
+                    <div className="lg:col-span-2 space-y-10">
+                      <div className="space-y-4">
+                        <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                          <div className="w-1 h-3 bg-indigo-600 rounded-full"></div>
+                          About the Business
+                        </h4>
+                        <p className="text-slate-600 text-sm leading-relaxed font-medium">
+                          {profileData.about || "No description provided yet. Update your profile to tell customers about your expertise and services."}
+                        </p>
+                      </div>
+
+                      <div className="space-y-6">
+                        <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                          <div className="w-1 h-3 bg-indigo-600 rounded-full"></div>
+                          Business Media
+                        </h4>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                          {images && images.length > 0 ? images.slice(0, 3).map((img, i) => (
+                            <div key={i} className="aspect-[4/3] rounded-2xl overflow-hidden bg-slate-100 border border-slate-100 shadow-sm relative group">
+                              <Image src={img} alt={`Business ${i}`} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
+                            </div>
+                          )) : (
+                            <div className="aspect-[4/3] rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-3 text-slate-400 bg-white">
+                              <HiOutlinePlus size={24} />
+                              <span className="text-[10px] font-bold uppercase tracking-widest">Add Photos</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-8">
+                      <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm space-y-6">
+                        <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">Contact Info</h4>
+                        <div className="space-y-4">
+                          <div className="flex items-start gap-4 p-3 hover:bg-slate-50 rounded-2xl transition-colors">
+                            <div className="w-8 h-8 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center flex-shrink-0">
+                              <HiOutlinePlus size={16} />
+                            </div>
+                            <div>
+                              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Public Phone</p>
+                              <p className="text-xs font-bold text-slate-900">{profileData.publicPhone || 'Not Set'}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-start gap-4 p-3 hover:bg-slate-50 rounded-2xl transition-colors">
+                            <div className="w-8 h-8 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center flex-shrink-0">
+                              <HiOutlineBell size={16} />
+                            </div>
+                            <div>
+                              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Email Address</p>
+                              <p className="text-xs font-bold text-slate-900 break-all">{profileData.email || 'Not Set'}</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="bg-slate-900 rounded-3xl p-6 text-white space-y-6">
+                        <div className="flex items-center justify-between">
+                          <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Verification Status</h4>
+                          {profileData.isFinderBVerified && <HiOutlineShieldCheck className="text-indigo-400" size={18} />}
+                        </div>
+                        <div className="space-y-2">
+                          <p className="text-xs font-bold">{profileData.isFinderBVerified ? 'FinderB Verified Partner' : 'Standard Business Listing'}</p>
+                          <p className="text-[10px] text-slate-400 font-medium">Verified businesses get 2x more visibility and trusted badges.</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            {/* Profile Completion Meter */}
+            {activeTab === 'overview' && completionPercent < 100 && (
+              <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 md:p-8 space-y-6">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-900">Complete Your Profile</h3>
+                    <p className="text-slate-500 text-sm">Boost your visibility by providing all necessary details.</p>
+                  </div>
+                  <div className="flex items-center gap-3 bg-slate-50 px-4 py-2 rounded-2xl border border-slate-100">
+                    <span className="text-2xl font-black text-indigo-600">{completionPercent}%</span>
+                    <div className="w-32 h-2.5 bg-slate-200 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-indigo-600 rounded-full transition-all duration-1000"
+                        style={{ width: `${completionPercent}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+
+                {missingFields.length > 0 && (
+                  <div className="space-y-3">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                      <HiOutlineExclamationCircle className="text-rose-500" size={14} />
+                      Missing Information
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {missingFields.map((field) => (
+                        <span key={field} className="px-3 py-1 bg-rose-50 text-rose-600 text-[10px] font-bold rounded-full border border-rose-100">
+                          + {field}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                <button 
+                  onClick={() => setActiveTab('settings')}
+                  className="inline-flex items-center gap-2 bg-indigo-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-600/20 active:scale-95"
+                >
+                  Update Profile <HiOutlineChevronRight size={16} />
+                </button>
+              </div>
+            )}
+
             {/* Merchant Info Card */}
             {activeTab === 'overview' && (
               <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden transition-all hover:shadow-md">
                 <button 
                   onClick={() => toggleAccordion('merchant')}
-                  className="w-full bg-slate-900 px-6 md:px-8 py-4 flex items-center justify-between text-left"
+                  className="w-full bg-white px-6 md:px-8 py-4 flex items-center justify-between text-left border-b border-gray-100"
                 >
-                  <h3 className="text-white text-sm tracking-widest flex items-center">
-                    <HiOutlineUsers size={18} className="text-white" />
+                  <h3 className="text-slate-900 text-sm tracking-widest flex items-center gap-1">
+                    <HiOutlineUsers size={18} className="text-indigo-600" />
                     Merchant Information
                   </h3>
                   <div className="flex items-center gap-3">
@@ -527,12 +728,12 @@ function DashboardContent() {
                       href={`/business/${businessId}`}
                       target="_blank"
                       onClick={(e) => e.stopPropagation()}
-                      className="text-[10px] font-bold text-indigo-300 uppercase tracking-widest hover:text-white transition-colors flex items-center gap-1.5 bg-white/10 px-3 py-1.5 rounded-lg"
+                      className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest hover:text-indigo-700 transition-colors flex items-center gap-1.5 bg-indigo-50 px-3 py-1.5 rounded-lg"
                     >
                       <HiOutlineEye size={14} />
                       <span className="hidden sm:inline">View Profile</span>
                     </Link>
-                    {openAccordions.includes('merchant') ? <HiChevronUp size={20} className="text-white" /> : <HiChevronDown size={20} className="text-white" />}
+                    {openAccordions.includes('merchant') ? <HiChevronUp size={20} className="text-slate-400" /> : <HiChevronDown size={20} className="text-slate-400" />}
                   </div>
                 </button>
                 
