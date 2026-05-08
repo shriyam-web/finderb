@@ -491,6 +491,30 @@ function DashboardContent() {
           </button>
         </div> */}
 
+        <div className="px-6 mb-4">
+          <div className="bg-slate-900 p-5 rounded-2xl text-white relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/20 rounded-full blur-2xl group-hover:scale-125 transition-transform duration-700"></div>
+            <div className="relative z-10 space-y-3">
+              <div className="w-7 h-7 bg-white/10 rounded-lg flex items-center justify-center">
+                <HiOutlineRocketLaunch size={14} className="text-indigo-300" />
+              </div>
+              <div>
+                <p className="font-bold text-[10px] uppercase tracking-wider text-slate-400">Plan Status</p>
+                <p className="text-xs text-white font-semibold">{isPaymentPending ? 'Free Listing' : 'Premium Partner'}</p>
+              </div>
+              {isPaymentPending ? (
+                <Link href={`/business/payment/${businessId}`} className="block w-full text-center bg-indigo-600 text-white py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-600/20">
+                  Activate Leads
+                </Link>
+              ) : (
+                <button className="w-full bg-white/10 text-white py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider hover:bg-white/20 transition-all">
+                  Details
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
         <nav className="flex-1 px-4 space-y-1 mt-4 overflow-y-auto custom-scrollbar">
           {menuItems.map((item) => (
             <button
@@ -519,28 +543,6 @@ function DashboardContent() {
 
 
         <div className="p-6 border-t border-gray-100 space-y-4">
-          <div className="bg-slate-900 p-5 rounded-2xl text-white relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/20 rounded-full blur-2xl group-hover:scale-125 transition-transform duration-700"></div>
-            <div className="relative z-10 space-y-3">
-              <div className="w-7 h-7 bg-white/10 rounded-lg flex items-center justify-center">
-                <HiOutlineRocketLaunch size={14} className="text-indigo-300" />
-              </div>
-              <div>
-                <p className="font-bold text-[10px] uppercase tracking-wider text-slate-400">Plan Status</p>
-                <p className="text-xs text-white font-semibold">{isPaymentPending ? 'Free Listing' : 'Premium Partner'}</p>
-              </div>
-              {isPaymentPending ? (
-                <Link href={`/business/payment/${businessId}`} className="block w-full text-center bg-indigo-600 text-white py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-600/20">
-                  Activate Leads
-                </Link>
-              ) : (
-                <button className="w-full bg-white/10 text-white py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider hover:bg-white/20 transition-all">
-                  Details
-                </button>
-              )}
-            </div>
-          </div>
-          
           <button 
             onClick={handleLogout}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm text-gray-500 hover:text-rose-600 hover:bg-rose-50 transition-all group"
@@ -622,38 +624,49 @@ function DashboardContent() {
         {(activeTab === 'overview' || activeTab === 'leads' || activeTab === 'listings') && (
           <div className="space-y-8 md:space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
             {/* Alerts for Merchant */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {isPaymentNotCompleted && (
-                <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-4 shadow-sm">
-                  <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <HiOutlineCreditCard className="text-amber-600" size={20} />
+                <div className="group bg-white border border-amber-100 rounded-[24px] p-6 flex items-start gap-5 shadow-sm hover:shadow-xl hover:shadow-amber-500/10 transition-all duration-500 relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-amber-50 rounded-full blur-3xl opacity-50 group-hover:scale-150 transition-transform duration-700"></div>
+                  <div className="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center flex-shrink-0 group-hover:bg-amber-100 group-hover:scale-110 transition-all duration-300 relative z-10">
+                    <HiOutlineCreditCard className="text-amber-600 animate-pulse" size={24} />
                   </div>
-                  <div className="space-y-1">
-                    <p className="text-sm font-bold text-amber-900">Payment Pending</p>
-                    <p className="text-xs text-amber-700 leading-relaxed font-medium">
-                      Your payment is pending. With this status, you might not be getting business. Kindly complete your payment to activate all features.
+                  <div className="space-y-2 relative z-10">
+                    <div className="flex items-center gap-2">
+                      <p className="text-base font-black text-slate-900 tracking-tight">Payment Pending</p>
+                      <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-[9px] font-black rounded-full uppercase tracking-widest">Urgent</span>
+                    </div>
+                    <p className="text-sm text-slate-600 leading-relaxed font-medium">
+                      Your payment is pending. With this status, <span className="text-amber-700 font-bold">you might not be getting business.</span>
                     </p>
-                    <Link href={`/business/payment/${businessId}`} className="inline-flex items-center gap-1.5 text-amber-600 text-[11px] font-bold uppercase tracking-wider mt-2 hover:gap-2 transition-all">
+                    <Link 
+                      href={`/business/payment/${businessId}`} 
+                      className="inline-flex items-center gap-2 bg-amber-600 text-white px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-amber-700 transition-all shadow-lg shadow-amber-600/20 active:scale-95 mt-2"
+                    >
                       Complete Payment <HiOutlineChevronRight size={14} />
                     </Link>
                   </div>
                 </div>
               )}
               {isKycNotApproved && (
-                <div className="bg-indigo-50 border border-indigo-200 rounded-2xl p-4 flex items-start gap-4 shadow-sm">
-                  <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <HiOutlineClipboardDocumentCheck className="text-indigo-600" size={20} />
+                <div className="group bg-white border border-indigo-100 rounded-[24px] p-6 flex items-start gap-5 shadow-sm hover:shadow-xl hover:shadow-indigo-500/10 transition-all duration-500 relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-50 rounded-full blur-3xl opacity-50 group-hover:scale-150 transition-transform duration-700"></div>
+                  <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center flex-shrink-0 group-hover:bg-indigo-100 group-hover:scale-110 transition-all duration-300 relative z-10">
+                    <HiOutlineClipboardDocumentCheck className="text-indigo-600 animate-pulse" size={24} />
                   </div>
-                  <div className="space-y-1">
-                    <p className="text-sm font-bold text-indigo-900">KYC Verification Pending</p>
-                    <p className="text-xs text-indigo-700 leading-relaxed font-medium">
-                      Your KYC isn't completed yet. Kindly submit your documents to get full access and higher visibility on FinderB.
+                  <div className="space-y-2 relative z-10">
+                    <div className="flex items-center gap-2">
+                      <p className="text-base font-black text-slate-900 tracking-tight">KYC Verification</p>
+                      <span className="px-2 py-0.5 bg-indigo-100 text-indigo-700 text-[9px] font-black rounded-full uppercase tracking-widest">Incomplete</span>
+                    </div>
+                    <p className="text-sm text-slate-600 leading-relaxed font-medium">
+                      Your KYC isn't completed yet. Kindly <span className="text-indigo-600 font-bold">submit your documents to get full access and higher visibility</span> for your business.
                     </p>
                     <button 
                       onClick={() => setActiveTab('settings')}
-                      className="inline-flex items-center gap-1.5 text-indigo-600 text-[11px] font-bold uppercase tracking-wider mt-2 hover:gap-2 transition-all"
+                      className="inline-flex items-center gap-2 bg-indigo-600 text-white px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-600/20 active:scale-95 mt-2"
                     >
-                      Submit Documents <HiOutlineChevronRight size={14} />
+                      Verify Now <HiOutlineChevronRight size={14} />
                     </button>
                   </div>
                 </div>
