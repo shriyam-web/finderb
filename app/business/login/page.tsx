@@ -61,7 +61,7 @@ export default function BusinessLoginPage() {
           <div className="mb-10">
             <Link href="/" className="inline-block mb-6">
               <Image
-                src="/logo1.png"
+                src="/businesslogo.png"
                 alt="FinderB"
                 width={120}
                 height={40}

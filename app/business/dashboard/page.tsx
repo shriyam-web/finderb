@@ -37,6 +37,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { getBusiness, updateBusinessImages, getBusinessSession, logoutBusiness, updateBusinessProfile } from '@/app/actions/business';
 import { CldUploadWidget } from 'next-cloudinary';
+import { createClient } from '@/utils/supabase/client';
 
 function DashboardContent() {
   const router = useRouter();
@@ -44,6 +45,9 @@ function DashboardContent() {
   const id = searchParams.get('id');
   const [activeTab, setActiveTab] = useState('overview');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [business, setBusiness] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [images, setImages] = useState<string[]>([]);
@@ -170,6 +174,30 @@ function DashboardContent() {
     };
     fetchBusiness();
   }, [id, router]);
+
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from('broadcasts')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (data) {
+        const merchantNotifications = data.filter((n: any) => 
+          n.target_audience.includes('merchants') || 
+          n.target_audience.includes('all') ||
+          (business?.category && n.target_audience.includes(business.category))
+        );
+        setNotifications(merchantNotifications);
+        setUnreadCount(merchantNotifications.length);
+      }
+    };
+
+    if (business) {
+      fetchNotifications();
+    }
+  }, [business]);
 
   const businessId = id || business?.id;
 
@@ -404,7 +432,7 @@ function DashboardContent() {
       {/* Mobile Header */}
       <div className="lg:hidden bg-white p-4 flex items-center justify-between sticky top-0 z-[60] border-b border-gray-100">
         <Link href="/" className="group">
-          <Image src="/logo1.png" alt="FinderB Logo" width={100} height={30} className="h-8 w-auto" />
+          <Image src="/businesslogo.png" alt="FinderB Logo" width={100} height={30} className="h-8 w-auto" />
         </Link>
         <button 
           onClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -511,21 +539,69 @@ function DashboardContent() {
 
       {/* Main Content */}
       <main className="flex-1 p-6 md:p-12 relative overflow-x-hidden">
-        <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10 md:mb-14 relative z-10">
-          <div className="space-y-1.5">
-        
-            <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight capitalize">
+        <header className="flex items-center justify-between gap-4 mb-8 md:mb-14 relative z-10">
+          <div className="space-y-1">
+            <h1 className="text-2xl md:text-4xl font-black text-slate-900 tracking-tight capitalize">
               {activeTab === 'overview' ? 'Performance' : activeTab === 'leads' ? 'Lead Center' : activeTab}
             </h1>
-            <p className="text-slate-500 text-sm md:text-base font-medium">Monitoring <span className="text-indigo-600 font-bold">{businessName}</span></p>
+            <p className="text-slate-500 text-xs md:text-base font-medium hidden sm:block">Monitoring <span className="text-indigo-600 font-bold">{businessName}</span></p>
           </div>
           
-          <div className="flex items-center gap-3">
-           
-            <button className="w-11 h-11 md:w-12 md:h-12 bg-white rounded-xl flex items-center justify-center text-slate-400 hover:text-indigo-600 shadow-sm transition-all relative group border border-gray-100">
+          <div className="flex items-center gap-3 relative">
+            <button 
+              onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
+              className="w-10 h-10 md:w-12 md:h-12 bg-white rounded-xl flex items-center justify-center text-slate-400 hover:text-indigo-600 shadow-sm transition-all relative group border border-gray-100"
+            >
               <HiOutlineBell size={22} className="group-hover:rotate-12 transition-transform" />
-              <span className="absolute top-3 right-3 w-2 h-2 bg-rose-500 rounded-full ring-2 ring-white"></span>
+              {unreadCount > 0 && (
+                <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-rose-500 rounded-full ring-2 ring-white animate-pulse"></span>
+              )}
             </button>
+
+            {/* Notification Dropdown */}
+            {isNotificationsOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setIsNotificationsOpen(false)} />
+                <div className="absolute top-full right-0 mt-3 w-80 sm:w-96 bg-white border border-gray-100 rounded-3xl shadow-2xl py-6 z-50 animate-in fade-in zoom-in-95 duration-200">
+                  <div className="px-6 mb-4 flex items-center justify-between">
+                    <h3 className="text-lg font-black text-slate-900 tracking-tight">Notifications</h3>
+                    <span className="px-2.5 py-1 bg-indigo-50 text-indigo-600 text-[10px] font-black rounded-lg uppercase tracking-wider">{notifications.length} New</span>
+                  </div>
+                  <div className="max-h-[400px] overflow-y-auto px-2">
+                    {notifications.length > 0 ? (
+                      notifications.map((n, i) => (
+                        <div key={i} className="px-4 py-4 hover:bg-slate-50 rounded-2xl transition-all border-b border-slate-50 last:border-0 group">
+                          <div className="flex gap-4">
+                            <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+                              <HiOutlineBell className="text-indigo-600" size={20} />
+                            </div>
+                            <div className="space-y-1">
+                              <p className="text-sm font-bold text-slate-900 leading-tight">{n.title}</p>
+                              <p className="text-xs text-slate-500 leading-relaxed">{n.message}</p>
+                              <p className="text-[10px] text-slate-400 font-medium pt-1">
+                                {new Date(n.created_at).toLocaleDateString(undefined, { 
+                                  month: 'short', 
+                                  day: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="py-12 text-center">
+                        <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                          <HiOutlineBell className="text-slate-200" size={32} />
+                        </div>
+                        <p className="text-slate-400 text-sm font-medium">All caught up!</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </header>
 
