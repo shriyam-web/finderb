@@ -321,6 +321,7 @@ function DashboardContent() {
     { id: 'overview', label: 'Performance', icon: HiOutlineSquares2X2, activeIcon: RiDashboardFill },
     { id: 'listings', label: 'My Listings', icon: HiOutlineQueueList, activeIcon: RiListCheck },
     { id: 'leads', label: 'Lead Center', icon: HiOutlineCursorArrowRays, activeIcon: HiOutlineCursorArrowRays },
+    { id: 'jobs', label: 'Jobs', icon: HiOutlineBriefcase, activeIcon: HiOutlineBriefcase },
     { id: 'messages', label: 'Messages', icon: HiOutlineChatBubbleLeftRight, activeIcon: RiMessage3Line },
     { id: 'settings', label: 'Settings', icon: HiOutlineCog8Tooth, activeIcon: RiSettings4Line },
   ];
