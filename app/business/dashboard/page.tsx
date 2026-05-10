@@ -30,12 +30,19 @@ import {
   HiOutlineClipboardDocumentCheck,
   HiOutlineClipboardDocument,
   HiChevronDown,
-  HiChevronUp
+  HiChevronUp,
+  HiOutlineGlobeAlt,
+  HiOutlineMapPin,
+  HiOutlinePhone,
+  HiOutlineEnvelope,
+  HiOutlineDevicePhoneMobile
 } from 'react-icons/hi2';
 import { RiDashboardFill, RiListCheck, RiMessage3Line, RiSettings4Line } from 'react-icons/ri';
+import { FaInstagram, FaFacebook, FaYoutube, FaWhatsapp } from 'react-icons/fa';
 import Link from 'next/link';
 import Image from 'next/image';
 import { getBusiness, updateBusinessImages, getBusinessSession, logoutBusiness, updateBusinessProfile } from '@/app/actions/business';
+import SettingsTab from './components/SettingsTab';
 import { CldUploadWidget } from 'next-cloudinary';
 import { createClient } from '@/utils/supabase/client';
 
@@ -44,6 +51,7 @@ function DashboardContent() {
   const searchParams = useSearchParams();
   const id = searchParams.get('id');
   const [activeTab, setActiveTab] = useState('overview');
+  const [settingsTab, setSettingsTab] = useState('media');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -466,7 +474,7 @@ function DashboardContent() {
 
       {/* Sidebar */}
       <aside className={`
-        fixed lg:sticky top-0 left-0 h-screen w-72 bg-white border-r border-gray-100 flex flex-col z-[58] transition-all duration-300 ease-in-out pt-20 lg:pt-0 pb-24 lg:pb-0
+        fixed lg:sticky top-0 left-0 h-screen w-72 bg-white border-r border-gray-100 flex flex-col z-[58] transition-all duration-300 ease-in-out pt-20 lg:pt-0 pb-32 lg:pb-0
         ${isSidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full lg:translate-x-0'}
       `}>
         <div className="p-8 hidden lg:block">
@@ -490,30 +498,6 @@ function DashboardContent() {
             <HiOutlineXMark size={24} />
           </button>
         </div> */}
-
-        <div className="px-6 mb-4">
-          <div className="bg-slate-900 p-5 rounded-2xl text-white relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/20 rounded-full blur-2xl group-hover:scale-125 transition-transform duration-700"></div>
-            <div className="relative z-10 space-y-3">
-              <div className="w-7 h-7 bg-white/10 rounded-lg flex items-center justify-center">
-                <HiOutlineRocketLaunch size={14} className="text-indigo-300" />
-              </div>
-              <div>
-                <p className="font-bold text-[10px] uppercase tracking-wider text-slate-400">Plan Status</p>
-                <p className="text-xs text-white font-semibold">{isPaymentPending ? 'Free Listing' : 'Premium Partner'}</p>
-              </div>
-              {isPaymentPending ? (
-                <Link href={`/business/payment/${businessId}`} className="block w-full text-center bg-indigo-600 text-white py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-600/20">
-                  Activate Leads
-                </Link>
-              ) : (
-                <button className="w-full bg-white/10 text-white py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider hover:bg-white/20 transition-all">
-                  Details
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
 
         <nav className="flex-1 px-4 space-y-1 mt-4 overflow-y-auto custom-scrollbar">
           {menuItems.map((item) => (
@@ -541,6 +525,30 @@ function DashboardContent() {
           ))}
         </nav>
 
+        <div className="px-6 mb-4">
+          <div className="bg-slate-900 p-5 rounded-2xl text-white relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/20 rounded-full blur-2xl group-hover:scale-125 transition-transform duration-700"></div>
+            <div className="relative z-10 space-y-3">
+              <div className="w-7 h-7 bg-white/10 rounded-lg flex items-center justify-center">
+                <HiOutlineRocketLaunch size={14} className="text-indigo-300" />
+              </div>
+              <div>
+                <p className="font-bold text-[10px] uppercase tracking-wider text-slate-400">Plan Status</p>
+                <p className="text-xs text-white font-semibold">{isPaymentPending ? 'Free Listing' : 'Premium Partner'}</p>
+              </div>
+              {isPaymentPending ? (
+                <Link href={`/business/payment/${businessId}`} className="block w-full text-center bg-indigo-600 text-white py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-600/20">
+                  Activate Leads
+                </Link>
+              ) : (
+                <button className="w-full bg-white/10 text-white py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider hover:bg-white/20 transition-all">
+                  Details
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
 
         <div className="p-6 border-t border-gray-100 space-y-4">
           <button 
@@ -555,7 +563,7 @@ function DashboardContent() {
 
       {/* Main Content */}
       <main className="flex-1 p-6 md:p-12 relative overflow-x-hidden">
-        <header className="flex items-center justify-between gap-4 mb-8 md:mb-14 relative z-10">
+        <header className="flex items-center justify-between gap-4 mb-8 md:mb-14 relative z-[30]">
           <div className="space-y-1">
             <h1 className="text-2xl md:text-4xl font-black text-slate-900 tracking-tight capitalize">
               {activeTab === 'overview' ? 'Performance' : activeTab === 'leads' ? 'Lead Center' : activeTab}
@@ -626,22 +634,22 @@ function DashboardContent() {
             {/* Alerts for Merchant */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {isPaymentNotCompleted && (
-                <div className="group bg-white border border-amber-100 rounded-[24px] p-6 flex items-start gap-5 shadow-sm hover:shadow-xl hover:shadow-amber-500/10 transition-all duration-500 relative overflow-hidden">
+                <div className="group bg-white border border-amber-100 rounded-[24px] p-4 md:p-6 flex items-start gap-3 md:gap-5 shadow-sm hover:shadow-xl hover:shadow-amber-500/10 transition-all duration-500 relative overflow-hidden">
                   <div className="absolute top-0 right-0 w-24 h-24 bg-amber-50 rounded-full blur-3xl opacity-50 group-hover:scale-150 transition-transform duration-700"></div>
-                  <div className="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center flex-shrink-0 group-hover:bg-amber-100 group-hover:scale-110 transition-all duration-300 relative z-10">
-                    <HiOutlineCreditCard className="text-amber-600 animate-pulse" size={24} />
+                  <div className="w-10 h-10 md:w-12 md:h-12 bg-amber-50 rounded-2xl flex items-center justify-center flex-shrink-0 group-hover:bg-amber-100 group-hover:scale-110 transition-all duration-300 relative z-10">
+                    <HiOutlineCreditCard className="text-amber-600 animate-pulse" size={20} />
                   </div>
-                  <div className="space-y-2 relative z-10">
+                  <div className="space-y-1.5 md:space-y-2 relative z-10">
                     <div className="flex items-center gap-2">
-                      <p className="text-base font-black text-slate-900 tracking-tight">Payment Pending</p>
+                      <p className="text-sm md:text-base font-black text-slate-900 tracking-tight">Payment Pending</p>
                       <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-[9px] font-black rounded-full uppercase tracking-widest">Urgent</span>
                     </div>
-                    <p className="text-sm text-slate-600 leading-relaxed font-medium">
+                    <p className="text-xs md:text-sm text-slate-600 leading-relaxed font-medium">
                       Your payment is pending. With this status, <span className="text-amber-700 font-bold">you might not be getting business.</span>
                     </p>
                     <Link 
                       href={`/business/payment/${businessId}`} 
-                      className="inline-flex items-center gap-2 bg-amber-600 text-white px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-amber-700 transition-all shadow-lg shadow-amber-600/20 active:scale-95 mt-2"
+                      className="inline-flex items-center gap-2 bg-amber-600 text-white px-4 py-2 md:px-5 md:py-2.5 rounded-xl font-bold text-[10px] md:text-xs uppercase tracking-widest hover:bg-amber-700 transition-all shadow-lg shadow-amber-600/20 active:scale-95 mt-1 md:mt-2"
                     >
                       Complete Payment <HiOutlineChevronRight size={14} />
                     </Link>
@@ -649,22 +657,22 @@ function DashboardContent() {
                 </div>
               )}
               {isKycNotApproved && (
-                <div className="group bg-white border border-indigo-100 rounded-[24px] p-6 flex items-start gap-5 shadow-sm hover:shadow-xl hover:shadow-indigo-500/10 transition-all duration-500 relative overflow-hidden">
+                <div className="group bg-white border border-indigo-100 rounded-[24px] p-4 md:p-6 flex items-start gap-3 md:gap-5 shadow-sm hover:shadow-xl hover:shadow-indigo-500/10 transition-all duration-500 relative overflow-hidden">
                   <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-50 rounded-full blur-3xl opacity-50 group-hover:scale-150 transition-transform duration-700"></div>
-                  <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center flex-shrink-0 group-hover:bg-indigo-100 group-hover:scale-110 transition-all duration-300 relative z-10">
-                    <HiOutlineClipboardDocumentCheck className="text-indigo-600 animate-pulse" size={24} />
+                  <div className="w-10 h-10 md:w-12 md:h-12 bg-indigo-50 rounded-2xl flex items-center justify-center flex-shrink-0 group-hover:bg-indigo-100 group-hover:scale-110 transition-all duration-300 relative z-10">
+                    <HiOutlineClipboardDocumentCheck className="text-indigo-600 animate-pulse" size={20} />
                   </div>
-                  <div className="space-y-2 relative z-10">
+                  <div className="space-y-1.5 md:space-y-2 relative z-10">
                     <div className="flex items-center gap-2">
-                      <p className="text-base font-black text-slate-900 tracking-tight">KYC Verification</p>
+                      <p className="text-sm md:text-base font-black text-slate-900 tracking-tight">KYC Verification</p>
                       <span className="px-2 py-0.5 bg-indigo-100 text-indigo-700 text-[9px] font-black rounded-full uppercase tracking-widest">Incomplete</span>
                     </div>
-                    <p className="text-sm text-slate-600 leading-relaxed font-medium">
+                    <p className="text-xs md:text-sm text-slate-600 leading-relaxed font-medium">
                       Your KYC isn't completed yet. Kindly <span className="text-indigo-600 font-bold">submit your documents to get full access and higher visibility</span> for your business.
                     </p>
                     <button 
                       onClick={() => setActiveTab('settings')}
-                      className="inline-flex items-center gap-2 bg-indigo-600 text-white px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-600/20 active:scale-95 mt-2"
+                      className="inline-flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 md:px-5 md:py-2.5 rounded-xl font-bold text-[10px] md:text-xs uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-600/20 active:scale-95 mt-1 md:mt-2"
                     >
                       Verify Now <HiOutlineChevronRight size={14} />
                     </button>
@@ -675,25 +683,32 @@ function DashboardContent() {
 
             {/* My Listing Preview Section */}
             {activeTab === 'listings' && (
-              <div className="bg-white rounded-[32px] border border-gray-100 shadow-sm p-8 md:p-12 space-y-10">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+              <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white p-6 md:p-8 rounded-[32px] border border-gray-100 shadow-sm">
                   <div className="space-y-2">
                     <h2 className="text-2xl font-black text-slate-900 tracking-tight">Profile Preview</h2>
                     <p className="text-slate-500 text-sm font-medium leading-relaxed">This is how your business profile appears to potential customers on FinderB.</p>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex flex-wrap items-center gap-3">
                     <Link 
                       href={`/business/${businessId}`}
                       target="_blank"
-                      className="inline-flex items-center gap-2 bg-indigo-600 text-white px-8 py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-600/20 active:scale-95"
+                      className="inline-flex items-center gap-2 bg-indigo-600 text-white px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-600/20 active:scale-95"
                     >
                       <HiOutlineEye size={18} /> View Public Profile
                     </Link>
+                    <button 
+                      onClick={() => setActiveTab('settings')}
+                      className="inline-flex items-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-800 transition-all shadow-xl shadow-slate-900/10 active:scale-95"
+                    >
+                      <HiOutlineCog8Tooth size={18} /> Edit Profile
+                    </button>
                   </div>
                 </div>
 
                 {/* Simulated Profile Preview Card */}
-                <div className="border border-slate-100 rounded-[40px] overflow-hidden bg-slate-50/30">
+                <div className="border border-slate-100 rounded-[40px] overflow-hidden bg-white shadow-premium relative">
+                  {/* Hero Cover */}
                   <div className="relative h-64 md:h-80 bg-slate-200">
                     {images && images.length > 0 ? (
                       <Image 
@@ -703,14 +718,15 @@ function DashboardContent() {
                         className="object-cover"
                       />
                     ) : (
-                      <div className="absolute inset-0 flex items-center justify-center text-slate-400">
+                      <div className="absolute inset-0 flex items-center justify-center text-slate-400 bg-slate-100">
                         <HiOutlinePlus size={48} className="opacity-20" />
                       </div>
                     )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-transparent"></div>
-                    <div className="absolute bottom-8 left-8 right-8 flex flex-col md:flex-row md:items-end justify-between gap-6">
-                      <div className="flex items-center gap-6">
-                        <div className="w-24 h-24 md:w-32 md:h-32 bg-white rounded-3xl border-4 border-white shadow-2xl overflow-hidden relative">
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/20 to-transparent"></div>
+                    
+                    <div className="absolute bottom-6 left-6 right-6 md:bottom-10 md:left-10 md:right-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
+                      <div className="flex flex-col md:flex-row items-center md:items-end gap-6 text-center md:text-left">
+                        <div className="w-20 h-20 sm:w-24 sm:h-24 md:w-32 md:h-32 bg-white rounded-3xl border-4 border-white shadow-2xl overflow-hidden relative shrink-0">
                           {profilePictureUrl ? (
                             <Image 
                               src={profilePictureUrl} 
@@ -724,87 +740,308 @@ function DashboardContent() {
                             </div>
                           )}
                         </div>
-                        <div className="space-y-1">
-                          <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight">{businessName}</h1>
-                          <div className="flex items-center gap-3">
-                            <span className="text-xs font-bold text-indigo-300 uppercase tracking-widest bg-white/10 px-3 py-1 rounded-lg backdrop-blur-md border border-white/10">{business?.category || 'General Business'}</span>
-                            <div className="flex items-center gap-1.5 text-amber-400">
-                              <HiOutlineStar size={16} className="fill-amber-400" />
-                              <span className="text-xs font-black text-white">{profileData.rating || '0.0'}</span>
+                        <div className="space-y-1.5 pb-2">
+                          <h1 className="text-xl sm:text-2xl md:text-4xl font-black text-white tracking-tight leading-tight">{businessName}</h1>
+                          <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 sm:gap-3">
+                            <span className="text-[9px] sm:text-[10px] font-black text-indigo-300 uppercase tracking-[0.2em] bg-white/10 px-3 py-1.5 rounded-lg backdrop-blur-md border border-white/10">
+                              {profileData.category || 'General Business'}
+                            </span>
+                            <div className="flex items-center gap-1.5 bg-black/20 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/10">
+                              <HiOutlineStar size={14} className="text-amber-400 fill-amber-400" />
+                              <span className="text-xs font-black text-white">{profileData.rating?.toFixed(1) || '0.0'}</span>
                             </div>
+                            {profileData.isFinderBVerified && (
+                              <div className="flex items-center gap-1.5 bg-indigo-500/20 backdrop-blur-md px-3 py-1.5 rounded-lg border border-indigo-400/30">
+                                <HiOutlineShieldCheck size={14} className="text-indigo-300" />
+                                <span className="text-[10px] font-black text-indigo-100 uppercase tracking-widest">Verified</span>
+                              </div>
+                            )}
+                            {profileData.discountRange && profileData.discountRange !== 'No Discount' && (
+                              <div className="flex items-center gap-1.5 bg-rose-500/20 backdrop-blur-md px-3 py-1.5 rounded-lg border border-rose-400/30">
+                                <HiOutlineStar size={14} className="text-rose-300" />
+                                <span className="text-[10px] font-black text-rose-100 uppercase tracking-widest">{profileData.discountRange}</span>
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
                     </div>
                   </div>
 
-                  <div className="p-8 md:p-12 grid grid-cols-1 lg:grid-cols-3 gap-12">
-                    <div className="lg:col-span-2 space-y-10">
+                  {/* Content Grid */}
+                  <div className="p-4 sm:p-6 md:p-10 grid grid-cols-1 md:grid-cols-12 gap-8 lg:gap-12">
+                    {/* Left Column: About & Media */}
+                    <div className="md:col-span-7 space-y-10 md:space-y-12">
                       <div className="space-y-4">
-                        <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                          <div className="w-1 h-3 bg-indigo-600 rounded-full"></div>
+                        <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] flex items-center gap-2">
+                          <div className="w-1.5 h-4 bg-indigo-600 rounded-full"></div>
                           About the Business
                         </h4>
-                        <p className="text-slate-600 text-sm leading-relaxed font-medium">
+                        <p className="text-slate-600 text-sm md:text-base leading-relaxed font-medium">
                           {profileData.about || "No description provided yet. Update your profile to tell customers about your expertise and services."}
                         </p>
                       </div>
 
                       <div className="space-y-6">
-                        <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                          <div className="w-1 h-3 bg-indigo-600 rounded-full"></div>
-                          Business Media
+                        <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] flex items-center gap-2">
+                          <div className="w-1.5 h-4 bg-indigo-600 rounded-full"></div>
+                          Business Highlights
                         </h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          {profileData.serviceCategory && (
+                            <div className="space-y-2">
+                              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Service Category</p>
+                              <p className="text-sm font-bold text-slate-900">{profileData.serviceCategory}</p>
+                            </div>
+                          )}
+                          {profileData.paymentModes && profileData.paymentModes.length > 0 && (
+                            <div className="space-y-2">
+                              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Accepted Payments</p>
+                              <div className="flex flex-wrap gap-2">
+                                {profileData.paymentModes.map((mode: string, idx: number) => (
+                                  <span key={idx} className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-md border border-indigo-100">{mode}</span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          {profileData.keywords && profileData.keywords.length > 0 && (
+                            <div className="space-y-2 md:col-span-2">
+                              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Keywords / Tags</p>
+                              <div className="flex flex-wrap gap-2">
+                                {profileData.keywords.map((tag: string, idx: number) => (
+                                  <span key={idx} className="text-[10px] font-bold text-slate-500 bg-slate-50 px-2 py-1 rounded-md border border-slate-100">#{tag}</span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {profileData.yearsInBusiness > 0 && (
+                        <div className="grid grid-cols-2 gap-4">
+                           <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex items-center gap-3">
+                             <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-indigo-600 shadow-sm">
+                               <HiOutlineBriefcase size={20} />
+                             </div>
+                             <div>
+                               <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Experience</p>
+                               <p className="text-sm font-bold text-slate-900">{profileData.yearsInBusiness} Years+</p>
+                             </div>
+                           </div>
+                           <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex items-center gap-3">
+                             <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-indigo-600 shadow-sm">
+                               <HiOutlineClock size={20} />
+                             </div>
+                             <div>
+                               <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Response</p>
+                               <p className="text-sm font-bold text-slate-900">Quick Reply</p>
+                             </div>
+                           </div>
+                        </div>
+                      )}
+
+                      <div className="space-y-6">
+                        <div className="flex items-center justify-between">
+                          <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] flex items-center gap-2">
+                            <div className="w-1.5 h-4 bg-indigo-600 rounded-full"></div>
+                            Business Gallery
+                          </h4>
+                          <span className="text-[10px] font-bold text-slate-400">{images?.length || 0}/5 Photos</span>
+                        </div>
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                          {images && images.length > 0 ? images.slice(0, 3).map((img, i) => (
-                            <div key={i} className="aspect-[4/3] rounded-2xl overflow-hidden bg-slate-100 border border-slate-100 shadow-sm relative group">
-                              <Image src={img} alt={`Business ${i}`} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
+                          {images && images.length > 0 ? images.map((img, i) => (
+                            <div key={i} className="aspect-square rounded-2xl overflow-hidden bg-slate-100 border border-slate-100 shadow-sm relative group">
+                              <Image src={img} alt={`Business ${i}`} fill className="object-cover group-hover:scale-110 transition-transform duration-700" />
                             </div>
                           )) : (
-                            <div className="aspect-[4/3] rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-3 text-slate-400 bg-white">
+                            <div className="aspect-square rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-3 text-slate-400 bg-white hover:bg-slate-50 transition-colors cursor-pointer" onClick={() => setActiveTab('settings')}>
                               <HiOutlinePlus size={24} />
-                              <span className="text-[10px] font-bold uppercase tracking-widest">Add Photos</span>
+                              <span className="text-[10px] font-black uppercase tracking-widest">Add Photos</span>
                             </div>
                           )}
                         </div>
                       </div>
                     </div>
 
-                    <div className="space-y-8">
-                      <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm space-y-6">
-                        <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">Contact Info</h4>
-                        <div className="space-y-4">
-                          <div className="flex items-start gap-4 p-3 hover:bg-slate-50 rounded-2xl transition-colors">
-                            <div className="w-8 h-8 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center flex-shrink-0">
-                              <HiOutlinePlus size={16} />
+                    {/* Right Column: Contact & Info */}
+                    <div className="md:col-span-5 space-y-8">
+                      {/* Contact Card */}
+                      <div className="bg-slate-50 rounded-[32px] p-6 md:p-8 border border-slate-100 shadow-sm space-y-8">
+                        <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-[0.3em] flex items-center gap-2">Contact Details</h4>
+                        
+                        <div className="space-y-6">
+                          <div className="flex items-start gap-4 group">
+                            <div className="w-10 h-10 bg-white text-indigo-600 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                              <HiOutlineDevicePhoneMobile size={20} />
                             </div>
                             <div>
-                              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Public Phone</p>
-                              <p className="text-xs font-bold text-slate-900">{profileData.publicPhone || 'Not Set'}</p>
+                              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Mobile Number</p>
+                              <p className="text-sm font-bold text-slate-900">{profileData.publicPhone || 'Not Provided'}</p>
                             </div>
                           </div>
-                          <div className="flex items-start gap-4 p-3 hover:bg-slate-50 rounded-2xl transition-colors">
-                            <div className="w-8 h-8 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center flex-shrink-0">
-                              <HiOutlineBell size={16} />
+
+                          <div className="flex items-start gap-4 group">
+                            <div className="w-10 h-10 bg-white text-indigo-600 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                              <HiOutlineEnvelope size={20} />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Email Address</p>
+                              <p className="text-sm font-bold text-slate-900 break-all">{profileData.email || 'Not Provided'}</p>
+                            </div>
+                          </div>
+
+                          {profileData.website && (
+                            <div className="flex items-start gap-4 group">
+                              <div className="w-10 h-10 bg-white text-indigo-600 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                                <HiOutlineGlobeAlt size={20} />
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Official Website</p>
+                                <p className="text-sm font-bold text-indigo-600 truncate">{profileData.website}</p>
+                              </div>
+                            </div>
+                          )}
+
+                          <div className="flex items-start gap-4 group">
+                            <div className="w-10 h-10 bg-white text-indigo-600 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                              <HiOutlineMapPin size={20} />
                             </div>
                             <div>
-                              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Email Address</p>
-                              <p className="text-xs font-bold text-slate-900 break-all">{profileData.email || 'Not Set'}</p>
+                              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Business Address</p>
+                              <p className="text-sm font-bold text-slate-900 leading-relaxed">
+                                {profileData.businessAddress || 'No address added'}
+                                {(profileData.city || profileData.state) && (
+                                  <span className="block text-slate-500 font-medium">
+                                    {[profileData.city, profileData.state, profileData.country].filter(Boolean).join(', ')}
+                                  </span>
+                                )}
+                              </p>
                             </div>
+                          </div>
+                        </div>
+
+                        {/* Social Links */}
+                        <div className="pt-8 border-t border-slate-200">
+                          <div className="flex gap-4">
+                            {profileData.instagramUrl && (
+                              <a href={profileData.instagramUrl} target="_blank" className="w-10 h-10 bg-white text-pink-600 rounded-xl flex items-center justify-center shadow-sm hover:scale-110 transition-transform">
+                                <FaInstagram size={20} />
+                              </a>
+                            )}
+                            {profileData.facebookUrl && (
+                              <a href={profileData.facebookUrl} target="_blank" className="w-10 h-10 bg-white text-blue-600 rounded-xl flex items-center justify-center shadow-sm hover:scale-110 transition-transform">
+                                <FaFacebook size={20} />
+                              </a>
+                            )}
+                            {profileData.youtubeUrl && (
+                              <a href={profileData.youtubeUrl} target="_blank" className="w-10 h-10 bg-white text-red-600 rounded-xl flex items-center justify-center shadow-sm hover:scale-110 transition-transform">
+                                <FaYoutube size={20} />
+                              </a>
+                            )}
+                            {profileData.whatsappNumber && (
+                              <a href={`https://wa.me/${profileData.whatsappNumber.replace(/\D/g, '')}`} target="_blank" className="w-10 h-10 bg-white text-emerald-600 rounded-xl flex items-center justify-center shadow-sm hover:scale-110 transition-transform">
+                                <FaWhatsapp size={20} />
+                              </a>
+                            )}
                           </div>
                         </div>
                       </div>
 
-                      <div className="bg-slate-900 rounded-3xl p-6 text-white space-y-6">
+                      {/* Timings Card */}
+                      <div className="bg-white rounded-[32px] p-6 md:p-8 border border-slate-100 shadow-sm space-y-6">
                         <div className="flex items-center justify-between">
-                          <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Verification Status</h4>
-                          {profileData.isFinderBVerified && <HiOutlineShieldCheck className="text-indigo-400" size={18} />}
+                          <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-[0.3em]">Business Timings</h4>
+                          <HiOutlineClock className="text-slate-300" size={18} />
                         </div>
-                        <div className="space-y-2">
-                          <p className="text-xs font-bold">{profileData.isFinderBVerified ? 'FinderB Verified Partner' : 'Standard Business Listing'}</p>
-                          <p className="text-[10px] text-slate-400 font-medium">Verified businesses get 2x more visibility and trusted badges.</p>
+                        <div className="space-y-3">
+                          {days.map((day) => {
+                            const timing = profileData.timings?.[day];
+                            const isClosed = !timing || timing === 'Closed' || timing.isClosed;
+                            return (
+                              <div key={day} className="flex justify-between items-center py-1 border-b border-slate-50 last:border-0">
+                                <span className="text-xs font-bold text-slate-500">{day}</span>
+                                <span className={`text-xs font-black ${isClosed ? 'text-rose-500' : 'text-slate-900'}`}>
+                                  {isClosed ? 'Closed' : (typeof timing === 'string' ? timing : `${timing.open} - ${timing.close}`)}
+                                </span>
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
+                    </div>
+
+                    {/* Reviews & Replies */}
+                    <div className="lg:col-span-12 pt-10 border-t border-slate-100 space-y-8">
+                       <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] flex items-center gap-2">
+                          <div className="w-1.5 h-4 bg-indigo-600 rounded-full"></div>
+                          Customer Reviews & Feedback
+                        </h4>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                          {profileData.review && (typeof profileData.review === 'object' ? Object.keys(profileData.review).length > 0 : profileData.review.length > 0) ? (
+                            <div className="bg-slate-50 p-6 rounded-[32px] border border-slate-100 space-y-4">
+                              <div className="flex justify-between items-start">
+                                <div className="space-y-1">
+                                  <p className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest">Featured Review</p>
+                                  <div className="flex text-amber-400 gap-0.5">
+                                    {[...Array(5)].map((_, i) => (
+                                      <HiOutlineStar key={i} size={14} fill={i < (profileData.rating || 5) ? "currentColor" : "none"} />
+                                    ))}
+                                  </div>
+                                </div>
+                                {typeof profileData.review === 'object' && (profileData.review as any).date && (
+                                  <span className="text-[10px] font-bold text-slate-400">{(profileData.review as any).date}</span>
+                                )}
+                              </div>
+                              <p className="text-slate-700 text-sm italic leading-relaxed">
+                                "{typeof profileData.review === 'object' ? (profileData.review as any).content || (profileData.review as any).text || '' : profileData.review}"
+                              </p>
+                              {typeof profileData.review === 'object' && (profileData.review as any).author && (
+                                <p className="text-xs font-black text-slate-900">— {(profileData.review as any).author}</p>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="bg-slate-50 p-8 rounded-[32px] border border-dashed border-slate-200 flex flex-col items-center justify-center text-center space-y-3">
+                              <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-slate-300">
+                                <HiOutlineChatBubbleLeftRight size={24} />
+                              </div>
+                              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">No reviews yet</p>
+                            </div>
+                          )}
+
+                          {profileData.reviewReply && (typeof profileData.reviewReply === 'object' ? (profileData.reviewReply as any).content : profileData.reviewReply) ? (
+                            <div className="bg-indigo-600 p-6 rounded-[32px] text-white space-y-4 shadow-xl shadow-indigo-600/20 relative overflow-hidden group">
+                              <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:rotate-12 transition-transform">
+                                <HiOutlineChatBubbleLeftRight size={80} />
+                              </div>
+                              <div className="relative z-10 space-y-4">
+                                <div>
+                                  <p className="text-[10px] font-bold text-indigo-200 uppercase tracking-widest">Owner's Response</p>
+                                  <h5 className="font-black text-white text-sm">Thank you for your feedback!</h5>
+                                </div>
+                                <p className="text-indigo-50 text-sm leading-relaxed italic">
+                                  "{typeof profileData.reviewReply === 'object' ? (profileData.reviewReply as any).content || '' : profileData.reviewReply}"
+                                </p>
+                                <div className="flex items-center gap-2 pt-2">
+                                  <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
+                                    <HiOutlineShieldCheck size={12} />
+                                  </div>
+                                  <span className="text-[10px] font-bold uppercase tracking-widest">Verified Merchant</span>
+                                </div>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="bg-slate-900 p-8 rounded-[32px] flex flex-col items-center justify-center text-center space-y-4 group cursor-pointer hover:bg-slate-800 transition-all" onClick={() => setActiveTab('settings')}>
+                              <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center text-white group-hover:scale-110 transition-transform">
+                                <HiOutlinePlus size={24} />
+                              </div>
+                              <div className="space-y-1">
+                                <p className="text-xs font-bold text-white uppercase tracking-widest">Set Default Reply</p>
+                                <p className="text-[10px] text-slate-400 font-medium">Automatic response for new reviews</p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
                     </div>
                   </div>
                 </div>
@@ -1044,839 +1281,205 @@ function DashboardContent() {
               </div>
             )}
 
-            <div className={`grid grid-cols-1 ${activeTab === 'overview' ? 'lg:grid-cols-3' : ''} gap-8 md:gap-12`}>
-              {/* Leads Table Section */}
-              <div className={`${activeTab === 'overview' ? 'lg:col-span-2' : ''} space-y-6`}>
-                <div className="flex items-center justify-between">
-                  <h2 className="text-xl font-black text-slate-900 tracking-tight">{activeTab === 'overview' ? 'Recent Activity' : 'Lead Activity'}</h2>
-                  <button className="text-indigo-600 font-bold text-xs hover:underline flex items-center gap-1">
-                    View All <HiOutlineChevronRight size={14} />
-                  </button>
-                </div>
-                
-                <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
-                  {isPaymentPending ? (
-                    <div className="p-12 text-center space-y-6">
-                      <div className="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto border border-indigo-100">
-                        <HiOutlineCursorArrowRays size={32} className="animate-pulse" />
+            {(activeTab === 'overview' || activeTab === 'leads') && (
+              <div className={`grid grid-cols-1 ${activeTab === 'overview' ? 'lg:grid-cols-3' : ''} gap-8 md:gap-12`}>
+                {/* Leads Table Section */}
+                <div className={`${activeTab === 'overview' ? 'lg:col-span-2' : ''} space-y-6`}>
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-xl font-black text-slate-900 tracking-tight">{activeTab === 'overview' ? 'Recent Activity' : 'Lead Activity'}</h2>
+                    <button className="text-indigo-600 font-bold text-xs hover:underline flex items-center gap-1">
+                      View All <HiOutlineChevronRight size={14} />
+                    </button>
+                  </div>
+                  
+                  <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+                    {isPaymentPending ? (
+                      <div className="p-12 text-center space-y-6">
+                        <div className="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto border border-indigo-100">
+                          <HiOutlineCursorArrowRays size={32} className="animate-pulse" />
+                        </div>
+                        <div className="max-w-sm mx-auto space-y-2">
+                          <h4 className="text-xl font-black text-slate-900 tracking-tight">
+                            <span className="text-indigo-600">{mockSearchCount}</span> Active Leads Found
+                          </h4>
+                          <p className="text-slate-500 text-sm leading-relaxed">
+                            Customers are searching for your expertise. Activate leads to unlock direct contact details.
+                          </p>
+                        </div>
+                        <Link 
+                          href={`/business/payment/${businessId}`}
+                          className="inline-flex items-center gap-2 bg-slate-900 text-white px-8 py-3.5 rounded-xl font-bold text-xs uppercase tracking-wider hover:bg-indigo-600 transition-all shadow-xl shadow-slate-900/10"
+                        >
+                          <HiOutlineRocketLaunch size={18} /> Activate to View
+                        </Link>
                       </div>
-                      <div className="max-w-sm mx-auto space-y-2">
-                        <h4 className="text-xl font-black text-slate-900 tracking-tight">
-                          <span className="text-indigo-600">{mockSearchCount}</span> Active Leads Found
-                        </h4>
-                        <p className="text-slate-500 text-sm leading-relaxed">
-                          Customers are searching for your expertise. Activate leads to unlock direct contact details.
-                        </p>
-                      </div>
-                      <Link 
-                        href={`/business/payment/${businessId}`}
-                        className="inline-flex items-center gap-2 bg-slate-900 text-white px-8 py-3.5 rounded-xl font-bold text-xs uppercase tracking-wider hover:bg-indigo-600 transition-all shadow-xl shadow-slate-900/10"
-                      >
-                        <HiOutlineRocketLaunch size={18} /> Activate to View
-                      </Link>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="hidden md:block">
-                        <table className="w-full text-left border-collapse">
-                          <thead>
-                            <tr className="bg-slate-50/50 border-b border-gray-100">
-                              <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Customer</th>
-                              <th className="py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Inquiry</th>
-                              <th className="py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Status</th>
-                              <th className="px-8 py-5 text-right"></th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-gray-50">
-                            {mockLeads.map((lead, i) => (
-                              <tr key={i} className="hover:bg-slate-50/50 transition-colors group/row">
-                                <td className="px-8 py-6">
-                                  <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 bg-slate-900 text-white rounded-xl flex items-center justify-center font-bold text-sm">
-                                      {lead.name.split(' ').map(n => n[0]).join('')}
-                                    </div>
-                                    <div>
-                                      <p className="font-bold text-slate-900 text-sm">{lead.name}</p>
-                                      <p className="text-slate-400 text-[10px] font-medium">{lead.time}</p>
-                                    </div>
-                                  </div>
-                                </td>
-                                <td className="py-6">
-                                  <span className="text-slate-600 font-semibold text-sm">{lead.service}</span>
-                                </td>
-                                <td className="py-6">
-                                  <span className={`px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider border ${
-                                    lead.status === 'New Lead' ? 'bg-indigo-50 text-indigo-700 border-indigo-100' :
-                                    lead.status === 'Contacted' ? 'bg-amber-50 text-amber-700 border-amber-100' :
-                                    'bg-emerald-50 text-emerald-700 border-emerald-100'
-                                  }`}>
-                                    {lead.status}
-                                  </span>
-                                </td>
-                                <td className="px-8 py-6 text-right">
-                                  <button className="p-2 hover:bg-white hover:shadow-sm border border-transparent hover:border-gray-100 rounded-lg transition-all text-slate-400 hover:text-indigo-600">
-                                    <HiOutlineEllipsisVertical size={18} />
-                                  </button>
-                                </td>
+                    ) : (
+                      <>
+                        <div className="hidden md:block">
+                          <table className="w-full text-left border-collapse">
+                            <thead>
+                              <tr className="bg-slate-50/50 border-b border-gray-100">
+                                <th className="px-8 py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Customer</th>
+                                <th className="py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Inquiry</th>
+                                <th className="py-5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Status</th>
+                                <th className="px-8 py-5 text-right"></th>
                               </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
+                            </thead>
+                            <tbody className="divide-y divide-gray-50">
+                              {mockLeads.map((lead, i) => (
+                                <tr key={i} className="hover:bg-slate-50/50 transition-colors group/row">
+                                  <td className="px-8 py-6">
+                                    <div className="flex items-center gap-3">
+                                      <div className="w-10 h-10 bg-slate-900 text-white rounded-xl flex items-center justify-center font-bold text-sm">
+                                        {lead.name.split(' ').map(n => n[0]).join('')}
+                                      </div>
+                                      <div>
+                                        <p className="font-bold text-slate-900 text-sm">{lead.name}</p>
+                                        <p className="text-slate-400 text-[10px] font-medium">{lead.time}</p>
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td className="py-6">
+                                    <span className="text-slate-600 font-semibold text-sm">{lead.service}</span>
+                                  </td>
+                                  <td className="py-6">
+                                    <span className={`px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider border ${
+                                      lead.status === 'New Lead' ? 'bg-indigo-50 text-indigo-700 border-indigo-100' :
+                                      lead.status === 'Contacted' ? 'bg-amber-50 text-amber-700 border-amber-100' :
+                                      'bg-emerald-50 text-emerald-700 border-emerald-100'
+                                    }`}>
+                                      {lead.status}
+                                    </span>
+                                  </td>
+                                  <td className="px-8 py-6 text-right">
+                                    <button className="p-2 hover:bg-white hover:shadow-sm border border-transparent hover:border-gray-100 rounded-lg transition-all text-slate-400 hover:text-indigo-600">
+                                      <HiOutlineEllipsisVertical size={18} />
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
 
-                      {/* Mobile Card Layout */}
-                      <div className="md:hidden divide-y divide-gray-100">
-                        {mockLeads.map((lead, i) => (
-                          <div key={i} className="p-5 flex items-center justify-between group bg-white active:bg-gray-50">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 bg-slate-900 text-white rounded-xl flex items-center justify-center font-bold text-xs">
-                                {lead.name.split(' ').map(n => n[0]).join('')}
-                              </div>
-                              <div className="space-y-0.5">
-                                <p className="font-bold text-slate-900 text-sm">{lead.name}</p>
-                                <div className="flex items-center gap-2">
-                                  <span className="text-[9px] font-medium text-slate-400">{lead.time}</span>
-                                  <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
-                                  <span className="text-[9px] font-bold text-indigo-600">{lead.service}</span>
+                        {/* Mobile Card Layout */}
+                        <div className="md:hidden divide-y divide-gray-100">
+                          {mockLeads.map((lead, i) => (
+                            <div key={i} className="p-5 flex items-center justify-between group bg-white active:bg-gray-50">
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-slate-900 text-white rounded-xl flex items-center justify-center font-bold text-xs">
+                                  {lead.name.split(' ').map(n => n[0]).join('')}
+                                </div>
+                                <div className="space-y-0.5">
+                                  <p className="font-bold text-slate-900 text-sm">{lead.name}</p>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-[9px] font-medium text-slate-400">{lead.time}</span>
+                                    <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
+                                    <span className="text-[9px] font-bold text-indigo-600">{lead.service}</span>
+                                  </div>
                                 </div>
                               </div>
+                              <div className="flex flex-col items-end gap-2">
+                                <span className={`px-2 py-0.5 rounded-full text-[7px] font-bold uppercase tracking-wider border ${
+                                  lead.status === 'New Lead' ? 'bg-indigo-50 text-indigo-700 border-indigo-100' :
+                                  lead.status === 'Contacted' ? 'bg-amber-50 text-amber-700 border-amber-100' :
+                                  'bg-emerald-50 text-emerald-700 border-emerald-100'
+                                }`}>
+                                  {lead.status}
+                                </span>
+                              </div>
                             </div>
-                            <div className="flex flex-col items-end gap-2">
-                              <span className={`px-2 py-0.5 rounded-full text-[7px] font-bold uppercase tracking-wider border ${
-                                lead.status === 'New Lead' ? 'bg-indigo-50 text-indigo-700 border-indigo-100' :
-                                lead.status === 'Contacted' ? 'bg-amber-50 text-amber-700 border-amber-100' :
-                                'bg-emerald-50 text-emerald-700 border-emerald-100'
-                              }`}>
-                                {lead.status}
-                              </span>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                {/* Quick Actions & Insight - Only on Overview */}
+                {activeTab === 'overview' && (
+                  <div className="space-y-8">
+                    <div className="bg-white rounded-[32px] shadow-sm p-8 border border-gray-100 space-y-8 group hover:shadow-md transition-all">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-lg font-black text-slate-900 tracking-tight">Analytics</h3>
+                        <div className="w-8 h-8 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center">
+                          <HiOutlineArrowTrendingUp size={16} />
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-6">
+                        {[
+                          { label: 'Profile Traffic', value: 85, color: 'bg-indigo-600' },
+                          { label: 'Conversion Rate', value: 34, color: 'bg-emerald-500' },
+                          { label: 'Response Time', value: 92, color: 'bg-amber-500' },
+                        ].map((item) => (
+                          <div key={item.label} className="space-y-2.5">
+                            <div className="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                              <span>{item.label}</span>
+                              <span className="text-slate-900">{item.value}%</span>
+                            </div>
+                            <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                              <div 
+                                className={`h-full ${item.color} rounded-full transition-all duration-1000 group-hover:opacity-80`} 
+                                style={{ width: `${item.value}%` }}
+                              ></div>
                             </div>
                           </div>
                         ))}
                       </div>
-                    </>
-                  )}
-                </div>
-              </div>
 
-              {/* Quick Actions & Insight - Only on Overview */}
-              {activeTab === 'overview' && (
-                <div className="space-y-8">
-                  <div className="bg-white rounded-[32px] shadow-sm p-8 border border-gray-100 space-y-8 group hover:shadow-md transition-all">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-lg font-black text-slate-900 tracking-tight">Analytics</h3>
-                      <div className="w-8 h-8 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center">
-                        <HiOutlineArrowTrendingUp size={16} />
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-6">
-                      {[
-                        { label: 'Profile Traffic', value: 85, color: 'bg-indigo-600' },
-                        { label: 'Conversion Rate', value: 34, color: 'bg-emerald-500' },
-                        { label: 'Response Time', value: 92, color: 'bg-amber-500' },
-                      ].map((item) => (
-                        <div key={item.label} className="space-y-2.5">
-                          <div className="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                            <span>{item.label}</span>
-                            <span className="text-slate-900">{item.value}%</span>
-                          </div>
-                          <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                            <div 
-                              className={`h-full ${item.color} rounded-full transition-all duration-1000 group-hover:opacity-80`} 
-                              style={{ width: `${item.value}%` }}
-                            ></div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-
-                    <button className="w-full bg-slate-50 text-slate-900 py-3.5 rounded-xl font-bold text-[10px] uppercase tracking-wider hover:bg-slate-900 hover:text-white transition-all active:scale-95 border border-slate-100">
-                      Detailed Report
-                    </button>
-                  </div>
-
-                  <div className="bg-slate-900 rounded-[32px] shadow-premium p-8 text-white space-y-6 relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl group-hover:scale-125 transition-transform duration-1000"></div>
-                    <div className="relative z-10 space-y-6">
-                      <div className="w-12 h-12 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center">
-                        <HiOutlineStar size={24} className="text-amber-400" />
-                      </div>
-                      <div className="space-y-2">
-                        <h4 className="text-lg font-bold tracking-tight">Pro Tip</h4>
-                        <p className="text-slate-400 text-xs font-medium leading-relaxed">Optimization can boost your visibility by up to 40%. Start now.</p>
-                      </div>
-                      <button className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-indigo-400 hover:text-indigo-300 transition-colors group/link">
-                        Get Started <HiOutlineChevronRight size={14} className="group-hover/link:translate-x-0.5 transition-transform" />
+                      <button className="w-full bg-slate-50 text-slate-900 py-3.5 rounded-xl font-bold text-[10px] uppercase tracking-wider hover:bg-slate-900 hover:text-white transition-all active:scale-95 border border-slate-100">
+                        Detailed Report
                       </button>
                     </div>
+
+                    <div className="bg-slate-900 rounded-[32px] shadow-premium p-8 text-white space-y-6 relative overflow-hidden group">
+                      <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl group-hover:scale-125 transition-transform duration-1000"></div>
+                      <div className="relative z-10 space-y-6">
+                        <div className="w-12 h-12 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center">
+                          <HiOutlineStar size={24} className="text-amber-400" />
+                        </div>
+                        <div className="space-y-2">
+                          <h4 className="text-lg font-bold tracking-tight">Pro Tip</h4>
+                          <p className="text-slate-400 text-xs font-medium leading-relaxed">Optimization can boost your visibility by up to 40%. Start now.</p>
+                        </div>
+                        <button className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-indigo-400 hover:text-indigo-300 transition-colors group/link">
+                          Get Started <HiOutlineChevronRight size={14} className="group-hover/link:translate-x-0.5 transition-transform" />
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
         {activeTab === 'settings' && (
-          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            <div 
-              className="bg-white rounded-[32px] shadow-sm p-8 border border-gray-100 space-y-8"
-              onClick={() => setFocusedImage(null)}
-            >
-              <div>
-                <h3 className="text-xl font-black text-slate-900 tracking-tight mb-2">Business Media</h3>
-                <p className="text-slate-500 text-sm">Manage your business photos. You can upload up to 5 images and select one as your profile picture.</p>
-              </div>
-
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4" onClick={(e) => e.stopPropagation()}>
-                {images.map((url, index) => (
-                  <div 
-                    key={index} 
-                    onClick={() => setFocusedImage(focusedImage === index ? null : index)}
-                    className="relative aspect-square rounded-2xl overflow-hidden border border-gray-100 group shadow-sm cursor-pointer"
-                  >
-                    <Image 
-                      src={url} 
-                      alt={`Business ${index + 1}`} 
-                      fill 
-                      className="object-cover transition-transform group-hover:scale-110"
-                    />
-                    <div className={`absolute inset-0 bg-black/60 transition-opacity flex flex-col items-center justify-center gap-2.5 p-3 ${
-                      focusedImage === index 
-                        ? 'opacity-100 pointer-events-auto' 
-                        : 'opacity-0 pointer-events-none lg:group-hover:opacity-100 lg:group-hover:pointer-events-auto'
-                    }`}>
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleSetProfile(url);
-                        }}
-                        className={`w-full py-2 rounded-xl text-[9px] font-bold uppercase tracking-wider transition-all shadow-sm ${
-                          profilePictureUrl === url 
-                            ? 'bg-indigo-600 text-white' 
-                            : 'bg-white text-slate-900 hover:bg-indigo-50'
-                        }`}
-                      >
-                        {profilePictureUrl === url ? 'Profile Pic' : 'Set as Profile Pic'}
-                      </button>
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setImageToDelete(url);
-                          setShowDeleteModal(true);
-                        }}
-                        className="w-full py-2 bg-rose-600 hover:bg-rose-700 rounded-xl text-white text-[9px] font-bold uppercase tracking-wider transition-all shadow-sm"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                    {profilePictureUrl === url && (
-                      <div className="absolute top-2 left-2 bg-indigo-600 text-white text-[8px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider shadow-lg">
-                        Profile
-                      </div>
-                    )}
-                  </div>
-                ))}
-                
-                {images.length < 5 && (
-                  <CldUploadWidget 
-                    uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET}
-                    onSuccess={handleUploadSuccess}
-                    options={{
-                      maxFiles: 5 - images.length,
-                      resourceType: 'image',
-                      clientAllowedFormats: ['png', 'jpeg', 'jpg', 'webp'],
-                      cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
-                    }}
-                  >
-                    {({ open }) => (
-                      <button 
-                        onClick={() => open()}
-                        className="aspect-square rounded-2xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center gap-2 text-gray-400 hover:border-indigo-600 hover:text-indigo-600 hover:bg-indigo-50/50 transition-all group"
-                      >
-                        <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center group-hover:bg-indigo-100/50 transition-colors">
-                          <HiOutlinePlus size={24} />
-                        </div>
-                        <span className="text-[10px] font-bold uppercase tracking-wider">Upload</span>
-                      </button>
-                    )}
-                  </CldUploadWidget>
-                )}
-              </div>
-
-              {images.length === 0 && (
-                <div className="bg-slate-50 border border-dashed border-slate-200 rounded-2xl p-12 text-center">
-                  <div className="w-16 h-16 bg-white rounded-2xl shadow-sm flex items-center justify-center mx-auto mb-4 text-slate-300">
-                    <HiOutlineBriefcase size={32} />
-                  </div>
-                  <h4 className="text-slate-900 font-bold mb-1">No Photos Yet</h4>
-                  <p className="text-slate-500 text-xs">Add photos of your business to attract more customers.</p>
-                </div>
-              )}
-            </div>
-
-            {/* Profile Information Form */}
-            <div className="bg-white rounded-[32px] shadow-sm p-8 border border-gray-100 space-y-8">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-slate-50/50 p-6 rounded-[24px] border border-slate-100">
-                <div className="space-y-1">
-                  <h3 className="text-2xl font-black text-slate-900 tracking-tight">Business Profile</h3>
-                  <p className="text-slate-500 text-sm font-medium">Manage your public presence and business details</p>
-                </div>
-                <div className="flex gap-4">
-                  <div className="bg-white px-5 py-3 rounded-2xl border border-slate-100 flex flex-col items-center shadow-sm">
-                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Live Rating</span>
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-xl font-black text-indigo-600">{profileData.rating || '0.0'}</span>
-                      <HiOutlineStar size={16} className="text-amber-400 fill-amber-400" />
-                    </div>
-                  </div>
-                  <div className={`px-5 py-3 rounded-2xl border flex flex-col items-center shadow-sm ${profileData.isFinderBVerified ? 'bg-indigo-600 border-indigo-600 text-white' : 'bg-white border-slate-100 text-slate-400'}`}>
-                    <span className={`text-[9px] font-black uppercase tracking-widest mb-1 ${profileData.isFinderBVerified ? 'text-indigo-100' : 'text-slate-400'}`}>Status</span>
-                    <div className="flex items-center gap-1.5">
-                       <span className="text-xs font-black uppercase">{profileData.isFinderBVerified ? 'Verified' : 'Standard'}</span>
-                       {profileData.isFinderBVerified && <HiOutlineShieldCheck size={16} />}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <form onSubmit={handleUpdateProfile} className="space-y-4">
-                {/* Accordion 1: Basic Details */}
-                <div className="border border-slate-100 rounded-3xl overflow-hidden bg-slate-50/30">
-                  <button
-                    type="button"
-                    onClick={() => toggleAccordion('basic')}
-                    className="w-full px-6 py-5 flex items-center justify-between bg-white hover:bg-slate-50 transition-colors"
-                  >
-                    <h4 className="text-sm font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
-                      <div className="w-1.5 h-4 bg-indigo-600 rounded-full"></div>
-                      Basic Details
-                    </h4>
-                    {openAccordions.includes('basic') ? <HiChevronUp size={20} className="text-slate-400" /> : <HiChevronDown size={20} className="text-slate-400" />}
-                  </button>
-                  {openAccordions.includes('basic') && (
-                    <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in slide-in-from-top-2 duration-300">
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Official Business Name</label>
-                        <input 
-                          type="text" 
-                          value={profileData.businessName}
-                          onChange={(e) => updateField('businessName', e.target.value)}
-                          className="w-full px-5 py-3.5 rounded-2xl bg-white border border-slate-100 text-slate-900 text-sm font-medium focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/5 transition-all outline-none"
-                          placeholder="Official registered name"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Display Name</label>
-                        <input 
-                          type="text" 
-                          value={profileData.displayName}
-                          onChange={(e) => updateField('displayName', e.target.value)}
-                          className="w-full px-5 py-3.5 rounded-2xl bg-white border border-slate-100 text-slate-900 text-sm font-medium focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/5 transition-all outline-none"
-                          placeholder="Public name of your business"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Business Category</label>
-                        <input 
-                          type="text" 
-                          value={profileData.category}
-                          onChange={(e) => updateField('category', e.target.value)}
-                          className="w-full px-5 py-3.5 rounded-2xl bg-white border border-slate-100 text-slate-900 text-sm font-medium focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/5 transition-all outline-none"
-                          placeholder="e.g. Plumber, Electrician"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Public Email</label>
-                        <input 
-                          type="email" 
-                          value={profileData.email}
-                          onChange={(e) => updateField('email', e.target.value)}
-                          className="w-full px-5 py-3.5 rounded-2xl bg-white border border-slate-100 text-slate-900 text-sm font-medium focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/5 transition-all outline-none"
-                          placeholder="contact@business.com"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Public Contact Number</label>
-                        <input 
-                          type="text" 
-                          value={profileData.publicPhone}
-                          onChange={(e) => updateField('publicPhone', e.target.value)}
-                          className="w-full px-5 py-3.5 rounded-2xl bg-white border border-slate-100 text-slate-900 text-sm font-medium focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/5 transition-all outline-none"
-                          placeholder="Public phone number"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Website URL</label>
-                        <input 
-                          type="text" 
-                          value={profileData.website}
-                          onChange={(e) => updateField('website', e.target.value)}
-                          className="w-full px-5 py-3.5 rounded-2xl bg-white border border-slate-100 text-slate-900 text-sm font-medium focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/5 transition-all outline-none"
-                          placeholder="https://www.business.com"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Business Address</label>
-                        <input 
-                          type="text" 
-                          value={profileData.businessAddress}
-                          onChange={(e) => updateField('businessAddress', e.target.value)}
-                          className="w-full px-5 py-3.5 rounded-2xl bg-white border border-slate-100 text-slate-900 text-sm font-medium focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/5 transition-all outline-none"
-                          placeholder="Full business address"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">City</label>
-                        <input 
-                          type="text" 
-                          value={profileData.city}
-                          onChange={(e) => updateField('city', e.target.value)}
-                          className="w-full px-5 py-3.5 rounded-2xl bg-white border border-slate-100 text-slate-900 text-sm font-medium focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/5 transition-all outline-none"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">State / Province</label>
-                        <input 
-                          type="text" 
-                          value={profileData.state}
-                          onChange={(e) => updateField('state', e.target.value)}
-                          className="w-full px-5 py-3.5 rounded-2xl bg-white border border-slate-100 text-slate-900 text-sm font-medium focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/5 transition-all outline-none"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Country</label>
-                        <input 
-                          type="text" 
-                          value={profileData.country}
-                          onChange={(e) => updateField('country', e.target.value)}
-                          className="w-full px-5 py-3.5 rounded-2xl bg-white border border-slate-100 text-slate-900 text-sm font-medium focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/5 transition-all outline-none"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Years in Business</label>
-                        <input 
-                          type="number" 
-                          value={profileData.yearsInBusiness}
-                          onChange={(e) => updateField('yearsInBusiness', parseInt(e.target.value) || 0)}
-                          className="w-full px-5 py-3.5 rounded-2xl bg-white border border-slate-100 text-slate-900 text-sm font-medium focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/5 transition-all outline-none"
-                        />
-                      </div>
-                      <div className="space-y-2 md:col-span-2 lg:col-span-3">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">About Business</label>
-                        <textarea 
-                          value={profileData.about}
-                          onChange={(e) => updateField('about', e.target.value)}
-                          rows={4}
-                          className="w-full px-5 py-3.5 rounded-2xl bg-white border border-slate-100 text-slate-900 text-sm font-medium focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/5 transition-all outline-none resize-none"
-                          placeholder="Tell customers about your business..."
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Accordion 2: Social Presence */}
-                <div className="border border-slate-100 rounded-3xl overflow-hidden bg-slate-50/30">
-                  <button
-                    type="button"
-                    onClick={() => toggleAccordion('social')}
-                    className="w-full px-6 py-5 flex items-center justify-between bg-white hover:bg-slate-50 transition-colors"
-                  >
-                    <h4 className="text-sm font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
-                      <div className="w-1.5 h-4 bg-indigo-600 rounded-full"></div>
-                      Social Presence
-                    </h4>
-                    {openAccordions.includes('social') ? <HiChevronUp size={20} className="text-slate-400" /> : <HiChevronDown size={20} className="text-slate-400" />}
-                  </button>
-                  {openAccordions.includes('social') && (
-                    <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6 animate-in slide-in-from-top-2 duration-300">
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Instagram URL</label>
-                        <input 
-                          type="text" 
-                          value={profileData.instagramUrl}
-                          onChange={(e) => updateField('instagramUrl', e.target.value)}
-                          className="w-full px-5 py-3.5 rounded-2xl bg-white border border-slate-100 text-slate-900 text-sm font-medium focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/5 transition-all outline-none"
-                          placeholder="https://instagram.com/yourbusiness"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Facebook URL</label>
-                        <input 
-                          type="text" 
-                          value={profileData.facebookUrl}
-                          onChange={(e) => updateField('facebookUrl', e.target.value)}
-                          className="w-full px-5 py-3.5 rounded-2xl bg-white border border-slate-100 text-slate-900 text-sm font-medium focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/5 transition-all outline-none"
-                          placeholder="https://facebook.com/yourbusiness"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">WhatsApp Number</label>
-                        <input 
-                          type="text" 
-                          value={profileData.whatsappNumber}
-                          onChange={(e) => updateField('whatsappNumber', e.target.value)}
-                          className="w-full px-5 py-3.5 rounded-2xl bg-white border border-slate-100 text-slate-900 text-sm font-medium focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/5 transition-all outline-none"
-                          placeholder="e.g. +91 9876543210"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">YouTube URL</label>
-                        <input 
-                          type="text" 
-                          value={profileData.youtubeUrl}
-                          onChange={(e) => updateField('youtubeUrl', e.target.value)}
-                          className="w-full px-5 py-3.5 rounded-2xl bg-white border border-slate-100 text-slate-900 text-sm font-medium focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/5 transition-all outline-none"
-                          placeholder="https://youtube.com/yourchannel"
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Accordion 3: Extra Info */}
-                <div className="border border-slate-100 rounded-3xl overflow-hidden bg-slate-50/30">
-                  <button
-                    type="button"
-                    onClick={() => toggleAccordion('extra')}
-                    className="w-full px-6 py-5 flex items-center justify-between bg-white hover:bg-slate-50 transition-colors"
-                  >
-                    <h4 className="text-sm font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
-                      <div className="w-1.5 h-4 bg-indigo-600 rounded-full"></div>
-                      Extra Information
-                    </h4>
-                    {openAccordions.includes('extra') ? <HiChevronUp size={20} className="text-slate-400" /> : <HiChevronDown size={20} className="text-slate-400" />}
-                  </button>
-                  {openAccordions.includes('extra') && (
-                    <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in slide-in-from-top-2 duration-300">
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Latitude</label>
-                        <input 
-                          type="number" 
-                          step="any"
-                          value={profileData.latitude}
-                          onChange={(e) => updateField('latitude', parseFloat(e.target.value))}
-                          className="w-full px-5 py-3.5 rounded-2xl bg-white border border-slate-100 text-slate-900 text-sm font-medium focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/5 transition-all outline-none"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Longitude</label>
-                        <input 
-                          type="number" 
-                          step="any"
-                          value={profileData.longitude}
-                          onChange={(e) => updateField('longitude', parseFloat(e.target.value))}
-                          className="w-full px-5 py-3.5 rounded-2xl bg-white border border-slate-100 text-slate-900 text-sm font-medium focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/5 transition-all outline-none"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Discount Range</label>
-                        <select 
-                          value={profileData.discountRange}
-                          onChange={(e) => updateField('discountRange', e.target.value)}
-                          className="w-full px-5 py-3.5 rounded-2xl bg-white border border-slate-100 text-slate-900 text-sm font-medium focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/5 transition-all outline-none appearance-none cursor-pointer"
-                        >
-                          <option value="">Select Discount Range</option>
-                          {discountOptions.map(option => (
-                            <option key={option} value={option}>{option}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Service Category</label>
-                        <input 
-                          type="text" 
-                          value={profileData.serviceCategory}
-                          onChange={(e) => updateField('serviceCategory', e.target.value)}
-                          className="w-full px-5 py-3.5 rounded-2xl bg-white border border-slate-100 text-slate-900 text-sm font-medium focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/5 transition-all outline-none"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Profile QR Link</label>
-                        <input 
-                          type="text" 
-                          value={profileData.profileQrLink}
-                          onChange={(e) => updateField('profileQrLink', e.target.value)}
-                          className="w-full px-5 py-3.5 rounded-2xl bg-white border border-slate-100 text-slate-900 text-sm font-medium focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/5 transition-all outline-none"
-                        />
-                      </div>
-                      <div className="space-y-3 md:col-span-2 lg:col-span-3">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1 flex items-center gap-2">
-                          <HiOutlineStar size={14} className="text-indigo-400" />
-                          Search Keywords
-                        </label>
-                        <div className="relative group">
-                          <textarea 
-                            value={Array.isArray(profileData.keywords) ? profileData.keywords.join(', ') : profileData.keywords}
-                            onChange={(e) => updateField('keywords', e.target.value.split(',').map(k => k.trim()))}
-                            rows={2}
-                            className="w-full px-6 py-4 rounded-[24px] bg-white border border-slate-100 text-slate-900 text-sm font-medium focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/5 transition-all outline-none resize-none shadow-sm group-hover:shadow-md"
-                            placeholder="e.g. plumber, home service, repair"
-                          />
-                          <div className="absolute bottom-4 right-4 flex flex-wrap gap-1.5 max-w-[200px] justify-end pointer-events-none">
-                             {(Array.isArray(profileData.keywords) ? profileData.keywords : []).filter(Boolean).slice(0, 3).map((k, i) => (
-                               <span key={i} className="px-2.5 py-1 bg-indigo-50/80 backdrop-blur-sm text-indigo-700 rounded-lg text-[9px] font-black border border-indigo-100 shadow-sm animate-in fade-in zoom-in duration-300">
-                                 #{k}
-                               </span>
-                             ))}
-                          </div>
-                        </div>
-                        <p className="text-[10px] text-slate-400 font-medium ml-1">Type keywords separated by commas. These act as search tags for your business.</p>
-                      </div>
-                      <div className="space-y-3 md:col-span-2 lg:col-span-3">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1 flex items-center gap-2">
-                          <HiOutlineCreditCard size={14} className="text-indigo-400" />
-                          Accepted Payment Modes
-                        </label>
-                        <div className="relative group">
-                          <input 
-                            type="text" 
-                            value={Array.isArray(profileData.paymentModes) ? profileData.paymentModes.join(', ') : profileData.paymentModes}
-                            onChange={(e) => updateField('paymentModes', e.target.value.split(',').map(m => m.trim()))}
-                            className="w-full px-6 py-4 rounded-[24px] bg-white border border-slate-100 text-slate-900 text-sm font-medium focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/5 transition-all outline-none shadow-sm group-hover:shadow-md"
-                            placeholder="e.g. Cash, UPI, GPay, Credit Card"
-                          />
-                          <div className="absolute top-1/2 -translate-y-1/2 right-4 flex gap-1.5 pointer-events-none">
-                             {(Array.isArray(profileData.paymentModes) ? profileData.paymentModes : []).filter(Boolean).slice(0, 2).map((m, i) => (
-                               <div key={i} className="w-8 h-8 bg-slate-50 rounded-lg border border-slate-100 flex items-center justify-center">
-                                 <HiOutlineCreditCard size={14} className="text-slate-400" />
-                               </div>
-                             ))}
-                          </div>
-                        </div>
-                        <p className="text-[10px] text-slate-400 font-medium ml-1 italic">List all payment methods you accept (Cash, UPI, Card, etc.)</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Accordion 4: Reviews & Replies */}
-                <div className="border border-slate-100 rounded-3xl overflow-hidden bg-slate-50/30">
-                  <button
-                    type="button"
-                    onClick={() => toggleAccordion('reviews')}
-                    className="w-full px-6 py-5 flex items-center justify-between bg-white hover:bg-slate-50 transition-colors"
-                  >
-                    <h4 className="text-sm font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
-                      <div className="w-1.5 h-4 bg-indigo-600 rounded-full"></div>
-                      Reviews & Feedback
-                    </h4>
-                    {openAccordions.includes('reviews') ? <HiChevronUp size={20} className="text-slate-400" /> : <HiChevronDown size={20} className="text-slate-400" />}
-                  </button>
-                  {openAccordions.includes('reviews') && (
-                    <div className="p-6 space-y-6 animate-in slide-in-from-top-2 duration-300">
-                      {profileData.review && (typeof profileData.review === 'object' ? Object.keys(profileData.review).length > 0 : profileData.review.length > 0) && (
-                        <div className="bg-white p-5 rounded-2xl border border-slate-100 space-y-3">
-                          <div className="flex justify-between items-center">
-                            <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider">Latest Customer Review</span>
-                            <div className="flex text-amber-400">
-                              {[...Array(5)].map((_, i) => (
-                                <HiOutlineStar key={i} size={12} fill={i < (profileData.rating || 5) ? "currentColor" : "none"} />
-                              ))}
-                            </div>
-                          </div>
-                          <p className="text-sm text-slate-600 italic">
-                            "{typeof profileData.review === 'object' ? (profileData.review as any).content || (profileData.review as any).text || '' : profileData.review}"
-                          </p>
-                          {typeof profileData.review === 'object' && (profileData.review as any).author && (
-                            <p className="text-[10px] font-bold text-slate-400 text-right">— {(profileData.review as any).author}</p>
-                          )}
-                        </div>
-                      )}
-                      
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Your Reply to Customers</label>
-                        <textarea 
-                          value={typeof profileData.reviewReply === 'object' ? (profileData.reviewReply as any).content || '' : profileData.reviewReply}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            if (typeof profileData.reviewReply === 'object') {
-                              updateField('reviewReply', { ...profileData.reviewReply, content: val });
-                            } else {
-                              updateField('reviewReply', val);
-                            }
-                          }}
-                          rows={4}
-                          className="w-full px-5 py-3.5 rounded-2xl bg-white border border-slate-100 text-slate-900 text-sm focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/5 transition-all outline-none resize-none"
-                          placeholder="Type your response to customer reviews here..."
-                        />
-                        <p className="text-[10px] text-slate-400 font-medium italic ml-1">This reply will be visible to everyone viewing your business profile.</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Accordion 5: Business Timings */}
-                <div className="border border-slate-100 rounded-3xl overflow-hidden bg-slate-50/30">
-                  <button
-                    type="button"
-                    onClick={() => toggleAccordion('timings')}
-                    className="w-full px-6 py-5 flex items-center justify-between bg-white hover:bg-slate-50 transition-colors"
-                  >
-                    <h4 className="text-sm font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
-                      <div className="w-1.5 h-4 bg-indigo-600 rounded-full"></div>
-                      Business Timings
-                    </h4>
-                    {openAccordions.includes('timings') ? <HiChevronUp size={20} className="text-slate-400" /> : <HiChevronDown size={20} className="text-slate-400" />}
-                  </button>
-                  {openAccordions.includes('timings') && (
-                    <div className="p-6 space-y-4 animate-in slide-in-from-top-2 duration-300">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {days.map((day) => {
-                          const timing = (profileData.timings as any)?.[day] || 'Closed';
-                          const isClosed = timing === 'Closed';
-                          let open = '09:00';
-                          let close = '18:00';
-                          
-                          if (!isClosed && typeof timing === 'string' && timing.includes('-')) {
-                            const [o, c] = timing.split('-');
-                            open = o || '09:00';
-                            close = c || '18:00';
-                          }
-
-                          return (
-                            <div key={day} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 bg-white rounded-[24px] border border-slate-100 hover:border-indigo-100 transition-all group">
-                              <div className="flex items-center gap-3">
-                                <div className={`w-2.5 h-2.5 rounded-full ${isClosed ? 'bg-slate-200' : 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]'}`}></div>
-                                <span className="text-sm font-black text-slate-700 tracking-tight w-24">{day}</span>
-                              </div>
-                              
-                              <div className="flex items-center gap-3 w-full sm:w-auto">
-                                {!isClosed ? (
-                                  <div className="flex items-center gap-2 bg-slate-50 p-1 rounded-xl border border-slate-100/50">
-                                    <input 
-                                      type="time" 
-                                      value={open}
-                                      onChange={(e) => {
-                                        const newTiming = `${e.target.value}-${close}`;
-                                        updateField('timings', { ...profileData.timings, [day]: newTiming });
-                                      }}
-                                      className="bg-transparent px-2 py-1.5 text-[11px] font-bold text-slate-600 outline-none focus:text-indigo-600 transition-colors"
-                                    />
-                                    <span className="text-[10px] font-black text-slate-300 uppercase">to</span>
-                                    <input 
-                                      type="time" 
-                                      value={close}
-                                      onChange={(e) => {
-                                        const newTiming = `${open}-${e.target.value}`;
-                                        updateField('timings', { ...profileData.timings, [day]: newTiming });
-                                      }}
-                                      className="bg-transparent px-2 py-1.5 text-[11px] font-bold text-slate-600 outline-none focus:text-indigo-600 transition-colors"
-                                    />
-                                  </div>
-                                ) : (
-                                  <div className="flex-1 sm:flex-none text-center sm:text-left">
-                                    <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest bg-slate-50 px-4 py-2 rounded-xl border border-slate-100/50">Closed for the day</span>
-                                  </div>
-                                )}
-                                
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const newTiming = isClosed ? '09:00-18:00' : 'Closed';
-                                    updateField('timings', { ...profileData.timings, [day]: newTiming });
-                                  }}
-                                  className={`p-2.5 rounded-xl transition-all ${
-                                    isClosed 
-                                      ? 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100' 
-                                      : 'bg-rose-50 text-rose-600 hover:bg-rose-100'
-                                  }`}
-                                  title={isClosed ? 'Set Hours' : 'Mark Closed'}
-                                >
-                                  {isClosed ? <HiOutlinePlus size={18} /> : <HiOutlineXMark size={18} />}
-                                </button>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                      <p className="text-[10px] text-slate-400 font-medium italic ml-1 flex items-center gap-1.5">
-                        <HiOutlineClock size={12} />
-                        Your business hours will be displayed on your public profile.
-                      </p>
-                    </div>
-                  )}
-                </div>
-
-                <div className="pt-10 flex flex-col sm:flex-row items-center justify-between gap-6 border-t border-slate-100 mt-10">
-                  <div className="flex items-center gap-3 text-slate-400">
-                    <HiOutlineExclamationCircle size={18} />
-                    <p className="text-[11px] font-medium italic">All changes are updated immediately on your public listing.</p>
-                  </div>
-                  <button
-                    type="submit"
-                    disabled={updating}
-                    className="w-full sm:w-auto px-10 py-4.5 bg-slate-900 text-white rounded-[20px] font-black text-xs uppercase tracking-widest hover:bg-indigo-600 transition-all shadow-xl shadow-slate-900/10 active:scale-95 disabled:opacity-50 disabled:scale-100 flex items-center justify-center gap-3 group"
-                  >
-                    {updating ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                        <span>Processing...</span>
-                      </>
-                    ) : (
-                      <>
-                        <span>Save Changes</span>
-                        <HiOutlinePlus size={18} className="group-hover:rotate-90 transition-transform" />
-                      </>
-                    )}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
+          <SettingsTab
+            business={business}
+            profileData={profileData}
+            images={images}
+            profilePictureUrl={profilePictureUrl}
+            updating={updating}
+            successMessage={successMessage}
+            settingsTab={settingsTab}
+            setSettingsTab={setSettingsTab}
+            openAccordions={openAccordions}
+            toggleAccordion={toggleAccordion}
+            updateField={updateField}
+            handleUpdateProfile={handleUpdateProfile}
+            handleUploadSuccess={handleUploadSuccess}
+            handleSetProfile={handleSetProfile}
+            setImageToDelete={setImageToDelete}
+            setShowDeleteModal={setShowDeleteModal}
+            focusedImage={focusedImage}
+            setFocusedImage={setFocusedImage}
+            showDeleteModal={showDeleteModal}
+            handleDeleteImage={handleDeleteImage}
+          />
         )}
       </main>
-
-      {/* Delete Confirmation Modal */}
-      {showDeleteModal && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-[2px] z-[100] flex items-center justify-center p-4 animate-in fade-in duration-300">
-          <div className="bg-white rounded-[32px] shadow-2xl p-8 w-full max-w-sm relative overflow-hidden animate-in zoom-in-95 duration-300 border border-gray-100">
-            <div className="flex flex-col items-center text-center space-y-6">
-              <div className="w-20 h-20 bg-rose-50 rounded-3xl flex items-center justify-center text-rose-600">
-                <HiOutlineExclamationCircle size={40} />
-              </div>
-              
-              <div className="space-y-2">
-                <h3 className="text-2xl font-black text-slate-900 tracking-tight">Delete Photo?</h3>
-                <p className="text-slate-500 text-sm leading-relaxed">
-                  Are you sure you want to remove this image? This action cannot be undone.
-                </p>
-              </div>
-
-              <div className="flex gap-3 w-full pt-2">
-                <button 
-                  onClick={() => {
-                    setShowDeleteModal(false);
-                    setImageToDelete(null);
-                  }}
-                  className="flex-1 px-6 py-3.5 rounded-xl font-bold text-xs uppercase tracking-wider text-slate-600 bg-slate-50 hover:bg-slate-100 transition-all active:scale-95"
-                >
-                  Cancel
-                </button>
-                <button 
-                  onClick={handleDeleteImage}
-                  disabled={updating}
-                  className="flex-1 px-6 py-3.5 rounded-xl font-bold text-xs uppercase tracking-wider text-white bg-rose-600 hover:bg-rose-700 transition-all shadow-lg shadow-rose-600/20 active:scale-95 disabled:opacity-50 disabled:scale-100"
-                >
-                  {updating ? 'Deleting...' : 'Delete'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Success Notification Toast */}
-      {successMessage && (
-        <div className="fixed bottom-24 lg:bottom-8 right-8 z-[100] animate-in slide-in-from-right-10 duration-500">
-          <div className="bg-slate-900 text-white px-6 py-3.5 rounded-2xl shadow-2xl flex items-center gap-3 border border-white/10 backdrop-blur-md">
-            <div className="w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center">
-              <HiOutlineShieldCheck size={14} className="text-white" />
-            </div>
-            <p className="text-xs font-bold tracking-wide">{successMessage}</p>
-          </div>
-        </div>
-      )}
 
       <style jsx global>{`
         .custom-scrollbar::-webkit-scrollbar {

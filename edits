@@ -1,7 +1,7 @@
-fix the z-index issue of notification in /business/dashboard 
 
-in merchant panel, you have brough Plan Status box above the menu items, bring it below menu items and sign out button now hiding behind the bottom navigation bar, send sign out button a little upwards.  
 
-make the payment and kyc badge little compact in mobile view. 
+throughout the dashboard use only google sans font, no other font with no artificial letter spacing 
 
-throughout the dashboard use only google sans font, no other font with no artificial letter spacing
+
+Settings tab not looking well, redesign well, proper ui, proper direction and categorization, all the missing fields must be red so that user can recognise easily and non ai and good ui look
+
