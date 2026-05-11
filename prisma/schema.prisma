@@ -61,11 +61,11 @@ model Business {
   youtubeUrl                                             String?
   review                                                 Json?
   reviewReply                                            Json?
+  jobs                                                   Job[]
   categories_categories_position_1_business_idToBusiness categories[] @relation("categories_position_1_business_idToBusiness")
   categories_categories_position_2_business_idToBusiness categories[] @relation("categories_position_2_business_idToBusiness")
   categories_categories_position_3_business_idToBusiness categories[] @relation("categories_position_3_business_idToBusiness")
   leads                                                  leads[]
-  jobs                                                   Job[]
 }
 
 model Job {
@@ -78,9 +78,9 @@ model Job {
   department  String?
   status      String   @default("active")
   businessId  String
-  business    Business @relation(fields: [businessId], references: [id])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  business    Business @relation(fields: [businessId], references: [id])
 }
 
 model categories {

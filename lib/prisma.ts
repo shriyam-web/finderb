@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
+import { Pool } from 'pg';
 
 if (process.env.NODE_ENV !== 'production') {
   require('dotenv').config({ override: true });
@@ -30,8 +31,15 @@ try {
   console.warn('⚠️ Unable to parse DATABASE_URL for runtime logging');
 }
 
+const pool = new Pool({ 
+  connectionString: databaseUrl,
+  max: 10,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 10000,
+});
+
 const prismaConfig: ConstructorParameters<typeof PrismaClient>[0] = {
-  adapter: new PrismaPg(databaseUrl),
+  adapter: new PrismaPg(pool),
   log: ['query', 'error'] as Array<'query' | 'error'>,
   errorFormat: 'pretty',
 };
