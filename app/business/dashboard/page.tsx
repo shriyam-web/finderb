@@ -51,7 +51,6 @@ function DashboardContent() {
   const searchParams = useSearchParams();
   const id = searchParams.get('id');
   const [activeTab, setActiveTab] = useState('overview');
-  const [settingsTab, setSettingsTab] = useState('media');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -64,9 +63,14 @@ function DashboardContent() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [imageToDelete, setImageToDelete] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [focusedImage, setFocusedImage] = useState<number | null>(null);
-  const [openAccordions, setOpenAccordions] = useState<string[]>(['basic']);
   const [copiedId, setCopiedId] = useState(false);
+  const [openAccordions, setOpenAccordions] = useState<string[]>(['merchant']);
+
+  const toggleAccordion = (id: string) => {
+    setOpenAccordions(prev => 
+      prev.includes(id) ? prev.filter(a => a !== id) : [...prev, id]
+    );
+  };
 
   const handleCopyId = (id: string) => {
     navigator.clipboard.writeText(id);
@@ -86,12 +90,6 @@ function DashboardContent() {
     'Special Festive Discount',
     'Seasonal Offer'
   ];
-
-  const toggleAccordion = (id: string) => {
-    setOpenAccordions(prev => 
-      prev.includes(id) ? prev.filter(a => a !== id) : [...prev, id]
-    );
-  };
   
   // New Profile Fields State
   const [profileData, setProfileData] = useState({
@@ -1464,18 +1462,12 @@ function DashboardContent() {
             profilePictureUrl={profilePictureUrl}
             updating={updating}
             successMessage={successMessage}
-            settingsTab={settingsTab}
-            setSettingsTab={setSettingsTab}
-            openAccordions={openAccordions}
-            toggleAccordion={toggleAccordion}
             updateField={updateField}
             handleUpdateProfile={handleUpdateProfile}
             handleUploadSuccess={handleUploadSuccess}
             handleSetProfile={handleSetProfile}
             setImageToDelete={setImageToDelete}
             setShowDeleteModal={setShowDeleteModal}
-            focusedImage={focusedImage}
-            setFocusedImage={setFocusedImage}
             showDeleteModal={showDeleteModal}
             handleDeleteImage={handleDeleteImage}
           />

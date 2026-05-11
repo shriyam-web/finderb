@@ -35,18 +35,12 @@ interface SettingsTabProps {
   profilePictureUrl: string | null;
   updating: boolean;
   successMessage: string | null;
-  settingsTab: string;
-  setSettingsTab: (tab: string) => void;
-  openAccordions: string[];
-  toggleAccordion: (id: string) => void;
   updateField: (field: string, value: any) => void;
   handleUpdateProfile: (e: React.FormEvent) => Promise<void>;
   handleUploadSuccess: (result: any) => Promise<void>;
   handleSetProfile: (url: string) => Promise<void>;
   setImageToDelete: (url: string | null) => void;
   setShowDeleteModal: (show: boolean) => void;
-  focusedImage: number | null;
-  setFocusedImage: (index: number | null) => void;
   showDeleteModal: boolean;
   handleDeleteImage: () => Promise<void>;
 }
@@ -69,47 +63,41 @@ export default function SettingsTab({
   profilePictureUrl,
   updating,
   successMessage,
-  settingsTab,
-  setSettingsTab,
-  openAccordions,
-  toggleAccordion,
   updateField,
   handleUpdateProfile,
   handleUploadSuccess,
   handleSetProfile,
   setImageToDelete,
   setShowDeleteModal,
-  focusedImage,
-  setFocusedImage,
   showDeleteModal,
   handleDeleteImage
 }: SettingsTabProps) {
   const [activeModal, setActiveModal] = useState<string | null>(null);
 
   const fields = [
-    { key: 'media', label: 'Business Photos', icon: HiOutlinePhoto, type: 'media' },
-    { key: 'businessName', label: 'Business Name', icon: HiOutlineBriefcase, type: 'text' },
-    { key: 'displayName', label: 'Display Name', icon: HiOutlineUser, type: 'text' },
-    { key: 'category', label: 'Business Category', icon: HiOutlineTag, type: 'text' },
-    { key: 'about', label: 'About Business', icon: HiOutlineInformationCircle, type: 'textarea' },
-    { key: 'keywords', label: 'Search Keywords', icon: HiOutlineHashtag, type: 'keywords' },
-    { key: 'email', label: 'Official Email', icon: HiOutlineEnvelope, type: 'text' },
-    { key: 'publicPhone', label: 'Public Phone', icon: HiOutlinePhone, type: 'text' },
-    { key: 'whatsappNumber', label: 'WhatsApp', icon: FaWhatsapp, type: 'text' },
-    { key: 'website', label: 'Website URL', icon: HiOutlineGlobeAlt, type: 'text' },
-    { key: 'instagramUrl', label: 'Instagram', icon: FaInstagram, type: 'text' },
-    { key: 'facebookUrl', label: 'Facebook', icon: FaFacebook, type: 'text' },
-    { key: 'youtubeUrl', label: 'YouTube', icon: FaYoutube, type: 'text' },
-    { key: 'businessAddress', label: 'Street Address', icon: HiOutlineMapPin, type: 'text' },
-    { key: 'city', label: 'City', icon: HiOutlineMapPin, type: 'text' },
-    { key: 'state', label: 'State', icon: HiOutlineMapPin, type: 'text' },
-    { key: 'country', label: 'Country', icon: HiOutlineGlobeAlt, type: 'text' },
-    { key: 'latitude', label: 'Latitude', icon: HiOutlineMap, type: 'number' },
-    { key: 'longitude', label: 'Longitude', icon: HiOutlineMap, type: 'number' },
-    { key: 'serviceCategory', label: 'Service Category', icon: HiOutlineQueueList, type: 'text' },
-    { key: 'yearsInBusiness', label: 'Years Active', icon: HiOutlineCalendar, type: 'number' },
-    { key: 'discountRange', label: 'Discount Offer', icon: HiOutlineTag, type: 'select', options: discountOptions },
-    { key: 'timings', label: 'Business Hours', icon: HiOutlineClock, type: 'timings' },
+    { key: 'media', label: 'Business Photos', icon: HiOutlinePhoto, type: 'media', significance: 'First impression for customers' },
+    { key: 'businessName', label: 'Business Name', icon: HiOutlineBriefcase, type: 'text', significance: 'Official brand identity' },
+    { key: 'displayName', label: 'Display Name', icon: HiOutlineUser, type: 'text', significance: 'How you appear in search' },
+    { key: 'category', label: 'Business Category', icon: HiOutlineTag, type: 'text', significance: 'Critical for discovery' },
+    { key: 'about', label: 'About Business', icon: HiOutlineInformationCircle, type: 'textarea', significance: 'Tell your brand story' },
+    { key: 'keywords', label: 'Search Keywords', icon: HiOutlineHashtag, type: 'keywords', significance: 'Boost SEO performance' },
+    { key: 'email', label: 'Official Email', icon: HiOutlineEnvelope, type: 'text', significance: 'Professional communication' },
+    { key: 'publicPhone', label: 'Public Phone', icon: HiOutlinePhone, type: 'text', significance: 'Primary customer contact' },
+    { key: 'whatsappNumber', label: 'WhatsApp', icon: FaWhatsapp, type: 'text', significance: 'Direct instant messaging' },
+    { key: 'website', label: 'Website URL', icon: HiOutlineGlobeAlt, type: 'text', significance: 'Drive external traffic' },
+    { key: 'instagramUrl', label: 'Instagram', icon: FaInstagram, type: 'text', significance: 'Visual social proof' },
+    { key: 'facebookUrl', label: 'Facebook', icon: FaFacebook, type: 'text', significance: 'Community engagement' },
+    { key: 'youtubeUrl', label: 'YouTube', icon: FaYoutube, type: 'text', significance: 'Video content reach' },
+    { key: 'businessAddress', label: 'Street Address', icon: HiOutlineMapPin, type: 'text', significance: 'Physical location access' },
+    { key: 'city', label: 'City', icon: HiOutlineMapPin, type: 'text', significance: 'Local search relevance' },
+    { key: 'state', label: 'State', icon: HiOutlineMapPin, type: 'text', significance: 'Regional identification' },
+    { key: 'country', label: 'Country', icon: HiOutlineGlobeAlt, type: 'text', significance: 'Global location context' },
+    { key: 'latitude', label: 'Latitude', icon: HiOutlineMap, type: 'number', significance: 'Precise GPS navigation' },
+    { key: 'longitude', label: 'Longitude', icon: HiOutlineMap, type: 'number', significance: 'Precise GPS navigation' },
+    { key: 'serviceCategory', label: 'Service Category', icon: HiOutlineQueueList, type: 'text', significance: 'Specific niche targeting' },
+    { key: 'yearsInBusiness', label: 'Years Active', icon: HiOutlineCalendar, type: 'number', significance: 'Establishes industry trust' },
+    { key: 'discountRange', label: 'Discount Offer', icon: HiOutlineTag, type: 'select', options: discountOptions, significance: 'Convert price-sensitive leads' },
+    { key: 'timings', label: 'Business Hours', icon: HiOutlineClock, type: 'timings', significance: 'Inform opening status' },
   ];
 
   const checkIsMissing = (field: any) => {
@@ -138,46 +126,57 @@ export default function SettingsTab({
       <button
         type="button"
         onClick={() => setActiveModal(field.key)}
-        className={`group p-5 rounded-[28px] border transition-all text-left flex flex-col gap-4 relative overflow-hidden ${
+        className={`group p-4 rounded-[24px] border transition-all text-left flex flex-col gap-2 relative overflow-hidden ${
           isMissing 
             ? 'bg-rose-50/30 border-rose-100 hover:border-rose-200' 
             : 'bg-white border-slate-100 hover:border-indigo-200 hover:shadow-xl hover:shadow-indigo-500/5'
         }`}
       >
         <div className="flex items-center justify-between relative z-10">
-          <div className={`w-11 h-11 rounded-2xl flex items-center justify-center transition-colors ${
+          <div className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors ${
             isMissing 
               ? 'bg-rose-100 text-rose-600' 
               : 'bg-slate-50 text-slate-400 group-hover:bg-indigo-50 group-hover:text-indigo-600'
           }`}>
-            <Icon size={22} />
+            <Icon size={18} />
           </div>
           {isMissing ? (
-            <div className="flex items-center gap-1.5 bg-rose-100 px-2.5 py-1 rounded-full">
+            <div className="flex items-center gap-1.5 bg-rose-100 px-2 py-0.5 rounded-full">
               <div className="w-1 h-1 rounded-full bg-rose-600 animate-pulse"></div>
-              <span className="text-[9px] font-black uppercase tracking-widest text-rose-600">Missing</span>
+              <span className="text-[8px] font-black uppercase tracking-widest text-rose-600">Missing</span>
             </div>
           ) : (
-            <HiOutlineChevronRight size={14} className="text-slate-300 group-hover:text-indigo-400 transition-transform group-hover:translate-x-0.5" />
+            <HiOutlineChevronRight size={12} className="text-slate-300 group-hover:text-indigo-400 transition-transform group-hover:translate-x-0.5" />
           )}
         </div>
         
-        <div className="space-y-1 relative z-10">
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{field.label}</p>
+        <div className="space-y-0.5 relative z-10">
+          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">{field.label}</p>
           <p className={`text-sm font-black truncate ${isMissing ? 'text-rose-400 italic' : 'text-slate-900'}`}>
             {displayValue}
           </p>
+          <p className="text-[10px] text-slate-500 font-medium line-clamp-1 opacity-70 group-hover:opacity-100 transition-opacity">
+            {field.significance}
+          </p>
         </div>
 
-        <div className={`absolute -right-4 -bottom-4 w-24 h-24 rounded-full transition-opacity duration-500 ${
+        <div className={`absolute -right-4 -bottom-4 w-20 h-20 rounded-full transition-opacity duration-500 ${
           isMissing ? 'bg-rose-50 opacity-50' : 'bg-indigo-50/30 opacity-0 group-hover:opacity-100'
         }`}></div>
       </button>
     );
   };
 
+  const sortedFields = [...fields].sort((a, b) => {
+    const aMissing = checkIsMissing(a);
+    const bMissing = checkIsMissing(b);
+    if (aMissing && !bMissing) return -1;
+    if (!aMissing && bMissing) return 1;
+    return 0;
+  });
+
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div className="space-y-8 pb-32 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
           <h2 className="text-3xl font-black text-slate-900 tracking-tight">Business Profile</h2>
@@ -192,7 +191,7 @@ export default function SettingsTab({
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
-        {fields.map((field) => (
+        {sortedFields.map((field) => (
           <InfoCard key={field.key} field={field} />
         ))}
       </div>
