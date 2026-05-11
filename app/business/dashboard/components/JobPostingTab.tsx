@@ -135,98 +135,122 @@ export default function JobPostingTab({ businessId }: JobPostingTabProps) {
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 font-sans">
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
       {message && (
-        <div className={`fixed top-4 right-4 z-[110] p-4 rounded-2xl shadow-2xl animate-in slide-in-from-right duration-300 ${
-          message.type === 'success' ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'
+        <div className={`fixed top-6 right-6 z-[110] px-6 py-4 rounded-2xl shadow-2xl animate-in slide-in-from-right duration-300 backdrop-blur-md ${
+          message.type === 'success' ? 'bg-emerald-500/90 text-white' : 'bg-rose-500/90 text-white'
         }`}>
-          <p className="font-bold text-sm">{message.text}</p>
+          <div className="flex items-center gap-3">
+            {message.type === 'success' ? (
+              <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
+            ) : (
+              <HiOutlineExclamationCircle size={18} />
+            )}
+            <p className="font-semibold text-sm">{message.text}</p>
+          </div>
         </div>
       )}
 
       {/* Header Section */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white p-8 lg:p-10 rounded-[40px] border border-gray-100 shadow-premium">
-        <div>
-          <div className="flex items-center gap-3 mb-2">
-            <h3 className="text-2xl font-black text-slate-900 tracking-tight">Job Postings</h3>
-            <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${isLimitReached ? 'bg-amber-100 text-amber-600' : 'bg-indigo-50 text-indigo-600'}`}>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 bg-white p-6 md:p-8 rounded-3xl border border-slate-200/60 shadow-sm relative overflow-hidden group">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-50/50 rounded-full -mr-16 -mt-16 blur-3xl group-hover:bg-indigo-100/50 transition-colors duration-700"></div>
+        <div className="relative z-10">
+          <div className="flex items-center gap-3 mb-1.5">
+            <h3 className="text-xl md:text-2xl font-bold text-slate-900 tracking-tight">Job Postings</h3>
+            <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold ${
+              isLimitReached ? 'bg-amber-50 text-amber-600 border border-amber-100' : 'bg-indigo-50 text-indigo-600 border border-indigo-100'
+            }`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${isLimitReached ? 'bg-amber-500' : 'bg-indigo-500 animate-pulse'}`}></span>
               {activeJobsCount}/3 Active
-            </span>
+            </div>
           </div>
-          <p className="text-slate-500 text-sm font-medium">Manage your business's open positions and find the best talent.</p>
+          <p className="text-slate-500 text-sm font-medium">Manage your openings and find great talent.</p>
           {isLimitReached && (
-            <p className="text-amber-600 text-[10px] font-bold uppercase tracking-wider mt-2 flex items-center gap-1">
-              <HiOutlineExclamationCircle size={14} /> You have reached the maximum limit of 3 active job postings.
-            </p>
+            <div className="inline-flex items-center gap-2 mt-3 px-3 py-1.5 bg-amber-50/50 rounded-lg border border-amber-100/50">
+              <HiOutlineExclamationCircle size={14} className="text-amber-500" />
+              <p className="text-amber-700 text-[11px] font-semibold uppercase tracking-wider">
+                Max limit of 3 active jobs reached
+              </p>
+            </div>
           )}
         </div>
         <button 
           onClick={() => handleOpenModal()}
           disabled={isLimitReached}
-          className={`flex items-center justify-center gap-2 px-8 py-4 rounded-2xl font-black text-sm uppercase tracking-widest transition-all shadow-xl active:scale-95 ${
+          className={`relative z-10 flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-xl font-bold text-sm transition-all active:scale-[0.98] ${
             isLimitReached 
-            ? 'bg-slate-100 text-slate-400 cursor-not-allowed shadow-none' 
-            : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-600/20'
+            ? 'bg-slate-100 text-slate-400 cursor-not-allowed' 
+            : 'bg-slate-900 hover:bg-slate-800 text-white shadow-lg shadow-slate-200'
           }`}
         >
-          <HiOutlinePlus size={20} />
+          <HiOutlinePlus size={18} />
           Post a New Job
         </button>
       </div>
 
       {/* Jobs List */}
-      <div className="grid gap-6">
+      <div className="grid gap-4 md:gap-5">
         {loading ? (
-          <div className="bg-white p-20 rounded-[40px] border border-gray-100 flex items-center justify-center">
-            <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+          <div className="bg-white p-20 rounded-3xl border border-slate-200/60 flex flex-col items-center justify-center gap-4">
+            <div className="w-10 h-10 border-3 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+            <p className="text-slate-400 text-sm font-medium animate-pulse">Fetching your jobs...</p>
           </div>
         ) : jobs.length === 0 ? (
-          <div className="bg-white p-20 rounded-[40px] border border-dashed border-gray-200 text-center space-y-4">
-            <div className="w-20 h-20 bg-slate-50 rounded-3xl flex items-center justify-center text-slate-300 mx-auto">
-              <HiOutlineBriefcase size={40} />
+          <div className="bg-slate-50/50 p-12 md:p-20 rounded-3xl border border-dashed border-slate-300 text-center space-y-6">
+            <div className="w-20 h-20 bg-white rounded-2xl shadow-sm border border-slate-100 flex items-center justify-center text-slate-300 mx-auto">
+              <HiOutlineBriefcase size={36} />
             </div>
-            <div>
-              <p className="text-slate-900 font-black text-xl">No active job postings</p>
-              <p className="text-slate-500 font-medium">Post your first job to start receiving applications.</p>
+            <div className="max-w-xs mx-auto">
+              <p className="text-slate-900 font-bold text-lg">No active job postings</p>
+              <p className="text-slate-500 text-sm font-medium mt-1">Ready to expand your team? Post your first job opening today.</p>
             </div>
+            <button 
+              onClick={() => handleOpenModal()}
+              className="px-6 py-3 bg-white border border-slate-200 text-slate-900 font-bold text-sm rounded-xl hover:bg-slate-50 transition-all shadow-sm"
+            >
+              Get Started
+            </button>
           </div>
         ) : (
           jobs.map((job) => (
-            <div key={job.id} className="group bg-white p-8 md:p-10 rounded-[40px] border border-gray-100 hover:border-indigo-100 hover:shadow-premium transition-all duration-500 flex flex-col md:flex-row md:items-center justify-between gap-8">
-              <div className="flex items-start gap-6">
-                <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center text-indigo-600 group-hover:scale-110 group-hover:bg-indigo-50 transition-all duration-500">
-                  <HiOutlineBriefcase size={28} />
+            <div key={job.id} className="group bg-white p-5 md:p-6 rounded-3xl border border-slate-200/60 hover:border-indigo-200 hover:shadow-xl hover:shadow-indigo-500/5 transition-all duration-300 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+              <div className="flex items-center gap-5">
+                <div className="shrink-0 w-14 h-14 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400 group-hover:text-indigo-600 group-hover:bg-indigo-50 transition-all duration-300 border border-slate-100">
+                  <HiOutlineBriefcase size={24} />
                 </div>
-                <div className="space-y-2">
-                  <div className="flex flex-wrap gap-2">
-                    <span className="bg-indigo-50 text-indigo-600 px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest">{job.type}</span>
-                    <span className="bg-emerald-50 text-emerald-600 px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest">{job.status}</span>
-                    {job.department && (
-                      <span className="bg-slate-50 text-slate-500 px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest">{job.department}</span>
-                    )}
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                    <span className="bg-indigo-50/50 text-indigo-600 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border border-indigo-100/50">{job.type}</span>
+                    <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border ${
+                      job.status === 'active' 
+                      ? 'bg-emerald-50/50 text-emerald-600 border-emerald-100/50' 
+                      : 'bg-slate-50/50 text-slate-500 border-slate-100/50'
+                    }`}>{job.status}</span>
                   </div>
-                  <h4 className="text-xl font-black text-slate-900 tracking-tight">{job.title}</h4>
-                  <div className="flex flex-wrap items-center gap-4 text-[11px] font-bold text-slate-400">
-                    <span className="flex items-center gap-1.5"><HiOutlineMapPin size={14} className="text-indigo-500" /> {job.location}</span>
+                  <h4 className="text-lg font-bold text-slate-900 tracking-tight truncate group-hover:text-indigo-600 transition-colors">{job.title}</h4>
+                  <div className="flex flex-wrap items-center gap-y-1 gap-x-4 mt-1 text-[12px] font-medium text-slate-500">
+                    <span className="flex items-center gap-1.5"><HiOutlineMapPin size={14} className="text-slate-400" /> {job.location}</span>
                     {job.salary && (
-                      <span className="flex items-center gap-1.5"><HiOutlineCurrencyRupee size={14} className="text-emerald-500" /> {job.salary}</span>
+                      <span className="flex items-center gap-1.5"><HiOutlineCurrencyRupee size={14} className="text-slate-400" /> {job.salary}</span>
                     )}
-                    <span className="flex items-center gap-1.5"><HiOutlineClock size={14} /> {formatDate(job.createdAt)}</span>
+                    <span className="flex items-center gap-1.5"><HiOutlineClock size={14} className="text-slate-400" /> {formatDate(job.createdAt)}</span>
                   </div>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 sm:self-center">
                 <button 
                   onClick={() => handleOpenModal(job)}
-                  className="p-4 bg-slate-50 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-2xl transition-all"
+                  className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-50 text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all border border-slate-100 hover:border-indigo-100 font-semibold text-sm"
                 >
-                  <HiOutlinePencilSquare size={20} />
+                  <HiOutlinePencilSquare size={18} />
+                  <span className="sm:hidden lg:inline">Edit</span>
                 </button>
                 <button 
                   onClick={() => handleDeleteJob(job.id)}
-                  className="p-4 bg-slate-50 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-2xl transition-all"
+                  className="p-2.5 bg-slate-50 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all border border-slate-100 hover:border-rose-100"
+                  title="Delete Job"
                 >
-                  <HiOutlineTrash size={20} />
+                  <HiOutlineTrash size={18} />
                 </button>
               </div>
             </div>
@@ -236,117 +260,121 @@ export default function JobPostingTab({ businessId }: JobPostingTabProps) {
 
       {/* Post/Edit Job Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-6 font-sans">
-          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => setIsModalOpen(false)}></div>
-          <div className="relative w-full max-w-2xl bg-white rounded-[40px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
-            <div className="p-8 lg:p-10 border-b border-gray-100 flex items-center justify-between bg-slate-50/50">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-0 md:p-6">
+          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => setIsModalOpen(false)}></div>
+          <div className="relative w-full max-w-2xl bg-white h-full md:h-auto md:rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-4 md:slide-in-from-bottom-0 duration-300 flex flex-col">
+            <div className="p-6 md:p-8 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
               <div>
-                <h3 className="text-2xl font-black text-slate-900 tracking-tight">{editingJob ? 'Update Job Posting' : 'Post a New Job'}</h3>
+                <h3 className="text-xl font-bold text-slate-900 tracking-tight">{editingJob ? 'Update Job Posting' : 'Post a New Job'}</h3>
                 <p className="text-slate-500 text-sm font-medium">Fill in the details for your job opening.</p>
               </div>
-              <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-white rounded-xl text-slate-400 transition-all border border-transparent hover:border-gray-100 shadow-sm">
-                <HiOutlineXMark size={24} />
+              <button onClick={() => setIsModalOpen(false)} className="p-2.5 hover:bg-white rounded-xl text-slate-400 transition-all border border-transparent hover:border-slate-100 shadow-sm active:scale-95">
+                <HiOutlineXMark size={20} />
               </button>
             </div>
             
-            <form onSubmit={handleSubmit} className="p-8 lg:p-10 space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Job Title</label>
+            <form onSubmit={handleSubmit} className="p-6 md:p-8 space-y-5 overflow-y-auto max-h-[calc(100vh-160px)] md:max-h-[70vh]">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider ml-1">Job Title</label>
                   <div className="relative group">
-                    <HiOutlineBriefcase className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors" size={20} />
+                    <HiOutlineBriefcase className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors" size={18} />
                     <input 
                       required
                       type="text" 
                       placeholder="e.g. Sales Executive"
-                      className="w-full bg-slate-50 border border-gray-100 rounded-2xl pl-14 pr-5 py-4 text-sm font-bold text-slate-900 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:bg-white focus:border-indigo-600 transition-all"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-11 pr-4 py-3 text-sm font-semibold text-slate-900 focus:outline-none focus:ring-4 focus:ring-indigo-500/5 focus:bg-white focus:border-indigo-500 transition-all"
                       value={formData.title}
                       onChange={(e) => setFormData({...formData, title: e.target.value})}
                     />
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Job Type</label>
-                  <select 
-                    className="w-full bg-slate-50 border border-gray-100 rounded-2xl px-5 py-4 text-sm font-bold text-slate-900 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:bg-white focus:border-indigo-600 transition-all appearance-none"
-                    value={formData.type}
-                    onChange={(e) => setFormData({...formData, type: e.target.value})}
-                  >
-                    <option>Full-time</option>
-                    <option>Part-time</option>
-                    <option>Contract</option>
-                    <option>Internship</option>
-                  </select>
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider ml-1">Job Type</label>
+                  <div className="relative">
+                    <select 
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-900 focus:outline-none focus:ring-4 focus:ring-indigo-500/5 focus:bg-white focus:border-indigo-500 transition-all appearance-none cursor-pointer"
+                      value={formData.type}
+                      onChange={(e) => setFormData({...formData, type: e.target.value})}
+                    >
+                      <option>Full-time</option>
+                      <option>Part-time</option>
+                      <option>Contract</option>
+                      <option>Internship</option>
+                    </select>
+                    <HiOutlineClock className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={16} />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Location</label>
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider ml-1">Location</label>
                   <div className="relative group">
-                    <HiOutlineMapPin className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors" size={20} />
+                    <HiOutlineMapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors" size={18} />
                     <input 
                       required
                       type="text" 
                       placeholder="e.g. Mumbai, Hybrid"
-                      className="w-full bg-slate-50 border border-gray-100 rounded-2xl pl-14 pr-5 py-4 text-sm font-bold text-slate-900 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:bg-white focus:border-indigo-600 transition-all"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-11 pr-4 py-3 text-sm font-semibold text-slate-900 focus:outline-none focus:ring-4 focus:ring-indigo-500/5 focus:bg-white focus:border-indigo-500 transition-all"
                       value={formData.location}
                       onChange={(e) => setFormData({...formData, location: e.target.value})}
                     />
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Salary Range</label>
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider ml-1">Salary Range</label>
                   <div className="relative group">
-                    <HiOutlineCurrencyRupee className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors" size={20} />
+                    <HiOutlineCurrencyRupee className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors" size={18} />
                     <input 
                       type="text" 
                       placeholder="e.g. ₹5L - ₹8L"
-                      className="w-full bg-slate-50 border border-gray-100 rounded-2xl pl-14 pr-5 py-4 text-sm font-bold text-slate-900 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:bg-white focus:border-indigo-600 transition-all"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-11 pr-4 py-3 text-sm font-semibold text-slate-900 focus:outline-none focus:ring-4 focus:ring-indigo-500/5 focus:bg-white focus:border-indigo-500 transition-all"
                       value={formData.salary}
                       onChange={(e) => setFormData({...formData, salary: e.target.value})}
                     />
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Department</label>
+                <div className="md:col-span-2 space-y-1.5">
+                  <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider ml-1">Department</label>
                   <div className="relative group">
-                    <HiOutlineBuildingOffice2 className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors" size={20} />
+                    <HiOutlineBuildingOffice2 className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors" size={18} />
                     <input 
                       type="text" 
-                      placeholder="e.g. Engineering"
-                      className="w-full bg-slate-50 border border-gray-100 rounded-2xl pl-14 pr-5 py-4 text-sm font-bold text-slate-900 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:bg-white focus:border-indigo-600 transition-all"
+                      placeholder="e.g. Engineering, Sales, Marketing"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-11 pr-4 py-3 text-sm font-semibold text-slate-900 focus:outline-none focus:ring-4 focus:ring-indigo-500/5 focus:bg-white focus:border-indigo-500 transition-all"
                       value={formData.department}
                       onChange={(e) => setFormData({...formData, department: e.target.value})}
                     />
                   </div>
                 </div>
               </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Job Description</label>
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider ml-1">Job Description</label>
                 <textarea 
                   required
                   rows={4}
                   placeholder="Describe the roles, responsibilities, and requirements..."
-                  className="w-full bg-slate-50 border border-gray-100 rounded-2xl px-5 py-4 text-sm font-bold text-slate-900 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:bg-white focus:border-indigo-600 transition-all resize-none"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-900 focus:outline-none focus:ring-4 focus:ring-indigo-500/5 focus:bg-white focus:border-indigo-500 transition-all resize-none min-h-[120px]"
                   value={formData.description}
                   onChange={(e) => setFormData({...formData, description: e.target.value})}
                 ></textarea>
               </div>
-              <div className="pt-4 flex gap-4">
+              
+              <div className="pt-4 flex flex-col-reverse sm:flex-row gap-3">
                 <button 
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="flex-1 bg-slate-50 hover:bg-slate-100 text-slate-600 py-5 rounded-2xl font-black text-sm uppercase tracking-widest transition-all active:scale-95"
+                  className="flex-1 px-6 py-3.5 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-xl font-bold text-sm transition-all active:scale-[0.98] border border-slate-200"
                 >
                   Cancel
                 </button>
                 <button 
                   type="submit"
                   disabled={submitting}
-                  className="flex-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white py-5 px-10 rounded-2xl font-black text-sm uppercase tracking-widest transition-all shadow-xl shadow-indigo-600/20 active:scale-95 flex items-center justify-center gap-2"
+                  className="flex-[2] px-6 py-3.5 bg-slate-900 hover:bg-slate-800 disabled:bg-slate-400 text-white rounded-xl font-bold text-sm transition-all shadow-lg shadow-slate-200 active:scale-[0.98] flex items-center justify-center gap-2"
                 >
                   {submitting ? (
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                   ) : (
-                    <>{editingJob ? 'Update Job' : 'Publish Job'}</>
+                    <>{editingJob ? 'Save Changes' : 'Publish Job Opening'}</>
                   )}
                 </button>
               </div>
