@@ -1122,7 +1122,7 @@ function DashboardContent() {
                 </div>
               </div>
             )}
-
+{/* hello */}
             {/* Merchant Info Card - Premium Look */}
             {activeTab === 'overview' && (
               <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden transition-all hover:shadow-premium-hover">
@@ -1144,7 +1144,7 @@ function DashboardContent() {
                       className="text-xs font-bold text-indigo-600 hover:text-indigo-700 transition-colors flex items-center gap-1.5"
                     >
                       <HiOutlineEye size={16} />
-                      <span className="hidden sm:inline">Public View</span>
+                      <span className="hidden sm:inline">View Profile</span>
                     </Link>
                     <div className="h-4 w-px bg-slate-100 hidden sm:block"></div>
                     {openAccordions.includes('merchant') ? <HiChevronUp size={20} className="text-slate-400" /> : <HiChevronDown size={20} className="text-slate-400" />}
