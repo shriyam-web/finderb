@@ -11,6 +11,8 @@ const databaseUrl =
   process.env.DATABASE_URL ||
   process.env.DIRECT_URL;
 
+console.log('🔍 Database URL being used (obfuscated):', databaseUrl?.replace(/:[^:@]+@/, ':***@'));
+
 if (!databaseUrl) {
   const message =
     'DATABASE_URL is not available at runtime. Please add DATABASE_URL to your Vercel runtime environment variables.';
