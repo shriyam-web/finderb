@@ -10,7 +10,8 @@ import {
   HiOutlineXMark,
   HiOutlineTrash,
   HiOutlinePencilSquare,
-  HiOutlineBuildingOffice2
+  HiOutlineBuildingOffice2,
+  HiOutlineExclamationCircle
 } from 'react-icons/hi2';
 import { createJob, getJobsByBusiness, deleteJob, updateJob } from '@/app/actions/job';
 
@@ -60,6 +61,9 @@ export default function JobPostingTab({ businessId }: JobPostingTabProps) {
     setLoading(false);
   };
 
+  const activeJobsCount = jobs.filter(j => j.status === 'active').length;
+  const isLimitReached = activeJobsCount >= 3;
+
   const handleOpenModal = (job: Job | null = null) => {
     if (job) {
       setEditingJob(job);
@@ -71,11 +75,12 @@ export default function JobPostingTab({ businessId }: JobPostingTabProps) {
         description: job.description,
         department: job.department || ''
       });
-    } else {
+      setIsModalOpen(true);
+    } else if (!isLimitReached) {
       setEditingJob(null);
       setFormData({ title: '', type: 'Full-time', location: '', salary: '', description: '', department: '' });
+      setIsModalOpen(true);
     }
-    setIsModalOpen(true);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -142,12 +147,27 @@ export default function JobPostingTab({ businessId }: JobPostingTabProps) {
       {/* Header Section */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white p-8 lg:p-10 rounded-[40px] border border-gray-100 shadow-premium">
         <div>
-          <h3 className="text-2xl font-black text-slate-900 tracking-tight mb-2">Job Postings</h3>
+          <div className="flex items-center gap-3 mb-2">
+            <h3 className="text-2xl font-black text-slate-900 tracking-tight">Job Postings</h3>
+            <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${isLimitReached ? 'bg-amber-100 text-amber-600' : 'bg-indigo-50 text-indigo-600'}`}>
+              {activeJobsCount}/3 Active
+            </span>
+          </div>
           <p className="text-slate-500 text-sm font-medium">Manage your business's open positions and find the best talent.</p>
+          {isLimitReached && (
+            <p className="text-amber-600 text-[10px] font-bold uppercase tracking-wider mt-2 flex items-center gap-1">
+              <HiOutlineExclamationCircle size={14} /> You have reached the maximum limit of 3 active job postings.
+            </p>
+          )}
         </div>
         <button 
           onClick={() => handleOpenModal()}
-          className="flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 rounded-2xl font-black text-sm uppercase tracking-widest transition-all shadow-xl shadow-indigo-600/20 active:scale-95"
+          disabled={isLimitReached}
+          className={`flex items-center justify-center gap-2 px-8 py-4 rounded-2xl font-black text-sm uppercase tracking-widest transition-all shadow-xl active:scale-95 ${
+            isLimitReached 
+            ? 'bg-slate-100 text-slate-400 cursor-not-allowed shadow-none' 
+            : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-600/20'
+          }`}
         >
           <HiOutlinePlus size={20} />
           Post a New Job
