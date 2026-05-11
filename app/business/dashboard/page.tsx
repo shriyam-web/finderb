@@ -43,6 +43,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { getBusiness, updateBusinessImages, getBusinessSession, logoutBusiness, updateBusinessProfile } from '@/app/actions/business';
 import SettingsTab from './components/SettingsTab';
+import JobPostingTab from './components/JobPostingTab';
 import { CldUploadWidget } from 'next-cloudinary';
 import { createClient } from '@/utils/supabase/client';
 
@@ -1452,6 +1453,10 @@ function DashboardContent() {
               </div>
             )}
           </div>
+        )}
+
+        {activeTab === 'jobs' && businessId && (
+          <JobPostingTab businessId={businessId} />
         )}
 
         {activeTab === 'settings' && (

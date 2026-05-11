@@ -41,29 +41,46 @@ model Business {
   status                                                 String       @default("Active")
   images                                                 String[]     @default([])
   profilePictureUrl                                      String?
-  rating                                                 Float?
-  yearsInBusiness                                        Int?
+  about                                                  String?
+  discountRange                                          String?
   displayName                                            String?
+  facebookUrl                                            String?
+  instagramUrl                                           String?
   isFinderBVerified                                      Boolean      @default(false)
-  review                                                 Json?
-  reviewReply                                            Json?
+  keywords                                               String[]     @default([])
   latitude                                               Float?
   longitude                                              Float?
-  website                                                String?
-  instagramUrl                                           String?
-  facebookUrl                                            String?
-  whatsappNumber                                         String?
-  youtubeUrl                                             String?
-  about                                                  String?
-  keywords                                               String[]     @default([])
-  timings                                                Json?
-  discountRange                                          String?
-  serviceCategory                                        String?
   paymentModes                                           String[]     @default([])
   profileQrLink                                          String?
+  rating                                                 Float?
+  serviceCategory                                        String?
+  timings                                                Json?
+  website                                                String?
+  whatsappNumber                                         String?
+  yearsInBusiness                                        Int?
+  youtubeUrl                                             String?
+  review                                                 Json?
+  reviewReply                                            Json?
   categories_categories_position_1_business_idToBusiness categories[] @relation("categories_position_1_business_idToBusiness")
   categories_categories_position_2_business_idToBusiness categories[] @relation("categories_position_2_business_idToBusiness")
   categories_categories_position_3_business_idToBusiness categories[] @relation("categories_position_3_business_idToBusiness")
+  leads                                                  leads[]
+  jobs                                                   Job[]
+}
+
+model Job {
+  id          String   @id @default(cuid())
+  title       String
+  type        String
+  location    String
+  salary      String?
+  description String
+  department  String?
+  status      String   @default("active")
+  businessId  String
+  business    Business @relation(fields: [businessId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model categories {
@@ -84,6 +101,7 @@ model categories {
   slug                                                 String?
   keywords                                             String[]
   level                                                Int?         @default(1)
+  position                                             Int?         @default(0)
   categories                                           categories?  @relation("categoriesTocategories", fields: [parent_id], references: [id], onUpdate: NoAction)
   other_categories                                     categories[] @relation("categoriesTocategories")
   Business_categories_position_1_business_idToBusiness Business?    @relation("categories_position_1_business_idToBusiness", fields: [position_1_business_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -152,4 +170,31 @@ model admins {
   created_at   DateTime? @default(now()) @db.Timestamptz(6)
   is_disabled  Boolean?  @default(false)
   allowed_tabs String[]
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model broadcasts {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title           String?
+  message         String
+  target_audience String[]
+  created_at      DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime? @default(now()) @db.Timestamptz(6)
+}
+
+model leads {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String
+  email       String?
+  phone       String?
+  category    String
+  business_id String?
+  message     String?
+  status      String    @default("New")
+  created_at  DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime? @default(now()) @db.Timestamptz(6)
+  Business    Business? @relation(fields: [business_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([category])
+  @@index([status])
 }
