@@ -18,6 +18,7 @@ import { getFeaturedBusinesses } from '@/app/actions/business';
 import { getCategories } from '@/app/actions/category';
 import { getMovies } from '@/app/actions/movie';
 import { getTouristPlaces } from '@/app/actions/touristPlace';
+import { getBlogs } from '@/app/actions/blog';
 import { getSession } from '@/app/actions/user';
 import { Business, Category, Movie, TouristPlace } from '@/lib/mockData';
 import * as LucideIcons from 'lucide-react';
@@ -49,6 +50,7 @@ function HomeContent() {
   const [realCategories, setRealCategories] = useState<Category[]>(categories);
   const [realMovies, setRealMovies] = useState<Movie[]>(movies);
   const [realTouristPlaces, setRealTouristPlaces] = useState<TouristPlace[]>(touristPlaces);
+  const [realBlogs, setRealBlogs] = useState<any[]>(articles);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [aiLoadProgress, setAiLoadProgress] = useState(0);
@@ -66,11 +68,12 @@ function HomeContent() {
 
   useEffect(() => {
     async function fetchData() {
-      const [bizResult, catResult, movieResult, touristResult] = await Promise.all([
+      const [bizResult, catResult, movieResult, touristResult, blogResult] = await Promise.all([
         getFeaturedBusinesses(),
         getCategories(),
         getMovies(),
-        getTouristPlaces()
+        getTouristPlaces(),
+        getBlogs()
       ]);
 
       if (bizResult.success && bizResult.businesses && bizResult.businesses.length > 0) {
@@ -87,6 +90,10 @@ function HomeContent() {
 
       if (touristResult.success && touristResult.touristPlaces && touristResult.touristPlaces.length > 0) {
         setRealTouristPlaces(touristResult.touristPlaces);
+      }
+
+      if (blogResult.success && blogResult.blogs && blogResult.blogs.length > 0) {
+        setRealBlogs(blogResult.blogs);
       }
 
       setIsBusinessesLoading(false);
@@ -632,8 +639,8 @@ function HomeContent() {
             </Link>
           </div>
           <div className="flex overflow-x-auto pb-12 gap-8 lg:gap-10 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
-            {articles.map((article) => (
-              <Link key={article.id} href={`/blog/${article.id}`} className="group cursor-pointer min-w-[240px] sm:min-w-[320px] shrink-0">
+            {realBlogs.map((article) => (
+              <Link key={article.id} href={`/blog/${article.slug || article.id}`} className="group cursor-pointer min-w-[240px] sm:min-w-[320px] shrink-0">
                 <div className="relative h-48 sm:h-64 rounded-[2rem] overflow-hidden mb-6 shadow-xl group-hover:shadow-2xl transition-all duration-500 bg-gray-50">
                   <Image
                     src={article.image}
