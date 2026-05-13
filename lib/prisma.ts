@@ -7,8 +7,8 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 const databaseUrl =
-  process.env.DIRECT_URL ||
   process.env.DATABASE_URL ||
+  process.env.DIRECT_URL ||
   process.env.DB_URL;
 
 console.log('🔍 Database URL being used (obfuscated):', databaseUrl?.replace(/:[^:@]+@/, ':***@'));
@@ -29,8 +29,11 @@ process.env.DATABASE_URL = databaseUrl;
 try {
   const parsedUrl = new URL(databaseUrl);
   console.log(
-    `✓ Prisma runtime DB target: host=${parsedUrl.hostname} port=${parsedUrl.port || '5432'} sslmode=${parsedUrl.searchParams.get('sslmode') || 'default'}`
+    `✓ Prisma runtime DB target: host=${parsedUrl.hostname} port=${parsedUrl.port || '5432'} protocol=${parsedUrl.protocol} sslmode=${parsedUrl.searchParams.get('sslmode') || 'default'}`
   );
+  if (parsedUrl.port === '5432' && !process.env.ALLOW_DIRECT_DB) {
+    console.warn('⚠️ Warning: Using direct connection (5432). If this is a serverless environment, this might fail. Consider using pooled connection (6543).');
+  }
 } catch (parseError) {
   console.warn('⚠️ Unable to parse DATABASE_URL for runtime logging');
 }
