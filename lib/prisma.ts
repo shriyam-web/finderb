@@ -7,11 +7,13 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 const databaseUrl =
-  process.env.DB_URL ||
+  process.env.DIRECT_URL ||
   process.env.DATABASE_URL ||
-  process.env.DIRECT_URL;
+  process.env.DB_URL;
 
 console.log('🔍 Database URL being used (obfuscated):', databaseUrl?.replace(/:[^:@]+@/, ':***@'));
+console.log('🔍 Using DIRECT_URL if available:', !!process.env.DIRECT_URL);
+
 
 if (!databaseUrl) {
   const message =
@@ -38,6 +40,7 @@ const pool = new Pool({
   max: 10,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 10000,
+  ssl: databaseUrl?.includes('sslmode=require') ? { rejectUnauthorized: false } : undefined
 });
 
 const prismaConfig: ConstructorParameters<typeof PrismaClient>[0] = {
