@@ -1,6 +1,7 @@
 'use server';
 
-import { prisma } from '@/lib/prisma';
+import { createClient } from '@/utils/supabase/server';
+import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 
 export async function createJob(data: {
@@ -13,23 +14,29 @@ export async function createJob(data: {
   businessId: string;
 }) {
   try {
+    const supabase = createClient(await cookies());
+    
     console.log('📝 Creating job for business:', data.businessId);
+    
     // Check if business already has 3 active jobs
     console.log('🔍 Checking active jobs count...');
-    const activeJobsCount = await prisma.jobs.count({
-      where: {
-        business_id: data.businessId,
-        status: 'active'
-      }
-    });
-    console.log('📊 Active jobs count:', activeJobsCount);
+    const { count, error: countError } = await supabase
+      .from('jobs')
+      .select('*', { count: 'exact', head: true })
+      .eq('business_id', data.businessId)
+      .eq('status', 'active');
 
-    if (activeJobsCount >= 3) {
+    if (countError) throw countError;
+    
+    console.log('📊 Active jobs count:', count);
+
+    if (count !== null && count >= 3) {
       return { success: false, error: 'Maximum limit of 3 active job postings reached.' };
     }
 
-    const job = await prisma.jobs.create({
-      data: {
+    const { data: job, error } = await supabase
+      .from('jobs')
+      .insert({
         title: data.title,
         type: data.type,
         location: data.location,
@@ -38,8 +45,11 @@ export async function createJob(data: {
         department: data.department,
         business_id: data.businessId,
         status: 'active',
-      },
-    });
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
 
     revalidatePath('/business/dashboard');
     return { success: true, job };
@@ -51,12 +61,18 @@ export async function createJob(data: {
 
 export async function getJobsByBusiness(businessId: string) {
   try {
+    const supabase = createClient(await cookies());
+    
     console.log('Fetching jobs for businessId:', businessId);
-    const jobs = await prisma.jobs.findMany({
-      where: { business_id: businessId },
-      orderBy: { created_at: 'desc' },
-    });
-    console.log('Fetched jobs count:', jobs.length);
+    const { data: jobs, error } = await supabase
+      .from('jobs')
+      .select('*')
+      .eq('business_id', businessId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    
+    console.log('Fetched jobs count:', jobs?.length);
     return { success: true, jobs };
   } catch (error: any) {
     console.error('Get Jobs Error:', error);
@@ -66,9 +82,15 @@ export async function getJobsByBusiness(businessId: string) {
 
 export async function deleteJob(jobId: string) {
   try {
-    await prisma.jobs.delete({
-      where: { id: jobId },
-    });
+    const supabase = createClient(await cookies());
+    
+    const { error } = await supabase
+      .from('jobs')
+      .delete()
+      .eq('id', jobId);
+
+    if (error) throw error;
+    
     revalidatePath('/business/dashboard');
     return { success: true };
   } catch (error: any) {
@@ -87,10 +109,17 @@ export async function updateJob(jobId: string, data: {
   status?: string;
 }) {
   try {
-    const job = await prisma.jobs.update({
-      where: { id: jobId },
-      data,
-    });
+    const supabase = createClient(await cookies());
+    
+    const { data: job, error } = await supabase
+      .from('jobs')
+      .update(data)
+      .eq('id', jobId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    
     revalidatePath('/business/dashboard');
     return { success: true, job };
   } catch (error: any) {
