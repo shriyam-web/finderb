@@ -24,7 +24,7 @@ interface Job {
   description: string;
   department: string | null;
   status: string;
-  createdAt: Date;
+  created_at: Date;
 }
 
 interface JobPostingTabProps {
@@ -291,7 +291,7 @@ export default function JobPostingTab({ businessId }: JobPostingTabProps) {
                         {job.salary && (
                           <span className="flex items-center gap-2 text-slate-900"><HiOutlineCurrencyRupee size={16} className="text-slate-400" /> {job.salary}</span>
                         )}
-                        <span className="flex items-center gap-2"><HiOutlineClock size={16} className="text-slate-400" /> {formatDate(job.createdAt)}</span>
+                        <span className="flex items-center gap-2"><HiOutlineClock size={16} className="text-slate-400" /> {formatDate(job.created_at)}</span>
                       </div>
                     </div>
                   </div>

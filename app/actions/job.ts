@@ -14,9 +14,9 @@ export async function createJob(data: {
 }) {
   try {
     // Check if business already has 3 active jobs
-    const activeJobsCount = await prisma.job.count({
+    const activeJobsCount = await prisma.jobs.count({
       where: {
-        businessId: data.businessId,
+        business_id: data.businessId,
         status: 'active'
       }
     });
@@ -25,7 +25,7 @@ export async function createJob(data: {
       return { success: false, error: 'Maximum limit of 3 active job postings reached.' };
     }
 
-    const job = await prisma.job.create({
+    const job = await prisma.jobs.create({
       data: {
         title: data.title,
         type: data.type,
@@ -33,7 +33,7 @@ export async function createJob(data: {
         salary: data.salary,
         description: data.description,
         department: data.department,
-        businessId: data.businessId,
+        business_id: data.businessId,
         status: 'active',
       },
     });
@@ -48,9 +48,9 @@ export async function createJob(data: {
 
 export async function getJobsByBusiness(businessId: string) {
   try {
-    const jobs = await prisma.job.findMany({
-      where: { businessId },
-      orderBy: { createdAt: 'desc' },
+    const jobs = await prisma.jobs.findMany({
+      where: { business_id: businessId },
+      orderBy: { created_at: 'desc' },
     });
     return { success: true, jobs };
   } catch (error: any) {
@@ -61,7 +61,7 @@ export async function getJobsByBusiness(businessId: string) {
 
 export async function deleteJob(jobId: string) {
   try {
-    await prisma.job.delete({
+    await prisma.jobs.delete({
       where: { id: jobId },
     });
     revalidatePath('/business/dashboard');
@@ -82,7 +82,7 @@ export async function updateJob(jobId: string, data: {
   status?: string;
 }) {
   try {
-    const job = await prisma.job.update({
+    const job = await prisma.jobs.update({
       where: { id: jobId },
       data,
     });

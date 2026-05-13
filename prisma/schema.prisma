@@ -61,15 +61,15 @@ model Business {
   youtubeUrl                                             String?
   review                                                 Json?
   reviewReply                                            Json?
-  jobs                                                   Job[]
+  jobs                                                   jobs[]
   categories_categories_position_1_business_idToBusiness categories[] @relation("categories_position_1_business_idToBusiness")
   categories_categories_position_2_business_idToBusiness categories[] @relation("categories_position_2_business_idToBusiness")
   categories_categories_position_3_business_idToBusiness categories[] @relation("categories_position_3_business_idToBusiness")
   leads                                                  leads[]
 }
 
-model Job {
-  id          String   @id @default(cuid())
+model jobs {
+  id          String   @id @default(dbgenerated("gen_random_uuid()"))
   title       String
   type        String
   location    String
@@ -77,10 +77,12 @@ model Job {
   description String
   department  String?
   status      String   @default("active")
-  businessId  String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  business    Business @relation(fields: [businessId], references: [id])
+  business_id String
+  created_at  DateTime @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime @default(now()) @db.Timestamptz(6)
+  business    Business @relation(fields: [business_id], references: [id], onDelete: Cascade)
+
+  @@index([business_id], map: "idx_jobs_business_id")
 }
 
 model categories {
