@@ -8,14 +8,17 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowLeft, Calendar, Share2, Bookmark, User, Clock } from 'lucide-react';
 
-export default function BlogDetailPage({ params: paramsPromise }: { params: Promise<{ id: string }> }) {
-  const params = use(paramsPromise);
-  const id = params.id;
+export default function BlogDetailPage() {
+  const params = useParams();
+  const id = params.id as string;
   const [article, setArticle] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchBlog() {
+      if (!id) return;
+      
+      console.log('Fetching blog with ID/Slug:', id);
       // First try to find in mock data
       const mockArticle = articles.find((a) => a.id === id);
       if (mockArticle) {
