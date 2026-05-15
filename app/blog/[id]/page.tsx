@@ -1,16 +1,16 @@
 'use client';
 
 import { useParams } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, use } from 'react';
 import { articles } from '@/lib/mockData';
 import { getBlogBySlug } from '@/app/actions/blog';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowLeft, Calendar, Share2, Bookmark, User, Clock } from 'lucide-react';
 
-export default function BlogDetailPage() {
-  const params = useParams();
-  const id = params.id as string;
+export default function BlogDetailPage({ params: paramsPromise }: { params: Promise<{ id: string }> }) {
+  const params = use(paramsPromise);
+  const id = params.id;
   const [article, setArticle] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
