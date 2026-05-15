@@ -34,3 +34,48 @@ export async function getBlogs() {
     return { success: false, error: error.message || 'An unexpected error occurred' };
   }
 }
+
+export async function getBlogBySlug(slugOrId: string) {
+  try {
+    const supabase = createClient(await cookies());
+
+    // Try finding by slug first
+    let { data: blog, error } = await supabase
+      .from('blogs')
+      .select('*')
+      .eq('slug', slugOrId)
+      .eq('status', 'published')
+      .single();
+
+    // If not found by slug, try by ID
+    if (error || !blog) {
+      const { data: blogById, error: idError } = await supabase
+        .from('blogs')
+        .select('*')
+        .eq('id', slugOrId)
+        .eq('status', 'published')
+        .single();
+      
+      if (idError) throw idError;
+      blog = blogById;
+    }
+
+    if (!blog) return { success: false, error: 'Blog not found' };
+
+    const mappedBlog = {
+      id: blog.id,
+      title: blog.title,
+      slug: blog.slug,
+      excerpt: blog.excerpt || blog.content.substring(0, 150) + '...',
+      content: blog.content,
+      image: blog.image_url || 'https://images.unsplash.com/photo-1499750310107-5fef28a66643?auto=format&fit=crop&q=80&w=800',
+      date: blog.published_at ? new Date(blog.published_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Recently',
+      author: blog.author || 'FinderB Admin'
+    };
+
+    return { success: true, blog: mappedBlog };
+  } catch (error: any) {
+    console.error('Get Blog Error:', error);
+    return { success: false, error: error.message || 'An unexpected error occurred' };
+  }
+}

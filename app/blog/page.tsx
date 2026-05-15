@@ -1,11 +1,27 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { articles } from '@/lib/mockData';
+import { getBlogs } from '@/app/actions/blog';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Calendar, ArrowRight, ArrowLeft } from 'lucide-react';
 
 export default function BlogListingPage() {
+  const [realBlogs, setRealBlogs] = useState<any[]>(articles);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchData() {
+      const result = await getBlogs();
+      if (result.success && result.blogs && result.blogs.length > 0) {
+        setRealBlogs(result.blogs);
+      }
+      setLoading(false);
+    }
+    fetchData();
+  }, []);
+
   return (
     <div className="min-h-screen bg-gray-950 pb-20 pt-32 lg:pt-48">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -25,34 +41,47 @@ export default function BlogListingPage() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 lg:gap-12">
-          {articles.map((article) => (
-            <Link key={article.id} href={`/blog/${article.id}`} className="group flex flex-col">
-              <div className="relative h-64 sm:h-72 rounded-[2.5rem] overflow-hidden mb-6 shadow-2xl shadow-black/20 bg-gray-900">
-                <Image
-                  src={article.image}
-                  alt={article.title}
-                  fill
-                  className="object-cover group-hover:scale-110 transition-transform duration-1000 opacity-80 group-hover:opacity-100"
-                  sizes="(max-width: 768px) 100vw, 33vw"
-                />
-                <div className="absolute top-5 left-5 bg-black/60 backdrop-blur-md px-4 py-2 rounded-2xl flex items-center gap-2 shadow-lg border border-white/10">
-                  <Calendar size={12} className="text-secondary" />
-                  <span className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">{article.date}</span>
+        {loading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 lg:gap-12">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div key={i} className="animate-pulse flex flex-col">
+                <div className="bg-gray-900 h-64 sm:h-72 rounded-[2.5rem] mb-6"></div>
+                <div className="h-4 bg-gray-900 rounded w-3/4 mb-3"></div>
+                <div className="h-3 bg-gray-900 rounded w-full mb-2"></div>
+                <div className="h-3 bg-gray-900 rounded w-1/2"></div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 lg:gap-12">
+            {realBlogs.map((article) => (
+              <Link key={article.id} href={`/blog/${article.slug || article.id}`} className="group flex flex-col">
+                <div className="relative h-64 sm:h-72 rounded-[2.5rem] overflow-hidden mb-6 shadow-2xl shadow-black/20 bg-gray-900">
+                  <Image
+                    src={article.image}
+                    alt={article.title}
+                    fill
+                    className="object-cover group-hover:scale-110 transition-transform duration-1000 opacity-80 group-hover:opacity-100"
+                    sizes="(max-width: 768px) 100vw, 33vw"
+                  />
+                  <div className="absolute top-5 left-5 bg-black/60 backdrop-blur-md px-4 py-2 rounded-2xl flex items-center gap-2 shadow-lg border border-white/10">
+                    <Calendar size={12} className="text-secondary" />
+                    <span className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">{article.date}</span>
+                  </div>
                 </div>
-              </div>
-              <h3 className="text-xl sm:text-2xl font-black text-white group-hover:text-secondary transition-colors mb-3 leading-tight tracking-tight line-clamp-2">
-                {article.title}
-              </h3>
-              <p className="text-gray-400 font-medium text-sm sm:text-base line-clamp-2 mb-6 leading-relaxed">
-                {article.excerpt}
-              </p>
-              <div className="mt-auto flex items-center gap-3 text-[10px] font-bold text-secondary uppercase tracking-[0.2em] group-hover:gap-4 transition-all">
-                CONTINUE READING <ArrowRight size={14} />
-              </div>
-            </Link>
-          ))}
-        </div>
+                <h3 className="text-xl sm:text-2xl font-black text-white group-hover:text-secondary transition-colors mb-3 leading-tight tracking-tight line-clamp-2">
+                  {article.title}
+                </h3>
+                <p className="text-gray-400 font-medium text-sm sm:text-base line-clamp-2 mb-6 leading-relaxed">
+                  {article.excerpt}
+                </p>
+                <div className="mt-auto flex items-center gap-3 text-[10px] font-bold text-secondary uppercase tracking-[0.2em] group-hover:gap-4 transition-all">
+                  CONTINUE READING <ArrowRight size={14} />
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

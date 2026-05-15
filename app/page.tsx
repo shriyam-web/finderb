@@ -638,26 +638,54 @@ function HomeContent() {
               Read All Stories <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
             </Link>
           </div>
-          <div className="flex overflow-x-auto pb-12 gap-8 lg:gap-10 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
-            {realBlogs.map((article) => (
-              <Link key={article.id} href={`/blog/${article.slug || article.id}`} className="group cursor-pointer min-w-[240px] sm:min-w-[320px] shrink-0">
-                <div className="relative h-48 sm:h-64 rounded-[2rem] overflow-hidden mb-6 shadow-xl group-hover:shadow-2xl transition-all duration-500 bg-gray-50">
+          {/* Desktop Grid / Mobile Scroll */}
+          <div className="hidden lg:grid lg:grid-cols-3 gap-10">
+            {realBlogs.slice(0, 3).map((article) => (
+              <Link key={article.id} href={`/blog/${article.slug || article.id}`} className="group cursor-pointer flex flex-col">
+                <div className="relative h-72 rounded-[2.5rem] overflow-hidden mb-8 shadow-2xl group-hover:shadow-secondary/20 transition-all duration-500 bg-gray-50">
                   <Image
                     src={article.image}
                     alt={article.title}
                     fill
                     className="object-cover group-hover:scale-110 transition-transform duration-1000"
-                    sizes="(max-width: 768px) 100vw, 33vw"
+                    sizes="33vw"
                   />
-                  <div className="absolute bottom-6 left-6 bg-white/90 backdrop-blur-md px-5 py-2.5 rounded-2xl flex items-center gap-2 shadow-lg border border-white/20">
+                  <div className="absolute top-6 left-6 bg-white/90 backdrop-blur-md px-5 py-2.5 rounded-2xl flex items-center gap-2 shadow-lg border border-white/20">
                     <Calendar size={12} className="text-secondary" />
-                    <span className="text-[10px] font-bold text-gray-700 uppercase tracking-widest">{article.date}</span>
+                    <span className="text-[10px] font-black text-gray-700 uppercase tracking-widest">{article.date}</span>
                   </div>
                 </div>
-                <h3 className="text-xl sm:text-2xl font-bold text-primary group-hover:text-secondary transition-colors mb-4 leading-tight tracking-tight line-clamp-2">{article.title}</h3>
-                <p className="text-gray-500 font-medium text-sm sm:text-base line-clamp-2 mb-6 leading-relaxed">{article.excerpt}</p>
-                <div className="flex items-center gap-2 text-[10px] font-bold text-secondary uppercase tracking-[0.2em] group-hover:gap-3 transition-all">
-                  CONTINUE READING <ArrowRight size={14} />
+                <div className="space-y-4 px-2">
+                  <h3 className="text-2xl font-black text-primary group-hover:text-secondary transition-colors leading-tight tracking-tighter line-clamp-2">{article.title}</h3>
+                  <p className="text-gray-500 font-medium text-base line-clamp-2 leading-relaxed">{article.excerpt}</p>
+                  <div className="flex items-center gap-2 text-[10px] font-black text-secondary uppercase tracking-[0.2em] group-hover:gap-4 transition-all">
+                    CONTINUE READING <ArrowRight size={14} />
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+
+          {/* Mobile horizontal scroll */}
+          <div className="lg:hidden flex overflow-x-auto pb-12 gap-6 scrollbar-hide -mx-4 px-4">
+            {realBlogs.map((article) => (
+              <Link key={article.id} href={`/blog/${article.slug || article.id}`} className="group cursor-pointer min-w-[280px] shrink-0 flex flex-col">
+                <div className="relative h-64 rounded-[2rem] overflow-hidden mb-6 shadow-xl bg-gray-50">
+                  <Image
+                    src={article.image}
+                    alt={article.title}
+                    fill
+                    className="object-cover"
+                    sizes="280px"
+                  />
+                  <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-md px-4 py-2 rounded-xl flex items-center gap-2 shadow-md">
+                    <Calendar size={10} className="text-secondary" />
+                    <span className="text-[9px] font-bold text-gray-700 uppercase tracking-widest">{article.date}</span>
+                  </div>
+                </div>
+                <h3 className="text-lg font-bold text-primary mb-3 line-clamp-2 tracking-tight">{article.title}</h3>
+                <div className="flex items-center gap-2 text-[9px] font-black text-secondary uppercase tracking-widest">
+                  READ STORY <ArrowRight size={12} />
                 </div>
               </Link>
             ))}
