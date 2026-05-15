@@ -38,6 +38,8 @@ export async function getBlogs() {
 export async function getBlogBySlug(slugOrId: string) {
   if (!slugOrId) return { success: false, error: 'No identifier provided' };
 
+  const identifier = slugOrId.trim();
+
   try {
     const supabase = createClient(await cookies());
 
@@ -45,24 +47,24 @@ export async function getBlogBySlug(slugOrId: string) {
     let { data: blog } = await supabase
       .from('blogs')
       .select('*')
-      .eq('slug', slugOrId)
+      .eq('slug', identifier)
       .eq('status', 'published')
       .maybeSingle();
 
     // 2. If not found by slug, try by ID
     if (!blog) {
-      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slugOrId);
-      const isNumeric = /^\d+$/.test(slugOrId);
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(identifier);
+      const isNumeric = /^\d+$/.test(identifier);
       
       // If it looks like a UUID or a numeric ID, try querying the ID column
       // For other string IDs, we also try them but only if they don't look like a typical slug
       // to avoid unnecessary DB errors if the column is UUID
-      if (isUuid || isNumeric || (slugOrId.length > 0 && !slugOrId.includes('-'))) {
+      if (isUuid || isNumeric || (identifier.length > 0 && !identifier.includes('-'))) {
         try {
           const { data: blogById } = await supabase
             .from('blogs')
             .select('*')
-            .eq('id', slugOrId)
+            .eq('id', identifier)
             .eq('status', 'published')
             .maybeSingle();
           
@@ -77,7 +79,7 @@ export async function getBlogBySlug(slugOrId: string) {
     }
 
     if (!blog) {
-      console.log(`Blog not found for identifier: ${slugOrId}`);
+      console.log(`Blog not found for identifier: ${identifier}`);
       return { success: false, error: 'Blog not found' };
     }
 
