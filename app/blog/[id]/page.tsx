@@ -1,6 +1,5 @@
 'use client';
 
-import { useParams } from 'next/navigation';
 import { useState, useEffect, use } from 'react';
 import { articles } from '@/lib/mockData';
 import { getBlogBySlug } from '@/app/actions/blog';
@@ -8,9 +7,8 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowLeft, Calendar, Share2, Bookmark, User, Clock } from 'lucide-react';
 
-export default function BlogDetailPage() {
-  const params = useParams();
-  const id = params.id as string;
+export default function BlogDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   const [article, setArticle] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -29,7 +27,7 @@ export default function BlogDetailPage() {
 
       // If not in mock, fetch from DB
       const result = await getBlogBySlug(id);
-      if (result.success) {
+      if (result.success && result.blog) {
         setArticle(result.blog);
       }
       setLoading(false);
@@ -56,8 +54,8 @@ export default function BlogDetailPage() {
             <ArrowLeft size={40} />
           </div>
           <div className="space-y-2">
-            <h1 className="text-3xl font-black text-primary">Story Not Found</h1>
-            <p className="text-gray-500 font-medium">We couldn't find the article you're looking for. It might have been moved or deleted.</p>
+            <h1 className="text-3xl font-black text-primary">Story not available</h1>
+            <p className="text-gray-500 font-medium">We couldn&apos;t find the article you&apos;re looking for. It might have been moved or deleted.</p>
           </div>
           <Link href="/" className="inline-flex items-center justify-center px-8 py-4 bg-primary text-white rounded-2xl font-bold hover:bg-secondary transition-all active:scale-95 shadow-lg">
             Back to Home
@@ -140,7 +138,7 @@ export default function BlogDetailPage() {
               </p>
               
               <div className="text-gray-800 leading-[1.8] space-y-8 text-lg font-medium">
-                {article.content.split('\n').map((paragraph: string, i: number) => (
+                {(article.content || 'Content not available.').split('\n').map((paragraph: string, i: number) => (
                   paragraph ? <p key={i}>{paragraph}</p> : <br key={i} />
                 ))}
               </div>

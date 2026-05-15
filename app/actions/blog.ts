@@ -36,43 +36,57 @@ export async function getBlogs() {
 }
 
 export async function getBlogBySlug(slugOrId: string) {
+  if (!slugOrId) return { success: false, error: 'No identifier provided' };
+
   try {
     const supabase = createClient(await cookies());
 
-    // Try finding by slug first
-    let { data: blog, error: slugError } = await supabase
+    // 1. Try finding by slug first (most common for detailed pages)
+    let { data: blog } = await supabase
       .from('blogs')
       .select('*')
       .eq('slug', slugOrId)
       .eq('status', 'published')
       .maybeSingle();
 
-    // If not found by slug, try by ID
+    // 2. If not found by slug, try by ID
     if (!blog) {
-      // Basic check to see if it could be a UUID
       const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slugOrId);
       const isNumeric = /^\d+$/.test(slugOrId);
       
-      if (isUuid || isNumeric) {
-        const { data: blogById } = await supabase
-          .from('blogs')
-          .select('*')
-          .eq('id', slugOrId)
-          .eq('status', 'published')
-          .maybeSingle();
-        
-        blog = blogById;
+      // If it looks like a UUID or a numeric ID, try querying the ID column
+      // For other string IDs, we also try them but only if they don't look like a typical slug
+      // to avoid unnecessary DB errors if the column is UUID
+      if (isUuid || isNumeric || (slugOrId.length > 0 && !slugOrId.includes('-'))) {
+        try {
+          const { data: blogById } = await supabase
+            .from('blogs')
+            .select('*')
+            .eq('id', slugOrId)
+            .eq('status', 'published')
+            .maybeSingle();
+          
+          if (blogById) {
+            blog = blogById;
+          }
+        } catch {
+          // Ignore cast errors if id column is UUID and slugOrId is not
+          console.log('Query by ID failed, likely incompatible type');
+        }
       }
     }
 
-    if (!blog) return { success: false, error: 'Blog not found' };
+    if (!blog) {
+      console.log(`Blog not found for identifier: ${slugOrId}`);
+      return { success: false, error: 'Blog not found' };
+    }
 
     const mappedBlog = {
       id: blog.id,
-      title: blog.title,
+      title: blog.title || 'Untitled Story',
       slug: blog.slug,
-      excerpt: blog.excerpt || (blog.content ? blog.content.substring(0, 150) + '...' : ''),
-      content: blog.content || '',
+      excerpt: blog.excerpt || (blog.content ? blog.content.substring(0, 150) + '...' : 'No summary available.'),
+      content: blog.content || 'Story content is currently not available.',
       image: blog.image_url || 'https://images.unsplash.com/photo-1499750310107-5fef28a66643?auto=format&fit=crop&q=80&w=800',
       date: blog.published_at ? new Date(blog.published_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Recently',
       author: blog.author || 'FinderB Admin'
