@@ -108,13 +108,12 @@ export default function CategoriesPage() {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
             <input
               type="text"
-              placeholder="Search Grocery"
+              placeholder="Search for categories or services..."
               className="w-full bg-gray-50 border border-gray-100 rounded-full py-2.5 pl-11 pr-4 text-sm font-medium focus:ring-2 focus:ring-primary/20 transition-all"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          <ShoppingBag size={24} className="text-gray-700" />
         </div>
       </header>
 
@@ -306,7 +305,6 @@ export default function CategoriesPage() {
             { icon: Home, label: 'Home' },
             { icon: LayoutGrid, label: 'Categories' },
             { icon: Sparkles, label: 'Top Picks' },
-            { icon: ShoppingBag, label: 'Basket' },
           ].map((item, i) => (
             <button
               key={i}
