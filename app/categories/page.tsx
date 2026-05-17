@@ -27,7 +27,7 @@ export default function CategoriesPage() {
         getFeaturedBusinesses()
       ]);
 
-      if (catResult.success) {
+      if (catResult.success && catResult.categories) {
         setCategories(catResult.categories);
         // Set first category as default
         if (catResult.categories.length > 0) {
@@ -35,7 +35,7 @@ export default function CategoriesPage() {
         }
       }
       
-      if (bizResult.success) {
+      if (bizResult.success && bizResult.businesses) {
         setBusinesses(bizResult.businesses);
       }
       setIsLoading(false);
