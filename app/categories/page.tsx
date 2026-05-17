@@ -2,20 +2,24 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Search, Filter, ArrowUpDown, ChevronRight, LayoutGrid, ShoppingBag, Home, Sparkles } from 'lucide-react';
+import { Search, Filter, ChevronRight, LayoutGrid, ShoppingBag, Home, Sparkles } from 'lucide-react';
 import { getCategories } from '@/app/actions/category';
 import { getFeaturedBusinesses } from '@/app/actions/business';
-import BusinessCard from '@/components/BusinessCard';
 import Image from 'next/image';
-import Link from 'next/link';
+
+interface SubCategory {
+  id: string;
+  name: string;
+  slug: string;
+  image: string;
+}
 
 export default function CategoriesPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [categories, setCategories] = useState<any[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<any>(null);
-  const [subCategories, setSubCategories] = useState<any[]>([]);
-  const [selectedSubCategory, setSelectedSubCategory] = useState<any>(null);
+  const [subCategories, setSubCategories] = useState<SubCategory[]>([]);
+  const [selectedSubCategory, setSelectedSubCategory] = useState<SubCategory | null>(null);
   const [businesses, setBusinesses] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
