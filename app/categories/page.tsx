@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Search, Filter, ChevronRight, LayoutGrid, ShoppingBag, Home, Sparkles } from 'lucide-react';
-import { getCategories } from '@/app/actions/category';
+import { getCategories, getSubCategories } from '@/app/actions/category';
 import { getFeaturedBusinesses } from '@/app/actions/business';
 import Image from 'next/image';
 
@@ -12,6 +12,7 @@ interface SubCategory {
   name: string;
   slug: string;
   image: string;
+  businessCount?: number;
 }
 
 export default function CategoriesPage() {
@@ -22,10 +23,12 @@ export default function CategoriesPage() {
   const [selectedSubCategory, setSelectedSubCategory] = useState<SubCategory | null>(null);
   const [businesses, setBusinesses] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSubLoading, setIsSubLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     async function fetchData() {
+      setIsLoading(true);
       const [catResult, bizResult] = await Promise.all([
         getCategories(),
         getFeaturedBusinesses()
@@ -50,20 +53,23 @@ export default function CategoriesPage() {
   const [viewMode, setViewMode] = useState<'subcategories' | 'merchants'>('subcategories');
 
   useEffect(() => {
-    if (selectedCategory) {
-      // Mock sub-categories
-      const mockedSubCats = [
-        { id: 'sub1', name: 'All', slug: 'all', image: selectedCategory.image },
-        { id: 'sub2', name: 'Toor Dal', slug: 'toor-dal', image: 'https://images.unsplash.com/photo-1585996838426-60de385ad218?auto=format&fit=crop&q=80&w=100' },
-        { id: 'sub3', name: 'Urad Dal', slug: 'urad-dal', image: 'https://images.unsplash.com/photo-1585996838426-60de385ad218?auto=format&fit=crop&q=80&w=100' },
-        { id: 'sub4', name: 'Moong Dal', slug: 'moong-dal', image: 'https://images.unsplash.com/photo-1585996838426-60de385ad218?auto=format&fit=crop&q=80&w=100' },
-        { id: 'sub5', name: 'Masoor Dal', slug: 'masoor-dal', image: 'https://images.unsplash.com/photo-1585996838426-60de385ad218?auto=format&fit=crop&q=80&w=100' },
-        { id: 'sub6', name: 'Chana Dal', slug: 'chana-dal', image: 'https://images.unsplash.com/photo-1585996838426-60de385ad218?auto=format&fit=crop&q=80&w=100' },
-      ];
-      setSubCategories(mockedSubCats);
-      setSelectedSubCategory(mockedSubCats[0]);
-      setViewMode('subcategories');
+    async function fetchSubs() {
+      if (selectedCategory) {
+        setIsSubLoading(true);
+        const result = await getSubCategories(selectedCategory.id);
+        if (result.success && result.subCategories) {
+          setSubCategories(result.subCategories);
+          if (result.subCategories.length > 0) {
+            setSelectedSubCategory(result.subCategories[0]);
+          } else {
+            setSelectedSubCategory(null);
+          }
+        }
+        setIsSubLoading(false);
+        setViewMode('subcategories');
+      }
     }
+    fetchSubs();
   }, [selectedCategory]);
 
   const handleSubCategoryClick = (sub: any) => {
@@ -195,21 +201,44 @@ export default function CategoriesPage() {
         </aside>
 
         {/* Right Panel */}
-        <main className="flex-1 overflow-y-auto pb-24 scrollbar-hide">
-          {viewMode === 'subcategories' ? (
+        <main className="flex-1 overflow-y-auto pb-24 scrollbar-hide bg-gray-50/30">
+          {isSubLoading ? (
             <div className="grid grid-cols-3 gap-3 p-4">
-              {subCategories.map((sub) => (
-                <button
-                  key={sub.id}
-                  onClick={() => handleSubCategoryClick(sub)}
-                  className="flex flex-col items-center gap-2 p-2 rounded-2xl hover:bg-gray-50 active:scale-95 transition-all"
-                >
-                  <div className="w-full aspect-square rounded-2xl bg-gray-50 border border-gray-100 relative overflow-hidden shadow-sm">
-                    <Image src={sub.image} alt={sub.name} fill className="object-cover" />
-                  </div>
-                  <span className="text-[10px] font-bold text-gray-700 text-center leading-tight">{sub.name}</span>
-                </button>
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <div key={i} className="flex flex-col items-center gap-2">
+                  <div className="w-full aspect-square rounded-2xl bg-gray-100 animate-pulse" />
+                  <div className="w-12 h-3 bg-gray-100 rounded animate-pulse" />
+                </div>
               ))}
+            </div>
+          ) : viewMode === 'subcategories' ? (
+            <div className="p-4">
+              <div className="mb-4">
+                <h1 className="text-xl font-black text-gray-900 tracking-tight">{selectedCategory?.name}</h1>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{subCategories.length} Sub-categories</p>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                {subCategories.length > 0 ? (
+                  subCategories.map((sub) => (
+                    <button
+                      key={sub.id}
+                      onClick={() => handleSubCategoryClick(sub)}
+                      className="flex flex-col items-center gap-2 group"
+                    >
+                      <div className="w-full aspect-square rounded-2xl bg-white border border-gray-100 relative overflow-hidden shadow-sm group-hover:shadow-md group-hover:border-primary/20 transition-all duration-300">
+                        <Image src={sub.image} alt={sub.name} fill className="object-cover group-hover:scale-110 transition-transform duration-500" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </div>
+                      <span className="text-[10px] font-bold text-gray-700 text-center leading-tight group-hover:text-primary transition-colors line-clamp-2">{sub.name}</span>
+                    </button>
+                  ))
+                ) : (
+                  <div className="col-span-3 py-20 flex flex-col items-center justify-center text-gray-400">
+                    <LayoutGrid size={48} className="mb-4 opacity-20" />
+                    <p className="text-xs font-bold uppercase tracking-widest">No sub-categories found</p>
+                  </div>
+                )}
+              </div>
             </div>
           ) : (
             <div className="p-4 space-y-4">
