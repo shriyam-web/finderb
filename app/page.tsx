@@ -22,7 +22,7 @@ import { getBlogs } from '@/app/actions/blog';
 import { getSession } from '@/app/actions/user';
 import { Business, Category, Movie, TouristPlace } from '@/lib/mockData';
 import * as LucideIcons from 'lucide-react';
-import { ArrowRight, CheckCircle2, Star, MapPin, Calendar, Play, ShieldCheck, Zap, Search, Phone, MessageSquare, Heart, Sparkles, History, X, Mic, Send, LayoutGrid, ShoppingBag } from 'lucide-react';
+import { ArrowRight, CheckCircle2, Star, MapPin, Calendar, Play, ShieldCheck, Zap, Search, Phone, MessageSquare, Heart, Sparkles, History, X, Mic, Send, LayoutGrid, ShoppingBag, Home, Bot, User } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 
@@ -105,6 +105,7 @@ function HomeContent() {
     if (activeTabFromUrl === 'ai') {
       setActiveMobileTab('AI Search');
     } else if (activeTabFromUrl === 'finderb-ai') {
+      setIsAiLoading(true);
       setActiveMobileTab('FinderB AI');
     } else {
       setActiveMobileTab('Home');
@@ -169,10 +170,15 @@ function HomeContent() {
       return;
     }
 
-    if (label === 'Basket') {
-      setProtectedTab(null);
-      setActiveMobileTab('Basket');
-      router.push('/?tab=basket', { scroll: false });
+    if (label === 'FinderB AI') {
+      setIsAiLoading(true);
+      setActiveMobileTab('FinderB AI');
+      router.push('/?tab=finderb-ai', { scroll: false });
+      return;
+    }
+
+    if (label === 'Account') {
+      router.push('/account');
       return;
     }
 
@@ -472,43 +478,37 @@ function HomeContent() {
         </div>
       </section>
 
-      {/* Quick Actions / Mobile Bottom Bar */}
-      <div className="fixed bottom-0 left-0 w-full z-[100] md:hidden bg-white/95 backdrop-blur-2xl border-t border-slate-200">
-        <div className="flex items-center justify-around p-1 pb-safe">
+      {/* Quick Actions / Mobile Bottom Bar - Slim & Premium */}
+      <div className="fixed bottom-0 left-0 w-full z-[100] md:hidden bg-white/90 backdrop-blur-md border-t border-slate-100/50">
+        <div className="flex items-center justify-around px-2 py-1.5 pb-safe">
           {[
-            { icon: Search, label: 'Home' },
+            { icon: Home, label: 'Home' },
             { icon: LayoutGrid, label: 'Categories' },
-            { icon: Sparkles, label: 'Top Picks' },
-            { icon: ShoppingBag, label: 'Basket' },
+            { icon: Bot, label: 'FinderB AI' },
+            { icon: User, label: 'Account' },
           ].map((item, i) => (
             <button
               key={i}
               onClick={() => handleTabChange(item.label)}
-              className={`flex flex-col items-center gap-1 p-3 px-4 transition-all duration-300 group relative rounded-2xl ${activeMobileTab === item.label
-                ? 'text-slate-900 bg-slate-50'
-                : 'text-slate-400 hover:text-slate-600'
+              className={`flex flex-col items-center gap-0.5 p-1.5 px-4 transition-all duration-300 group relative rounded-xl ${activeMobileTab === item.label
+                ? 'text-primary'
+                : 'text-slate-400'
                 }`}
             >
-              {item.label === 'FinderB AI' && activeMobileTab !== 'FinderB AI' && (
-                <span className="absolute -top-1 -right-1 flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-secondary"></span>
-                </span>
-              )}
               <item.icon
                 size={20}
                 className={`transition-all duration-300 ${activeMobileTab === item.label
-                  ? 'scale-110 text-secondary'
-                  : 'group-active:scale-95'
+                  ? 'scale-110'
+                  : 'group-active:scale-90'
                   }`}
               />
-              <span className={`text-[9px] font-bold uppercase tracking-wider transition-all duration-300 ${activeMobileTab === item.label ? 'opacity-100 scale-100' : 'opacity-70 scale-95'
+              <span className={`text-[8px] font-black uppercase tracking-tighter transition-all duration-300 ${activeMobileTab === item.label ? 'opacity-100' : 'opacity-60'
                 }`}>
                 {item.label}
               </span>
 
               {activeMobileTab === item.label && (
-                <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-secondary rounded-full"></div>
+                <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-4 h-0.5 bg-primary rounded-full shadow-[0_0_8px_rgba(33,84,129,0.5)] animate-pulse"></div>
               )}
             </button>
           ))}

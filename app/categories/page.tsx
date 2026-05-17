@@ -86,7 +86,7 @@ export default function CategoriesPage() {
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
-    if (label === 'FinderB Ai') {
+    if (label === 'FinderB AI') {
       router.push('/?tab=finderb-ai');
       return;
     }
@@ -378,7 +378,7 @@ export default function CategoriesPage() {
           {[
             { icon: Home, label: 'Home' },
             { icon: LayoutGrid, label: 'Categories' },
-            { icon: Bot, label: 'FinderB Ai' },
+            { icon: Bot, label: 'FinderB AI' },
             { icon: User, label: 'Account' },
           ].map((item, i) => (
             <button
