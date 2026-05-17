@@ -22,7 +22,7 @@ import { getBlogs } from '@/app/actions/blog';
 import { getSession } from '@/app/actions/user';
 import { Business, Category, Movie, TouristPlace } from '@/lib/mockData';
 import * as LucideIcons from 'lucide-react';
-import { ArrowRight, CheckCircle2, Star, MapPin, Calendar, Play, ShieldCheck, Zap, Search, Phone, MessageSquare, Heart, Sparkles, History, X, Mic, Send } from 'lucide-react';
+import { ArrowRight, CheckCircle2, Star, MapPin, Calendar, Play, ShieldCheck, Zap, Search, Phone, MessageSquare, Heart, Sparkles, History, X, Mic, Send, LayoutGrid, ShoppingBag } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 
@@ -155,31 +155,24 @@ function HomeContent() {
       return;
     }
 
-    if (label === 'FinderB AI') {
+    if (label === 'Categories') {
       setProtectedTab(null);
-      setActiveMobileTab('FinderB AI');
-      setAiLoadProgress(0);
-      setIsAiLoading(true);
-      router.push('/?tab=finderb-ai', { scroll: false });
+      setActiveMobileTab('Categories');
+      router.push('/categories', { scroll: false });
       return;
     }
 
-    if (label === 'AI Search') {
+    if (label === 'Top Picks') {
       setProtectedTab(null);
-      setActiveMobileTab('AI Search');
-      router.push('/?tab=ai', { scroll: false });
+      setActiveMobileTab('Top Picks');
+      router.push('/?tab=top-picks', { scroll: false });
       return;
     }
 
-    if (label === 'History' || label === 'Saved') {
-      if (!isLoggedIn) {
-        setProtectedTab(label);
-        setActiveMobileTab(label);
-        return;
-      }
+    if (label === 'Basket') {
       setProtectedTab(null);
-      setActiveMobileTab(label);
-      router.push(`/?tab=${label.toLowerCase()}`, { scroll: false });
+      setActiveMobileTab('Basket');
+      router.push('/?tab=basket', { scroll: false });
       return;
     }
 
@@ -484,9 +477,9 @@ function HomeContent() {
         <div className="flex items-center justify-around p-1 pb-safe">
           {[
             { icon: Search, label: 'Home' },
-            { icon: Sparkles, label: 'FinderB AI' },
-            { icon: History, label: 'History' },
-            { icon: Heart, label: 'Saved' },
+            { icon: LayoutGrid, label: 'Categories' },
+            { icon: Sparkles, label: 'Top Picks' },
+            { icon: ShoppingBag, label: 'Basket' },
           ].map((item, i) => (
             <button
               key={i}
