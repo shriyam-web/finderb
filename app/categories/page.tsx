@@ -372,9 +372,9 @@ export default function CategoriesPage() {
         </main>
       </div>
 
-      {/* Mobile Bottom Navigation - More Premium */}
-      <div className="fixed bottom-0 left-0 w-full z-[100] bg-white/80 backdrop-blur-xl border-t border-slate-100">
-        <div className="flex items-center justify-around px-2 py-3 pb-safe-offset-2">
+      {/* Mobile Bottom Navigation - Slim & Premium */}
+      <div className="fixed bottom-0 left-0 w-full z-[100] bg-white/90 backdrop-blur-md border-t border-slate-100/50">
+        <div className="flex items-center justify-around px-2 py-1.5 pb-safe">
           {[
             { icon: Home, label: 'Home' },
             { icon: LayoutGrid, label: 'Categories' },
@@ -384,30 +384,27 @@ export default function CategoriesPage() {
             <button
               key={i}
               onClick={() => handleTabChange(item.label)}
-              className={`flex flex-col items-center gap-1.5 p-2 px-5 transition-all duration-500 group relative rounded-2xl ${
+              className={`flex flex-col items-center gap-0.5 p-1.5 px-4 transition-all duration-300 group relative rounded-xl ${
                 item.label === 'Categories'
                   ? 'text-primary'
-                  : 'text-slate-400 hover:text-slate-600'
+                  : 'text-slate-400'
               }`}
             >
-              {item.label === 'Categories' && (
-                <div className="absolute inset-0 bg-primary/5 rounded-2xl animate-in fade-in zoom-in duration-500" />
-              )}
               <item.icon
-                size={22}
-                className={`transition-all duration-500 ${
+                size={20}
+                className={`transition-all duration-300 ${
                   item.label === 'Categories'
-                    ? 'scale-110 drop-shadow-[0_0_8px_rgba(33,84,129,0.3)]'
+                    ? 'scale-110'
                     : 'group-active:scale-90'
                 }`}
               />
-              <span className={`text-[9px] font-black uppercase tracking-widest transition-all duration-500 ${
+              <span className={`text-[8px] font-black uppercase tracking-tighter transition-all duration-300 ${
                 item.label === 'Categories' ? 'opacity-100' : 'opacity-60'
               }`}>
                 {item.label}
               </span>
               {item.label === 'Categories' && (
-                <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-primary rounded-full shadow-[0_0_8px_rgba(33,84,129,0.8)]"></div>
+                <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-4 h-0.5 bg-primary rounded-full shadow-[0_0_8px_rgba(33,84,129,0.5)] animate-pulse"></div>
               )}
             </button>
           ))}
