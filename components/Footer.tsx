@@ -85,10 +85,10 @@ export default function Footer() {
             <div className="space-y-4">
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Get our mobile app</p>
               <div className="flex flex-wrap gap-2">
-                <div className="h-10 px-4 bg-gray-900 text-white rounded-xl flex items-center gap-2 cursor-not-allowed grayscale hover:grayscale-0 transition-all">
+                <div className="h-10 px-4 bg-gray-900 text-white rounded-xl flex items-center gap-2 cursor-not-allowed grayscale hover:grayscale-0 transition-all font-sans">
                   <div className="text-[8px] font-semibold leading-none">Coming soon on <br /><span className="text-sm">App Store</span></div>
                 </div>
-                <div className="h-10 px-4 bg-gray-900 text-white rounded-xl flex items-center gap-2 cursor-not-allowed grayscale hover:grayscale-0 transition-all">
+                <div className="h-10 px-4 bg-gray-900 text-white rounded-xl flex items-center gap-2 cursor-not-allowed grayscale hover:grayscale-0 transition-all font-sans">
                   <div className="text-[8px] font-semibold leading-none">Coming soon on <br /><span className="text-sm">Google Play</span></div>
                 </div>
               </div>

@@ -171,11 +171,6 @@ export default function CategoriesPage() {
 
       {/* Sort & Filter Bar */}
       <div className="flex bg-white border-b border-slate-100 relative z-10">
-        <div className="flex-[1.5] py-3 flex items-center justify-center gap-2 text-[10px] font-bold text-slate-400 border-r border-slate-100 uppercase">
-          <Sparkles size={12} className="text-secondary" />
-          {viewMode === 'subcategories' ? 'Explore' : 'Browse'}
-        </div>
-        
         <button 
           onClick={() => {
             setFilterActive(!filterActive);
@@ -297,7 +292,7 @@ export default function CategoriesPage() {
                     className="object-cover p-0.5 rounded-lg"
                   />
                 </div>
-                <span className={`text-[8px] font-black text-center px-1 leading-tight uppercase tracking-tighter transition-colors line-clamp-2 ${
+                <span className={`text-[8px] font-black text-center px-1 leading-tight uppercase tracking-tighter transition-colors line-clamp-2 font-sans ${
                   selectedCategory?.id === cat.id ? 'text-primary' : 'text-slate-400'
                 }`}>{cat.name}</span>
               </button>
@@ -338,7 +333,7 @@ export default function CategoriesPage() {
                       className="object-cover p-0.5 rounded-lg"
                     />
                   </div>
-                  <span className={`text-[8px] font-black text-center px-1 leading-tight uppercase transition-colors line-clamp-2 ${
+                  <span className={`text-[8px] font-black text-center px-1 leading-tight uppercase transition-colors line-clamp-2 font-sans ${
                     selectedSubCategory?.id === sub.id ? 'text-secondary' : 'text-slate-400'
                   }`}>{sub.name}</span>
                 </button>
