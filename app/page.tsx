@@ -22,7 +22,7 @@ import { getBlogs } from '@/app/actions/blog';
 import { getSession } from '@/app/actions/user';
 import { Business, Category, Movie, TouristPlace } from '@/lib/mockData';
 import * as LucideIcons from 'lucide-react';
-import { ArrowRight, CheckCircle2, Star, MapPin, Calendar, Play, ShieldCheck, Zap, Search, Phone, MessageSquare, Heart, Sparkles, History, X, Mic, Send, LayoutGrid, ShoppingBag, Home, Bot, User } from 'lucide-react';
+import { ArrowRight, CheckCircle2, Star, MapPin, Calendar, Play, ShieldCheck, Zap, Search, Phone, MessageSquare, Heart, Sparkles, History, X, Mic, Send, LayoutGrid, ShoppingBag, Home as HomeIcon, Bot, User } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 
@@ -482,7 +482,7 @@ function HomeContent() {
       <div className="fixed bottom-0 left-0 w-full z-[100] md:hidden bg-white/90 backdrop-blur-md border-t border-slate-100/50">
         <div className="flex items-center justify-around px-2 py-1.5 pb-safe">
           {[
-            { icon: Home, label: 'Home' },
+            { icon: HomeIcon, label: 'Home' },
             { icon: LayoutGrid, label: 'Categories' },
             { icon: Bot, label: 'FinderB AI' },
             { icon: User, label: 'Account' },
