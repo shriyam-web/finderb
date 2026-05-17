@@ -211,7 +211,7 @@ function HomeContent() {
   }, [index]);
 
   return (
-    <div className="flex flex-col bg-white selection:bg-primary/10">
+    <div className="flex flex-col bg-white selection:bg-primary/10 font-sans">
       {/* Featured Categories Strip */}
       <section className="pt-20 lg:pt-28 bg-white">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">

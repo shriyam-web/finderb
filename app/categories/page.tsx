@@ -130,28 +130,64 @@ export default function CategoriesPage() {
         </div>
       </header>
 
-      {/* Sort & Filter Bar - Renamed and Functional */}
+      {/* Sort & Filter Bar - Unified in Filter Dropdown */}
       <div className="flex bg-white border-b border-slate-100 relative z-10">
-        <button 
-          onClick={() => {
-            const options: ('recommended' | 'rating' | 'newest')[] = ['recommended', 'rating', 'newest'];
-            const next = options[(options.indexOf(sortBy) + 1) % options.length];
-            setSortBy(next);
-          }}
-          className="flex-1 py-3 flex items-center justify-center gap-2 text-[11px] font-bold text-slate-600 border-r border-slate-100 hover:bg-slate-50 transition-colors uppercase tracking-widest"
-        >
-          <Sparkles size={14} className={sortBy !== 'recommended' ? 'text-primary' : 'text-secondary'} />
-          Sorting: <span className="text-primary">{sortBy}</span>
-        </button>
+        <div className="flex-1 py-3 flex items-center justify-center gap-2 text-[11px] font-bold text-slate-400 border-r border-slate-100 uppercase tracking-widest">
+          <Sparkles size={14} className="text-secondary" />
+          {viewMode === 'subcategories' ? 'Explore Categories' : 'Browse Businesses'}
+        </div>
         <button 
           onClick={() => setFilterActive(!filterActive)}
-          className={`flex-1 py-3 flex items-center justify-center gap-2 text-[11px] font-bold transition-colors uppercase tracking-widest ${
-            filterActive ? 'bg-primary/5 text-primary' : 'text-slate-600 hover:bg-slate-50'
+          className={`flex-1 py-3 flex items-center justify-center gap-2 text-[11px] font-bold transition-all uppercase tracking-widest ${
+            filterActive ? 'bg-primary text-white' : 'text-slate-600 hover:bg-slate-50'
           }`}
         >
-          <Filter size={14} className={filterActive ? 'text-primary' : 'text-slate-400'} />
-          Filter {filterActive && '•'}
+          <Filter size={14} className={filterActive ? 'text-white' : 'text-slate-400'} />
+          Filter & Sort {filterActive && '•'}
         </button>
+
+        {/* Filter Dropdown */}
+        {filterActive && (
+          <div className="absolute top-full left-0 w-full bg-white shadow-xl border-t border-slate-100 p-4 z-50 animate-in slide-in-from-top-2 duration-300">
+            <div className="space-y-4">
+              <div>
+                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Sort By</h4>
+                <div className="grid grid-cols-3 gap-2">
+                  {(['recommended', 'rating', 'newest'] as const).map((option) => (
+                    <button
+                      key={option}
+                      onClick={() => {
+                        setSortBy(option);
+                        setFilterActive(false);
+                      }}
+                      className={`py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider border transition-all ${
+                        sortBy === option 
+                          ? 'bg-primary border-primary text-white shadow-lg shadow-primary/20' 
+                          : 'bg-slate-50 border-slate-100 text-slate-600 hover:border-primary/30'
+                      }`}
+                    >
+                      {option}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Quick Filters</h4>
+                <div className="flex flex-wrap gap-2">
+                  {['Open Now', 'Top Rated', 'Near Me', 'Verified'].map((f) => (
+                    <button
+                      key={f}
+                      className="px-4 py-2 bg-slate-50 border border-slate-100 rounded-full text-[9px] font-bold text-slate-600 uppercase tracking-widest hover:border-primary/30 transition-all"
+                    >
+                      {f}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="flex flex-1 overflow-hidden">
