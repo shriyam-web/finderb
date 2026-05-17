@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Search, Filter, ChevronRight, LayoutGrid, ShoppingBag, Home, Sparkles } from 'lucide-react';
+import { Search, Filter, ChevronRight, LayoutGrid, ShoppingBag, Home, Sparkles, User, Bot } from 'lucide-react';
 import { getCategories, getSubCategories } from '@/app/actions/category';
 import { getFeaturedBusinesses } from '@/app/actions/business';
 import Image from 'next/image';
@@ -86,12 +86,12 @@ export default function CategoriesPage() {
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
-    if (label === 'Top Picks') {
-      router.push('/?tab=top-picks');
+    if (label === 'FinderB Ai') {
+      router.push('/?tab=finderb-ai');
       return;
     }
-    if (label === 'Basket') {
-      router.push('/?tab=basket');
+    if (label === 'Account') {
+      router.push('/account');
       return;
     }
   };
@@ -304,7 +304,8 @@ export default function CategoriesPage() {
           {[
             { icon: Home, label: 'Home' },
             { icon: LayoutGrid, label: 'Categories' },
-            { icon: Sparkles, label: 'Top Picks' },
+            { icon: Bot, label: 'FinderB Ai' },
+            { icon: User, label: 'Account' },
           ].map((item, i) => (
             <button
               key={i}
