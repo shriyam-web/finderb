@@ -479,7 +479,7 @@ export default function CategoriesPage() {
       </div>
 
       {/* Mobile Bottom Navigation - Slim & Premium */}
-      <div className="fixed bottom-0 left-0 w-full z-[100] bg-white/90 backdrop-blur-md border-t border-slate-100/50">
+      <div className="fixed bottom-0 left-0 w-full z-[100] bg-white/90 backdrop-blur-md border-t border-slate-100/50 font-sans">
         <div className="flex items-center justify-around px-2 py-1.5 pb-safe">
           {[
             { icon: Home, label: 'Home' },
