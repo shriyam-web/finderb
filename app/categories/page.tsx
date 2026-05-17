@@ -71,6 +71,25 @@ export default function CategoriesPage() {
     setViewMode('merchants');
   };
 
+  const handleTabChange = (label: string) => {
+    if (label === 'Home') {
+      router.push('/');
+      return;
+    }
+    if (label === 'Categories') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+    if (label === 'Top Picks') {
+      router.push('/?tab=top-picks');
+      return;
+    }
+    if (label === 'Basket') {
+      router.push('/?tab=basket');
+      return;
+    }
+  };
+
   return (
     <div className="flex flex-col h-screen bg-white overflow-hidden">
       {/* Header / Search Bar */}
