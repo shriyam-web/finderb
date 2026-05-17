@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Search, Filter, ChevronRight, LayoutGrid, ShoppingBag, Home, Sparkles, User, Bot } from 'lucide-react';
+import { Search, Filter, ChevronRight, LayoutGrid, ShoppingBag, Home, Sparkles, User, Bot, TrendingUp } from 'lucide-react';
 import { getCategories, getSubCategories } from '@/app/actions/category';
 import { getFeaturedBusinesses } from '@/app/actions/business';
 import Image from 'next/image';
