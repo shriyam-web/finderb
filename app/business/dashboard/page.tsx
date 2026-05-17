@@ -428,7 +428,7 @@ function DashboardContent() {
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex flex-col lg:flex-row font-sans selection:bg-indigo-100">
       {/* Mobile Bottom Navigation */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-md border-t border-gray-100 px-6 py-3 flex items-center justify-between z-[60] shadow-[0_-4px_24px_rgba(0,0,0,0.04)]">
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-md border-t border-gray-100 px-6 py-3 flex items-center justify-between z-[60] shadow-[0_-4px_24px_rgba(0,0,0,0.04)] font-sans">
         {menuItems.slice(0, 4).map((item) => (
           <button
             key={item.id}
@@ -438,7 +438,7 @@ function DashboardContent() {
             }`}
           >
             {activeTab === item.id ? <item.activeIcon size={22} /> : <item.icon size={22} />}
-            <span className="text-[10px] font-bold tracking-tight">{item.label}</span>
+            <span className="text-[10px] font-bold">{item.label}</span>
           </button>
         ))}
         <button

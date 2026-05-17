@@ -21,22 +21,22 @@ export default async function CategoryPage({ params }: { params: Promise<{ categ
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-12">
-          <h1 className="text-3xl md:text-4xl lg:text-5xl font-black text-primary mb-4 tracking-tight">{currentCategory.name}</h1>
+          <h1 className="text-3xl md:text-4xl lg:text-5xl font-black text-primary mb-4">{currentCategory.name}</h1>
           <p className="text-gray-500 font-medium">Found {filteredBusinesses.length} businesses matching your criteria</p>
         </div>
 
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Sidebar Filters */}
           <aside className="w-full lg:w-64 space-y-8">
-            <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+            <div className="bg-white p-6 border border-gray-100">
               <div className="flex items-center gap-2 mb-6">
                 <Filter size={18} className="text-blue-600" />
-                <h3 className="font-black text-gray-900 uppercase tracking-wider text-sm">Filters</h3>
+                <h3 className="font-black text-gray-900 uppercase text-sm">Filters</h3>
               </div>
 
               {/* Location Filter */}
               <div className="space-y-4 mb-8">
-                <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Location</label>
+                <label className="text-xs font-black text-gray-400 uppercase">Location</label>
                 <div className="relative">
                   <MapPin size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                   <input 
@@ -48,7 +48,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ categ
 
               {/* Rating Filter */}
               <div className="space-y-4 mb-8">
-                <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Minimum Rating</label>
+                <label className="text-xs font-black text-gray-400 uppercase">Minimum Rating</label>
                 <div className="space-y-2">
                   {[4, 3, 2].map((r) => (
                     <label key={r} className="flex items-center gap-3 cursor-pointer group">
@@ -64,7 +64,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ categ
 
               {/* Price Filter */}
               <div className="space-y-4">
-                <label className="text-xs font-black text-gray-400 uppercase tracking-widest">Price Range</label>
+                <label className="text-xs font-black text-gray-400 uppercase">Price Range</label>
                 <div className="space-y-2">
                   {['Budget', 'Mid-range', 'Premium'].map((p) => (
                     <label key={p} className="flex items-center gap-3 cursor-pointer group">
@@ -84,7 +84,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ categ
                 <BusinessCard key={biz.id} business={biz} />
               ))}
               {filteredBusinesses.length === 0 && (
-                <div className="col-span-full py-20 text-center bg-white rounded-3xl border border-dashed border-gray-200">
+                <div className="col-span-full py-20 text-center bg-white border border-dashed border-gray-200">
                   <p className="text-gray-500 font-bold">No businesses found in this category yet.</p>
                 </div>
               )}

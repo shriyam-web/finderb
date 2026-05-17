@@ -96,15 +96,54 @@ export default function CategoriesPage() {
     }
   };
 
-  const [sortBy, setSortBy] = useState<'recommended' | 'rating' | 'newest'>('recommended');
+  const [activeFilters, setActiveFilters] = useState<string[]>([]);
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [filterActive, setFilterActive] = useState(false);
+  const [sortActive, setSortActive] = useState(false);
 
-  // Simple sorting logic
-  const sortedBusinesses = [...businesses].sort((a, b) => {
-    if (sortBy === 'rating') return 4.9 - 4.5; // Dummy sort for now as we don't have real ratings in state
-    if (sortBy === 'newest') return b.id.localeCompare(a.id);
-    return 0;
-  });
+  const toggleFilter = (filter: string) => {
+    setActiveFilters(prev => 
+      prev.includes(filter) 
+        ? prev.filter(f => f !== filter) 
+        : [...prev, filter]
+    );
+  };
+
+  const resetFilters = () => {
+    setActiveFilters([]);
+  };
+
+  // Simple filtering and sorting logic
+  const filteredAndSortedBusinesses = [...businesses]
+    .filter(biz => {
+      if (activeFilters.includes('Open Now')) {
+        // Mock check - in a real app, this would check against business hours
+        // Let's assume some are open for mock purposes
+        if (parseInt(biz.id) % 2 !== 0) return false; 
+      }
+      if (activeFilters.includes('Top Rated')) {
+        if ((biz.rating || 0) < 4.5) return false;
+      }
+      if (activeFilters.includes('FinderB verified')) {
+        if (!biz.isFinderBVerified) return false;
+      }
+      // 'Nearest First' is handled by sorting, not filtering
+      return true;
+    })
+    .sort((a, b) => {
+      if (activeFilters.includes('Nearest First')) {
+        // Mock distance sort - in real app would use geolocation
+        return a.id.localeCompare(b.id);
+      }
+      
+      const nameA = a.name.toLowerCase();
+      const nameB = b.name.toLowerCase();
+      if (sortOrder === 'asc') {
+        return nameA.localeCompare(nameB);
+      } else {
+        return nameB.localeCompare(nameA);
+      }
+    });
 
   return (
     <div className="flex flex-col h-screen bg-slate-50 overflow-hidden font-sans">
@@ -130,60 +169,99 @@ export default function CategoriesPage() {
         </div>
       </header>
 
-      {/* Sort & Filter Bar - Unified in Filter Dropdown */}
+      {/* Sort & Filter Bar */}
       <div className="flex bg-white border-b border-slate-100 relative z-10">
-        <div className="flex-1 py-3 flex items-center justify-center gap-2 text-[11px] font-bold text-slate-400 border-r border-slate-100 uppercase tracking-widest">
-          <Sparkles size={14} className="text-secondary" />
-          {viewMode === 'subcategories' ? 'Explore Categories' : 'Browse Businesses'}
+        <div className="flex-[1.5] py-3 flex items-center justify-center gap-2 text-[10px] font-bold text-slate-400 border-r border-slate-100 uppercase">
+          <Sparkles size={12} className="text-secondary" />
+          {viewMode === 'subcategories' ? 'Explore' : 'Browse'}
         </div>
+        
         <button 
-          onClick={() => setFilterActive(!filterActive)}
-          className={`flex-1 py-3 flex items-center justify-center gap-2 text-[11px] font-bold transition-all uppercase tracking-widest ${
+          onClick={() => {
+            setFilterActive(!filterActive);
+            setSortActive(false);
+          }}
+          className={`flex-1 py-3 flex items-center justify-center gap-2 text-[10px] font-bold transition-all uppercase border-r border-slate-100 ${
             filterActive ? 'bg-primary text-white' : 'text-slate-600 hover:bg-slate-50'
           }`}
         >
-          <Filter size={14} className={filterActive ? 'text-white' : 'text-slate-400'} />
-          Filter & Sort {filterActive && '•'}
+          <Filter size={12} className={filterActive ? 'text-white' : 'text-slate-400'} />
+          Filter {activeFilters.length > 0 && `(${activeFilters.length})`}
+        </button>
+
+        <button 
+          onClick={() => {
+            setSortActive(!sortActive);
+            setFilterActive(false);
+          }}
+          className={`flex-1 py-3 flex items-center justify-center gap-2 text-[10px] font-bold transition-all uppercase ${
+            sortActive ? 'bg-primary text-white' : 'text-slate-600 hover:bg-slate-50'
+          }`}
+        >
+          <TrendingUp size={12} className={sortActive ? 'text-white' : 'text-slate-400'} />
+          Sort
         </button>
 
         {/* Filter Dropdown */}
         {filterActive && (
           <div className="absolute top-full left-0 w-full bg-white shadow-xl border-t border-slate-100 p-4 z-50 animate-in slide-in-from-top-2 duration-300">
             <div className="space-y-4">
-              <div>
-                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Sort By</h4>
-                <div className="grid grid-cols-3 gap-2">
-                  {(['recommended', 'rating', 'newest'] as const).map((option) => (
-                    <button
-                      key={option}
-                      onClick={() => {
-                        setSortBy(option);
-                        setFilterActive(false);
-                      }}
-                      className={`py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider border transition-all ${
-                        sortBy === option 
-                          ? 'bg-primary border-primary text-white shadow-lg shadow-primary/20' 
-                          : 'bg-slate-50 border-slate-100 text-slate-600 hover:border-primary/30'
-                      }`}
-                    >
-                      {option}
-                    </button>
-                  ))}
-                </div>
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="text-[10px] font-black text-slate-400 uppercase">Filters</h4>
+                <button 
+                  onClick={resetFilters}
+                  className="text-[9px] font-bold text-primary uppercase hover:underline"
+                >
+                  Reset All
+                </button>
               </div>
+              <div className="flex flex-wrap gap-2">
+                {['Open Now', 'Top Rated', 'Nearest First', 'FinderB verified'].map((f) => (
+                  <button
+                    key={f}
+                    onClick={() => toggleFilter(f)}
+                    className={`px-4 py-2 border rounded-full text-[9px] font-bold uppercase transition-all ${
+                      activeFilters.includes(f)
+                        ? 'bg-primary border-primary text-white shadow-md'
+                        : 'bg-slate-50 border-slate-100 text-slate-600 hover:border-primary/30'
+                    }`}
+                  >
+                    {f}
+                  </button>
+                ))}
+              </div>
+              <button 
+                onClick={() => setFilterActive(false)}
+                className="w-full py-2.5 bg-slate-900 text-white text-[10px] font-black uppercase rounded-xl shadow-lg mt-2"
+              >
+                Apply Filters
+              </button>
+            </div>
+          </div>
+        )}
 
-              <div>
-                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3">Quick Filters</h4>
-                <div className="flex flex-wrap gap-2">
-                  {['Open Now', 'Top Rated', 'Near Me', 'Verified'].map((f) => (
-                    <button
-                      key={f}
-                      className="px-4 py-2 bg-slate-50 border border-slate-100 rounded-full text-[9px] font-bold text-slate-600 uppercase tracking-widest hover:border-primary/30 transition-all"
-                    >
-                      {f}
-                    </button>
-                  ))}
-                </div>
+        {/* Sort Dropdown */}
+        {sortActive && (
+          <div className="absolute top-full left-0 w-full bg-white shadow-xl border-t border-slate-100 p-4 z-50 animate-in slide-in-from-top-2 duration-300">
+            <div className="space-y-4">
+              <h4 className="text-[10px] font-black text-slate-400 uppercase mb-3">Sort Order</h4>
+              <div className="grid grid-cols-2 gap-2">
+                {(['asc', 'desc'] as const).map((order) => (
+                  <button
+                    key={order}
+                    onClick={() => {
+                      setSortOrder(order);
+                      setSortActive(false);
+                    }}
+                    className={`py-2 rounded-xl text-[10px] font-bold uppercase border transition-all ${
+                      sortOrder === order 
+                        ? 'bg-primary border-primary text-white shadow-lg' 
+                        : 'bg-slate-50 border-slate-100 text-slate-600 hover:border-primary/30'
+                    }`}
+                  >
+                    {order === 'asc' ? 'Ascending' : 'Descending'}
+                  </button>
+                ))}
               </div>
             </div>
           </div>
@@ -233,7 +311,7 @@ export default function CategoriesPage() {
                 <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all">
                   <ChevronRight className="rotate-180" size={14} />
                 </div>
-                <span className="text-[8px] font-black text-primary uppercase tracking-wider">Back</span>
+                <span className="text-[8px] font-black text-primary uppercase">Back</span>
               </button>
               {subCategories.map((sub) => (
                 <button
@@ -260,7 +338,7 @@ export default function CategoriesPage() {
                       className="object-cover p-0.5 rounded-lg"
                     />
                   </div>
-                  <span className={`text-[8px] font-black text-center px-1 leading-tight uppercase tracking-tighter transition-colors line-clamp-2 ${
+                  <span className={`text-[8px] font-black text-center px-1 leading-tight uppercase transition-colors line-clamp-2 ${
                     selectedSubCategory?.id === sub.id ? 'text-secondary' : 'text-slate-400'
                   }`}>{sub.name}</span>
                 </button>
@@ -284,9 +362,9 @@ export default function CategoriesPage() {
             <div className="p-5">
               <div className="mb-6 flex items-end justify-between">
                 <div>
-                  <h1 className="text-2xl font-black text-slate-900 tracking-tight leading-none mb-2">{selectedCategory?.name}</h1>
+                  <h1 className="text-2xl font-black text-slate-900 leading-none mb-2">{selectedCategory?.name}</h1>
                   <div className="flex items-center gap-2">
-                    <span className="px-2 py-0.5 bg-primary/10 text-primary text-[9px] font-bold uppercase tracking-widest rounded-full">
+                    <span className="px-2 py-0.5 bg-primary/10 text-primary text-[9px] font-bold uppercase rounded-full">
                       {subCategories.length} Options
                     </span>
                   </div>
@@ -328,7 +406,7 @@ export default function CategoriesPage() {
                     <div className="w-20 h-20 rounded-full bg-slate-100 flex items-center justify-center mb-4">
                       <LayoutGrid size={32} />
                     </div>
-                    <p className="text-xs font-black uppercase tracking-[0.2em]">Coming Soon</p>
+                    <p className="text-xs font-black uppercase">Coming Soon</p>
                   </div>
                 )}
               </div>
@@ -337,20 +415,20 @@ export default function CategoriesPage() {
             <div className="p-4 space-y-6">
               <div className="flex items-center justify-between px-1">
                 <div>
-                  <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Available Businesses</h2>
+                  <h2 className="text-[10px] font-black text-slate-400 uppercase mb-1">Available Businesses</h2>
                   <h3 className="text-lg font-black text-slate-900">{selectedSubCategory?.name}</h3>
                 </div>
                 <button 
                   onClick={() => setViewMode('subcategories')} 
-                  className="px-4 py-2 bg-white border border-slate-200 hover:border-primary hover:text-primary rounded-full text-[9px] font-black uppercase tracking-widest transition-all shadow-sm"
+                  className="px-4 py-2 bg-white border border-slate-200 hover:border-primary hover:text-primary rounded-full text-[9px] font-black uppercase transition-all shadow-sm"
                 >
                   Change
                 </button>
               </div>
 
               <div className="flex flex-col gap-4">
-                {sortedBusinesses.filter(b => !searchQuery || b.name.toLowerCase().includes(searchQuery.toLowerCase())).map((biz) => (
-                  <div key={biz.id} className="group relative bg-white rounded-[1.5rem] border border-slate-100 shadow-sm overflow-hidden flex flex-row hover:shadow-xl hover:shadow-primary/5 transition-all duration-500">
+                {filteredAndSortedBusinesses.filter(b => !searchQuery || b.name.toLowerCase().includes(searchQuery.toLowerCase())).map((biz) => (
+                  <div key={biz.id} className="group relative bg-white border border-slate-100 overflow-hidden flex flex-row transition-all duration-500">
                     <div className="relative w-28 sm:w-36 aspect-square overflow-hidden shrink-0">
                       <Image
                         src={biz.image || biz.profilePictureUrl || 'https://images.unsplash.com/photo-1581244277943-fe4a9c777189?auto=format&fit=crop&q=80&w=400'}
@@ -367,7 +445,7 @@ export default function CategoriesPage() {
                     <div className="p-4 flex-1 flex flex-col justify-between min-w-0">
                       <div>
                         <div className="flex items-center justify-between mb-1">
-                          <span className="text-[8px] font-black text-primary uppercase tracking-widest px-2 py-0.5 bg-primary/5 rounded-full line-clamp-1">
+                          <span className="text-[8px] font-black text-primary uppercase px-2 py-0.5 bg-primary/5 rounded-full line-clamp-1">
                             {biz.category || 'Premium'}
                           </span>
                           <div className="flex items-center gap-0.5">
@@ -391,10 +469,7 @@ export default function CategoriesPage() {
                         </div>
                         
                         <div className="flex gap-1.5">
-                          <button className="w-8 h-8 bg-slate-50 border border-slate-100 text-slate-900 rounded-lg flex items-center justify-center hover:bg-primary hover:text-white transition-all active:scale-90">
-                            <ShoppingBag size={14} />
-                          </button>
-                          <button className="px-3 py-2 bg-primary text-white rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-primary/90 active:scale-95 transition-all shadow-sm">
+                          <button className="px-3 py-2 bg-primary text-white rounded-lg text-[9px] font-black uppercase hover:bg-primary/90 active:scale-95 transition-all shadow-sm">
                             View
                           </button>
                         </div>
@@ -434,7 +509,7 @@ export default function CategoriesPage() {
                     : 'group-active:scale-90'
                 }`}
               />
-              <span className={`text-[8px] font-black uppercase tracking-tighter transition-all duration-300 ${
+              <span className={`text-[8px] font-black uppercase transition-all duration-300 ${
                 item.label === 'Categories' ? 'opacity-100' : 'opacity-60'
               }`}>
                 {item.label}

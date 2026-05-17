@@ -479,7 +479,7 @@ function HomeContent() {
       </section>
 
       {/* Quick Actions / Mobile Bottom Bar - Slim & Premium */}
-      <div className="fixed bottom-0 left-0 w-full z-[100] md:hidden bg-white/90 backdrop-blur-md border-t border-slate-100/50">
+      <div className="fixed bottom-0 left-0 w-full z-[100] md:hidden bg-white/90 backdrop-blur-md border-t border-slate-100/50 font-sans">
         <div className="flex items-center justify-around px-2 py-1.5 pb-safe">
           {[
             { icon: HomeIcon, label: 'Home' },
@@ -502,7 +502,7 @@ function HomeContent() {
                   : 'group-active:scale-90'
                   }`}
               />
-              <span className={`text-[8px] font-black uppercase tracking-tighter transition-all duration-300 ${activeMobileTab === item.label ? 'opacity-100' : 'opacity-60'
+              <span className={`text-[8px] font-black uppercase transition-all duration-300 ${activeMobileTab === item.label ? 'opacity-100' : 'opacity-60'
                 }`}>
                 {item.label}
               </span>

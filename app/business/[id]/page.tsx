@@ -389,7 +389,7 @@ export default function BusinessDetailPage({ params }: { params: Promise<{ id: s
       </main>
 
       {/* Mobile Sticky CTA */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/80 backdrop-blur-xl border-t border-slate-200/60 flex gap-3 lg:hidden z-50">
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/80 backdrop-blur-xl border-t border-slate-200/60 flex gap-3 lg:hidden z-50 font-sans">
         <a href={`tel:${business.contact}`} className="flex-1 flex items-center justify-center gap-2 py-4 bg-blue-600 text-white rounded-2xl font-bold text-sm">
           <Phone size={18} />
           Call

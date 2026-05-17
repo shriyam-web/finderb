@@ -11,7 +11,7 @@ interface BusinessCardProps {
 
 export default function BusinessCard({ business, isPremium = false, compact = false }: BusinessCardProps) {
   return (
-    <div className={`group relative bg-white rounded-3xl overflow-hidden transition-all duration-500 shadow-soft hover:shadow-premium border border-gray-100/50 hover:border-secondary/20 flex flex-col h-full`}>
+    <div className={`group relative bg-white overflow-hidden transition-all duration-500 border border-gray-100/50 hover:border-secondary/20 flex flex-col h-full`}>
       {/* Image Section */}
       <div className={`relative ${compact ? 'h-40' : 'h-56'} w-full`}>
        <Image
@@ -30,13 +30,13 @@ export default function BusinessCard({ business, isPremium = false, compact = fa
         {/* Badges */}
         <div className={`absolute ${compact ? 'top-2 left-2' : 'top-4 left-4'} flex flex-col gap-2 z-10`}>
           {isPremium && (
-            <div className={`bg-gradient-to-r from-primary to-secondary text-white text-[8px] sm:text-[9px] font-bold ${compact ? 'px-2 py-1' : 'px-3 py-1.5'} rounded-full shadow-lg flex items-center gap-1.5 border border-white/20 uppercase tracking-widest`}>
+            <div className={`bg-gradient-to-r from-primary to-secondary text-white text-[8px] sm:text-[9px] font-bold ${compact ? 'px-2 py-1' : 'px-3 py-1.5'} rounded-full shadow-lg flex items-center gap-1.5 border border-white/20 uppercase`}>
               <Star size={compact ? 8 : 10} fill="white" />
               Verified
             </div>
           )}
           {!compact && (
-            <div className="bg-secondary text-white text-[9px] font-bold px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1.5 border border-white/20 uppercase tracking-widest">
+            <div className="bg-secondary text-white text-[9px] font-bold px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1.5 border border-white/20 uppercase">
               <Zap size={10} fill="white" />
               Available Now
             </div>
@@ -52,7 +52,7 @@ export default function BusinessCard({ business, isPremium = false, compact = fa
         {!compact && (
           <div className="absolute bottom-4 left-4 flex items-center gap-1.5 text-white">
             <TrendingUp size={12} className="text-secondary" />
-            <span className="text-[10px] font-bold uppercase tracking-wider drop-shadow-md">Trending in Delhi</span>
+            <span className="text-[10px] font-bold uppercase drop-shadow-md">Trending in Delhi</span>
           </div>
         )}
 
@@ -78,12 +78,12 @@ export default function BusinessCard({ business, isPremium = false, compact = fa
       {/* Content Section */}
       <div className={`${compact ? 'p-4' : 'p-6'} flex flex-col flex-grow ${business.profilePictureUrl ? (compact ? 'pt-8' : 'pt-12') : ''}`}>
         <div className="flex justify-between items-start mb-1">
-          <h3 className={`${compact ? 'text-base' : 'text-lg'} font-extrabold text-primary group-hover:text-secondary transition-colors tracking-tight leading-tight line-clamp-1 ${business.profilePictureUrl ? 'pr-12' : ''}`}>
+          <h3 className={`${compact ? 'text-base' : 'text-lg'} font-extrabold text-primary group-hover:text-secondary transition-colors leading-tight line-clamp-1 ${business.profilePictureUrl ? 'pr-12' : ''}`}>
             {business.name}
           </h3>
         </div>
         
-        <p className={`text-[10px] ${compact ? 'mb-3' : 'mb-4'} text-gray-400 font-bold uppercase tracking-widest`}>
+        <p className={`text-[10px] ${compact ? 'mb-3' : 'mb-4'} text-gray-400 font-bold uppercase`}>
           {business.category}
         </p>
         
@@ -100,14 +100,14 @@ export default function BusinessCard({ business, isPremium = false, compact = fa
 
         <div className={`flex items-center justify-between ${compact ? 'pt-3' : 'pt-4'} border-t border-gray-100`}>
           <div className="flex flex-col">
-            <span className="text-[8px] text-gray-400 font-bold uppercase tracking-widest mb-0.5">Price Range</span>
+            <span className="text-[8px] text-gray-400 font-bold uppercase mb-0.5">Price Range</span>
             <span className={`text-primary font-extrabold ${compact ? 'text-base' : 'text-lg'}`}>
               {business.priceRange}
             </span>
           </div>
           <Link 
             href={`/business/${business.id}`}
-            className={`bg-secondary hover:bg-primary text-white font-bold ${compact ? 'px-4 py-2 text-[9px]' : 'px-6 py-3 text-[11px]'} rounded-xl transition-all shadow-md hover:shadow-lg hover:shadow-secondary/30 active:scale-95 uppercase tracking-widest`}
+            className={`bg-secondary hover:bg-primary text-white font-bold ${compact ? 'px-4 py-2 text-[9px]' : 'px-6 py-3 text-[11px]'} rounded-xl transition-all shadow-md hover:shadow-lg hover:shadow-secondary/30 active:scale-95 uppercase`}
           >
             Details
           </Link>
