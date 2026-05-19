@@ -26,6 +26,8 @@ export default function CategoriesPage() {
   const [isSubLoading, setIsSubLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
+  const [viewMode, setViewMode] = useState<'categories' | 'subcategories' | 'merchants'>('categories');
+
   useEffect(() => {
     async function fetchData() {
       setIsLoading(true);
@@ -36,10 +38,6 @@ export default function CategoriesPage() {
 
       if (catResult.success && catResult.categories) {
         setCategories(catResult.categories);
-        // Set first category as default
-        if (catResult.categories.length > 0) {
-          setSelectedCategory(catResult.categories[0]);
-        }
       }
       
       if (bizResult.success && bizResult.businesses) {
@@ -49,8 +47,6 @@ export default function CategoriesPage() {
     }
     fetchData();
   }, []);
-
-  const [viewMode, setViewMode] = useState<'subcategories' | 'merchants'>('subcategories');
 
   useEffect(() => {
     async function fetchSubs() {
@@ -66,11 +62,15 @@ export default function CategoriesPage() {
           }
         }
         setIsSubLoading(false);
-        setViewMode('subcategories');
       }
     }
     fetchSubs();
   }, [selectedCategory]);
+
+  const handleCategoryClick = (cat: any) => {
+    setSelectedCategory(cat);
+    setViewMode('subcategories');
+  };
 
   const handleSubCategoryClick = (sub: any) => {
     setSelectedSubCategory(sub);
@@ -151,7 +151,16 @@ export default function CategoriesPage() {
       <header className="bg-white px-4 py-4 shadow-sm z-10">
         <div className="flex items-center gap-4">
           <button 
-            onClick={() => router.back()} 
+            onClick={() => {
+              if (viewMode === 'merchants') {
+                setViewMode('subcategories');
+              } else if (viewMode === 'subcategories') {
+                setViewMode('categories');
+                setSelectedCategory(null);
+              } else {
+                router.back();
+              }
+            }} 
             className="p-2 hover:bg-slate-100 rounded-full transition-colors active:scale-95"
           >
             <ChevronRight className="rotate-180 text-slate-700" size={20} />
@@ -265,82 +274,84 @@ export default function CategoriesPage() {
 
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar - Compact for more items */}
-        <aside className="w-20 bg-white border-r border-slate-100 overflow-y-auto scrollbar-hide pb-24">
-          {viewMode === 'subcategories' ? (
-            categories.map((cat) => (
-              <button
-                key={cat.id}
-                onClick={() => setSelectedCategory(cat)}
-                className={`w-full py-3.5 flex flex-col items-center gap-1.5 transition-all relative group ${
-                  selectedCategory?.id === cat.id
-                    ? 'bg-primary/5'
-                    : 'hover:bg-slate-50'
-                }`}
-              >
-                {selectedCategory?.id === cat.id && (
-                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary rounded-r-full" />
-                )}
-                <div className={`w-11 h-11 rounded-xl flex items-center justify-center p-0.5 border-2 transition-all duration-300 ${
-                  selectedCategory?.id === cat.id
-                    ? 'border-primary bg-white shadow-md shadow-primary/10 scale-105'
-                    : 'border-transparent bg-slate-50 group-hover:scale-105'
-                } overflow-hidden relative`}>
-                  <Image 
-                    src={cat.image || 'https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?auto=format&fit=crop&q=80&w=100'} 
-                    alt={cat.name} 
-                    fill 
-                    className="object-cover p-0.5 rounded-lg"
-                  />
-                </div>
-                <span className={`text-[8px] font-black text-center px-1 leading-tight uppercase tracking-tighter transition-colors line-clamp-2 font-sans ${
-                  selectedCategory?.id === cat.id ? 'text-primary' : 'text-slate-400'
-                }`}>{cat.name}</span>
-              </button>
-            ))
-          ) : (
-            <div className="flex flex-col">
-              <button
-                onClick={() => setViewMode('subcategories')}
-                className="w-full py-4 flex flex-col items-center gap-1 border-b border-slate-100 bg-slate-50/50 group"
-              >
-                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all">
-                  <ChevronRight className="rotate-180" size={14} />
-                </div>
-                <span className="text-[8px] font-black text-primary uppercase">Back</span>
-              </button>
-              {subCategories.map((sub) => (
+        {viewMode !== 'categories' && (
+          <aside className="w-20 bg-white border-r border-slate-100 overflow-y-auto scrollbar-hide pb-24">
+            {viewMode === 'subcategories' ? (
+              categories.map((cat) => (
                 <button
-                  key={sub.id}
-                  onClick={() => setSelectedSubCategory(sub)}
+                  key={cat.id}
+                  onClick={() => handleCategoryClick(cat)}
                   className={`w-full py-3.5 flex flex-col items-center gap-1.5 transition-all relative group ${
-                    selectedSubCategory?.id === sub.id
-                      ? 'bg-secondary/5'
+                    selectedCategory?.id === cat.id
+                      ? 'bg-primary/5'
                       : 'hover:bg-slate-50'
                   }`}
                 >
-                  {selectedSubCategory?.id === sub.id && (
-                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-secondary rounded-r-full" />
+                  {selectedCategory?.id === cat.id && (
+                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary rounded-r-full" />
                   )}
                   <div className={`w-11 h-11 rounded-xl flex items-center justify-center p-0.5 border-2 transition-all duration-300 ${
-                    selectedSubCategory?.id === sub.id
-                      ? 'border-secondary bg-white shadow-md shadow-secondary/10 scale-105'
+                    selectedCategory?.id === cat.id
+                      ? 'border-primary bg-white shadow-md shadow-primary/10 scale-105'
                       : 'border-transparent bg-slate-50 group-hover:scale-105'
                   } overflow-hidden relative`}>
                     <Image 
-                      src={sub.image} 
-                      alt={sub.name} 
+                      src={cat.image || 'https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?auto=format&fit=crop&q=80&w=100'} 
+                      alt={cat.name} 
                       fill 
                       className="object-cover p-0.5 rounded-lg"
                     />
                   </div>
-                  <span className={`text-[8px] font-black text-center px-1 leading-tight uppercase transition-colors line-clamp-2 font-sans ${
-                    selectedSubCategory?.id === sub.id ? 'text-secondary' : 'text-slate-400'
-                  }`}>{sub.name}</span>
+                  <span className={`text-[8px] font-black text-center px-1 leading-tight uppercase tracking-tighter transition-colors line-clamp-2 font-sans ${
+                    selectedCategory?.id === cat.id ? 'text-primary' : 'text-slate-400'
+                  }`}>{cat.name}</span>
                 </button>
-              ))}
-            </div>
-          )}
-        </aside>
+              ))
+            ) : (
+              <div className="flex flex-col">
+                <button
+                  onClick={() => setViewMode('subcategories')}
+                  className="w-full py-4 flex flex-col items-center gap-1 border-b border-slate-100 bg-slate-50/50 group"
+                >
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all">
+                    <ChevronRight className="rotate-180" size={14} />
+                  </div>
+                  <span className="text-[8px] font-black text-primary uppercase">Back</span>
+                </button>
+                {subCategories.map((sub) => (
+                  <button
+                    key={sub.id}
+                    onClick={() => setSelectedSubCategory(sub)}
+                    className={`w-full py-3.5 flex flex-col items-center gap-1.5 transition-all relative group ${
+                      selectedSubCategory?.id === sub.id
+                        ? 'bg-secondary/5'
+                        : 'hover:bg-slate-50'
+                    }`}
+                  >
+                    {selectedSubCategory?.id === sub.id && (
+                      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-secondary rounded-r-full" />
+                    )}
+                    <div className={`w-11 h-11 rounded-xl flex items-center justify-center p-0.5 border-2 transition-all duration-300 ${
+                      selectedSubCategory?.id === sub.id
+                        ? 'border-secondary bg-white shadow-md shadow-secondary/10 scale-105'
+                        : 'border-transparent bg-slate-50 group-hover:scale-105'
+                    } overflow-hidden relative`}>
+                      <Image 
+                        src={sub.image} 
+                        alt={sub.name} 
+                        fill 
+                        className="object-cover p-0.5 rounded-lg"
+                      />
+                    </div>
+                    <span className={`text-[8px] font-black text-center px-1 leading-tight uppercase transition-colors line-clamp-2 font-sans ${
+                      selectedSubCategory?.id === sub.id ? 'text-secondary' : 'text-slate-400'
+                    }`}>{sub.name}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </aside>
+        )}
 
         {/* Right Panel - Modern Grid */}
         <main className="flex-1 overflow-y-auto pb-32 scrollbar-hide bg-slate-50/50">
@@ -352,6 +363,39 @@ export default function CategoriesPage() {
                   <div className="w-2/3 h-4 bg-white rounded-full animate-pulse" />
                 </div>
               ))}
+            </div>
+          ) : viewMode === 'categories' ? (
+            <div className="p-5 max-w-4xl mx-auto w-full">
+              <div className="mb-8 mt-4">
+                <h1 className="text-3xl font-black text-slate-900 mb-2">All Categories</h1>
+                <p className="text-slate-500 text-sm font-medium">Select a category to explore sub-categories and local businesses</p>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                {categories.filter(cat => !searchQuery || cat.name.toLowerCase().includes(searchQuery.toLowerCase())).map((cat, index) => (
+                  <button
+                    key={cat.id}
+                    onClick={() => handleCategoryClick(cat)}
+                    className="flex flex-col items-center gap-4 p-6 bg-white rounded-[2.5rem] shadow-sm hover:shadow-xl hover:shadow-primary/10 transition-all duration-500 group border border-slate-100"
+                  >
+                    <div className={`w-20 h-20 relative rounded-3xl overflow-hidden p-1 transition-all duration-500 group-hover:scale-110 group-hover:rotate-3 ${
+                      index % 4 === 0 ? 'bg-orange-50' : 
+                      index % 4 === 1 ? 'bg-blue-50' : 
+                      index % 4 === 2 ? 'bg-emerald-50' : 'bg-purple-50'
+                    }`}>
+                       <Image 
+                        src={cat.image || 'https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?auto=format&fit=crop&q=80&w=100'} 
+                        alt={cat.name} 
+                        fill 
+                        className="object-cover rounded-2xl p-1" 
+                      />
+                    </div>
+                    <div className="flex flex-col items-center gap-1">
+                      <span className="text-xs font-black uppercase tracking-tight text-slate-800 text-center group-hover:text-primary transition-colors">{cat.name}</span>
+                      <span className="text-[9px] font-bold text-slate-400 uppercase">{cat.businessCount || 0}+ Places</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
             </div>
           ) : viewMode === 'subcategories' ? (
             <div className="p-5">
@@ -367,8 +411,8 @@ export default function CategoriesPage() {
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                {subCategories.length > 0 ? (
-                  subCategories.map((sub, index) => (
+                {subCategories.filter(sub => !searchQuery || sub.name.toLowerCase().includes(searchQuery.toLowerCase())).length > 0 ? (
+                  subCategories.filter(sub => !searchQuery || sub.name.toLowerCase().includes(searchQuery.toLowerCase())).map((sub, index) => (
                     <button
                       key={sub.id}
                       onClick={() => handleSubCategoryClick(sub)}
