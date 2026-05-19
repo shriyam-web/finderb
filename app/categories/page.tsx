@@ -277,7 +277,10 @@ export default function CategoriesPage() {
         {viewMode !== 'categories' && (
           <aside className="w-20 bg-white border-r border-slate-100 overflow-y-auto scrollbar-hide pb-24">
             {viewMode === 'subcategories' ? (
-              categories.map((cat) => (
+              [
+                ...(selectedCategory ? [selectedCategory] : []),
+                ...categories.filter(cat => cat.id !== selectedCategory?.id)
+              ].map((cat) => (
                 <button
                   key={cat.id}
                   onClick={() => handleCategoryClick(cat)}
@@ -370,14 +373,14 @@ export default function CategoriesPage() {
                 <h1 className="text-3xl font-black text-slate-900 mb-2">All Categories</h1>
                 <p className="text-slate-500 text-sm font-medium">Select a category to explore sub-categories and local businesses</p>
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
                 {categories.filter(cat => !searchQuery || cat.name.toLowerCase().includes(searchQuery.toLowerCase())).map((cat, index) => (
                   <button
                     key={cat.id}
                     onClick={() => handleCategoryClick(cat)}
-                    className="flex flex-col items-center gap-4 p-6 bg-white rounded-[2.5rem] shadow-sm hover:shadow-xl hover:shadow-primary/10 transition-all duration-500 group border border-slate-100"
+                    className="flex flex-col items-center gap-2 sm:gap-4 p-4 sm:p-6 bg-white rounded-[2rem] sm:rounded-[2.5rem] shadow-sm hover:shadow-xl hover:shadow-primary/10 transition-all duration-500 group border border-slate-100"
                   >
-                    <div className={`w-20 h-20 relative rounded-3xl overflow-hidden p-1 transition-all duration-500 group-hover:scale-110 group-hover:rotate-3 ${
+                    <div className={`w-14 h-14 sm:w-20 sm:h-20 relative rounded-2xl sm:rounded-3xl overflow-hidden p-1 transition-all duration-500 group-hover:scale-110 group-hover:rotate-3 ${
                       index % 4 === 0 ? 'bg-orange-50' : 
                       index % 4 === 1 ? 'bg-blue-50' : 
                       index % 4 === 2 ? 'bg-emerald-50' : 'bg-purple-50'
@@ -386,12 +389,12 @@ export default function CategoriesPage() {
                         src={cat.image || 'https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?auto=format&fit=crop&q=80&w=100'} 
                         alt={cat.name} 
                         fill 
-                        className="object-cover rounded-2xl p-1" 
+                        className="object-cover rounded-xl sm:rounded-2xl p-1" 
                       />
                     </div>
-                    <div className="flex flex-col items-center gap-1">
-                      <span className="text-xs font-black uppercase tracking-tight text-slate-800 text-center group-hover:text-primary transition-colors">{cat.name}</span>
-                      <span className="text-[9px] font-bold text-slate-400 uppercase">{cat.businessCount || 0}+ Places</span>
+                    <div className="flex flex-col items-center gap-0.5 sm:gap-1">
+                      <span className="text-[10px] sm:text-xs font-black uppercase tracking-tight text-slate-800 text-center group-hover:text-primary transition-colors line-clamp-1">{cat.name}</span>
+                      <span className="text-[8px] sm:text-[9px] font-bold text-slate-400 uppercase">{cat.businessCount || 0}+ Places</span>
                     </div>
                   </button>
                 ))}
@@ -410,15 +413,15 @@ export default function CategoriesPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3 sm:gap-4">
                 {subCategories.filter(sub => !searchQuery || sub.name.toLowerCase().includes(searchQuery.toLowerCase())).length > 0 ? (
                   subCategories.filter(sub => !searchQuery || sub.name.toLowerCase().includes(searchQuery.toLowerCase())).map((sub, index) => (
                     <button
                       key={sub.id}
                       onClick={() => handleSubCategoryClick(sub)}
-                      className="group flex flex-col gap-3 text-left"
+                      className="group flex flex-col gap-2 sm:gap-3 text-left"
                     >
-                      <div className={`relative aspect-[4/5] rounded-[2rem] overflow-hidden shadow-sm group-hover:shadow-xl group-hover:shadow-primary/10 transition-all duration-500 border border-slate-100 ${
+                      <div className={`relative aspect-[5/4] sm:aspect-[4/5] rounded-[1.5rem] sm:rounded-[2rem] overflow-hidden shadow-sm group-hover:shadow-xl group-hover:shadow-primary/10 transition-all duration-500 border border-slate-100 ${
                         index % 4 === 0 ? 'bg-orange-100' : 
                         index % 4 === 1 ? 'bg-blue-100' : 
                         index % 4 === 2 ? 'bg-emerald-100' : 'bg-purple-100'
@@ -429,13 +432,14 @@ export default function CategoriesPage() {
                           fill 
                           className="object-cover group-hover:scale-110 transition-transform duration-700" 
                         />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-80 group-hover:opacity-90 transition-opacity" />
-                        <div className="absolute bottom-4 left-4 right-4">
-                          <p className="text-[9px] font-black text-white/70 uppercase tracking-[0.2em] mb-1">View All</p>
-                          <h3 className="text-[11px] font-black text-white leading-tight uppercase tracking-wide line-clamp-2">{sub.name}</h3>
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-80 group-hover:opacity-90 transition-opacity" />
+                        <div className="absolute bottom-2 sm:bottom-4 left-2 sm:left-4 right-2 sm:right-4">
+                          <p className="text-[7px] sm:text-[9px] font-black text-white/70 uppercase tracking-[0.2em] mb-0.5 sm:mb-1">View All</p>
+                          <h3 className="text-[9px] sm:text-[11px] font-black text-white leading-tight uppercase tracking-wide line-clamp-2">{sub.name}</h3>
                         </div>
-                        <div className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/30 backdrop-blur-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-2 group-hover:translate-y-0">
-                          <ChevronRight size={16} className="text-white" />
+                        <div className="absolute top-2 sm:top-3 right-2 sm:right-3 w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-white/30 backdrop-blur-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-2 group-hover:translate-y-0">
+                          <ChevronRight size={12} className="text-white sm:hidden" />
+                          <ChevronRight size={16} className="text-white hidden sm:block" />
                         </div>
                       </div>
                     </button>
@@ -465,10 +469,10 @@ export default function CategoriesPage() {
                 </button>
               </div>
 
-              <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-3 sm:gap-4">
                 {filteredAndSortedBusinesses.filter(b => !searchQuery || b.name.toLowerCase().includes(searchQuery.toLowerCase())).map((biz) => (
-                  <div key={biz.id} className="group relative bg-white border border-slate-100 overflow-hidden flex flex-row transition-all duration-500">
-                    <div className="relative w-28 sm:w-36 aspect-square overflow-hidden shrink-0">
+                  <div key={biz.id} className="group relative bg-white border border-slate-100 overflow-hidden flex flex-row transition-all duration-500 rounded-2xl sm:rounded-none">
+                    <div className="relative w-24 sm:w-36 aspect-square overflow-hidden shrink-0">
                       <Image
                         src={biz.image || biz.profilePictureUrl || 'https://images.unsplash.com/photo-1581244277943-fe4a9c777189?auto=format&fit=crop&q=80&w=400'}
                         alt={biz.name}
@@ -476,39 +480,39 @@ export default function CategoriesPage() {
                         className="object-cover group-hover:scale-110 transition-transform duration-1000"
                       />
                       <div className="absolute inset-0 bg-gradient-to-r from-black/20 to-transparent" />
-                      <div className="absolute top-2 left-2 bg-secondary text-white text-[8px] font-black px-2 py-1 rounded-full shadow-lg">
+                      <div className="absolute top-1.5 left-1.5 sm:top-2 sm:left-2 bg-secondary text-white text-[7px] sm:text-[8px] font-black px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-full shadow-lg">
                         {Math.floor(Math.random() * 40) + 20}% OFF
                       </div>
                     </div>
 
-                    <div className="p-4 flex-1 flex flex-col justify-between min-w-0">
+                    <div className="p-3 sm:p-4 flex-1 flex flex-col justify-between min-w-0">
                       <div>
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-[8px] font-black text-primary uppercase px-2 py-0.5 bg-primary/5 rounded-full line-clamp-1">
+                        <div className="flex items-center justify-between mb-0.5 sm:mb-1">
+                          <span className="text-[7px] sm:text-[8px] font-black text-primary uppercase px-1.5 py-0.5 bg-primary/5 rounded-full line-clamp-1">
                             {biz.category || 'Premium'}
                           </span>
                           <div className="flex items-center gap-0.5">
-                            <Sparkles size={8} className="text-yellow-400 fill-yellow-400" />
-                            <span className="text-[9px] font-black text-slate-900">4.9</span>
+                            <Sparkles size={7} className="text-yellow-400 fill-yellow-400 sm:w-2 sm:h-2" />
+                            <span className="text-[8px] sm:text-[9px] font-black text-slate-900">4.9</span>
                           </div>
                         </div>
-                        <h3 className="text-xs font-black text-slate-900 leading-tight mb-1 truncate group-hover:text-primary transition-colors">{biz.name}</h3>
-                        <p className="text-[9px] font-bold text-slate-400 line-clamp-1 flex items-center gap-1">
-                          <Home size={8} /> 2.4 km • Open Now
+                        <h3 className="text-[10px] sm:text-xs font-black text-slate-900 leading-tight mb-0.5 sm:mb-1 truncate group-hover:text-primary transition-colors">{biz.name}</h3>
+                        <p className="text-[8px] sm:text-[9px] font-bold text-slate-400 line-clamp-1 flex items-center gap-1">
+                          <Home size={7} className="sm:w-2 sm:h-2" /> 2.4 km • Open
                         </p>
                       </div>
 
-                      <div className="flex items-center justify-between mt-2">
+                      <div className="flex items-center justify-between mt-1.5 sm:mt-2">
                         <div className="flex flex-col">
                           <div className="flex items-baseline gap-1">
-                            <span className="text-sm font-black text-slate-900">₹{Math.floor(Math.random() * 300) + 50}</span>
-                            <span className="text-[8px] text-slate-400 line-through font-bold">₹{Math.floor(Math.random() * 500) + 300}</span>
+                            <span className="text-xs sm:text-sm font-black text-slate-900">₹{Math.floor(Math.random() * 300) + 50}</span>
+                            <span className="text-[7px] sm:text-[8px] text-slate-400 line-through font-bold">₹{Math.floor(Math.random() * 500) + 300}</span>
                           </div>
-                          <span className="text-[8px] font-bold text-emerald-500">Best Price</span>
+                          <span className="text-[7px] sm:text-[8px] font-bold text-emerald-500">Best Price</span>
                         </div>
                         
                         <div className="flex gap-1.5">
-                          <button className="px-3 py-2 bg-primary text-white rounded-lg text-[9px] font-black uppercase hover:bg-primary/90 active:scale-95 transition-all shadow-sm">
+                          <button className="px-2.5 py-1.5 sm:px-3 sm:py-2 bg-primary text-white rounded-lg text-[8px] sm:text-[9px] font-black uppercase hover:bg-primary/90 active:scale-95 transition-all shadow-sm">
                             View
                           </button>
                         </div>
