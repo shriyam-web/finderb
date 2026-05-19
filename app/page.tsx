@@ -560,7 +560,11 @@ function HomeContent() {
           </div>
           <div className="flex overflow-x-auto pb-8 lg:pb-12 gap-6 lg:gap-8 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
             {realTouristPlaces.map((place) => (
-              <div key={place.id} className="group relative h-[350px] sm:h-[450px] min-w-[280px] sm:min-w-[420px] rounded-3xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-500 bg-white shrink-0">
+              <Link 
+                key={place.id} 
+                href={`/tourist-places/${place.id}`}
+                className="group relative h-[350px] sm:h-[450px] min-w-[280px] sm:min-w-[420px] rounded-3xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-500 bg-white shrink-0"
+              >
                 <Image
                   src={place.image}
                   alt={place.name}
@@ -577,7 +581,7 @@ function HomeContent() {
                       </div>
                     </div>
                   </div>
-                  <h3 className="text-2xl sm:text-4xl font-bold text-white mb-4 tracking-tight">{place.name}</h3>
+                  <h3 className="text-2xl sm:text-4xl font-bold !text-white mb-4 tracking-tight" style={{ color: "#ffffff" }}>{place.name}</h3>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
                       <div className="flex items-center gap-1.5 bg-secondary px-3 py-1 rounded-full text-white shadow-lg">
@@ -591,7 +595,7 @@ function HomeContent() {
                     </div>
                   </div>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         </div>
