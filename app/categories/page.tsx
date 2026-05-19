@@ -512,7 +512,10 @@ export default function CategoriesPage() {
                         </div>
                         
                         <div className="flex gap-1.5">
-                          <button className="px-2.5 py-1.5 sm:px-3 sm:py-2 bg-primary text-white rounded-lg text-[8px] sm:text-[9px] font-black uppercase hover:bg-primary/90 active:scale-95 transition-all shadow-sm">
+                          <button 
+                            onClick={() => router.push(`/business/${biz.id}`)}
+                            className="px-2.5 py-1.5 sm:px-3 sm:py-2 bg-primary text-white rounded-lg text-[8px] sm:text-[9px] font-black uppercase hover:bg-primary/90 active:scale-95 transition-all shadow-sm"
+                          >
                             View
                           </button>
                         </div>
