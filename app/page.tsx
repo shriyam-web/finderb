@@ -581,7 +581,9 @@ function HomeContent() {
                       </div>
                     </div>
                   </div>
-                  <h3 className="text-2xl sm:text-4xl font-bold !text-white mb-4 tracking-tight" style={{ color: "#ffffff" }}>{place.name}</h3>
+                  <h3 className="text-2xl sm:text-4xl font-bold text-white mb-4 tracking-tight">
+                    {place.name}
+                  </h3>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
                       <div className="flex items-center gap-1.5 bg-secondary px-3 py-1 rounded-full text-white shadow-lg">
