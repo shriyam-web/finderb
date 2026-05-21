@@ -9,6 +9,7 @@ import { cities } from '@/lib/mockData';
 
 interface Job {
   id: string;
+  business_id: string;
   title: string;
   type: string;
   location: string;
