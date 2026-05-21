@@ -16,7 +16,7 @@ export default function CategoryCard({ category }: CategoryCardProps) {
 
   return (
     <Link 
-      href={`/categories/${category.slug}`}
+      href={`/categories?id=${category.id}`}
       className="relative group bg-white p-2 sm:p-6 rounded-xl sm:rounded-[2rem] shadow-soft hover:shadow-2xl transition-all duration-500 flex flex-col items-center text-center border border-gray-50 hover:border-transparent overflow-hidden"
     >
       {/* Dynamic Background Glow */}

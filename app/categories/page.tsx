@@ -17,6 +17,8 @@ interface SubCategory {
 
 export default function CategoriesPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const categoryIdFromUrl = searchParams.get('id');
   const [categories, setCategories] = useState<any[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<any>(null);
   const [subCategories, setSubCategories] = useState<SubCategory[]>([]);
@@ -47,6 +49,16 @@ export default function CategoriesPage() {
     }
     fetchData();
   }, []);
+
+  useEffect(() => {
+    if (categoryIdFromUrl && categories.length > 0) {
+      const category = categories.find(cat => cat.id === categoryIdFromUrl);
+      if (category) {
+        setSelectedCategory(category);
+        setViewMode('subcategories');
+      }
+    }
+  }, [categoryIdFromUrl, categories]);
 
   useEffect(() => {
     async function fetchSubs() {
@@ -358,7 +370,25 @@ export default function CategoriesPage() {
 
         {/* Right Panel - Modern Grid */}
         <main className="flex-1 overflow-y-auto pb-32 scrollbar-hide bg-slate-50/50">
-          {isSubLoading ? (
+          {isLoading ? (
+            <div className="p-5 max-w-4xl mx-auto w-full">
+              <div className="mb-8 mt-4">
+                <div className="h-10 w-48 bg-slate-200 rounded-xl animate-pulse mb-2" />
+                <div className="h-4 w-64 bg-slate-200 rounded-lg animate-pulse" />
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
+                {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+                  <div key={i} className="flex flex-col items-center gap-4 p-6 bg-white rounded-[2.5rem] shadow-sm animate-pulse border border-slate-100">
+                    <div className="w-14 h-14 sm:w-20 sm:h-20 rounded-2xl sm:rounded-3xl bg-slate-100" />
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="h-3 w-16 bg-slate-100 rounded-full" />
+                      <div className="h-2 w-12 bg-slate-50 rounded-full" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : isSubLoading ? (
             <div className="grid grid-cols-2 gap-4 p-5">
               {[1, 2, 3, 4, 5, 6].map((i) => (
                 <div key={i} className="flex flex-col gap-3">

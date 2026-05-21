@@ -310,12 +310,12 @@ function HomeContent() {
       </section>
 
       {/* Category Section */}
-      <section className="pt-4 pb-20 bg-muted/50">
+      <section className="py-16 lg:py-24 bg-muted/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row justify-between items-start mb-8 gap-6">
             <div className="space-y-4">
 
-              <h2 className="text-3xl sm:text-5xl font-extrabold text-primary tracking-tight">What do you need <span className="text-secondary">help</span> with?</h2>
+              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-primary tracking-tight">What do you need <span className="text-secondary">help</span> with?</h2>
             </div>
             <Link href="/categories/all" className="group flex items-center gap-2 text-sm font-bold text-primary hover:text-secondary transition-colors">
               View all categories <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
@@ -340,11 +340,11 @@ function HomeContent() {
       </section>
 
       {/* Merchant Profiles Section */}
-      <section className="py-20 bg-slate-50 overflow-hidden relative">
+      <section className="py-16 lg:py-24 bg-slate-50 overflow-hidden relative">
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-gray-200 to-transparent"></div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-6">
-            <h2 className="text-2xl sm:text-4xl font-extrabold text-primary tracking-tight w-full md:w-auto">
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-primary tracking-tight w-full md:w-auto">
               Recommended <span className="text-secondary">Merchants</span>
             </h2>
             
@@ -395,6 +395,191 @@ function HomeContent() {
         <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-gray-200 to-transparent"></div>
       </section>
 
+      {/* Quick Actions / Mobile Bottom Bar - Slim & Premium */}
+      <div className="fixed bottom-0 left-0 w-full z-[100] md:hidden bg-white/90 backdrop-blur-md border-t border-slate-100/50 font-sans">
+        <div className="flex items-center justify-around px-2 py-1.5 pb-safe">
+          {[
+            { icon: HomeIcon, label: 'Home' },
+            { icon: LayoutGrid, label: 'Categories' },
+            { icon: Bot, label: 'FinderB AI' },
+            { icon: User, label: 'Account' },
+          ].map((item, i) => (
+            <button
+              key={i}
+              onClick={() => handleTabChange(item.label)}
+              className={`flex flex-col items-center gap-0.5 p-1.5 px-4 transition-all duration-300 group relative rounded-xl ${activeMobileTab === item.label
+                ? 'text-primary'
+                : 'text-slate-400'
+                }`}
+            >
+              <item.icon
+                size={20}
+                className={`transition-all duration-300 ${activeMobileTab === item.label
+                  ? 'scale-110'
+                  : 'group-active:scale-90'
+                  }`}
+              />
+              <span className={`text-[8px] font-black uppercase transition-all duration-300 ${activeMobileTab === item.label ? 'opacity-100' : 'opacity-60'
+                }`}>
+                {item.label}
+              </span>
+
+              {activeMobileTab === item.label && (
+                <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-4 h-0.5 bg-primary rounded-full shadow-[0_0_8px_rgba(33,84,129,0.5)] animate-pulse"></div>
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Latest Movies */}
+      <section className="py-12 lg:py-16 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between mb-8 lg:mb-10">
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-primary tracking-tight">Movies & Entertainment Nearby</h2>
+            <Link href="/movies" className="text-xs sm:text-sm font-medium text-secondary hover:underline">See All</Link>
+          </div>
+          <div className="flex overflow-x-auto pb-4 lg:pb-8 gap-4 lg:gap-6 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
+            {realMovies.map((movie) => (
+              <div key={movie.id} className="group cursor-pointer min-w-[160px] sm:min-w-[240px] shrink-0">
+                <div className="relative aspect-[2/3] rounded-xl sm:rounded-2xl overflow-hidden mb-3 sm:mb-4 shadow-lg bg-gray-100">
+                  <Image
+                    src={movie.image}
+                    alt={movie.title}
+                    fill
+                    className="object-cover group-hover:scale-105 transition-transform duration-500"
+                    sizes="(max-width: 768px) 50vw, 25vw"
+                  />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white border border-white/30">
+                      <Play className="w-5 h-5 sm:w-6 sm:h-6" fill="white" />
+                    </div>
+                  </div>
+                  <div className="absolute top-2 right-2 sm:top-4 sm:right-4 bg-secondary text-white px-1.5 py-0.5 sm:px-2 sm:py-1 rounded sm:rounded-lg text-[8px] sm:text-[10px] font-medium flex items-center gap-1 shadow-lg">
+                    <Star size={8} className="sm:size-[10px]" fill="white" /> {movie.rating}
+                  </div>
+                </div>
+                <h3 className="text-xs sm:text-base font-bold text-primary group-hover:text-secondary transition-colors line-clamp-1">{movie.title}</h3>
+                <p className="text-gray-400 text-[10px] sm:text-xs font-medium">{movie.genre}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Explore Tourist Places */}
+      <section className="py-16 lg:py-24 bg-slate-50 overflow-hidden relative">
+        <div className="absolute top-0 right-0 w-1/3 h-full bg-primary/5 -skew-x-12 translate-x-1/4 blur-3xl"></div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="mb-10 lg:mb-16">
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-primary tracking-tight">Discover Top-Rated Tourist Places & Local Attractions</h2>
+            <p className="text-gray-500 text-sm sm:text-base font-medium max-w-2xl">Find the best attractions and hidden gems in your vicinity, curated for the best experience.</p>
+          </div>
+          <div className="flex overflow-x-auto pb-8 lg:pb-12 gap-6 lg:gap-8 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
+            {realTouristPlaces.map((place) => (
+              <Link 
+                key={place.id} 
+                href={`/tourist-places/${place.id}`}
+                className="group relative h-[350px] sm:h-[450px] min-w-[280px] sm:min-w-[420px] rounded-3xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-500 bg-white shrink-0"
+              >
+                <Image
+                  src={place.image}
+                  alt={place.name}
+                  fill
+                  className="object-cover group-hover:scale-105 transition-transform duration-1000"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+                <div className="absolute bottom-0 left-0 p-8 sm:p-10 w-full">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="px-3 py-1 bg-white/20 backdrop-blur-md rounded-full border border-white/30">
+                      <div className="flex items-center gap-1.5">
+                        <MapPin size={12} className="text-secondary" />
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-white">{place.location}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <h3 className="text-2xl sm:text-4xl font-bold !text-white mb-4 tracking-tight" style={{ color: '#ffffff' }}>
+                    {place.name}
+                  </h3>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-1.5 bg-secondary px-3 py-1 rounded-full text-white shadow-lg">
+                        <Star size={14} fill="currentColor" />
+                        <span className="text-xs font-bold">{place.rating}</span>
+                      </div>
+                      <span className="text-xs font-medium text-white/80">Popular destination</span>
+                    </div>
+                    <div className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white group-hover:bg-secondary group-hover:border-secondary transition-all">
+                      <ArrowRight size={18} />
+                    </div>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* FinderB News */}
+      <section id="news" className="py-16 lg:py-24 bg-slate-50 relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent"></div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col md:flex-row items-end justify-between mb-12 gap-6">
+            <div className="space-y-4">
+              <div className="inline-flex items-center gap-2 px-3 py-1 bg-secondary/10 rounded-full text-secondary border border-secondary/20">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-secondary"></span>
+                </span>
+                <span className="text-[10px] font-black uppercase tracking-[0.2em]">Latest Updates</span>
+              </div>
+              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-primary tracking-tight">FinderB <span className="text-secondary">News.</span></h2>
+              <p className="text-gray-500 text-lg font-medium max-w-xl">Stay updated with the latest happenings, expansions, and technical breakthroughs at FinderB.</p>
+            </div>
+          </div>
+
+          <NewsWidget />
+        </div>
+      </section>
+
+      {/* Blog & Articles */}
+      <section className="py-20 lg:py-28 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col sm:flex-row items-start justify-between mb-12 lg:mb-16 gap-6">
+            <div className="space-y-3">
+              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-primary tracking-tight">Blog & Local Insights</h2>
+              <p className="text-gray-500 text-sm sm:text-lg font-medium">Expert guides, local stories and business tips.</p>
+            </div>
+            <Link href="/blog" className="group flex items-center gap-2 text-[10px] font-bold text-secondary hover:text-primary transition-all uppercase tracking-widest bg-secondary/5 px-6 py-3 rounded-full border border-secondary/10">
+              Read All Stories <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+            </Link>
+          </div>
+          <div className="flex overflow-x-auto pb-8 lg:pb-12 gap-4 lg:gap-6 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
+            {realBlogs.map((article) => (
+              <Link key={article.id} href={`/blog/${article.slug || article.id}`} className="group cursor-pointer min-w-[200px] sm:min-w-[300px] shrink-0 flex flex-col">
+                <div className="relative aspect-video rounded-xl sm:rounded-2xl overflow-hidden mb-3 sm:mb-4 shadow-lg bg-gray-50">
+                  <Image
+                    src={article.image}
+                    alt={article.title}
+                    fill
+                    className="object-cover group-hover:scale-105 transition-transform duration-500"
+                    sizes="(max-width: 768px) 50vw, 25vw"
+                  />
+                  <div className="absolute top-2 left-2 sm:top-4 sm:left-4 bg-white/90 backdrop-blur-md px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg sm:rounded-xl flex items-center gap-1.5 shadow-md">
+                    <Calendar size={10} className="text-secondary" />
+                    <span className="text-[8px] sm:text-[10px] font-bold text-gray-700 uppercase tracking-widest">{article.date}</span>
+                  </div>
+                </div>
+                <h3 className="text-xs sm:text-base font-bold text-primary group-hover:text-secondary transition-colors line-clamp-2 leading-tight mb-2">{article.title}</h3>
+                <div className="flex items-center gap-2 text-[8px] sm:text-[10px] font-black text-secondary uppercase tracking-widest group-hover:gap-3 transition-all">
+                  READ STORY <ArrowRight size={12} />
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Trust Layer / Featured Section */}
       <section className="py-24 bg-white overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -405,7 +590,7 @@ function HomeContent() {
                   <CheckCircle2 size={16} className="text-secondary" />
                   <span className="text-xs font-bold uppercase tracking-widest">Trust First Platform</span>
                 </div>
-                <h2 className="text-4xl sm:text-6xl font-extrabold text-primary tracking-tight leading-[1.1]">
+                <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-primary tracking-tight leading-[1.1]">
                   Book with <span className="text-secondary">Confidence.</span>
                 </h2>
                 <p className="text-gray-500 text-lg font-medium leading-relaxed max-w-xl">
@@ -478,225 +663,11 @@ function HomeContent() {
         </div>
       </section>
 
-      {/* Quick Actions / Mobile Bottom Bar - Slim & Premium */}
-      <div className="fixed bottom-0 left-0 w-full z-[100] md:hidden bg-white/90 backdrop-blur-md border-t border-slate-100/50 font-sans">
-        <div className="flex items-center justify-around px-2 py-1.5 pb-safe">
-          {[
-            { icon: HomeIcon, label: 'Home' },
-            { icon: LayoutGrid, label: 'Categories' },
-            { icon: Bot, label: 'FinderB AI' },
-            { icon: User, label: 'Account' },
-          ].map((item, i) => (
-            <button
-              key={i}
-              onClick={() => handleTabChange(item.label)}
-              className={`flex flex-col items-center gap-0.5 p-1.5 px-4 transition-all duration-300 group relative rounded-xl ${activeMobileTab === item.label
-                ? 'text-primary'
-                : 'text-slate-400'
-                }`}
-            >
-              <item.icon
-                size={20}
-                className={`transition-all duration-300 ${activeMobileTab === item.label
-                  ? 'scale-110'
-                  : 'group-active:scale-90'
-                  }`}
-              />
-              <span className={`text-[8px] font-black uppercase transition-all duration-300 ${activeMobileTab === item.label ? 'opacity-100' : 'opacity-60'
-                }`}>
-                {item.label}
-              </span>
-
-              {activeMobileTab === item.label && (
-                <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-4 h-0.5 bg-primary rounded-full shadow-[0_0_8px_rgba(33,84,129,0.5)] animate-pulse"></div>
-              )}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Latest Movies */}
-      <section className="py-12 lg:py-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between mb-8 lg:mb-10">
-            <h2 className="text-lg sm:text-2xl font-medium text-primary">Movies & Entertainment Nearby</h2>
-            <Link href="/movies" className="text-xs sm:text-sm font-medium text-secondary hover:underline">See All</Link>
-          </div>
-          <div className="flex overflow-x-auto pb-4 lg:pb-8 gap-4 lg:gap-6 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
-            {realMovies.map((movie) => (
-              <div key={movie.id} className="group cursor-pointer min-w-[160px] sm:min-w-[240px] shrink-0">
-                <div className="relative aspect-[2/3] rounded-xl sm:rounded-2xl overflow-hidden mb-3 sm:mb-4 shadow-lg bg-gray-100">
-                  <Image
-                    src={movie.image}
-                    alt={movie.title}
-                    fill
-                    className="object-cover group-hover:scale-105 transition-transform duration-500"
-                    sizes="(max-width: 768px) 50vw, 25vw"
-                  />
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                    <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white border border-white/30">
-                      <Play className="w-5 h-5 sm:w-6 sm:h-6" fill="white" />
-                    </div>
-                  </div>
-                  <div className="absolute top-2 right-2 sm:top-4 sm:right-4 bg-secondary text-white px-1.5 py-0.5 sm:px-2 sm:py-1 rounded sm:rounded-lg text-[8px] sm:text-[10px] font-medium flex items-center gap-1 shadow-lg">
-                    <Star size={8} className="sm:size-[10px]" fill="white" /> {movie.rating}
-                  </div>
-                </div>
-                <h3 className="text-xs sm:text-base font-bold text-primary group-hover:text-secondary transition-colors line-clamp-1">{movie.title}</h3>
-                <p className="text-gray-400 text-[10px] sm:text-xs font-medium">{movie.genre}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Explore Tourist Places */}
-      <section className="py-16 lg:py-24 bg-slate-50 overflow-hidden relative">
-        <div className="absolute top-0 right-0 w-1/3 h-full bg-primary/5 -skew-x-12 translate-x-1/4 blur-3xl"></div>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="mb-10 lg:mb-16">
-            <h2 className="text-2xl sm:text-4xl font-bold mb-3 text-primary tracking-tight">Discover Top-Rated Tourist Places & Local Attractions</h2>
-            <p className="text-gray-500 text-sm sm:text-base font-medium max-w-2xl">Find the best attractions and hidden gems in your vicinity, curated for the best experience.</p>
-          </div>
-          <div className="flex overflow-x-auto pb-8 lg:pb-12 gap-6 lg:gap-8 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
-            {realTouristPlaces.map((place) => (
-              <Link 
-                key={place.id} 
-                href={`/tourist-places/${place.id}`}
-                className="group relative h-[350px] sm:h-[450px] min-w-[280px] sm:min-w-[420px] rounded-3xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-500 bg-white shrink-0"
-              >
-                <Image
-                  src={place.image}
-                  alt={place.name}
-                  fill
-                  className="object-cover group-hover:scale-105 transition-transform duration-1000"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
-                <div className="absolute bottom-0 left-0 p-8 sm:p-10 w-full">
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="px-3 py-1 bg-white/20 backdrop-blur-md rounded-full border border-white/30">
-                      <div className="flex items-center gap-1.5">
-                        <MapPin size={12} className="text-secondary" />
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-white">{place.location}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <h3 className="text-2xl sm:text-4xl font-bold text-white mb-4 tracking-tight">
-                    {place.name}
-                  </h3>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center gap-1.5 bg-secondary px-3 py-1 rounded-full text-white shadow-lg">
-                        <Star size={14} fill="currentColor" />
-                        <span className="text-xs font-bold">{place.rating}</span>
-                      </div>
-                      <span className="text-xs font-medium text-white/80">Popular destination</span>
-                    </div>
-                    <div className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white group-hover:bg-secondary group-hover:border-secondary transition-all">
-                      <ArrowRight size={18} />
-                    </div>
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* FinderB News */}
-      <section id="news" className="py-16 lg:py-24 bg-slate-50 relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent"></div>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row items-end justify-between mb-12 gap-6">
-            <div className="space-y-4">
-              <div className="inline-flex items-center gap-2 px-3 py-1 bg-secondary/10 rounded-full text-secondary border border-secondary/20">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-secondary"></span>
-                </span>
-                <span className="text-[10px] font-black uppercase tracking-[0.2em]">Latest Updates</span>
-              </div>
-              <h2 className="text-4xl sm:text-6xl font-black text-primary tracking-tighter">FinderB <span className="text-secondary">News.</span></h2>
-              <p className="text-gray-500 text-lg font-medium max-w-xl">Stay updated with the latest happenings, expansions, and technical breakthroughs at FinderB.</p>
-            </div>
-          </div>
-
-          <NewsWidget />
-        </div>
-      </section>
-
-      {/* Blog & Articles */}
-      <section className="py-20 lg:py-28 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col sm:flex-row items-start justify-between mb-12 lg:mb-16 gap-6">
-            <div className="space-y-3">
-              <h2 className="text-3xl sm:text-5xl font-bold text-primary tracking-tight">Blog & Local Insights</h2>
-              <p className="text-gray-500 text-sm sm:text-lg font-medium">Expert guides, local stories and business tips.</p>
-            </div>
-            <Link href="/blog" className="group flex items-center gap-2 text-[10px] font-bold text-secondary hover:text-primary transition-all uppercase tracking-widest bg-secondary/5 px-6 py-3 rounded-full border border-secondary/10">
-              Read All Stories <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
-            </Link>
-          </div>
-          {/* Desktop Grid / Mobile Scroll */}
-          <div className="hidden lg:grid lg:grid-cols-3 gap-10">
-            {realBlogs.slice(0, 3).map((article) => (
-              <Link key={article.id} href={`/blog/${article.slug || article.id}`} className="group cursor-pointer flex flex-col">
-                <div className="relative h-72 rounded-[2.5rem] overflow-hidden mb-8 shadow-2xl group-hover:shadow-secondary/20 transition-all duration-500 bg-gray-50">
-                  <Image
-                    src={article.image}
-                    alt={article.title}
-                    fill
-                    className="object-cover group-hover:scale-110 transition-transform duration-1000"
-                    sizes="33vw"
-                  />
-                  <div className="absolute top-6 left-6 bg-white/90 backdrop-blur-md px-5 py-2.5 rounded-2xl flex items-center gap-2 shadow-lg border border-white/20">
-                    <Calendar size={12} className="text-secondary" />
-                    <span className="text-[10px] font-black text-gray-700 uppercase tracking-widest">{article.date}</span>
-                  </div>
-                </div>
-                <div className="space-y-4 px-2">
-                  <h3 className="text-2xl font-black text-primary group-hover:text-secondary transition-colors leading-tight tracking-tighter line-clamp-2">{article.title}</h3>
-                  <p className="text-gray-500 font-medium text-base line-clamp-2 leading-relaxed">{article.excerpt}</p>
-                  <div className="flex items-center gap-2 text-[10px] font-black text-secondary uppercase tracking-[0.2em] group-hover:gap-4 transition-all">
-                    CONTINUE READING <ArrowRight size={14} />
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-
-          {/* Mobile horizontal scroll */}
-          <div className="lg:hidden flex overflow-x-auto pb-12 gap-6 scrollbar-hide -mx-4 px-4">
-            {realBlogs.map((article) => (
-              <Link key={article.id} href={`/blog/${article.slug || article.id}`} className="group cursor-pointer min-w-[280px] shrink-0 flex flex-col">
-                <div className="relative h-64 rounded-[2rem] overflow-hidden mb-6 shadow-xl bg-gray-50">
-                  <Image
-                    src={article.image}
-                    alt={article.title}
-                    fill
-                    className="object-cover"
-                    sizes="280px"
-                  />
-                  <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-md px-4 py-2 rounded-xl flex items-center gap-2 shadow-md">
-                    <Calendar size={10} className="text-secondary" />
-                    <span className="text-[9px] font-bold text-gray-700 uppercase tracking-widest">{article.date}</span>
-                  </div>
-                </div>
-                <h3 className="text-lg font-bold text-primary mb-3 line-clamp-2 tracking-tight">{article.title}</h3>
-                <div className="flex items-center gap-2 text-[9px] font-black text-secondary uppercase tracking-widest">
-                  READ STORY <ArrowRight size={12} />
-                </div>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* CTA Section */}
       <section className="py-20 lg:py-32 bg-primary relative overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 text-center space-y-10 lg:space-y-16 relative z-10">
           <div className="space-y-6 lg:space-y-8">
-           <h2 className="text-4xl sm:text-6xl lg:text-5xl tracking-tighter leading-[1.3]">
+           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight leading-[1.3]">
   <span className="text-white">
     Take your business to the next level.
   </span>{' '}
