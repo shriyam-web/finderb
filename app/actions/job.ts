@@ -127,3 +127,68 @@ export async function updateJob(jobId: string, data: {
     return { success: false, error: error.message || 'Failed to update job' };
   }
 }
+
+export async function getAllJobs() {
+  try {
+    const supabase = createClient(await cookies());
+    
+    const { data: jobs, error } = await supabase
+      .from('jobs')
+      .select(`
+        *,
+        business:business_id (
+          id,
+          businessName,
+          city,
+          profilePictureUrl,
+          isVerified,
+          latitude,
+          longitude
+        )
+      `)
+      .eq('status', 'active')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    
+    return { success: true, jobs };
+  } catch (error: any) {
+    console.error('Get All Jobs Error:', error);
+    return { success: false, error: error.message || 'Failed to fetch jobs' };
+  }
+}
+
+export async function submitJobApplication(data: {
+  jobId: string;
+  businessId: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  message?: string;
+}) {
+  try {
+    const supabase = createClient(await cookies());
+    
+    // Store in leads table for now
+    const { error } = await supabase
+      .from('leads')
+      .insert({
+        name: data.fullName,
+        email: data.email,
+        phone: data.phone,
+        category: 'Job Application',
+        business_id: data.businessId,
+        message: `Applied for Job ID: ${data.jobId}\n\nCandidate Message: ${data.message || 'No message provided'}`,
+        status: 'New',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      });
+
+    if (error) throw error;
+    
+    return { success: true };
+  } catch (error: any) {
+    console.error('Submit Application Error:', error);
+    return { success: false, error: error.message || 'Failed to submit application' };
+  }
+}
