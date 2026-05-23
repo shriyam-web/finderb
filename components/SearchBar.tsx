@@ -30,9 +30,7 @@ export default function SearchBar() {
       }
       
       // Fallback to default if IP detection fails
-      if (!location) {
-        setLocation('Delhi');
-      }
+      setLocation((prev) => prev || 'Delhi');
     }
 
     detectLocation();
