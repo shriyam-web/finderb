@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import Loader from "@/components/Loader";
+import BottomNavbar from "@/components/BottomNavbar";
 
 export default function LayoutClient({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
@@ -26,7 +27,7 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
   }
 
   return (
-    <div className={`flex flex-col min-h-screen ${!hideNavFooter ? 'pb-24' : ''}`}>
+    <div className={`flex flex-col min-h-screen ${!hideNavFooter ? 'pb-24 lg:pb-0' : ''}`}>
       {!hideNavFooter && <Navbar />}
       <Suspense fallback={<div className="flex-grow bg-white" />}>
         <main className="flex-grow">
@@ -34,6 +35,7 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
         </main>
         {!hideNavFooter && <Footer />}
       </Suspense>
+      {!hideNavFooter && <BottomNavbar />}
     </div>
   );
 }

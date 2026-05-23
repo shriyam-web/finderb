@@ -92,20 +92,21 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
       : 'bg-transparent py-3 sm:py-6 border-b border-transparent'
       }`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center gap-4">
-          <Link href="/" className="flex-shrink-0 flex items-center group">
+        <div className="flex justify-between items-center h-full">
+          {/* Logo - Left aligned */}
+          <Link href="/" className="relative z-[10002] flex items-center shrink-0">
             <Image
               src="/logo1.png"
               alt="FinderB Logo"
-              width={180}
-              height={60}
-              className="h-8 sm:h-11 w-auto object-contain transition-all duration-500 group-hover:scale-105"
+              width={160}
+              height={50}
+              className="h-8 sm:h-10 w-auto object-contain"
               priority
-              quality={100}
             />
           </Link>
 
-          <div className="hidden lg:flex items-center space-x-1 ml-auto">
+          {/* Desktop Menu - Right aligned */}
+          <div className="hidden lg:flex items-center space-x-1">
             {/* Language Selector First */}
             <div className={`relative group/lang px-3 py-2 cursor-pointer flex items-center gap-1.5 transition-colors mr-2 ${isLight ? 'text-white/90 hover:text-white' : 'text-gray-700 hover:text-primary'}`}>
               <Globe size={16} />
@@ -289,75 +290,30 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
             </div>
           </div>
 
-          <div className="flex lg:hidden items-center gap-2">
-            {/* Register and Login outside of hamburger on mobile too */}
-            {!isBusinessLoggedIn && (
+          <div className="flex lg:hidden items-center gap-3">
+            {!isBusinessLoggedIn && !isLoggedIn && (
               <Link
-                href="/business/register"
-                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg font-bold text-[8px] uppercase tracking-widest transition-all shadow-lg ${scrolled
-                  ? 'bg-gradient-to-r from-primary to-secondary text-white shadow-secondary/10'
-                  : isLight
-                    ? 'bg-white text-primary hover:bg-white/90'
-                    : 'bg-gradient-to-r from-primary to-secondary text-white shadow-secondary/10'
-                  }`}
+                href="/login"
+                className={`px-3 py-1.5 rounded-lg font-bold text-[10px] uppercase tracking-wider transition-all ${
+                  scrolled ? 'text-primary' : (isLight ? 'text-white border border-white/20 bg-white/10' : 'text-primary border border-primary/10 bg-white/50')
+                }`}
               >
-                <span className="hidden min-[380px]:inline">Register Business</span>
-                <span className="min-[380px]:hidden">Register</span>
-              </Link>
-            )}
-
-            {isBusinessLoggedIn ? (
-              <Link
-                href={`/business/dashboard?id=${business.id}`}
-                className={`flex items-center gap-2 px-3 py-2 border rounded-xl transition-all duration-300 font-medium text-[10px] shadow-sm ${scrolled
-                  ? 'bg-white/50 backdrop-blur-md text-gray-700 border-gray-200 hover:bg-white hover:border-gray-300'
-                  : isLight
-                    ? 'bg-white/10 backdrop-blur-md text-white border-white/20 hover:bg-white/20'
-                    : 'bg-white/50 backdrop-blur-md text-gray-700 border-gray-200 hover:bg-white hover:border-gray-300'
-                  }`}
-              >
-                <div className="w-5 h-5 bg-indigo-600 rounded-full flex items-center justify-center text-[9px] text-white font-bold shadow-sm flex-shrink-0">
-                  <Briefcase size={10} />
-                </div>
-                <span className="truncate max-w-[60px]">{business?.businessName?.split(' ')[0] || 'Business'}</span>
-              </Link>
-            ) : (
-              <Link
-                href="/dashboard"
-                className={`flex items-center gap-2 px-3 py-2 border rounded-xl transition-all duration-300 font-medium text-[10px] shadow-sm ${isLoggedIn
-                  ? (isLight
-                    ? 'bg-white/10 backdrop-blur-md text-white border-white/20 hover:bg-white/20'
-                    : 'bg-white/50 backdrop-blur-md text-gray-700 border-gray-200 hover:bg-white hover:border-gray-300')
-                  : (scrolled
-                    ? 'text-primary bg-white border-primary/10 hover:border-primary/30'
-                    : isLight
-                      ? 'text-white bg-white/10 border-white/20 backdrop-blur-md hover:bg-white/20'
-                      : 'text-primary bg-white border-primary/10 hover:border-primary/30')
-                  }`}
-              >
-                {isLoggedIn ? (
-                  <>
-                    <div className="w-5 h-5 bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center text-[9px] text-white font-bold shadow-sm flex-shrink-0">
-                      {user?.fullName?.split(' ').map((n: string) => n[0]).join('').toUpperCase().substring(0, 1)}
-                    </div>
-                    <span className="truncate max-w-[60px]">{user?.fullName?.split(' ')[0] || 'User'}</span>
-                  </>
-                ) : (
-                  <span className="uppercase tracking-widest text-[8px] font-bold">Login/ Signup</span>
-                )}
+                Login
               </Link>
             )}
 
             <button
               onClick={() => setIsOpen(!isOpen)}
-              className={`p-2 rounded-xl transition-colors ${scrolled
-                ? 'text-gray-600 bg-gray-50'
-                : isLight
-                  ? 'text-white bg-white/20 backdrop-blur-md'
-                  : 'text-gray-700 bg-white/50 backdrop-blur-sm'
-                }`}
+              className={`relative z-[10002] p-2 rounded-xl transition-all active:scale-95 ${
+                scrolled
+                  ? 'text-gray-700 bg-gray-50'
+                  : isLight
+                    ? 'text-white bg-white/10 backdrop-blur-md border border-white/20'
+                    : 'text-gray-700 bg-white/50 backdrop-blur-sm border border-gray-100'
+              }`}
+              aria-label="Toggle menu"
             >
-              {isOpen ? <X size={22} /> : <Menu size={22} />}
+              {isOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
           </div>
         </div>

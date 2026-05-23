@@ -366,15 +366,91 @@ export default function HomeClient({ initialData }: { initialData: any }) {
           <div className="flex overflow-x-auto pb-12 gap-6 lg:gap-8 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
             {isBusinessesLoading ? (
               Array.from({ length: 4 }).map((_, idx) => (
-                <div key={idx} className="min-w-[220px] sm:min-w-[260px] shrink-0">
-                  <div className="h-[292px] rounded-3xl bg-white border border-gray-100 animate-pulse" />
+                <div key={idx} className="min-w-[280px] sm:min-w-[320px] shrink-0">
+                  <div className="h-[400px] rounded-3xl bg-white border border-gray-100 animate-pulse" />
                 </div>
               ))
             ) : (
               realBusinesses.map((biz) => (
-                <BusinessCard key={biz.id} business={biz} />
+                <div key={biz.id} className="min-w-[280px] sm:min-w-[320px] shrink-0">
+                  <BusinessCard business={biz} />
+                </div>
               ))
             )}
+          </div>
+        </div>
+      </section>
+
+      {/* Movies Section */}
+      <section className="py-16 lg:py-24 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center mb-8">
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-primary tracking-tight">
+              Latest <span className="text-secondary">Movies</span>
+            </h2>
+            <Link href="/movies" className="text-sm font-bold text-primary hover:text-secondary transition-colors flex items-center gap-2">
+              View all <ArrowRight size={16} />
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            {realMovies.slice(0, 4).map((movie) => (
+              <div key={movie.id} className="group relative rounded-2xl overflow-hidden shadow-lg aspect-[2/3]">
+                <Image src={movie.image} alt={movie.title} fill className="object-cover transition-transform duration-500 group-hover:scale-110" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+                <div className="absolute bottom-4 left-4 right-4">
+                  <h3 className="text-white font-bold text-lg leading-tight mb-1">{movie.title}</h3>
+                  <div className="flex items-center justify-between text-white/80 text-xs font-medium">
+                    <span>{movie.genre}</span>
+                    <div className="flex items-center gap-1">
+                      <Star size={12} className="text-yellow-400 fill-yellow-400" />
+                      <span>{movie.rating}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Tourist Places Section */}
+      <section className="py-16 lg:py-24 bg-slate-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center mb-8">
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-primary tracking-tight">
+              Explore <span className="text-secondary">Destinations</span>
+            </h2>
+            <Link href="/tourist-places" className="text-sm font-bold text-primary hover:text-secondary transition-colors flex items-center gap-2">
+              View all <ArrowRight size={16} />
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
+            {realTouristPlaces.slice(0, 3).map((place) => (
+              <div key={place.id} className="group bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500">
+                <div className="relative h-48 overflow-hidden">
+                  <Image src={place.image} alt={place.name} fill className="object-cover transition-transform duration-700 group-hover:scale-110" />
+                  <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold text-primary">
+                    {place.distance}
+                  </div>
+                </div>
+                <div className="p-6">
+                  <div className="flex justify-between items-start mb-2">
+                    <h3 className="text-xl font-bold text-primary group-hover:text-secondary transition-colors">{place.name}</h3>
+                    <div className="flex items-center gap-1 text-secondary">
+                      <Star size={14} className="fill-secondary" />
+                      <span className="text-sm font-bold">{place.rating}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-gray-400 text-sm font-medium mb-4">
+                    <MapPin size={14} />
+                    <span>{place.location}</span>
+                  </div>
+                  <Link href={`/tourist-places/${place.id}`} className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-slate-50 text-primary font-bold text-xs hover:bg-primary hover:text-white transition-all uppercase tracking-widest">
+                    Explore Now <ArrowRight size={14} />
+                  </Link>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
