@@ -35,7 +35,7 @@ const WORDS = [
   "verified professionals" // For seamless loop
 ];
 
-function HomeContent() {
+function HomeContent({ initialData }: { initialData: any }) {
   const [index, setIndex] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(true);
   const router = useRouter();
@@ -45,12 +45,12 @@ function HomeContent() {
   const [activeMobileTab, setActiveMobileTab] = useState(
     activeTabFromUrl === 'ai' ? 'AI Search' : 'Home'
   );
-  const [realBusinesses, setRealBusinesses] = useState<Business[]>([]);
-  const [isBusinessesLoading, setIsBusinessesLoading] = useState(true);
-  const [realCategories, setRealCategories] = useState<Category[]>([]);
-  const [realMovies, setRealMovies] = useState<Movie[]>(movies);
-  const [realTouristPlaces, setRealTouristPlaces] = useState<TouristPlace[]>(touristPlaces);
-  const [realBlogs, setRealBlogs] = useState<any[]>(articles);
+  const [realBusinesses, setRealBusinesses] = useState<Business[]>(initialData.businesses);
+  const [isBusinessesLoading, setIsBusinessesLoading] = useState(initialData.businesses.length === 0);
+  const [realCategories, setRealCategories] = useState<Category[]>(initialData.categories);
+  const [realMovies, setRealMovies] = useState<Movie[]>(initialData.movies);
+  const [realTouristPlaces, setRealTouristPlaces] = useState<TouristPlace[]>(initialData.touristPlaces);
+  const [realBlogs, setRealBlogs] = useState<any[]>(initialData.blogs);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [aiLoadProgress, setAiLoadProgress] = useState(0);
@@ -68,6 +68,12 @@ function HomeContent() {
 
   useEffect(() => {
     async function fetchData() {
+      // Only fetch if initial data is empty or we want to refresh
+      if (initialData.businesses.length > 0 && initialData.categories.length > 0) {
+        setIsBusinessesLoading(false);
+        return;
+      }
+      
       const [bizResult, catResult, movieResult, touristResult, blogResult] = await Promise.all([
         getFeaturedBusinesses(),
         getCategories(),
@@ -843,6 +849,22 @@ function HomeContent() {
   );
 }
 
-export default function Home() {
-  return <HomeContent />;
+export default async function Home() {
+  const [bizResult, catResult, movieResult, touristResult, blogResult] = await Promise.all([
+    getFeaturedBusinesses(),
+    getCategories(),
+    getMovies(),
+    getTouristPlaces(),
+    getBlogs()
+  ]);
+
+  const initialData = {
+    businesses: bizResult.success ? bizResult.businesses : [],
+    categories: catResult.success ? catResult.categories : [],
+    movies: movieResult.success ? movieResult.movies : [],
+    touristPlaces: touristResult.success ? touristResult.touristPlaces : [],
+    blogs: blogResult.success ? blogResult.blogs : []
+  };
+
+  return <HomeContent initialData={initialData} />;
 }
