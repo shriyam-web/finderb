@@ -3,14 +3,20 @@
 import { createClient } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';
 
-export async function getCategories() {
+export async function getCategories(topLevelOnly = true) {
   try {
     const supabase = createClient(await cookies());
 
-    const { data: categories, error } = await supabase
+    let query = supabase
       .from('categories')
       .select('*')
-      .eq('status', 'Active')
+      .eq('status', 'Active');
+
+    if (topLevelOnly) {
+      query = query.is('parent_id', null);
+    }
+
+    const { data: categories, error } = await query
       .order('items_count', { ascending: false });
 
     if (error) {

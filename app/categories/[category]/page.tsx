@@ -7,7 +7,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ categ
   const categorySlug = (await params).category;
   
   const [catResult, bizResult] = await Promise.all([
-    getCategories(),
+    getCategories(false),
     getBusinessesByCategory(categorySlug)
   ]);
 
