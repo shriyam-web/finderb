@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Home, LayoutGrid, Zap, User } from 'lucide-react';
+import { Home, LayoutGrid, Zap, Briefcase } from 'lucide-react';
 
 export default function BottomNavbar() {
   const pathname = usePathname();
@@ -12,7 +12,7 @@ export default function BottomNavbar() {
     { label: 'Home', icon: Home, href: '/' },
     { label: 'Categories', icon: LayoutGrid, href: '/categories' },
     { label: 'FinderB Ai', icon: Zap, href: '/?tab=ai' },
-    { label: 'Account', icon: User, href: '/dashboard' },
+    { label: 'FinderB Business', icon: Briefcase, href: '/business/list' },
   ];
 
   return (
