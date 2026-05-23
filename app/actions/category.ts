@@ -17,6 +17,7 @@ export async function getCategories(topLevelOnly = true) {
     }
 
     const { data: categories, error } = await query
+      .order('position', { ascending: true })
       .order('items_count', { ascending: false });
 
     if (error) {
