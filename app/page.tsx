@@ -47,7 +47,7 @@ function HomeContent() {
   );
   const [realBusinesses, setRealBusinesses] = useState<Business[]>([]);
   const [isBusinessesLoading, setIsBusinessesLoading] = useState(true);
-  const [realCategories, setRealCategories] = useState<Category[]>(categories);
+  const [realCategories, setRealCategories] = useState<Category[]>([]);
   const [realMovies, setRealMovies] = useState<Movie[]>(movies);
   const [realTouristPlaces, setRealTouristPlaces] = useState<TouristPlace[]>(touristPlaces);
   const [realBlogs, setRealBlogs] = useState<any[]>(articles);
@@ -317,7 +317,7 @@ function HomeContent() {
 
               <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-primary tracking-tight">What do you need <span className="text-secondary">help</span> with?</h2>
             </div>
-            <Link href="/categories/all" className="group flex items-center gap-2 text-sm font-bold text-primary hover:text-secondary transition-colors">
+            <Link href="/categories" className="group flex items-center gap-2 text-sm font-bold text-primary hover:text-secondary transition-colors">
               View all categories <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
             </Link>
           </div>
@@ -330,7 +330,7 @@ function HomeContent() {
 
           <div className="flex justify-center">
             <Link 
-              href="/categories/all" 
+              href="/categories" 
               className="bg-primary text-white px-10 py-4 rounded-2xl font-bold hover:bg-secondary transition-all active:scale-95 uppercase tracking-widest text-xs shadow-lg"
             >
               Explore All Categories

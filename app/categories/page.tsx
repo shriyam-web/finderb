@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Search, Filter, ChevronRight, LayoutGrid, ShoppingBag, Home, Sparkles, User, Bot, TrendingUp } from 'lucide-react';
+import { Search, Filter, ChevronRight, LayoutGrid, ShoppingBag, Home, Sparkles, User, Bot, TrendingUp, Grid } from 'lucide-react';
+import * as LucideIcons from 'lucide-react';
 import { getCategories, getSubCategories } from '@/app/actions/category';
 import { getFeaturedBusinesses } from '@/app/actions/business';
 import Image from 'next/image';
@@ -12,6 +13,7 @@ interface SubCategory {
   name: string;
   slug: string;
   image: string;
+  icon: string;
   businessCount?: number;
 }
 
@@ -305,17 +307,35 @@ export default function CategoriesPage() {
                   {selectedCategory?.id === cat.id && (
                     <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary rounded-r-full" />
                   )}
-                  <div className={`w-11 h-11 rounded-xl flex items-center justify-center p-0.5 border-2 transition-all duration-300 ${
+                  <div className={`w-11 h-11 rounded-xl flex items-center justify-center p-2 border-2 transition-all duration-300 ${
                     selectedCategory?.id === cat.id
                       ? 'border-primary bg-white shadow-md shadow-primary/10 scale-105'
                       : 'border-transparent bg-slate-50 group-hover:scale-105'
                   } overflow-hidden relative`}>
-                    <Image 
-                      src={cat.image || 'https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?auto=format&fit=crop&q=80&w=100'} 
-                      alt={cat.name} 
-                      fill 
-                      className="object-cover p-0.5 rounded-lg"
-                    />
+                    {(() => {
+                      const isImageUrl = cat.icon?.startsWith('http') || cat.icon?.startsWith('/');
+                      // @ts-ignore
+                      const IconComponent = !isImageUrl ? (LucideIcons[cat.icon] || LucideIcons.Grid) : null;
+                      
+                      if (isImageUrl) {
+                        return (
+                          <Image 
+                            src={cat.icon} 
+                            alt={cat.name} 
+                            fill 
+                            className="object-cover p-0.5 rounded-lg"
+                          />
+                        );
+                      }
+                      return IconComponent && (
+                        <IconComponent 
+                          size={20} 
+                          className={`transition-colors duration-300 ${
+                            selectedCategory?.id === cat.id ? 'text-primary' : 'text-slate-400'
+                          }`} 
+                        />
+                      );
+                    })()}
                   </div>
                   <span className={`text-[8px] font-black text-center px-1 leading-tight uppercase tracking-tighter transition-colors line-clamp-2 font-sans ${
                     selectedCategory?.id === cat.id ? 'text-primary' : 'text-slate-400'
@@ -346,17 +366,35 @@ export default function CategoriesPage() {
                     {selectedSubCategory?.id === sub.id && (
                       <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-secondary rounded-r-full" />
                     )}
-                    <div className={`w-11 h-11 rounded-xl flex items-center justify-center p-0.5 border-2 transition-all duration-300 ${
+                    <div className={`w-11 h-11 rounded-xl flex items-center justify-center p-2 border-2 transition-all duration-300 ${
                       selectedSubCategory?.id === sub.id
                         ? 'border-secondary bg-white shadow-md shadow-secondary/10 scale-105'
                         : 'border-transparent bg-slate-50 group-hover:scale-105'
                     } overflow-hidden relative`}>
-                      <Image 
-                        src={sub.image} 
-                        alt={sub.name} 
-                        fill 
-                        className="object-cover p-0.5 rounded-lg"
-                      />
+                      {(() => {
+                        const isImageUrl = sub.icon?.startsWith('http') || sub.icon?.startsWith('/');
+                        // @ts-ignore
+                        const IconComponent = !isImageUrl ? (LucideIcons[sub.icon] || LucideIcons.Grid) : null;
+                        
+                        if (isImageUrl) {
+                          return (
+                            <Image 
+                              src={sub.icon} 
+                              alt={sub.name} 
+                              fill 
+                              className="object-cover p-0.5 rounded-lg"
+                            />
+                          );
+                        }
+                        return IconComponent && (
+                          <IconComponent 
+                            size={20} 
+                            className={`transition-colors duration-300 ${
+                              selectedSubCategory?.id === sub.id ? 'text-secondary' : 'text-slate-400'
+                            }`} 
+                          />
+                        );
+                      })()}
                     </div>
                     <span className={`text-[8px] font-black text-center px-1 leading-tight uppercase transition-colors line-clamp-2 font-sans ${
                       selectedSubCategory?.id === sub.id ? 'text-secondary' : 'text-slate-400'
@@ -403,24 +441,35 @@ export default function CategoriesPage() {
                 <h1 className="text-3xl font-black text-slate-900 mb-2">All Categories</h1>
                 <p className="text-slate-500 text-sm font-medium">Select a category to explore sub-categories and local businesses</p>
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 sm:gap-4">
                 {categories.filter(cat => !searchQuery || cat.name.toLowerCase().includes(searchQuery.toLowerCase())).map((cat, index) => (
                   <button
                     key={cat.id}
                     onClick={() => handleCategoryClick(cat)}
                     className="flex flex-col items-center gap-2 sm:gap-4 p-4 sm:p-6 bg-white rounded-[2rem] sm:rounded-[2.5rem] shadow-sm hover:shadow-xl hover:shadow-primary/10 transition-all duration-500 group border border-slate-100"
                   >
-                    <div className={`w-14 h-14 sm:w-20 sm:h-20 relative rounded-2xl sm:rounded-3xl overflow-hidden p-1 transition-all duration-500 group-hover:scale-110 group-hover:rotate-3 ${
-                      index % 4 === 0 ? 'bg-orange-50' : 
-                      index % 4 === 1 ? 'bg-blue-50' : 
-                      index % 4 === 2 ? 'bg-emerald-50' : 'bg-purple-50'
+                    <div className={`w-14 h-14 sm:w-20 sm:h-20 relative rounded-2xl sm:rounded-3xl overflow-hidden p-3 transition-all duration-500 group-hover:scale-110 group-hover:rotate-3 flex items-center justify-center ${
+                      index % 4 === 0 ? 'bg-orange-50 text-orange-500' : 
+                      index % 4 === 1 ? 'bg-blue-50 text-blue-500' : 
+                      index % 4 === 2 ? 'bg-emerald-50 text-emerald-500' : 'bg-purple-50 text-purple-500'
                     }`}>
-                       <Image 
-                        src={cat.image || 'https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?auto=format&fit=crop&q=80&w=100'} 
-                        alt={cat.name} 
-                        fill 
-                        className="object-cover rounded-xl sm:rounded-2xl p-1" 
-                      />
+                      {(() => {
+                        const isImageUrl = cat.icon?.startsWith('http') || cat.icon?.startsWith('/');
+                        // @ts-ignore
+                        const IconComponent = !isImageUrl ? (LucideIcons[cat.icon] || LucideIcons.Grid) : null;
+                        
+                        if (isImageUrl) {
+                          return (
+                            <Image 
+                              src={cat.icon} 
+                              alt={cat.name} 
+                              fill 
+                              className="object-cover rounded-xl sm:rounded-2xl p-1" 
+                            />
+                          );
+                        }
+                        return IconComponent && <IconComponent size={32} className="sm:size-10" strokeWidth={2} />;
+                      })()}
                     </div>
                     <div className="flex flex-col items-center gap-0.5 sm:gap-1">
                       <span className="text-[10px] sm:text-xs font-black uppercase tracking-tight text-slate-800 text-center group-hover:text-primary transition-colors line-clamp-1">{cat.name}</span>
@@ -443,34 +492,40 @@ export default function CategoriesPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3 sm:gap-4">
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 sm:gap-4">
                 {subCategories.filter(sub => !searchQuery || sub.name.toLowerCase().includes(searchQuery.toLowerCase())).length > 0 ? (
                   subCategories.filter(sub => !searchQuery || sub.name.toLowerCase().includes(searchQuery.toLowerCase())).map((sub, index) => (
                     <button
                       key={sub.id}
                       onClick={() => handleSubCategoryClick(sub)}
-                      className="group flex flex-col gap-2 sm:gap-3 text-left"
+                      className="group flex flex-col items-center gap-2 sm:gap-3 text-center"
                     >
-                      <div className={`relative aspect-[5/4] sm:aspect-[4/5] rounded-[1.5rem] sm:rounded-[2rem] overflow-hidden shadow-sm group-hover:shadow-xl group-hover:shadow-primary/10 transition-all duration-500 border border-slate-100 ${
-                        index % 4 === 0 ? 'bg-orange-100' : 
-                        index % 4 === 1 ? 'bg-blue-100' : 
-                        index % 4 === 2 ? 'bg-emerald-100' : 'bg-purple-100'
+                      <div className={`relative w-full aspect-square rounded-2xl sm:rounded-3xl overflow-hidden shadow-sm group-hover:shadow-xl group-hover:shadow-primary/10 transition-all duration-500 border border-slate-100 flex items-center justify-center p-3 sm:p-5 ${
+                        index % 4 === 0 ? 'bg-orange-50 text-orange-500' : 
+                        index % 4 === 1 ? 'bg-blue-50 text-blue-500' : 
+                        index % 4 === 2 ? 'bg-emerald-50 text-emerald-500' : 'bg-purple-50 text-purple-500'
                       }`}>
-                        <Image 
-                          src={sub.image} 
-                          alt={sub.name} 
-                          fill 
-                          className="object-cover group-hover:scale-110 transition-transform duration-700" 
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-80 group-hover:opacity-90 transition-opacity" />
-                        <div className="absolute bottom-2 sm:bottom-4 left-2 sm:left-4 right-2 sm:right-4">
-                          <p className="text-[7px] sm:text-[9px] font-black text-white/70 uppercase tracking-[0.2em] mb-0.5 sm:mb-1">View All</p>
-                          <h3 className="text-[9px] sm:text-[11px] font-black text-white leading-tight uppercase tracking-wide line-clamp-2">{sub.name}</h3>
-                        </div>
-                        <div className="absolute top-2 sm:top-3 right-2 sm:right-3 w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-white/30 backdrop-blur-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-2 group-hover:translate-y-0">
-                          <ChevronRight size={12} className="text-white sm:hidden" />
-                          <ChevronRight size={16} className="text-white hidden sm:block" />
-                        </div>
+                        {(() => {
+                          const isImageUrl = sub.icon?.startsWith('http') || sub.icon?.startsWith('/');
+                          // @ts-ignore
+                          const IconComponent = !isImageUrl ? (LucideIcons[sub.icon] || LucideIcons.Grid) : null;
+                          
+                          if (isImageUrl) {
+                            return (
+                              <Image 
+                                src={sub.icon} 
+                                alt={sub.name} 
+                                fill 
+                                className="object-cover p-1 rounded-lg"
+                              />
+                            );
+                          }
+                          return IconComponent && <IconComponent size={24} className="sm:size-8" strokeWidth={2} />;
+                        })()}
+                      </div>
+                      <div className="flex flex-col items-center gap-0.5">
+                        <h3 className="text-[9px] sm:text-[11px] font-black text-slate-900 leading-tight uppercase tracking-tight line-clamp-2 group-hover:text-primary transition-colors">{sub.name}</h3>
+                        <p className="text-[7px] sm:text-[8px] font-bold text-slate-400 uppercase tracking-widest">View</p>
                       </div>
                     </button>
                   ))

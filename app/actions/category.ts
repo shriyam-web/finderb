@@ -62,6 +62,7 @@ export async function getSubCategories(parentId: string) {
       name: c.name,
       slug: c.slug || c.name.toLowerCase().replace(/\s+/g, '-'),
       image: c.banner && c.banner !== 'Not Set' ? c.banner : 'https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?auto=format&fit=crop&q=80&w=800',
+      icon: c.symbol && c.symbol !== 'Not Set' ? c.symbol : 'Grid',
       businessCount: c.items_count || 0,
     }));
 
