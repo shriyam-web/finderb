@@ -72,3 +72,49 @@ export async function getSubCategories(parentId: string) {
     return { success: false, error: error.message || 'Failed to fetch subcategories' };
   }
 }
+
+export async function getFeaturedGroups(categoryNames: string[]) {
+  try {
+    const supabase = createClient(await cookies());
+
+    // 1. Fetch parent categories
+    const { data: parents, error: parentError } = await supabase
+      .from('categories')
+      .select('id, name, slug, banner')
+      .in('name', categoryNames)
+      .is('parent_id', null)
+      .eq('status', 'Active');
+
+    if (parentError) throw parentError;
+
+    // 2. For each parent, fetch all subcategories
+    const groups = await Promise.all(parents.map(async (parent) => {
+      const { data: children, error: childError } = await supabase
+        .from('categories')
+        .select('id, name, slug, banner, symbol, items_count')
+        .eq('parent_id', parent.id)
+        .eq('status', 'Active')
+        .order('items_count', { ascending: false });
+
+      if (childError) throw childError;
+
+      return {
+        title: parent.name,
+        slug: parent.slug,
+        subcategories: children.map(child => ({
+          name: child.name,
+          slug: child.slug,
+          image: child.banner && child.banner !== 'Not Set' ? child.banner : null,
+          icon: child.symbol && child.symbol !== 'Not Set' ? child.symbol : 'Grid',
+          businessCount: child.items_count || 0,
+          href: `/categories/${child.slug || child.name.toLowerCase().replace(/\s+/g, '-')}`
+        }))
+      };
+    }));
+
+    return { success: true, groups };
+  } catch (error: any) {
+    console.error('Get Featured Groups Error:', error);
+    return { success: false, error: error.message || 'Failed to fetch featured groups' };
+  }
+}

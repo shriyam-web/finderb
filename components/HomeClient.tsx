@@ -6,6 +6,7 @@ import SearchBar from '@/components/SearchBar';
 import CategoryCard from '@/components/CategoryCard';
 import BusinessCard from '@/components/BusinessCard';
 import NewsWidget from '@/components/NewsWidget';
+import * as LucideIcons from 'lucide-react';
 import {
   ArrowRight,
   Star,
@@ -18,7 +19,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Business, Category, Movie, TouristPlace, testimonials } from '@/lib/mockData';
 import { getFeaturedBusinesses } from '@/app/actions/business';
-import { getCategories } from '@/app/actions/category';
+import { getCategories, getFeaturedGroups } from '@/app/actions/category';
 import { getMovies } from '@/app/actions/movie';
 import { getTouristPlaces } from '@/app/actions/touristPlace';
 import { getBlogs } from '@/app/actions/blog';
@@ -33,37 +34,45 @@ const WORDS = [
   "verified professionals" // For seamless loop
 ];
 
-const FEATURED_GROUPS = [
+const FEATURE_GROUPS_FALLBACK = [
   {
-    title: "Wedding Requisites",
+    title: "Restaurants",
+    subcategories: [
+      { name: "Fine Dining", image: "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?auto=format&fit=crop&q=80&w=400", href: "/categories/restaurants?type=fine-dining" },
+      { name: "Cafes", image: "https://images.unsplash.com/photo-1501339817302-ee4fba6a2e81?auto=format&fit=crop&q=80&w=400", href: "/categories/restaurants?type=cafe" },
+      { name: "Quick Bites", image: "https://images.unsplash.com/photo-1561758033-d89a9ad46330?auto=format&fit=crop&q=80&w=400", href: "/categories/restaurants?type=fast-food" },
+      { name: "Bars & Pubs", image: "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?auto=format&fit=crop&q=80&w=400", href: "/categories/restaurants?type=bar" },
+      { name: "Bakeries", image: "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&q=80&w=400", href: "/categories/restaurants?type=bakery" },
+      { name: "Desserts", image: "https://images.unsplash.com/photo-1551024601-bec78aea704b?auto=format&fit=crop&q=80&w=400", href: "/categories/restaurants?type=dessert" },
+      { name: "Buffet", image: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&q=80&w=400", href: "/categories/restaurants?type=buffet" },
+    ]
+  },
+  {
+    title: "Education",
+    subcategories: [
+      { name: "Colleges", image: "https://images.unsplash.com/photo-152305085306e-8a3d3ecf047d?auto=format&fit=crop&q=80&w=400", href: "/categories/college" },
+      { name: "Tutors", image: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&q=80&w=400", href: "/categories/tutors" },
+      { name: "Schools", image: "https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&q=80&w=400", href: "/categories/schools" },
+      { name: "Coaching", image: "https://images.unsplash.com/photo-1524178232363-1fb2b075b655?auto=format&fit=crop&q=80&w=400", href: "/categories/coaching-centers" },
+      { name: "Vocational", image: "https://images.unsplash.com/photo-1581092918056-0c4c3acd3789?auto=format&fit=crop&q=80&w=400", href: "/categories/vocational-training" },
+    ]
+  },
+  {
+    title: "Astrologers",
+    subcategories: [
+      { name: "Astrologers", image: "https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&q=80&w=400", href: "/categories/astrologers" },
+      { name: "Palmists", image: "https://images.unsplash.com/photo-1568431109612-43003050c763?auto=format&fit=crop&q=80&w=400", href: "/categories/palmists" },
+      { name: "Vastu", image: "https://images.unsplash.com/photo-1585121336019-21b3eb99b8f5?auto=format&fit=crop&q=80&w=400", href: "/categories/vastu-consultants" },
+    ]
+  },
+  {
+    title: "Wedding Planning",
     subcategories: [
       { name: "Banquet Halls", image: "https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&q=80&w=400", href: "/categories/banquet-halls" },
-      { name: "Bridal Requisite", image: "https://images.unsplash.com/photo-1594553763483-e173f27779f2?auto=format&fit=crop&q=80&w=400", href: "/categories/bridal-requisite" },
+      { name: "Photographers", image: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&q=80&w=400", href: "/categories/photography" },
+      { name: "Makeup Artists", image: "https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?auto=format&fit=crop&q=80&w=400", href: "/categories/bridal-makeup" },
+      { name: "Decorators", image: "https://images.unsplash.com/photo-1519225421980-715cb0215aed?auto=format&fit=crop&q=80&w=400", href: "/categories/wedding-decorators" },
       { name: "Caterers", image: "https://images.unsplash.com/photo-1555244162-803834f70033?auto=format&fit=crop&q=80&w=400", href: "/categories/catering" },
-    ]
-  },
-  {
-    title: "Beauty & Spa",
-    subcategories: [
-      { name: "Beauty Parlours", image: "https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&q=80&w=400", href: "/categories/beauty-spa" },
-      { name: "Spa & Massages", image: "https://images.unsplash.com/photo-1544161515-4ae6ce6ca606?auto=format&fit=crop&q=80&w=400", href: "/categories/spa-massages" },
-      { name: "Salons", image: "https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?auto=format&fit=crop&q=80&w=400", href: "/categories/salons" },
-    ]
-  },
-  {
-    title: "Repairs & Services",
-    subcategories: [
-      { name: "AC Service", image: "https://images.unsplash.com/photo-1558227691-41ea78d1f631?auto=format&fit=crop&q=80&w=400", href: "/categories/ac-repair" },
-      { name: "Car Service", image: "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&q=80&w=400", href: "/categories/automobile" },
-      { name: "Bike Service", image: "https://images.unsplash.com/photo-1558981403-c5f91cbba527?auto=format&fit=crop&q=80&w=400", href: "/categories/bike-repair" },
-    ]
-  },
-  {
-    title: "Daily Needs",
-    subcategories: [
-      { name: "Movies", image: "https://images.unsplash.com/photo-1485846234645-a62644f84728?auto=format&fit=crop&q=80&w=400", href: "/movies" },
-      { name: "Grocery", image: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=400", href: "/categories/grocery" },
-      { name: "Electricians", image: "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?auto=format&fit=crop&q=80&w=400", href: "/categories/electricians" },
     ]
   }
 ];
@@ -84,6 +93,7 @@ export default function HomeClient({ initialData }: { initialData: any }) {
   const [realMovies, setRealMovies] = useState<Movie[]>(initialData.movies);
   const [realTouristPlaces, setRealTouristPlaces] = useState<TouristPlace[]>(initialData.touristPlaces);
   const [realBlogs, setRealBlogs] = useState<any[]>(initialData.blogs);
+  const [featuredGroups, setFeaturedGroups] = useState<any[]>(initialData.featuredGroups || FEATURE_GROUPS_FALLBACK);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [aiLoadProgress, setAiLoadProgress] = useState(0);
@@ -102,17 +112,20 @@ export default function HomeClient({ initialData }: { initialData: any }) {
   useEffect(() => {
     async function fetchData() {
       // Only fetch if initial data is empty or we want to refresh
-      if (initialData.businesses.length > 0 && initialData.categories.length > 0) {
+      if (initialData.businesses.length > 0 && initialData.categories.length > 0 && initialData.featuredGroups?.length > 0) {
         setIsBusinessesLoading(false);
         return;
       }
       
-      const [bizResult, catResult, movieResult, touristResult, blogResult] = await Promise.all([
+      const featuredCategoryNames = ["Restaurants", "Education", "Astrologers", "Wedding Planning"];
+
+      const [bizResult, catResult, movieResult, touristResult, blogResult, groupsResult] = await Promise.all([
         getFeaturedBusinesses(),
         getCategories(),
         getMovies(),
         getTouristPlaces(),
-        getBlogs()
+        getBlogs(),
+        getFeaturedGroups(featuredCategoryNames)
       ]);
 
       if (bizResult.success && bizResult.businesses && bizResult.businesses.length > 0) {
@@ -133,6 +146,10 @@ export default function HomeClient({ initialData }: { initialData: any }) {
 
       if (blogResult.success && blogResult.blogs && blogResult.blogs.length > 0) {
         setRealBlogs(blogResult.blogs);
+      }
+
+      if (groupsResult.success && groupsResult.groups && groupsResult.groups.length > 0) {
+        setFeaturedGroups(groupsResult.groups);
       }
 
       setIsBusinessesLoading(false);
@@ -366,36 +383,6 @@ export default function HomeClient({ initialData }: { initialData: any }) {
         </div>
       </section>
 
-      {/* Featured Group Categories */}
-      <section className="py-16 lg:py-24 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {FEATURED_GROUPS.map((group) => (
-              <div key={group.title} className="bg-white rounded-[2rem] border border-gray-100 shadow-sm p-6 sm:p-8 hover:shadow-md transition-shadow">
-                <h3 className="text-2xl font-extrabold text-primary mb-8">{group.title}</h3>
-                <div className="grid grid-cols-3 gap-4 sm:gap-6">
-                  {group.subcategories.map((sub) => (
-                    <Link key={sub.name} href={sub.href} className="group flex flex-col items-center text-center space-y-3">
-                      <div className="relative w-full aspect-square rounded-2xl overflow-hidden shadow-sm">
-                        <Image 
-                          src={sub.image} 
-                          alt={sub.name} 
-                          fill 
-                          className="object-cover transition-transform duration-500 group-hover:scale-110"
-                        />
-                      </div>
-                      <span className="text-[10px] sm:text-xs font-bold text-gray-600 group-hover:text-secondary transition-colors leading-tight">
-                        {sub.name}
-                      </span>
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* Merchant Profiles Section */}
       <section className="py-16 lg:py-24 bg-slate-50 overflow-hidden relative">
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-gray-200 to-transparent"></div>
@@ -443,6 +430,35 @@ export default function HomeClient({ initialData }: { initialData: any }) {
                 </div>
               ))
             )}
+          </div>
+        </div>
+      </section>
+
+      {/* Featured Group Categories */}
+      <section className="py-16 lg:py-24 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {featuredGroups.map((group) => (
+              <div key={group.title} className="bg-white rounded-[1.5rem] border border-gray-100 shadow-sm p-5 sm:p-7 hover:shadow-md transition-shadow">
+                <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-6">{group.title}</h3>
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
+                  {group.subcategories.map((sub: any) => {
+                    // @ts-ignore
+                    const IconComponent = LucideIcons[sub.icon] || LucideIcons.Grid;
+                    return (
+                      <Link key={sub.name} href={sub.href} className="group flex flex-col items-center text-center space-y-2">
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-primary/10 group-hover:text-primary transition-all duration-300">
+                          <IconComponent size={20} className="sm:size-6" strokeWidth={1.5} />
+                        </div>
+                        <span className="text-[10px] sm:text-[11px] font-semibold text-gray-600 group-hover:text-primary transition-colors line-clamp-2 px-1 leading-tight">
+                          {sub.name}
+                        </span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
