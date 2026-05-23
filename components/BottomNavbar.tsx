@@ -12,7 +12,7 @@ export default function BottomNavbar() {
     { label: 'Home', icon: Home, href: '/' },
     { label: 'Categories', icon: LayoutGrid, href: '/categories' },
     { label: 'FinderB Ai', icon: Zap, href: '/?tab=ai' },
-    { label: 'FinderB Business', icon: Briefcase, href: '/business/list' },
+    { label: 'Business', icon: Briefcase, href: '/business/register' },
   ];
 
   return (
@@ -24,19 +24,25 @@ export default function BottomNavbar() {
           const isAiActive = tab.label === 'FinderB Ai' && typeof window !== 'undefined' && window.location.search.includes('tab=ai');
           
           const reallyActive = tab.label === 'FinderB Ai' ? isAiActive : (tab.label === 'Home' ? (pathname === '/' && !isAiActive) : isActive);
+          const isBusiness = tab.label === 'Business';
 
           return (
             <Link
               key={tab.label}
               href={tab.href}
-              className={`flex flex-col items-center justify-center gap-1 w-full h-full transition-colors ${
-                reallyActive ? 'text-primary' : 'text-gray-400'
+              className={`flex flex-col items-center justify-center gap-1 w-full h-full transition-all duration-300 ${
+                isBusiness
+                  ? (reallyActive ? 'text-amber-600 bg-amber-50/50' : 'text-amber-500 font-bold')
+                  : (reallyActive ? 'text-primary' : 'text-gray-400')
               }`}
             >
-              <tab.icon size={20} className={reallyActive ? 'animate-pulse' : ''} />
-              <span className="text-[10px] font-bold uppercase tracking-wider">{tab.label}</span>
+              <tab.icon 
+                size={20} 
+                className={`transition-transform duration-300 ${reallyActive ? 'animate-pulse scale-110' : ''} ${isBusiness ? 'text-amber-500' : ''}`} 
+              />
+              <span className={`text-[10px] font-bold uppercase tracking-wider ${isBusiness ? 'text-amber-600' : ''}`}>{tab.label}</span>
               {reallyActive && (
-                <div className="absolute bottom-1 w-1 h-1 rounded-full bg-primary" />
+                <div className={`absolute bottom-1 w-1 h-1 rounded-full ${isBusiness ? 'bg-amber-500' : 'bg-primary'}`} />
               )}
             </Link>
           );
