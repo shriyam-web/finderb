@@ -33,6 +33,41 @@ const WORDS = [
   "verified professionals" // For seamless loop
 ];
 
+const FEATURED_GROUPS = [
+  {
+    title: "Wedding Requisites",
+    subcategories: [
+      { name: "Banquet Halls", image: "https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&q=80&w=400", href: "/categories/banquet-halls" },
+      { name: "Bridal Requisite", image: "https://images.unsplash.com/photo-1594553763483-e173f27779f2?auto=format&fit=crop&q=80&w=400", href: "/categories/bridal-requisite" },
+      { name: "Caterers", image: "https://images.unsplash.com/photo-1555244162-803834f70033?auto=format&fit=crop&q=80&w=400", href: "/categories/catering" },
+    ]
+  },
+  {
+    title: "Beauty & Spa",
+    subcategories: [
+      { name: "Beauty Parlours", image: "https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&q=80&w=400", href: "/categories/beauty-spa" },
+      { name: "Spa & Massages", image: "https://images.unsplash.com/photo-1544161515-4ae6ce6ca606?auto=format&fit=crop&q=80&w=400", href: "/categories/spa-massages" },
+      { name: "Salons", image: "https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?auto=format&fit=crop&q=80&w=400", href: "/categories/salons" },
+    ]
+  },
+  {
+    title: "Repairs & Services",
+    subcategories: [
+      { name: "AC Service", image: "https://images.unsplash.com/photo-1558227691-41ea78d1f631?auto=format&fit=crop&q=80&w=400", href: "/categories/ac-repair" },
+      { name: "Car Service", image: "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&q=80&w=400", href: "/categories/automobile" },
+      { name: "Bike Service", image: "https://images.unsplash.com/photo-1558981403-c5f91cbba527?auto=format&fit=crop&q=80&w=400", href: "/categories/bike-repair" },
+    ]
+  },
+  {
+    title: "Daily Needs",
+    subcategories: [
+      { name: "Movies", image: "https://images.unsplash.com/photo-1485846234645-a62644f84728?auto=format&fit=crop&q=80&w=400", href: "/movies" },
+      { name: "Grocery", image: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=400", href: "/categories/grocery" },
+      { name: "Electricians", image: "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?auto=format&fit=crop&q=80&w=400", href: "/categories/electricians" },
+    ]
+  }
+];
+
 export default function HomeClient({ initialData }: { initialData: any }) {
   const [index, setIndex] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(true);
@@ -327,6 +362,36 @@ export default function HomeClient({ initialData }: { initialData: any }) {
             >
               Explore All Categories
             </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Featured Group Categories */}
+      <section className="py-16 lg:py-24 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {FEATURED_GROUPS.map((group) => (
+              <div key={group.title} className="bg-white rounded-[2rem] border border-gray-100 shadow-sm p-6 sm:p-8 hover:shadow-md transition-shadow">
+                <h3 className="text-2xl font-extrabold text-primary mb-8">{group.title}</h3>
+                <div className="grid grid-cols-3 gap-4 sm:gap-6">
+                  {group.subcategories.map((sub) => (
+                    <Link key={sub.name} href={sub.href} className="group flex flex-col items-center text-center space-y-3">
+                      <div className="relative w-full aspect-square rounded-2xl overflow-hidden shadow-sm">
+                        <Image 
+                          src={sub.image} 
+                          alt={sub.name} 
+                          fill 
+                          className="object-cover transition-transform duration-500 group-hover:scale-110"
+                        />
+                      </div>
+                      <span className="text-[10px] sm:text-xs font-bold text-gray-600 group-hover:text-secondary transition-colors leading-tight">
+                        {sub.name}
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
