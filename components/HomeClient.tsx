@@ -12,10 +12,11 @@ import {
   MapPin,
   Zap,
   Send,
+  Quote,
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Business, Category, Movie, TouristPlace } from '@/lib/mockData';
+import { Business, Category, Movie, TouristPlace, testimonials } from '@/lib/mockData';
 import { getFeaturedBusinesses } from '@/app/actions/business';
 import { getCategories } from '@/app/actions/category';
 import { getMovies } from '@/app/actions/movie';
@@ -366,13 +367,13 @@ export default function HomeClient({ initialData }: { initialData: any }) {
           <div className="flex overflow-x-auto pb-12 gap-6 lg:gap-8 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
             {isBusinessesLoading ? (
               Array.from({ length: 4 }).map((_, idx) => (
-                <div key={idx} className="min-w-[280px] sm:min-w-[320px] shrink-0">
+                <div key={idx} className="min-w-[250px] sm:min-w-[320px] shrink-0">
                   <div className="h-[400px] rounded-3xl bg-white border border-gray-100 animate-pulse" />
                 </div>
               ))
             ) : (
               realBusinesses.map((biz) => (
-                <div key={biz.id} className="min-w-[280px] sm:min-w-[320px] shrink-0">
+                <div key={biz.id} className="min-w-[250px] sm:min-w-[320px] shrink-0">
                   <BusinessCard business={biz} />
                 </div>
               ))
@@ -509,6 +510,56 @@ export default function HomeClient({ initialData }: { initialData: any }) {
             <div className="lg:border-l lg:border-gray-100 lg:pl-12">
               <NewsWidget />
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials Section */}
+      <section className="py-16 lg:py-24 bg-slate-50 relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent"></div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16 space-y-4">
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-primary tracking-tight">
+              What our <span className="text-secondary">Users</span> say
+            </h2>
+            <p className="text-gray-500 font-medium max-w-2xl mx-auto">
+              Don't just take our word for it. Here's what people across India are saying about their experience with FinderB.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {testimonials.map((testimonial) => (
+              <div key={testimonial.id} className="bg-white p-8 rounded-[2rem] shadow-sm border border-gray-100 flex flex-col relative group hover:shadow-xl transition-all duration-500 hover:-translate-y-1">
+                <div className="absolute top-8 right-8 text-secondary/10 group-hover:text-secondary/20 transition-colors">
+                  <Quote size={48} />
+                </div>
+                
+                <div className="flex items-center gap-1 mb-6">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <Star key={star} size={14} className="fill-secondary text-secondary" />
+                  ))}
+                </div>
+
+                <p className="text-gray-600 font-medium leading-relaxed mb-8 flex-grow italic">
+                  "{testimonial.content}"
+                </p>
+
+                <div className="flex items-center gap-4">
+                  <div className="relative w-12 h-12 rounded-2xl overflow-hidden ring-2 ring-slate-50">
+                    <Image 
+                      src={testimonial.avatar} 
+                      alt={testimonial.name} 
+                      fill 
+                      className="object-cover"
+                    />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-primary">{testimonial.name}</h4>
+                    <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">{testimonial.role}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>

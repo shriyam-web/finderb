@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Home, Grid, Sparkles, User } from 'lucide-react';
+import { Home, LayoutGrid, Zap, User } from 'lucide-react';
 
 export default function BottomNavbar() {
   const pathname = usePathname();
@@ -10,8 +10,8 @@ export default function BottomNavbar() {
 
   const tabs = [
     { label: 'Home', icon: Home, href: '/' },
-    { label: 'Categories', icon: Grid, href: '/categories' },
-    { label: 'FinderB Ai', icon: Sparkles, href: '/?tab=ai' },
+    { label: 'Categories', icon: LayoutGrid, href: '/categories' },
+    { label: 'FinderB Ai', icon: Zap, href: '/?tab=ai' },
     { label: 'Account', icon: User, href: '/dashboard' },
   ];
 
