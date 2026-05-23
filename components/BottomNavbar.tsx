@@ -32,17 +32,17 @@ export default function BottomNavbar() {
               href={tab.href}
               className={`flex flex-col items-center justify-center gap-1 w-full h-full transition-all duration-300 ${
                 isBusiness
-                  ? (reallyActive ? 'text-amber-600 bg-amber-50/50' : 'text-amber-500 font-bold')
+                  ? 'bg-amber-400 text-white'
                   : (reallyActive ? 'text-primary' : 'text-gray-400')
               }`}
             >
               <tab.icon 
                 size={20} 
-                className={`transition-transform duration-300 ${reallyActive ? 'animate-pulse scale-110' : ''} ${isBusiness ? 'text-amber-500' : ''}`} 
+                className={`transition-transform duration-300 ${reallyActive ? 'animate-pulse scale-110' : ''}`} 
               />
-              <span className={`text-[10px] font-bold uppercase tracking-wider ${isBusiness ? 'text-amber-600' : ''}`}>{tab.label}</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider">{tab.label}</span>
               {reallyActive && (
-                <div className={`absolute bottom-1 w-1 h-1 rounded-full ${isBusiness ? 'bg-amber-500' : 'bg-primary'}`} />
+                <div className={`absolute bottom-1 w-1 h-1 rounded-full ${isBusiness ? 'bg-white' : 'bg-primary'}`} />
               )}
             </Link>
           );
