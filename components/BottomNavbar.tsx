@@ -1,17 +1,25 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Home, LayoutGrid, Zap, Briefcase } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 export default function BottomNavbar() {
   const pathname = usePathname();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const [isAiActive, setIsAiActive] = useState(false);
+
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    setIsAiActive(tab === 'ai' || tab === 'finderb-ai');
+  }, [searchParams]);
 
   const tabs = [
     { label: 'Home', icon: Home, href: '/' },
     { label: 'Categories', icon: LayoutGrid, href: '/categories' },
-    { label: 'FinderB Ai', icon: Zap, href: '/?tab=ai' },
+    { label: 'FinderB Ai', icon: Zap, href: '/?tab=finderb-ai' },
     { label: 'Business', icon: Briefcase, href: '/business/register' },
   ];
 
@@ -19,12 +27,18 @@ export default function BottomNavbar() {
     <div className="lg:hidden fixed bottom-0 left-0 right-0 z-[9999] bg-white/80 backdrop-blur-xl border-t border-gray-100 pb-safe">
       <div className="flex justify-around items-center h-16">
         {tabs.map((tab) => {
-          const isActive = pathname === tab.href || (tab.label === 'Home' && pathname === '/' && !tab.href.includes('tab=ai'));
-          // Special case for AI tab which is a query param
-          const isAiActive = tab.label === 'FinderB Ai' && typeof window !== 'undefined' && window.location.search.includes('tab=ai');
-          
-          const reallyActive = tab.label === 'FinderB Ai' ? isAiActive : (tab.label === 'Home' ? (pathname === '/' && !isAiActive) : isActive);
+          const isHome = tab.label === 'Home';
+          const isAi = tab.label === 'FinderB Ai';
           const isBusiness = tab.label === 'Business';
+          
+          let reallyActive = false;
+          if (isAi) {
+            reallyActive = isAiActive;
+          } else if (isHome) {
+            reallyActive = pathname === '/' && !isAiActive;
+          } else {
+            reallyActive = pathname === tab.href;
+          }
 
           return (
             <Link

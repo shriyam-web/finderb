@@ -14,6 +14,20 @@ import {
   Zap,
   Send,
   Quote,
+  Search,
+  Sparkles,
+  Brain,
+  MessageSquare,
+  Coffee,
+  Wrench,
+  Dumbbell,
+  Hotel,
+  Heart,
+  PlusCircle,
+  Lightbulb,
+  X,
+  Cpu,
+  Mic,
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -32,6 +46,25 @@ const WORDS = [
   "premium local businesses",
   "trusted by millions",
   "verified professionals" // For seamless loop
+];
+
+const AI_SUGGESTIONS = [
+  { text: "Best cafes near me", icon: Coffee },
+  { text: "Top rated plumbers", icon: Wrench },
+  { text: "Gyms with personal trainers", icon: Dumbbell },
+  { text: "Luxury hotels in Delhi", icon: Hotel },
+  { text: "Yoga classes for beginners", icon: Heart },
+  { text: "24/7 Pharmacies nearby", icon: PlusCircle },
+  { text: "Electricians in Mumbai", icon: Wrench },
+  { text: "Co-working spaces", icon: Coffee },
+  { text: "Pet clinics", icon: Heart },
+  { text: "Interior designers", icon: Sparkles },
+];
+
+const SUGGESTIVE_KEYWORDS = [
+  "Restaurants", "Dentists", "Schools", "Packers & Movers", "Event Organizers", 
+  "Beauty Parlors", "Car Rentals", "Dry Cleaners", "Boutiques", "Real Estate Agents",
+  "Tailors", "Hardware Stores", "Bakeries", "Jewellers", "Clinics"
 ];
 
 const FEATURE_GROUPS_FALLBACK = [
@@ -98,6 +131,55 @@ export default function HomeClient({ initialData }: { initialData: any }) {
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [aiLoadProgress, setAiLoadProgress] = useState(0);
   const [protectedTab, setProtectedTab] = useState<string | null>(null);
+  const [aiQuery, setAiQuery] = useState('');
+  const [isListening, setIsListening] = useState(false);
+
+  const toggleVoiceSearch = () => {
+    if (typeof window !== 'undefined') {
+      // @ts-ignore
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        alert("Voice search is not supported in your browser.");
+        return;
+      }
+
+      const recognition = new SpeechRecognition();
+      recognition.lang = 'en-IN';
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+
+      if (!isListening) {
+        recognition.start();
+        setIsListening(true);
+
+        recognition.onresult = (event: any) => {
+          const transcript = event.results[0][0].transcript;
+          setAiQuery(transcript);
+          setIsListening(false);
+          handleAiSearch(transcript);
+        };
+
+        recognition.onerror = () => {
+          setIsListening(false);
+        };
+
+        recognition.onend = () => {
+          setIsListening(false);
+        };
+      } else {
+        recognition.stop();
+        setIsListening(false);
+      }
+    }
+  };
+
+  const handleAiSearch = (queryText: string) => {
+    const q = queryText || aiQuery;
+    if (!q.trim()) return;
+    
+    // For now, redirect to categories search
+    router.push(`/categories?search=${encodeURIComponent(q)}`);
+  };
 
   const aiLoadStages = [
     { threshold: 15, label: 'Initializing assistant' },
@@ -268,7 +350,145 @@ export default function HomeClient({ initialData }: { initialData: any }) {
 
   return (
     <div className="flex flex-col bg-white selection:bg-primary/10 font-sans">
-      {/* Featured Categories Strip */}
+      {/* AI Search View */}
+      {activeMobileTab === 'AI Search' && (
+        <div className="fixed inset-0 z-[80] bg-white pt-20 pb-24 overflow-y-auto px-6">
+          {/* Futuristic Background Elements */}
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_50%,rgba(var(--color-primary-500),0.02),transparent_70%)]"></div>
+            <div className="absolute top-1/4 -left-20 w-64 h-64 bg-primary/5 blur-[100px] rounded-full animate-pulse"></div>
+            <div className="absolute bottom-1/4 -right-20 w-80 h-80 bg-secondary/5 blur-[120px] rounded-full animate-pulse" style={{ animationDelay: '2s' }}></div>
+            
+            {/* Animated AI Nodes */}
+            <div className="absolute top-20 right-10 w-2 h-2 bg-primary/20 rounded-full animate-ping"></div>
+            <div className="absolute top-40 left-10 w-1.5 h-1.5 bg-secondary/20 rounded-full animate-ping" style={{ animationDelay: '1s' }}></div>
+            <div className="absolute bottom-40 right-20 w-2.5 h-2.5 bg-primary/20 rounded-full animate-ping" style={{ animationDelay: '1.5s' }}></div>
+          </div>
+
+          <div className="max-w-md mx-auto flex flex-col space-y-10 relative">
+            {/* Top Bar */}
+            <div className="flex justify-end items-center">
+              <button 
+                onClick={() => handleTabChange('Home')}
+                className="p-2 rounded-xl bg-gray-50 text-gray-400 hover:text-primary transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Header */}
+            <div className="space-y-4">
+              <h1 className="text-4xl font-black text-primary tracking-tight leading-tight">
+                Finder<span className="text-secondary">B</span> <br />
+                <span className="bg-gradient-to-r from-primary via-secondary to-orange-400 bg-clip-text text-transparent">AI Assistant</span>
+              </h1>
+              <p className="text-gray-500 font-medium text-sm leading-relaxed">
+                Experience the next generation of local search. Just tell me what you need, and I'll find it for you.
+              </p>
+            </div>
+
+            {/* Search Input Container */}
+            <div className="relative group">
+              <div className="absolute -inset-1 bg-gradient-to-r from-primary via-secondary to-primary rounded-2xl blur opacity-20 group-focus-within:opacity-40 transition duration-1000 group-focus-within:duration-200 animate-gradient-x"></div>
+              <div className="relative flex flex-col bg-white border border-gray-100 rounded-2xl overflow-hidden">
+                <div className="flex items-center p-2">
+                  <div className="flex-1 flex items-center px-4">
+                    <div className="relative mr-3">
+                      <Brain size={22} className="text-primary/60" />
+                      <div className="absolute -top-1 -right-1 w-2 h-2 bg-secondary rounded-full animate-ping"></div>
+                    </div>
+                    <input 
+                      type="text" 
+                      placeholder={isListening ? "Listening..." : "e.g., 'quiet cafe with wifi for work'..."}
+                      className="w-full py-4 bg-transparent border-none focus:ring-0 text-gray-900 font-semibold text-sm placeholder:text-gray-300"
+                      value={aiQuery}
+                      onChange={(e) => setAiQuery(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleAiSearch('')}
+                    />
+                  </div>
+                  <div className="flex items-center gap-2 pr-2">
+                    <button 
+                      onClick={toggleVoiceSearch}
+                      className={`p-3 rounded-xl transition-all active:scale-95 ${isListening ? 'bg-red-500 text-white animate-pulse' : 'bg-slate-50 text-gray-400 hover:text-primary'}`}
+                    >
+                      <Mic size={20} className={isListening ? 'animate-bounce' : ''} />
+                    </button>
+                    <button 
+                      onClick={() => handleAiSearch('')}
+                      className="bg-primary text-white p-4 rounded-xl hover:bg-secondary transition-all active:scale-95 shadow-lg shadow-primary/20 flex items-center justify-center"
+                    >
+                      <Send size={20} />
+                    </button>
+                  </div>
+                </div>
+                
+                {/* Visual "Smart" indicator */}
+                <div className="px-4 py-2 bg-slate-50 border-t border-gray-50 flex items-center justify-between">
+                  <div className="flex gap-1">
+                    <div className="w-1.5 h-1.5 rounded-full bg-primary/40 animate-pulse"></div>
+                    <div className="w-1.5 h-1.5 rounded-full bg-primary/40 animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+                    <div className="w-1.5 h-1.5 rounded-full bg-primary/40 animate-pulse" style={{ animationDelay: '0.4s' }}></div>
+                  </div>
+                  <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Real-time Analysis</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Keywords Section */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Lightbulb size={16} className="text-amber-400" />
+                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Popular Keywords</h3>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {SUGGESTIVE_KEYWORDS.map((kw, i) => (
+                  <button
+                    key={i}
+                    onClick={() => handleAiSearch(kw)}
+                    className="px-4 py-2 rounded-full bg-slate-50 border border-slate-100 text-[11px] font-bold text-slate-600 hover:bg-primary hover:text-white hover:border-primary transition-all duration-300 active:scale-95"
+                  >
+                    {kw}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Suggestions */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-gray-400">
+                  <MessageSquare size={14} />
+                  <span className="text-[10px] font-bold uppercase tracking-widest">Smart Queries</span>
+                </div>
+                <div className="h-[1px] flex-1 ml-4 bg-gray-100"></div>
+              </div>
+              <div className="grid grid-cols-2 gap-3 pb-8">
+                {AI_SUGGESTIONS.map((item, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => handleAiSearch(item.text)}
+                    className="flex flex-col items-start p-4 rounded-2xl bg-white border border-gray-100 hover:border-secondary/30 hover:shadow-2xl hover:shadow-secondary/5 transition-all group text-left relative overflow-hidden active:scale-95"
+                  >
+                    <div className="absolute top-0 right-0 p-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <ArrowRight size={10} className="text-secondary" />
+                    </div>
+                    <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center mb-3 group-hover:bg-secondary/10 transition-colors">
+                      <item.icon size={16} className="text-gray-400 group-hover:text-secondary transition-colors" />
+                    </div>
+                    <span className="text-[11px] font-bold text-gray-700 group-hover:text-primary transition-colors leading-tight">
+                      {item.text}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {!(activeMobileTab === 'AI Search' || (activeMobileTab === 'FinderB AI' && isAiLoading)) && (
+        <>
+          {/* Featured Categories Strip */}
       <section className="pt-20 lg:pt-28 bg-white">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
 
@@ -654,6 +874,8 @@ export default function HomeClient({ initialData }: { initialData: any }) {
           </div>
         </div>
       </section>
+        </>
+      )}
 
       {/* AI Search Overlay */}
       {activeMobileTab === 'FinderB AI' && isAiLoading && (
@@ -661,45 +883,85 @@ export default function HomeClient({ initialData }: { initialData: any }) {
           <div className="absolute inset-0 overflow-hidden">
             <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-secondary/10 blur-[150px] rounded-full animate-pulse"></div>
             <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] bg-white/5 blur-[150px] rounded-full animate-pulse" style={{ animationDelay: '2s' }}></div>
+            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-[0.03] mix-blend-overlay"></div>
           </div>
 
           <div className="relative space-y-12 max-w-lg w-full">
             <div className="relative inline-block">
-              <div className="absolute -inset-8 bg-secondary/20 rounded-full blur-3xl animate-pulse"></div>
-              <div className="relative w-32 h-32 bg-white rounded-[2.5rem] flex items-center justify-center shadow-2xl rotate-12 hover:rotate-0 transition-transform duration-500">
-                <Image src="/logo1.png" alt="FinderB AI" width={80} height={80} className="object-contain" />
+              <div className="absolute -inset-12 bg-secondary/20 rounded-full blur-3xl animate-pulse"></div>
+              <div className="absolute -inset-4 bg-gradient-to-tr from-secondary/40 to-transparent rounded-[3rem] animate-spin-slow opacity-30"></div>
+              <div className="relative w-36 h-36 bg-white rounded-[2.5rem] flex items-center justify-center shadow-2xl rotate-12 hover:rotate-0 transition-transform duration-500 overflow-hidden group">
+                <Image src="/logo1.png" alt="FinderB AI" width={90} height={90} className="object-contain relative z-10 transition-transform group-hover:scale-110" />
+                {/* Scanning line effect */}
+                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-secondary/40 to-transparent h-1/2 w-full animate-scan z-20"></div>
+                {/* Glowing background inside the logo box */}
+                <div className="absolute inset-0 bg-primary/5 group-hover:bg-primary/10 transition-colors"></div>
               </div>
             </div>
 
             <div className="space-y-4">
-              <h2 className="text-4xl font-black text-white tracking-tight">
+              <h2 className="text-4xl sm:text-5xl font-black !text-white tracking-tight">
                 Finder<span className="text-secondary">B</span> AI
               </h2>
-              <div className="flex items-center justify-center gap-2 text-secondary font-bold uppercase tracking-[0.3em] text-[10px]">
-                <span className="w-2 h-2 rounded-full bg-secondary animate-ping"></span>
-                {aiLoadStage}
+              <div className="flex flex-col items-center gap-3">
+                <div className="flex items-center gap-2 text-secondary font-bold uppercase tracking-[0.4em] text-[10px] sm:text-[11px]">
+                  <span className="w-2 h-2 rounded-full bg-secondary animate-ping"></span>
+                  {aiLoadStage}
+                </div>
+                <div className="px-4 py-1.5 rounded-full bg-white/5 border border-white/10">
+                  <span className="text-[9px] !text-white/60 font-medium tracking-[0.1em] uppercase">Processing Quantum Data</span>
+                </div>
               </div>
             </div>
 
-            <div className="space-y-6">
-              <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden p-[2px]">
+            <div className="space-y-6 max-w-xs mx-auto w-full">
+              <div className="relative h-2 w-full bg-white/10 rounded-full overflow-hidden p-[2px] shadow-inner">
                 <div 
-                  className="h-full bg-gradient-to-r from-secondary to-orange-400 rounded-full transition-all duration-300 ease-out shadow-[0_0_20px_rgba(246,158,50,0.5)]"
+                  className="h-full bg-gradient-to-r from-secondary via-orange-400 to-secondary rounded-full transition-all duration-300 ease-out shadow-[0_0_20px_rgba(246,158,50,0.6)] relative"
                   style={{ width: `${aiLoadProgress}%` }}
-                ></div>
+                >
+                  <div className="absolute top-0 right-0 bottom-0 w-8 bg-gradient-to-r from-transparent to-white/40 animate-pulse"></div>
+                </div>
               </div>
-              <p className="text-white/40 text-[10px] font-bold uppercase tracking-widest">Do not close this window</p>
+              <div className="flex justify-between items-center px-1">
+                <p className="text-white/40 text-[9px] font-bold uppercase tracking-widest animate-pulse">Analyzing Environment</p>
+                <span className="text-secondary font-black text-[10px]">{Math.round(aiLoadProgress)}%</span>
+              </div>
             </div>
 
             <div className="pt-8">
-              <div className="grid grid-cols-3 gap-4">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="h-1 bg-white/5 rounded-full overflow-hidden">
-                    <div className="h-full bg-white/20 animate-shimmer" style={{ animationDelay: `${i * 0.2}s` }}></div>
+              <div className="flex justify-center gap-6">
+                {[Sparkles, Brain, Zap].map((Icon, i) => (
+                  <div key={i} className="relative group">
+                    <div className="absolute -inset-2 bg-white/5 rounded-xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    <Icon size={24} className={`text-white/20 animate-pulse`} style={{ animationDelay: `${i * 0.5}s` }} />
                   </div>
                 ))}
               </div>
             </div>
+          </div>
+        </div>
+      )}
+      {/* Voice Search Modal */}
+      {isListening && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md">
+          <div className="bg-white rounded-3xl p-8 max-w-sm w-full mx-4 flex flex-col items-center space-y-6 shadow-2xl transform animate-in fade-in zoom-in duration-300">
+            <div className="relative">
+              <div className="absolute inset-0 bg-primary/20 rounded-full animate-ping scale-150"></div>
+              <div className="relative bg-primary text-white p-6 rounded-full shadow-lg">
+                <Mic size={40} className="animate-bounce" />
+              </div>
+            </div>
+            <div className="text-center space-y-2">
+              <h3 className="text-xl font-bold text-gray-900">Listening...</h3>
+              <p className="text-gray-500 text-sm">Tell me what you're looking for</p>
+            </div>
+            <button 
+              onClick={toggleVoiceSearch}
+              className="px-8 py-3 rounded-2xl bg-gray-100 text-gray-600 font-bold hover:bg-gray-200 transition-colors active:scale-95"
+            >
+              Cancel
+            </button>
           </div>
         </div>
       )}
