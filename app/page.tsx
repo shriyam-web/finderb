@@ -23,7 +23,7 @@ export default async function Home() {
     movies: movieResult.success ? movieResult.movies : [],
     touristPlaces: touristResult.success ? touristResult.touristPlaces : [],
     blogs: blogResult.success ? blogResult.blogs : [],
-    featuredGroups: groupsResult.success ? groupsResult.groups : []
+    featuredGroups: (groupsResult.success && groupsResult.groups && groupsResult.groups.length > 0) ? groupsResult.groups : null
   };
 
   return <HomeClient initialData={initialData} />;

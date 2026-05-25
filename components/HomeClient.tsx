@@ -38,41 +38,41 @@ const FEATURE_GROUPS_FALLBACK = [
   {
     title: "Restaurants",
     subcategories: [
-      { name: "Fine Dining", image: "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?auto=format&fit=crop&q=80&w=400", href: "/categories/restaurants?type=fine-dining" },
-      { name: "Cafes", image: "https://images.unsplash.com/photo-1501339817302-ee4fba6a2e81?auto=format&fit=crop&q=80&w=400", href: "/categories/restaurants?type=cafe" },
-      { name: "Quick Bites", image: "https://images.unsplash.com/photo-1561758033-d89a9ad46330?auto=format&fit=crop&q=80&w=400", href: "/categories/restaurants?type=fast-food" },
-      { name: "Bars & Pubs", image: "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?auto=format&fit=crop&q=80&w=400", href: "/categories/restaurants?type=bar" },
-      { name: "Bakeries", image: "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&q=80&w=400", href: "/categories/restaurants?type=bakery" },
-      { name: "Desserts", image: "https://images.unsplash.com/photo-1551024601-bec78aea704b?auto=format&fit=crop&q=80&w=400", href: "/categories/restaurants?type=dessert" },
-      { name: "Buffet", image: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&q=80&w=400", href: "/categories/restaurants?type=buffet" },
+      { name: "Fine Dining", image: "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?auto=format&fit=crop&q=80&w=400", href: "/categories/restaurants?type=fine-dining", icon: "Utensils" },
+      { name: "Cafes", image: "https://images.unsplash.com/photo-1501339817302-ee4fba6a2e81?auto=format&fit=crop&q=80&w=400", href: "/categories/restaurants?type=cafe", icon: "Coffee" },
+      { name: "Quick Bites", image: "https://images.unsplash.com/photo-1561758033-d89a9ad46330?auto=format&fit=crop&q=80&w=400", href: "/categories/restaurants?type=fast-food", icon: "Zap" },
+      { name: "Bars & Pubs", image: "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?auto=format&fit=crop&q=80&w=400", href: "/categories/restaurants?type=bar", icon: "Beer" },
+      { name: "Bakeries", image: "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&q=80&w=400", href: "/categories/restaurants?type=bakery", icon: "Croissant" },
+      { name: "Desserts", image: "https://images.unsplash.com/photo-1551024601-bec78aea704b?auto=format&fit=crop&q=80&w=400", href: "/categories/restaurants?type=dessert", icon: "IceCream" },
+      { name: "Buffet", image: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&q=80&w=400", href: "/categories/restaurants?type=buffet", icon: "ChefHat" },
     ]
   },
   {
     title: "Education",
     subcategories: [
-      { name: "Colleges", image: "https://images.unsplash.com/photo-152305085306e-8a3d3ecf047d?auto=format&fit=crop&q=80&w=400", href: "/categories/college" },
-      { name: "Tutors", image: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&q=80&w=400", href: "/categories/tutors" },
-      { name: "Schools", image: "https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&q=80&w=400", href: "/categories/schools" },
-      { name: "Coaching", image: "https://images.unsplash.com/photo-1524178232363-1fb2b075b655?auto=format&fit=crop&q=80&w=400", href: "/categories/coaching-centers" },
-      { name: "Vocational", image: "https://images.unsplash.com/photo-1581092918056-0c4c3acd3789?auto=format&fit=crop&q=80&w=400", href: "/categories/vocational-training" },
+      { name: "Colleges", image: "https://images.unsplash.com/photo-152305085306e-8a3d3ecf047d?auto=format&fit=crop&q=80&w=400", href: "/categories/college", icon: "GraduationCap" },
+      { name: "Tutors", image: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&q=80&w=400", href: "/categories/tutors", icon: "BookOpen" },
+      { name: "Schools", image: "https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&q=80&w=400", href: "/categories/schools", icon: "School" },
+      { name: "Coaching", image: "https://images.unsplash.com/photo-1524178232363-1fb2b075b655?auto=format&fit=crop&q=80&w=400", href: "/categories/coaching-centers", icon: "Users" },
+      { name: "Vocational", image: "https://images.unsplash.com/photo-1581092918056-0c4c3acd3789?auto=format&fit=crop&q=80&w=400", href: "/categories/vocational-training", icon: "Wrench" },
     ]
   },
   {
     title: "Astrologers",
     subcategories: [
-      { name: "Astrologers", image: "https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&q=80&w=400", href: "/categories/astrologers" },
-      { name: "Palmists", image: "https://images.unsplash.com/photo-1568431109612-43003050c763?auto=format&fit=crop&q=80&w=400", href: "/categories/palmists" },
-      { name: "Vastu", image: "https://images.unsplash.com/photo-1585121336019-21b3eb99b8f5?auto=format&fit=crop&q=80&w=400", href: "/categories/vastu-consultants" },
+      { name: "Astrologers", image: "https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&q=80&w=400", href: "/categories/astrologers", icon: "Moon" },
+      { name: "Palmists", image: "https://images.unsplash.com/photo-1568431109612-43003050c763?auto=format&fit=crop&q=80&w=400", href: "/categories/palmists", icon: "Hand" },
+      { name: "Vastu", image: "https://images.unsplash.com/photo-1585121336019-21b3eb99b8f5?auto=format&fit=crop&q=80&w=400", href: "/categories/vastu-consultants", icon: "Compass" },
     ]
   },
   {
     title: "Wedding Planning",
     subcategories: [
-      { name: "Banquet Halls", image: "https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&q=80&w=400", href: "/categories/banquet-halls" },
-      { name: "Photographers", image: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&q=80&w=400", href: "/categories/photography" },
-      { name: "Makeup Artists", image: "https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?auto=format&fit=crop&q=80&w=400", href: "/categories/bridal-makeup" },
-      { name: "Decorators", image: "https://images.unsplash.com/photo-1519225421980-715cb0215aed?auto=format&fit=crop&q=80&w=400", href: "/categories/wedding-decorators" },
-      { name: "Caterers", image: "https://images.unsplash.com/photo-1555244162-803834f70033?auto=format&fit=crop&q=80&w=400", href: "/categories/catering" },
+      { name: "Banquet Halls", image: "https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&q=80&w=400", href: "/categories/banquet-halls", icon: "Building" },
+      { name: "Photographers", image: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&q=80&w=400", href: "/categories/photography", icon: "Camera" },
+      { name: "Makeup Artists", image: "https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?auto=format&fit=crop&q=80&w=400", href: "/categories/bridal-makeup", icon: "Sparkles" },
+      { name: "Decorators", image: "https://images.unsplash.com/photo-1519225421980-715cb0215aed?auto=format&fit=crop&q=80&w=400", href: "/categories/wedding-decorators", icon: "Palette" },
+      { name: "Caterers", image: "https://images.unsplash.com/photo-1555244162-803834f70033?auto=format&fit=crop&q=80&w=400", href: "/categories/catering", icon: "Utensils" },
     ]
   }
 ];
@@ -443,12 +443,22 @@ export default function HomeClient({ initialData }: { initialData: any }) {
                 <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-6">{group.title}</h3>
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
                   {group.subcategories.map((sub: any) => {
+                    const isImageUrl = sub.icon?.startsWith('http') || sub.icon?.startsWith('/');
                     // @ts-ignore
-                    const IconComponent = LucideIcons[sub.icon] || LucideIcons.Grid;
+                    const IconComponent = !isImageUrl ? (LucideIcons[sub.icon] || LucideIcons.Grid) : null;
                     return (
                       <Link key={sub.name} href={sub.href} className="group flex flex-col items-center text-center space-y-2">
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-primary/10 group-hover:text-primary transition-all duration-300">
-                          <IconComponent size={20} className="sm:size-6" strokeWidth={1.5} />
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-primary/10 group-hover:text-primary transition-all duration-300 overflow-hidden relative">
+                          {isImageUrl ? (
+                            <Image
+                              src={sub.icon}
+                              alt={sub.name}
+                              fill
+                              className="object-contain p-2"
+                            />
+                          ) : (
+                            <IconComponent size={20} className="sm:size-6" strokeWidth={1.5} />
+                          )}
                         </div>
                         <span className="text-[10px] sm:text-[11px] font-semibold text-gray-600 group-hover:text-primary transition-colors line-clamp-2 px-1 leading-tight">
                           {sub.name}

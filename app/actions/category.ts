@@ -81,7 +81,7 @@ export async function getFeaturedGroups(categoryNames: string[]) {
     const { data: parents, error: parentError } = await supabase
       .from('categories')
       .select('id, name, slug, banner')
-      .in('name', categoryNames)
+      .or(categoryNames.map(name => `name.ilike.${name}`).join(','))
       .is('parent_id', null)
       .eq('status', 'Active');
 
