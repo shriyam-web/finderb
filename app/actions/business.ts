@@ -367,15 +367,21 @@ export async function getFeaturedBusinesses() {
       id: b.id,
       name: b.businessName,
       category: b.category,
-      rating: 4.5, // Default for now
-      reviewsCount: 0, // Default for now
+      rating: b.rating ?? 4.5,
+      reviewsCount: 0,
       location: b.location || b.city || 'Location not specified',
-      description: b.businessAddress,
+      description: b.about || b.businessAddress || '',
       contact: b.publicPhone,
-      services: [], // Default for now
-      image: b.profilePictureUrl || 'https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&q=80&w=800', // Default placeholder
+      services: b.serviceCategory ? [b.serviceCategory] : [],
+      image: b.profilePictureUrl || 'https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&q=80&w=800',
       profilePictureUrl: b.profilePictureUrl,
-      priceRange: b.selectedPlan === 'free' ? 'Free' : 'Premium'
+      priceRange: b.selectedPlan === 'free' ? 'Free' : 'Premium',
+      timings: b.timings,
+      isFinderBVerified: Boolean(b.isFinderBVerified || b.isVerified),
+      hasVerifiedBadge: Boolean(b.hasVerifiedBadge || b.isFinderBVerified || b.isVerified),
+      latitude: b.latitude,
+      longitude: b.longitude,
+      businessAddress: b.businessAddress,
     }));
 
     return { success: true, businesses: mappedBusinesses };

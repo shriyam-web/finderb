@@ -27,6 +27,9 @@ export interface Business {
   paymentModes?: string[];
   email?: string;
   businessAddress?: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  hasVerifiedBadge?: boolean;
 }
 
 export interface Category {
