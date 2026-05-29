@@ -14,12 +14,15 @@ export default function BottomNavbar() {
   useEffect(() => {
     const tab = searchParams.get('tab');
     setIsAiActive(tab === 'ai' || tab === 'finderb-ai');
-  }, [searchParams]);
+    if (tab === 'finderb-ai') {
+      router.replace('/?tab=ai');
+    }
+  }, [searchParams, router]);
 
   const tabs = [
     { label: 'Home', icon: Home, href: '/' },
     { label: 'Categories', icon: LayoutGrid, href: '/categories' },
-    { label: 'FinderB Ai', icon: Zap, href: '/?tab=finderb-ai' },
+    { label: 'FinderB Ai', icon: Zap, href: '/?tab=ai' },
     { label: 'Business', icon: Briefcase, href: '/business/register' },
   ];
 

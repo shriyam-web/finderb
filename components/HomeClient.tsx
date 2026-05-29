@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import SearchBar from '@/components/SearchBar';
 import CategoryCard from '@/components/CategoryCard';
@@ -39,6 +39,7 @@ import { getTouristPlaces } from '@/app/actions/touristPlace';
 import { getBlogs } from '@/app/actions/blog';
 import { getSession } from '@/app/actions/user';
 import { formatDistanceFromUser } from '@/lib/geo';
+import { createVoiceRecognition, getSpeechRecognitionCtor } from '@/lib/voiceSearch';
 
 const WORDS = [
   "verified professionals",
@@ -91,7 +92,85 @@ export default function HomeClient({ initialData }: { initialData: any }) {
   const [protectedTab, setProtectedTab] = useState<string | null>(null);
   const [aiQuery, setAiQuery] = useState('');
   const [isListening, setIsListening] = useState(false);
+  const [voiceError, setVoiceError] = useState<string | null>(null);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
+
+  const stopVoiceRecognition = useCallback(() => {
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.abort();
+      } catch {
+        try {
+          recognitionRef.current.stop();
+        } catch {
+          /* ignore */
+        }
+      }
+      recognitionRef.current = null;
+    }
+    setIsListening(false);
+  }, []);
+
+  const handleAiSearch = useCallback(
+    (queryText?: string) => {
+      const q = (typeof queryText === 'string' ? queryText : aiQuery).trim();
+      if (!q) return;
+      setAiQuery(q);
+      stopVoiceRecognition();
+      router.push(`/categories?search=${encodeURIComponent(q)}`);
+    },
+    [aiQuery, router, stopVoiceRecognition]
+  );
+
+  const toggleVoiceSearch = useCallback(() => {
+    if (isListening) {
+      stopVoiceRecognition();
+      return;
+    }
+
+    if (!getSpeechRecognitionCtor()) {
+      alert('Voice search is not supported in your browser. Try Chrome or Edge on mobile.');
+      return;
+    }
+
+    setVoiceError(null);
+    const recognition = createVoiceRecognition({
+      lang: 'en-IN',
+      onInterim: (text) => setAiQuery(text),
+      onFinal: (text) => {
+        setAiQuery(text);
+        handleAiSearch(text);
+      },
+      onError: (code) => {
+        if (code === 'not-allowed') {
+          setVoiceError('Microphone permission denied. Allow mic access in browser settings.');
+        } else if (code === 'no-speech') {
+          setVoiceError('No speech detected. Try again.');
+        } else {
+          setVoiceError('Could not hear you. Please try again.');
+        }
+      },
+      onEnd: () => {
+        setIsListening(false);
+        recognitionRef.current = null;
+      },
+    });
+
+    if (!recognition) return;
+
+    recognitionRef.current = recognition;
+    setIsListening(true);
+
+    recognition.onstart = () => setIsListening(true);
+
+    try {
+      recognition.start();
+    } catch {
+      setVoiceError('Unable to start microphone.');
+      stopVoiceRecognition();
+    }
+  }, [isListening, handleAiSearch, stopVoiceRecognition]);
 
   useEffect(() => {
     if (typeof window === 'undefined' || !navigator.geolocation) return;
@@ -107,53 +186,6 @@ export default function HomeClient({ initialData }: { initialData: any }) {
       { enableHighAccuracy: false, maximumAge: 600_000, timeout: 10_000 }
     );
   }, []);
-
-  const toggleVoiceSearch = () => {
-    if (typeof window !== 'undefined') {
-      // @ts-ignore
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (!SpeechRecognition) {
-        alert("Voice search is not supported in your browser.");
-        return;
-      }
-
-      const recognition = new SpeechRecognition();
-      recognition.lang = 'en-IN';
-      recognition.interimResults = false;
-      recognition.maxAlternatives = 1;
-
-      if (!isListening) {
-        recognition.start();
-        setIsListening(true);
-
-        recognition.onresult = (event: any) => {
-          const transcript = event.results[0][0].transcript;
-          setAiQuery(transcript);
-          setIsListening(false);
-          handleAiSearch(transcript);
-        };
-
-        recognition.onerror = () => {
-          setIsListening(false);
-        };
-
-        recognition.onend = () => {
-          setIsListening(false);
-        };
-      } else {
-        recognition.stop();
-        setIsListening(false);
-      }
-    }
-  };
-
-  const handleAiSearch = (queryText: string) => {
-    const q = queryText || aiQuery;
-    if (!q.trim()) return;
-    
-    // For now, redirect to categories search
-    router.push(`/categories?search=${encodeURIComponent(q)}`);
-  };
 
   const aiLoadStages = [
     { threshold: 15, label: 'Initializing assistant' },
@@ -216,11 +248,9 @@ export default function HomeClient({ initialData }: { initialData: any }) {
   }, []);
 
   useEffect(() => {
-    if (activeTabFromUrl === 'ai') {
+    if (activeTabFromUrl === 'ai' || activeTabFromUrl === 'finderb-ai') {
+      setIsAiLoading(false);
       setActiveMobileTab('AI Search');
-    } else if (activeTabFromUrl === 'finderb-ai') {
-      setIsAiLoading(true);
-      setActiveMobileTab('FinderB AI');
     } else {
       setActiveMobileTab('Home');
     }
@@ -285,9 +315,9 @@ export default function HomeClient({ initialData }: { initialData: any }) {
     }
 
     if (label === 'FinderB AI') {
-      setIsAiLoading(true);
-      setActiveMobileTab('FinderB AI');
-      router.push('/?tab=finderb-ai', { scroll: false });
+      setIsAiLoading(false);
+      setActiveMobileTab('AI Search');
+      router.push('/?tab=ai', { scroll: false });
       return;
     }
 
@@ -936,7 +966,12 @@ export default function HomeClient({ initialData }: { initialData: any }) {
             </div>
             <div className="text-center space-y-2">
               <h3 className="text-xl font-bold text-gray-900">Listening...</h3>
-              <p className="text-gray-500 text-sm">Tell me what you're looking for</p>
+              <p className="text-gray-500 text-sm">
+                {aiQuery ? `"${aiQuery}"` : 'Tell me what you\'re looking for'}
+              </p>
+              {voiceError && (
+                <p className="text-xs font-medium text-red-500">{voiceError}</p>
+              )}
             </div>
             <button 
               onClick={toggleVoiceSearch}

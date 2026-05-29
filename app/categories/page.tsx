@@ -28,9 +28,13 @@ export default function CategoriesPage() {
   const [businesses, setBusinesses] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubLoading, setIsSubLoading] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('search') ?? '');
 
-  const [viewMode, setViewMode] = useState<'categories' | 'subcategories' | 'merchants'>('categories');
+  const [viewMode, setViewMode] = useState<'categories' | 'subcategories' | 'merchants'>(
+    searchParams.get('search') ? 'merchants' : 'categories'
+  );
+
+  const isGlobalSearch = Boolean(searchParams.get('search')?.trim());
 
   useEffect(() => {
     async function fetchData() {
@@ -53,6 +57,15 @@ export default function CategoriesPage() {
   }, []);
 
   useEffect(() => {
+    const q = searchParams.get('search')?.trim();
+    if (q) {
+      setSearchQuery(q);
+      setViewMode('merchants');
+      setSelectedCategory(null);
+      setSelectedSubCategory(null);
+      return;
+    }
+
     if (categoryIdFromUrl && categories.length > 0) {
       const category = categories.find(cat => cat.id === categoryIdFromUrl);
       if (category) {
@@ -60,7 +73,15 @@ export default function CategoriesPage() {
         setViewMode('subcategories');
       }
     }
-  }, [categoryIdFromUrl, categories]);
+  }, [searchParams, categoryIdFromUrl, categories]);
+
+  const businessMatchesSearch = (biz: any, q: string) => {
+    if (!q) return true;
+    const hay = q.toLowerCase();
+    return [biz.name, biz.category, biz.description, biz.location]
+      .filter(Boolean)
+      .some((field) => String(field).toLowerCase().includes(hay));
+  };
 
   useEffect(() => {
     async function fetchSubs() {
@@ -110,6 +131,7 @@ export default function CategoriesPage() {
 
   // Simple filtering and sorting logic
   const filteredAndSortedBusinesses = [...businesses]
+    .filter((biz) => businessMatchesSearch(biz, searchQuery))
     .filter(biz => {
       if (activeFilters.includes('Open Now')) {
         // Mock check - in a real app, this would check against business hours
@@ -460,15 +482,21 @@ export default function CategoriesPage() {
             <div className="p-4 space-y-6">
               <div className="flex items-center justify-between px-1">
                 <div>
-                  <h2 className="text-[10px] font-black text-slate-400 uppercase mb-1">Available Businesses</h2>
-                  <h3 className="text-lg font-black text-slate-900">{selectedSubCategory?.name}</h3>
+                  <h2 className="text-[10px] font-black text-slate-400 uppercase mb-1">
+                    {isGlobalSearch ? 'Search Results' : 'Available Businesses'}
+                  </h2>
+                  <h3 className="text-lg font-black text-slate-900">
+                    {isGlobalSearch ? `"${searchQuery}"` : selectedSubCategory?.name}
+                  </h3>
                 </div>
-                <button 
-                  onClick={() => setViewMode('subcategories')} 
-                  className="px-4 py-2 bg-white border border-slate-200 hover:border-primary hover:text-primary rounded-full text-[9px] font-black uppercase transition-all shadow-sm"
-                >
-                  Change
-                </button>
+                {!isGlobalSearch && (
+                  <button
+                    onClick={() => setViewMode('subcategories')}
+                    className="px-4 py-2 bg-white border border-slate-200 hover:border-primary hover:text-primary rounded-full text-[9px] font-black uppercase transition-all shadow-sm"
+                  >
+                    Change
+                  </button>
+                )}
               </div>
 
               <div className="flex flex-col gap-3 sm:gap-4">
