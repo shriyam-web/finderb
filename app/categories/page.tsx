@@ -14,6 +14,7 @@ import CategoryIcon from '@/components/CategoryIcon';
 import {
   businessMatchesNaturalSearch,
   parseNaturalSearchQuery,
+  sortBySearchRelevance,
   textMatchesSearch,
 } from '@/lib/searchMatch';
 import Image from 'next/image';
@@ -214,9 +215,19 @@ export default function CategoriesPage() {
     setActiveFilters([]);
   };
 
-  // Simple filtering and sorting logic
-  const filteredAndSortedBusinesses = [...businesses]
-    .filter((biz) => businessMatchesSearch(biz, searchQuery))
+  const relevanceRankedBusinesses = isGlobalSearch
+    ? sortBySearchRelevance(
+        businesses.filter((biz) => businessMatchesSearch(biz, searchQuery)),
+        searchQuery,
+        (biz) => ({
+          name: biz.name,
+          category: biz.category,
+          description: biz.description,
+        })
+      )
+    : businesses.filter((biz) => businessMatchesSearch(biz, searchQuery));
+
+  const filteredAndSortedBusinesses = [...relevanceRankedBusinesses]
     .filter(biz => {
       if (activeFilters.includes('Open Now')) {
         // Mock check - in a real app, this would check against business hours
@@ -233,18 +244,19 @@ export default function CategoriesPage() {
       return true;
     })
     .sort((a, b) => {
+      if (isGlobalSearch) {
+        return 0;
+      }
       if (activeFilters.includes('Nearest First')) {
-        // Mock distance sort - in real app would use geolocation
         return a.id.localeCompare(b.id);
       }
-      
+
       const nameA = a.name.toLowerCase();
       const nameB = b.name.toLowerCase();
       if (sortOrder === 'asc') {
         return nameA.localeCompare(nameB);
-      } else {
-        return nameB.localeCompare(nameA);
       }
+      return nameB.localeCompare(nameA);
     });
 
   return (

@@ -3,7 +3,12 @@
 import { createClient } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';
 import { categoryHref, dbBanner, dbSymbol } from '@/lib/categoryDisplay';
-import { escapeIlikePattern, getSearchTermsForQuery } from '@/lib/searchMatch';
+import {
+  escapeIlikePattern,
+  getSearchTermsForQuery,
+  scoreSearchRelevance,
+  sortBySearchRelevance,
+} from '@/lib/searchMatch';
 
 export async function getCategories(topLevelOnly = true) {
   try {
@@ -221,7 +226,22 @@ export async function searchCategoriesByQuery(query: string) {
       parentName: c.parent_id ? parentNameById.get(c.parent_id) ?? null : null,
     }));
 
-    return { success: true as const, results };
+    const withPrimaryMatch = results.filter(
+      (hit) =>
+        scoreSearchRelevance(query, {
+          name: hit.name,
+          slug: hit.slug,
+          parentName: hit.parentName,
+        }) > 0
+    );
+
+    const ranked = sortBySearchRelevance(withPrimaryMatch, query, (hit) => ({
+      name: hit.name,
+      slug: hit.slug,
+      parentName: hit.parentName,
+    }));
+
+    return { success: true as const, results: ranked };
   } catch (error: any) {
     console.error('Search Categories Error:', error);
     return {

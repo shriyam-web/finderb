@@ -47,12 +47,42 @@ const STOP_WORDS = new Set([
   'us',
 ]);
 
+/** Low-specificity words — weak alone; "Courier service" must not beat "Car hire". */
+const GENERIC_SEARCH_TERMS = new Set([
+  'service',
+  'services',
+  'rental',
+  'rentals',
+  'hire',
+  'shop',
+  'store',
+  'company',
+  'provider',
+  'center',
+  'centre',
+  'business',
+  'agency',
+  'office',
+  'dealer',
+  'supply',
+  'supplies',
+  'repair',
+  'repairs',
+  'care',
+]);
+
 export type ParsedSearchQuery = {
   raw: string;
-  /** Meaningful words to match against names/categories (e.g. "schools" from "schools near me"). */
   terms: string[];
-  /** City/area from phrases like "in delhi" or "at lucknow". */
   locationHint: string | null;
+};
+
+export type SearchMatchFields = {
+  name?: string | null;
+  category?: string | null;
+  description?: string | null;
+  slug?: string | null;
+  parentName?: string | null;
 };
 
 export function normalizeSearchQuery(query: string): string {
@@ -63,11 +93,6 @@ export function escapeIlikePattern(value: string): string {
   return value.replace(/[%_\\]/g, '\\$&');
 }
 
-/**
- * Turn natural queries into search terms + optional location.
- * "Schools near me" → terms: ["schools"]
- * "hospital in delhi" → terms: ["hospital"], location: "delhi"
- */
 export function parseNaturalSearchQuery(query: string): ParsedSearchQuery {
   const raw = query.trim();
   if (!raw) {
@@ -75,7 +100,6 @@ export function parseNaturalSearchQuery(query: string): ParsedSearchQuery {
   }
 
   let text = raw.toLowerCase();
-
   text = text.replace(/\b(near|around|close to)\s+me\b/g, ' ').trim();
 
   let locationHint: string | null = null;
@@ -107,6 +131,11 @@ export function parseNaturalSearchQuery(query: string): ParsedSearchQuery {
   return { raw, terms, locationHint };
 }
 
+export function getPrimarySearchTerm(query: string): string | null {
+  const { terms } = parseNaturalSearchQuery(query);
+  return terms[0] ?? null;
+}
+
 function singularize(term: string): string {
   if (term.length > 3 && term.endsWith('ies')) return term.slice(0, -3) + 'y';
   if (term.length > 3 && term.endsWith('es')) return term.slice(0, -2);
@@ -121,7 +150,10 @@ function termVariants(term: string): string[] {
   return [...variants].filter((v) => v.length >= 2);
 }
 
-/** One keyword vs one field (handles school/schools). */
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 export function textMatchesSearchTerm(
   text: string | null | undefined,
   term: string
@@ -132,7 +164,6 @@ export function textMatchesSearchTerm(
   return termVariants(term).some((v) => hay.includes(v));
 }
 
-/** Any extracted term matches the field. */
 export function textMatchesSearchTerms(
   text: string | null | undefined,
   terms: string[]
@@ -142,7 +173,6 @@ export function textMatchesSearchTerms(
   return terms.some((term) => textMatchesSearchTerm(text, term));
 }
 
-/** Case-insensitive partial match on full query string. */
 export function textMatchesSearch(
   text: string | null | undefined,
   query: string
@@ -157,6 +187,97 @@ export function textMatchesSearch(
   return normalizeSearchQuery(text).includes(needle);
 }
 
+function scoreFieldAgainstQuery(
+  text: string | null | undefined,
+  parsed: ParsedSearchQuery,
+  fieldMultiplier: number
+): number {
+  if (!text) return 0;
+  const hay = normalizeSearchQuery(text);
+  const terms = parsed.terms;
+  if (terms.length === 0) {
+    return hay.includes(normalizeSearchQuery(parsed.raw)) ? 10 * fieldMultiplier : 0;
+  }
+
+  const primary = terms[0];
+  if (!textMatchesSearchTerm(text, primary)) return 0;
+
+  let score = 50;
+
+  for (const variant of termVariants(primary)) {
+    if (hay.startsWith(variant)) {
+      score += 25;
+      break;
+    }
+    if (new RegExp(`\\b${escapeRegExp(variant)}`, 'i').test(hay)) {
+      score += 15;
+      break;
+    }
+  }
+
+  const phrase = terms.join(' ');
+  if (phrase.length > 2 && hay.includes(phrase)) {
+    score += 35;
+  }
+
+  let matchedNonGeneric = 1;
+  for (let i = 1; i < terms.length; i++) {
+    const term = terms[i];
+    if (!textMatchesSearchTerm(text, term)) continue;
+    matchedNonGeneric += 1;
+    score += GENERIC_SEARCH_TERMS.has(term) ? 4 : 18;
+  }
+
+  if (terms.length > 1 && matchedNonGeneric === terms.length) {
+    score += 20;
+  }
+
+  if (hay === normalizeSearchQuery(parsed.raw)) {
+    score += 30;
+  }
+
+  return score * fieldMultiplier;
+}
+
+/** Higher = more relevant. Primary keyword must match at least one field. */
+export function scoreSearchRelevance(
+  query: string,
+  fields: SearchMatchFields
+): number {
+  const parsed = parseNaturalSearchQuery(query);
+  const scores = [
+    scoreFieldAgainstQuery(fields.name, parsed, 1.5),
+    scoreFieldAgainstQuery(fields.category, parsed, 1.25),
+    scoreFieldAgainstQuery(fields.slug, parsed, 1.1),
+    scoreFieldAgainstQuery(fields.parentName, parsed, 0.9),
+    scoreFieldAgainstQuery(fields.description, parsed, 0.5),
+  ];
+
+  return Math.max(...scores, 0);
+}
+
+export function sortBySearchRelevance<T>(
+  items: T[],
+  query: string,
+  getFields: (item: T) => SearchMatchFields
+): T[] {
+  return [...items].sort(
+    (a, b) => scoreSearchRelevance(query, getFields(b)) - scoreSearchRelevance(query, getFields(a))
+  );
+}
+
+function fieldsMatchPrimaryTerm(fields: SearchMatchFields, primary: string): boolean {
+  const values = [fields.name, fields.category, fields.description, fields.slug, fields.parentName];
+  return values.some((f) => textMatchesSearchTerm(f != null ? String(f) : '', primary));
+}
+
+function fieldsMatchAnyTerm(fields: SearchMatchFields, terms: string[]): boolean {
+  const values = [fields.name, fields.category, fields.description, fields.slug, fields.parentName];
+  return terms.some((term) =>
+    values.some((f) => textMatchesSearchTerm(f != null ? String(f) : '', term))
+  );
+}
+
 export function businessMatchesNaturalSearch(
   biz: {
     name?: string | null;
@@ -169,7 +290,11 @@ export function businessMatchesNaturalSearch(
   query: string
 ): boolean {
   const parsed = parseNaturalSearchQuery(query);
-  const fields = [biz.name, biz.category, biz.description, biz.location, biz.city, biz.state];
+  const fields: SearchMatchFields = {
+    name: biz.name,
+    category: biz.category,
+    description: biz.description,
+  };
 
   const terms =
     parsed.terms.length > 0
@@ -178,13 +303,17 @@ export function businessMatchesNaturalSearch(
 
   if (terms.length === 0) return false;
 
-  const termMatch = terms.some((term) =>
-    fields.some((field) => textMatchesSearchTerm(field != null ? String(field) : '', term))
-  );
-  if (!termMatch) return false;
+  if (!fieldsMatchPrimaryTerm(fields, terms[0])) {
+    return false;
+  }
+
+  if (!fieldsMatchAnyTerm(fields, terms)) {
+    return false;
+  }
 
   if (parsed.locationHint) {
-    const locBlob = fields
+    const locFields = [biz.location, biz.city, biz.state];
+    const locBlob = locFields
       .filter((f) => f != null)
       .map((f) => normalizeSearchQuery(String(f)))
       .join(' ');
@@ -194,7 +323,6 @@ export function businessMatchesNaturalSearch(
   return true;
 }
 
-/** Terms to use for DB ilike / client filters. */
 export function getSearchTermsForQuery(query: string): string[] {
   const parsed = parseNaturalSearchQuery(query);
   if (parsed.terms.length > 0) return parsed.terms;
