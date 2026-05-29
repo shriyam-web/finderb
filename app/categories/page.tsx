@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Search, Filter, ChevronRight, LayoutGrid, ShoppingBag, Home, Sparkles, TrendingUp, Grid } from 'lucide-react';
 import {
@@ -49,7 +49,9 @@ export default function CategoriesPage() {
   const [categorySearchHits, setCategorySearchHits] = useState<CategorySearchHit[]>([]);
   const [isSearchCategoriesLoading, setIsSearchCategoriesLoading] = useState(false);
 
-  const isGlobalSearch = Boolean(searchParams.get('search')?.trim());
+  const isGlobalSearch = viewMode === 'global-search';
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const searchGenerationRef = useRef(0);
 
   useEffect(() => {
     async function fetchData() {
@@ -95,27 +97,65 @@ export default function CategoriesPage() {
     }
   }, [searchParams, categoryIdFromUrl, categories]);
 
-  useEffect(() => {
-    const q = searchParams.get('search')?.trim();
-    if (!q) return;
+  const runGlobalSearch = useCallback(
+    async (q: string) => {
+      const trimmed = q.trim();
+      if (!trimmed) {
+        setCategorySearchHits([]);
+        setIsSearchCategoriesLoading(false);
+        return;
+      }
 
-    let cancelled = false;
-    setIsSearchCategoriesLoading(true);
+      setViewMode('global-search');
+      setSelectedCategory(null);
+      setSelectedSubCategory(null);
+      setSubCategories([]);
+      const generation = ++searchGenerationRef.current;
+      setIsSearchCategoriesLoading(true);
 
-    searchCategoriesByQuery(q).then((result) => {
-      if (cancelled) return;
+      const result = await searchCategoriesByQuery(trimmed);
+      if (generation !== searchGenerationRef.current) return;
+
       if (result.success) {
         setCategorySearchHits(result.results);
       } else {
         setCategorySearchHits([]);
       }
       setIsSearchCategoriesLoading(false);
-    });
+
+      const urlQ = searchParams.get('search')?.trim();
+      if (urlQ !== trimmed) {
+        router.replace(`/categories?search=${encodeURIComponent(trimmed)}`, { scroll: false });
+      }
+    },
+    [router, searchParams]
+  );
+
+  useEffect(() => {
+    if (viewMode !== 'global-search') return;
+
+    const trimmed = searchQuery.trim();
+    if (!trimmed) {
+      searchGenerationRef.current += 1;
+      setCategorySearchHits([]);
+      setIsSearchCategoriesLoading(false);
+      return;
+    }
+
+    if (searchDebounceRef.current) {
+      clearTimeout(searchDebounceRef.current);
+    }
+
+    searchDebounceRef.current = setTimeout(() => {
+      void runGlobalSearch(searchQuery);
+    }, 400);
 
     return () => {
-      cancelled = true;
+      if (searchDebounceRef.current) {
+        clearTimeout(searchDebounceRef.current);
+      }
     };
-  }, [searchParams]);
+  }, [searchQuery, viewMode, runGlobalSearch]);
 
   const businessMatchesSearch = (biz: any, q: string) => {
     if (!q.trim()) return true;
@@ -127,10 +167,31 @@ export default function CategoriesPage() {
   const applyGlobalSearch = (q: string) => {
     const trimmed = q.trim();
     if (!trimmed) {
-      router.replace('/categories');
+      if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+      setCategorySearchHits([]);
+      setViewMode('categories');
+      router.replace('/categories', { scroll: false });
       return;
     }
-    router.replace(`/categories?search=${encodeURIComponent(trimmed)}`);
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    void runGlobalSearch(trimmed);
+  };
+
+  const handleSearchInputChange = (value: string) => {
+    setSearchQuery(value);
+    if (value.trim()) {
+      if (viewMode !== 'global-search') {
+        setViewMode('global-search');
+        setSelectedCategory(null);
+        setSelectedSubCategory(null);
+        setSubCategories([]);
+      }
+    } else if (viewMode === 'global-search') {
+      if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+      setCategorySearchHits([]);
+      setViewMode('categories');
+      router.replace('/categories', { scroll: false });
+    }
   };
 
   const openCategorySearchHit = async (hit: CategorySearchHit) => {
@@ -376,9 +437,9 @@ export default function CategoriesPage() {
               placeholder={isGlobalSearch ? 'Search categories & businesses...' : 'Search categories...'}
               className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3 pl-12 pr-4 text-sm font-medium focus:ring-4 focus:ring-primary/10 focus:border-primary focus:bg-white transition-all outline-none"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => handleSearchInputChange(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === 'Enter' && isGlobalSearch) {
+                if (e.key === 'Enter') {
                   applyGlobalSearch(searchQuery);
                 }
               }}
