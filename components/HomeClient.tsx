@@ -533,28 +533,36 @@ export default function HomeClient({ initialData }: { initialData: any }) {
       </section>
 
       {/* Category Section */}
-      <section className="py-16 lg:py-24 bg-muted/50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row justify-between items-start mb-8 gap-6">
-            <div className="space-y-4">
-
-              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-primary tracking-tight">What do you need <span className="text-secondary">help</span> with?</h2>
+      <section className="bg-muted/50 py-12 sm:py-16 lg:py-24">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="mb-6 flex flex-col gap-3 sm:mb-8 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
+            <div>
+              <h2 className="text-2xl font-extrabold leading-tight tracking-tight text-primary sm:text-4xl lg:text-5xl">
+                What do you need <span className="text-secondary">help</span> with?
+              </h2>
+              <p className="mt-2 text-sm text-slate-500 sm:hidden">
+                Browse popular services near you
+              </p>
             </div>
-            <Link href="/categories" className="group flex items-center gap-2 text-sm font-bold text-primary hover:text-secondary transition-colors">
-              View all categories <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+            <Link
+              href="/categories"
+              className="group flex shrink-0 items-center gap-1.5 text-sm font-bold text-primary hover:text-secondary"
+            >
+              View all
+              <ArrowRight size={16} className="transition-transform group-hover:translate-x-0.5" />
             </Link>
           </div>
 
-          <div className="grid grid-cols-6 sm:grid-cols-4 lg:grid-cols-6 gap-2 sm:gap-6 mb-12">
+          <div className="mb-8 grid grid-cols-5 gap-2.5 sm:mb-12 sm:grid-cols-4 sm:gap-6 lg:grid-cols-6">
             {popularCategories.map((cat) => (
               <CategoryCard key={cat.id} category={cat} />
             ))}
           </div>
 
           <div className="flex justify-center">
-            <Link 
-              href="/categories" 
-              className="bg-primary text-white px-10 py-4 rounded-2xl font-bold hover:bg-secondary transition-all active:scale-95 uppercase tracking-widest text-xs shadow-lg"
+            <Link
+              href="/categories"
+              className="rounded-2xl bg-primary px-8 py-3.5 text-xs font-bold uppercase tracking-widest text-white shadow-md transition-all hover:bg-secondary active:scale-95 sm:px-10 sm:py-4 sm:shadow-lg"
             >
               Explore All Categories
             </Link>
