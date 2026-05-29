@@ -11,8 +11,9 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
   const [loading, setLoading] = useState(true);
   const pathname = usePathname();
   const isDashboard = pathname?.includes('/dashboard');
-  const isCategories = pathname === '/categories';
-  const hideNavFooter = isDashboard || isCategories;
+  const isCategories = pathname === '/categories' || pathname?.startsWith('/categories/');
+  const hideTopNavFooter = isDashboard || isCategories;
+  const showBottomNav = !isDashboard;
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -27,15 +28,15 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
   }
 
   return (
-    <div className={`flex flex-col min-h-screen ${!hideNavFooter ? 'pb-24 lg:pb-0' : ''}`}>
-      {!hideNavFooter && <Navbar />}
+    <div className={`flex flex-col min-h-screen ${showBottomNav ? 'pb-24 lg:pb-0' : ''}`}>
+      {!hideTopNavFooter && <Navbar />}
       <Suspense fallback={<div className="flex-grow bg-white" />}>
         <main className="flex-grow">
           {children}
         </main>
-        {!hideNavFooter && <Footer />}
+        {!hideTopNavFooter && <Footer />}
       </Suspense>
-      {!hideNavFooter && <BottomNavbar />}
+      {showBottomNav && <BottomNavbar />}
     </div>
   );
 }

@@ -29,13 +29,17 @@ export default function BottomNavbar() {
         {tabs.map((tab) => {
           const isHome = tab.label === 'Home';
           const isAi = tab.label === 'FinderB Ai';
+          const isCategories = tab.label === 'Categories';
           const isBusiness = tab.label === 'Business';
-          
+
           let reallyActive = false;
           if (isAi) {
             reallyActive = isAiActive;
           } else if (isHome) {
             reallyActive = pathname === '/' && !isAiActive;
+          } else if (isCategories) {
+            reallyActive =
+              pathname === '/categories' || Boolean(pathname?.startsWith('/categories/'));
           } else {
             reallyActive = pathname === tab.href;
           }

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Search, Filter, ChevronRight, LayoutGrid, ShoppingBag, Home, Sparkles, User, Bot, TrendingUp, Grid } from 'lucide-react';
+import { Search, Filter, ChevronRight, LayoutGrid, ShoppingBag, Home, Sparkles, TrendingUp, Grid } from 'lucide-react';
 import { getCategories, getSubCategories } from '@/app/actions/category';
 import { getFeaturedBusinesses } from '@/app/actions/business';
 import CategoryIcon from '@/components/CategoryIcon';
@@ -89,25 +89,6 @@ export default function CategoriesPage() {
   const handleSubCategoryClick = (sub: any) => {
     setSelectedSubCategory(sub);
     setViewMode('merchants');
-  };
-
-  const handleTabChange = (label: string) => {
-    if (label === 'Home') {
-      router.push('/');
-      return;
-    }
-    if (label === 'Categories') {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      return;
-    }
-    if (label === 'FinderB AI') {
-      router.push('/?tab=finderb-ai');
-      return;
-    }
-    if (label === 'Account') {
-      router.push('/account');
-      return;
-    }
   };
 
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
@@ -550,44 +531,6 @@ export default function CategoriesPage() {
         </main>
       </div>
 
-      {/* Mobile Bottom Navigation - Slim & Premium */}
-      <div className="fixed bottom-0 left-0 w-full z-[100] bg-white/90 backdrop-blur-md border-t border-slate-100/50 font-sans">
-        <div className="flex items-center justify-around px-2 py-1.5 pb-safe">
-          {[
-            { icon: Home, label: 'Home' },
-            { icon: LayoutGrid, label: 'Categories' },
-            { icon: Bot, label: 'FinderB AI' },
-            { icon: User, label: 'Account' },
-          ].map((item, i) => (
-            <button
-              key={i}
-              onClick={() => handleTabChange(item.label)}
-              className={`flex flex-col items-center gap-0.5 p-1.5 px-4 transition-all duration-300 group relative rounded-xl ${
-                item.label === 'Categories'
-                  ? 'text-primary'
-                  : 'text-slate-400'
-              }`}
-            >
-              <item.icon
-                size={20}
-                className={`transition-all duration-300 ${
-                  item.label === 'Categories'
-                    ? 'scale-110'
-                    : 'group-active:scale-90'
-                }`}
-              />
-              <span className={`text-[8px] font-black uppercase transition-all duration-300 ${
-                item.label === 'Categories' ? 'opacity-100' : 'opacity-60'
-              }`}>
-                {item.label}
-              </span>
-              {item.label === 'Categories' && (
-                <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-4 h-0.5 bg-primary rounded-full shadow-[0_0_8px_rgba(33,84,129,0.5)] animate-pulse"></div>
-              )}
-            </button>
-          ))}
-        </div>
-      </div>
     </div>
   );
 }
