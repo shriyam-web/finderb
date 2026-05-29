@@ -94,95 +94,160 @@ export default function HomeClient({ initialData }: { initialData: any }) {
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [aiLoadProgress, setAiLoadProgress] = useState(0);
   const [protectedTab, setProtectedTab] = useState<string | null>(null);
-  const [aiQuery, setAiQuery] = useState('');
-  const [isListening, setIsListening] = useState(false);
+  const [manualQuery, setManualQuery] = useState('');
+  const manualQueryRef = useRef('');
+
+  type VoicePhase = 'speak-now' | 'listening' | 'preview' | 'searching';
+  const [voiceActive, setVoiceActive] = useState(false);
+  const [voicePhase, setVoicePhase] = useState<VoicePhase>('speak-now');
+  const [voiceTranscript, setVoiceTranscript] = useState('');
   const [voiceError, setVoiceError] = useState<string | null>(null);
+
   const recognitionRef = useRef<VoiceRecognitionInstance | null>(null);
-  const aiQueryRef = useRef('');
-  const voiceAutoSearchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const voiceTranscriptRef = useRef('');
+  const voiceSessionRef = useRef(0);
+  const voiceSilenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const voiceSearchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
 
-  /** Auto-search after this much silence while the mic is open. */
-  const VOICE_PAUSE_BEFORE_SEARCH_MS = 2500;
+  /** Silence while speaking → show what you said. */
+  const VOICE_SILENCE_MS = 2000;
+  /** After showing transcript → run search. */
+  const VOICE_PREVIEW_SEARCH_MS = 2000;
 
-  const clearVoiceAutoSearchTimer = useCallback(() => {
-    if (voiceAutoSearchTimerRef.current) {
-      clearTimeout(voiceAutoSearchTimerRef.current);
-      voiceAutoSearchTimerRef.current = null;
+  const clearVoiceTimers = useCallback(() => {
+    if (voiceSilenceTimerRef.current) {
+      clearTimeout(voiceSilenceTimerRef.current);
+      voiceSilenceTimerRef.current = null;
+    }
+    if (voiceSearchTimerRef.current) {
+      clearTimeout(voiceSearchTimerRef.current);
+      voiceSearchTimerRef.current = null;
     }
   }, []);
 
-  const stopVoiceRecognition = useCallback((options?: { abort?: boolean }) => {
-    clearVoiceAutoSearchTimer();
+  const stopRecognitionEngine = useCallback((abort = false) => {
     const recognition = recognitionRef.current;
-    if (recognition) {
-      recognitionRef.current = null;
+    if (!recognition) return;
+    recognitionRef.current = null;
+    try {
+      if (abort) recognition.abort();
+      else recognition.stop();
+    } catch {
       try {
-        if (options?.abort) {
-          recognition.abort();
-        } else {
-          recognition.stop();
-        }
+        recognition.abort();
       } catch {
-        try {
-          recognition.abort();
-        } catch {
-          /* ignore */
-        }
+        /* ignore */
       }
     }
-    setIsListening(false);
-  }, [clearVoiceAutoSearchTimer]);
+  }, []);
 
-  const handleAiSearch = useCallback(
-    (queryText?: string) => {
-      const q = (queryText ?? aiQueryRef.current).trim();
-      if (!q) return;
-      stopVoiceRecognition();
-      setAiQuery('');
-      aiQueryRef.current = '';
-      router.replace(`/categories?search=${encodeURIComponent(q)}`);
+  const cancelVoiceSession = useCallback(() => {
+    voiceSessionRef.current += 1;
+    clearVoiceTimers();
+    stopRecognitionEngine(true);
+    voiceTranscriptRef.current = '';
+    setVoiceTranscript('');
+    setVoicePhase('speak-now');
+    setVoiceError(null);
+    setVoiceActive(false);
+  }, [clearVoiceTimers, stopRecognitionEngine]);
+
+  const navigateToSearch = useCallback(
+    (q: string) => {
+      const trimmed = q.trim();
+      if (!trimmed) return;
+      cancelVoiceSession();
+      setManualQuery('');
+      manualQueryRef.current = '';
+      router.replace(`/categories?search=${encodeURIComponent(trimmed)}`);
     },
-    [router, stopVoiceRecognition]
+    [router, cancelVoiceSession]
   );
 
-  const scheduleVoiceAutoSearch = useCallback(() => {
-    clearVoiceAutoSearchTimer();
-    voiceAutoSearchTimerRef.current = setTimeout(() => {
-      voiceAutoSearchTimerRef.current = null;
-      const q = aiQueryRef.current.trim();
-      if (q.length < 2 || !recognitionRef.current) return;
-      handleAiSearch(q);
-    }, VOICE_PAUSE_BEFORE_SEARCH_MS);
-  }, [clearVoiceAutoSearchTimer, handleAiSearch]);
+  const handleManualSearch = useCallback(
+    (queryText?: string) => {
+      const q = (queryText ?? manualQueryRef.current).trim();
+      navigateToSearch(q);
+    },
+    [navigateToSearch]
+  );
 
-  const toggleVoiceSearch = useCallback(() => {
-    if (isListening) {
-      stopVoiceRecognition();
-      return;
-    }
+  const beginPreviewAndSearch = useCallback(
+    (session: number) => {
+      if (session !== voiceSessionRef.current) return;
 
+      const q = voiceTranscriptRef.current.trim();
+      stopRecognitionEngine(false);
+      clearVoiceTimers();
+
+      if (q.length < 2) {
+        setVoiceError('No speech detected. Tap the mic and try again.');
+        setVoicePhase('speak-now');
+        setVoiceActive(false);
+        return;
+      }
+
+      setVoicePhase('preview');
+      setVoiceTranscript(q);
+
+      voiceSearchTimerRef.current = setTimeout(() => {
+        if (session !== voiceSessionRef.current) return;
+        setVoicePhase('searching');
+        navigateToSearch(q);
+      }, VOICE_PREVIEW_SEARCH_MS);
+    },
+    [clearVoiceTimers, navigateToSearch, stopRecognitionEngine]
+  );
+
+  const scheduleSilenceDetection = useCallback(
+    (session: number) => {
+      if (session !== voiceSessionRef.current) return;
+      if (voiceSilenceTimerRef.current) {
+        clearTimeout(voiceSilenceTimerRef.current);
+      }
+      voiceSilenceTimerRef.current = setTimeout(() => {
+        voiceSilenceTimerRef.current = null;
+        beginPreviewAndSearch(session);
+      }, VOICE_SILENCE_MS);
+    },
+    [beginPreviewAndSearch]
+  );
+
+  const startVoiceSession = useCallback(() => {
     if (!getSpeechRecognitionCtor()) {
       alert('Voice search is not supported in your browser. Try Chrome or Edge on mobile.');
       return;
     }
 
-    stopVoiceRecognition({ abort: true });
+    cancelVoiceSession();
+    const session = voiceSessionRef.current;
 
+    voiceTranscriptRef.current = '';
+    setVoiceTranscript('');
     setVoiceError(null);
+    setVoicePhase('speak-now');
+    setVoiceActive(true);
+
     const recognition = createVoiceRecognition({
       lang: 'en-IN',
       continuous: true,
       onTranscript: (text) => {
-        aiQueryRef.current = text;
-        setAiQuery(text);
+        if (session !== voiceSessionRef.current) return;
+        const trimmed = text.trim();
+        if (!trimmed) return;
+
+        voiceTranscriptRef.current = trimmed;
+        setVoiceTranscript(trimmed);
+        setVoicePhase('listening');
         setVoiceError(null);
-        if (text.trim().length >= 2) {
-          scheduleVoiceAutoSearch();
-        }
+        scheduleSilenceDetection(session);
       },
       onError: (code) => {
+        if (session !== voiceSessionRef.current) return;
         if (code === 'aborted') return;
+        clearVoiceTimers();
+        stopRecognitionEngine(true);
         if (code === 'not-allowed') {
           setVoiceError('Microphone permission denied. Allow mic access in browser settings.');
         } else if (code === 'no-speech') {
@@ -190,11 +255,11 @@ export default function HomeClient({ initialData }: { initialData: any }) {
         } else {
           setVoiceError('Could not hear you. Please try again.');
         }
-        setIsListening(false);
-        recognitionRef.current = null;
+        setVoiceActive(false);
+        setVoicePhase('speak-now');
       },
       onEnd: () => {
-        setIsListening(false);
+        if (session !== voiceSessionRef.current) return;
         recognitionRef.current = null;
       },
     });
@@ -202,9 +267,9 @@ export default function HomeClient({ initialData }: { initialData: any }) {
     if (!recognition) return;
 
     recognitionRef.current = recognition;
-
     recognition.onstart = () => {
-      setIsListening(true);
+      if (session !== voiceSessionRef.current) return;
+      setVoicePhase('speak-now');
       setVoiceError(null);
     };
 
@@ -212,11 +277,24 @@ export default function HomeClient({ initialData }: { initialData: any }) {
       recognition.start();
     } catch {
       setVoiceError('Unable to start microphone. Tap the mic to try again.');
-      stopVoiceRecognition({ abort: true });
+      cancelVoiceSession();
     }
-  }, [isListening, stopVoiceRecognition, scheduleVoiceAutoSearch]);
+  }, [
+    cancelVoiceSession,
+    scheduleSilenceDetection,
+    clearVoiceTimers,
+    stopRecognitionEngine,
+  ]);
 
-  useEffect(() => () => clearVoiceAutoSearchTimer(), [clearVoiceAutoSearchTimer]);
+  const toggleVoiceSearch = useCallback(() => {
+    if (voiceActive) {
+      cancelVoiceSession();
+      return;
+    }
+    startVoiceSession();
+  }, [voiceActive, cancelVoiceSession, startVoiceSession]);
+
+  useEffect(() => () => cancelVoiceSession(), [cancelVoiceSession]);
 
   useEffect(() => {
     if (typeof window === 'undefined' || !navigator.geolocation) return;
@@ -305,18 +383,17 @@ export default function HomeClient({ initialData }: { initialData: any }) {
       setIsAiLoading(false);
       setActiveMobileTab('AI Search');
       if (!wasAi) {
-        setAiQuery('');
-        aiQueryRef.current = '';
-        setVoiceError(null);
-        stopVoiceRecognition({ abort: true });
+        setManualQuery('');
+        manualQueryRef.current = '';
+        cancelVoiceSession();
       }
     } else {
       setActiveMobileTab('Home');
-      stopVoiceRecognition({ abort: true });
+      cancelVoiceSession();
     }
 
     prevTabRef.current = activeTabFromUrl;
-  }, [activeTabFromUrl, stopVoiceRecognition]);
+  }, [activeTabFromUrl, cancelVoiceSession]);
 
   useEffect(() => {
     const checkSession = async () => {
@@ -467,26 +544,28 @@ export default function HomeClient({ initialData }: { initialData: any }) {
                     </div>
                     <input 
                       type="text" 
-                      placeholder={isListening ? "Listening..." : "e.g., 'quiet cafe with wifi for work'..."}
+                      placeholder="e.g., 'quiet cafe with wifi for work'..."
                       className="w-full py-4 bg-transparent border-none focus:ring-0 text-gray-900 font-semibold text-sm placeholder:text-gray-300"
-                      value={aiQuery}
+                      value={manualQuery}
                       onChange={(e) => {
                         const v = e.target.value;
-                        aiQueryRef.current = v;
-                        setAiQuery(v);
+                        manualQueryRef.current = v;
+                        setManualQuery(v);
                       }}
-                      onKeyDown={(e) => e.key === 'Enter' && handleAiSearch()}
+                      onKeyDown={(e) => e.key === 'Enter' && handleManualSearch()}
                     />
                   </div>
                   <div className="flex items-center gap-2 pr-2">
                     <button 
+                      type="button"
                       onClick={toggleVoiceSearch}
-                      className={`p-3 rounded-xl transition-all active:scale-95 ${isListening ? 'bg-red-500 text-white animate-pulse' : 'bg-slate-50 text-gray-400 hover:text-primary'}`}
+                      className={`p-3 rounded-xl transition-all active:scale-95 ${voiceActive ? 'bg-red-500 text-white animate-pulse' : 'bg-slate-50 text-gray-400 hover:text-primary'}`}
                     >
-                      <Mic size={20} className={isListening ? 'animate-bounce' : ''} />
+                      <Mic size={20} className={voiceActive ? 'animate-bounce' : ''} />
                     </button>
                     <button 
-                      onClick={() => handleAiSearch()}
+                      type="button"
+                      onClick={() => handleManualSearch()}
                       className="bg-primary text-white p-4 rounded-xl hover:bg-secondary transition-all active:scale-95 shadow-lg shadow-primary/20 flex items-center justify-center"
                     >
                       <Send size={20} />
@@ -516,7 +595,7 @@ export default function HomeClient({ initialData }: { initialData: any }) {
                 {SUGGESTIVE_KEYWORDS.map((kw, i) => (
                   <button
                     key={i}
-                    onClick={() => handleAiSearch(kw)}
+                    onClick={() => handleManualSearch(kw)}
                     className="px-4 py-2 rounded-full bg-slate-50 border border-slate-100 text-[11px] font-bold text-slate-600 hover:bg-primary hover:text-white hover:border-primary transition-all duration-300 active:scale-95"
                   >
                     {kw}
@@ -538,7 +617,7 @@ export default function HomeClient({ initialData }: { initialData: any }) {
                 {AI_SUGGESTIONS.map((item, idx) => (
                   <button
                     key={idx}
-                    onClick={() => handleAiSearch(item.text)}
+                    onClick={() => handleManualSearch(item.text)}
                     className="flex flex-col items-start p-4 rounded-2xl bg-white border border-gray-100 hover:border-secondary/30 hover:shadow-2xl hover:shadow-secondary/5 transition-all group text-left relative overflow-hidden active:scale-95"
                   >
                     <div className="absolute top-0 right-0 p-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -1020,47 +1099,65 @@ export default function HomeClient({ initialData }: { initialData: any }) {
           </div>
         </div>
       )}
-      {/* Voice Search Modal */}
-      {isListening && (
+      {/* Voice-only overlay (separate from manual text search) */}
+      {voiceActive && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md">
           <div className="bg-white rounded-3xl p-8 max-w-sm w-full mx-4 flex flex-col items-center space-y-6 shadow-2xl transform animate-in fade-in zoom-in duration-300">
             <div className="relative">
-              <div className="absolute inset-0 bg-primary/20 rounded-full animate-ping scale-150"></div>
+              <div
+                className={`absolute inset-0 rounded-full animate-ping scale-150 ${
+                  voicePhase === 'preview' || voicePhase === 'searching'
+                    ? 'bg-secondary/20'
+                    : 'bg-primary/20'
+                }`}
+              />
               <div className="relative bg-primary text-white p-6 rounded-full shadow-lg">
-                <Mic size={40} className="animate-bounce" />
+                <Mic
+                  size={40}
+                  className={
+                    voicePhase === 'speak-now' || voicePhase === 'listening'
+                      ? 'animate-bounce'
+                      : ''
+                  }
+                />
               </div>
             </div>
-            <div className="text-center space-y-2">
-              <h3 className="text-xl font-bold text-gray-900">Listening...</h3>
-              <p className="text-gray-500 text-sm">
-                {aiQuery
-                  ? `"${aiQuery}"`
-                  : 'Speak your search — we’ll search after a short pause'}
-              </p>
-              {voiceError && (
+            <div className="text-center space-y-3 min-h-[88px]">
+              <h3 className="text-xl font-bold text-gray-900">
+                {voicePhase === 'speak-now' && 'Speak now'}
+                {voicePhase === 'listening' && 'Listening to you..'}
+                {voicePhase === 'preview' && 'You said'}
+                {voicePhase === 'searching' && 'Searching...'}
+              </h3>
+              {voicePhase === 'listening' && voiceTranscript ? (
+                <p className="text-gray-600 text-sm font-medium leading-relaxed">
+                  &ldquo;{voiceTranscript}&rdquo;
+                </p>
+              ) : null}
+              {voicePhase === 'preview' || voicePhase === 'searching' ? (
+                <p className="text-primary text-base font-bold leading-relaxed">
+                  &ldquo;{voiceTranscript}&rdquo;
+                </p>
+              ) : null}
+              {voicePhase === 'preview' ? (
+                <p className="text-gray-400 text-xs font-medium">Searching in a moment...</p>
+              ) : null}
+              {voicePhase === 'speak-now' && !voiceError ? (
+                <p className="text-gray-400 text-sm">Say what you&apos;re looking for</p>
+              ) : null}
+              {voiceError ? (
                 <p className="text-xs font-medium text-red-500">{voiceError}</p>
-              )}
+              ) : null}
             </div>
-            <div className="flex flex-col sm:flex-row gap-3 w-full">
+            {voicePhase !== 'searching' ? (
               <button
                 type="button"
-                onClick={() => {
-                  const q = aiQueryRef.current.trim();
-                  stopVoiceRecognition();
-                  if (q) handleAiSearch(q);
-                }}
-                className="flex-1 px-6 py-3 rounded-2xl bg-primary text-white font-bold hover:bg-secondary transition-colors active:scale-95"
-              >
-                Search
-              </button>
-              <button
-                type="button"
-                onClick={() => stopVoiceRecognition()}
-                className="flex-1 px-6 py-3 rounded-2xl bg-gray-100 text-gray-600 font-bold hover:bg-gray-200 transition-colors active:scale-95"
+                onClick={cancelVoiceSession}
+                className="w-full px-6 py-3 rounded-2xl bg-gray-100 text-gray-600 font-bold hover:bg-gray-200 transition-colors active:scale-95"
               >
                 Cancel
               </button>
-            </div>
+            ) : null}
           </div>
         </div>
       )}
