@@ -41,6 +41,7 @@ import { getSession } from '@/app/actions/user';
 import { formatDistanceFromUser } from '@/lib/geo';
 import {
   createVoiceRecognition,
+  detachVoiceRecognition,
   getSpeechRecognitionCtor,
   normalizeVoiceTranscript,
   type VoiceRecognitionInstance,
@@ -106,6 +107,8 @@ export default function HomeClient({ initialData }: { initialData: any }) {
 
   const recognitionRef = useRef<VoiceRecognitionInstance | null>(null);
   const voiceTranscriptRef = useRef('');
+  const voiceSearchQueryRef = useRef('');
+  const voiceLockedRef = useRef(false);
   const voiceSessionRef = useRef(0);
   const voiceSilenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const voiceSearchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -131,6 +134,7 @@ export default function HomeClient({ initialData }: { initialData: any }) {
     const recognition = recognitionRef.current;
     if (!recognition) return;
     recognitionRef.current = null;
+    detachVoiceRecognition(recognition);
     try {
       if (abort) recognition.abort();
       else recognition.stop();
@@ -147,7 +151,9 @@ export default function HomeClient({ initialData }: { initialData: any }) {
     voiceSessionRef.current += 1;
     clearVoiceTimers();
     stopRecognitionEngine(true);
+    voiceLockedRef.current = false;
     voiceTranscriptRef.current = '';
+    voiceSearchQueryRef.current = '';
     setVoiceTranscript('');
     setVoicePhase('speak-now');
     setVoiceError(null);
@@ -156,30 +162,31 @@ export default function HomeClient({ initialData }: { initialData: any }) {
 
   const navigateToSearch = useCallback(
     (q: string) => {
-      const trimmed = q.trim();
+      const trimmed = normalizeVoiceTranscript(q);
       if (!trimmed) return;
       cancelVoiceSession();
       setManualQuery('');
       manualQueryRef.current = '';
-      router.replace(`/categories?search=${encodeURIComponent(trimmed)}`);
+      router.push(`/categories?search=${encodeURIComponent(trimmed)}`, { scroll: false });
     },
     [router, cancelVoiceSession]
   );
 
   const handleManualSearch = useCallback(
     (queryText?: string) => {
+      if (voiceActive) return;
       const q = (queryText ?? manualQueryRef.current).trim();
       navigateToSearch(q);
     },
-    [navigateToSearch]
+    [navigateToSearch, voiceActive]
   );
 
   const beginPreviewAndSearch = useCallback(
     (session: number) => {
       if (session !== voiceSessionRef.current) return;
+      if (voiceLockedRef.current) return;
 
       const q = normalizeVoiceTranscript(voiceTranscriptRef.current);
-      voiceTranscriptRef.current = q;
       stopRecognitionEngine(false);
       clearVoiceTimers();
 
@@ -190,13 +197,18 @@ export default function HomeClient({ initialData }: { initialData: any }) {
         return;
       }
 
+      voiceLockedRef.current = true;
+      voiceTranscriptRef.current = q;
+      voiceSearchQueryRef.current = q;
       setVoicePhase('preview');
       setVoiceTranscript(q);
 
       voiceSearchTimerRef.current = setTimeout(() => {
         if (session !== voiceSessionRef.current) return;
+        const searchQ = voiceSearchQueryRef.current.trim();
+        if (!searchQ) return;
         setVoicePhase('searching');
-        navigateToSearch(q);
+        navigateToSearch(searchQ);
       }, VOICE_PREVIEW_SEARCH_MS);
     },
     [clearVoiceTimers, navigateToSearch, stopRecognitionEngine]
@@ -225,7 +237,11 @@ export default function HomeClient({ initialData }: { initialData: any }) {
     cancelVoiceSession();
     const session = voiceSessionRef.current;
 
+    voiceLockedRef.current = false;
     voiceTranscriptRef.current = '';
+    voiceSearchQueryRef.current = '';
+    setManualQuery('');
+    manualQueryRef.current = '';
     setVoiceTranscript('');
     setVoiceError(null);
     setVoicePhase('speak-now');
@@ -236,6 +252,7 @@ export default function HomeClient({ initialData }: { initialData: any }) {
       continuous: true,
       onTranscript: (text) => {
         if (session !== voiceSessionRef.current) return;
+        if (voiceLockedRef.current) return;
         const trimmed = normalizeVoiceTranscript(text);
         if (!trimmed) return;
 
@@ -547,28 +564,31 @@ export default function HomeClient({ initialData }: { initialData: any }) {
                     <input 
                       type="text" 
                       placeholder="e.g., 'quiet cafe with wifi for work'..."
-                      className="w-full py-4 bg-transparent border-none focus:ring-0 text-gray-900 font-semibold text-sm placeholder:text-gray-300"
+                      className="w-full py-4 bg-transparent border-none focus:ring-0 text-gray-900 font-semibold text-sm placeholder:text-gray-300 disabled:opacity-50"
                       value={manualQuery}
+                      disabled={voiceActive}
                       onChange={(e) => {
                         const v = e.target.value;
                         manualQueryRef.current = v;
                         setManualQuery(v);
                       }}
-                      onKeyDown={(e) => e.key === 'Enter' && handleManualSearch()}
+                      onKeyDown={(e) => e.key === 'Enter' && !voiceActive && handleManualSearch()}
                     />
                   </div>
                   <div className="flex items-center gap-2 pr-2">
                     <button 
                       type="button"
                       onClick={toggleVoiceSearch}
+                      aria-label={voiceActive ? 'Stop voice search' : 'Start voice search'}
                       className={`p-3 rounded-xl transition-all active:scale-95 ${voiceActive ? 'bg-red-500 text-white animate-pulse' : 'bg-slate-50 text-gray-400 hover:text-primary'}`}
                     >
                       <Mic size={20} className={voiceActive ? 'animate-bounce' : ''} />
                     </button>
                     <button 
                       type="button"
+                      disabled={voiceActive}
                       onClick={() => handleManualSearch()}
-                      className="bg-primary text-white p-4 rounded-xl hover:bg-secondary transition-all active:scale-95 shadow-lg shadow-primary/20 flex items-center justify-center"
+                      className="bg-primary text-white p-4 rounded-xl hover:bg-secondary transition-all active:scale-95 shadow-lg shadow-primary/20 flex items-center justify-center disabled:opacity-40 disabled:pointer-events-none"
                     >
                       <Send size={20} />
                     </button>

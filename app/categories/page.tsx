@@ -117,6 +117,7 @@ export default function CategoriesPage() {
   // FinderB AI / shared links: refetch whenever URL ?search= changes
   useEffect(() => {
     if (urlSearchQ) {
+      lastExecutedSearchRef.current = '';
       setSearchQuery(urlSearchQ);
       setViewMode('global-search');
       setSelectedCategory(null);

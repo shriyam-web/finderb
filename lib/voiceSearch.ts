@@ -47,23 +47,32 @@ export function getSpeechRecognitionCtor(): VoiceRecognitionCtor | null {
   return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
 }
 
-/** Clean up duplicated words from flaky speech-to-text (e.g. "electricianelectrician"). */
-export function normalizeVoiceTranscript(text: string): string {
-  const collapsed = text.replace(/\s+/g, ' ').trim();
-  if (!collapsed) return '';
+/** Remove glued duplicate phrases (e.g. "car repaircar repair" → "car repair"). */
+function dedupeGluedPhrases(text: string): string {
+  const trimmed = text.trim();
+  if (trimmed.length < 4) return trimmed;
 
-  const words = collapsed.split(' ');
-  const dedupedWords = words.map((word) => dedupeGluedToken(word)).filter(Boolean);
-
-  const out: string[] = [];
-  for (const word of dedupedWords) {
-    const prev = out[out.length - 1];
-    if (!prev || prev.toLowerCase() !== word.toLowerCase()) {
-      out.push(word);
+  for (let len = Math.floor(trimmed.length / 2); len >= 2; len--) {
+    const first = trimmed.slice(0, len).trimEnd();
+    const second = trimmed.slice(len).trimStart();
+    if (!first || !second) continue;
+    if (first.toLowerCase() === second.toLowerCase()) {
+      return first;
+    }
+    if (second.toLowerCase().startsWith(first.toLowerCase())) {
+      return first;
     }
   }
 
-  return out.join(' ');
+  for (let size = 1; size <= Math.floor(trimmed.length / 2); size++) {
+    if (trimmed.length % size !== 0) continue;
+    const chunk = trimmed.slice(0, size);
+    if (chunk.repeat(trimmed.length / size) === trimmed) {
+      return chunk.trim();
+    }
+  }
+
+  return trimmed;
 }
 
 function dedupeGluedToken(token: string): string {
@@ -79,6 +88,49 @@ function dedupeGluedToken(token: string): string {
   }
 
   return word;
+}
+
+/** Clean up duplicated words/phrases from flaky speech-to-text. */
+export function normalizeVoiceTranscript(text: string): string {
+  const deGlued = dedupeGluedPhrases(text.replace(/\s+/g, ' ').trim());
+  if (!deGlued) return '';
+
+  const words = deGlued.split(' ');
+  const dedupedWords = words.map((word) => dedupeGluedToken(word)).filter(Boolean);
+
+  const out: string[] = [];
+  for (const word of dedupedWords) {
+    const prev = out[out.length - 1];
+    if (!prev || prev.toLowerCase() !== word.toLowerCase()) {
+      out.push(word);
+    }
+  }
+
+  let phrase = out.join(' ');
+
+  // Drop repeated trailing phrase: "electrician near me electrician near me"
+  const parts = phrase.split(' ');
+  if (parts.length >= 4 && parts.length % 2 === 0) {
+    const half = parts.length / 2;
+    const firstHalf = parts.slice(0, half).join(' ').toLowerCase();
+    const secondHalf = parts.slice(half).join(' ').toLowerCase();
+    if (firstHalf === secondHalf) {
+      phrase = parts.slice(0, half).join(' ');
+    }
+  }
+
+  return phrase.trim();
+}
+
+/** Build one transcript string from the browser result list (no cross-event accumulation). */
+export function transcriptFromResults(
+  results: VoiceRecognitionEventLike['results']
+): string {
+  let raw = '';
+  for (let i = 0; i < results.length; i++) {
+    raw += results[i]?.[0]?.transcript ?? '';
+  }
+  return normalizeVoiceTranscript(raw);
 }
 
 export function createVoiceRecognition(handlers: {
@@ -98,31 +150,18 @@ export function createVoiceRecognition(handlers: {
   recognition.interimResults = true;
   recognition.maxAlternatives = 1;
 
-  /** Confirmed speech — only append each result index once. */
-  let sessionFinal = '';
-  const finalizedIndices = new Set<number>();
-
   recognition.onresult = (event: VoiceRecognitionEventLike) => {
-    let interim = '';
+    const display = transcriptFromResults(event.results);
+    if (!display || !handlers.onTranscript) return;
 
+    let allFinal = true;
     for (let i = event.resultIndex; i < event.results.length; i++) {
-      const result = event.results[i];
-      const piece = result?.[0]?.transcript ?? '';
-      if (!piece) continue;
-
-      if (result.isFinal) {
-        if (!finalizedIndices.has(i)) {
-          sessionFinal += piece;
-          finalizedIndices.add(i);
-        }
-      } else {
-        interim += piece;
+      if (!event.results[i]?.isFinal) {
+        allFinal = false;
+        break;
       }
     }
-
-    const display = normalizeVoiceTranscript(sessionFinal + interim);
-    if (!display || !handlers.onTranscript) return;
-    handlers.onTranscript(display, interim.trim().length === 0);
+    handlers.onTranscript(display, allFinal);
   };
 
   recognition.onerror = (event: VoiceRecognitionErrorEventLike) => {
@@ -134,4 +173,12 @@ export function createVoiceRecognition(handlers: {
   };
 
   return recognition;
+}
+
+/** Detach handlers so late events cannot fire after abort/stop. */
+export function detachVoiceRecognition(recognition: VoiceRecognitionInstance): void {
+  recognition.onresult = null;
+  recognition.onerror = null;
+  recognition.onend = null;
+  recognition.onstart = null;
 }
