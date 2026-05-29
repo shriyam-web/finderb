@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Search, Filter, ChevronRight, LayoutGrid, ShoppingBag, Home, Sparkles, TrendingUp, Grid } from 'lucide-react';
 import {
@@ -14,6 +14,7 @@ import CategoryIcon from '@/components/CategoryIcon';
 import {
   businessMatchesNaturalSearch,
   parseNaturalSearchQuery,
+  partitionBySearchRelevance,
   sortBySearchRelevance,
   textMatchesSearch,
 } from '@/lib/searchMatch';
@@ -258,6 +259,92 @@ export default function CategoriesPage() {
       }
       return nameB.localeCompare(nameA);
     });
+
+  const globalSearchCategoryPartitions = useMemo(() => {
+    if (!isGlobalSearch) {
+      return { best: [] as CategorySearchHit[], related: [] as CategorySearchHit[] };
+    }
+    return partitionBySearchRelevance(categorySearchHits, searchQuery, (hit) => ({
+      name: hit.name,
+      slug: hit.slug,
+      parentName: hit.parentName,
+    }));
+  }, [isGlobalSearch, categorySearchHits, searchQuery]);
+
+  const globalSearchBusinessPartitions = useMemo(() => {
+    if (!isGlobalSearch) {
+      return { best: [] as typeof filteredAndSortedBusinesses, related: [] as typeof filteredAndSortedBusinesses };
+    }
+    return partitionBySearchRelevance(filteredAndSortedBusinesses, searchQuery, (biz) => ({
+      name: biz.name,
+      category: biz.category,
+      description: biz.description,
+    }));
+  }, [isGlobalSearch, filteredAndSortedBusinesses, searchQuery]);
+
+  const renderCategoryHitGrid = (hits: CategorySearchHit[]) => (
+    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 sm:gap-4">
+      {hits.map((hit) => (
+        <button
+          key={hit.id}
+          type="button"
+          onClick={() => openCategorySearchHit(hit)}
+          className="flex flex-col items-center gap-2 p-4 bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-lg hover:shadow-primary/10 transition-all text-center"
+        >
+          <CategoryIcon
+            icon={hit.icon}
+            name={hit.name}
+            size={52}
+            className="h-12 w-12 text-slate-600"
+            imageClassName="object-contain"
+          />
+          <span className="text-[10px] font-semibold text-slate-800 line-clamp-2 leading-snug">
+            {hit.name}
+          </span>
+          {hit.parentName ? (
+            <span className="text-[8px] font-medium text-slate-400 line-clamp-1">
+              in {hit.parentName}
+            </span>
+          ) : (
+            <span className="text-[8px] font-medium text-slate-400">
+              {hit.businessCount}+ places
+            </span>
+          )}
+        </button>
+      ))}
+    </div>
+  );
+
+  const renderGlobalBusinessCard = (biz: (typeof businesses)[number]) => (
+    <div className="group relative bg-white border border-slate-100 overflow-hidden flex flex-row transition-all duration-500 rounded-2xl">
+      <div className="relative w-24 sm:w-36 aspect-square overflow-hidden shrink-0">
+        <Image
+          src={biz.image || biz.profilePictureUrl || 'https://images.unsplash.com/photo-1581244277943-fe4a9c777189?auto=format&fit=crop&q=80&w=400'}
+          alt={biz.name}
+          fill
+          className="object-cover group-hover:scale-110 transition-transform duration-1000"
+        />
+      </div>
+      <div className="p-3 sm:p-4 flex-1 flex flex-col justify-between min-w-0">
+        <div>
+          <span className="text-[8px] font-black text-primary uppercase px-1.5 py-0.5 bg-primary/5 rounded-full">
+            {biz.category || 'Business'}
+          </span>
+          <h3 className="text-xs font-black text-slate-900 mt-1 truncate">{biz.name}</h3>
+          {biz.location ? (
+            <p className="text-[9px] font-bold text-slate-400 line-clamp-1 mt-0.5">{biz.location}</p>
+          ) : null}
+        </div>
+        <button
+          type="button"
+          onClick={() => router.push(`/business/${biz.id}`)}
+          className="mt-2 self-start px-3 py-1.5 bg-primary text-white rounded-lg text-[9px] font-black uppercase"
+        >
+          View
+        </button>
+      </div>
+    </div>
+  );
 
   return (
     <div className="flex flex-col h-screen bg-slate-50 overflow-hidden font-sans">
@@ -623,36 +710,20 @@ export default function CategoriesPage() {
                       />
                     ))}
                   </div>
-                ) : categorySearchHits.length > 0 ? (
-                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 sm:gap-4">
-                    {categorySearchHits.map((hit) => (
-                      <button
-                        key={hit.id}
-                        type="button"
-                        onClick={() => openCategorySearchHit(hit)}
-                        className="flex flex-col items-center gap-2 p-4 bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-lg hover:shadow-primary/10 transition-all text-center"
-                      >
-                        <CategoryIcon
-                          icon={hit.icon}
-                          name={hit.name}
-                          size={52}
-                          className="h-12 w-12 text-slate-600"
-                          imageClassName="object-contain"
-                        />
-                        <span className="text-[10px] font-semibold text-slate-800 line-clamp-2 leading-snug">
-                          {hit.name}
-                        </span>
-                        {hit.parentName ? (
-                          <span className="text-[8px] font-medium text-slate-400 line-clamp-1">
-                            in {hit.parentName}
-                          </span>
-                        ) : (
-                          <span className="text-[8px] font-medium text-slate-400">
-                            {hit.businessCount}+ places
-                          </span>
-                        )}
-                      </button>
-                    ))}
+                ) : globalSearchCategoryPartitions.best.length > 0 ||
+                  globalSearchCategoryPartitions.related.length > 0 ? (
+                  <div className="space-y-6">
+                    {globalSearchCategoryPartitions.best.length > 0
+                      ? renderCategoryHitGrid(globalSearchCategoryPartitions.best)
+                      : null}
+                    {globalSearchCategoryPartitions.related.length > 0 ? (
+                      <div className="space-y-3 pt-2 border-t border-slate-100">
+                        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                          Related categories
+                        </h3>
+                        {renderCategoryHitGrid(globalSearchCategoryPartitions.related)}
+                      </div>
+                    ) : null}
                   </div>
                 ) : (
                   <p className="text-sm font-medium text-slate-400 py-4">
@@ -665,38 +736,28 @@ export default function CategoriesPage() {
                 <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
                   Businesses
                 </h2>
-                {filteredAndSortedBusinesses.length > 0 ? (
-                  <div className="flex flex-col gap-3 sm:gap-4">
-                    {filteredAndSortedBusinesses.map((biz) => (
-                      <div key={biz.id} className="group relative bg-white border border-slate-100 overflow-hidden flex flex-row transition-all duration-500 rounded-2xl">
-                        <div className="relative w-24 sm:w-36 aspect-square overflow-hidden shrink-0">
-                          <Image
-                            src={biz.image || biz.profilePictureUrl || 'https://images.unsplash.com/photo-1581244277943-fe4a9c777189?auto=format&fit=crop&q=80&w=400'}
-                            alt={biz.name}
-                            fill
-                            className="object-cover group-hover:scale-110 transition-transform duration-1000"
-                          />
-                        </div>
-                        <div className="p-3 sm:p-4 flex-1 flex flex-col justify-between min-w-0">
-                          <div>
-                            <span className="text-[8px] font-black text-primary uppercase px-1.5 py-0.5 bg-primary/5 rounded-full">
-                              {biz.category || 'Business'}
-                            </span>
-                            <h3 className="text-xs font-black text-slate-900 mt-1 truncate">{biz.name}</h3>
-                            {biz.location ? (
-                              <p className="text-[9px] font-bold text-slate-400 line-clamp-1 mt-0.5">{biz.location}</p>
-                            ) : null}
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => router.push(`/business/${biz.id}`)}
-                            className="mt-2 self-start px-3 py-1.5 bg-primary text-white rounded-lg text-[9px] font-black uppercase"
-                          >
-                            View
-                          </button>
+                {globalSearchBusinessPartitions.best.length > 0 ||
+                globalSearchBusinessPartitions.related.length > 0 ? (
+                  <div className="space-y-6">
+                    {globalSearchBusinessPartitions.best.length > 0 ? (
+                      <div className="flex flex-col gap-3 sm:gap-4">
+                        {globalSearchBusinessPartitions.best.map((biz) => (
+                          <div key={biz.id}>{renderGlobalBusinessCard(biz)}</div>
+                        ))}
+                      </div>
+                    ) : null}
+                    {globalSearchBusinessPartitions.related.length > 0 ? (
+                      <div className="space-y-3 pt-2 border-t border-slate-100">
+                        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                          Related businesses
+                        </h3>
+                        <div className="flex flex-col gap-3 sm:gap-4">
+                          {globalSearchBusinessPartitions.related.map((biz) => (
+                            <div key={biz.id}>{renderGlobalBusinessCard(biz)}</div>
+                          ))}
                         </div>
                       </div>
-                    ))}
+                    ) : null}
                   </div>
                 ) : (
                   <p className="text-sm font-medium text-slate-400 py-4">No matching businesses.</p>
@@ -704,8 +765,10 @@ export default function CategoriesPage() {
               </section>
 
               {!isSearchCategoriesLoading &&
-                categorySearchHits.length === 0 &&
-                filteredAndSortedBusinesses.length === 0 && (
+                globalSearchCategoryPartitions.best.length === 0 &&
+                globalSearchCategoryPartitions.related.length === 0 &&
+                globalSearchBusinessPartitions.best.length === 0 &&
+                globalSearchBusinessPartitions.related.length === 0 && (
                   <div className="py-16 flex flex-col items-center text-slate-300">
                     <LayoutGrid size={40} className="mb-4 opacity-40" />
                     <p className="text-sm font-black text-slate-500">No results found</p>

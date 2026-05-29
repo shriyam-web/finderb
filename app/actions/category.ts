@@ -6,7 +6,6 @@ import { categoryHref, dbBanner, dbSymbol } from '@/lib/categoryDisplay';
 import {
   escapeIlikePattern,
   getSearchTermsForQuery,
-  scoreSearchRelevance,
   sortBySearchRelevance,
 } from '@/lib/searchMatch';
 
@@ -226,16 +225,7 @@ export async function searchCategoriesByQuery(query: string) {
       parentName: c.parent_id ? parentNameById.get(c.parent_id) ?? null : null,
     }));
 
-    const withPrimaryMatch = results.filter(
-      (hit) =>
-        scoreSearchRelevance(query, {
-          name: hit.name,
-          slug: hit.slug,
-          parentName: hit.parentName,
-        }) > 0
-    );
-
-    const ranked = sortBySearchRelevance(withPrimaryMatch, query, (hit) => ({
+    const ranked = sortBySearchRelevance(results, query, (hit) => ({
       name: hit.name,
       slug: hit.slug,
       parentName: hit.parentName,

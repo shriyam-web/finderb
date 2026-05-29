@@ -200,7 +200,18 @@ function scoreFieldAgainstQuery(
   }
 
   const primary = terms[0];
-  if (!textMatchesSearchTerm(text, primary)) return 0;
+  const hasPrimary = textMatchesSearchTerm(text, primary);
+
+  if (!hasPrimary) {
+    if (terms.length === 1) return 0;
+    let weak = 0;
+    for (let i = 1; i < terms.length; i++) {
+      const term = terms[i];
+      if (!textMatchesSearchTerm(text, term)) continue;
+      weak += GENERIC_SEARCH_TERMS.has(term) ? 4 : 14;
+    }
+    return weak > 0 ? weak * fieldMultiplier * 0.4 : 0;
+  }
 
   let score = 50;
 
@@ -239,7 +250,10 @@ function scoreFieldAgainstQuery(
   return score * fieldMultiplier;
 }
 
-/** Higher = more relevant. Primary keyword must match at least one field. */
+/** Scores at or above this are shown as top matches; below = related results. */
+export const STRONG_SEARCH_RELEVANCE_MIN = 32;
+
+/** Higher = more relevant. */
 export function scoreSearchRelevance(
   query: string,
   fields: SearchMatchFields
@@ -266,9 +280,26 @@ export function sortBySearchRelevance<T>(
   );
 }
 
-function fieldsMatchPrimaryTerm(fields: SearchMatchFields, primary: string): boolean {
-  const values = [fields.name, fields.category, fields.description, fields.slug, fields.parentName];
-  return values.some((f) => textMatchesSearchTerm(f != null ? String(f) : '', primary));
+export function partitionBySearchRelevance<T>(
+  items: T[],
+  query: string,
+  getFields: (item: T) => SearchMatchFields
+): { best: T[]; related: T[] } {
+  const sorted = sortBySearchRelevance(items, query, getFields);
+  const best: T[] = [];
+  const related: T[] = [];
+
+  for (const item of sorted) {
+    const score = scoreSearchRelevance(query, getFields(item));
+    if (score <= 0) continue;
+    if (score >= STRONG_SEARCH_RELEVANCE_MIN) {
+      best.push(item);
+    } else {
+      related.push(item);
+    }
+  }
+
+  return { best, related };
 }
 
 function fieldsMatchAnyTerm(fields: SearchMatchFields, terms: string[]): boolean {
@@ -302,10 +333,6 @@ export function businessMatchesNaturalSearch(
       : [normalizeSearchQuery(parsed.raw)].filter((t) => t.length >= 2);
 
   if (terms.length === 0) return false;
-
-  if (!fieldsMatchPrimaryTerm(fields, terms[0])) {
-    return false;
-  }
 
   if (!fieldsMatchAnyTerm(fields, terms)) {
     return false;
