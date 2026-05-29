@@ -94,7 +94,10 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-full">
           {/* Logo - Left aligned */}
-          <Link href="/" className="relative z-[10002] flex items-center shrink-0">
+          <Link
+            href="/"
+            className={`relative z-[10002] flex items-center shrink-0 ${isOpen ? 'max-lg:hidden' : ''}`}
+          >
             <Image
               src="/logo1.png"
               alt="FinderB Logo"
@@ -302,19 +305,21 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
               </Link>
             )}
 
-            <button
-              onClick={() => setIsOpen(!isOpen)}
-              className={`relative z-[10002] p-2 rounded-xl transition-all active:scale-95 ${
-                scrolled
-                  ? 'text-gray-700 bg-gray-50'
-                  : isLight
-                    ? 'text-white bg-white/10 backdrop-blur-md border border-white/20'
-                    : 'text-gray-700 bg-white/50 backdrop-blur-sm border border-gray-100'
-              }`}
-              aria-label="Toggle menu"
-            >
-              {isOpen ? <X size={24} /> : <Menu size={24} />}
-            </button>
+            {!isOpen && (
+              <button
+                onClick={() => setIsOpen(true)}
+                className={`relative z-[10002] p-2 rounded-xl transition-all active:scale-95 ${
+                  scrolled
+                    ? 'text-gray-700 bg-gray-50'
+                    : isLight
+                      ? 'text-white bg-white/10 backdrop-blur-md border border-white/20'
+                      : 'text-gray-700 bg-white/50 backdrop-blur-sm border border-gray-100'
+                }`}
+                aria-label="Open menu"
+              >
+                <Menu size={24} />
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -327,20 +332,14 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
           <div className="absolute top-[-10%] right-[-10%] w-[60%] h-[40%] bg-primary/5 blur-[100px] rounded-full" />
           <div className="absolute bottom-[-5%] left-[-5%] w-[50%] h-[30%] bg-secondary/5 blur-[80px] rounded-full" />
 
-          {/* Header */}
-          <div className="flex justify-between items-center p-6 relative z-10 border-b border-slate-50">
-            <Link href="/" className="flex-shrink-0" onClick={() => setIsOpen(false)}>
-              <Image
-                src="/logo1.png"
-                alt="FinderB Logo"
-                width={140}
-                height={50}
-                className="h-9 w-auto object-contain"
-              />
-            </Link>
+          {/* Header — no logo (navbar logo is enough); single close control */}
+          <div className="flex items-center justify-between p-6 relative z-10 border-b border-slate-50">
+            <p className="text-lg font-bold text-primary">Menu</p>
             <button
+              type="button"
               onClick={() => setIsOpen(false)}
-              className="w-10 h-10 flex items-center justify-center rounded-full bg-slate-100 text-slate-900 border border-slate-200 active:scale-95 transition-all"
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-slate-100 text-slate-900 transition-all active:scale-95"
+              aria-label="Close menu"
             >
               <X size={20} />
             </button>
