@@ -98,6 +98,7 @@ export default function HomeClient({ initialData }: { initialData: any }) {
   const [isListening, setIsListening] = useState(false);
   const [voiceError, setVoiceError] = useState<string | null>(null);
   const recognitionRef = useRef<VoiceRecognitionInstance | null>(null);
+  const aiQueryRef = useRef('');
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
 
   const stopVoiceRecognition = useCallback(() => {
@@ -118,13 +119,14 @@ export default function HomeClient({ initialData }: { initialData: any }) {
 
   const handleAiSearch = useCallback(
     (queryText?: string) => {
-      const q = (queryText ?? aiQuery).trim();
+      const q = (queryText ?? aiQueryRef.current).trim();
       if (!q) return;
       stopVoiceRecognition();
       setAiQuery('');
-      router.push(`/categories?search=${encodeURIComponent(q)}`);
+      aiQueryRef.current = '';
+      router.replace(`/categories?search=${encodeURIComponent(q)}`);
     },
-    [aiQuery, router, stopVoiceRecognition]
+    [router, stopVoiceRecognition]
   );
 
   const toggleVoiceSearch = useCallback(() => {
@@ -141,8 +143,12 @@ export default function HomeClient({ initialData }: { initialData: any }) {
     setVoiceError(null);
     const recognition = createVoiceRecognition({
       lang: 'en-IN',
-      onInterim: (text) => setAiQuery(text),
+      onInterim: (text) => {
+        aiQueryRef.current = text;
+        setAiQuery(text);
+      },
       onFinal: (text) => {
+        aiQueryRef.current = text;
         setAiQuery(text);
         handleAiSearch(text);
       },
@@ -256,6 +262,7 @@ export default function HomeClient({ initialData }: { initialData: any }) {
       setIsAiLoading(false);
       setActiveMobileTab('AI Search');
       setAiQuery('');
+      aiQueryRef.current = '';
       setVoiceError(null);
       stopVoiceRecognition();
     } else {
@@ -416,7 +423,11 @@ export default function HomeClient({ initialData }: { initialData: any }) {
                       placeholder={isListening ? "Listening..." : "e.g., 'quiet cafe with wifi for work'..."}
                       className="w-full py-4 bg-transparent border-none focus:ring-0 text-gray-900 font-semibold text-sm placeholder:text-gray-300"
                       value={aiQuery}
-                      onChange={(e) => setAiQuery(e.target.value)}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        aiQueryRef.current = v;
+                        setAiQuery(v);
+                      }}
                       onKeyDown={(e) => e.key === 'Enter' && handleAiSearch()}
                     />
                   </div>

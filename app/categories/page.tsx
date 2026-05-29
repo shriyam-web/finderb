@@ -52,6 +52,9 @@ export default function CategoriesPage() {
   const isGlobalSearch = viewMode === 'global-search';
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const searchGenerationRef = useRef(0);
+  const lastExecutedSearchRef = useRef('');
+
+  const urlSearchQ = searchParams.get('search')?.trim() ?? '';
 
   useEffect(() => {
     async function fetchData() {
@@ -73,21 +76,64 @@ export default function CategoriesPage() {
     fetchData();
   }, []);
 
-  useEffect(() => {
-    const q = searchParams.get('search')?.trim();
-    if (q) {
-      setSearchQuery(q);
+  const executeSearch = useCallback(
+    async (trimmed: string, options?: { syncUrl?: boolean; force?: boolean }) => {
+      const { syncUrl = false, force = false } = options ?? {};
+
+      if (!trimmed) {
+        searchGenerationRef.current += 1;
+        lastExecutedSearchRef.current = '';
+        setCategorySearchHits([]);
+        setIsSearchCategoriesLoading(false);
+        return;
+      }
+
+      if (!force && trimmed === lastExecutedSearchRef.current) {
+        return;
+      }
+      lastExecutedSearchRef.current = trimmed;
+
       setViewMode('global-search');
       setSelectedCategory(null);
       setSelectedSubCategory(null);
       setSubCategories([]);
+
+      const generation = ++searchGenerationRef.current;
+      setIsSearchCategoriesLoading(true);
+
+      const result = await searchCategoriesByQuery(trimmed);
+      if (generation !== searchGenerationRef.current) return;
+
+      setCategorySearchHits(result.success ? result.results : []);
+      setIsSearchCategoriesLoading(false);
+
+      if (syncUrl && urlSearchQ !== trimmed) {
+        router.replace(`/categories?search=${encodeURIComponent(trimmed)}`, { scroll: false });
+      }
+    },
+    [router, urlSearchQ]
+  );
+
+  // FinderB AI / shared links: refetch whenever URL ?search= changes
+  useEffect(() => {
+    if (urlSearchQ) {
+      setSearchQuery(urlSearchQ);
+      setViewMode('global-search');
+      setSelectedCategory(null);
+      setSelectedSubCategory(null);
+      setSubCategories([]);
+      if (searchDebounceRef.current) {
+        clearTimeout(searchDebounceRef.current);
+      }
+      void executeSearch(urlSearchQ, { force: true });
       return;
     }
 
+    lastExecutedSearchRef.current = '';
     setCategorySearchHits([]);
 
     if (categoryIdFromUrl && categories.length > 0) {
-      const category = categories.find(cat => cat.id === categoryIdFromUrl);
+      const category = categories.find((cat) => cat.id === categoryIdFromUrl);
       if (category) {
         setSelectedCategory(category);
         setViewMode('subcategories');
@@ -95,59 +141,29 @@ export default function CategoriesPage() {
     } else if (!categoryIdFromUrl) {
       setViewMode('categories');
     }
-  }, [searchParams, categoryIdFromUrl, categories]);
+  }, [urlSearchQ, categoryIdFromUrl, categories, executeSearch]);
 
-  const runGlobalSearch = useCallback(
-    async (q: string) => {
-      const trimmed = q.trim();
-      if (!trimmed) {
-        setCategorySearchHits([]);
-        setIsSearchCategoriesLoading(false);
-        return;
-      }
-
-      setViewMode('global-search');
-      setSelectedCategory(null);
-      setSelectedSubCategory(null);
-      setSubCategories([]);
-      const generation = ++searchGenerationRef.current;
-      setIsSearchCategoriesLoading(true);
-
-      const result = await searchCategoriesByQuery(trimmed);
-      if (generation !== searchGenerationRef.current) return;
-
-      if (result.success) {
-        setCategorySearchHits(result.results);
-      } else {
-        setCategorySearchHits([]);
-      }
-      setIsSearchCategoriesLoading(false);
-
-      const urlQ = searchParams.get('search')?.trim();
-      if (urlQ !== trimmed) {
-        router.replace(`/categories?search=${encodeURIComponent(trimmed)}`, { scroll: false });
-      }
-    },
-    [router, searchParams]
-  );
-
+  // Typing in the categories search bar (skip when query matches URL — already loaded)
   useEffect(() => {
     if (viewMode !== 'global-search') return;
 
     const trimmed = searchQuery.trim();
     if (!trimmed) {
       searchGenerationRef.current += 1;
+      lastExecutedSearchRef.current = '';
       setCategorySearchHits([]);
       setIsSearchCategoriesLoading(false);
       return;
     }
+
+    if (trimmed === urlSearchQ) return;
 
     if (searchDebounceRef.current) {
       clearTimeout(searchDebounceRef.current);
     }
 
     searchDebounceRef.current = setTimeout(() => {
-      void runGlobalSearch(searchQuery);
+      void executeSearch(trimmed, { syncUrl: true });
     }, 400);
 
     return () => {
@@ -155,7 +171,7 @@ export default function CategoriesPage() {
         clearTimeout(searchDebounceRef.current);
       }
     };
-  }, [searchQuery, viewMode, runGlobalSearch]);
+  }, [searchQuery, viewMode, urlSearchQ, executeSearch]);
 
   const businessMatchesSearch = (biz: any, q: string) => {
     if (!q.trim()) return true;
@@ -168,13 +184,14 @@ export default function CategoriesPage() {
     const trimmed = q.trim();
     if (!trimmed) {
       if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+      lastExecutedSearchRef.current = '';
       setCategorySearchHits([]);
       setViewMode('categories');
       router.replace('/categories', { scroll: false });
       return;
     }
     if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
-    void runGlobalSearch(trimmed);
+    void executeSearch(trimmed, { syncUrl: true, force: true });
   };
 
   const handleSearchInputChange = (value: string) => {
@@ -188,6 +205,7 @@ export default function CategoriesPage() {
       }
     } else if (viewMode === 'global-search') {
       if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+      lastExecutedSearchRef.current = '';
       setCategorySearchHits([]);
       setViewMode('categories');
       router.replace('/categories', { scroll: false });
