@@ -74,7 +74,8 @@ export async function getSubCategories(parentId: string) {
   }
 }
 
-const EXTRA_TOP_LEVEL_GROUPS = 3;
+/** Only show parent groups with more than one active subcategory. */
+const MIN_SUBCATEGORIES_PER_GROUP = 2;
 
 function mapSubcategory(child: {
   id: string;
@@ -95,7 +96,7 @@ function mapSubcategory(child: {
   };
 }
 
-/** Top-level categories from DB; includes up to 3 extra parents without subcategories. */
+/** Top-level categories from DB that have multiple active subcategories. */
 export async function getFeaturedGroups() {
   try {
     const supabase = createClient(await cookies());
@@ -131,10 +132,10 @@ export async function getFeaturedGroups() {
       childrenByParent.set(child.parent_id, list);
     }
 
-    const groupsWithSubcategories = parents
+    const groups = parents
       .map((parent) => {
         const subs = childrenByParent.get(parent.id) ?? [];
-        if (subs.length === 0) return null;
+        if (subs.length < MIN_SUBCATEGORIES_PER_GROUP) return null;
 
         return {
           id: parent.id,
@@ -146,30 +147,7 @@ export async function getFeaturedGroups() {
       })
       .filter((g): g is NonNullable<typeof g> => g !== null);
 
-    const includedParentIds = new Set(groupsWithSubcategories.map((g) => g.id));
-
-    const extraParentGroups = parents
-      .filter((p) => !includedParentIds.has(p.id))
-      .slice(0, EXTRA_TOP_LEVEL_GROUPS)
-      .map((parent) => ({
-        id: parent.id,
-        title: parent.name,
-        slug: parent.slug,
-        icon: dbSymbol(parent.symbol),
-        subcategories: [
-          {
-            id: parent.id,
-            name: parent.name,
-            slug: parent.slug,
-            icon: dbSymbol(parent.symbol),
-            image: dbBanner(parent.banner),
-            businessCount: parent.items_count || 0,
-            href: `/categories?id=${parent.id}`,
-          },
-        ],
-      }));
-
-    return { success: true, groups: [...groupsWithSubcategories, ...extraParentGroups] };
+    return { success: true, groups };
   } catch (error: any) {
     console.error('Get Featured Groups Error:', error);
     return { success: false, error: error.message || 'Failed to fetch featured groups' };
