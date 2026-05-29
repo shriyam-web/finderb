@@ -606,14 +606,17 @@ export default function HomeClient({ initialData }: { initialData: any }) {
           <div className="flex overflow-x-auto pb-12 gap-4 sm:gap-6 lg:gap-8 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
             {isBusinessesLoading ? (
               Array.from({ length: 4 }).map((_, idx) => (
-                <div key={idx} className="min-w-[150px] sm:min-w-[320px] shrink-0">
-                  <div className="h-[400px] rounded-3xl bg-white border border-gray-100 animate-pulse" />
+                <div key={idx} className="h-[360px] w-[220px] shrink-0 overflow-hidden rounded-3xl sm:h-[400px] sm:w-[300px]">
+                  <div className="h-full w-full animate-pulse bg-white border border-gray-100" />
                 </div>
               ))
             ) : (
               realBusinesses.map((biz) => (
-                <div key={biz.id} className="min-w-[150px] sm:min-w-[320px] shrink-0">
-                  <BusinessCard business={biz} hidePriceRange />
+                <div
+                  key={biz.id}
+                  className="h-[360px] w-[220px] shrink-0 overflow-hidden rounded-3xl sm:h-[400px] sm:w-[300px]"
+                >
+                  <BusinessCard business={biz} hidePriceRange uniform />
                 </div>
               ))
             )}
@@ -681,12 +684,16 @@ export default function HomeClient({ initialData }: { initialData: any }) {
       {/* Tourist Places Section */}
       <section className="py-16 lg:py-24 bg-slate-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center mb-8">
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-primary tracking-tight">
+          <div className="mb-8 flex items-center justify-between gap-3">
+            <h2 className="min-w-0 text-2xl font-extrabold tracking-tight text-primary sm:text-4xl lg:text-5xl">
               Explore <span className="text-secondary">Destinations</span>
             </h2>
-            <Link href="/tourist-places" className="text-sm font-bold text-primary hover:text-secondary transition-colors flex items-center gap-2">
-              View all <ArrowRight size={16} />
+            <Link
+              href="/tourist-places"
+              className="flex shrink-0 items-center gap-1.5 whitespace-nowrap text-sm font-bold text-primary transition-colors hover:text-secondary"
+            >
+              View all
+              <ArrowRight size={16} className="shrink-0" />
             </Link>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">

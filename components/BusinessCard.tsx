@@ -8,6 +8,8 @@ interface BusinessCardProps {
   isPremium?: boolean;
   compact?: boolean;
   hidePriceRange?: boolean;
+  /** Fixed-size carousel card (Recommended Merchants). */
+  uniform?: boolean;
 }
 
 export default function BusinessCard({
@@ -15,13 +17,18 @@ export default function BusinessCard({
   isPremium = false,
   compact = false,
   hidePriceRange = false,
+  uniform = false,
 }: BusinessCardProps) {
   return (
-    <div className={`group relative bg-white overflow-hidden transition-all duration-500 border border-gray-100/50 hover:border-secondary/20 flex flex-col h-full`}>
+    <div
+      className={`group relative flex h-full w-full flex-col overflow-hidden bg-white transition-all duration-500 border border-gray-100/50 hover:border-secondary/20 ${
+        uniform ? 'rounded-none' : ''
+      }`}
+    >
       {/* Image Section */}
       <div
-        className={`relative w-full ${
-          compact ? 'h-40' : hidePriceRange ? 'h-36 sm:h-56' : 'h-56'
+        className={`relative w-full shrink-0 ${
+          uniform ? 'h-[132px] sm:h-[160px]' : compact ? 'h-40' : 'h-56'
         }`}
       >
        <Image
@@ -38,20 +45,22 @@ export default function BusinessCard({
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-80 group-hover:opacity-60 transition-opacity"></div>
         
         {/* Badges */}
-        <div className={`absolute ${compact ? 'top-2 left-2' : 'top-4 left-4'} flex flex-col gap-2 z-10`}>
-          {isPremium && (
-            <div className={`bg-gradient-to-r from-primary to-secondary text-white text-[8px] sm:text-[9px] font-bold ${compact ? 'px-2 py-1' : 'px-3 py-1.5'} rounded-full shadow-lg flex items-center gap-1.5 border border-white/20 uppercase`}>
-              <Star size={compact ? 8 : 10} fill="white" />
-              Verified
-            </div>
-          )}
-          {!compact && (
-            <div className="bg-secondary text-white text-[9px] font-bold px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1.5 border border-white/20 uppercase">
-              <Zap size={10} fill="white" />
-              Available Now
-            </div>
-          )}
-        </div>
+        {!uniform && (
+          <div className={`absolute ${compact ? 'top-2 left-2' : 'top-4 left-4'} flex flex-col gap-2 z-10`}>
+            {isPremium && (
+              <div className={`bg-gradient-to-r from-primary to-secondary text-white text-[8px] sm:text-[9px] font-bold ${compact ? 'px-2 py-1' : 'px-3 py-1.5'} rounded-full shadow-lg flex items-center gap-1.5 border border-white/20 uppercase`}>
+                <Star size={compact ? 8 : 10} fill="white" />
+                Verified
+              </div>
+            )}
+            {!compact && (
+              <div className="bg-secondary text-white text-[9px] font-bold px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1.5 border border-white/20 uppercase">
+                <Zap size={10} fill="white" />
+                Available Now
+              </div>
+            )}
+          </div>
+        )}
 
         <div className={`absolute ${compact ? 'top-2 right-2' : 'top-4 right-4'} bg-white/95 backdrop-blur-md ${compact ? 'px-1.5 py-0.5' : 'px-2.5 py-1'} rounded-xl flex items-center gap-1 shadow-lg border border-white/20`}>
           <Star className="text-secondary fill-secondary" size={compact ? 10 : 12} />
@@ -59,7 +68,7 @@ export default function BusinessCard({
         </div>
 
         {/* Trending Badge */}
-        {!compact && (
+        {!compact && !uniform && (
           <div className="absolute bottom-4 left-4 flex items-center gap-1.5 text-white">
             <TrendingUp size={12} className="text-secondary" />
             <span className="text-[10px] font-bold uppercase drop-shadow-md">Trending in Delhi</span>
@@ -67,7 +76,7 @@ export default function BusinessCard({
         )}
 
         {/* Profile Picture Avatar Overlay */}
-        {business.profilePictureUrl && (
+        {business.profilePictureUrl && !uniform && (
           <div className={`absolute -bottom-8 right-6 z-[30]`}>
             <div className={`${compact ? 'w-14 h-14' : 'w-20 h-20'} rounded-2xl border-4 border-white shadow-xl overflow-hidden bg-white`}>
               <Image 
@@ -87,47 +96,53 @@ export default function BusinessCard({
 
       {/* Content Section */}
       <div
-        className={`flex flex-col flex-grow ${
-          compact ? 'p-4' : hidePriceRange ? 'p-3 sm:p-6' : 'p-6'
-        } ${business.profilePictureUrl ? (compact ? 'pt-8' : hidePriceRange ? 'pt-8 sm:pt-12' : 'pt-12') : ''}`}
+        className={`flex min-h-0 flex-1 flex-col ${
+          uniform ? 'p-3 sm:p-4' : compact ? 'p-4' : 'p-6'
+        } ${!uniform && business.profilePictureUrl ? (compact ? 'pt-8' : 'pt-12') : ''}`}
       >
-        <div className="flex justify-between items-start mb-1">
-          <h3
-            className={`font-extrabold text-primary group-hover:text-secondary transition-colors leading-tight line-clamp-1 ${
-              compact ? 'text-base' : hidePriceRange ? 'text-sm sm:text-lg' : 'text-lg'
-            } ${business.profilePictureUrl ? 'pr-12' : ''}`}
-          >
-            {business.name}
-          </h3>
-        </div>
-        
-        <p className={`text-[10px] ${compact ? 'mb-3' : 'mb-4'} text-gray-400 font-bold uppercase`}>
+        <h3
+          className={`font-extrabold text-primary transition-colors group-hover:text-secondary ${
+            uniform
+              ? 'mb-1 line-clamp-2 min-h-[2.5rem] text-sm leading-snug sm:text-base'
+              : compact
+                ? 'mb-1 line-clamp-1 text-base leading-tight'
+                : 'mb-1 line-clamp-1 text-lg leading-tight'
+          } ${!uniform && business.profilePictureUrl ? 'pr-12' : ''}`}
+        >
+          {business.name}
+        </h3>
+
+        <p
+          className={`font-bold uppercase text-gray-400 ${
+            uniform ? 'mb-2 line-clamp-1 text-[9px] sm:text-[10px]' : `text-[10px] ${compact ? 'mb-3' : 'mb-4'}`
+          }`}
+        >
           {business.category}
         </p>
-        
-        {!compact && !hidePriceRange && (
-          <p className="text-sm text-gray-500 font-medium line-clamp-2 mb-6 flex-grow">
+
+        {!compact && !hidePriceRange && !uniform && (
+          <p className="mb-6 flex-grow text-sm font-medium text-gray-500 line-clamp-2">
             Top-rated {business.category.toLowerCase()} services with 100% satisfaction guarantee.
           </p>
         )}
 
         <div
-          className={`flex items-center gap-2 text-gray-500 font-bold rounded-xl bg-gray-50 border border-gray-100 group-hover:bg-white group-hover:border-secondary/20 transition-all ${
-            compact
-              ? 'text-[10px] mb-4 p-2'
-              : hidePriceRange
-                ? 'text-[10px] mb-3 p-2 sm:mb-6 sm:p-3 sm:text-[11px]'
-                : 'text-[11px] mb-6 p-3'
+          className={`flex items-center gap-2 font-bold text-gray-500 rounded-xl border border-gray-100 bg-gray-50 transition-all group-hover:border-secondary/20 group-hover:bg-white ${
+            uniform
+              ? 'mb-2 line-clamp-2 min-h-[2.25rem] p-2 text-[9px] sm:text-[10px]'
+              : compact
+                ? 'mb-4 p-2 text-[10px]'
+                : 'mb-6 p-3 text-[11px]'
           }`}
         >
-          <MapPin size={compact ? 10 : 12} className="text-secondary" />
-          <span className="line-clamp-1">{business.location}</span>
+          <MapPin size={uniform ? 10 : compact ? 10 : 12} className="shrink-0 text-secondary" />
+          <span className={uniform ? 'line-clamp-2 leading-snug' : 'line-clamp-1'}>{business.location}</span>
         </div>
 
         <div
-          className={`flex items-center border-t border-gray-100 ${compact ? 'pt-3' : 'pt-4'} ${
-            hidePriceRange ? 'justify-end' : 'justify-between'
-          }`}
+          className={`mt-auto flex items-center border-t border-gray-100 ${
+            uniform ? 'pt-2' : compact ? 'pt-3' : 'pt-4'
+          } ${hidePriceRange || uniform ? 'justify-end' : 'justify-between'}`}
         >
           {!hidePriceRange && (
             <div className="flex flex-col">
@@ -139,7 +154,15 @@ export default function BusinessCard({
           )}
           <Link
             href={`/business/${business.id}`}
-            className={`bg-secondary hover:bg-primary text-white font-bold ${compact ? 'px-4 py-2 text-[9px]' : hidePriceRange ? 'px-5 py-2.5 text-[10px]' : 'px-6 py-3 text-[11px]'} rounded-xl transition-all shadow-md hover:shadow-lg hover:shadow-secondary/30 active:scale-95 uppercase`}
+            className={`rounded-xl bg-secondary font-bold text-white uppercase transition-all shadow-md hover:bg-primary hover:shadow-lg hover:shadow-secondary/30 active:scale-95 ${
+              uniform
+                ? 'px-4 py-2 text-[9px] sm:px-5 sm:py-2.5 sm:text-[10px]'
+                : compact
+                  ? 'px-4 py-2 text-[9px]'
+                  : hidePriceRange
+                    ? 'px-5 py-2.5 text-[10px]'
+                    : 'px-6 py-3 text-[11px]'
+            }`}
           >
             Details
           </Link>
