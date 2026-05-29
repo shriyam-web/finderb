@@ -38,6 +38,7 @@ import { getMovies } from '@/app/actions/movie';
 import { getTouristPlaces } from '@/app/actions/touristPlace';
 import { getBlogs } from '@/app/actions/blog';
 import { getSession } from '@/app/actions/user';
+import { formatDistanceFromUser } from '@/lib/geo';
 
 const WORDS = [
   "verified professionals",
@@ -90,6 +91,22 @@ export default function HomeClient({ initialData }: { initialData: any }) {
   const [protectedTab, setProtectedTab] = useState<string | null>(null);
   const [aiQuery, setAiQuery] = useState('');
   const [isListening, setIsListening] = useState(false);
+  const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !navigator.geolocation) return;
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setUserCoords({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        });
+      },
+      () => {},
+      { enableHighAccuracy: false, maximumAge: 600_000, timeout: 10_000 }
+    );
+  }, []);
 
   const toggleVoiceSearch = () => {
     if (typeof window !== 'undefined') {
@@ -616,7 +633,12 @@ export default function HomeClient({ initialData }: { initialData: any }) {
                   key={biz.id}
                   className="h-[360px] w-[220px] shrink-0 overflow-hidden rounded-3xl sm:h-[400px] sm:w-[300px]"
                 >
-                  <BusinessCard business={biz} hidePriceRange uniform />
+                  <BusinessCard
+                    business={biz}
+                    hidePriceRange
+                    uniform
+                    distanceLabel={formatDistanceFromUser(userCoords, biz.latitude, biz.longitude)}
+                  />
                 </div>
               ))
             )}

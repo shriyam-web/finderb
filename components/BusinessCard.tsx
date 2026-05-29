@@ -1,7 +1,10 @@
+'use client';
+
 import Link from 'next/link';
 import Image from 'next/image';
-import { Star, MapPin, ArrowRight, Zap, TrendingUp, ShieldCheck } from 'lucide-react';
+import { Star, MapPin, ShieldCheck } from 'lucide-react';
 import { Business } from '@/lib/mockData';
+import { getBusinessOpenStatus } from '@/lib/businessHours';
 
 interface BusinessCardProps {
   business: Business;
@@ -10,6 +13,15 @@ interface BusinessCardProps {
   hidePriceRange?: boolean;
   /** Fixed-size carousel card (Recommended Merchants). */
   uniform?: boolean;
+  distanceLabel?: string | null;
+}
+
+function getShortDescription(business: Business): string {
+  const text = business.description?.trim();
+  if (text && text.length > 10 && text !== business.location) {
+    return text;
+  }
+  return `Trusted ${business.category} services in your area.`;
 }
 
 export default function BusinessCard({
@@ -18,7 +30,14 @@ export default function BusinessCard({
   compact = false,
   hidePriceRange = false,
   uniform = false,
+  distanceLabel = null,
 }: BusinessCardProps) {
+  const showVerified = Boolean(
+    isPremium || business.isFinderBVerified || business.hasVerifiedBadge
+  );
+  const openStatus = getBusinessOpenStatus(business.timings);
+  const shortDescription = getShortDescription(business);
+
   return (
     <div
       className={`group relative flex h-full w-full flex-col overflow-hidden bg-white transition-all duration-500 border border-gray-100/50 hover:border-secondary/20 ${
@@ -28,145 +47,166 @@ export default function BusinessCard({
       {/* Image Section */}
       <div
         className={`relative w-full shrink-0 ${
-          uniform ? 'h-[132px] sm:h-[160px]' : compact ? 'h-40' : 'h-56'
+          uniform ? 'h-[108px] sm:h-[120px]' : compact ? 'h-40' : 'h-56'
         }`}
       >
-       <Image
-  src={
-    business.profilePictureUrl ||
-    business.image ||
-    "/fallback.jpg"
-  }
-  alt={business.name || "Business Image"}
-  fill
-  className="object-cover transition-transform duration-1000 group-hover:scale-105"
-  sizes="(max-width: 768px) 100vw, 50vw"
-/>
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-80 group-hover:opacity-60 transition-opacity"></div>
-        
-        {/* Badges */}
+        <Image
+          src={business.profilePictureUrl || business.image || '/fallback.jpg'}
+          alt={business.name || 'Business Image'}
+          fill
+          className="object-cover transition-transform duration-1000 group-hover:scale-105"
+          sizes={uniform ? '300px' : '(max-width: 768px) 100vw, 50vw'}
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-80 group-hover:opacity-60 transition-opacity" />
+
         {!uniform && (
-          <div className={`absolute ${compact ? 'top-2 left-2' : 'top-4 left-4'} flex flex-col gap-2 z-10`}>
-            {isPremium && (
-              <div className={`bg-gradient-to-r from-primary to-secondary text-white text-[8px] sm:text-[9px] font-bold ${compact ? 'px-2 py-1' : 'px-3 py-1.5'} rounded-full shadow-lg flex items-center gap-1.5 border border-white/20 uppercase`}>
+          <div className={`absolute ${compact ? 'top-2 left-2' : 'top-4 left-4'} z-10 flex flex-col gap-2`}>
+            {showVerified && (
+              <div
+                className={`flex items-center gap-1.5 rounded-full border border-white/20 bg-gradient-to-r from-primary to-secondary font-bold uppercase text-white shadow-lg ${compact ? 'px-2 py-1 text-[8px]' : 'px-3 py-1.5 text-[9px]'}`}
+              >
                 <Star size={compact ? 8 : 10} fill="white" />
                 Verified
               </div>
             )}
-            {!compact && (
-              <div className="bg-secondary text-white text-[9px] font-bold px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1.5 border border-white/20 uppercase">
-                <Zap size={10} fill="white" />
-                Available Now
-              </div>
-            )}
           </div>
         )}
 
-        <div className={`absolute ${compact ? 'top-2 right-2' : 'top-4 right-4'} bg-white/95 backdrop-blur-md ${compact ? 'px-1.5 py-0.5' : 'px-2.5 py-1'} rounded-xl flex items-center gap-1 shadow-lg border border-white/20`}>
-          <Star className="text-secondary fill-secondary" size={compact ? 10 : 12} />
-          <span className={`${compact ? 'text-[10px]' : 'text-xs'} font-bold text-primary`}>{business.rating}</span>
+        {uniform && showVerified && (
+          <div className="absolute top-2 left-2 z-10 flex items-center gap-1 rounded-full border border-white/30 bg-primary/95 px-2 py-0.5 text-[8px] font-bold uppercase text-white shadow-md">
+            <ShieldCheck size={10} />
+            Verified
+          </div>
+        )}
+
+        <div
+          className={`absolute ${compact ? 'top-2 right-2' : 'top-3 right-3'} z-10 flex items-center gap-1 rounded-lg border border-white/20 bg-white/95 px-2 py-0.5 shadow-md backdrop-blur-md`}
+        >
+          <Star className="fill-secondary text-secondary" size={compact || uniform ? 10 : 12} />
+          <span className={`font-bold text-primary ${uniform ? 'text-[10px]' : compact ? 'text-[10px]' : 'text-xs'}`}>
+            {business.rating}
+          </span>
         </div>
-
-        {/* Trending Badge */}
-        {!compact && !uniform && (
-          <div className="absolute bottom-4 left-4 flex items-center gap-1.5 text-white">
-            <TrendingUp size={12} className="text-secondary" />
-            <span className="text-[10px] font-bold uppercase drop-shadow-md">Trending in Delhi</span>
-          </div>
-        )}
-
-        {/* Profile Picture Avatar Overlay */}
-        {business.profilePictureUrl && !uniform && (
-          <div className={`absolute -bottom-8 right-6 z-[30]`}>
-            <div className={`${compact ? 'w-14 h-14' : 'w-20 h-20'} rounded-2xl border-4 border-white shadow-xl overflow-hidden bg-white`}>
-              <Image 
-                src={business.profilePictureUrl} 
-                alt={business.name} 
-                width={80} 
-                height={80} 
-                className="w-full h-full object-cover"
-              />
-            </div>
-            <div className="absolute -bottom-1 -right-1 bg-emerald-500 w-4 h-4 rounded-full border-2 border-white shadow-sm flex items-center justify-center">
-              <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Content Section */}
       <div
         className={`flex min-h-0 flex-1 flex-col ${
-          uniform ? 'p-3 sm:p-4' : compact ? 'p-4' : 'p-6'
-        } ${!uniform && business.profilePictureUrl ? (compact ? 'pt-8' : 'pt-12') : ''}`}
+          uniform ? 'p-2.5 sm:p-3' : compact ? 'p-4' : 'p-6'
+        }`}
       >
-        <h3
-          className={`font-extrabold text-primary transition-colors group-hover:text-secondary ${
-            uniform
-              ? 'mb-1 line-clamp-2 min-h-[2.5rem] text-sm leading-snug sm:text-base'
-              : compact
-                ? 'mb-1 line-clamp-1 text-base leading-tight'
-                : 'mb-1 line-clamp-1 text-lg leading-tight'
-          } ${!uniform && business.profilePictureUrl ? 'pr-12' : ''}`}
-        >
-          {business.name}
-        </h3>
-
-        <p
-          className={`font-bold uppercase text-gray-400 ${
-            uniform ? 'mb-2 line-clamp-1 text-[9px] sm:text-[10px]' : `text-[10px] ${compact ? 'mb-3' : 'mb-4'}`
-          }`}
-        >
-          {business.category}
-        </p>
-
-        {!compact && !hidePriceRange && !uniform && (
-          <p className="mb-6 flex-grow text-sm font-medium text-gray-500 line-clamp-2">
-            Top-rated {business.category.toLowerCase()} services with 100% satisfaction guarantee.
-          </p>
-        )}
-
-        <div
-          className={`flex items-center gap-2 font-bold text-gray-500 rounded-xl border border-gray-100 bg-gray-50 transition-all group-hover:border-secondary/20 group-hover:bg-white ${
-            uniform
-              ? 'mb-2 line-clamp-2 min-h-[2.25rem] p-2 text-[9px] sm:text-[10px]'
-              : compact
-                ? 'mb-4 p-2 text-[10px]'
-                : 'mb-6 p-3 text-[11px]'
-          }`}
-        >
-          <MapPin size={uniform ? 10 : compact ? 10 : 12} className="shrink-0 text-secondary" />
-          <span className={uniform ? 'line-clamp-2 leading-snug' : 'line-clamp-1'}>{business.location}</span>
-        </div>
-
-        <div
-          className={`mt-auto flex items-center border-t border-gray-100 ${
-            uniform ? 'pt-2' : compact ? 'pt-3' : 'pt-4'
-          } ${hidePriceRange || uniform ? 'justify-end' : 'justify-between'}`}
-        >
-          {!hidePriceRange && (
-            <div className="flex flex-col">
-              <span className="text-[8px] text-gray-400 font-bold uppercase mb-0.5">Price Range</span>
-              <span className={`text-primary font-extrabold ${compact ? 'text-base' : 'text-lg'}`}>
-                {business.priceRange}
+        {uniform ? (
+          <>
+            <div className="mb-1.5 flex items-center justify-between gap-1">
+              <div className="flex min-w-0 items-center gap-1">
+                <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${openStatus.dotClass}`} />
+                <span className={`truncate text-[9px] font-bold leading-none ${openStatus.colorClass}`}>
+                  {openStatus.label}
+                </span>
+              </div>
+              <span
+                className={`shrink-0 text-[9px] font-bold uppercase ${
+                  openStatus.status === 'Open' ? 'text-emerald-600' : 'text-rose-600'
+                }`}
+              >
+                {openStatus.status}
               </span>
             </div>
-          )}
-          <Link
-            href={`/business/${business.id}`}
-            className={`rounded-xl bg-secondary font-bold text-white uppercase transition-all shadow-md hover:bg-primary hover:shadow-lg hover:shadow-secondary/30 active:scale-95 ${
-              uniform
-                ? 'px-4 py-2 text-[9px] sm:px-5 sm:py-2.5 sm:text-[10px]'
-                : compact
-                  ? 'px-4 py-2 text-[9px]'
-                  : hidePriceRange
-                    ? 'px-5 py-2.5 text-[10px]'
-                    : 'px-6 py-3 text-[11px]'
-            }`}
-          >
-            Details
-          </Link>
-        </div>
+
+            <h3 className="mb-0.5 line-clamp-2 min-h-[2.25rem] text-sm font-extrabold leading-snug text-primary group-hover:text-secondary">
+              {business.name}
+            </h3>
+
+            <p className="mb-1.5 line-clamp-1 text-[9px] font-bold uppercase text-gray-400">
+              {business.category}
+            </p>
+
+            <p className="mb-1.5 line-clamp-2 min-h-[1.75rem] text-[10px] leading-snug text-gray-500">
+              {shortDescription}
+            </p>
+
+            <div className="mb-2 flex min-h-[1.75rem] items-start gap-1 text-[9px] font-semibold text-gray-500">
+              <MapPin size={10} className="mt-0.5 shrink-0 text-secondary" />
+              <span className="line-clamp-2 leading-snug">
+                {distanceLabel ? (
+                  <>
+                    <span className="text-primary">{distanceLabel}</span>
+                    <span className="text-gray-300"> · </span>
+                  </>
+                ) : null}
+                {business.location}
+              </span>
+            </div>
+
+            <div className="mt-auto border-t border-gray-100 pt-2">
+              <Link
+                href={`/business/${business.id}`}
+                className="flex w-full items-center justify-center rounded-lg bg-secondary py-2 text-[9px] font-bold uppercase text-white shadow-md transition-all hover:bg-primary active:scale-95 sm:text-[10px]"
+              >
+                Details
+              </Link>
+            </div>
+          </>
+        ) : (
+          <>
+            <h3
+              className={`mb-1 font-extrabold leading-tight text-primary transition-colors group-hover:text-secondary ${
+                compact ? 'line-clamp-1 text-base' : 'line-clamp-1 text-lg'
+              }`}
+            >
+              {business.name}
+            </h3>
+
+            <p className={`font-bold uppercase text-gray-400 ${compact ? 'mb-3 text-[10px]' : 'mb-4 text-[10px]'}`}>
+              {business.category}
+            </p>
+
+            {!compact && !hidePriceRange && (
+              <p className="mb-6 line-clamp-2 flex-grow text-sm font-medium text-gray-500">
+                {shortDescription}
+              </p>
+            )}
+
+            <div
+              className={`mb-4 flex items-center gap-2 rounded-xl border border-gray-100 bg-gray-50 font-bold text-gray-500 transition-all group-hover:border-secondary/20 group-hover:bg-white ${
+                compact ? 'p-2 text-[10px]' : 'p-3 text-[11px]'
+              }`}
+            >
+              <MapPin size={compact ? 10 : 12} className="shrink-0 text-secondary" />
+              <span className="line-clamp-1">
+                {distanceLabel ? `${distanceLabel} · ` : ''}
+                {business.location}
+              </span>
+            </div>
+
+            <div
+              className={`mt-auto flex items-center border-t border-gray-100 ${
+                compact ? 'pt-3' : 'pt-4'
+              } ${hidePriceRange ? 'justify-end' : 'justify-between'}`}
+            >
+              {!hidePriceRange && (
+                <div className="flex flex-col">
+                  <span className="mb-0.5 text-[8px] font-bold uppercase text-gray-400">Price Range</span>
+                  <span className={`font-extrabold text-primary ${compact ? 'text-base' : 'text-lg'}`}>
+                    {business.priceRange}
+                  </span>
+                </div>
+              )}
+              <Link
+                href={`/business/${business.id}`}
+                className={`rounded-xl bg-secondary font-bold uppercase text-white shadow-md transition-all hover:bg-primary hover:shadow-lg hover:shadow-secondary/30 active:scale-95 ${
+                  compact
+                    ? 'px-4 py-2 text-[9px]'
+                    : hidePriceRange
+                      ? 'px-5 py-2.5 text-[10px]'
+                      : 'px-6 py-3 text-[11px]'
+                }`}
+              >
+                Details
+              </Link>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
