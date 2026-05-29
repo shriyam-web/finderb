@@ -1,0 +1,111 @@
+'use client';
+
+import { useRef, useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import CategoryIcon from '@/components/CategoryIcon';
+
+export interface SubcategoryScrollItem {
+  id?: string;
+  name: string;
+  href: string;
+  icon: string | null;
+}
+
+interface SubcategoryScrollRowProps {
+  subcategories: SubcategoryScrollItem[];
+}
+
+export default function SubcategoryScrollRow({ subcategories }: SubcategoryScrollRowProps) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const updateScrollState = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const maxScroll = el.scrollWidth - el.clientWidth;
+    setCanScrollLeft(el.scrollLeft > 2);
+    setCanScrollRight(el.scrollLeft < maxScroll - 2);
+  }, []);
+
+  useEffect(() => {
+    updateScrollState();
+    const el = scrollRef.current;
+    if (!el) return;
+
+    el.addEventListener('scroll', updateScrollState, { passive: true });
+    const observer = new ResizeObserver(updateScrollState);
+    observer.observe(el);
+
+    return () => {
+      el.removeEventListener('scroll', updateScrollState);
+      observer.disconnect();
+    };
+  }, [subcategories, updateScrollState]);
+
+  const scroll = (direction: 'left' | 'right') => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const step = Math.max(el.clientWidth * 0.65, 120);
+    el.scrollBy({
+      left: direction === 'left' ? -step : step,
+      behavior: 'smooth',
+    });
+  };
+
+  const scrollButtonClass =
+    'md:hidden flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 shadow-sm transition-colors hover:border-primary/30 hover:text-primary disabled:pointer-events-none disabled:opacity-30';
+
+  return (
+    <div className="flex items-center gap-1.5 sm:gap-2">
+      <button
+        type="button"
+        onClick={() => scroll('left')}
+        disabled={!canScrollLeft}
+        className={scrollButtonClass}
+        aria-label="Scroll subcategories left"
+      >
+        <ChevronLeft size={18} strokeWidth={2} />
+      </button>
+
+      <div
+        ref={scrollRef}
+        className="min-w-0 flex-1 overflow-x-auto scrollbar-hide"
+      >
+        <div className="flex flex-nowrap gap-3 sm:gap-4 pb-1">
+          {subcategories.map((sub) => (
+            <Link
+              key={sub.id ?? sub.name}
+              href={sub.href}
+              className="group flex w-[4.25rem] sm:w-[5.25rem] shrink-0 flex-col items-center text-center space-y-2"
+            >
+              <div className="relative flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center overflow-hidden rounded-xl bg-gray-50 text-gray-400 transition-all duration-300 group-hover:bg-primary/10 group-hover:text-primary">
+                <CategoryIcon
+                  icon={sub.icon}
+                  name={sub.name}
+                  size={24}
+                  className="h-5 w-5 sm:h-6 sm:w-6 group-hover:text-primary"
+                  imageClassName="object-contain p-1"
+                />
+              </div>
+              <span className="line-clamp-2 w-full text-[10px] font-semibold leading-tight text-gray-600 transition-colors group-hover:text-primary sm:text-[11px]">
+                {sub.name}
+              </span>
+            </Link>
+          ))}
+        </div>
+      </div>
+
+      <button
+        type="button"
+        onClick={() => scroll('right')}
+        disabled={!canScrollRight}
+        className={scrollButtonClass}
+        aria-label="Scroll subcategories right"
+      >
+        <ChevronRight size={18} strokeWidth={2} />
+      </button>
+    </div>
+  );
+}

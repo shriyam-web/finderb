@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import SearchBar from '@/components/SearchBar';
 import CategoryCard from '@/components/CategoryCard';
-import CategoryIcon from '@/components/CategoryIcon';
+import SubcategoryScrollRow from '@/components/SubcategoryScrollRow';
 import BusinessCard from '@/components/BusinessCard';
 import NewsWidget from '@/components/NewsWidget';
 import {
@@ -624,30 +624,7 @@ export default function HomeClient({ initialData }: { initialData: any }) {
                   className="bg-white rounded-[1.5rem] border border-gray-100 shadow-sm p-5 sm:p-7 hover:shadow-md transition-shadow"
                 >
                   <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4">{group.title}</h3>
-                  <div className="overflow-x-auto scrollbar-hide -mx-1 px-1">
-                    <div className="flex flex-nowrap gap-3 sm:gap-4 pb-1">
-                      {group.subcategories.map((sub: any) => (
-                        <Link
-                          key={sub.id ?? sub.name}
-                          href={sub.href}
-                          className="group flex w-[4.25rem] sm:w-[5.25rem] shrink-0 flex-col items-center text-center space-y-2"
-                        >
-                          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-primary/10 group-hover:text-primary transition-all duration-300 overflow-hidden relative">
-                            <CategoryIcon
-                              icon={sub.icon}
-                              name={sub.name}
-                              size={24}
-                              className="sm:w-6 sm:h-6 w-5 h-5 group-hover:text-primary"
-                              imageClassName="object-contain p-1"
-                            />
-                          </div>
-                          <span className="text-[10px] sm:text-[11px] font-semibold text-gray-600 group-hover:text-primary transition-colors line-clamp-2 w-full leading-tight">
-                            {sub.name}
-                          </span>
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
+                  <SubcategoryScrollRow subcategories={group.subcategories} />
                 </div>
               ))}
             </div>
