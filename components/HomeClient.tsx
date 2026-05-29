@@ -99,23 +99,40 @@ export default function HomeClient({ initialData }: { initialData: any }) {
   const [voiceError, setVoiceError] = useState<string | null>(null);
   const recognitionRef = useRef<VoiceRecognitionInstance | null>(null);
   const aiQueryRef = useRef('');
+  const voiceAutoSearchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
 
-  const stopVoiceRecognition = useCallback(() => {
-    if (recognitionRef.current) {
+  /** Auto-search after this much silence while the mic is open. */
+  const VOICE_PAUSE_BEFORE_SEARCH_MS = 2500;
+
+  const clearVoiceAutoSearchTimer = useCallback(() => {
+    if (voiceAutoSearchTimerRef.current) {
+      clearTimeout(voiceAutoSearchTimerRef.current);
+      voiceAutoSearchTimerRef.current = null;
+    }
+  }, []);
+
+  const stopVoiceRecognition = useCallback((options?: { abort?: boolean }) => {
+    clearVoiceAutoSearchTimer();
+    const recognition = recognitionRef.current;
+    if (recognition) {
+      recognitionRef.current = null;
       try {
-        recognitionRef.current.abort();
+        if (options?.abort) {
+          recognition.abort();
+        } else {
+          recognition.stop();
+        }
       } catch {
         try {
-          recognitionRef.current.stop();
+          recognition.abort();
         } catch {
           /* ignore */
         }
       }
-      recognitionRef.current = null;
     }
     setIsListening(false);
-  }, []);
+  }, [clearVoiceAutoSearchTimer]);
 
   const handleAiSearch = useCallback(
     (queryText?: string) => {
@@ -129,6 +146,16 @@ export default function HomeClient({ initialData }: { initialData: any }) {
     [router, stopVoiceRecognition]
   );
 
+  const scheduleVoiceAutoSearch = useCallback(() => {
+    clearVoiceAutoSearchTimer();
+    voiceAutoSearchTimerRef.current = setTimeout(() => {
+      voiceAutoSearchTimerRef.current = null;
+      const q = aiQueryRef.current.trim();
+      if (q.length < 2 || !recognitionRef.current) return;
+      handleAiSearch(q);
+    }, VOICE_PAUSE_BEFORE_SEARCH_MS);
+  }, [clearVoiceAutoSearchTimer, handleAiSearch]);
+
   const toggleVoiceSearch = useCallback(() => {
     if (isListening) {
       stopVoiceRecognition();
@@ -140,26 +167,31 @@ export default function HomeClient({ initialData }: { initialData: any }) {
       return;
     }
 
+    stopVoiceRecognition({ abort: true });
+
     setVoiceError(null);
     const recognition = createVoiceRecognition({
       lang: 'en-IN',
-      onInterim: (text) => {
+      continuous: true,
+      onTranscript: (text) => {
         aiQueryRef.current = text;
         setAiQuery(text);
-      },
-      onFinal: (text) => {
-        aiQueryRef.current = text;
-        setAiQuery(text);
-        handleAiSearch(text);
+        setVoiceError(null);
+        if (text.trim().length >= 2) {
+          scheduleVoiceAutoSearch();
+        }
       },
       onError: (code) => {
+        if (code === 'aborted') return;
         if (code === 'not-allowed') {
           setVoiceError('Microphone permission denied. Allow mic access in browser settings.');
         } else if (code === 'no-speech') {
-          setVoiceError('No speech detected. Try again.');
+          setVoiceError('No speech detected. Tap the mic and try again.');
         } else {
           setVoiceError('Could not hear you. Please try again.');
         }
+        setIsListening(false);
+        recognitionRef.current = null;
       },
       onEnd: () => {
         setIsListening(false);
@@ -170,17 +202,21 @@ export default function HomeClient({ initialData }: { initialData: any }) {
     if (!recognition) return;
 
     recognitionRef.current = recognition;
-    setIsListening(true);
 
-    recognition.onstart = () => setIsListening(true);
+    recognition.onstart = () => {
+      setIsListening(true);
+      setVoiceError(null);
+    };
 
     try {
       recognition.start();
     } catch {
-      setVoiceError('Unable to start microphone.');
-      stopVoiceRecognition();
+      setVoiceError('Unable to start microphone. Tap the mic to try again.');
+      stopVoiceRecognition({ abort: true });
     }
-  }, [isListening, handleAiSearch, stopVoiceRecognition]);
+  }, [isListening, stopVoiceRecognition, scheduleVoiceAutoSearch]);
+
+  useEffect(() => () => clearVoiceAutoSearchTimer(), [clearVoiceAutoSearchTimer]);
 
   useEffect(() => {
     if (typeof window === 'undefined' || !navigator.geolocation) return;
@@ -257,18 +293,29 @@ export default function HomeClient({ initialData }: { initialData: any }) {
     fetchData();
   }, []);
 
+  const prevTabRef = useRef<string | null>(null);
+
   useEffect(() => {
-    if (activeTabFromUrl === 'ai' || activeTabFromUrl === 'finderb-ai') {
+    const onAi =
+      activeTabFromUrl === 'ai' || activeTabFromUrl === 'finderb-ai';
+    const wasAi =
+      prevTabRef.current === 'ai' || prevTabRef.current === 'finderb-ai';
+
+    if (onAi) {
       setIsAiLoading(false);
       setActiveMobileTab('AI Search');
-      setAiQuery('');
-      aiQueryRef.current = '';
-      setVoiceError(null);
-      stopVoiceRecognition();
+      if (!wasAi) {
+        setAiQuery('');
+        aiQueryRef.current = '';
+        setVoiceError(null);
+        stopVoiceRecognition({ abort: true });
+      }
     } else {
       setActiveMobileTab('Home');
-      stopVoiceRecognition();
+      stopVoiceRecognition({ abort: true });
     }
+
+    prevTabRef.current = activeTabFromUrl;
   }, [activeTabFromUrl, stopVoiceRecognition]);
 
   useEffect(() => {
@@ -986,18 +1033,34 @@ export default function HomeClient({ initialData }: { initialData: any }) {
             <div className="text-center space-y-2">
               <h3 className="text-xl font-bold text-gray-900">Listening...</h3>
               <p className="text-gray-500 text-sm">
-                {aiQuery ? `"${aiQuery}"` : 'Tell me what you\'re looking for'}
+                {aiQuery
+                  ? `"${aiQuery}"`
+                  : 'Speak your search — we’ll search after a short pause'}
               </p>
               {voiceError && (
                 <p className="text-xs font-medium text-red-500">{voiceError}</p>
               )}
             </div>
-            <button 
-              onClick={toggleVoiceSearch}
-              className="px-8 py-3 rounded-2xl bg-gray-100 text-gray-600 font-bold hover:bg-gray-200 transition-colors active:scale-95"
-            >
-              Cancel
-            </button>
+            <div className="flex flex-col sm:flex-row gap-3 w-full">
+              <button
+                type="button"
+                onClick={() => {
+                  const q = aiQueryRef.current.trim();
+                  stopVoiceRecognition();
+                  if (q) handleAiSearch(q);
+                }}
+                className="flex-1 px-6 py-3 rounded-2xl bg-primary text-white font-bold hover:bg-secondary transition-colors active:scale-95"
+              >
+                Search
+              </button>
+              <button
+                type="button"
+                onClick={() => stopVoiceRecognition()}
+                className="flex-1 px-6 py-3 rounded-2xl bg-gray-100 text-gray-600 font-bold hover:bg-gray-200 transition-colors active:scale-95"
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}

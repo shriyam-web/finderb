@@ -48,41 +48,39 @@ export function getSpeechRecognitionCtor(): VoiceRecognitionCtor | null {
 }
 
 export function createVoiceRecognition(handlers: {
-  onInterim?: (text: string) => void;
-  onFinal: (text: string) => void;
+  onTranscript?: (text: string, isFinal: boolean) => void;
   onError?: (code: string) => void;
   onEnd?: () => void;
   lang?: string;
+  /** Keep mic open until user taps stop (recommended for full sentences). */
+  continuous?: boolean;
 }): VoiceRecognitionInstance | null {
   const Ctor = getSpeechRecognitionCtor();
   if (!Ctor) return null;
 
   const recognition = new Ctor();
   recognition.lang = handlers.lang ?? 'en-IN';
-  recognition.continuous = false;
+  recognition.continuous = handlers.continuous ?? true;
   recognition.interimResults = true;
   recognition.maxAlternatives = 1;
 
   recognition.onresult = (event: VoiceRecognitionEventLike) => {
-    let finalText = '';
-    let interimText = '';
+    let fullText = '';
+    let hasFinal = false;
 
-    for (let i = event.resultIndex; i < event.results.length; i++) {
-      const transcript = event.results[i][0].transcript;
-      if (event.results[i].isFinal) {
-        finalText += transcript;
-      } else {
-        interimText += transcript;
+    for (let i = 0; i < event.results.length; i++) {
+      const result = event.results[i];
+      const piece = result?.[0]?.transcript ?? '';
+      if (!piece) continue;
+      fullText += piece;
+      if (result.isFinal) {
+        hasFinal = true;
       }
     }
 
-    const interim = (finalText + interimText).trim();
-    if (interim && handlers.onInterim) {
-      handlers.onInterim(interim);
-    }
-    if (finalText.trim()) {
-      handlers.onFinal(finalText.trim());
-    }
+    const trimmed = fullText.trim();
+    if (!trimmed || !handlers.onTranscript) return;
+    handlers.onTranscript(trimmed, hasFinal);
   };
 
   recognition.onerror = (event: VoiceRecognitionErrorEventLike) => {
