@@ -81,15 +81,13 @@ export default function SubcategoryScrollRow({ subcategories }: SubcategoryScrol
               href={sub.href}
               className="group flex w-[4.25rem] sm:w-[5.25rem] shrink-0 flex-col items-center text-center space-y-2"
             >
-              <div className="relative flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center overflow-hidden rounded-xl bg-gray-50 text-gray-400 transition-all duration-300 group-hover:bg-primary/10 group-hover:text-primary">
-                <CategoryIcon
-                  icon={sub.icon}
-                  name={sub.name}
-                  size={24}
-                  className="h-5 w-5 sm:h-6 sm:w-6 group-hover:text-primary"
-                  imageClassName="object-contain p-1"
-                />
-              </div>
+              <CategoryIcon
+                icon={sub.icon}
+                name={sub.name}
+                size={40}
+                className="h-10 w-10 text-slate-500 transition-colors group-hover:text-primary sm:h-11 sm:w-11"
+                imageClassName="object-contain"
+              />
               <span className="line-clamp-2 w-full text-[10px] font-semibold leading-tight text-gray-600 transition-colors group-hover:text-primary sm:text-[11px]">
                 {sub.name}
               </span>

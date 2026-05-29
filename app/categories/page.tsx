@@ -307,22 +307,18 @@ export default function CategoriesPage() {
                   {selectedCategory?.id === cat.id && (
                     <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary rounded-r-full" />
                   )}
-                  <div className={`w-11 h-11 rounded-xl flex items-center justify-center p-2 border-2 transition-all duration-300 ${
-                    selectedCategory?.id === cat.id
-                      ? 'border-primary bg-white shadow-md shadow-primary/10 scale-105'
-                      : 'border-transparent bg-slate-50 group-hover:scale-105'
-                  } overflow-hidden relative`}>
-                    <CategoryIcon
-                      icon={cat.icon}
-                      name={cat.name}
-                      size={20}
-                      className={
-                        selectedCategory?.id === cat.id ? 'text-primary' : 'text-slate-400'
-                      }
-                      imageClassName="object-cover p-0.5 rounded-lg"
-                    />
-                  </div>
-                  <span className={`text-[8px] font-black text-center px-1 leading-tight uppercase tracking-tighter transition-colors line-clamp-2 font-sans ${
+                  <CategoryIcon
+                    icon={cat.icon}
+                    name={cat.name}
+                    size={32}
+                    className={`h-8 w-8 transition-transform duration-300 ${
+                      selectedCategory?.id === cat.id
+                        ? 'text-primary scale-110'
+                        : 'text-slate-400 group-hover:scale-105'
+                    }`}
+                    imageClassName="object-contain"
+                  />
+                  <span className={`text-[8px] font-semibold text-center px-1 leading-tight transition-colors line-clamp-2 font-sans ${
                     selectedCategory?.id === cat.id ? 'text-primary' : 'text-slate-400'
                   }`}>{cat.name}</span>
                 </button>
@@ -351,22 +347,18 @@ export default function CategoriesPage() {
                     {selectedSubCategory?.id === sub.id && (
                       <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-secondary rounded-r-full" />
                     )}
-                    <div className={`w-11 h-11 rounded-xl flex items-center justify-center p-2 border-2 transition-all duration-300 ${
-                      selectedSubCategory?.id === sub.id
-                        ? 'border-secondary bg-white shadow-md shadow-secondary/10 scale-105'
-                        : 'border-transparent bg-slate-50 group-hover:scale-105'
-                    } overflow-hidden relative`}>
-                      <CategoryIcon
-                        icon={sub.icon}
-                        name={sub.name}
-                        size={20}
-                        className={
-                          selectedSubCategory?.id === sub.id ? 'text-secondary' : 'text-slate-400'
-                        }
-                        imageClassName="object-cover p-0.5 rounded-lg"
-                      />
-                    </div>
-                    <span className={`text-[8px] font-black text-center px-1 leading-tight uppercase transition-colors line-clamp-2 font-sans ${
+                    <CategoryIcon
+                      icon={sub.icon}
+                      name={sub.name}
+                      size={32}
+                      className={`h-8 w-8 transition-transform duration-300 ${
+                        selectedSubCategory?.id === sub.id
+                          ? 'text-secondary scale-110'
+                          : 'text-slate-400 group-hover:scale-105'
+                      }`}
+                      imageClassName="object-contain"
+                    />
+                    <span className={`text-[8px] font-semibold text-center px-1 leading-tight transition-colors line-clamp-2 font-sans ${
                       selectedSubCategory?.id === sub.id ? 'text-secondary' : 'text-slate-400'
                     }`}>{sub.name}</span>
                   </button>
@@ -416,24 +408,22 @@ export default function CategoriesPage() {
                   <button
                     key={cat.id}
                     onClick={() => handleCategoryClick(cat)}
-                    className="flex flex-col items-center gap-2 sm:gap-4 p-4 sm:p-6 bg-white rounded-[2rem] sm:rounded-[2.5rem] shadow-sm hover:shadow-xl hover:shadow-primary/10 transition-all duration-500 group border border-slate-100"
+                    className="flex flex-col items-center gap-2 p-4 sm:gap-3 sm:p-5 bg-white rounded-2xl sm:rounded-[2rem] shadow-sm hover:shadow-lg hover:shadow-primary/10 transition-all duration-300 group border border-slate-100"
                   >
-                    <div className={`w-14 h-14 sm:w-20 sm:h-20 relative rounded-2xl sm:rounded-3xl overflow-hidden p-3 transition-all duration-500 group-hover:scale-110 group-hover:rotate-3 flex items-center justify-center ${
-                      index % 4 === 0 ? 'bg-orange-50 text-orange-500' : 
-                      index % 4 === 1 ? 'bg-blue-50 text-blue-500' : 
-                      index % 4 === 2 ? 'bg-emerald-50 text-emerald-500' : 'bg-purple-50 text-purple-500'
-                    }`}>
-                      <CategoryIcon
-                        icon={cat.icon}
-                        name={cat.name}
-                        size={32}
-                        className="sm:w-10 sm:h-10"
-                        imageClassName="object-cover rounded-xl sm:rounded-2xl p-1"
-                      />
-                    </div>
-                    <div className="flex flex-col items-center gap-0.5 sm:gap-1">
-                      <span className="text-[10px] sm:text-xs font-black uppercase tracking-tight text-slate-800 text-center group-hover:text-primary transition-colors line-clamp-1">{cat.name}</span>
-                      <span className="text-[8px] sm:text-[9px] font-bold text-slate-400 uppercase">{cat.businessCount || 0}+ Places</span>
+                    <CategoryIcon
+                      icon={cat.icon}
+                      name={cat.name}
+                      size={56}
+                      className="h-14 w-14 sm:h-16 sm:w-16 text-slate-600 transition-transform duration-300 group-hover:scale-105 group-hover:text-primary"
+                      imageClassName="object-contain"
+                    />
+                    <div className="flex flex-col items-center gap-0.5 w-full">
+                      <span className="text-[10px] sm:text-xs font-semibold text-slate-800 text-center group-hover:text-primary transition-colors line-clamp-2 leading-snug w-full">
+                        {cat.name}
+                      </span>
+                      <span className="text-[8px] sm:text-[9px] font-medium text-slate-400">
+                        {cat.businessCount || 0}+ Places
+                      </span>
                     </div>
                   </button>
                 ))}
@@ -458,24 +448,20 @@ export default function CategoriesPage() {
                     <button
                       key={sub.id}
                       onClick={() => handleSubCategoryClick(sub)}
-                      className="group flex flex-col items-center gap-2 sm:gap-3 text-center"
+                      className="group flex w-full flex-col items-center gap-2 rounded-2xl border border-slate-100 bg-white p-4 text-center shadow-sm transition-all duration-300 hover:shadow-lg hover:shadow-primary/10 sm:rounded-[2rem] sm:p-5"
                     >
-                      <div className={`relative w-full aspect-square rounded-2xl sm:rounded-3xl overflow-hidden shadow-sm group-hover:shadow-xl group-hover:shadow-primary/10 transition-all duration-500 border border-slate-100 flex items-center justify-center p-3 sm:p-5 ${
-                        index % 4 === 0 ? 'bg-orange-50 text-orange-500' : 
-                        index % 4 === 1 ? 'bg-blue-50 text-blue-500' : 
-                        index % 4 === 2 ? 'bg-emerald-50 text-emerald-500' : 'bg-purple-50 text-purple-500'
-                      }`}>
-                        <CategoryIcon
-                          icon={sub.icon}
-                          name={sub.name}
-                          size={24}
-                          className="sm:w-8 sm:h-8"
-                          imageClassName="object-cover p-1 rounded-lg"
-                        />
-                      </div>
-                      <div className="flex flex-col items-center gap-0.5">
-                        <h3 className="text-[9px] sm:text-[11px] font-black text-slate-900 leading-tight uppercase tracking-tight line-clamp-2 group-hover:text-primary transition-colors">{sub.name}</h3>
-                        <p className="text-[7px] sm:text-[8px] font-bold text-slate-400 uppercase tracking-widest">View</p>
+                      <CategoryIcon
+                        icon={sub.icon}
+                        name={sub.name}
+                        size={52}
+                        className="h-12 w-12 sm:h-14 sm:w-14 text-slate-600 transition-transform duration-300 group-hover:scale-105 group-hover:text-primary"
+                        imageClassName="object-contain"
+                      />
+                      <div className="flex w-full flex-col items-center gap-0.5">
+                        <h3 className="text-[9px] sm:text-[11px] font-semibold text-slate-900 leading-snug line-clamp-2 w-full group-hover:text-primary transition-colors">
+                          {sub.name}
+                        </h3>
+                        <p className="text-[7px] sm:text-[8px] font-medium text-slate-400">View</p>
                       </div>
                     </button>
                   ))
