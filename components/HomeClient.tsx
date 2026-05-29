@@ -653,16 +653,22 @@ export default function HomeClient({ initialData }: { initialData: any }) {
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {realMovies.slice(0, 4).map((movie) => (
-              <div key={movie.id} className="group relative rounded-2xl overflow-hidden shadow-lg aspect-[2/3]">
-                <Image src={movie.image} alt={movie.title} fill className="object-cover transition-transform duration-500 group-hover:scale-110" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
-                <div className="absolute bottom-4 left-4 right-4">
-                  <h3 className="text-white font-bold text-lg leading-tight mb-1">{movie.title}</h3>
-                  <div className="flex items-center justify-between text-white/80 text-xs font-medium">
-                    <span>{movie.genre}</span>
+              <div key={movie.id} className="group relative aspect-[2/3] overflow-hidden rounded-2xl shadow-lg">
+                <Image
+                  src={movie.image}
+                  alt={movie.title}
+                  fill
+                  className="object-cover transition-transform duration-500 group-hover:scale-110"
+                  sizes="(max-width: 768px) 50vw, 25vw"
+                />
+                <div className="absolute inset-0 z-[1] bg-gradient-to-t from-black/85 via-black/20 to-transparent" />
+                <div className="absolute bottom-0 left-0 right-0 z-[2] p-4 text-white">
+                  <p className="mb-1 text-lg font-bold leading-tight !text-white">{movie.title}</p>
+                  <div className="flex items-center justify-between text-xs font-medium !text-white/90">
+                    <span className="!text-white/90">{movie.genre}</span>
                     <div className="flex items-center gap-1">
-                      <Star size={12} className="text-yellow-400 fill-yellow-400" />
-                      <span>{movie.rating}</span>
+                      <Star size={12} className="fill-yellow-400 text-yellow-400" />
+                      <span className="!text-white">{movie.rating}</span>
                     </div>
                   </div>
                 </div>
