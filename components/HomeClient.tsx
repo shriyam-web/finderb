@@ -118,10 +118,10 @@ export default function HomeClient({ initialData }: { initialData: any }) {
 
   const handleAiSearch = useCallback(
     (queryText?: string) => {
-      const q = (typeof queryText === 'string' ? queryText : aiQuery).trim();
+      const q = (queryText ?? aiQuery).trim();
       if (!q) return;
-      setAiQuery(q);
       stopVoiceRecognition();
+      setAiQuery('');
       router.push(`/categories?search=${encodeURIComponent(q)}`);
     },
     [aiQuery, router, stopVoiceRecognition]
@@ -255,10 +255,14 @@ export default function HomeClient({ initialData }: { initialData: any }) {
     if (activeTabFromUrl === 'ai' || activeTabFromUrl === 'finderb-ai') {
       setIsAiLoading(false);
       setActiveMobileTab('AI Search');
+      setAiQuery('');
+      setVoiceError(null);
+      stopVoiceRecognition();
     } else {
       setActiveMobileTab('Home');
+      stopVoiceRecognition();
     }
-  }, [activeTabFromUrl]);
+  }, [activeTabFromUrl, stopVoiceRecognition]);
 
   useEffect(() => {
     const checkSession = async () => {
@@ -413,7 +417,7 @@ export default function HomeClient({ initialData }: { initialData: any }) {
                       className="w-full py-4 bg-transparent border-none focus:ring-0 text-gray-900 font-semibold text-sm placeholder:text-gray-300"
                       value={aiQuery}
                       onChange={(e) => setAiQuery(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && handleAiSearch('')}
+                      onKeyDown={(e) => e.key === 'Enter' && handleAiSearch()}
                     />
                   </div>
                   <div className="flex items-center gap-2 pr-2">
@@ -424,7 +428,7 @@ export default function HomeClient({ initialData }: { initialData: any }) {
                       <Mic size={20} className={isListening ? 'animate-bounce' : ''} />
                     </button>
                     <button 
-                      onClick={() => handleAiSearch('')}
+                      onClick={() => handleAiSearch()}
                       className="bg-primary text-white p-4 rounded-xl hover:bg-secondary transition-all active:scale-95 shadow-lg shadow-primary/20 flex items-center justify-center"
                     >
                       <Send size={20} />

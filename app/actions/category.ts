@@ -153,3 +153,75 @@ export async function getFeaturedGroups() {
     return { success: false, error: error.message || 'Failed to fetch featured groups' };
   }
 }
+
+export type CategorySearchHit = {
+  id: string;
+  name: string;
+  slug: string;
+  icon: string | null;
+  image: string | null;
+  businessCount: number;
+  parentId: string | null;
+  parentName: string | null;
+};
+
+/** Search all active categories and subcategories by name (case-insensitive). */
+export async function searchCategoriesByQuery(query: string) {
+  const needle = query.trim();
+  if (!needle) {
+    return { success: true as const, results: [] as CategorySearchHit[] };
+  }
+
+  try {
+    const supabase = createClient(await cookies());
+    const pattern = `%${needle.replace(/[%_]/g, '\\$&')}%`;
+
+    const { data: rows, error } = await supabase
+      .from('categories')
+      .select('id, name, slug, symbol, banner, parent_id, items_count')
+      .eq('status', 'Active')
+      .ilike('name', pattern)
+      .order('items_count', { ascending: false })
+      .limit(80);
+
+    if (error) throw error;
+    if (!rows?.length) {
+      return { success: true as const, results: [] as CategorySearchHit[] };
+    }
+
+    const parentIds = [
+      ...new Set(rows.map((r) => r.parent_id).filter((id): id is string => Boolean(id))),
+    ];
+
+    const parentNameById = new Map<string, string>();
+    if (parentIds.length > 0) {
+      const { data: parents } = await supabase
+        .from('categories')
+        .select('id, name')
+        .in('id', parentIds);
+      for (const p of parents ?? []) {
+        parentNameById.set(p.id, p.name);
+      }
+    }
+
+    const results: CategorySearchHit[] = rows.map((c) => ({
+      id: c.id,
+      name: c.name,
+      slug: c.slug || c.name.toLowerCase().replace(/\s+/g, '-'),
+      icon: dbSymbol(c.symbol),
+      image: dbBanner(c.banner),
+      businessCount: c.items_count || 0,
+      parentId: c.parent_id,
+      parentName: c.parent_id ? parentNameById.get(c.parent_id) ?? null : null,
+    }));
+
+    return { success: true as const, results };
+  } catch (error: any) {
+    console.error('Search Categories Error:', error);
+    return {
+      success: false as const,
+      error: error.message || 'Failed to search categories',
+      results: [] as CategorySearchHit[],
+    };
+  }
+}

@@ -3,9 +3,15 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Search, Filter, ChevronRight, LayoutGrid, ShoppingBag, Home, Sparkles, TrendingUp, Grid } from 'lucide-react';
-import { getCategories, getSubCategories } from '@/app/actions/category';
+import {
+  getCategories,
+  getSubCategories,
+  searchCategoriesByQuery,
+  type CategorySearchHit,
+} from '@/app/actions/category';
 import { getFeaturedBusinesses } from '@/app/actions/business';
 import CategoryIcon from '@/components/CategoryIcon';
+import { textMatchesSearch } from '@/lib/searchMatch';
 import Image from 'next/image';
 
 interface SubCategory {
@@ -30,9 +36,12 @@ export default function CategoriesPage() {
   const [isSubLoading, setIsSubLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') ?? '');
 
-  const [viewMode, setViewMode] = useState<'categories' | 'subcategories' | 'merchants'>(
-    searchParams.get('search') ? 'merchants' : 'categories'
-  );
+  const [viewMode, setViewMode] = useState<
+    'categories' | 'subcategories' | 'merchants' | 'global-search'
+  >(searchParams.get('search')?.trim() ? 'global-search' : 'categories');
+
+  const [categorySearchHits, setCategorySearchHits] = useState<CategorySearchHit[]>([]);
+  const [isSearchCategoriesLoading, setIsSearchCategoriesLoading] = useState(false);
 
   const isGlobalSearch = Boolean(searchParams.get('search')?.trim());
 
@@ -60,11 +69,14 @@ export default function CategoriesPage() {
     const q = searchParams.get('search')?.trim();
     if (q) {
       setSearchQuery(q);
-      setViewMode('merchants');
+      setViewMode('global-search');
       setSelectedCategory(null);
       setSelectedSubCategory(null);
+      setSubCategories([]);
       return;
     }
+
+    setCategorySearchHits([]);
 
     if (categoryIdFromUrl && categories.length > 0) {
       const category = categories.find(cat => cat.id === categoryIdFromUrl);
@@ -72,15 +84,84 @@ export default function CategoriesPage() {
         setSelectedCategory(category);
         setViewMode('subcategories');
       }
+    } else if (!categoryIdFromUrl) {
+      setViewMode('categories');
     }
   }, [searchParams, categoryIdFromUrl, categories]);
 
+  useEffect(() => {
+    const q = searchParams.get('search')?.trim();
+    if (!q) return;
+
+    let cancelled = false;
+    setIsSearchCategoriesLoading(true);
+
+    searchCategoriesByQuery(q).then((result) => {
+      if (cancelled) return;
+      if (result.success) {
+        setCategorySearchHits(result.results);
+      } else {
+        setCategorySearchHits([]);
+      }
+      setIsSearchCategoriesLoading(false);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [searchParams]);
+
   const businessMatchesSearch = (biz: any, q: string) => {
     if (!q) return true;
-    const hay = q.toLowerCase();
-    return [biz.name, biz.category, biz.description, biz.location]
-      .filter(Boolean)
-      .some((field) => String(field).toLowerCase().includes(hay));
+    return [biz.name, biz.category, biz.description, biz.location].some((field) =>
+      textMatchesSearch(field != null ? String(field) : '', q)
+    );
+  };
+
+  const applyGlobalSearch = (q: string) => {
+    const trimmed = q.trim();
+    if (!trimmed) {
+      router.replace('/categories');
+      return;
+    }
+    router.replace(`/categories?search=${encodeURIComponent(trimmed)}`);
+  };
+
+  const openCategorySearchHit = async (hit: CategorySearchHit) => {
+    if (hit.parentId) {
+      const parent =
+        categories.find((c) => c.id === hit.parentId) ??
+        ({
+          id: hit.parentId,
+          name: hit.parentName ?? 'Category',
+          icon: null,
+          image: null,
+          slug: '',
+          businessCount: 0,
+        } as const);
+      setSelectedCategory(parent);
+      setViewMode('merchants');
+      setSearchQuery('');
+      router.replace(`/categories?id=${hit.parentId}`, { scroll: false });
+
+      setIsSubLoading(true);
+      const result = await getSubCategories(hit.parentId);
+      if (result.success && result.subCategories) {
+        setSubCategories(result.subCategories);
+        const sub =
+          result.subCategories.find((s) => s.id === hit.id) ?? result.subCategories[0];
+        setSelectedSubCategory(sub ?? null);
+      }
+      setIsSubLoading(false);
+      return;
+    }
+
+    const top = categories.find((c) => c.id === hit.id);
+    if (top) {
+      handleCategoryClick(top);
+      setSearchQuery('');
+      router.replace(`/categories?id=${hit.id}`, { scroll: false });
+    }
   };
 
   useEffect(() => {
@@ -169,11 +250,14 @@ export default function CategoriesPage() {
         <div className="flex items-center gap-4">
           <button 
             onClick={() => {
-              if (viewMode === 'merchants') {
+              if (viewMode === 'global-search') {
+                router.push('/?tab=ai');
+              } else if (viewMode === 'merchants') {
                 setViewMode('subcategories');
               } else if (viewMode === 'subcategories') {
                 setViewMode('categories');
                 setSelectedCategory(null);
+                router.replace('/categories');
               } else {
                 router.back();
               }
@@ -186,10 +270,15 @@ export default function CategoriesPage() {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors" size={18} />
             <input
               type="text"
-              placeholder="Search categories..."
+              placeholder={isGlobalSearch ? 'Search categories & businesses...' : 'Search categories...'}
               className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3 pl-12 pr-4 text-sm font-medium focus:ring-4 focus:ring-primary/10 focus:border-primary focus:bg-white transition-all outline-none"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && isGlobalSearch) {
+                  applyGlobalSearch(searchQuery);
+                }
+              }}
             />
           </div>
         </div>
@@ -291,7 +380,7 @@ export default function CategoriesPage() {
 
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar - Compact for more items */}
-        {viewMode !== 'categories' && (
+        {viewMode !== 'categories' && viewMode !== 'global-search' && (
           <aside className="w-20 bg-white border-r border-slate-100 overflow-y-auto scrollbar-hide pb-24">
             {viewMode === 'subcategories' ? (
               [
@@ -407,7 +496,7 @@ export default function CategoriesPage() {
                 <p className="text-slate-500 text-sm font-medium">Select a category to explore sub-categories and local businesses</p>
               </div>
               <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 sm:gap-4">
-                {categories.filter(cat => !searchQuery || cat.name.toLowerCase().includes(searchQuery.toLowerCase())).map((cat, index) => (
+                {categories.filter(cat => !searchQuery || textMatchesSearch(cat.name, searchQuery)).map((cat, index) => (
                   <button
                     key={cat.id}
                     onClick={() => handleCategoryClick(cat)}
@@ -446,8 +535,8 @@ export default function CategoriesPage() {
               </div>
 
               <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 sm:gap-4">
-                {subCategories.filter(sub => !searchQuery || sub.name.toLowerCase().includes(searchQuery.toLowerCase())).length > 0 ? (
-                  subCategories.filter(sub => !searchQuery || sub.name.toLowerCase().includes(searchQuery.toLowerCase())).map((sub, index) => (
+                {subCategories.filter(sub => !searchQuery || textMatchesSearch(sub.name, searchQuery)).length > 0 ? (
+                  subCategories.filter(sub => !searchQuery || textMatchesSearch(sub.name, searchQuery)).map((sub, index) => (
                     <button
                       key={sub.id}
                       onClick={() => handleSubCategoryClick(sub)}
@@ -478,29 +567,139 @@ export default function CategoriesPage() {
                 )}
               </div>
             </div>
+          ) : viewMode === 'global-search' ? (
+            <div className="p-5 max-w-4xl mx-auto w-full space-y-8">
+              <div className="mt-2">
+                <h1 className="text-2xl font-black text-slate-900 mb-1">Results for &ldquo;{searchQuery}&rdquo;</h1>
+                <p className="text-slate-500 text-sm font-medium">
+                  Categories, subcategories, and local businesses
+                </p>
+              </div>
+
+              <section className="space-y-4">
+                <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                  Categories &amp; subcategories
+                </h2>
+                {isSearchCategoriesLoading ? (
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+                    {[1, 2, 3, 4, 5, 6].map((i) => (
+                      <div
+                        key={i}
+                        className="h-28 rounded-2xl bg-white border border-slate-100 animate-pulse"
+                      />
+                    ))}
+                  </div>
+                ) : categorySearchHits.length > 0 ? (
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 sm:gap-4">
+                    {categorySearchHits.map((hit) => (
+                      <button
+                        key={hit.id}
+                        type="button"
+                        onClick={() => openCategorySearchHit(hit)}
+                        className="flex flex-col items-center gap-2 p-4 bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-lg hover:shadow-primary/10 transition-all text-center"
+                      >
+                        <CategoryIcon
+                          icon={hit.icon}
+                          name={hit.name}
+                          size={52}
+                          className="h-12 w-12 text-slate-600"
+                          imageClassName="object-contain"
+                        />
+                        <span className="text-[10px] font-semibold text-slate-800 line-clamp-2 leading-snug">
+                          {hit.name}
+                        </span>
+                        {hit.parentName ? (
+                          <span className="text-[8px] font-medium text-slate-400 line-clamp-1">
+                            in {hit.parentName}
+                          </span>
+                        ) : (
+                          <span className="text-[8px] font-medium text-slate-400">
+                            {hit.businessCount}+ places
+                          </span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm font-medium text-slate-400 py-4">
+                    No matching categories or subcategories.
+                  </p>
+                )}
+              </section>
+
+              <section className="space-y-4">
+                <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                  Businesses
+                </h2>
+                {filteredAndSortedBusinesses.length > 0 ? (
+                  <div className="flex flex-col gap-3 sm:gap-4">
+                    {filteredAndSortedBusinesses.map((biz) => (
+                      <div key={biz.id} className="group relative bg-white border border-slate-100 overflow-hidden flex flex-row transition-all duration-500 rounded-2xl">
+                        <div className="relative w-24 sm:w-36 aspect-square overflow-hidden shrink-0">
+                          <Image
+                            src={biz.image || biz.profilePictureUrl || 'https://images.unsplash.com/photo-1581244277943-fe4a9c777189?auto=format&fit=crop&q=80&w=400'}
+                            alt={biz.name}
+                            fill
+                            className="object-cover group-hover:scale-110 transition-transform duration-1000"
+                          />
+                        </div>
+                        <div className="p-3 sm:p-4 flex-1 flex flex-col justify-between min-w-0">
+                          <div>
+                            <span className="text-[8px] font-black text-primary uppercase px-1.5 py-0.5 bg-primary/5 rounded-full">
+                              {biz.category || 'Business'}
+                            </span>
+                            <h3 className="text-xs font-black text-slate-900 mt-1 truncate">{biz.name}</h3>
+                            {biz.location ? (
+                              <p className="text-[9px] font-bold text-slate-400 line-clamp-1 mt-0.5">{biz.location}</p>
+                            ) : null}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => router.push(`/business/${biz.id}`)}
+                            className="mt-2 self-start px-3 py-1.5 bg-primary text-white rounded-lg text-[9px] font-black uppercase"
+                          >
+                            View
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm font-medium text-slate-400 py-4">No matching businesses.</p>
+                )}
+              </section>
+
+              {!isSearchCategoriesLoading &&
+                categorySearchHits.length === 0 &&
+                filteredAndSortedBusinesses.length === 0 && (
+                  <div className="py-16 flex flex-col items-center text-slate-300">
+                    <LayoutGrid size={40} className="mb-4 opacity-40" />
+                    <p className="text-sm font-black text-slate-500">No results found</p>
+                    <p className="text-xs text-slate-400 mt-1">Try a different keyword</p>
+                  </div>
+                )}
+            </div>
           ) : (
             <div className="p-4 space-y-6">
               <div className="flex items-center justify-between px-1">
                 <div>
                   <h2 className="text-[10px] font-black text-slate-400 uppercase mb-1">
-                    {isGlobalSearch ? 'Search Results' : 'Available Businesses'}
+                    Available Businesses
                   </h2>
                   <h3 className="text-lg font-black text-slate-900">
-                    {isGlobalSearch ? `"${searchQuery}"` : selectedSubCategory?.name}
+                    {selectedSubCategory?.name}
                   </h3>
                 </div>
-                {!isGlobalSearch && (
-                  <button
-                    onClick={() => setViewMode('subcategories')}
-                    className="px-4 py-2 bg-white border border-slate-200 hover:border-primary hover:text-primary rounded-full text-[9px] font-black uppercase transition-all shadow-sm"
-                  >
-                    Change
-                  </button>
-                )}
+                <button
+                  onClick={() => setViewMode('subcategories')}
+                  className="px-4 py-2 bg-white border border-slate-200 hover:border-primary hover:text-primary rounded-full text-[9px] font-black uppercase transition-all shadow-sm"
+                >
+                  Change
+                </button>
               </div>
 
               <div className="flex flex-col gap-3 sm:gap-4">
-                {filteredAndSortedBusinesses.filter(b => !searchQuery || b.name.toLowerCase().includes(searchQuery.toLowerCase())).map((biz) => (
+                {filteredAndSortedBusinesses.filter(b => !searchQuery || textMatchesSearch(b.name, searchQuery)).map((biz) => (
                   <div key={biz.id} className="group relative bg-white border border-slate-100 overflow-hidden flex flex-row transition-all duration-500 rounded-2xl sm:rounded-none">
                     <div className="relative w-24 sm:w-36 aspect-square overflow-hidden shrink-0">
                       <Image
