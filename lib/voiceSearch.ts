@@ -47,9 +47,72 @@ export function getSpeechRecognitionCtor(): VoiceRecognitionCtor | null {
   return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
 }
 
+function collapseSpaces(text: string): string {
+  return text.replace(/\s+/g, ' ').trim();
+}
+
+/** Merge one new speech segment without duplicating overlapping/cumulative text. */
+export function mergeTranscriptSegment(base: string, piece: string): string {
+  const b = collapseSpaces(base);
+  const p = collapseSpaces(piece);
+  if (!p) return b;
+  if (!b) return p;
+
+  const bl = b.toLowerCase();
+  const pl = p.toLowerCase();
+
+  if (bl === pl) return b;
+  if (pl.startsWith(bl)) return p;
+  if (bl.startsWith(pl)) return b;
+  if (bl.endsWith(pl)) return b;
+  if (bl.includes(pl)) return b;
+
+  // Word-boundary overlap: "car repair" + "repair service" → "car repair service"
+  const bWords = b.split(' ');
+  const pWords = p.split(' ');
+  for (let overlap = Math.min(bWords.length, pWords.length); overlap > 0; overlap--) {
+    const bTail = bWords.slice(-overlap).join(' ').toLowerCase();
+    const pHead = pWords.slice(0, overlap).join(' ').toLowerCase();
+    if (bTail === pHead) {
+      return collapseSpaces(b + ' ' + pWords.slice(overlap).join(' '));
+    }
+  }
+
+  return collapseSpaces(b + ' ' + p);
+}
+
+/** Drop N consecutive repeats of the same phrase (2×, 3×, …). */
+function dedupeRepeatedPhrase(text: string): string {
+  const normalized = collapseSpaces(text);
+  if (!normalized) return '';
+
+  const words = normalized.split(' ');
+  const maxPhraseLen = Math.floor(words.length / 2);
+
+  for (let phraseLen = maxPhraseLen; phraseLen >= 1; phraseLen--) {
+    if (words.length % phraseLen !== 0) continue;
+
+    const phrase = words.slice(0, phraseLen).join(' ');
+    const repeatCount = words.length / phraseLen;
+    if (repeatCount < 2) continue;
+
+    let allMatch = true;
+    for (let r = 1; r < repeatCount; r++) {
+      const chunk = words.slice(r * phraseLen, (r + 1) * phraseLen).join(' ');
+      if (chunk.toLowerCase() !== phrase.toLowerCase()) {
+        allMatch = false;
+        break;
+      }
+    }
+    if (allMatch) return phrase;
+  }
+
+  return normalized;
+}
+
 /** Remove glued duplicate phrases (e.g. "car repaircar repair" → "car repair"). */
 function dedupeGluedPhrases(text: string): string {
-  const trimmed = text.trim();
+  const trimmed = collapseSpaces(text);
   if (trimmed.length < 4) return trimmed;
 
   for (let len = Math.floor(trimmed.length / 2); len >= 2; len--) {
@@ -89,7 +152,7 @@ function dedupeGluedToken(token: string): string {
 
 /** Clean up duplicated words/phrases from flaky speech-to-text. */
 export function normalizeVoiceTranscript(text: string): string {
-  const deGlued = dedupeGluedPhrases(text.replace(/\s+/g, ' ').trim());
+  const deGlued = dedupeGluedPhrases(collapseSpaces(text));
   if (!deGlued) return '';
 
   const words = deGlued.split(' ');
@@ -103,31 +166,20 @@ export function normalizeVoiceTranscript(text: string): string {
     }
   }
 
-  let phrase = out.join(' ');
-
-  // Drop repeated trailing phrase: "electrician near me electrician near me"
-  const parts = phrase.split(' ');
-  if (parts.length >= 4 && parts.length % 2 === 0) {
-    const half = parts.length / 2;
-    const firstHalf = parts.slice(0, half).join(' ').toLowerCase();
-    const secondHalf = parts.slice(half).join(' ').toLowerCase();
-    if (firstHalf === secondHalf) {
-      phrase = parts.slice(0, half).join(' ');
-    }
-  }
-
-  return phrase.trim();
+  return dedupeRepeatedPhrase(out.join(' '));
 }
 
-/** Build one transcript string from the browser result list (no cross-event accumulation). */
+/** Merge result segments from one onresult event (handles cumulative & duplicate segments). */
 export function transcriptFromResults(
   results: VoiceRecognitionEventLike['results']
 ): string {
-  let raw = '';
+  let merged = '';
   for (let i = 0; i < results.length; i++) {
-    raw += results[i]?.[0]?.transcript ?? '';
+    const piece = results[i]?.[0]?.transcript ?? '';
+    if (!piece) continue;
+    merged = mergeTranscriptSegment(merged, piece);
   }
-  return normalizeVoiceTranscript(raw);
+  return normalizeVoiceTranscript(merged);
 }
 
 export function createVoiceRecognition(handlers: {
