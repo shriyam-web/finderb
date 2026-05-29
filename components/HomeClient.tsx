@@ -603,17 +603,17 @@ export default function HomeClient({ initialData }: { initialData: any }) {
           </div>
 
           {/* Horizontal Scrolling List */}
-          <div className="flex overflow-x-auto pb-12 gap-6 lg:gap-8 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
+          <div className="flex overflow-x-auto pb-12 gap-4 sm:gap-6 lg:gap-8 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
             {isBusinessesLoading ? (
               Array.from({ length: 4 }).map((_, idx) => (
-                <div key={idx} className="min-w-[250px] sm:min-w-[320px] shrink-0">
+                <div key={idx} className="min-w-[150px] sm:min-w-[320px] shrink-0">
                   <div className="h-[400px] rounded-3xl bg-white border border-gray-100 animate-pulse" />
                 </div>
               ))
             ) : (
               realBusinesses.map((biz) => (
-                <div key={biz.id} className="min-w-[250px] sm:min-w-[320px] shrink-0">
-                  <BusinessCard business={biz} />
+                <div key={biz.id} className="min-w-[150px] sm:min-w-[320px] shrink-0">
+                  <BusinessCard business={biz} hidePriceRange />
                 </div>
               ))
             )}

@@ -7,13 +7,23 @@ interface BusinessCardProps {
   business: Business;
   isPremium?: boolean;
   compact?: boolean;
+  hidePriceRange?: boolean;
 }
 
-export default function BusinessCard({ business, isPremium = false, compact = false }: BusinessCardProps) {
+export default function BusinessCard({
+  business,
+  isPremium = false,
+  compact = false,
+  hidePriceRange = false,
+}: BusinessCardProps) {
   return (
     <div className={`group relative bg-white overflow-hidden transition-all duration-500 border border-gray-100/50 hover:border-secondary/20 flex flex-col h-full`}>
       {/* Image Section */}
-      <div className={`relative ${compact ? 'h-40' : 'h-56'} w-full`}>
+      <div
+        className={`relative w-full ${
+          compact ? 'h-40' : hidePriceRange ? 'h-36 sm:h-56' : 'h-56'
+        }`}
+      >
        <Image
   src={
     business.profilePictureUrl ||
@@ -76,9 +86,17 @@ export default function BusinessCard({ business, isPremium = false, compact = fa
       </div>
 
       {/* Content Section */}
-      <div className={`${compact ? 'p-4' : 'p-6'} flex flex-col flex-grow ${business.profilePictureUrl ? (compact ? 'pt-8' : 'pt-12') : ''}`}>
+      <div
+        className={`flex flex-col flex-grow ${
+          compact ? 'p-4' : hidePriceRange ? 'p-3 sm:p-6' : 'p-6'
+        } ${business.profilePictureUrl ? (compact ? 'pt-8' : hidePriceRange ? 'pt-8 sm:pt-12' : 'pt-12') : ''}`}
+      >
         <div className="flex justify-between items-start mb-1">
-          <h3 className={`${compact ? 'text-base' : 'text-lg'} font-extrabold text-primary group-hover:text-secondary transition-colors leading-tight line-clamp-1 ${business.profilePictureUrl ? 'pr-12' : ''}`}>
+          <h3
+            className={`font-extrabold text-primary group-hover:text-secondary transition-colors leading-tight line-clamp-1 ${
+              compact ? 'text-base' : hidePriceRange ? 'text-sm sm:text-lg' : 'text-lg'
+            } ${business.profilePictureUrl ? 'pr-12' : ''}`}
+          >
             {business.name}
           </h3>
         </div>
@@ -87,27 +105,41 @@ export default function BusinessCard({ business, isPremium = false, compact = fa
           {business.category}
         </p>
         
-        {!compact && (
+        {!compact && !hidePriceRange && (
           <p className="text-sm text-gray-500 font-medium line-clamp-2 mb-6 flex-grow">
             Top-rated {business.category.toLowerCase()} services with 100% satisfaction guarantee.
           </p>
         )}
 
-        <div className={`flex items-center gap-2 text-gray-500 ${compact ? 'text-[10px]' : 'text-[11px]'} font-bold ${compact ? 'mb-4 p-2' : 'mb-6 p-3'} rounded-xl bg-gray-50 border border-gray-100 group-hover:bg-white group-hover:border-secondary/20 transition-all`}>
+        <div
+          className={`flex items-center gap-2 text-gray-500 font-bold rounded-xl bg-gray-50 border border-gray-100 group-hover:bg-white group-hover:border-secondary/20 transition-all ${
+            compact
+              ? 'text-[10px] mb-4 p-2'
+              : hidePriceRange
+                ? 'text-[10px] mb-3 p-2 sm:mb-6 sm:p-3 sm:text-[11px]'
+                : 'text-[11px] mb-6 p-3'
+          }`}
+        >
           <MapPin size={compact ? 10 : 12} className="text-secondary" />
           <span className="line-clamp-1">{business.location}</span>
         </div>
 
-        <div className={`flex items-center justify-between ${compact ? 'pt-3' : 'pt-4'} border-t border-gray-100`}>
-          <div className="flex flex-col">
-            <span className="text-[8px] text-gray-400 font-bold uppercase mb-0.5">Price Range</span>
-            <span className={`text-primary font-extrabold ${compact ? 'text-base' : 'text-lg'}`}>
-              {business.priceRange}
-            </span>
-          </div>
-          <Link 
+        <div
+          className={`flex items-center border-t border-gray-100 ${compact ? 'pt-3' : 'pt-4'} ${
+            hidePriceRange ? 'justify-end' : 'justify-between'
+          }`}
+        >
+          {!hidePriceRange && (
+            <div className="flex flex-col">
+              <span className="text-[8px] text-gray-400 font-bold uppercase mb-0.5">Price Range</span>
+              <span className={`text-primary font-extrabold ${compact ? 'text-base' : 'text-lg'}`}>
+                {business.priceRange}
+              </span>
+            </div>
+          )}
+          <Link
             href={`/business/${business.id}`}
-            className={`bg-secondary hover:bg-primary text-white font-bold ${compact ? 'px-4 py-2 text-[9px]' : 'px-6 py-3 text-[11px]'} rounded-xl transition-all shadow-md hover:shadow-lg hover:shadow-secondary/30 active:scale-95 uppercase`}
+            className={`bg-secondary hover:bg-primary text-white font-bold ${compact ? 'px-4 py-2 text-[9px]' : hidePriceRange ? 'px-5 py-2.5 text-[10px]' : 'px-6 py-3 text-[11px]'} rounded-xl transition-all shadow-md hover:shadow-lg hover:shadow-secondary/30 active:scale-95 uppercase`}
           >
             Details
           </Link>
