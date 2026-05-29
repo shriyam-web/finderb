@@ -370,6 +370,8 @@ export async function getFeaturedBusinesses() {
       rating: b.rating ?? 4.5,
       reviewsCount: 0,
       location: b.location || b.city || 'Location not specified',
+      city: b.city ?? null,
+      state: b.state ?? null,
       description: b.about || b.businessAddress || '',
       contact: b.publicPhone,
       services: b.serviceCategory ? [b.serviceCategory] : [],

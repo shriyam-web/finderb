@@ -3,6 +3,7 @@
 import { createClient } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';
 import { categoryHref, dbBanner, dbSymbol } from '@/lib/categoryDisplay';
+import { escapeIlikePattern, getSearchTermsForQuery } from '@/lib/searchMatch';
 
 export async function getCategories(topLevelOnly = true) {
   try {
@@ -165,22 +166,27 @@ export type CategorySearchHit = {
   parentName: string | null;
 };
 
-/** Search all active categories and subcategories by name (case-insensitive). */
+/** Search all active categories and subcategories by name (supports natural language). */
 export async function searchCategoriesByQuery(query: string) {
-  const needle = query.trim();
-  if (!needle) {
+  const terms = getSearchTermsForQuery(query);
+  if (terms.length === 0) {
     return { success: true as const, results: [] as CategorySearchHit[] };
   }
 
   try {
     const supabase = createClient(await cookies());
-    const pattern = `%${needle.replace(/[%_]/g, '\\$&')}%`;
+    const orFilter = terms
+      .flatMap((term) => {
+        const pattern = `%${escapeIlikePattern(term)}%`;
+        return [`name.ilike.${pattern}`, `slug.ilike.${pattern}`];
+      })
+      .join(',');
 
     const { data: rows, error } = await supabase
       .from('categories')
       .select('id, name, slug, symbol, banner, parent_id, items_count')
       .eq('status', 'Active')
-      .ilike('name', pattern)
+      .or(orFilter)
       .order('items_count', { ascending: false })
       .limit(80);
 

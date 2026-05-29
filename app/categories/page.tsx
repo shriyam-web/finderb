@@ -11,7 +11,11 @@ import {
 } from '@/app/actions/category';
 import { getFeaturedBusinesses } from '@/app/actions/business';
 import CategoryIcon from '@/components/CategoryIcon';
-import { textMatchesSearch } from '@/lib/searchMatch';
+import {
+  businessMatchesNaturalSearch,
+  parseNaturalSearchQuery,
+  textMatchesSearch,
+} from '@/lib/searchMatch';
 import Image from 'next/image';
 
 interface SubCategory {
@@ -112,11 +116,11 @@ export default function CategoriesPage() {
   }, [searchParams]);
 
   const businessMatchesSearch = (biz: any, q: string) => {
-    if (!q) return true;
-    return [biz.name, biz.category, biz.description, biz.location].some((field) =>
-      textMatchesSearch(field != null ? String(field) : '', q)
-    );
+    if (!q.trim()) return true;
+    return businessMatchesNaturalSearch(biz, q);
   };
+
+  const parsedGlobalSearch = parseNaturalSearchQuery(searchQuery);
 
   const applyGlobalSearch = (q: string) => {
     const trimmed = q.trim();
@@ -572,7 +576,25 @@ export default function CategoriesPage() {
               <div className="mt-2">
                 <h1 className="text-2xl font-black text-slate-900 mb-1">Results for &ldquo;{searchQuery}&rdquo;</h1>
                 <p className="text-slate-500 text-sm font-medium">
-                  Categories, subcategories, and local businesses
+                  {parsedGlobalSearch.terms.length > 0 ? (
+                    <>
+                      Matching{' '}
+                      <span className="text-slate-700 font-semibold">
+                        {parsedGlobalSearch.terms.join(', ')}
+                      </span>
+                      {parsedGlobalSearch.locationHint ? (
+                        <>
+                          {' '}
+                          in{' '}
+                          <span className="text-slate-700 font-semibold capitalize">
+                            {parsedGlobalSearch.locationHint}
+                          </span>
+                        </>
+                      ) : null}
+                    </>
+                  ) : (
+                    'Categories, subcategories, and local businesses'
+                  )}
                 </p>
               </div>
 
