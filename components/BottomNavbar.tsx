@@ -24,7 +24,7 @@ export default function BottomNavbar() {
   ];
 
   return (
-    <div className="lg:hidden fixed bottom-0 left-0 right-0 z-[9999] bg-white/80 backdrop-blur-xl border-t border-gray-100 pb-safe">
+    <div className="lg:hidden fixed bottom-0 left-0 right-0 z-[9999] bg-white border-t border-gray-100 pb-safe shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
       <div className="flex justify-around items-center h-16">
         {tabs.map((tab) => {
           const isHome = tab.label === 'Home';
@@ -54,7 +54,7 @@ export default function BottomNavbar() {
                 size={20} 
                 className={`transition-transform duration-300 ${reallyActive ? 'animate-pulse scale-110' : ''}`} 
               />
-              <span className="text-[10px] font-bold uppercase tracking-wider">{tab.label}</span>
+              <span className="text-[10px] font-semibold tracking-normal">{tab.label}</span>
               {reallyActive && (
                 <div className={`absolute bottom-1 w-1 h-1 rounded-full ${isBusiness ? 'bg-white' : 'bg-primary'}`} />
               )}
