@@ -390,28 +390,20 @@ export default function HomeClient({ initialData }: { initialData: any }) {
     fetchData();
   }, []);
 
-  const prevTabRef = useRef<string | null>(null);
-
   useEffect(() => {
     const onAi =
       activeTabFromUrl === 'ai' || activeTabFromUrl === 'finderb-ai';
-    const wasAi =
-      prevTabRef.current === 'ai' || prevTabRef.current === 'finderb-ai';
 
     if (onAi) {
       setIsAiLoading(false);
       setActiveMobileTab('AI Search');
-      if (!wasAi) {
-        setManualQuery('');
-        manualQueryRef.current = '';
-        cancelVoiceSession();
-      }
+      setManualQuery('');
+      manualQueryRef.current = '';
+      cancelVoiceSession();
     } else {
       setActiveMobileTab('Home');
       cancelVoiceSession();
     }
-
-    prevTabRef.current = activeTabFromUrl;
   }, [activeTabFromUrl, cancelVoiceSession]);
 
   useEffect(() => {
