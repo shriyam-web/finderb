@@ -55,19 +55,20 @@ export default function SubcategoryScrollRow({ subcategories }: SubcategoryScrol
   };
 
   const scrollButtonClass =
-    'md:hidden flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 shadow-sm transition-colors hover:border-primary/30 hover:text-primary disabled:pointer-events-none disabled:opacity-30';
+    'md:hidden flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 shadow-sm transition-colors hover:border-primary/30 hover:text-primary';
 
   return (
     <div className="flex items-center gap-1.5 sm:gap-2">
-      <button
-        type="button"
-        onClick={() => scroll('left')}
-        disabled={!canScrollLeft}
-        className={scrollButtonClass}
-        aria-label="Scroll subcategories left"
-      >
-        <ChevronLeft size={18} strokeWidth={2} />
-      </button>
+      {canScrollLeft ? (
+        <button
+          type="button"
+          onClick={() => scroll('left')}
+          className={scrollButtonClass}
+          aria-label="Scroll subcategories left"
+        >
+          <ChevronLeft size={18} strokeWidth={2} />
+        </button>
+      ) : null}
 
       <div
         ref={scrollRef}
@@ -97,15 +98,16 @@ export default function SubcategoryScrollRow({ subcategories }: SubcategoryScrol
         </div>
       </div>
 
-      <button
-        type="button"
-        onClick={() => scroll('right')}
-        disabled={!canScrollRight}
-        className={scrollButtonClass}
-        aria-label="Scroll subcategories right"
-      >
-        <ChevronRight size={18} strokeWidth={2} />
-      </button>
+      {canScrollRight ? (
+        <button
+          type="button"
+          onClick={() => scroll('right')}
+          className={scrollButtonClass}
+          aria-label="Scroll subcategories right"
+        >
+          <ChevronRight size={18} strokeWidth={2} />
+        </button>
+      ) : null}
     </div>
   );
 }
