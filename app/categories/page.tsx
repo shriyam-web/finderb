@@ -3,17 +3,17 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Search, Filter, ChevronRight, LayoutGrid, ShoppingBag, Home, Sparkles, User, Bot, TrendingUp, Grid } from 'lucide-react';
-import * as LucideIcons from 'lucide-react';
 import { getCategories, getSubCategories } from '@/app/actions/category';
 import { getFeaturedBusinesses } from '@/app/actions/business';
+import CategoryIcon from '@/components/CategoryIcon';
 import Image from 'next/image';
 
 interface SubCategory {
   id: string;
   name: string;
   slug: string;
-  image: string;
-  icon: string;
+  image: string | null;
+  icon: string | null;
   businessCount?: number;
 }
 
@@ -312,30 +312,15 @@ export default function CategoriesPage() {
                       ? 'border-primary bg-white shadow-md shadow-primary/10 scale-105'
                       : 'border-transparent bg-slate-50 group-hover:scale-105'
                   } overflow-hidden relative`}>
-                    {(() => {
-                      const isImageUrl = cat.icon?.startsWith('http') || cat.icon?.startsWith('/');
-                      // @ts-ignore
-                      const IconComponent = !isImageUrl ? (LucideIcons[cat.icon] || LucideIcons.Grid) : null;
-                      
-                      if (isImageUrl) {
-                        return (
-                          <Image 
-                            src={cat.icon} 
-                            alt={cat.name} 
-                            fill 
-                            className="object-cover p-0.5 rounded-lg"
-                          />
-                        );
+                    <CategoryIcon
+                      icon={cat.icon}
+                      name={cat.name}
+                      size={20}
+                      className={
+                        selectedCategory?.id === cat.id ? 'text-primary' : 'text-slate-400'
                       }
-                      return IconComponent && (
-                        <IconComponent 
-                          size={20} 
-                          className={`transition-colors duration-300 ${
-                            selectedCategory?.id === cat.id ? 'text-primary' : 'text-slate-400'
-                          }`} 
-                        />
-                      );
-                    })()}
+                      imageClassName="object-cover p-0.5 rounded-lg"
+                    />
                   </div>
                   <span className={`text-[8px] font-black text-center px-1 leading-tight uppercase tracking-tighter transition-colors line-clamp-2 font-sans ${
                     selectedCategory?.id === cat.id ? 'text-primary' : 'text-slate-400'
@@ -371,30 +356,15 @@ export default function CategoriesPage() {
                         ? 'border-secondary bg-white shadow-md shadow-secondary/10 scale-105'
                         : 'border-transparent bg-slate-50 group-hover:scale-105'
                     } overflow-hidden relative`}>
-                      {(() => {
-                        const isImageUrl = sub.icon?.startsWith('http') || sub.icon?.startsWith('/');
-                        // @ts-ignore
-                        const IconComponent = !isImageUrl ? (LucideIcons[sub.icon] || LucideIcons.Grid) : null;
-                        
-                        if (isImageUrl) {
-                          return (
-                            <Image 
-                              src={sub.icon} 
-                              alt={sub.name} 
-                              fill 
-                              className="object-cover p-0.5 rounded-lg"
-                            />
-                          );
+                      <CategoryIcon
+                        icon={sub.icon}
+                        name={sub.name}
+                        size={20}
+                        className={
+                          selectedSubCategory?.id === sub.id ? 'text-secondary' : 'text-slate-400'
                         }
-                        return IconComponent && (
-                          <IconComponent 
-                            size={20} 
-                            className={`transition-colors duration-300 ${
-                              selectedSubCategory?.id === sub.id ? 'text-secondary' : 'text-slate-400'
-                            }`} 
-                          />
-                        );
-                      })()}
+                        imageClassName="object-cover p-0.5 rounded-lg"
+                      />
                     </div>
                     <span className={`text-[8px] font-black text-center px-1 leading-tight uppercase transition-colors line-clamp-2 font-sans ${
                       selectedSubCategory?.id === sub.id ? 'text-secondary' : 'text-slate-400'
@@ -453,23 +423,13 @@ export default function CategoriesPage() {
                       index % 4 === 1 ? 'bg-blue-50 text-blue-500' : 
                       index % 4 === 2 ? 'bg-emerald-50 text-emerald-500' : 'bg-purple-50 text-purple-500'
                     }`}>
-                      {(() => {
-                        const isImageUrl = cat.icon?.startsWith('http') || cat.icon?.startsWith('/');
-                        // @ts-ignore
-                        const IconComponent = !isImageUrl ? (LucideIcons[cat.icon] || LucideIcons.Grid) : null;
-                        
-                        if (isImageUrl) {
-                          return (
-                            <Image 
-                              src={cat.icon} 
-                              alt={cat.name} 
-                              fill 
-                              className="object-cover rounded-xl sm:rounded-2xl p-1" 
-                            />
-                          );
-                        }
-                        return IconComponent && <IconComponent size={32} className="sm:size-10" strokeWidth={2} />;
-                      })()}
+                      <CategoryIcon
+                        icon={cat.icon}
+                        name={cat.name}
+                        size={32}
+                        className="sm:w-10 sm:h-10"
+                        imageClassName="object-cover rounded-xl sm:rounded-2xl p-1"
+                      />
                     </div>
                     <div className="flex flex-col items-center gap-0.5 sm:gap-1">
                       <span className="text-[10px] sm:text-xs font-black uppercase tracking-tight text-slate-800 text-center group-hover:text-primary transition-colors line-clamp-1">{cat.name}</span>
@@ -505,23 +465,13 @@ export default function CategoriesPage() {
                         index % 4 === 1 ? 'bg-blue-50 text-blue-500' : 
                         index % 4 === 2 ? 'bg-emerald-50 text-emerald-500' : 'bg-purple-50 text-purple-500'
                       }`}>
-                        {(() => {
-                          const isImageUrl = sub.icon?.startsWith('http') || sub.icon?.startsWith('/');
-                          // @ts-ignore
-                          const IconComponent = !isImageUrl ? (LucideIcons[sub.icon] || LucideIcons.Grid) : null;
-                          
-                          if (isImageUrl) {
-                            return (
-                              <Image 
-                                src={sub.icon} 
-                                alt={sub.name} 
-                                fill 
-                                className="object-cover p-1 rounded-lg"
-                              />
-                            );
-                          }
-                          return IconComponent && <IconComponent size={24} className="sm:size-8" strokeWidth={2} />;
-                        })()}
+                        <CategoryIcon
+                          icon={sub.icon}
+                          name={sub.name}
+                          size={24}
+                          className="sm:w-8 sm:h-8"
+                          imageClassName="object-cover p-1 rounded-lg"
+                        />
                       </div>
                       <div className="flex flex-col items-center gap-0.5">
                         <h3 className="text-[9px] sm:text-[11px] font-black text-slate-900 leading-tight uppercase tracking-tight line-clamp-2 group-hover:text-primary transition-colors">{sub.name}</h3>

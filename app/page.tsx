@@ -4,17 +4,14 @@ import { getCategories, getFeaturedGroups } from '@/app/actions/category';
 import { getMovies } from '@/app/actions/movie';
 import { getTouristPlaces } from '@/app/actions/touristPlace';
 import { getBlogs } from '@/app/actions/blog';
-
 export default async function Home() {
-  const featuredCategoryNames = ["Restaurants", "Education", "Astrologers", "Wedding Planning"];
-
   const [bizResult, catResult, movieResult, touristResult, blogResult, groupsResult] = await Promise.all([
     getFeaturedBusinesses(),
     getCategories(),
     getMovies(),
     getTouristPlaces(),
     getBlogs(),
-    getFeaturedGroups(featuredCategoryNames)
+    getFeaturedGroups(),
   ]);
 
   const initialData = {
@@ -23,7 +20,7 @@ export default async function Home() {
     movies: movieResult.success ? movieResult.movies : [],
     touristPlaces: touristResult.success ? touristResult.touristPlaces : [],
     blogs: blogResult.success ? blogResult.blogs : [],
-    featuredGroups: (groupsResult.success && groupsResult.groups && groupsResult.groups.length > 0) ? groupsResult.groups : null
+    featuredGroups: groupsResult.success ? groupsResult.groups ?? [] : [],
   };
 
   return <HomeClient initialData={initialData} />;

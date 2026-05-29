@@ -1,6 +1,5 @@
 import Link from 'next/link';
-import Image from 'next/image';
-import * as LucideIcons from 'lucide-react';
+import CategoryIcon from '@/components/CategoryIcon';
 import { Category } from '@/lib/mockData';
 
 interface CategoryCardProps {
@@ -8,11 +7,7 @@ interface CategoryCardProps {
 }
 
 export default function CategoryCard({ category }: CategoryCardProps) {
-  const isImageUrl = category.icon?.startsWith('http') || category.icon?.startsWith('/');
-  
-  // @ts-ignore
-  const IconComponent = !isImageUrl ? (LucideIcons[category.icon] || LucideIcons.Grid) : null;
-  const categoryColor = category.color || '#4f46e5'; // Default to indigo if no color
+  const categoryColor = category.color || '#4f46e5';
 
   return (
     <Link 
@@ -56,18 +51,13 @@ export default function CategoryCard({ category }: CategoryCardProps) {
           className="relative z-20 transition-all duration-500 transform group-hover:rotate-3 flex items-center justify-center w-full h-full"
           style={{ color: categoryColor }}
         >
-          {isImageUrl ? (
-            <div className="relative w-full h-full">
-              <Image
-                src={category.icon}
-                alt={category.name}
-                fill
-                className="object-cover"
-              />
-            </div>
-          ) : (
-            IconComponent && <IconComponent size={40} className="sm:size-[96px]" strokeWidth={1.8} />
-          )}
+          <CategoryIcon
+            icon={category.icon}
+            name={category.name}
+            size={40}
+            className="sm:w-24 sm:h-24 w-10 h-10"
+            imageClassName="object-cover"
+          />
         </div>
 
         {/* Floating Accent Dots */}

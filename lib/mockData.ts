@@ -32,8 +32,8 @@ export interface Business {
 export interface Category {
   id: string;
   name: string;
-  icon: string;
-  image: string;
+  icon: string | null;
+  image?: string | null;
   slug: string;
   businessCount: number;
   color?: string;

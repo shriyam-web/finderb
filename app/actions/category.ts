@@ -2,6 +2,7 @@
 
 import { createClient } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';
+import { categoryHref, dbBanner, dbSymbol } from '@/lib/categoryDisplay';
 
 export async function getCategories(topLevelOnly = true) {
   try {
@@ -28,11 +29,11 @@ export async function getCategories(topLevelOnly = true) {
     const mappedCategories = categories.map((c: any) => ({
       id: c.id,
       name: c.name,
-      icon: c.symbol && c.symbol !== 'Not Set' ? c.symbol : 'Grid',
-      image: c.banner && c.banner !== 'Not Set' ? c.banner : 'https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?auto=format&fit=crop&q=80&w=800',
+      icon: dbSymbol(c.symbol),
+      image: dbBanner(c.banner),
       slug: c.slug || c.name.toLowerCase().replace(/\s+/g, '-'),
       businessCount: c.items_count || 0,
-      color: '#3B82F6' // Default color
+      color: '#3B82F6',
     }));
 
     return { success: true, categories: mappedCategories };
@@ -61,8 +62,8 @@ export async function getSubCategories(parentId: string) {
       id: c.id,
       name: c.name,
       slug: c.slug || c.name.toLowerCase().replace(/\s+/g, '-'),
-      image: c.banner && c.banner !== 'Not Set' ? c.banner : 'https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?auto=format&fit=crop&q=80&w=800',
-      icon: c.symbol && c.symbol !== 'Not Set' ? c.symbol : 'Grid',
+      image: dbBanner(c.banner),
+      icon: dbSymbol(c.symbol),
       businessCount: c.items_count || 0,
     }));
 
@@ -73,46 +74,102 @@ export async function getSubCategories(parentId: string) {
   }
 }
 
-export async function getFeaturedGroups(categoryNames: string[]) {
+const EXTRA_TOP_LEVEL_GROUPS = 3;
+
+function mapSubcategory(child: {
+  id: string;
+  name: string;
+  slug: string | null;
+  symbol: string | null;
+  banner: string | null;
+  items_count: number | null;
+}) {
+  return {
+    id: child.id,
+    name: child.name,
+    slug: child.slug,
+    icon: dbSymbol(child.symbol),
+    image: dbBanner(child.banner),
+    businessCount: child.items_count || 0,
+    href: categoryHref(child.slug, child.name),
+  };
+}
+
+/** Top-level categories from DB; includes up to 3 extra parents without subcategories. */
+export async function getFeaturedGroups() {
   try {
     const supabase = createClient(await cookies());
 
-    // 1. Fetch parent categories
     const { data: parents, error: parentError } = await supabase
       .from('categories')
-      .select('id, name, slug, banner')
-      .or(categoryNames.map(name => `name.ilike.${name}`).join(','))
+      .select('id, name, slug, banner, symbol, position, items_count')
       .is('parent_id', null)
-      .eq('status', 'Active');
+      .eq('status', 'Active')
+      .order('position', { ascending: true })
+      .order('items_count', { ascending: false });
 
     if (parentError) throw parentError;
+    if (!parents?.length) {
+      return { success: true, groups: [] };
+    }
 
-    // 2. For each parent, fetch all subcategories
-    const groups = await Promise.all(parents.map(async (parent) => {
-      const { data: children, error: childError } = await supabase
-        .from('categories')
-        .select('id, name, slug, banner, symbol, items_count')
-        .eq('parent_id', parent.id)
-        .eq('status', 'Active')
-        .order('items_count', { ascending: false });
+    const parentIds = parents.map((p) => p.id);
+    const { data: children, error: childError } = await supabase
+      .from('categories')
+      .select('id, name, slug, banner, symbol, items_count, parent_id, position')
+      .in('parent_id', parentIds)
+      .eq('status', 'Active')
+      .order('position', { ascending: true })
+      .order('items_count', { ascending: false });
 
-      if (childError) throw childError;
+    if (childError) throw childError;
 
-      return {
+    const childrenByParent = new Map<string, NonNullable<typeof children>>();
+    for (const child of children ?? []) {
+      const list = childrenByParent.get(child.parent_id) ?? [];
+      list.push(child);
+      childrenByParent.set(child.parent_id, list);
+    }
+
+    const groupsWithSubcategories = parents
+      .map((parent) => {
+        const subs = childrenByParent.get(parent.id) ?? [];
+        if (subs.length === 0) return null;
+
+        return {
+          id: parent.id,
+          title: parent.name,
+          slug: parent.slug,
+          icon: dbSymbol(parent.symbol),
+          subcategories: subs.map(mapSubcategory),
+        };
+      })
+      .filter((g): g is NonNullable<typeof g> => g !== null);
+
+    const includedParentIds = new Set(groupsWithSubcategories.map((g) => g.id));
+
+    const extraParentGroups = parents
+      .filter((p) => !includedParentIds.has(p.id))
+      .slice(0, EXTRA_TOP_LEVEL_GROUPS)
+      .map((parent) => ({
+        id: parent.id,
         title: parent.name,
         slug: parent.slug,
-        subcategories: children.map(child => ({
-          name: child.name,
-          slug: child.slug,
-          image: child.banner && child.banner !== 'Not Set' ? child.banner : null,
-          icon: child.symbol && child.symbol !== 'Not Set' ? child.symbol : 'Grid',
-          businessCount: child.items_count || 0,
-          href: `/categories/${child.slug || child.name.toLowerCase().replace(/\s+/g, '-')}`
-        }))
-      };
-    }));
+        icon: dbSymbol(parent.symbol),
+        subcategories: [
+          {
+            id: parent.id,
+            name: parent.name,
+            slug: parent.slug,
+            icon: dbSymbol(parent.symbol),
+            image: dbBanner(parent.banner),
+            businessCount: parent.items_count || 0,
+            href: `/categories?id=${parent.id}`,
+          },
+        ],
+      }));
 
-    return { success: true, groups };
+    return { success: true, groups: [...groupsWithSubcategories, ...extraParentGroups] };
   } catch (error: any) {
     console.error('Get Featured Groups Error:', error);
     return { success: false, error: error.message || 'Failed to fetch featured groups' };
