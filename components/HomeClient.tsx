@@ -42,6 +42,7 @@ import { formatDistanceFromUser } from '@/lib/geo';
 import {
   createVoiceRecognition,
   getSpeechRecognitionCtor,
+  normalizeVoiceTranscript,
   type VoiceRecognitionInstance,
 } from '@/lib/voiceSearch';
 
@@ -177,7 +178,8 @@ export default function HomeClient({ initialData }: { initialData: any }) {
     (session: number) => {
       if (session !== voiceSessionRef.current) return;
 
-      const q = voiceTranscriptRef.current.trim();
+      const q = normalizeVoiceTranscript(voiceTranscriptRef.current);
+      voiceTranscriptRef.current = q;
       stopRecognitionEngine(false);
       clearVoiceTimers();
 
@@ -234,7 +236,7 @@ export default function HomeClient({ initialData }: { initialData: any }) {
       continuous: true,
       onTranscript: (text) => {
         if (session !== voiceSessionRef.current) return;
-        const trimmed = text.trim();
+        const trimmed = normalizeVoiceTranscript(text);
         if (!trimmed) return;
 
         voiceTranscriptRef.current = trimmed;
