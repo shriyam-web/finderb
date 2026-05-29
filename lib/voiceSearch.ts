@@ -59,9 +59,6 @@ function dedupeGluedPhrases(text: string): string {
     if (first.toLowerCase() === second.toLowerCase()) {
       return first;
     }
-    if (second.toLowerCase().startsWith(first.toLowerCase())) {
-      return first;
-    }
   }
 
   for (let size = 1; size <= Math.floor(trimmed.length / 2); size++) {
