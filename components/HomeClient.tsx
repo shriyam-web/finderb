@@ -39,7 +39,11 @@ import { getTouristPlaces } from '@/app/actions/touristPlace';
 import { getBlogs } from '@/app/actions/blog';
 import { getSession } from '@/app/actions/user';
 import { formatDistanceFromUser } from '@/lib/geo';
-import { createVoiceRecognition, getSpeechRecognitionCtor } from '@/lib/voiceSearch';
+import {
+  createVoiceRecognition,
+  getSpeechRecognitionCtor,
+  type VoiceRecognitionInstance,
+} from '@/lib/voiceSearch';
 
 const WORDS = [
   "verified professionals",
@@ -93,7 +97,7 @@ export default function HomeClient({ initialData }: { initialData: any }) {
   const [aiQuery, setAiQuery] = useState('');
   const [isListening, setIsListening] = useState(false);
   const [voiceError, setVoiceError] = useState<string | null>(null);
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const recognitionRef = useRef<VoiceRecognitionInstance | null>(null);
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
 
   const stopVoiceRecognition = useCallback(() => {

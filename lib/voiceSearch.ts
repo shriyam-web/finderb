@@ -1,10 +1,48 @@
-export type SpeechRecognitionCtor = new () => SpeechRecognition;
+/** Minimal Web Speech API types (not in all TS lib.dom builds). */
 
-export function getSpeechRecognitionCtor(): SpeechRecognitionCtor | null {
+export interface VoiceRecognitionResultItem {
+  transcript: string;
+}
+
+export interface VoiceRecognitionResultList {
+  isFinal: boolean;
+  length: number;
+  [index: number]: VoiceRecognitionResultItem;
+}
+
+export interface VoiceRecognitionEventLike {
+  resultIndex: number;
+  results: {
+    length: number;
+    [index: number]: VoiceRecognitionResultList;
+  };
+}
+
+export interface VoiceRecognitionErrorEventLike {
+  error: string;
+}
+
+export interface VoiceRecognitionInstance {
+  lang: string;
+  continuous: boolean;
+  interimResults: boolean;
+  maxAlternatives: number;
+  onstart: (() => void) | null;
+  onresult: ((event: VoiceRecognitionEventLike) => void) | null;
+  onerror: ((event: VoiceRecognitionErrorEventLike) => void) | null;
+  onend: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+  abort: () => void;
+}
+
+export type VoiceRecognitionCtor = new () => VoiceRecognitionInstance;
+
+export function getSpeechRecognitionCtor(): VoiceRecognitionCtor | null {
   if (typeof window === 'undefined') return null;
   const w = window as Window & {
-    webkitSpeechRecognition?: SpeechRecognitionCtor;
-    SpeechRecognition?: SpeechRecognitionCtor;
+    webkitSpeechRecognition?: VoiceRecognitionCtor;
+    SpeechRecognition?: VoiceRecognitionCtor;
   };
   return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
 }
@@ -15,7 +53,7 @@ export function createVoiceRecognition(handlers: {
   onError?: (code: string) => void;
   onEnd?: () => void;
   lang?: string;
-}): SpeechRecognition | null {
+}): VoiceRecognitionInstance | null {
   const Ctor = getSpeechRecognitionCtor();
   if (!Ctor) return null;
 
@@ -25,7 +63,7 @@ export function createVoiceRecognition(handlers: {
   recognition.interimResults = true;
   recognition.maxAlternatives = 1;
 
-  recognition.onresult = (event: SpeechRecognitionEvent) => {
+  recognition.onresult = (event: VoiceRecognitionEventLike) => {
     let finalText = '';
     let interimText = '';
 
@@ -47,7 +85,7 @@ export function createVoiceRecognition(handlers: {
     }
   };
 
-  recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+  recognition.onerror = (event: VoiceRecognitionErrorEventLike) => {
     handlers.onError?.(event.error);
   };
 
