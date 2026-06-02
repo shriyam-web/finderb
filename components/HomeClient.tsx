@@ -666,17 +666,13 @@ export default function HomeClient({ initialData }: { initialData: any }) {
         <>
           <section className="hidden lg:block pb-10">
             <div className="w-full px-0">
-              <div className="relative w-full overflow-hidden border-b border-slate-200">
-                <div className="pointer-events-none absolute inset-x-0 top-0 h-[364px] w-full">
-                  <Image
-                    src="/hero.png"
-                    alt="Hero background"
-                    fill
-                    className="object-contain object-top"
-                    priority
-                    sizes="100vw"
-                  />
-                </div>
+              <div className="relative w-full overflow-hidden">
+                <div
+                  className="pointer-events-none absolute inset-x-0 top-0 h-[364px] w-full overflow-hidden bg-[url('/hero.png')] bg-top bg-no-repeat"
+                  style={{ backgroundSize: '100% auto' }}
+                  role="img"
+                  aria-label="Hero background"
+                />
 
                 <div className="relative z-10 px-10 pb-7 pt-28">
                   <div className="text-center">
