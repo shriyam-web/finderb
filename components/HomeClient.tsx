@@ -666,17 +666,27 @@ export default function HomeClient({ initialData }: { initialData: any }) {
         <>
           <section className="hidden lg:block bg-[#f8fafc] pt-24 pb-10">
             <div className="mx-auto max-w-[1220px] px-6">
-              <div className="rounded-[28px] border border-slate-200 bg-white px-12 pb-10 pt-12 shadow-[0_14px_40px_rgba(15,39,59,0.08)]">
-                <div className="text-center">
-                  <h1 className="text-5xl font-extrabold tracking-tight text-[#0f2a4a]">
+              <div className="relative overflow-hidden rounded-[26px] border border-slate-200 bg-white px-10 pb-7 pt-10">
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[220px] opacity-35">
+                  <Image
+                    src="/hero.png"
+                    alt="Hero background"
+                    fill
+                    className="object-cover object-bottom"
+                    priority
+                  />
+                </div>
+
+                <div className="relative z-10 text-center">
+                  <h1 className="text-[54px] font-extrabold tracking-[-0.02em] text-[#0f2a4a]">
                     Find trusted businesses near you
                   </h1>
-                  <p className="mt-3 text-xl font-medium text-slate-500">
+                  <p className="mt-2 text-[30px] font-medium text-slate-500">
                     Search millions of listings across India
                   </p>
                 </div>
 
-                <div className="mx-auto mt-8 flex max-w-5xl items-center rounded-2xl border border-slate-200 bg-white p-2 shadow-[0_10px_26px_rgba(15,39,59,0.08)]">
+                <div className="relative z-10 mx-auto mt-8 flex max-w-5xl items-center rounded-2xl border border-slate-200 bg-white p-2 shadow-[0_8px_20px_rgba(15,39,59,0.10)]">
                   <div className="flex flex-1 items-center gap-3 rounded-xl px-4 py-3">
                     <Search size={20} className="text-slate-400" />
                     <input
@@ -707,7 +717,7 @@ export default function HomeClient({ initialData }: { initialData: any }) {
                   </button>
                 </div>
 
-                <div className="mt-5 flex items-center gap-3">
+                <div className="relative z-10 mt-4 flex items-center gap-3">
                   <span className="text-xs font-semibold text-slate-500">Popular Searches:</span>
                   <div className="flex flex-wrap gap-2">
                     {['CA', 'Dentist', 'Restaurant', 'PG', 'Lawyer', 'Gym', 'Car Service', 'Makeup Artist'].map((term) => (
