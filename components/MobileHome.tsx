@@ -48,21 +48,24 @@ const HERO_TRUST_BADGES = [
     title: 'Trusted',
     subtitle: 'Verified Listings',
     icon: ShieldCheck,
-    iconWrap: 'bg-blue-50',
+    badgeBg: 'bg-blue-50',
+    iconWrap: 'bg-blue-100',
     iconColor: 'text-blue-600',
   },
   {
     title: 'Local',
     subtitle: 'Near You',
     icon: MapPin,
-    iconWrap: 'bg-emerald-50',
+    badgeBg: 'bg-emerald-50',
+    iconWrap: 'bg-emerald-100',
     iconColor: 'text-emerald-600',
   },
   {
     title: 'Fast',
     subtitle: 'Quick Results',
     icon: Zap,
-    iconWrap: 'bg-amber-50',
+    badgeBg: 'bg-amber-50',
+    iconWrap: 'bg-amber-100',
     iconColor: 'text-amber-500',
   },
 ] as const;
@@ -98,50 +101,59 @@ export default function MobileHome({
     <div className="lg:hidden bg-white">
       {/* Hero — matches hero-new mock */}
       <section className="relative overflow-hidden bg-gradient-to-b from-white via-[#f4f8ff] to-white pb-5">
-        <div className="px-4 pt-[4.5rem]">
-          <div className="flex items-start gap-1">
-            <div className="min-w-0 flex-1 pt-0.5">
-              <h1 className="text-left text-[22px] font-extrabold leading-[1.15] tracking-tight text-[#0f172a]">
+        {/* Illustration: flush right, no gap */}
+        <div
+          className="pointer-events-none absolute right-0 top-[3.5rem] z-[1] h-[252px] w-[min(68vw,320px)]"
+          aria-hidden
+        >
+          <div className="relative h-full w-full origin-right scale-[1.12]">
+            <Image
+              src="/hero-new.png"
+              alt=""
+              fill
+              className="object-contain object-right"
+              sizes="68vw"
+              priority
+            />
+          </div>
+        </div>
+
+        <div className="relative z-[2] pt-[4.5rem]">
+          <div className="pl-4 pr-1">
+            <div className="max-w-[54%]">
+              <h1 className="text-left text-[21px] font-extrabold leading-[1.12] tracking-tight text-[#0f172a]">
                 Find trusted{' '}
                 <span className="text-[#2563eb]">businesses near you</span>
               </h1>
-              <p className="mt-1.5 text-left text-[13px] text-[#64748b]">
+              <p className="mt-1 text-left text-[12px] leading-snug text-[#64748b]">
                 Search millions of listings across India
               </p>
 
-              <div className="mt-4 flex items-stretch divide-x divide-gray-200/90">
-                {HERO_TRUST_BADGES.map(({ title, subtitle, icon: Icon, iconWrap, iconColor }) => (
-                  <div
-                    key={title}
-                    className="flex min-w-0 flex-1 items-center gap-1.5 px-2 first:pl-0 last:pr-0"
-                  >
+              <div className="mt-3 flex gap-1">
+                {HERO_TRUST_BADGES.map(
+                  ({ title, subtitle, icon: Icon, badgeBg, iconWrap, iconColor }) => (
                     <div
-                      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${iconWrap}`}
+                      key={title}
+                      className={`flex min-w-0 flex-1 items-center gap-1 rounded-md px-1 py-1 ${badgeBg}`}
                     >
-                      <Icon size={15} className={iconColor} strokeWidth={2.25} />
+                      <div
+                        className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${iconWrap}`}
+                      >
+                        <Icon size={12} className={iconColor} strokeWidth={2.5} />
+                      </div>
+                      <div className="min-w-0 leading-none">
+                        <p className="text-[9px] font-bold text-[#0f172a]">{title}</p>
+                        <p className="mt-px truncate text-[7px] text-[#94a3b8]">{subtitle}</p>
+                      </div>
                     </div>
-                    <div className="min-w-0">
-                      <p className="text-[11px] font-bold leading-tight text-[#0f172a]">{title}</p>
-                      <p className="text-[9px] leading-tight text-[#94a3b8]">{subtitle}</p>
-                    </div>
-                  </div>
-                ))}
+                  )
+                )}
               </div>
-            </div>
-
-            <div className="relative -mt-1 h-[156px] w-[124px] shrink-0">
-              <Image
-                src="/hero-new.png"
-                alt=""
-                fill
-                className="object-contain object-top"
-                sizes="124px"
-                priority
-              />
             </div>
           </div>
 
-          <div className="mt-4 overflow-hidden rounded-2xl border border-gray-100/80 bg-white text-left shadow-[0_8px_30px_rgba(15,23,42,0.08)]">
+          <div className="mt-3 px-4">
+          <div className="overflow-hidden rounded-2xl border border-gray-100/80 bg-white text-left shadow-[0_8px_30px_rgba(15,23,42,0.08)]">
             <div className="flex items-center gap-2 border-b border-gray-100 px-3.5 py-3">
               <Search size={18} className="shrink-0 text-[#94a3b8]" strokeWidth={2} />
               <input
@@ -181,8 +193,9 @@ export default function MobileHome({
               Search
             </button>
           </div>
+          </div>
 
-          <div className="mt-5">
+          <div className="mt-5 px-4">
             <div className="mb-3 flex items-center justify-between">
               <h2 className="text-[15px] font-bold text-[#0f172a]">Popular Searches</h2>
               <button
