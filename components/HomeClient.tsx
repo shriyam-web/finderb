@@ -671,9 +671,8 @@ export default function HomeClient({ initialData }: { initialData: any }) {
                   <Image
                     src="/hero.png"
                     alt="Hero background"
-                    width={1920}
-                    height={420}
-                    className="h-[364px] w-full object-contain object-top object-left"
+                    fill
+                    className="object-contain object-top"
                     priority
                     sizes="100vw"
                   />
