@@ -746,16 +746,18 @@ export default function HomeClient({ initialData }: { initialData: any }) {
                   </div>
                 </section>
 
-                <Link href="/?tab=ai" className="mb-6 block">
-                  <Image
-                    src="/meet-ai.png"
-                    alt="Meet FinderB AI — Your smart assistant to find the best businesses near you"
-                    width={1200}
-                    height={320}
-                    className="h-auto w-full"
-                    sizes="(min-width: 1280px) 1200px, 100vw"
-                  />
-                </Link>
+                <div className="mb-6 flex justify-center">
+                  <Link href="/?tab=ai" className="block w-full max-w-3xl">
+                    <Image
+                      src="/meet-ai.png"
+                      alt="Meet FinderB AI — Your smart assistant to find the best businesses near you"
+                      width={1200}
+                      height={320}
+                      className="h-auto w-full"
+                      sizes="(min-width: 1280px) 768px, 90vw"
+                    />
+                  </Link>
+                </div>
 
                 {/* Trending + Featured */}
                 <section className="mb-5 grid grid-cols-12 gap-5">

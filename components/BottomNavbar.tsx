@@ -93,8 +93,8 @@ export default function BottomNavbar() {
 
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-0 z-[9999] lg:hidden">
-      <div className="pointer-events-auto relative mx-auto max-w-lg px-4 pb-4">
-        <div className="relative h-[68px]">
+      <div className="pointer-events-auto relative mx-auto max-w-lg px-4 pb-3">
+        <div className="relative h-[58px]">
           <svg
             className="absolute inset-0 h-full w-full drop-shadow-[0_4px_24px_rgba(15,23,42,0.12)]"
             viewBox="0 0 400 68"
@@ -123,27 +123,34 @@ export default function BottomNavbar() {
 
           <Link
             href={centerTab.href}
-            className="absolute left-1/2 top-0 z-20 -translate-x-1/2 -translate-y-[24px]"
+            className="absolute left-1/2 top-0 z-20 -translate-x-1/2 -translate-y-[20px]"
             aria-label={centerTab.label}
           >
             <span
-              className={`flex h-[54px] w-[54px] items-center justify-center rounded-full ring-4 ring-white ${
-                centerActive ? 'bg-[#1d4ed8]' : 'bg-[#2563eb]'
+              className="absolute -inset-1.5 rounded-full bg-gradient-to-r from-blue-500/55 via-cyan-400/45 to-violet-500/55 blur-md animate-ai-fab-glow"
+              aria-hidden
+            />
+            <span
+              className={`relative flex h-[50px] w-[50px] items-center justify-center rounded-full bg-[length:220%_220%] ring-[3px] ring-white shadow-[0_6px_24px_rgba(37,99,235,0.5)] animate-ai-fab-gradient bg-gradient-to-br from-[#1d4ed8] via-[#06b6d4] to-[#7c3aed] ${
+                centerActive ? 'shadow-[0_8px_28px_rgba(6,182,212,0.55)]' : ''
               }`}
             >
               <FinderBAiNavIcon />
             </span>
           </Link>
 
-          <div className="absolute inset-x-0 bottom-0 grid h-full grid-cols-5 items-end px-1 pb-2">
+          <div className="absolute inset-0 grid grid-cols-5 items-center px-1 py-2">
             {tabs.map((tab) => {
               const active = isTabActive(tab);
               const Icon = tab.icon;
 
               if (tab.center) {
                 return (
-                  <div key={tab.label} className="flex flex-col items-center justify-end pb-0.5">
-                    <div className="h-[26px]" aria-hidden />
+                  <div
+                    key={tab.label}
+                    className="flex h-full flex-col items-center justify-end gap-1"
+                  >
+                    <div className="h-5 w-5 shrink-0" aria-hidden />
                     <span
                       className={`text-[10px] font-semibold leading-none ${
                         active ? 'text-[#2563eb]' : 'text-[#64748b]'
@@ -159,10 +166,10 @@ export default function BottomNavbar() {
                 <Link
                   key={tab.label}
                   href={tab.href}
-                  className="flex flex-col items-center justify-end gap-0.5 pb-0.5"
+                  className="flex h-full flex-col items-center justify-end gap-1"
                 >
                   <Icon
-                    size={22}
+                    size={20}
                     strokeWidth={active ? 2.25 : 1.75}
                     className={active ? 'text-[#2563eb]' : 'text-[#64748b]'}
                   />

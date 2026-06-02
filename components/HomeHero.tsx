@@ -30,12 +30,12 @@ export default function HomeHero({
     <section
       className={`relative overflow-hidden bg-gradient-to-b from-white via-[#f5f9ff] to-[#e8f2fc] ${
         isDesktop ? 'hidden lg:block' : 'lg:hidden'
-      } ${isDesktop ? 'pb-4' : 'pb-5'}`}
+      } ${isDesktop ? 'pb-6' : 'pb-5'}`}
     >
       <div
         className={`pointer-events-none absolute right-0 z-[1] ${
           isDesktop
-            ? 'top-20 h-[min(210px,28vh)] w-[min(38%,400px)]'
+            ? 'top-[4.5rem] h-[min(240px,32vh)] w-[min(42%,440px)]'
             : 'top-[3.85rem] h-[184px] w-[min(49vw,205px)]'
         }`}
         aria-hidden
@@ -45,18 +45,18 @@ export default function HomeHero({
           alt=""
           fill
           className="object-contain object-right"
-          sizes={isDesktop ? '(min-width: 1024px) 38vw, 49vw' : '49vw'}
+          sizes={isDesktop ? '(min-width: 1024px) 42vw, 49vw' : '49vw'}
           priority
         />
       </div>
 
       <div
-        className={`relative z-[2] ${isDesktop ? 'mx-auto max-w-7xl px-8 pb-1 pt-24' : 'pt-[4.5rem]'}`}
+        className={`relative z-[2] ${isDesktop ? 'mx-auto max-w-7xl px-8 pb-2 pt-28' : 'pt-[4.5rem]'}`}
       >
-        <div className={isDesktop ? 'relative max-w-xl' : 'pl-4 pr-1'}>
+        <div className={isDesktop ? 'relative max-w-2xl' : 'pl-4 pr-1'}>
           <div className={isDesktop ? '' : 'max-w-[62%]'}>
             {isDesktop ? (
-              <h1 className="text-left text-[32px] font-extrabold leading-tight tracking-tight text-[#0f172a]">
+              <h1 className="text-left text-[36px] font-extrabold leading-tight tracking-tight text-[#0f172a]">
                 Find trusted{' '}
                 <span className="text-[#2563eb]">businesses near you</span>
               </h1>
@@ -70,7 +70,7 @@ export default function HomeHero({
             )}
             <p
               className={`text-left text-[#64748b] ${
-                isDesktop ? 'mt-1 text-sm leading-snug' : 'mt-1 text-[12px] leading-snug'
+                isDesktop ? 'mt-1.5 text-base leading-snug' : 'mt-1 text-[12px] leading-snug'
               }`}
             >
               {isDesktop ? (
@@ -83,57 +83,56 @@ export default function HomeHero({
               )}
             </p>
 
-            <div
-              className={`flex gap-0.5 ${
-                isDesktop ? 'mt-2 max-w-sm' : 'mt-2.5 max-w-[10.75rem]'
-              }`}
-            >
-              {HERO_TRUST_BADGES.map(
-                ({ title, subtitle, icon: Icon, badgeBg, iconWrap, iconColor }) => (
-                  <div
-                    key={title}
-                    className={`flex min-w-0 flex-1 items-center rounded ${
-                      isDesktop ? 'gap-1 px-1 py-0.5' : 'gap-0.5 px-0.5 py-0.5'
-                    } ${badgeBg}`}
-                  >
+            {isDesktop ? (
+              <div className="mt-3 flex max-w-md gap-1">
+                {HERO_TRUST_BADGES.map(
+                  ({ title, subtitle, icon: Icon, badgeBg, iconWrap, iconColor }) => (
                     <div
-                      className={`flex shrink-0 items-center justify-center rounded-full ${iconWrap} ${
-                        isDesktop ? 'h-6 w-6' : 'h-5 w-5'
-                      }`}
+                      key={title}
+                      className={`flex min-w-0 flex-1 items-center gap-1.5 rounded-md px-1.5 py-1 ${badgeBg}`}
                     >
-                      <Icon
-                        size={isDesktop ? 12 : 10}
-                        className={iconColor}
-                        strokeWidth={2.5}
-                      />
-                    </div>
-                    <div className="min-w-0 leading-[1.05]">
-                      <p
-                        className={`font-bold text-[#0f172a] ${
-                          isDesktop ? 'text-[10px]' : 'text-[8px]'
-                        }`}
+                      <div
+                        className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${iconWrap}`}
                       >
+                        <Icon size={14} className={iconColor} strokeWidth={2.5} />
+                      </div>
+                      <div className="min-w-0 leading-[1.05]">
+                        <p className="text-[11px] font-bold text-[#0f172a]">{title}</p>
+                        <p className="text-[10px] text-[#94a3b8]">{subtitle}</p>
+                      </div>
+                    </div>
+                  )
+                )}
+              </div>
+            ) : (
+              <div className="mt-3 grid max-w-[min(100%,16rem)] grid-cols-3 gap-1.5">
+                {HERO_TRUST_BADGES.map(
+                  ({ title, subtitle, icon: Icon, badgeBg, iconWrap, iconColor }) => (
+                    <div
+                      key={title}
+                      className={`flex flex-col items-center rounded-lg px-1 py-2 text-center ${badgeBg}`}
+                    >
+                      <div
+                        className={`flex h-8 w-8 items-center justify-center rounded-full ${iconWrap}`}
+                      >
+                        <Icon size={15} className={iconColor} strokeWidth={2.5} />
+                      </div>
+                      <p className="mt-1.5 text-[10px] font-bold leading-tight text-[#0f172a]">
                         {title}
                       </p>
-                      <p
-                        className={
-                          isDesktop ? 'text-[9px] text-[#94a3b8]' : 'text-[6px] text-[#94a3b8]'
-                        }
-                      >
-                        {subtitle}
-                      </p>
+                      <p className="mt-0.5 text-[8px] leading-tight text-[#94a3b8]">{subtitle}</p>
                     </div>
-                  </div>
-                )
-              )}
-            </div>
+                  )
+                )}
+              </div>
+            )}
           </div>
         </div>
 
-        <div className={`${isDesktop ? 'mt-3 max-w-2xl' : 'mt-3 px-4'}`}>
+        <div className={`${isDesktop ? 'mt-4 max-w-2xl' : 'mt-3 px-4'}`}>
           {isDesktop ? (
             <div className="flex items-stretch overflow-hidden rounded-xl border border-gray-100/80 bg-white shadow-[0_4px_20px_rgba(15,23,42,0.07)]">
-              <div className="flex min-w-0 flex-[1.4] items-center gap-2 border-r border-gray-100 px-3 py-2">
+              <div className="flex min-w-0 flex-[1.4] items-center gap-2 border-r border-gray-100 px-3.5 py-2.5">
                 <Search size={18} className="shrink-0 text-[#94a3b8]" strokeWidth={2} />
                 <input
                   type="text"
@@ -147,7 +146,7 @@ export default function HomeHero({
                   <Mic size={17} strokeWidth={2} />
                 </button>
               </div>
-              <div className="flex items-center gap-1.5 border-r border-gray-100 px-3 py-2">
+              <div className="flex items-center gap-1.5 border-r border-gray-100 px-3.5 py-2.5">
                 <MapPin size={16} className="shrink-0 text-[#2563eb]" strokeWidth={2.25} />
                 <span className="whitespace-nowrap text-sm font-semibold text-[#1e293b]">New Delhi</span>
                 <ChevronDown size={14} className="shrink-0 text-[#94a3b8]" />
