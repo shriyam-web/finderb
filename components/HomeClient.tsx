@@ -666,13 +666,14 @@ export default function HomeClient({ initialData }: { initialData: any }) {
         <>
           <section className="hidden lg:block pb-10">
             <div className="w-full px-0">
-              <div className="relative w-full min-h-[520px] overflow-hidden border-b border-slate-200">
-                <div className="pointer-events-none absolute inset-0">
+              <div className="relative w-full overflow-hidden border-b border-slate-200">
+                <div className="pointer-events-none absolute inset-x-0 top-0 h-[364px]">
                   <Image
                     src="/hero.png"
                     alt="Hero background"
-                    fill
-                    className="object-contain object-top"
+                    width={1920}
+                    height={420}
+                    className="h-full w-full object-contain object-top"
                     priority
                     sizes="100vw"
                   />
@@ -1029,6 +1030,7 @@ export default function HomeClient({ initialData }: { initialData: any }) {
           </div>
         </div>
       </section>
+          </div>
 
       {/* Featured Group Categories — parents & subcategories from DB */}
       {featuredGroups.length > 0 && (
@@ -1240,7 +1242,6 @@ export default function HomeClient({ initialData }: { initialData: any }) {
           </div>
         </div>
       </section>
-          </div>
         </>
       )}
 
