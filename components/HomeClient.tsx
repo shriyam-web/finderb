@@ -664,7 +664,7 @@ export default function HomeClient({ initialData }: { initialData: any }) {
 
       {!(activeMobileTab === 'AI Search' || (activeMobileTab === 'FinderB AI' && isAiLoading)) && (
         <>
-          <section className="hidden lg:block bg-[#f8fafc] pt-6 pb-10">
+          <section className="hidden lg:block bg-[#f8fafc] pt-8 pb-10">
             <div className="w-full px-0">
               <div className="relative w-full overflow-hidden border-y border-slate-200 bg-white px-10 pb-7 pt-10">
                 <div className="pointer-events-none absolute inset-x-0 bottom-0 opacity-35">
@@ -679,10 +679,10 @@ export default function HomeClient({ initialData }: { initialData: any }) {
                 </div>
 
                 <div className="relative z-10 text-center">
-                  <h1 className="text-[54px] font-extrabold tracking-[-0.02em] text-[#0f2a4a]">
+                  <h1 className="text-[48px] font-extrabold tracking-[-0.02em] text-[#0f2a4a]">
                     Find trusted businesses near you
                   </h1>
-                  <p className="mt-2 text-[30px] font-medium text-slate-500">
+                  <p className="mt-2 text-[25px] font-medium text-slate-500">
                     Search millions of listings across India
                   </p>
                 </div>
