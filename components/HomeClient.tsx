@@ -27,6 +27,12 @@ import {
   PlusCircle,
   Lightbulb,
   ChevronDown,
+  ChevronRight,
+  TrendingUp,
+  ShieldCheck,
+  Check,
+  RefreshCw,
+  Phone,
   X,
   Cpu,
   Mic,
@@ -487,15 +493,32 @@ export default function HomeClient({ initialData }: { initialData: any }) {
     .sort((a, b) => b.businessCount - a.businessCount);
   const popularCategories = sortedCategories.slice(0, 18);
   const otherCategories = sortedCategories.slice(18);
-  const desktopCategories = sortedCategories.slice(0, 9);
+  const desktopCategories = sortedCategories.slice(0, 12);
   const desktopFeaturedBusinesses = realBusinesses.slice(0, 4);
   const desktopTrendingItems = [
-    'Best Cafes in Delhi',
-    'CA Services Near You',
-    'Home Interior Designers',
-    'PG in Delhi',
-    'Immigration Consultants',
+    { label: 'Best Cafes in Delhi', trend: 12 },
+    { label: 'CA Services Near You', trend: 7 },
+    { label: 'Home Interior Designers', trend: 15 },
+    { label: 'PG in Delhi', trend: 5 },
+    { label: 'Immigration Consultants', trend: 15 },
   ];
+
+  const getCategorySubtitle = (cat: Category) => {
+    const subtitles: Record<string, string> = {
+      doctors: 'Hospitals, Clinics',
+      restaurants: 'Delivery, Dine-in',
+      gyms: 'Fitness Centers',
+      salons: 'Beauty Parlours',
+      schools: 'CBSE, ICSE, IB',
+      'real-estate': 'Buy, Rent, Sell',
+      hotels: 'Budget, Luxury',
+      lawyers: 'Corporate, Civil',
+      cafes: 'Coffee, Bakery',
+      dentists: 'Dental Clinics',
+      plumbers: 'Home Services',
+    };
+    return subtitles[cat.slug] ?? 'Top listings';
+  };
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -668,11 +691,18 @@ export default function HomeClient({ initialData }: { initialData: any }) {
             <div className="w-full px-0">
               <div className="relative w-full overflow-hidden">
                 <div
-                  className="pointer-events-none absolute inset-x-0 top-0 h-[364px] w-full overflow-hidden bg-[url('/hero.png')] bg-top bg-no-repeat"
-                  style={{ backgroundSize: '100% auto' }}
-                  role="img"
-                  aria-label="Hero background"
-                />
+                  className="pointer-events-none absolute inset-x-0 top-0 w-full"
+                  style={{ height: 'min(364px, calc(100vw * 420 / 1920))' }}
+                >
+                  <Image
+                    src="/hero.png"
+                    alt="Hero background"
+                    fill
+                    className="object-contain object-top"
+                    priority
+                    sizes="100vw"
+                  />
+                </div>
 
                 <div className="relative z-10 px-10 pb-7 pt-28">
                   <div className="text-center">
@@ -733,112 +763,210 @@ export default function HomeClient({ initialData }: { initialData: any }) {
                 </div>
               </div>
 
-              <div className="mx-auto mt-10 max-w-[1220px] px-6">
-              <section>
-                <div className="mb-5 flex items-center justify-between">
-                  <h2 className="text-[28px] font-extrabold text-[#132847]">Popular Categories</h2>
-                  <Link href="/categories" className="flex items-center gap-1 text-sm font-bold text-[#1f5fbf] hover:text-primary">
-                    View All Categories
-                    <ArrowRight size={15} />
-                  </Link>
-                </div>
-
-                <div className="grid grid-cols-9 gap-3">
-                  {desktopCategories.map((cat) => (
+              <div className="mx-auto mt-12 max-w-[1280px] px-8">
+                {/* Popular Categories */}
+                <section className="mb-10">
+                  <div className="mb-5 flex items-center justify-between">
+                    <h2 className="text-lg font-bold text-[#1e293b]">Popular Categories</h2>
                     <Link
-                      key={cat.id}
-                      href={`/categories?id=${cat.id}`}
-                      className="rounded-2xl border border-slate-200 bg-white px-2 py-4 text-center shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
+                      href="/categories"
+                      className="flex items-center gap-1 text-sm font-medium text-[#2563eb] hover:text-[#1d4ed8]"
                     >
-                      <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center">
-                        <CategoryIcon
-                          icon={cat.icon}
-                          name={cat.name}
-                          size={42}
-                          className="h-10 w-10 text-slate-500"
-                          imageClassName="object-contain"
-                        />
-                      </div>
-                      <p className="line-clamp-1 text-sm font-semibold text-slate-700">{cat.name}</p>
-                      <p className="mt-0.5 line-clamp-1 text-[11px] text-slate-400">Top Listings</p>
+                      View All Categories
+                      <ArrowRight size={14} />
                     </Link>
-                  ))}
-                </div>
-              </section>
-
-              <section className="mt-10 grid grid-cols-12 gap-4">
-                <div className="col-span-3 rounded-2xl border border-slate-200 bg-white p-5">
-                  <div className="mb-4 flex items-center justify-between">
-                    <h3 className="text-xl font-extrabold text-[#132847]">Trending This Week</h3>
-                    <Link href="/categories" className="text-xs font-bold text-[#1f5fbf] hover:text-primary">View All</Link>
                   </div>
-                  <div className="space-y-3">
-                    {desktopTrendingItems.map((item, idx) => (
-                      <button
-                        key={item}
-                        type="button"
-                        onClick={() => handleManualSearch(item)}
-                        className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left hover:bg-slate-50"
+
+                  <div className="relative">
+                    <div className="scrollbar-hide flex gap-4 overflow-x-auto pb-1 pr-14">
+                      {desktopCategories.map((cat) => (
+                        <Link
+                          key={cat.id}
+                          href={`/categories?id=${cat.id}`}
+                          className="flex w-[108px] shrink-0 flex-col items-center rounded-xl border border-gray-100 bg-white px-3 py-4 text-center shadow-[0_1px_3px_rgba(0,0,0,0.06)] transition-shadow hover:shadow-md"
+                        >
+                          <div className="mb-2.5 flex h-11 w-11 items-center justify-center">
+                            <CategoryIcon
+                              icon={cat.icon}
+                              name={cat.name}
+                              size={40}
+                              className="h-10 w-10 text-slate-600"
+                              imageClassName="object-contain"
+                            />
+                          </div>
+                          <p className="line-clamp-1 text-[13px] font-semibold leading-tight text-[#1e293b]">
+                            {cat.name}
+                          </p>
+                          <p className="mt-1 line-clamp-2 text-[11px] leading-snug text-[#94a3b8]">
+                            {getCategorySubtitle(cat)}
+                          </p>
+                        </Link>
+                      ))}
+                    </div>
+                    <Link
+                      href="/categories"
+                      className="absolute right-0 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 shadow-sm hover:border-gray-300 hover:text-gray-700"
+                      aria-label="View more categories"
+                    >
+                      <ChevronRight size={18} />
+                    </Link>
+                  </div>
+                </section>
+
+                {/* Trending + Featured */}
+                <section className="mb-8 grid grid-cols-12 gap-5">
+                  <div className="col-span-4 rounded-xl border border-gray-100 bg-white p-5 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
+                    <div className="mb-4 flex items-center justify-between">
+                      <h3 className="flex items-center gap-1.5 text-lg font-bold text-[#1e293b]">
+                        Trending This Week
+                        <span className="text-base leading-none" aria-hidden>
+                          🔥
+                        </span>
+                      </h3>
+                      <Link
+                        href="/categories"
+                        className="text-sm font-medium text-[#2563eb] hover:text-[#1d4ed8]"
                       >
-                        <div className="flex items-center gap-3">
-                          <span className="w-4 text-xs font-bold text-slate-400">{idx + 1}</span>
-                          <span className="text-sm font-medium text-slate-700">{item}</span>
-                        </div>
-                        <ArrowRight size={13} className="text-slate-300" />
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="col-span-9 rounded-2xl border border-slate-200 bg-white p-5">
-                  <div className="mb-4 flex items-center justify-between">
-                    <h3 className="text-xl font-extrabold text-[#132847]">Featured Verified Businesses</h3>
-                    <Link href="/categories" className="text-xs font-bold text-[#1f5fbf] hover:text-primary">View All</Link>
-                  </div>
-                  <div className="grid grid-cols-4 gap-4">
-                    {desktopFeaturedBusinesses.map((biz) => (
-                      <div key={biz.id} className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
-                        <div className="relative h-32">
-                          <Image
-                            src={biz.profilePictureUrl || biz.image || '/fallback.jpg'}
-                            alt={biz.name}
-                            fill
-                            className="object-cover"
-                          />
-                          <div className="absolute left-2 top-2 rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-bold uppercase text-white">
-                            Verified
-                          </div>
-                        </div>
-                        <div className="space-y-1 p-3">
-                          <p className="line-clamp-1 text-sm font-bold text-slate-800">{biz.name}</p>
-                          <p className="line-clamp-1 text-xs text-slate-500">{biz.category}</p>
-                          <div className="flex items-center gap-2 text-xs">
-                            <span className="flex items-center gap-1 font-semibold text-amber-500">
-                              <Star size={12} className="fill-amber-500 text-amber-500" />
-                              {biz.rating}
+                        View All
+                      </Link>
+                    </div>
+                    <ul className="divide-y divide-gray-100">
+                      {desktopTrendingItems.map((item, idx) => (
+                        <li key={item.label}>
+                          <button
+                            type="button"
+                            onClick={() => handleManualSearch(item.label)}
+                            className="flex w-full items-center gap-2 py-3.5 text-left transition-colors hover:bg-gray-50/80"
+                          >
+                            <span className="w-4 shrink-0 text-xs font-medium text-[#94a3b8]">{idx + 1}</span>
+                            <span className="min-w-0 flex-1 text-[13px] font-medium text-[#334155]">{item.label}</span>
+                            <span className="flex shrink-0 items-center gap-0.5 text-xs font-semibold text-[#22c55e]">
+                              <TrendingUp size={13} strokeWidth={2.5} />
+                              {item.trend}%
                             </span>
-                            <span className="truncate text-slate-500">{biz.location}</span>
+                            <ChevronRight size={14} className="shrink-0 text-[#cbd5e1]" />
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div className="col-span-8 rounded-xl border border-gray-100 bg-white p-5 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
+                    <div className="mb-5 flex items-center justify-between">
+                      <h3 className="text-lg font-bold text-[#1e293b]">Featured Verified Businesses</h3>
+                      <Link
+                        href="/categories"
+                        className="text-sm font-medium text-[#2563eb] hover:text-[#1d4ed8]"
+                      >
+                        View All
+                      </Link>
+                    </div>
+                    <div className="grid grid-cols-4 gap-4">
+                      {desktopFeaturedBusinesses.map((biz) => (
+                        <Link
+                          key={biz.id}
+                          href={`/business/${biz.id}`}
+                          className="group overflow-hidden rounded-xl border border-gray-100 bg-white transition-shadow hover:shadow-md"
+                        >
+                          <div className="relative aspect-[4/3] overflow-hidden bg-gray-100">
+                            <Image
+                              src={biz.profilePictureUrl || biz.image || '/fallback.jpg'}
+                              alt={biz.name}
+                              fill
+                              className="object-cover transition-transform duration-300 group-hover:scale-105"
+                              sizes="(max-width: 1280px) 25vw"
+                            />
+                            <div className="absolute right-2 top-2 flex items-center gap-1 rounded bg-[#22c55e] px-1.5 py-0.5 shadow-sm">
+                              <Check size={10} className="text-white" strokeWidth={3} />
+                              <span className="text-[9px] font-bold uppercase tracking-wide text-white">
+                                Verified
+                              </span>
+                            </div>
                           </div>
+                          <div className="space-y-1.5 p-3">
+                            <p className="line-clamp-1 text-[14px] font-semibold text-[#1e293b] group-hover:text-[#2563eb]">
+                              {biz.name}
+                            </p>
+                            <p className="line-clamp-1 text-[12px] text-[#94a3b8]">{biz.category}</p>
+                            <div className="flex items-center gap-1">
+                              <div className="flex">
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                  <Star
+                                    key={star}
+                                    size={11}
+                                    className={
+                                      star <= Math.round(biz.rating)
+                                        ? 'fill-amber-400 text-amber-400'
+                                        : 'fill-gray-200 text-gray-200'
+                                    }
+                                  />
+                                ))}
+                              </div>
+                              <span className="text-[12px] font-medium text-[#475569]">
+                                {biz.rating}{' '}
+                                <span className="font-normal text-[#94a3b8]">
+                                  ({biz.reviewsCount ?? 0})
+                                </span>
+                              </span>
+                            </div>
+                            <div className="flex items-start gap-1 text-[11px] leading-snug text-[#94a3b8]">
+                              <MapPin size={12} className="mt-0.5 shrink-0" />
+                              <span className="line-clamp-2">{biz.location}</span>
+                            </div>
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                </section>
+
+                {/* Trust bar */}
+                <section className="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
+                  <div className="grid grid-cols-4 divide-x divide-gray-100">
+                    {[
+                      {
+                        title: 'Verified Businesses',
+                        subtitle: 'Authentic & Verified Listings',
+                        icon: ShieldCheck,
+                        iconBg: 'bg-blue-50',
+                        iconColor: 'text-blue-600',
+                      },
+                      {
+                        title: 'Real Customer Reviews',
+                        subtitle: 'Honest Reviews from Real People',
+                        icon: MessageSquare,
+                        iconBg: 'bg-emerald-50',
+                        iconColor: 'text-emerald-600',
+                      },
+                      {
+                        title: 'Updated Daily',
+                        subtitle: 'Latest Information Always',
+                        icon: RefreshCw,
+                        iconBg: 'bg-violet-50',
+                        iconColor: 'text-violet-600',
+                      },
+                      {
+                        title: 'Instant Contact',
+                        subtitle: 'Call, Chat or Enquire Directly',
+                        icon: Phone,
+                        iconBg: 'bg-orange-50',
+                        iconColor: 'text-orange-500',
+                      },
+                    ].map(({ title, subtitle, icon: Icon, iconBg, iconColor }) => (
+                      <div key={title} className="flex items-center gap-4 px-6 py-5">
+                        <div
+                          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${iconBg}`}
+                        >
+                          <Icon size={20} className={iconColor} />
+                        </div>
+                        <div>
+                          <p className="text-[13px] font-semibold text-[#1e293b]">{title}</p>
+                          <p className="mt-0.5 text-[11px] leading-snug text-[#94a3b8]">{subtitle}</p>
                         </div>
                       </div>
                     ))}
                   </div>
-                </div>
-              </section>
-
-              <section className="mt-6 grid grid-cols-4 gap-4">
-                {[
-                  ['Verified Businesses', 'Authentic & Verified Listings'],
-                  ['Real Customer Reviews', 'Honest reviews from real people'],
-                  ['Updated Daily', 'Latest information always'],
-                  ['Instant Contact', 'Call, chat or enquire directly'],
-                ].map(([title, subtitle]) => (
-                  <div key={title} className="rounded-2xl border border-slate-200 bg-white px-4 py-4">
-                    <p className="text-sm font-bold text-[#132847]">{title}</p>
-                    <p className="mt-1 text-xs text-slate-500">{subtitle}</p>
-                  </div>
-                ))}
-              </section>
+                </section>
               </div>
             </div>
           </section>
