@@ -690,15 +690,12 @@ export default function HomeClient({ initialData }: { initialData: any }) {
           <section className="hidden lg:block pb-10">
             <div className="w-full px-0">
               <div className="relative w-full overflow-hidden">
-                <div
-                  className="pointer-events-none absolute inset-x-0 top-0 w-full"
-                  style={{ height: 'min(364px, calc(100vw * 420 / 1920))' }}
-                >
+                <div className="pointer-events-none absolute inset-x-0 top-0 h-[364px] w-full">
                   <Image
                     src="/hero.png"
                     alt="Hero background"
                     fill
-                    className="object-contain object-top"
+                    className="h-full w-full object-fill object-top"
                     priority
                     sizes="100vw"
                   />
