@@ -665,8 +665,8 @@ export default function HomeClient({ initialData }: { initialData: any }) {
       {!(activeMobileTab === 'AI Search' || (activeMobileTab === 'FinderB AI' && isAiLoading)) && (
         <>
           <section className="hidden lg:block bg-[#f8fafc] pt-24 pb-10">
-            <div className="mx-auto max-w-[1220px] px-6">
-              <div className="relative overflow-hidden rounded-[26px] border border-slate-200 bg-white px-10 pb-7 pt-10">
+            <div className="w-full px-0">
+              <div className="relative w-full overflow-hidden border-y border-slate-200 bg-white px-10 pb-7 pt-10">
                 <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[220px] opacity-35">
                   <Image
                     src="/hero.png"
@@ -734,7 +734,8 @@ export default function HomeClient({ initialData }: { initialData: any }) {
                 </div>
               </div>
 
-              <section className="mt-10">
+              <div className="mx-auto mt-10 max-w-[1220px] px-6">
+              <section>
                 <div className="mb-5 flex items-center justify-between">
                   <h2 className="text-[28px] font-extrabold text-[#132847]">Popular Categories</h2>
                   <Link href="/categories" className="flex items-center gap-1 text-sm font-bold text-[#1f5fbf] hover:text-primary">
@@ -839,6 +840,7 @@ export default function HomeClient({ initialData }: { initialData: any }) {
                   </div>
                 ))}
               </section>
+              </div>
             </div>
           </section>
 
