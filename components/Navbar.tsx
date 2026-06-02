@@ -93,7 +93,7 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
       scrolled
         ? 'bg-white border-b border-gray-100 shadow-md py-2 sm:py-3'
         : 'bg-transparent py-3 sm:py-6 border-b border-transparent'
-    } lg:bg-white lg:border-b lg:border-gray-100 lg:shadow-sm lg:py-3`}>
+    }`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-full">
           {/* Logo - Left aligned */}
