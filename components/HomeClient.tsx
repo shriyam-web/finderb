@@ -978,7 +978,6 @@ export default function HomeClient({ initialData }: { initialData: any }) {
             isBusinessesLoading={isBusinessesLoading}
           />
 
-      <div className="hidden lg:block">
       {/* Featured Group Categories — parents & subcategories from DB */}
       {featuredGroups.length > 0 && (
         <section className="py-16 lg:py-24 bg-white">
@@ -1189,7 +1188,6 @@ export default function HomeClient({ initialData }: { initialData: any }) {
           </div>
         </div>
       </section>
-      </div>
         </>
       )}
 

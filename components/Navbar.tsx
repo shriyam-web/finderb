@@ -4,7 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useEffect, Suspense } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { Menu, X, User, Briefcase, Globe, Megaphone, Users, UserCircle, HelpCircle, ChevronDown, Home, ArrowRight, Settings, LogOut, LayoutDashboard, Building2, Bell } from 'lucide-react';
+import { Menu, X, User, Briefcase, Globe, Megaphone, Users, UserCircle, HelpCircle, ChevronDown, Home, ArrowRight, Settings, LogOut, LayoutDashboard, Building2 } from 'lucide-react';
 import { getSession, logoutUser } from '@/app/actions/user';
 import { getBusinessSession, logoutBusiness } from '@/app/actions/business';
 import { useRouter } from 'next/navigation';
@@ -93,7 +93,7 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
       scrolled
         ? 'bg-white border-b border-gray-100 shadow-md py-2 sm:py-3'
         : 'bg-transparent py-3 sm:py-6 border-b border-transparent'
-    } max-lg:bg-white max-lg:border-b max-lg:border-gray-100 max-lg:shadow-sm max-lg:py-2.5`}>
+    }`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-full">
           {/* Logo - Left aligned */}
@@ -270,14 +270,29 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
           </div>
 
           <div className="flex lg:hidden items-center gap-2">
-            <button
-              type="button"
-              className="relative flex h-10 w-10 items-center justify-center rounded-full text-[#475569] transition-colors hover:bg-gray-50"
-              aria-label="Notifications"
-            >
-              <Bell size={22} strokeWidth={1.75} />
-              <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white" />
-            </button>
+            {isLoggedIn ? (
+              <Link
+                href="/dashboard"
+                className={`rounded-lg px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider transition-all ${
+                  scrolled
+                    ? 'text-primary border border-primary/10 bg-white'
+                    : 'text-primary border border-primary/15 bg-white/90 shadow-sm backdrop-blur-sm'
+                }`}
+              >
+                Account
+              </Link>
+            ) : (
+              <Link
+                href="/login"
+                className={`rounded-lg px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider transition-all ${
+                  scrolled
+                    ? 'text-primary'
+                    : 'text-primary border border-primary/15 bg-white/90 shadow-sm backdrop-blur-sm'
+                }`}
+              >
+                Login
+              </Link>
+            )}
 
             {!isOpen && (
               <button
