@@ -60,19 +60,19 @@ export default function MobileHome({
   return (
     <div className="lg:hidden bg-[#f8fafc] pb-28">
       {/* Hero */}
-      <section className="overflow-hidden bg-white pb-2">
-        <div className="grid w-full grid-cols-1">
+      <section className="relative overflow-hidden bg-white pb-2">
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-[200px] w-full">
           <Image
             src="/hero.png"
             alt=""
-            width={1920}
-            height={420}
-            className="col-start-1 row-start-1 block h-auto w-full"
+            fill
+            className="object-cover object-bottom"
             sizes="100vw"
             priority
           />
+        </div>
 
-          <div className="col-start-1 row-start-1 z-10 self-start px-4 pb-4 pt-[4.5rem] text-center">
+        <div className="relative z-10 px-4 pb-4 pt-[4.5rem] text-center">
           <h1 className="text-[22px] font-bold leading-tight text-[#0f2a4a]">
             Find trusted businesses near you
           </h1>
@@ -80,7 +80,7 @@ export default function MobileHome({
             Search millions of listings across India
           </p>
 
-          <div className="mt-4 overflow-hidden rounded-xl border border-gray-100 bg-white text-left shadow-[0_4px_20px_rgba(15,39,59,0.08)]">
+          <div className="relative z-10 mt-4 overflow-hidden rounded-xl border border-gray-100 bg-white text-left shadow-[0_4px_20px_rgba(15,39,59,0.08)]">
             <div className="flex items-center gap-2 border-b border-gray-100 px-3 py-3">
               <Search size={18} className="shrink-0 text-[#94a3b8]" />
               <input
@@ -106,7 +106,6 @@ export default function MobileHome({
             >
               Search
             </button>
-          </div>
           </div>
         </div>
       </section>
@@ -282,7 +281,7 @@ export default function MobileHome({
       </section>
 
       {/* Trust icons */}
-      <section className="mt-2 bg-white px-4 py-3 pb-4">
+      <section className="bg-white px-4 pb-2 pt-3">
         <div className="grid grid-cols-4 gap-2">
           {[
             { label: 'Verified\nBusinesses', icon: ShieldCheck, bg: 'bg-blue-50', color: 'text-blue-600' },
