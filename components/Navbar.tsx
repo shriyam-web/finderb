@@ -78,8 +78,10 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
 
   const menuItems = [
     { name: 'Home', href: '/', icon: Home },
-    { name: 'Advertise', href: '/advertisements', icon: Megaphone },
-    { name: 'About', href: '/about', icon: HelpCircle },
+    { name: 'Businesses', href: '/categories', icon: Building2 },
+    { name: 'Jobs', href: '/categories/job', icon: Briefcase },
+    { name: 'Deals', href: '/pricing', icon: Megaphone },
+    { name: 'News', href: '/blog', icon: HelpCircle },
   ];
 
   const languages = ['English', 'Hindi', 'Bengali', 'Tamil', 'Telugu'];
@@ -87,10 +89,11 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
   const isLight = !scrolled && whiteText;
 
   return (
-    <nav className={`fixed top-0 w-full z-[9999] transition-all duration-700 ${scrolled
-      ? 'bg-white border-b border-gray-100 shadow-md py-2 sm:py-3'
-      : 'bg-transparent py-3 sm:py-6 border-b border-transparent'
-      }`}>
+    <nav className={`fixed top-0 w-full z-[9999] transition-all duration-700 ${
+      scrolled
+        ? 'bg-white border-b border-gray-100 shadow-md py-2 sm:py-3'
+        : 'bg-transparent py-3 sm:py-6 border-b border-transparent'
+    } lg:bg-white lg:border-b lg:border-gray-100 lg:shadow-sm lg:py-3`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-full">
           {/* Logo - Left aligned */}
@@ -109,54 +112,30 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
           </Link>
 
           {/* Desktop Menu - Right aligned */}
-          <div className="hidden lg:flex items-center space-x-1">
-            {/* Language Selector First */}
-            <div className={`relative group/lang px-3 py-2 cursor-pointer flex items-center gap-1.5 transition-colors mr-2 ${isLight ? 'text-white/90 hover:text-white' : 'text-gray-700 hover:text-primary'}`}>
-              <Globe size={16} />
-              <span className="text-xs font-medium">{currentLang}</span>
-              <ChevronDown size={14} className="group-hover/lang:rotate-180 transition-transform duration-300" />
-
-              <div className="absolute top-full right-0 w-32 bg-white/95 backdrop-blur-xl border border-gray-100 shadow-xl rounded-2xl py-2 opacity-0 invisible group-hover/lang:opacity-100 group-hover/lang:visible transition-all duration-300 translate-y-2 group-hover/lang:translate-y-0 z-50">
-                {languages.map((lang) => (
-                  <button
-                    key={lang}
-                    onClick={() => setCurrentLang(lang)}
-                    className="w-full text-left px-4 py-2 text-xs font-medium text-gray-600 hover:bg-primary/10 hover:text-primary transition-colors"
-                  >
-                    {lang}
-                  </button>
-                ))}
-              </div>
+          <div className="hidden lg:flex w-full items-center justify-between">
+            <div className="ml-8 flex items-center gap-2">
+              {menuItems.map((item) => (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                    pathname === item.href
+                      ? 'text-primary'
+                      : 'text-slate-700 hover:text-primary'
+                  }`}
+                >
+                  {item.name}
+                </Link>
+              ))}
             </div>
 
-            <div className={`w-px h-6 mx-2 transition-colors ${isLight ? 'bg-white/20' : 'bg-gray-200/50'}`} />
-
-            {/* Menu Items */}
-            {menuItems.map((item) => (
-              <Link
-                key={item.name}
-                href={item.href}
-                className={`font-medium px-3 py-2 rounded-xl transition-all duration-300 flex items-center gap-1.5 text-sm whitespace-nowrap ${isLight
-                  ? 'text-white/80 hover:text-white hover:bg-white/10'
-                  : 'text-gray-600 hover:text-primary hover:bg-primary/5'
-                  }`}
-              >
-                {item.icon && <item.icon size={16} />}
-                {item.name}
-              </Link>
-            ))}
-
-            <div className={`w-px h-6 mx-2 transition-colors ${isLight ? 'bg-white/20' : 'bg-gray-200/50'}`} />
-
-            {/* Business and Auth Actions */}
             <div className="flex items-center gap-3 ml-2">
               {!isBusinessLoggedIn && (
                 <Link
                   href="/business/register"
-                  className="relative flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-primary to-secondary text-white rounded-xl shadow-lg shadow-secondary/10 hover:shadow-secondary/30 hover:-translate-y-0.5 transition-all duration-500 font-bold text-[10px] group overflow-hidden uppercase tracking-widest"
+                  className="relative flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-[11px] font-semibold text-white transition-all hover:bg-primary/90"
                 >
-                  <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
-                  <span className="relative z-10">Register Business</span>
+                  <span className="relative z-10">+ Register Business</span>
                 </Link>
               )}
 
@@ -281,13 +260,10 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
               ) : (
                 <Link
                   href="/login"
-                  className={`flex items-center gap-2 px-4 py-2.5 border rounded-xl transition-all duration-500 font-semibold text-[10px] uppercase tracking-wider shadow-sm hover:shadow-md ${isLight
-                    ? 'bg-white/10 backdrop-blur-md text-white border-white/20 hover:bg-white/20'
-                    : 'bg-white/50 backdrop-blur-md text-primary border-primary/10 hover:bg-white hover:border-primary/30'
-                    }`}
+                  className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-[11px] font-semibold text-slate-700 transition-all hover:border-primary/30 hover:text-primary"
                 >
                   <User size={16} />
-                  <span>Login/ Signup</span>
+                  <span>Login / Sign Up</span>
                 </Link>
               )}
             </div>

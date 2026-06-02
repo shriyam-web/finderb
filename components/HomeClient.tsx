@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import SearchBar from '@/components/SearchBar';
 import CategoryCard from '@/components/CategoryCard';
+import CategoryIcon from '@/components/CategoryIcon';
 import SubcategoryScrollRow from '@/components/SubcategoryScrollRow';
 import BusinessCard from '@/components/BusinessCard';
 import NewsWidget from '@/components/NewsWidget';
@@ -485,6 +486,15 @@ export default function HomeClient({ initialData }: { initialData: any }) {
     .sort((a, b) => b.businessCount - a.businessCount);
   const popularCategories = sortedCategories.slice(0, 18);
   const otherCategories = sortedCategories.slice(18);
+  const desktopCategories = sortedCategories.slice(0, 9);
+  const desktopFeaturedBusinesses = realBusinesses.slice(0, 4);
+  const desktopTrendingItems = [
+    'Best Cafes in Delhi',
+    'CA Services Near You',
+    'Home Interior Designers',
+    'PG in Delhi',
+    'Immigration Consultants',
+  ];
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -653,6 +663,175 @@ export default function HomeClient({ initialData }: { initialData: any }) {
 
       {!(activeMobileTab === 'AI Search' || (activeMobileTab === 'FinderB AI' && isAiLoading)) && (
         <>
+          <section className="hidden lg:block bg-[#f8fafc] pt-24 pb-10">
+            <div className="mx-auto max-w-[1220px] px-6">
+              <div className="rounded-[28px] border border-slate-200 bg-white px-12 pb-10 pt-12 shadow-[0_14px_40px_rgba(15,39,59,0.08)]">
+                <div className="text-center">
+                  <h1 className="text-5xl font-extrabold tracking-tight text-[#0f2a4a]">
+                    Find trusted businesses near you
+                  </h1>
+                  <p className="mt-3 text-xl font-medium text-slate-500">
+                    Search millions of listings across India
+                  </p>
+                </div>
+
+                <div className="mx-auto mt-8 flex max-w-5xl items-center rounded-2xl border border-slate-200 bg-white p-2 shadow-[0_10px_26px_rgba(15,39,59,0.08)]">
+                  <div className="flex flex-1 items-center gap-3 rounded-xl px-4 py-3">
+                    <Search size={20} className="text-slate-400" />
+                    <input
+                      type="text"
+                      value={manualQuery}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        manualQueryRef.current = v;
+                        setManualQuery(v);
+                      }}
+                      onKeyDown={(e) => e.key === 'Enter' && handleManualSearch()}
+                      placeholder="Search anything... (e.g. Dentist, CA, Gym, Salon)"
+                      className="w-full border-none bg-transparent text-sm font-medium text-slate-700 placeholder:text-slate-400 focus:ring-0"
+                    />
+                  </div>
+                  <div className="mx-2 h-8 w-px bg-slate-200" />
+                  <button className="flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold text-slate-600 hover:bg-slate-50">
+                    <MapPin size={16} className="text-slate-400" />
+                    New Delhi
+                    <ChevronDown size={15} className="text-slate-400" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleManualSearch()}
+                    className="ml-2 rounded-xl bg-[#2167f3] px-9 py-3 text-sm font-bold text-white hover:bg-[#1652ca]"
+                  >
+                    Search
+                  </button>
+                </div>
+
+                <div className="mt-5 flex items-center gap-3">
+                  <span className="text-xs font-semibold text-slate-500">Popular Searches:</span>
+                  <div className="flex flex-wrap gap-2">
+                    {['CA', 'Dentist', 'Restaurant', 'PG', 'Lawyer', 'Gym', 'Car Service', 'Makeup Artist'].map((term) => (
+                      <button
+                        key={term}
+                        type="button"
+                        onClick={() => handleManualSearch(term)}
+                        className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100"
+                      >
+                        {term}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <section className="mt-10">
+                <div className="mb-5 flex items-center justify-between">
+                  <h2 className="text-[28px] font-extrabold text-[#132847]">Popular Categories</h2>
+                  <Link href="/categories" className="flex items-center gap-1 text-sm font-bold text-[#1f5fbf] hover:text-primary">
+                    View All Categories
+                    <ArrowRight size={15} />
+                  </Link>
+                </div>
+
+                <div className="grid grid-cols-9 gap-3">
+                  {desktopCategories.map((cat) => (
+                    <Link
+                      key={cat.id}
+                      href={`/categories?id=${cat.id}`}
+                      className="rounded-2xl border border-slate-200 bg-white px-2 py-4 text-center shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
+                    >
+                      <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center">
+                        <CategoryIcon
+                          icon={cat.icon}
+                          name={cat.name}
+                          size={42}
+                          className="h-10 w-10 text-slate-500"
+                          imageClassName="object-contain"
+                        />
+                      </div>
+                      <p className="line-clamp-1 text-sm font-semibold text-slate-700">{cat.name}</p>
+                      <p className="mt-0.5 line-clamp-1 text-[11px] text-slate-400">Top Listings</p>
+                    </Link>
+                  ))}
+                </div>
+              </section>
+
+              <section className="mt-10 grid grid-cols-12 gap-4">
+                <div className="col-span-3 rounded-2xl border border-slate-200 bg-white p-5">
+                  <div className="mb-4 flex items-center justify-between">
+                    <h3 className="text-xl font-extrabold text-[#132847]">Trending This Week</h3>
+                    <Link href="/categories" className="text-xs font-bold text-[#1f5fbf] hover:text-primary">View All</Link>
+                  </div>
+                  <div className="space-y-3">
+                    {desktopTrendingItems.map((item, idx) => (
+                      <button
+                        key={item}
+                        type="button"
+                        onClick={() => handleManualSearch(item)}
+                        className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left hover:bg-slate-50"
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="w-4 text-xs font-bold text-slate-400">{idx + 1}</span>
+                          <span className="text-sm font-medium text-slate-700">{item}</span>
+                        </div>
+                        <ArrowRight size={13} className="text-slate-300" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="col-span-9 rounded-2xl border border-slate-200 bg-white p-5">
+                  <div className="mb-4 flex items-center justify-between">
+                    <h3 className="text-xl font-extrabold text-[#132847]">Featured Verified Businesses</h3>
+                    <Link href="/categories" className="text-xs font-bold text-[#1f5fbf] hover:text-primary">View All</Link>
+                  </div>
+                  <div className="grid grid-cols-4 gap-4">
+                    {desktopFeaturedBusinesses.map((biz) => (
+                      <div key={biz.id} className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+                        <div className="relative h-32">
+                          <Image
+                            src={biz.profilePictureUrl || biz.image || '/fallback.jpg'}
+                            alt={biz.name}
+                            fill
+                            className="object-cover"
+                          />
+                          <div className="absolute left-2 top-2 rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-bold uppercase text-white">
+                            Verified
+                          </div>
+                        </div>
+                        <div className="space-y-1 p-3">
+                          <p className="line-clamp-1 text-sm font-bold text-slate-800">{biz.name}</p>
+                          <p className="line-clamp-1 text-xs text-slate-500">{biz.category}</p>
+                          <div className="flex items-center gap-2 text-xs">
+                            <span className="flex items-center gap-1 font-semibold text-amber-500">
+                              <Star size={12} className="fill-amber-500 text-amber-500" />
+                              {biz.rating}
+                            </span>
+                            <span className="truncate text-slate-500">{biz.location}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </section>
+
+              <section className="mt-6 grid grid-cols-4 gap-4">
+                {[
+                  ['Verified Businesses', 'Authentic & Verified Listings'],
+                  ['Real Customer Reviews', 'Honest reviews from real people'],
+                  ['Updated Daily', 'Latest information always'],
+                  ['Instant Contact', 'Call, chat or enquire directly'],
+                ].map(([title, subtitle]) => (
+                  <div key={title} className="rounded-2xl border border-slate-200 bg-white px-4 py-4">
+                    <p className="text-sm font-bold text-[#132847]">{title}</p>
+                    <p className="mt-1 text-xs text-slate-500">{subtitle}</p>
+                  </div>
+                ))}
+              </section>
+            </div>
+          </section>
+
+          <div className="lg:hidden">
           {/* Featured Categories Strip */}
       <section className="pt-20 lg:pt-28 bg-white">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -1045,6 +1224,7 @@ export default function HomeClient({ initialData }: { initialData: any }) {
           </div>
         </div>
       </section>
+          </div>
         </>
       )}
 
