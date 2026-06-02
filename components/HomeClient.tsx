@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import CategoryIcon from '@/components/CategoryIcon';
 import MobileHome from '@/components/MobileHome';
+import HomeHero from '@/components/HomeHero';
 import SubcategoryScrollRow from '@/components/SubcategoryScrollRow';
 import NewsWidget from '@/components/NewsWidget';
 import {
@@ -685,77 +686,15 @@ export default function HomeClient({ initialData }: { initialData: any }) {
 
       {!(activeMobileTab === 'AI Search' || (activeMobileTab === 'FinderB AI' && isAiLoading)) && (
         <>
-          <section className="hidden lg:block pb-4">
-            <div className="w-full px-0">
-              <div className="grid w-full grid-cols-1">
-                <Image
-                  src="/hero.png"
-                  alt="Hero background"
-                  width={1920}
-                  height={420}
-                  className="col-start-1 row-start-1 block h-auto w-full"
-                  priority
-                  sizes="100vw"
-                />
-
-                <div className="col-start-1 row-start-1 z-10 self-start px-10 pb-7 pt-28">
-                  <div className="text-center">
-                    <h1 className="text-[48px] font-extrabold tracking-[-0.02em] text-[#0f2a4a]">
-                      Find trusted businesses near you
-                    </h1>
-                    <p className="mt-2 text-[25px] font-medium text-slate-500">
-                      Search millions of listings across India
-                    </p>
-                  </div>
-
-                  <div className="mx-auto mt-8 flex max-w-5xl items-center rounded-2xl border border-slate-200 bg-white p-2 shadow-[0_8px_20px_rgba(15,39,59,0.10)]">
-                    <div className="flex flex-1 items-center gap-3 rounded-xl px-4 py-3">
-                      <Search size={20} className="text-slate-400" />
-                      <input
-                        type="text"
-                        value={manualQuery}
-                        onChange={(e) => {
-                          const v = e.target.value;
-                          manualQueryRef.current = v;
-                          setManualQuery(v);
-                        }}
-                        onKeyDown={(e) => e.key === 'Enter' && handleManualSearch()}
-                        placeholder="Search anything... (e.g. Dentist, CA, Gym, Salon)"
-                        className="w-full border-none bg-transparent text-sm font-medium text-slate-700 placeholder:text-slate-400 focus:ring-0"
-                      />
-                    </div>
-                    <div className="mx-2 h-8 w-px bg-slate-200" />
-                    <button className="flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold text-slate-600 hover:bg-slate-50">
-                      <MapPin size={16} className="text-slate-400" />
-                      New Delhi
-                      <ChevronDown size={15} className="text-slate-400" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleManualSearch()}
-                      className="ml-2 rounded-xl bg-[#2167f3] px-9 py-3 text-sm font-bold text-white hover:bg-[#1652ca]"
-                    >
-                      Search
-                    </button>
-                  </div>
-
-                  <div className="mt-4 flex items-center justify-center gap-3">
-                    <span className="text-xs font-semibold text-slate-500">Popular Searches:</span>
-                    <div className="flex flex-wrap justify-center gap-2">
-                      {['CA', 'Dentist', 'Restaurant', 'PG', 'Lawyer', 'Gym', 'Car Service', 'Makeup Artist'].map((term) => (
-                        <button
-                          key={term}
-                          type="button"
-                          onClick={() => handleManualSearch(term)}
-                          className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100"
-                        >
-                          {term}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
+          <HomeHero
+            variant="desktop"
+            manualQuery={manualQuery}
+            onQueryChange={(v) => {
+              manualQueryRef.current = v;
+              setManualQuery(v);
+            }}
+            onSearch={handleManualSearch}
+          />
 
               <div className="mx-auto mt-6 max-w-[1280px] px-8">
                 {/* Popular Categories */}
@@ -806,6 +745,17 @@ export default function HomeClient({ initialData }: { initialData: any }) {
                     </Link>
                   </div>
                 </section>
+
+                <Link href="/?tab=ai" className="mb-6 block">
+                  <Image
+                    src="/meet-ai.png"
+                    alt="Meet FinderB AI — Your smart assistant to find the best businesses near you"
+                    width={1200}
+                    height={320}
+                    className="h-auto w-full"
+                    sizes="(min-width: 1280px) 1200px, 100vw"
+                  />
+                </Link>
 
                 {/* Trending + Featured */}
                 <section className="mb-5 grid grid-cols-12 gap-5">
@@ -962,8 +912,6 @@ export default function HomeClient({ initialData }: { initialData: any }) {
                   </div>
                 </section>
               </div>
-            </div>
-          </section>
 
           <MobileHome
             manualQuery={manualQuery}
