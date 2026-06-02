@@ -664,7 +664,7 @@ export default function HomeClient({ initialData }: { initialData: any }) {
 
       {!(activeMobileTab === 'AI Search' || (activeMobileTab === 'FinderB AI' && isAiLoading)) && (
         <>
-          <section className="hidden lg:block bg-[#f8fafc] pb-10">
+          <section className="hidden lg:block bg-[#f8fafc] pt-4 pb-10">
             <div className="w-full px-0">
               <div className="relative w-full overflow-hidden border-y border-slate-200 bg-white px-10 pb-7 pt-10">
                 <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[220px] opacity-35">
