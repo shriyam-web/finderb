@@ -2,11 +2,9 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import SearchBar from '@/components/SearchBar';
-import CategoryCard from '@/components/CategoryCard';
 import CategoryIcon from '@/components/CategoryIcon';
+import MobileHome from '@/components/MobileHome';
 import SubcategoryScrollRow from '@/components/SubcategoryScrollRow';
-import BusinessCard from '@/components/BusinessCard';
 import NewsWidget from '@/components/NewsWidget';
 import {
   ArrowRight,
@@ -968,190 +966,19 @@ export default function HomeClient({ initialData }: { initialData: any }) {
             </div>
           </section>
 
-          <div className="lg:hidden">
-          {/* Featured Categories Strip */}
-      <section className="pt-20 lg:pt-28 bg-white">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <MobileHome
+            manualQuery={manualQuery}
+            onQueryChange={(v) => {
+              manualQueryRef.current = v;
+              setManualQuery(v);
+            }}
+            onSearch={handleManualSearch}
+            categories={sortedCategories}
+            businesses={realBusinesses}
+            isBusinessesLoading={isBusinessesLoading}
+          />
 
-          {/* 1 Row - 5 Cards */}
-          <div className="grid grid-cols-5 gap-2 sm:gap-3">
-            {[
-              { name: 'Real Estate', image: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&q=80&w=400', href: '/categories/real-estate' },
-              { name: 'Admissions', image: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&q=80&w=400', href: '/categories/admissions' },
-              { name: 'B2B', image: 'https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&q=80&w=400', href: '/categories/b2b' },
-              { name: 'Job', image: 'https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?auto=format&fit=crop&q=80&w=400', href: '/categories/job' },
-              { name: 'FinderB News', image: 'https://images.unsplash.com/photo-1495020689067-958852a7765e?auto=format&fit=crop&q=80&w=400', href: '#news' },
-            ].map((item) => (
-              <Link
-                key={item.name}
-                href={item.href}
-                className="group relative h-24 sm:h-28 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all duration-300"
-              >
-                {/* Image */}
-                <Image
-                  src={item.image}
-                  alt={item.name}
-                  fill
-                  className="object-cover transition-transform duration-500 group-hover:scale-105"
-                />
-
-                {/* Overlay */}
-                <div className="absolute inset-0 bg-black/55 group-hover:bg-black/45 transition-colors duration-300" />
-
-                {/* Bottom-left Text */}
-                <div className="absolute bottom-2 left-2 right-1">
-                  <h3
-                    className="!text-white text-[10px] sm:text-xs font-semibold uppercase tracking-wide leading-tight drop-shadow-md"
-                    style={{ color: "#ffffff" }}
-                  >
-                    {item.name}
-                  </h3>
-                </div>
-              </Link>
-            ))}
-          </div>
-
-        </div>
-      </section>
-  
-      {/* Hero */}
-      <section className="relative pt-6 pb-6 lg:pt-12 lg:pb-8">
-        {/* Animated Background Elements */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full -z-10 overflow-hidden">
-          <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[60%] bg-primary/5 blur-[120px] rounded-full animate-pulse"></div>
-          <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[60%] bg-secondary/5 blur-[120px] rounded-full animate-pulse" style={{ animationDelay: '2s' }}></div>
-        </div>
-
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-6 lg:space-y-8">
-          <div className="space-y-3 max-w-4xl mx-auto pt-1">
-
-            <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight text-primary leading-[1.3]">
-              Everything you need, <br />
-              <span className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">all in one place.</span>
-            </h1>
-
-            <div className="flex flex-col items-center justify-center">
-              <div className="h-[1.1em] overflow-hidden relative text-slate-400 text-sm sm:text-base font-semibold">
-                <div
-                  className={`${isTransitioning ? 'transition-transform duration-700' : ''} ease-in-out flex flex-col items-center`}
-                  style={{ transform: `translateY(-${index * (100 / WORDS.length)}%)` }}
-                >
-                  {WORDS.map((word, i) => (
-                    <div key={i} className="h-[1.3em] flex items-center justify-center whitespace-nowrap">
-                      {word}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="w-full max-w-md mx-auto transform  transition-all duration-500 relative z-50">
-            <div className="bg-white/90 backdrop-blur-xl p-0 rounded-2xl shadow-[0_15px_35px_rgba(0,0,0,0.05)] border border-white ring-1 ring-black/[0.02]">
-              <SearchBar />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Category Section */}
-      <section className="bg-muted/50 py-12 sm:py-16 lg:py-24">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="mb-6 flex flex-col gap-3 sm:mb-8 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
-            <div>
-              <h2 className="text-2xl font-extrabold leading-tight tracking-tight text-primary sm:text-4xl lg:text-5xl">
-                What do you need <span className="text-secondary">help</span> with?
-              </h2>
-              <p className="mt-2 text-sm text-slate-500 sm:hidden">
-                Browse popular services near you
-              </p>
-            </div>
-            <Link
-              href="/categories"
-              className="group flex shrink-0 items-center gap-1.5 text-sm font-bold text-primary hover:text-secondary"
-            >
-              View all
-              <ArrowRight size={16} className="transition-transform group-hover:translate-x-0.5" />
-            </Link>
-          </div>
-
-          <div className="mb-8 grid grid-cols-5 gap-2.5 sm:mb-12 sm:grid-cols-4 sm:gap-6 lg:grid-cols-6">
-            {popularCategories.map((cat) => (
-              <CategoryCard key={cat.id} category={cat} />
-            ))}
-          </div>
-
-          <div className="flex justify-center">
-            <Link
-              href="/categories"
-              className="rounded-2xl bg-primary px-8 py-3.5 text-xs font-bold uppercase tracking-widest text-white shadow-md transition-all hover:bg-secondary active:scale-95 sm:px-10 sm:py-4 sm:shadow-lg"
-            >
-              Explore All Categories
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* Merchant Profiles Section */}
-      <section className="py-16 lg:py-24 bg-slate-50 overflow-hidden relative">
-        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-gray-200 to-transparent"></div>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-6">
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-primary tracking-tight w-full md:w-auto">
-              Recommended <span className="text-secondary">Merchants</span>
-            </h2>
-            
-            {/* Filters */}
-            <div className="w-full md:w-auto overflow-x-auto pb-2 md:pb-0 scrollbar-hide">
-              <div className="flex items-center gap-3 bg-white/50 backdrop-blur-sm p-1.5 rounded-2xl md:rounded-[2rem] border border-gray-100 shadow-sm min-w-max">
-                <span className="text-[9px] font-black uppercase tracking-widest text-gray-400 ml-3 hidden sm:block">Filter:</span>
-                <div className="flex gap-2">
-                  {[
-                    { label: 'Top Rated', icon: Star },
-                    { label: 'Best Discount', icon: Zap },
-                    { label: 'Nearest', icon: MapPin },
-                  ].map((filter) => (
-                    <button
-                      key={filter.label}
-                      className="px-4 md:px-5 py-2 md:py-2.5 rounded-xl md:rounded-2xl bg-white border border-gray-50 text-[10px] font-bold text-gray-500 hover:border-secondary/30 hover:text-secondary hover:shadow-lg hover:shadow-secondary/5 transition-all flex items-center gap-2 group whitespace-nowrap"
-                    >
-                      <filter.icon size={12} className="group-hover:scale-110 transition-transform text-secondary/70" />
-                      {filter.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Horizontal Scrolling List */}
-          <div className="flex overflow-x-auto pb-12 gap-4 sm:gap-6 lg:gap-8 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
-            {isBusinessesLoading ? (
-              Array.from({ length: 4 }).map((_, idx) => (
-                <div key={idx} className="h-[360px] w-[220px] shrink-0 overflow-hidden rounded-3xl sm:h-[400px] sm:w-[300px]">
-                  <div className="h-full w-full animate-pulse bg-white border border-gray-100" />
-                </div>
-              ))
-            ) : (
-              realBusinesses.map((biz) => (
-                <div
-                  key={biz.id}
-                  className="h-[360px] w-[220px] shrink-0 overflow-hidden rounded-3xl sm:h-[400px] sm:w-[300px]"
-                >
-                  <BusinessCard
-                    business={biz}
-                    hidePriceRange
-                    uniform
-                    distanceLabel={formatDistanceFromUser(userCoords, biz.latitude, biz.longitude)}
-                  />
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      </section>
-          </div>
-
+      <div className="hidden lg:block">
       {/* Featured Group Categories — parents & subcategories from DB */}
       {featuredGroups.length > 0 && (
         <section className="py-16 lg:py-24 bg-white">
@@ -1362,6 +1189,7 @@ export default function HomeClient({ initialData }: { initialData: any }) {
           </div>
         </div>
       </section>
+      </div>
         </>
       )}
 

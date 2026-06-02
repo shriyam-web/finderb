@@ -4,7 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useEffect, Suspense } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { Menu, X, User, Briefcase, Globe, Megaphone, Users, UserCircle, HelpCircle, ChevronDown, Home, ArrowRight, Settings, LogOut, LayoutDashboard, Building2 } from 'lucide-react';
+import { Menu, X, User, Briefcase, Globe, Megaphone, Users, UserCircle, HelpCircle, ChevronDown, Home, ArrowRight, Settings, LogOut, LayoutDashboard, Building2, Bell } from 'lucide-react';
 import { getSession, logoutUser } from '@/app/actions/user';
 import { getBusinessSession, logoutBusiness } from '@/app/actions/business';
 import { useRouter } from 'next/navigation';
@@ -93,7 +93,7 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
       scrolled
         ? 'bg-white border-b border-gray-100 shadow-md py-2 sm:py-3'
         : 'bg-transparent py-3 sm:py-6 border-b border-transparent'
-    }`}>
+    } max-lg:bg-white max-lg:border-b max-lg:border-gray-100 max-lg:shadow-sm max-lg:py-2.5`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-full">
           {/* Logo - Left aligned */}
@@ -269,31 +269,23 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
             </div>
           </div>
 
-          <div className="flex lg:hidden items-center gap-3">
-            {!isBusinessLoggedIn && !isLoggedIn && (
-              <Link
-                href="/login"
-                className={`px-3 py-1.5 rounded-lg font-bold text-[10px] uppercase tracking-wider transition-all ${
-                  scrolled ? 'text-primary' : (isLight ? 'text-white border border-white/20 bg-white/10' : 'text-primary border border-primary/10 bg-white/50')
-                }`}
-              >
-                Login
-              </Link>
-            )}
+          <div className="flex lg:hidden items-center gap-2">
+            <button
+              type="button"
+              className="relative flex h-10 w-10 items-center justify-center rounded-full text-[#475569] transition-colors hover:bg-gray-50"
+              aria-label="Notifications"
+            >
+              <Bell size={22} strokeWidth={1.75} />
+              <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white" />
+            </button>
 
             {!isOpen && (
               <button
                 onClick={() => setIsOpen(true)}
-                className={`relative z-[10002] p-2 rounded-xl transition-all active:scale-95 ${
-                  scrolled
-                    ? 'text-gray-700 bg-gray-50'
-                    : isLight
-                      ? 'text-white bg-white/10 backdrop-blur-md border border-white/20'
-                      : 'text-gray-700 bg-white/50 backdrop-blur-sm border border-gray-100'
-                }`}
+                className="relative z-[10002] flex h-10 w-10 items-center justify-center rounded-full text-[#475569] transition-all hover:bg-gray-50 active:scale-95"
                 aria-label="Open menu"
               >
-                <Menu size={24} />
+                <Menu size={24} strokeWidth={1.75} />
               </button>
             )}
           </div>
