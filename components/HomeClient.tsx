@@ -696,7 +696,7 @@ export default function HomeClient({ initialData }: { initialData: any }) {
             onSearch={handleManualSearch}
           />
 
-              <div className="mx-auto mt-6 hidden max-w-[1280px] px-8 lg:block">
+              <div className="mx-auto mt-4 hidden max-w-[1280px] px-8 lg:block">
                 {/* Popular Categories — desktop only (mobile uses MobileHome) */}
                 <section className="mb-6">
                   <div className="mb-5 flex items-center justify-between">
