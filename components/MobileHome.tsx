@@ -60,19 +60,19 @@ export default function MobileHome({
   return (
     <div className="lg:hidden bg-[#f8fafc] pb-28">
       {/* Hero */}
-      <section className="relative overflow-hidden bg-white pb-2">
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-[240px]">
+      <section className="overflow-hidden bg-white pb-2">
+        <div className="grid w-full grid-cols-1">
           <Image
             src="/hero.png"
             alt=""
-            fill
-            className="object-fill object-top"
+            width={1920}
+            height={420}
+            className="col-start-1 row-start-1 block h-auto w-full"
             sizes="100vw"
             priority
           />
-        </div>
 
-        <div className="relative z-10 px-4 pb-4 pt-[4.5rem] text-center">
+          <div className="col-start-1 row-start-1 z-10 self-start px-4 pb-4 pt-[4.5rem] text-center">
           <h1 className="text-[22px] font-bold leading-tight text-[#0f2a4a]">
             Find trusted businesses near you
           </h1>
@@ -107,11 +107,12 @@ export default function MobileHome({
               Search
             </button>
           </div>
+          </div>
         </div>
       </section>
 
       {/* Popular Searches */}
-      <section className="bg-white px-4 py-5">
+      <section className="bg-white px-4 py-4">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-[15px] font-bold text-[#0f2a4a]">Popular Searches</h2>
           <button
@@ -281,7 +282,7 @@ export default function MobileHome({
       </section>
 
       {/* Trust icons */}
-      <section className="mt-2 bg-white px-4 py-5">
+      <section className="mt-2 bg-white px-4 py-3 pb-4">
         <div className="grid grid-cols-4 gap-2">
           {[
             { label: 'Verified\nBusinesses', icon: ShieldCheck, bg: 'bg-blue-50', color: 'text-blue-600' },

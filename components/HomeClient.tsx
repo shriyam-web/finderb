@@ -685,21 +685,20 @@ export default function HomeClient({ initialData }: { initialData: any }) {
 
       {!(activeMobileTab === 'AI Search' || (activeMobileTab === 'FinderB AI' && isAiLoading)) && (
         <>
-          <section className="hidden lg:block pb-10">
+          <section className="hidden lg:block pb-4">
             <div className="w-full px-0">
-              <div className="relative w-full overflow-hidden">
-                <div className="pointer-events-none absolute inset-x-0 top-0 h-[364px] w-full">
-                  <Image
-                    src="/hero.png"
-                    alt="Hero background"
-                    fill
-                    className="h-full w-full object-fill object-top"
-                    priority
-                    sizes="100vw"
-                  />
-                </div>
+              <div className="grid w-full grid-cols-1">
+                <Image
+                  src="/hero.png"
+                  alt="Hero background"
+                  width={1920}
+                  height={420}
+                  className="col-start-1 row-start-1 block h-auto w-full"
+                  priority
+                  sizes="100vw"
+                />
 
-                <div className="relative z-10 px-10 pb-7 pt-28">
+                <div className="col-start-1 row-start-1 z-10 self-start px-10 pb-7 pt-28">
                   <div className="text-center">
                     <h1 className="text-[48px] font-extrabold tracking-[-0.02em] text-[#0f2a4a]">
                       Find trusted businesses near you
@@ -758,9 +757,9 @@ export default function HomeClient({ initialData }: { initialData: any }) {
                 </div>
               </div>
 
-              <div className="mx-auto mt-12 max-w-[1280px] px-8">
+              <div className="mx-auto mt-6 max-w-[1280px] px-8">
                 {/* Popular Categories */}
-                <section className="mb-10">
+                <section className="mb-6">
                   <div className="mb-5 flex items-center justify-between">
                     <h2 className="text-lg font-bold text-[#1e293b]">Popular Categories</h2>
                     <Link
@@ -809,7 +808,7 @@ export default function HomeClient({ initialData }: { initialData: any }) {
                 </section>
 
                 {/* Trending + Featured */}
-                <section className="mb-8 grid grid-cols-12 gap-5">
+                <section className="mb-5 grid grid-cols-12 gap-5">
                   <div className="col-span-4 rounded-xl border border-gray-100 bg-white p-5 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
                     <div className="mb-4 flex items-center justify-between">
                       <h3 className="flex items-center gap-1.5 text-lg font-bold text-[#1e293b]">
@@ -980,7 +979,7 @@ export default function HomeClient({ initialData }: { initialData: any }) {
 
       {/* Featured Group Categories — parents & subcategories from DB */}
       {featuredGroups.length > 0 && (
-        <section className="py-16 lg:py-24 bg-white">
+        <section className="bg-white py-6 lg:py-12">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               {featuredGroups.map((group: any) => (
@@ -998,7 +997,7 @@ export default function HomeClient({ initialData }: { initialData: any }) {
       )}
 
       {/* Movies Section */}
-      <section className="py-16 lg:py-24 bg-white">
+      <section className="bg-white py-6 lg:py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center mb-8">
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-primary tracking-tight">
@@ -1036,7 +1035,7 @@ export default function HomeClient({ initialData }: { initialData: any }) {
       </section>
 
       {/* Tourist Places Section */}
-      <section className="py-16 lg:py-24 bg-slate-50">
+      <section className="bg-slate-50 py-6 lg:py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mb-8 flex items-center justify-between gap-3">
             <h2 className="min-w-0 text-2xl font-extrabold tracking-tight text-primary sm:text-4xl lg:text-5xl">
@@ -1082,7 +1081,7 @@ export default function HomeClient({ initialData }: { initialData: any }) {
       </section>
 
       {/* News and Updates Section */}
-      <section id="news" className="py-16 lg:py-24 bg-white relative">
+      <section id="news" className="relative bg-white py-6 lg:py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid lg:grid-cols-3 gap-12">
             <div className="lg:col-span-2 space-y-8">
@@ -1140,7 +1139,7 @@ export default function HomeClient({ initialData }: { initialData: any }) {
       </section>
 
       {/* Testimonials Section */}
-      <section className="py-16 lg:py-24 bg-slate-50 relative overflow-hidden">
+      <section className="relative overflow-hidden bg-slate-50 py-6 lg:py-12">
         <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent"></div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16 space-y-4">
