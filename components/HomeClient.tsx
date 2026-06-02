@@ -979,7 +979,7 @@ export default function HomeClient({ initialData }: { initialData: any }) {
 
       {/* Featured Group Categories — parents & subcategories from DB */}
       {featuredGroups.length > 0 && (
-        <section className="bg-white pt-0 pb-6 max-lg:-mt-1 lg:py-12">
+        <section className="bg-white pt-3 pb-6 lg:py-12">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-8">
               {featuredGroups.map((group: any) => (

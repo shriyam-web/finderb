@@ -290,7 +290,7 @@ export default function MobileHome({
       </section>
 
       {/* Trust icons */}
-      <section className="bg-white px-4 pb-0 pt-3">
+      <section className="bg-white px-4 pb-3 pt-3">
         <div className="grid grid-cols-4 gap-2">
           {[
             { label: 'Verified\nBusinesses', icon: ShieldCheck, bg: 'bg-blue-50', color: 'text-blue-600' },

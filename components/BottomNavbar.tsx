@@ -2,14 +2,14 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { Home, LayoutGrid, Search, Briefcase, User } from 'lucide-react';
+import { House, LayoutGrid, Search, Briefcase, User } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { getSession } from '@/app/actions/user';
 
 type TabItem = {
   label: string;
   href: string;
-  icon: typeof Home;
+  icon: typeof House;
   center?: boolean;
 };
 
@@ -35,7 +35,7 @@ export default function BottomNavbar() {
   }, [pathname]);
 
   const tabs: TabItem[] = [
-    { label: 'Home', icon: Home, href: '/' },
+    { label: 'Home', icon: House, href: '/' },
     { label: 'Categories', icon: LayoutGrid, href: '/categories' },
     { label: 'FinderB Ai', icon: Search, href: '/?tab=ai', center: true },
     { label: 'Business', icon: Briefcase, href: '/business/register' },
@@ -132,14 +132,8 @@ export default function BottomNavbar() {
                 >
                   <Icon
                     size={22}
-                    strokeWidth={active ? 2.5 : 1.75}
-                    className={
-                      active
-                        ? tab.label === 'Home'
-                          ? 'fill-[#2563eb] text-[#2563eb]'
-                          : 'text-[#2563eb]'
-                        : 'text-[#64748b]'
-                    }
+                    strokeWidth={active ? 2.25 : 1.75}
+                    className={active ? 'text-[#2563eb]' : 'text-[#64748b]'}
                   />
                   <span
                     className={`text-[10px] leading-none ${
