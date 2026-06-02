@@ -664,15 +664,16 @@ export default function HomeClient({ initialData }: { initialData: any }) {
 
       {!(activeMobileTab === 'AI Search' || (activeMobileTab === 'FinderB AI' && isAiLoading)) && (
         <>
-          <section className="hidden lg:block bg-[#f8fafc] pt-4 pb-10">
+          <section className="hidden lg:block bg-[#f8fafc] pt-6 pb-10">
             <div className="w-full px-0">
               <div className="relative w-full overflow-hidden border-y border-slate-200 bg-white px-10 pb-7 pt-10">
-                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[260px] opacity-35">
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 opacity-35">
                   <Image
                     src="/hero.png"
                     alt="Hero background"
-                    fill
-                    className="object-contain object-bottom"
+                    width={1920}
+                    height={420}
+                    className="h-auto w-full object-contain object-bottom"
                     priority
                   />
                 </div>
