@@ -118,30 +118,32 @@ export default function MobileHome({
 
         <div className="relative z-[2] pt-[4.5rem]">
           <div className="pl-4 pr-1">
-            <div className="max-w-[54%]">
-              <h1 className="text-left text-[21px] font-extrabold leading-[1.12] tracking-tight text-[#0f172a]">
-                Find trusted{' '}
-                <span className="text-[#2563eb]">businesses near you</span>
+            <div className="max-w-[62%]">
+              <h1 className="text-left text-[20px] font-extrabold leading-[1.15] tracking-tight">
+                <span className="block whitespace-nowrap text-[#0f172a]">
+                  Find trusted businesses
+                </span>
+                <span className="mt-0.5 block text-[#2563eb]">near you</span>
               </h1>
               <p className="mt-1 text-left text-[12px] leading-snug text-[#64748b]">
                 Search millions of listings across India
               </p>
 
-              <div className="mt-3 flex gap-1">
+              <div className="mt-2.5 flex gap-0.5">
                 {HERO_TRUST_BADGES.map(
                   ({ title, subtitle, icon: Icon, badgeBg, iconWrap, iconColor }) => (
                     <div
                       key={title}
-                      className={`flex min-w-0 flex-1 items-center gap-1 rounded-md px-1 py-1 ${badgeBg}`}
+                      className={`flex min-w-0 flex-1 items-center gap-0.5 rounded px-0.5 py-0.5 ${badgeBg}`}
                     >
                       <div
-                        className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${iconWrap}`}
+                        className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${iconWrap}`}
                       >
-                        <Icon size={12} className={iconColor} strokeWidth={2.5} />
+                        <Icon size={10} className={iconColor} strokeWidth={2.5} />
                       </div>
-                      <div className="min-w-0 leading-none">
-                        <p className="text-[9px] font-bold text-[#0f172a]">{title}</p>
-                        <p className="mt-px truncate text-[7px] text-[#94a3b8]">{subtitle}</p>
+                      <div className="min-w-0 leading-[1.05]">
+                        <p className="text-[8px] font-bold text-[#0f172a]">{title}</p>
+                        <p className="text-[6px] text-[#94a3b8]">{subtitle}</p>
                       </div>
                     </div>
                   )
