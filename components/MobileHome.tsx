@@ -27,11 +27,19 @@ import {
   LocateFixed,
   Scissors,
   Zap,
+  Building2,
+  Handshake,
+  GraduationCap,
+  Newspaper,
 } from 'lucide-react';
 import CategoryIcon from '@/components/CategoryIcon';
 import { Business, Category } from '@/lib/mockData';
 
 const MOBILE_POPULAR_SEARCHES = [
+  { term: 'Real Estate', icon: Building2, iconColor: 'text-blue-600' },
+  { term: 'B2B', icon: Handshake, iconColor: 'text-indigo-600' },
+  { term: 'Admissions', icon: GraduationCap, iconColor: 'text-emerald-600' },
+  { term: 'FinderB News', icon: Newspaper, iconColor: 'text-sky-600' },
   { term: 'CA', icon: Briefcase, iconColor: 'text-blue-600' },
   { term: 'Dentist', icon: Stethoscope, iconColor: 'text-emerald-600' },
   { term: 'Restaurant', icon: UtensilsCrossed, iconColor: 'text-orange-500' },
@@ -103,7 +111,7 @@ export default function MobileHome({
       <section className="relative overflow-hidden bg-gradient-to-b from-white via-[#f5f9ff] to-[#e8f2fc] pb-5">
         {/* Illustration: flush right, no gap */}
         <div
-          className="pointer-events-none absolute right-0 top-[4rem] z-[1] h-[178px] w-[min(48vw,200px)]"
+          className="pointer-events-none absolute right-0 top-[3.85rem] z-[1] h-[200px] w-[min(54vw,228px)]"
           aria-hidden
         >
           <Image
@@ -111,7 +119,7 @@ export default function MobileHome({
             alt=""
             fill
             className="object-contain object-right"
-            sizes="48vw"
+            sizes="54vw"
             priority
           />
         </div>
@@ -126,10 +134,11 @@ export default function MobileHome({
                 <span className="mt-0.5 block text-[#2563eb]">near you</span>
               </h1>
               <p className="mt-1 text-left text-[12px] leading-snug text-[#64748b]">
-                Search millions of listings across India
+                <span className="block">Search millions of listings</span>
+                <span className="block">across India</span>
               </p>
 
-              <div className="mt-2.5 flex gap-0.5">
+              <div className="mt-2.5 flex max-w-[10.75rem] gap-0.5">
                 {HERO_TRUST_BADGES.map(
                   ({ title, subtitle, icon: Icon, badgeBg, iconWrap, iconColor }) => (
                     <div
@@ -263,6 +272,23 @@ export default function MobileHome({
             <p className="text-center text-[11px] font-semibold text-[#334155]">More</p>
           </Link>
         </div>
+      </section>
+
+      {/* Meet FinderB AI banner */}
+      <section className="mt-1 px-4 pb-1">
+        <Link
+          href="/?tab=ai"
+          className="block overflow-hidden rounded-2xl shadow-[0_6px_24px_rgba(37,99,235,0.14)] ring-1 ring-blue-100/60 active:opacity-95"
+        >
+          <Image
+            src="/meet-ai.png"
+            alt="Meet FinderB AI — Your smart assistant to find the best businesses near you"
+            width={1200}
+            height={320}
+            className="h-auto w-full"
+            sizes="(max-width: 1024px) 100vw, 400px"
+          />
+        </Link>
       </section>
 
       {/* Trending */}

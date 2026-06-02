@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { House, LayoutGrid, Search, Briefcase, User } from 'lucide-react';
+import { House, LayoutGrid, Briefcase, User } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { getSession } from '@/app/actions/user';
 
@@ -12,6 +12,37 @@ type TabItem = {
   icon: typeof House;
   center?: boolean;
 };
+
+function FinderBAiNavIcon() {
+  return (
+    <svg
+      width="28"
+      height="28"
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden
+      className="text-white"
+    >
+      <circle cx="10.25" cy="10.25" r="5.75" stroke="currentColor" strokeWidth="2.25" />
+      <path
+        d="M14.25 14.25L19 19"
+        stroke="currentColor"
+        strokeWidth="2.25"
+        strokeLinecap="round"
+      />
+      <path
+        d="M10.25 7.1l0.55 1.15 1.15 0.55-1.15 0.55-0.55 1.15-0.55-1.15-1.15-0.55 1.15-0.55 0.55-1.15z"
+        fill="currentColor"
+      />
+      <path
+        d="M12.9 9.6l0.35 0.75 0.75 0.35-0.75 0.35-0.35 0.75-0.35-0.75-0.75-0.35 0.75-0.35 0.35-0.75z"
+        fill="currentColor"
+        opacity="0.85"
+      />
+    </svg>
+  );
+}
 
 export default function BottomNavbar() {
   const pathname = usePathname();
@@ -37,7 +68,7 @@ export default function BottomNavbar() {
   const tabs: TabItem[] = [
     { label: 'Home', icon: House, href: '/' },
     { label: 'Categories', icon: LayoutGrid, href: '/categories' },
-    { label: 'FinderB Ai', icon: Search, href: '/?tab=ai', center: true },
+    { label: 'FinderB AI', icon: House, href: '/?tab=ai', center: true },
     { label: 'Business', icon: Briefcase, href: '/business/register' },
     { label: 'Account', icon: User, href: accountHref },
   ];
@@ -92,16 +123,24 @@ export default function BottomNavbar() {
 
           <Link
             href={centerTab.href}
-            className="absolute left-1/2 top-0 z-20 -translate-x-1/2 -translate-y-[22px]"
+            className="absolute left-1/2 top-0 z-20 -translate-x-1/2 -translate-y-[24px]"
             aria-label={centerTab.label}
           >
-            <div
-              className={`flex h-[54px] w-[54px] items-center justify-center rounded-full shadow-[0_6px_20px_rgba(37,99,235,0.45)] ring-4 ring-white ${
-                centerActive ? 'bg-[#1d4ed8]' : 'bg-[#2563eb]'
+            <span
+              className="absolute -inset-2 rounded-full bg-gradient-to-r from-blue-500/60 via-cyan-400/50 to-violet-500/60 blur-xl animate-ai-fab-glow"
+              aria-hidden
+            />
+            <span
+              className="absolute -inset-1 rounded-full border border-blue-400/40 animate-ping opacity-25"
+              aria-hidden
+            />
+            <span
+              className={`relative flex h-[58px] w-[58px] items-center justify-center rounded-full bg-[length:220%_220%] ring-[3.5px] ring-white shadow-[0_8px_32px_rgba(37,99,235,0.55)] animate-ai-fab-gradient bg-gradient-to-br from-[#1d4ed8] via-[#06b6d4] to-[#7c3aed] ${
+                centerActive ? 'shadow-[0_10px_36px_rgba(6,182,212,0.65)]' : ''
               }`}
             >
-              <Search size={26} className="text-white" strokeWidth={2.25} />
-            </div>
+              <FinderBAiNavIcon />
+            </span>
           </Link>
 
           <div className="absolute inset-x-0 bottom-0 grid h-full grid-cols-5 items-end px-1 pb-2">
