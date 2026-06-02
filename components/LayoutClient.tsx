@@ -28,7 +28,7 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
   }
 
   return (
-    <div className={`flex flex-col min-h-screen ${showBottomNav ? 'pb-28 lg:pb-0' : ''}`}>
+    <div className={`flex flex-col min-h-screen ${showBottomNav ? 'pb-[7.5rem] lg:pb-0' : ''}`}>
       {!hideTopNavFooter && <Navbar />}
       <Suspense fallback={<div className="flex-grow bg-white" />}>
         <main className="flex-grow">
