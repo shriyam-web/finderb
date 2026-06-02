@@ -30,24 +30,26 @@ export default function HomeHero({
     <section
       className={`relative overflow-hidden bg-gradient-to-b from-white via-[#f5f9ff] to-[#e8f2fc] ${
         isDesktop ? 'hidden lg:block' : 'lg:hidden'
-      } ${isDesktop ? 'pb-8' : 'pb-5'}`}
+      } ${isDesktop ? 'pb-10' : 'pb-6'}`}
     >
       <div
         className={`pointer-events-none absolute right-0 z-[1] ${
           isDesktop
-            ? 'top-[4.25rem] h-[min(265px,35vh)] w-[min(46%,500px)]'
-            : 'top-[3.85rem] h-[184px] w-[min(49vw,205px)]'
+            ? 'top-24 bottom-32 w-[min(42%,460px)]'
+            : 'top-[4.5rem] bottom-48 w-[min(44vw,188px)]'
         }`}
         aria-hidden
       >
-        <Image
-          src="/hero-new.png"
-          alt=""
-          fill
-          className="object-contain object-right"
-          sizes={isDesktop ? '(min-width: 1024px) 46vw, 49vw' : '49vw'}
-          priority
-        />
+        <div className="relative h-full w-full pb-3">
+          <Image
+            src="/hero-new.png"
+            alt=""
+            fill
+            className="object-contain object-right object-bottom"
+            sizes={isDesktop ? '(min-width: 1024px) 42vw, 44vw' : '44vw'}
+            priority
+          />
+        </div>
       </div>
 
       <div
