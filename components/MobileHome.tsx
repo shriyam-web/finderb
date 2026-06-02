@@ -15,19 +15,27 @@ import {
   RefreshCw,
   Phone,
   Grid3X3,
+  Briefcase,
+  Stethoscope,
+  UtensilsCrossed,
+  Dumbbell,
+  Home,
+  Scale,
+  Car,
+  Sparkles,
 } from 'lucide-react';
 import CategoryIcon from '@/components/CategoryIcon';
 import { Business, Category } from '@/lib/mockData';
 
 const MOBILE_POPULAR_SEARCHES = [
-  'CA',
-  'Dentist',
-  'Restaurant',
-  'Gym',
-  'PG',
-  'Lawyer',
-  'Car Service',
-  'Makeup Artist',
+  { term: 'CA', icon: Briefcase },
+  { term: 'Dentist', icon: Stethoscope },
+  { term: 'Restaurant', icon: UtensilsCrossed },
+  { term: 'Gym', icon: Dumbbell },
+  { term: 'PG', icon: Home },
+  { term: 'Lawyer', icon: Scale },
+  { term: 'Car Service', icon: Car },
+  { term: 'Makeup Artist', icon: Sparkles },
 ];
 
 const MOBILE_TRENDING = [
@@ -58,7 +66,7 @@ export default function MobileHome({
   const featured = businesses.slice(0, 6);
 
   return (
-    <div className="lg:hidden bg-[#f8fafc] pb-28">
+    <div className="lg:hidden bg-white">
       {/* Hero */}
       <section className="relative overflow-hidden bg-white pb-2">
         <div className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-[200px] w-full">
@@ -73,7 +81,7 @@ export default function MobileHome({
         </div>
 
         <div className="relative z-10 px-4 pb-4 pt-[4.5rem] text-center">
-          <h1 className="text-[22px] font-bold leading-tight text-[#0f2a4a]">
+          <h1 className="text-[19px] font-bold leading-tight text-[#0f2a4a]">
             Find trusted businesses near you
           </h1>
           <p className="mt-1.5 text-[13px] font-medium text-[#64748b]">
@@ -123,13 +131,14 @@ export default function MobileHome({
           </button>
         </div>
         <div className="scrollbar-hide flex gap-2 overflow-x-auto pb-1">
-          {MOBILE_POPULAR_SEARCHES.map((term) => (
+          {MOBILE_POPULAR_SEARCHES.map(({ term, icon: Icon }) => (
             <button
               key={term}
               type="button"
               onClick={() => onSearch(term)}
-              className="shrink-0 rounded-full border border-gray-200 bg-white px-3.5 py-2 text-[12px] font-medium text-[#475569] shadow-sm"
+              className="flex shrink-0 items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-2 text-[12px] font-medium text-[#334155] shadow-sm"
             >
+              <Icon size={14} className="shrink-0 text-[#475569]" strokeWidth={1.75} />
               {term}
             </button>
           ))}
@@ -281,7 +290,7 @@ export default function MobileHome({
       </section>
 
       {/* Trust icons */}
-      <section className="bg-white px-4 pb-2 pt-3">
+      <section className="bg-white px-4 pb-0 pt-3">
         <div className="grid grid-cols-4 gap-2">
           {[
             { label: 'Verified\nBusinesses', icon: ShieldCheck, bg: 'bg-blue-50', color: 'text-blue-600' },

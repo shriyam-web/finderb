@@ -58,38 +58,12 @@ export default function BottomNavbar() {
   };
 
   const centerTab = tabs.find((t) => t.center)!;
-  const sideTabs = tabs.filter((t) => !t.center);
-  const leftTabs = sideTabs.slice(0, 2);
-  const rightTabs = sideTabs.slice(2);
   const centerActive = isTabActive(centerTab);
-
-  const renderTab = (tab: TabItem) => {
-    const active = isTabActive(tab);
-    const Icon = tab.icon;
-
-    return (
-      <Link
-        key={tab.label}
-        href={tab.href}
-        className={`flex flex-1 flex-col items-center justify-end gap-1 pb-0.5 transition-colors ${
-          active ? 'text-[#2563eb]' : 'text-[#64748b]'
-        }`}
-      >
-        <Icon
-          size={22}
-          strokeWidth={active ? 2.5 : 1.75}
-          className={active && tab.label === 'Home' ? 'fill-[#2563eb]' : ''}
-        />
-        <span className="text-[11px] font-medium leading-none">{tab.label}</span>
-      </Link>
-    );
-  };
 
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-0 z-[9999] lg:hidden">
       <div className="pointer-events-auto relative mx-auto max-w-lg px-4 pb-4">
         <div className="relative h-[68px]">
-          {/* Pill bar with center notch */}
           <svg
             className="absolute inset-0 h-full w-full drop-shadow-[0_4px_24px_rgba(15,23,42,0.12)]"
             viewBox="0 0 400 68"
@@ -116,33 +90,67 @@ export default function BottomNavbar() {
             />
           </svg>
 
-          {/* Center FAB */}
           <Link
             href={centerTab.href}
             className="absolute left-1/2 top-0 z-20 -translate-x-1/2 -translate-y-[22px]"
             aria-label={centerTab.label}
           >
-            <div className="flex h-[54px] w-[54px] items-center justify-center rounded-full bg-[#2563eb] shadow-[0_6px_20px_rgba(37,99,235,0.45)] ring-4 ring-white">
+            <div
+              className={`flex h-[54px] w-[54px] items-center justify-center rounded-full shadow-[0_6px_20px_rgba(37,99,235,0.45)] ring-4 ring-white ${
+                centerActive ? 'bg-[#1d4ed8]' : 'bg-[#2563eb]'
+              }`}
+            >
               <Search size={26} className="text-white" strokeWidth={2.25} />
             </div>
           </Link>
 
-          {/* Tab row */}
-          <div className="absolute inset-x-0 bottom-0 flex h-full items-end px-3 pb-2">
-            <div className="flex flex-1 items-end justify-around pr-6">{leftTabs.map(renderTab)}</div>
+          <div className="absolute inset-x-0 bottom-0 grid h-full grid-cols-5 items-end px-1 pb-2">
+            {tabs.map((tab) => {
+              const active = isTabActive(tab);
+              const Icon = tab.icon;
 
-            <div className="flex w-[76px] shrink-0 flex-col items-center justify-end pb-0.5">
-              <div className="h-[22px]" aria-hidden />
-              <span
-                className={`text-[11px] font-semibold leading-none ${
-                  centerActive ? 'text-[#1e293b]' : 'text-[#64748b]'
-                }`}
-              >
-                {centerTab.label}
-              </span>
-            </div>
+              if (tab.center) {
+                return (
+                  <div key={tab.label} className="flex flex-col items-center justify-end pb-0.5">
+                    <div className="h-[26px]" aria-hidden />
+                    <span
+                      className={`text-[10px] font-semibold leading-none ${
+                        active ? 'text-[#2563eb]' : 'text-[#64748b]'
+                      }`}
+                    >
+                      {tab.label}
+                    </span>
+                  </div>
+                );
+              }
 
-            <div className="flex flex-1 items-end justify-around pl-6">{rightTabs.map(renderTab)}</div>
+              return (
+                <Link
+                  key={tab.label}
+                  href={tab.href}
+                  className="flex flex-col items-center justify-end gap-0.5 pb-0.5"
+                >
+                  <Icon
+                    size={22}
+                    strokeWidth={active ? 2.5 : 1.75}
+                    className={
+                      active
+                        ? tab.label === 'Home'
+                          ? 'fill-[#2563eb] text-[#2563eb]'
+                          : 'text-[#2563eb]'
+                        : 'text-[#64748b]'
+                    }
+                  />
+                  <span
+                    className={`text-[10px] leading-none ${
+                      active ? 'font-bold text-[#2563eb]' : 'font-medium text-[#64748b]'
+                    }`}
+                  >
+                    {tab.label}
+                  </span>
+                </Link>
+              );
+            })}
           </div>
         </div>
       </div>
