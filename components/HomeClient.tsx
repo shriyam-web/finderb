@@ -26,6 +26,7 @@ import {
   Heart,
   PlusCircle,
   Lightbulb,
+  ChevronDown,
   X,
   Cpu,
   Mic,
