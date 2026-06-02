@@ -746,19 +746,6 @@ export default function HomeClient({ initialData }: { initialData: any }) {
                   </div>
                 </section>
 
-                <div className="mb-6 flex justify-center">
-                  <Link href="/?tab=ai" className="block w-full max-w-3xl">
-                    <Image
-                      src="/meet-ai.png"
-                      alt="Meet FinderB AI — Your smart assistant to find the best businesses near you"
-                      width={1200}
-                      height={320}
-                      className="h-auto w-full"
-                      sizes="(min-width: 1280px) 768px, 90vw"
-                    />
-                  </Link>
-                </div>
-
                 {/* Trending + Featured */}
                 <section className="mb-5 grid grid-cols-12 gap-5">
                   <div className="col-span-4 rounded-xl border border-gray-100 bg-white p-5 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
@@ -865,6 +852,19 @@ export default function HomeClient({ initialData }: { initialData: any }) {
                     </div>
                   </div>
                 </section>
+
+                <div className="mb-6 flex justify-center">
+                  <Link href="/?tab=ai" className="block w-full max-w-3xl">
+                    <Image
+                      src="/meet-ai.png"
+                      alt="Meet FinderB AI — Your smart assistant to find the best businesses near you"
+                      width={1200}
+                      height={320}
+                      className="h-auto w-full"
+                      sizes="(min-width: 1280px) 768px, 90vw"
+                    />
+                  </Link>
+                </div>
 
                 {/* Trust bar */}
                 <section className="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.06)]">

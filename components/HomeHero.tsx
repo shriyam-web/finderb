@@ -30,12 +30,12 @@ export default function HomeHero({
     <section
       className={`relative overflow-hidden bg-gradient-to-b from-white via-[#f5f9ff] to-[#e8f2fc] ${
         isDesktop ? 'hidden lg:block' : 'lg:hidden'
-      } ${isDesktop ? 'pb-6' : 'pb-5'}`}
+      } ${isDesktop ? 'pb-8' : 'pb-5'}`}
     >
       <div
         className={`pointer-events-none absolute right-0 z-[1] ${
           isDesktop
-            ? 'top-[4.5rem] h-[min(240px,32vh)] w-[min(42%,440px)]'
+            ? 'top-[4.25rem] h-[min(265px,35vh)] w-[min(46%,500px)]'
             : 'top-[3.85rem] h-[184px] w-[min(49vw,205px)]'
         }`}
         aria-hidden
@@ -45,7 +45,7 @@ export default function HomeHero({
           alt=""
           fill
           className="object-contain object-right"
-          sizes={isDesktop ? '(min-width: 1024px) 42vw, 49vw' : '49vw'}
+          sizes={isDesktop ? '(min-width: 1024px) 46vw, 49vw' : '49vw'}
           priority
         />
       </div>
@@ -83,7 +83,7 @@ export default function HomeHero({
               )}
             </p>
 
-            {isDesktop ? (
+            {isDesktop && (
               <div className="mt-3 flex max-w-md gap-1">
                 {HERO_TRUST_BADGES.map(
                   ({ title, subtitle, icon: Icon, badgeBg, iconWrap, iconColor }) => (
@@ -100,27 +100,6 @@ export default function HomeHero({
                         <p className="text-[11px] font-bold text-[#0f172a]">{title}</p>
                         <p className="text-[10px] text-[#94a3b8]">{subtitle}</p>
                       </div>
-                    </div>
-                  )
-                )}
-              </div>
-            ) : (
-              <div className="mt-3 grid max-w-[min(100%,16rem)] grid-cols-3 gap-1.5">
-                {HERO_TRUST_BADGES.map(
-                  ({ title, subtitle, icon: Icon, badgeBg, iconWrap, iconColor }) => (
-                    <div
-                      key={title}
-                      className={`flex flex-col items-center rounded-lg px-1 py-2 text-center ${badgeBg}`}
-                    >
-                      <div
-                        className={`flex h-8 w-8 items-center justify-center rounded-full ${iconWrap}`}
-                      >
-                        <Icon size={15} className={iconColor} strokeWidth={2.5} />
-                      </div>
-                      <p className="mt-1.5 text-[10px] font-bold leading-tight text-[#0f172a]">
-                        {title}
-                      </p>
-                      <p className="mt-0.5 text-[8px] leading-tight text-[#94a3b8]">{subtitle}</p>
                     </div>
                   )
                 )}
