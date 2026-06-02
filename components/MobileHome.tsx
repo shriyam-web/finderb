@@ -23,20 +23,49 @@ import {
   Scale,
   Car,
   Sparkles,
+  Mic,
+  LocateFixed,
+  Scissors,
+  Zap,
 } from 'lucide-react';
 import CategoryIcon from '@/components/CategoryIcon';
 import { Business, Category } from '@/lib/mockData';
 
 const MOBILE_POPULAR_SEARCHES = [
-  { term: 'CA', icon: Briefcase },
-  { term: 'Dentist', icon: Stethoscope },
-  { term: 'Restaurant', icon: UtensilsCrossed },
-  { term: 'Gym', icon: Dumbbell },
-  { term: 'PG', icon: Home },
-  { term: 'Lawyer', icon: Scale },
-  { term: 'Car Service', icon: Car },
-  { term: 'Makeup Artist', icon: Sparkles },
+  { term: 'CA', icon: Briefcase, iconColor: 'text-blue-600' },
+  { term: 'Dentist', icon: Stethoscope, iconColor: 'text-emerald-600' },
+  { term: 'Restaurant', icon: UtensilsCrossed, iconColor: 'text-orange-500' },
+  { term: 'Gym', icon: Dumbbell, iconColor: 'text-violet-600' },
+  { term: 'Salon', icon: Scissors, iconColor: 'text-pink-500' },
+  { term: 'PG', icon: Home, iconColor: 'text-slate-600' },
+  { term: 'Lawyer', icon: Scale, iconColor: 'text-slate-600' },
+  { term: 'Car Service', icon: Car, iconColor: 'text-slate-600' },
+  { term: 'Makeup Artist', icon: Sparkles, iconColor: 'text-slate-600' },
 ];
+
+const HERO_TRUST_BADGES = [
+  {
+    title: 'Trusted',
+    subtitle: 'Verified Listings',
+    icon: ShieldCheck,
+    iconWrap: 'bg-blue-50',
+    iconColor: 'text-blue-600',
+  },
+  {
+    title: 'Local',
+    subtitle: 'Near You',
+    icon: MapPin,
+    iconWrap: 'bg-emerald-50',
+    iconColor: 'text-emerald-600',
+  },
+  {
+    title: 'Fast',
+    subtitle: 'Quick Results',
+    icon: Zap,
+    iconWrap: 'bg-amber-50',
+    iconColor: 'text-amber-500',
+  },
+] as const;
 
 const MOBILE_TRENDING = [
   { label: 'Best Cafes in Delhi', trend: 12 },
@@ -67,81 +96,118 @@ export default function MobileHome({
 
   return (
     <div className="lg:hidden bg-white">
-      {/* Hero */}
-      <section className="relative overflow-hidden bg-white pb-2">
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-[200px] w-full">
-          <Image
-            src="/hero.png"
-            alt=""
-            fill
-            className="object-cover object-bottom"
-            sizes="100vw"
-            priority
-          />
-        </div>
+      {/* Hero — matches hero-new mock */}
+      <section className="relative overflow-hidden bg-gradient-to-b from-white via-[#f4f8ff] to-white pb-5">
+        <div className="px-4 pt-[4.5rem]">
+          <div className="flex items-start gap-1">
+            <div className="min-w-0 flex-1 pt-0.5">
+              <h1 className="text-left text-[22px] font-extrabold leading-[1.15] tracking-tight text-[#0f172a]">
+                Find trusted{' '}
+                <span className="text-[#2563eb]">businesses near you</span>
+              </h1>
+              <p className="mt-1.5 text-left text-[13px] text-[#64748b]">
+                Search millions of listings across India
+              </p>
 
-        <div className="relative z-10 px-4 pb-4 pt-[4.5rem] text-center">
-          <h1 className="text-[19px] font-bold leading-tight text-[#0f2a4a]">
-            Find trusted businesses near you
-          </h1>
-          <p className="mt-1.5 text-[13px] font-medium text-[#64748b]">
-            Search millions of listings across India
-          </p>
+              <div className="mt-4 flex items-stretch divide-x divide-gray-200/90">
+                {HERO_TRUST_BADGES.map(({ title, subtitle, icon: Icon, iconWrap, iconColor }) => (
+                  <div
+                    key={title}
+                    className="flex min-w-0 flex-1 items-center gap-1.5 px-2 first:pl-0 last:pr-0"
+                  >
+                    <div
+                      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${iconWrap}`}
+                    >
+                      <Icon size={15} className={iconColor} strokeWidth={2.25} />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-bold leading-tight text-[#0f172a]">{title}</p>
+                      <p className="text-[9px] leading-tight text-[#94a3b8]">{subtitle}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
 
-          <div className="relative z-10 mt-4 overflow-hidden rounded-xl border border-gray-100 bg-white text-left shadow-[0_4px_20px_rgba(15,39,59,0.08)]">
-            <div className="flex items-center gap-2 border-b border-gray-100 px-3 py-3">
-              <Search size={18} className="shrink-0 text-[#94a3b8]" />
+            <div className="relative -mt-1 h-[156px] w-[124px] shrink-0">
+              <Image
+                src="/hero-new.png"
+                alt=""
+                fill
+                className="object-contain object-top"
+                sizes="124px"
+                priority
+              />
+            </div>
+          </div>
+
+          <div className="mt-4 overflow-hidden rounded-2xl border border-gray-100/80 bg-white text-left shadow-[0_8px_30px_rgba(15,23,42,0.08)]">
+            <div className="flex items-center gap-2 border-b border-gray-100 px-3.5 py-3">
+              <Search size={18} className="shrink-0 text-[#94a3b8]" strokeWidth={2} />
               <input
                 type="text"
                 value={manualQuery}
                 onChange={(e) => onQueryChange(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && onSearch()}
                 placeholder="Search anything... (e.g. Dentist, CA, Gym, Salon)"
-                className="w-full border-none bg-transparent text-[13px] text-[#334155] placeholder:text-[#94a3b8] focus:ring-0"
+                className="min-w-0 flex-1 border-none bg-transparent text-[13px] text-[#334155] placeholder:text-[#94a3b8] focus:ring-0"
               />
+              <button type="button" className="shrink-0 p-0.5 text-[#94a3b8]" aria-label="Voice search">
+                <Mic size={18} strokeWidth={2} />
+              </button>
             </div>
-            <div className="flex items-center justify-between border-b border-gray-100 px-3 py-2.5">
-              <div className="flex items-center gap-2 text-[13px] font-medium text-[#475569]">
-                <MapPin size={16} className="text-[#94a3b8]" />
-                New Delhi
+
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 border-b border-gray-100 px-3.5 py-2.5">
+              <MapPin size={17} className="shrink-0 text-[#2563eb]" strokeWidth={2.25} />
+              <span className="text-[13px] font-semibold text-[#1e293b]">New Delhi</span>
+              <div className="ml-auto flex min-w-0 items-center gap-1">
+                <button
+                  type="button"
+                  className="flex items-center gap-1 text-[11px] font-medium text-[#2563eb]"
+                >
+                  <LocateFixed size={13} strokeWidth={2.25} />
+                  <span className="whitespace-nowrap">Use my current location</span>
+                </button>
+                <ChevronDown size={15} className="shrink-0 text-[#94a3b8]" />
               </div>
-              <ChevronDown size={16} className="text-[#94a3b8]" />
             </div>
+
             <button
               type="button"
               onClick={() => onSearch()}
-              className="w-full bg-[#2563eb] py-3.5 text-sm font-bold text-white active:bg-[#1d4ed8]"
+              className="flex w-full items-center justify-center gap-2 bg-[#2563eb] py-3.5 text-[15px] font-bold text-white active:bg-[#1d4ed8]"
             >
+              <Search size={18} strokeWidth={2.5} />
               Search
             </button>
           </div>
-        </div>
-      </section>
 
-      {/* Popular Searches */}
-      <section className="bg-white px-4 py-4">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-[15px] font-bold text-[#0f2a4a]">Popular Searches</h2>
-          <button
-            type="button"
-            onClick={() => onSearch()}
-            className="text-[13px] font-medium text-[#2563eb]"
-          >
-            View All
-          </button>
-        </div>
-        <div className="scrollbar-hide flex gap-2 overflow-x-auto pb-1">
-          {MOBILE_POPULAR_SEARCHES.map(({ term, icon: Icon }) => (
-            <button
-              key={term}
-              type="button"
-              onClick={() => onSearch(term)}
-              className="flex shrink-0 items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-2 text-[12px] font-medium text-[#334155] shadow-sm"
-            >
-              <Icon size={14} className="shrink-0 text-[#475569]" strokeWidth={1.75} />
-              {term}
-            </button>
-          ))}
+          <div className="mt-5">
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-[15px] font-bold text-[#0f172a]">Popular Searches</h2>
+              <button
+                type="button"
+                onClick={() => onSearch()}
+                className="flex items-center gap-0.5 text-[13px] font-semibold text-[#2563eb]"
+              >
+                View All
+                <ChevronRight size={16} strokeWidth={2.25} />
+              </button>
+            </div>
+            <div className="scrollbar-hide flex gap-2 overflow-x-auto pb-0.5">
+              {MOBILE_POPULAR_SEARCHES.map(({ term, icon: Icon, iconColor }) => (
+                <button
+                  key={term}
+                  type="button"
+                  onClick={() => onSearch(term)}
+                  className="flex shrink-0 items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3.5 py-2 text-[12px] font-semibold text-[#334155] shadow-[0_1px_3px_rgba(0,0,0,0.06)]"
+                >
+                  <Icon size={15} className={`shrink-0 ${iconColor}`} strokeWidth={2} />
+                  {term}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 
