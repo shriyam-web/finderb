@@ -696,8 +696,8 @@ export default function HomeClient({ initialData }: { initialData: any }) {
             onSearch={handleManualSearch}
           />
 
-              <div className="mx-auto mt-6 max-w-[1280px] px-8">
-                {/* Popular Categories */}
+              <div className="mx-auto mt-6 hidden max-w-[1280px] px-8 lg:block">
+                {/* Popular Categories — desktop only (mobile uses MobileHome) */}
                 <section className="mb-6">
                   <div className="mb-5 flex items-center justify-between">
                     <h2 className="text-lg font-bold text-[#1e293b]">Popular Categories</h2>
