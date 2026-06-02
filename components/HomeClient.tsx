@@ -664,7 +664,7 @@ export default function HomeClient({ initialData }: { initialData: any }) {
 
       {!(activeMobileTab === 'AI Search' || (activeMobileTab === 'FinderB AI' && isAiLoading)) && (
         <>
-          <section className="hidden lg:block bg-[#f8fafc] pt-8 pb-10">
+          <section className="hidden lg:block bg-[#f8fafc] pt-10 pb-10">
             <div className="w-full px-0">
               <div className="relative w-full overflow-hidden border-y border-slate-200 bg-white px-10 pb-7 pt-10">
                 <div className="pointer-events-none absolute inset-x-0 bottom-0 opacity-35">
@@ -718,7 +718,7 @@ export default function HomeClient({ initialData }: { initialData: any }) {
                   </button>
                 </div>
 
-                <div className="relative z-10 mt-4 flex items-center gap-3">
+                <div className="relative z-10 mt-4 flex items-center justify-center gap-3">
                   <span className="text-xs font-semibold text-slate-500">Popular Searches:</span>
                   <div className="flex flex-wrap gap-2">
                     {['CA', 'Dentist', 'Restaurant', 'PG', 'Lawyer', 'Gym', 'Car Service', 'Makeup Artist'].map((term) => (
