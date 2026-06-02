@@ -100,22 +100,20 @@ export default function MobileHome({
   return (
     <div className="lg:hidden bg-white">
       {/* Hero — matches hero-new mock */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-white via-[#f4f8ff] to-white pb-5">
+      <section className="relative overflow-hidden bg-gradient-to-b from-white via-[#f5f9ff] to-[#e8f2fc] pb-5">
         {/* Illustration: flush right, no gap */}
         <div
-          className="pointer-events-none absolute right-0 top-[3.5rem] z-[1] h-[252px] w-[min(68vw,320px)]"
+          className="pointer-events-none absolute right-0 top-[4rem] z-[1] h-[178px] w-[min(48vw,200px)]"
           aria-hidden
         >
-          <div className="relative h-full w-full origin-right scale-[1.12]">
-            <Image
-              src="/hero-new.png"
-              alt=""
-              fill
-              className="object-contain object-right"
-              sizes="68vw"
-              priority
-            />
-          </div>
+          <Image
+            src="/hero-new.png"
+            alt=""
+            fill
+            className="object-contain object-right"
+            sizes="48vw"
+            priority
+          />
         </div>
 
         <div className="relative z-[2] pt-[4.5rem]">
