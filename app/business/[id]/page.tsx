@@ -1,15 +1,21 @@
 'use client';
 
 import { use, useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { featuredBusinesses, Business } from '@/lib/mockData';
 import { getBusiness } from '@/app/actions/business';
+import ConnectMerchantModal from '@/components/ConnectMerchantModal';
+import { resolveClientSearchQuery, setLastSearchQuery } from '@/lib/lastSearchQuery';
 import Image from 'next/image';
 import { Star, MapPin, Phone, Mail, Globe, Clock, CheckCircle2, MessageSquare, Share2, Heart, ShieldCheck, Zap, Navigation, Languages, ChevronRight, ExternalLink } from 'lucide-react';
 
 export default function BusinessDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const searchParams = useSearchParams();
   const [business, setBusiness] = useState<Business | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [connectModalOpen, setConnectModalOpen] = useState(false);
+  const [clientSearchQuery, setClientSearchQuery] = useState('');
 
   useEffect(() => {
     async function fetchData() {
@@ -25,6 +31,20 @@ export default function BusinessDetailPage({ params }: { params: Promise<{ id: s
     }
     fetchData();
   }, [id]);
+
+  useEffect(() => {
+    const q = resolveClientSearchQuery(
+      searchParams.get('q') ?? searchParams.get('search')
+    );
+    setClientSearchQuery(q);
+    if (q) setLastSearchQuery(q);
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (!isLoading && business) {
+      setConnectModalOpen(true);
+    }
+  }, [isLoading, business?.id]);
 
   const getBusinessStatus = (timings: any) => {
     if (!timings) return { status: 'Closed', message: 'Closed today', color: 'text-slate-500', dotColor: 'bg-slate-500' };
@@ -190,11 +210,19 @@ export default function BusinessDetailPage({ params }: { params: Promise<{ id: s
               </div>
 
               <div className="mt-8 space-y-3">
-                <a href={`tel:${business.contact}`} className="flex items-center justify-center gap-2 w-full py-4 bg-blue-600 text-white rounded-2xl font-bold text-sm tracking-tight hover:bg-blue-700 transition-all shadow-lg shadow-blue-100">
+                <button
+                  type="button"
+                  onClick={() => setConnectModalOpen(true)}
+                  className="flex items-center justify-center gap-2 w-full py-4 bg-blue-600 text-white rounded-2xl font-bold text-sm tracking-tight hover:bg-blue-700 transition-all shadow-lg shadow-blue-100"
+                >
                   <Phone size={18} />
-                  Call Now
-                </a>
-                <button className="flex items-center justify-center gap-2 w-full py-4 bg-slate-50 text-slate-900 rounded-2xl font-bold text-sm tracking-tight hover:bg-slate-100 border border-slate-200 transition-all">
+                  Connect Now
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConnectModalOpen(true)}
+                  className="flex items-center justify-center gap-2 w-full py-4 bg-slate-50 text-slate-900 rounded-2xl font-bold text-sm tracking-tight hover:bg-slate-100 border border-slate-200 transition-all"
+                >
                   <MessageSquare size={18} />
                   Send Enquiry
                 </button>
@@ -390,15 +418,38 @@ export default function BusinessDetailPage({ params }: { params: Promise<{ id: s
 
       {/* Mobile Sticky CTA */}
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/80 backdrop-blur-xl border-t border-slate-200/60 flex gap-3 lg:hidden z-50 font-sans">
-        <a href={`tel:${business.contact}`} className="flex-1 flex items-center justify-center gap-2 py-4 bg-blue-600 text-white rounded-2xl font-bold text-sm">
+        <button
+          type="button"
+          onClick={() => setConnectModalOpen(true)}
+          className="flex-1 flex items-center justify-center gap-2 py-4 bg-blue-600 text-white rounded-2xl font-bold text-sm"
+        >
           <Phone size={18} />
-          Call
-        </a>
-        <button className="flex-1 flex items-center justify-center gap-2 py-4 bg-slate-900 text-white rounded-2xl font-bold text-sm">
+          Connect
+        </button>
+        <button
+          type="button"
+          onClick={() => setConnectModalOpen(true)}
+          className="flex-1 flex items-center justify-center gap-2 py-4 bg-slate-900 text-white rounded-2xl font-bold text-sm"
+        >
           <MessageSquare size={18} />
           Enquire
         </button>
       </div>
+
+      <ConnectMerchantModal
+        business={{
+          id: business.id,
+          name: business.name,
+          category: business.category,
+          contact: business.contact,
+          whatsappNumber: business.whatsappNumber,
+          city: business.city,
+          location: business.location,
+        }}
+        isOpen={connectModalOpen}
+        onClose={() => setConnectModalOpen(false)}
+        initialLookingFor={clientSearchQuery}
+      />
     </div>
   );
 }

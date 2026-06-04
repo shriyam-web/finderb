@@ -53,6 +53,7 @@ import {
   normalizeVoiceTranscript,
   type VoiceRecognitionInstance,
 } from '@/lib/voiceSearch';
+import { setLastSearchQuery } from '@/lib/lastSearchQuery';
 
 const WORDS = [
   "verified professionals",
@@ -799,6 +800,12 @@ export default function HomeClient({ initialData }: { initialData: any }) {
                         <Link
                           key={biz.id}
                           href={`/business/${biz.id}`}
+                          onClick={() => {
+                            const q =
+                              manualQueryRef.current.trim() ||
+                              voiceSearchQueryRef.current.trim();
+                            if (q) setLastSearchQuery(q);
+                          }}
                           className="group overflow-hidden rounded-xl border border-gray-100 bg-white transition-shadow hover:shadow-md"
                         >
                           <div className="relative aspect-[4/3] overflow-hidden bg-gray-100">

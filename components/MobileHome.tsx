@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { setLastSearchQuery } from '@/lib/lastSearchQuery';
 import Image from 'next/image';
 import {
   MapPin,
@@ -165,6 +166,9 @@ export default function MobileHome({
                 <Link
                   key={biz.id}
                   href={`/business/${biz.id}`}
+                  onClick={() => {
+                    if (manualQuery.trim()) setLastSearchQuery(manualQuery);
+                  }}
                   className="w-[200px] shrink-0 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-[0_2px_8px_rgba(0,0,0,0.06)]"
                 >
                   <div className="relative h-[110px]">

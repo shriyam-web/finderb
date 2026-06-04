@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { leadBadgeClassName } from '@/lib/leadBadges';
 import { 
   HiOutlineSquares2X2,
   HiOutlineQueueList,
@@ -419,10 +420,10 @@ function DashboardContent() {
   const { percentage: completionPercent, missingFields } = getProfileCompletion();
 
   const mockLeads = [
-    { name: 'Amit Sharma', service: 'Leak Repair', status: 'New Lead', color: 'bg-blue-600', time: '14 min ago' },
-    { name: 'Priya Patel', service: 'House Inspection', status: 'Contacted', color: 'bg-amber-500', time: '2 hours ago' },
-    { name: 'Rahul Varma', service: 'Pipe Installation', status: 'Completed', color: 'bg-green-500', time: 'Yesterday' },
-    { name: 'Sneha Gupta', service: 'Drain Cleaning', status: 'New Lead', color: 'bg-blue-600', time: '3 days ago' },
+    { name: 'Amit Sharma', service: 'Plumber in South Delhi', status: 'Generated on your profile', color: 'bg-blue-600', time: '14 min ago' },
+    { name: 'Priya Patel', service: 'AC repair near me', status: 'In your category', color: 'bg-amber-500', time: '2 hours ago' },
+    { name: 'Rahul Varma', service: 'Pipe Installation', status: 'Contacted', color: 'bg-green-500', time: 'Yesterday' },
+    { name: 'Sneha Gupta', service: 'Drain Cleaning', status: 'In your category', color: 'bg-blue-600', time: '3 days ago' },
   ];
 
   return (
@@ -1344,11 +1345,7 @@ function DashboardContent() {
                                     <span className="text-slate-600 font-semibold text-sm">{lead.service}</span>
                                   </td>
                                   <td className="py-6">
-                                    <span className={`px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider border ${
-                                      lead.status === 'New Lead' ? 'bg-indigo-50 text-indigo-700 border-indigo-100' :
-                                      lead.status === 'Contacted' ? 'bg-amber-50 text-amber-700 border-amber-100' :
-                                      'bg-emerald-50 text-emerald-700 border-emerald-100'
-                                    }`}>
+                                    <span className={`px-3 py-1 rounded-full text-[10px] font-medium border ${leadBadgeClassName(lead.status)}`}>
                                       {lead.status}
                                     </span>
                                   </td>
@@ -1381,11 +1378,7 @@ function DashboardContent() {
                                 </div>
                               </div>
                               <div className="flex flex-col items-end gap-2">
-                                <span className={`px-2 py-0.5 rounded-full text-[7px] font-bold uppercase tracking-wider border ${
-                                  lead.status === 'New Lead' ? 'bg-indigo-50 text-indigo-700 border-indigo-100' :
-                                  lead.status === 'Contacted' ? 'bg-amber-50 text-amber-700 border-amber-100' :
-                                  'bg-emerald-50 text-emerald-700 border-emerald-100'
-                                }`}>
+                                <span className={`px-2 py-0.5 rounded-full text-[9px] font-medium border ${leadBadgeClassName(lead.status)}`}>
                                   {lead.status}
                                 </span>
                               </div>

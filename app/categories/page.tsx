@@ -18,6 +18,7 @@ import {
   sortBySearchRelevance,
   textMatchesSearch,
 } from '@/lib/searchMatch';
+import { setLastSearchQuery } from '@/lib/lastSearchQuery';
 import Image from 'next/image';
 
 interface SubCategory {
@@ -173,6 +174,11 @@ export default function CategoriesPage() {
       }
     };
   }, [searchQuery, viewMode, urlSearchQ, executeSearch]);
+
+  useEffect(() => {
+    const trimmed = searchQuery.trim();
+    if (trimmed) setLastSearchQuery(trimmed);
+  }, [searchQuery]);
 
   const businessMatchesSearch = (biz: any, q: string) => {
     if (!q.trim()) return true;
@@ -417,7 +423,10 @@ export default function CategoriesPage() {
         </div>
         <button
           type="button"
-          onClick={() => router.push(`/business/${biz.id}`)}
+          onClick={() => {
+            if (searchQuery.trim()) setLastSearchQuery(searchQuery);
+            router.push(`/business/${biz.id}`);
+          }}
           className="mt-2 self-start px-3 py-1.5 bg-primary text-white rounded-lg text-[9px] font-black uppercase"
         >
           View
@@ -919,7 +928,10 @@ export default function CategoriesPage() {
                         
                         <div className="flex gap-1.5">
                           <button 
-                            onClick={() => router.push(`/business/${biz.id}`)}
+                            onClick={() => {
+                              if (searchQuery.trim()) setLastSearchQuery(searchQuery);
+                              router.push(`/business/${biz.id}`);
+                            }}
                             className="px-2.5 py-1.5 sm:px-3 sm:py-2 bg-primary text-white rounded-lg text-[8px] sm:text-[9px] font-black uppercase hover:bg-primary/90 active:scale-95 transition-all shadow-sm"
                           >
                             View

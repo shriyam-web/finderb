@@ -5,6 +5,8 @@ export interface Business {
   rating: number;
   reviewsCount: number;
   location: string;
+  city?: string | null;
+  state?: string | null;
   description: string;
   contact: string;
   services: string[];
