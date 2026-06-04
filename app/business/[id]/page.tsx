@@ -41,9 +41,17 @@ export default function BusinessDetailPage({ params }: { params: Promise<{ id: s
   }, [searchParams]);
 
   useEffect(() => {
-    if (!isLoading && business) {
+    setConnectModalOpen(false);
+  }, [id]);
+
+  useEffect(() => {
+    if (isLoading || !business) return;
+
+    const timer = window.setTimeout(() => {
       setConnectModalOpen(true);
-    }
+    }, 10_000);
+
+    return () => window.clearTimeout(timer);
   }, [isLoading, business?.id]);
 
   const getBusinessStatus = (timings: any) => {

@@ -92,14 +92,14 @@ export default function ConnectMerchantModal({
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/45 p-0 sm:p-4"
+      className="fixed inset-0 z-[10050] flex items-end sm:items-center justify-center bg-black/45 p-0 sm:p-4 pb-[calc(5.75rem+env(safe-area-inset-bottom,0px))] sm:pb-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="connect-merchant-title"
       onClick={handleClose}
     >
       <div
-        className="w-full sm:max-w-[420px] bg-white border border-gray-300 shadow-lg max-h-[min(92vh,640px)] flex flex-col sm:rounded-sm"
+        className="w-full sm:max-w-[420px] bg-white border border-gray-300 shadow-lg max-h-[min(78vh,640px)] sm:max-h-[min(92vh,640px)] flex flex-col rounded-t-sm sm:rounded-sm"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-3 px-4 py-3 border-b border-gray-200 shrink-0">
