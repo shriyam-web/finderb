@@ -171,7 +171,7 @@ export async function submitJobApplication(data: {
   try {
     const supabase = createClient(await cookies());
 
-    let jobTitle = data.jobTitle?.trim();
+    let jobTitle: string = data.jobTitle?.trim() || '';
     if (!jobTitle) {
       const { data: job } = await supabase
         .from('jobs')
