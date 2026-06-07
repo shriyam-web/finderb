@@ -80,7 +80,7 @@ export async function GET(request: NextRequest) {
 
     const items = feed.items.slice(0, 6);
     const articles = items.map((item, index) => {
-      const rawItem = item as Record<string, unknown>;
+      const rawItem = item as unknown as Record<string, unknown>;
       const extractedImage = extractImageFromRssItem(rawItem);
       const image = extractedImage || fallbacks[index % fallbacks.length];
 
