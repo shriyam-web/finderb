@@ -204,7 +204,7 @@ export default function JobPostingTab({ businessId }: JobPostingTabProps) {
               <span className="text-[10px] font-bold uppercase tracking-widest">{activeJobsCount} / {MAX_ACTIVE_JOBS} ACTIVE SLOTS USED</span>
             </div>
             <div>
-              <h1 className="text-3xl font-black text-slate-900 tracking-tight">Talent Acquisition</h1>
+              <h1 className="text-3xl font-semibold text-slate-900 tracking-tight">Talent Acquisition</h1>
               <p className="text-slate-500 font-medium mt-1">Recruit top professionals to scale your business operations.</p>
             </div>
           </div>
@@ -328,7 +328,7 @@ export default function JobPostingTab({ businessId }: JobPostingTabProps) {
             {/* Modal Header */}
             <div className="px-8 py-8 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
               <div className="space-y-1">
-                <h2 className="text-2xl font-black text-slate-900 tracking-tight">
+                <h2 className="text-2xl font-semibold text-slate-900 tracking-tight">
                   {editingJob ? 'Refine Posting' : 'Create New Opportunity'}
                 </h2>
                 <p className="text-slate-500 text-sm font-medium">Define the role and expectations for your new hire.</p>

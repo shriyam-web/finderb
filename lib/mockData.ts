@@ -249,30 +249,37 @@ export interface Testimonial {
   role: string;
   content: string;
   avatar: string;
+  gender: 'male' | 'female';
 }
 
 export const testimonials: Testimonial[] = [
   {
     id: '1',
     name: 'Rahul Sharma',
-    role: 'Homeowner',
-    content: 'FinderB made it so easy to find a reliable plumber when I had an emergency. The service was quick and the pricing was transparent.',
-    avatar: 'https://i.pravatar.cc/150?u=rahul'
+    role: 'Homeowner, Delhi',
+    content:
+      'FinderB made it so easy to find a reliable plumber when I had an emergency. The service was quick and the pricing was transparent.',
+    avatar: '/testimonials/rahul-sharma.jpg',
+    gender: 'male',
   },
   {
     id: '2',
     name: 'Priya Patel',
-    role: 'Business Owner',
-    content: 'I listed my salon on FinderB and saw a 30% increase in new customers within the first month. Highly recommended for local businesses!',
-    avatar: 'https://i.pravatar.cc/150?u=priya'
+    role: 'Business Owner, Ahmedabad',
+    content:
+      'I listed my salon on FinderB and saw a 30% increase in new customers within the first month. Highly recommended for local businesses!',
+    avatar: '/testimonials/priya-patel.jpg',
+    gender: 'female',
   },
   {
     id: '3',
     name: 'Amit Kumar',
-    role: 'Software Engineer',
-    content: 'The review system is genuine. I found a great gym near my office thanks to the detailed feedback from other users.',
-    avatar: 'https://i.pravatar.cc/150?u=amit'
-  }
+    role: 'Software Engineer, Bengaluru',
+    content:
+      'The review system is genuine. I found a great gym near my office thanks to the detailed feedback from other users.',
+    avatar: '/testimonials/amit-kumar.jpg',
+    gender: 'male',
+  },
 ];
 
 export const featuredBusinesses = businesses.slice(0, 4);

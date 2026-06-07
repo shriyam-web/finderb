@@ -2,6 +2,12 @@
 
 import { createClient } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';
+import { stripHtml } from '@/lib/stripHtml';
+
+function plainExcerpt(excerpt: string | null | undefined, content: string | null | undefined, maxLen = 150): string {
+  const raw = excerpt || (content ? content.substring(0, maxLen) + '...' : '');
+  return stripHtml(raw);
+}
 
 export async function getBlogs() {
   try {
@@ -22,7 +28,7 @@ export async function getBlogs() {
       id: b.id,
       title: b.title,
       slug: b.slug,
-      excerpt: b.excerpt || b.content.substring(0, 150) + '...',
+      excerpt: plainExcerpt(b.excerpt, b.content),
       image: b.image_url || 'https://images.unsplash.com/photo-1499750310107-5fef28a66643?auto=format&fit=crop&q=80&w=800',
       date: b.published_at ? new Date(b.published_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Recently',
       author: b.author || 'FinderB Admin'
@@ -87,7 +93,7 @@ export async function getBlogBySlug(slugOrId: string) {
       id: blog.id,
       title: blog.title || 'Untitled Story',
       slug: blog.slug,
-      excerpt: blog.excerpt || (blog.content ? blog.content.substring(0, 150) + '...' : 'No summary available.'),
+      excerpt: plainExcerpt(blog.excerpt, blog.content),
       content: blog.content || 'Story content is currently not available.',
       image: blog.image_url || 'https://images.unsplash.com/photo-1499750310107-5fef28a66643?auto=format&fit=crop&q=80&w=800',
       date: blog.published_at ? new Date(blog.published_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Recently',

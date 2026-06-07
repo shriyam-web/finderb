@@ -143,7 +143,7 @@ export default function SettingsTab({
           {isMissing ? (
             <div className="flex items-center gap-1.5 bg-rose-100 px-2 py-0.5 rounded-full">
               <div className="w-1 h-1 rounded-full bg-rose-600 animate-pulse"></div>
-              <span className="text-[8px] font-black uppercase tracking-widest text-rose-600">Missing</span>
+              <span className="text-[8px] font-semibold uppercase tracking-widest text-rose-600">Missing</span>
             </div>
           ) : (
             <HiOutlineChevronRight size={12} className="text-slate-300 group-hover:text-indigo-400 transition-transform group-hover:translate-x-0.5" />
@@ -152,7 +152,7 @@ export default function SettingsTab({
         
         <div className="space-y-0.5 relative z-10">
           <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">{field.label}</p>
-          <p className={`text-sm font-black truncate ${isMissing ? 'text-rose-400 italic' : 'text-slate-900'}`}>
+          <p className={`text-sm font-semibold truncate ${isMissing ? 'text-rose-400 italic' : 'text-slate-900'}`}>
             {displayValue}
           </p>
           <p className="text-[10px] text-slate-500 font-medium line-clamp-1 opacity-70 group-hover:opacity-100 transition-opacity">
@@ -179,13 +179,13 @@ export default function SettingsTab({
     <div className="space-y-8 pb-32 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
-          <h2 className="text-3xl font-black text-slate-900 tracking-tight">Business Profile</h2>
+          <h2 className="text-3xl font-semibold text-slate-900 tracking-tight">Business Profile</h2>
           <p className="text-slate-500 text-sm font-medium mt-1">Manage all your business information in one place</p>
         </div>
         {successMessage && (
           <div className="bg-emerald-50 text-emerald-600 px-4 py-2 rounded-xl border border-emerald-100 flex items-center gap-2 animate-in zoom-in-95">
             <HiOutlineShieldCheck size={18} />
-            <span className="text-xs font-black uppercase tracking-wider">{successMessage}</span>
+            <span className="text-xs font-semibold uppercase tracking-wider">{successMessage}</span>
           </div>
         )}
       </div>
@@ -205,7 +205,7 @@ export default function SettingsTab({
                   {fields.find(f => f.key === activeModal)?.icon({ size: 24 })}
                 </div>
                 <div>
-                  <h3 className="text-xl font-black text-slate-900 tracking-tight">
+                  <h3 className="text-xl font-semibold text-slate-900 tracking-tight">
                     Edit {fields.find(f => f.key === activeModal)?.label}
                   </h3>
                   <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-0.5">Update Information</p>
@@ -234,7 +234,7 @@ export default function SettingsTab({
                             <button 
                               type="button"
                               onClick={() => handleSetProfile(url)}
-                              className={`w-full py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${
+                              className={`w-full py-2 rounded-xl text-[9px] font-semibold uppercase tracking-widest transition-all ${
                                 profilePictureUrl === url ? 'bg-indigo-600 text-white' : 'bg-white text-slate-900 hover:bg-indigo-50'
                               }`}
                             >
@@ -246,13 +246,13 @@ export default function SettingsTab({
                                 setImageToDelete(url);
                                 setShowDeleteModal(true);
                               }}
-                              className="w-full py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all"
+                              className="w-full py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-[9px] font-semibold uppercase tracking-widest transition-all"
                             >
                               Delete
                             </button>
                           </div>
                           {profilePictureUrl === url && (
-                            <div className="absolute top-3 left-3 bg-indigo-600 text-white text-[8px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest">
+                            <div className="absolute top-3 left-3 bg-indigo-600 text-white text-[8px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-widest">
                               Main
                             </div>
                           )}
@@ -271,7 +271,7 @@ export default function SettingsTab({
                               className="aspect-square rounded-[24px] border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-2 hover:border-indigo-600 hover:bg-indigo-50/30 transition-all text-slate-400 hover:text-indigo-600"
                             >
                               <HiOutlinePlus size={24} />
-                              <span className="text-[10px] font-black uppercase tracking-widest">Add Photo</span>
+                              <span className="text-[10px] font-semibold uppercase tracking-widest">Add Photo</span>
                             </button>
                           )}
                         </CldUploadWidget>
@@ -316,7 +316,7 @@ export default function SettingsTab({
                   <div className="space-y-4">
                     {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((day) => (
                       <div key={day} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-100">
-                        <span className="text-xs font-black text-slate-900 w-24">{day}</span>
+                        <span className="text-xs font-semibold text-slate-900 w-24">{day}</span>
                         <div className="flex items-center gap-3">
                           <input 
                             type="time" 
@@ -327,7 +327,7 @@ export default function SettingsTab({
                             })}
                             className="px-3 py-2 rounded-xl bg-white border border-slate-100 text-xs font-bold outline-none focus:border-indigo-600"
                           />
-                          <span className="text-slate-400 text-[10px] font-black uppercase">to</span>
+                          <span className="text-slate-400 text-[10px] font-semibold uppercase">to</span>
                           <input 
                             type="time" 
                             value={profileData.timings?.[day]?.close || ''}
@@ -373,14 +373,14 @@ export default function SettingsTab({
                   <button
                     type="button"
                     onClick={() => setActiveModal(null)}
-                    className="flex-1 px-6 py-4 rounded-2xl font-black text-[11px] uppercase tracking-widest text-slate-600 bg-slate-50 hover:bg-slate-100 transition-all"
+                    className="flex-1 px-6 py-4 rounded-2xl font-semibold text-[11px] uppercase tracking-widest text-slate-600 bg-slate-50 hover:bg-slate-100 transition-all"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={updating}
-                    className="flex-[2] px-6 py-4 bg-slate-900 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest hover:bg-indigo-600 transition-all shadow-xl shadow-slate-900/10 disabled:opacity-50"
+                    className="flex-[2] px-6 py-4 bg-slate-900 text-white rounded-2xl font-semibold text-[11px] uppercase tracking-widest hover:bg-indigo-600 transition-all shadow-xl shadow-slate-900/10 disabled:opacity-50"
                   >
                     {updating ? 'Saving...' : 'Save Changes'}
                   </button>
@@ -399,7 +399,7 @@ export default function SettingsTab({
                 <HiOutlineExclamationCircle size={40} />
               </div>
               <div className="space-y-2">
-                <h3 className="text-2xl font-black text-slate-900 tracking-tight">Delete Photo?</h3>
+                <h3 className="text-2xl font-semibold text-slate-900 tracking-tight">Delete Photo?</h3>
                 <p className="text-slate-500 text-sm leading-relaxed">Are you sure? This action cannot be undone.</p>
               </div>
               <div className="flex gap-3 w-full">

@@ -3,16 +3,16 @@ export const CATEGORY_LEAD_BADGE = 'In your category';
 
 export function leadBadgeClassName(status: string): string {
   if (status === PROFILE_LEAD_BADGE) {
-    return 'bg-blue-50 text-blue-800 border-blue-200';
+    return 'bg-[#215481]/10 text-[#153551] border-[#215481]/20';
   }
   if (status === CATEGORY_LEAD_BADGE) {
-    return 'bg-gray-100 text-gray-800 border-gray-300';
+    return 'bg-[#f9b864]/15 text-[#8a5a12] border-[#f9b864]/35';
   }
   if (status === 'New Lead' || status === 'New') {
-    return 'bg-indigo-50 text-indigo-700 border-indigo-100';
+    return 'bg-emerald-50 text-emerald-800 border-emerald-200';
   }
   if (status === 'Contacted') {
-    return 'bg-amber-50 text-amber-700 border-amber-100';
+    return 'bg-amber-50 text-amber-800 border-amber-200';
   }
-  return 'bg-emerald-50 text-emerald-700 border-emerald-100';
+  return 'bg-slate-100 text-slate-700 border-slate-200';
 }

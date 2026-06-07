@@ -38,6 +38,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
+import TouristPlaceImage from '@/components/TouristPlaceImage';
 import { Business, Category, Movie, TouristPlace, testimonials } from '@/lib/mockData';
 import { getFeaturedBusinesses } from '@/app/actions/business';
 import { getCategories, getFeaturedGroups } from '@/app/actions/category';
@@ -54,6 +55,7 @@ import {
   type VoiceRecognitionInstance,
 } from '@/lib/voiceSearch';
 import { setLastSearchQuery } from '@/lib/lastSearchQuery';
+import { stripHtml } from '@/lib/stripHtml';
 
 const WORDS = [
   "verified professionals",
@@ -539,7 +541,7 @@ export default function HomeClient({ initialData }: { initialData: any }) {
   }, [index]);
 
   return (
-    <div className="flex flex-col bg-white selection:bg-primary/10 font-sans">
+    <div className="flex w-full min-w-0 flex-col overflow-x-hidden bg-white selection:bg-primary/10 font-sans">
       {/* AI Search View */}
       {activeMobileTab === 'AI Search' && (
         <div className="fixed inset-0 z-[80] bg-white pt-20 pb-24 overflow-y-auto px-6">
@@ -953,144 +955,175 @@ export default function HomeClient({ initialData }: { initialData: any }) {
         </section>
       )}
 
-      {/* Movies Section */}
-      <section className="bg-white py-6 lg:py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center mb-8">
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-primary tracking-tight">
-              Latest <span className="text-secondary">Movies</span>
-            </h2>
-            <Link href="/movies" className="text-sm font-bold text-primary hover:text-secondary transition-colors flex items-center gap-2">
-              View all <ArrowRight size={16} />
-            </Link>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {realMovies.slice(0, 4).map((movie) => (
-              <div key={movie.id} className="group relative aspect-[2/3] overflow-hidden rounded-2xl shadow-lg">
-                <Image
-                  src={movie.image}
-                  alt={movie.title}
-                  fill
-                  className="object-cover transition-transform duration-500 group-hover:scale-110"
-                  sizes="(max-width: 768px) 50vw, 25vw"
-                />
-                <div className="absolute inset-0 z-[1] bg-gradient-to-t from-black/85 via-black/20 to-transparent" />
-                <div className="absolute bottom-0 left-0 right-0 z-[2] p-4 text-white">
-                  <p className="mb-1 text-lg font-bold leading-tight !text-white">{movie.title}</p>
-                  <div className="flex items-center justify-between text-xs font-medium !text-white/90">
-                    <span className="!text-white/90">{movie.genre}</span>
-                    <div className="flex items-center gap-1">
-                      <Star size={12} className="fill-yellow-400 text-yellow-400" />
-                      <span className="!text-white">{movie.rating}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* Tourist Places Section */}
-      <section className="bg-slate-50 py-6 lg:py-12">
+      <section className="bg-slate-50 py-6 lg:py-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="mb-8 flex items-center justify-between gap-3">
-            <h2 className="min-w-0 text-2xl font-extrabold tracking-tight text-primary sm:text-4xl lg:text-5xl">
+          <div className="mb-5 flex items-center justify-between gap-3">
+            <h2 className="min-w-0 text-2xl font-extrabold tracking-tight text-primary sm:text-3xl lg:text-4xl">
               Explore <span className="text-secondary">Destinations</span>
             </h2>
             <Link
               href="/tourist-places"
-              className="flex shrink-0 items-center gap-1.5 whitespace-nowrap text-sm font-bold text-primary transition-colors hover:text-secondary"
+              className="flex shrink-0 items-center gap-1.5 whitespace-nowrap text-sm font-semibold text-[#2563eb] transition-colors hover:text-[#1d4ed8]"
             >
               View all
-              <ArrowRight size={16} className="shrink-0" />
+              <ArrowRight size={15} className="shrink-0" />
             </Link>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
-            {realTouristPlaces.slice(0, 3).map((place) => (
-              <div key={place.id} className="group bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500">
-                <div className="relative h-48 overflow-hidden">
-                  <Image src={place.image} alt={place.name} fill className="object-cover transition-transform duration-700 group-hover:scale-110" />
-                  <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold text-primary">
-                    {place.distance}
-                  </div>
+          <div className="scrollbar-hide flex max-w-full gap-3 overflow-x-auto pb-1 sm:grid sm:grid-cols-3 sm:gap-4 sm:overflow-visible">
+            {realTouristPlaces.slice(0, 6).map((place) => (
+              <Link
+                key={place.id}
+                href={`/tourist-places/${place.id}`}
+                className="group flex w-[min(260px,calc(100vw-2rem))] shrink-0 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-[0_1px_4px_rgba(15,23,42,0.06)] transition-all hover:border-[#2563eb]/20 hover:shadow-md sm:w-auto sm:shrink"
+              >
+                <div className="relative h-[88px] w-[88px] shrink-0 sm:h-24 sm:w-24">
+                  <TouristPlaceImage
+                    src={place.image}
+                    alt={place.name}
+                    fill
+                    className="transition-transform duration-500 group-hover:scale-105"
+                    sizes="96px"
+                  />
                 </div>
-                <div className="p-6">
-                  <div className="flex justify-between items-start mb-2">
-                    <h3 className="text-xl font-bold text-primary group-hover:text-secondary transition-colors">{place.name}</h3>
-                    <div className="flex items-center gap-1 text-secondary">
-                      <Star size={14} className="fill-secondary" />
-                      <span className="text-sm font-bold">{place.rating}</span>
+                <div className="flex min-w-0 flex-1 flex-col justify-center px-3 py-2.5">
+                  <h3 className="line-clamp-1 text-[13px] font-bold text-[#1e293b] group-hover:text-[#2563eb]">
+                    {place.name}
+                  </h3>
+                  <div className="mt-1 flex items-center gap-1 text-[11px] text-[#64748b]">
+                    <MapPin size={11} className="shrink-0 text-[#94a3b8]" />
+                    <span className="line-clamp-1">{place.location}</span>
+                  </div>
+                  <div className="mt-1.5 flex items-center gap-2">
+                    <div className="flex items-center gap-0.5 text-[#f59e0b]">
+                      <Star size={11} className="fill-[#f59e0b]" />
+                      <span className="text-[11px] font-semibold text-[#1e293b]">{place.rating}</span>
                     </div>
+                    <span className="text-[10px] text-[#94a3b8]">· {place.distance}</span>
                   </div>
-                  <div className="flex items-center gap-1.5 text-gray-400 text-sm font-medium mb-4">
-                    <MapPin size={14} />
-                    <span>{place.location}</span>
-                  </div>
-                  <Link href={`/tourist-places/${place.id}`} className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-slate-50 text-primary font-bold text-xs hover:bg-primary hover:text-white transition-all uppercase tracking-widest">
-                    Explore Now <ArrowRight size={14} />
-                  </Link>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         </div>
       </section>
 
-      {/* News and Updates Section */}
-      <section id="news" className="relative bg-white py-6 lg:py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-3 gap-12">
-            <div className="lg:col-span-2 space-y-8">
-              <div className="flex justify-between items-end">
-                <div className="space-y-4">
-                  <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-primary tracking-tight">FinderB <span className="text-secondary">News</span></h2>
-                  <p className="text-gray-500 font-medium">Stay updated with the latest in local services and business trends.</p>
-                </div>
-                <Link href="/blog" className="hidden sm:flex items-center gap-2 text-sm font-bold text-primary hover:text-secondary transition-colors">
-                  Read all articles <ArrowRight size={16} />
-                </Link>
+      {/* Latest News — RSS headlines only */}
+      <section id="news" className="relative w-full min-w-0 overflow-hidden bg-white py-6 lg:py-10">
+        <div className="mx-auto w-full min-w-0 max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="mb-5 min-w-0 space-y-2">
+            <h2 className="text-2xl font-extrabold tracking-tight text-primary sm:text-3xl lg:text-4xl">
+              Latest <span className="text-secondary">News</span>
+            </h2>
+            <p className="text-sm font-medium text-gray-500">
+              Top headlines by category — switch between Hindi and English.
+            </p>
+          </div>
+          <NewsWidget />
+        </div>
+      </section>
+
+      {/* FinderB Blog — editorial articles, separate from news */}
+      {realBlogs.length > 0 && (
+        <section id="blog" className="relative w-full min-w-0 overflow-hidden bg-slate-50 py-6 lg:py-10">
+          <div className="mx-auto w-full min-w-0 max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="mb-5 flex min-w-0 items-end justify-between gap-3">
+              <div className="min-w-0 space-y-2">
+                <h2 className="text-2xl font-extrabold tracking-tight text-primary sm:text-3xl lg:text-4xl">
+                  FinderB <span className="text-secondary">Blog</span>
+                </h2>
+                <p className="text-sm font-medium text-gray-500">
+                  Guides, tips, and local insights from the FinderB team.
+                </p>
               </div>
-              
-              <div className="grid sm:grid-cols-2 gap-8">
-                {realBlogs.slice(0, 4).map((post: any) => (
-                  <Link key={post.id} href={`/blog/${post.slug}`} className="group space-y-4 block">
-                    <div className="relative aspect-[16/9] rounded-2xl overflow-hidden shadow-sm">
-                      <Image 
-                        src={post.coverImage || 'https://images.unsplash.com/photo-1495020689067-958852a7765e?auto=format&fit=crop&q=80&w=800'} 
-                        alt={post.title} 
-                        fill 
-                        className="object-cover transition-transform duration-500 group-hover:scale-105"
-                      />
-                      <div className="absolute top-4 left-4">
-                        <span className="px-3 py-1 rounded-lg bg-white/90 backdrop-blur-sm text-[10px] font-bold text-primary uppercase tracking-widest shadow-sm">
-                          {post.category || 'Local News'}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <h3 className="text-lg font-bold text-primary group-hover:text-secondary transition-colors line-clamp-2">
-                        {post.title}
-                      </h3>
-                      <p className="text-sm text-gray-500 line-clamp-2">{post.excerpt}</p>
-                      <div className="flex items-center gap-3 pt-2">
-                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{post.date || 'Today'}</span>
-                        <span className="w-1 h-1 rounded-full bg-gray-200"></span>
-                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">5 min read</span>
-                      </div>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-              
-              <Link href="/blog" className="flex sm:hidden items-center justify-center gap-2 py-4 rounded-xl border border-gray-100 text-sm font-bold text-primary">
+              <Link
+                href="/blog"
+                className="hidden shrink-0 items-center gap-2 text-sm font-semibold text-[#2563eb] transition-colors hover:text-[#1d4ed8] sm:flex"
+              >
                 Read all articles <ArrowRight size={16} />
               </Link>
             </div>
-            
-            <div className="lg:border-l lg:border-gray-100 lg:pl-12">
-              <NewsWidget />
+
+            <div className="grid w-full min-w-0 gap-3 sm:grid-cols-2 sm:gap-5">
+              {realBlogs.slice(0, 2).map((post: any) => (
+                <Link
+                  key={post.id}
+                  href={`/blog/${post.slug}`}
+                  className="group flex w-full min-w-0 max-w-full overflow-hidden rounded-xl border border-gray-100 bg-white shadow-[0_1px_4px_rgba(15,23,42,0.06)] transition-shadow hover:shadow-md sm:block"
+                >
+                  <div className="relative h-[72px] w-[88px] shrink-0 overflow-hidden sm:h-auto sm:w-full sm:aspect-[16/9]">
+                    <Image
+                      src={post.image || post.coverImage || 'https://images.unsplash.com/photo-1495020689067-958852a7765e?auto=format&fit=crop&q=80&w=800'}
+                      alt={post.title}
+                      fill
+                      className="object-cover transition-transform duration-500 group-hover:scale-105"
+                      sizes="(max-width: 640px) 88px, 50vw"
+                    />
+                    <div className="absolute top-2 left-2 hidden sm:block">
+                      <span className="rounded-md bg-white/95 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[#2563eb] shadow-sm">
+                        Blog
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex min-w-0 flex-1 flex-col justify-center gap-1 overflow-hidden px-3 py-2.5 sm:space-y-2 sm:p-4">
+                    <h3 className="line-clamp-2 break-words text-[13px] font-bold leading-snug text-[#1e293b] transition-colors group-hover:text-[#2563eb] sm:text-[15px]">
+                      {post.title}
+                    </h3>
+                    <p className="hidden line-clamp-2 break-words text-[13px] leading-relaxed text-[#64748b] sm:block">
+                      {stripHtml(post.excerpt || '')}
+                    </p>
+                    <span className="text-[10px] font-semibold uppercase tracking-wide text-[#94a3b8]">
+                      {post.date || 'Recently'}
+                    </span>
+                  </div>
+                </Link>
+              ))}
             </div>
+
+            <Link
+              href="/blog"
+              className="mt-4 flex w-full min-w-0 items-center justify-center gap-2 rounded-xl border border-gray-100 bg-white py-3 text-sm font-semibold text-[#2563eb] sm:hidden"
+            >
+              Read all articles <ArrowRight size={16} />
+            </Link>
+          </div>
+        </section>
+      )}
+
+      {/* Movies Section */}
+      <section className="bg-white py-6 lg:py-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center mb-5">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-primary tracking-tight">
+              Latest <span className="text-secondary">Movies</span>
+            </h2>
+            <Link href="/movies" className="text-sm font-semibold text-[#2563eb] hover:text-[#1d4ed8] transition-colors flex items-center gap-1.5">
+              View all <ArrowRight size={15} />
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {realMovies.slice(0, 4).map((movie) => (
+              <div key={movie.id} className="group relative aspect-[2/3] overflow-hidden rounded-xl border border-gray-100 shadow-[0_2px_8px_rgba(15,23,42,0.08)]">
+                <Image
+                  src={movie.image}
+                  alt={movie.title}
+                  fill
+                  className="object-cover transition-transform duration-500 group-hover:scale-105"
+                  sizes="(max-width: 768px) 50vw, 25vw"
+                />
+                <div className="absolute inset-0 z-[1] bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
+                <div className="absolute bottom-0 left-0 right-0 z-[2] p-3 text-white">
+                  <p className="mb-1 text-sm font-bold leading-tight line-clamp-2">{movie.title}</p>
+                  <div className="flex items-center justify-between text-[11px] font-medium text-white/90">
+                    <span className="line-clamp-1">{movie.genre}</span>
+                    <div className="flex shrink-0 items-center gap-0.5">
+                      <Star size={11} className="fill-yellow-400 text-yellow-400" />
+                      <span>{movie.rating}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -1126,12 +1159,13 @@ export default function HomeClient({ initialData }: { initialData: any }) {
                 </p>
 
                 <div className="flex items-center gap-4">
-                  <div className="relative w-12 h-12 rounded-2xl overflow-hidden ring-2 ring-slate-50">
-                    <Image 
-                      src={testimonial.avatar} 
-                      alt={testimonial.name} 
-                      fill 
-                      className="object-cover"
+                  <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full ring-2 ring-slate-100">
+                    <Image
+                      src={testimonial.avatar}
+                      alt={testimonial.name}
+                      fill
+                      className="object-cover object-top"
+                      sizes="48px"
                     />
                   </div>
                   <div>

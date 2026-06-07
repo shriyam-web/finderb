@@ -4,6 +4,130 @@ import { createClient } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';
 
 import { CATEGORY_LEAD_BADGE, PROFILE_LEAD_BADGE } from '@/lib/leadBadges';
+import {
+  enrichLegacyJobLeadMessage,
+  extractLegacyJobId,
+} from '@/lib/jobLeadMessage';
+
+export type BusinessLead = {
+  id: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  category: string;
+  business_id: string | null;
+  message: string | null;
+  status: string;
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+async function getSessionBusinessId() {
+  const businessId = (await cookies()).get('business_id')?.value;
+  return businessId ?? null;
+}
+
+export async function getBusinessLeads(businessId: string) {
+  try {
+    if (!businessId) {
+      return { success: false as const, error: 'Business ID is required' };
+    }
+
+    const sessionId = await getSessionBusinessId();
+    if (sessionId && sessionId !== businessId) {
+      return { success: false as const, error: 'Unauthorized' };
+    }
+
+    const supabase = createClient(await cookies());
+    const { data, error } = await supabase
+      .from('leads')
+      .select('*')
+      .eq('business_id', businessId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    let leads = (data ?? []) as BusinessLead[];
+
+    const legacyJobIds = [
+      ...new Set(
+        leads
+          .map((lead) => extractLegacyJobId(lead.message))
+          .filter((id): id is string => Boolean(id))
+      ),
+    ];
+
+    if (legacyJobIds.length > 0) {
+      const { data: jobs } = await supabase
+        .from('jobs')
+        .select('id, title')
+        .in('id', legacyJobIds);
+
+      const titleById = new Map((jobs ?? []).map((job) => [job.id, job.title]));
+
+      leads = leads.map((lead) => {
+        const jobId = extractLegacyJobId(lead.message);
+        if (!jobId) return lead;
+
+        const title = titleById.get(jobId);
+        if (!title) return lead;
+
+        return {
+          ...lead,
+          message: enrichLegacyJobLeadMessage(lead.message ?? '', title),
+        };
+      });
+    }
+
+    return { success: true as const, leads };
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : 'Failed to fetch leads';
+    console.error('Get Business Leads Error:', error);
+    return { success: false as const, error: msg };
+  }
+}
+
+export async function updateLeadStatus(leadId: string, status: string) {
+  try {
+    if (!leadId || !status?.trim()) {
+      return { success: false as const, error: 'Lead ID and status are required' };
+    }
+
+    const sessionId = await getSessionBusinessId();
+    if (!sessionId) {
+      return { success: false as const, error: 'Not signed in' };
+    }
+
+    const supabase = createClient(await cookies());
+
+    const { data: lead, error: fetchError } = await supabase
+      .from('leads')
+      .select('business_id')
+      .eq('id', leadId)
+      .single();
+
+    if (fetchError || !lead) {
+      return { success: false as const, error: 'Lead not found' };
+    }
+
+    if (lead.business_id !== sessionId) {
+      return { success: false as const, error: 'Unauthorized' };
+    }
+
+    const { error: updateError } = await supabase
+      .from('leads')
+      .update({ status: status.trim(), updated_at: new Date().toISOString() })
+      .eq('id', leadId);
+
+    if (updateError) throw updateError;
+
+    return { success: true as const };
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : 'Failed to update lead';
+    console.error('Update Lead Status Error:', error);
+    return { success: false as const, error: msg };
+  }
+}
 
 export async function submitBroadcastEnquiry(data: {
   sourceBusinessId: string;

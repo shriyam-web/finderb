@@ -7,7 +7,6 @@ import {
   ChevronDown,
   ChevronRight,
   Mic,
-  LocateFixed,
 } from 'lucide-react';
 import { HERO_TRUST_BADGES, POPULAR_SEARCHES } from '@/lib/homeHeroConstants';
 
@@ -162,19 +161,10 @@ export default function HomeHero({
               </button>
             </div>
 
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 border-b border-gray-100 px-3.5 py-2.5">
+            <div className="flex items-center gap-2 border-b border-gray-100 px-3.5 py-2.5">
               <MapPin size={17} className="shrink-0 text-[#2563eb]" strokeWidth={2.25} />
               <span className="text-[13px] font-semibold text-[#1e293b]">New Delhi</span>
-              <div className="ml-auto flex min-w-0 items-center gap-1">
-                <button
-                  type="button"
-                  className="flex items-center gap-1 text-[11px] font-medium text-[#2563eb]"
-                >
-                  <LocateFixed size={13} strokeWidth={2.25} />
-                  <span className="whitespace-nowrap">Use my current location</span>
-                </button>
-                <ChevronDown size={15} className="shrink-0 text-[#94a3b8]" />
-              </div>
+              <ChevronDown size={15} className="ml-auto shrink-0 text-[#94a3b8]" />
             </div>
 
             <button

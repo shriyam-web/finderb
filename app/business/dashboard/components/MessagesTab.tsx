@@ -32,7 +32,7 @@ export default function MessagesTab({ businessId }: MessagesTabProps) {
               <span className="text-[10px] font-bold uppercase tracking-widest">Connect with Audience</span>
             </div>
             <div>
-              <h1 className="text-3xl font-black text-slate-900 tracking-tight">Communication Hub</h1>
+              <h1 className="text-3xl font-semibold text-slate-900 tracking-tight">Communication Hub</h1>
               <p className="text-slate-500 font-medium mt-1">Engage with potential customers and manage your network.</p>
             </div>
           </div>
@@ -86,7 +86,7 @@ export default function MessagesTab({ businessId }: MessagesTabProps) {
                 {activeView === 'messages' ? <HiOutlineChatBubbleLeftRight size={32} /> : <HiOutlineUsers size={32} />}
               </div>
               <div className="space-y-1">
-                <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em]">Silence is golden</p>
+                <p className="text-[10px] font-semibold text-slate-300 uppercase tracking-[0.2em]">Silence is golden</p>
                 <p className="text-sm font-bold text-slate-400">No {activeView} found</p>
               </div>
             </div>
@@ -104,7 +104,7 @@ export default function MessagesTab({ businessId }: MessagesTabProps) {
             </div>
             
             <div className="max-w-md space-y-3">
-              <h3 className="text-2xl font-black text-slate-900 tracking-tight">
+              <h3 className="text-2xl font-semibold text-slate-900 tracking-tight">
                 {activeView === 'messages' ? 'Your Inbox Awaits' : 'Customer Directory'}
               </h3>
               <p className="text-slate-500 font-medium leading-relaxed">

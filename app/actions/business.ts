@@ -293,24 +293,28 @@ export async function loginBusiness(email: string, password: string) {
 
     const supabase = createClient(await cookies());
 
-    const { data: business, error } = await supabase
+    const { data: businesses, error } = await supabase
       .from('Business')
       .select('*')
       .or(`workEmail.eq.${normalizedEmail},email.eq.${normalizedEmail}`)
-      .single();
+      .order('createdAt', { ascending: false });
 
     if (error) {
-      if (error.code === 'PGRST116') {
-        console.log('No business found with email:', normalizedEmail);
-        return { success: false, error: 'Business account not found. Please check your email or register a new account.' };
-      }
       throw error;
     }
 
-    if (business.password !== cleanPassword) {
-      console.log('Incorrect password for business:', business.id);
+    if (!businesses?.length) {
+      console.log('No business found with email:', normalizedEmail);
+      return { success: false, error: 'Business account not found. Please check your email or register a new account.' };
+    }
+
+    const matches = businesses.filter((row) => row.password === cleanPassword);
+    if (!matches.length) {
+      console.log('Incorrect password for email:', normalizedEmail);
       return { success: false, error: 'Incorrect password. Please try again.' };
     }
+
+    const business = matches[0];
 
     console.log('Login successful for business:', business.id);
 

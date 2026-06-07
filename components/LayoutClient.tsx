@@ -31,7 +31,7 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
     <div className={`flex flex-col min-h-screen ${showBottomNav ? 'pb-[6.75rem] lg:pb-0' : ''}`}>
       {!hideTopNavFooter && <Navbar />}
       <Suspense fallback={<div className="flex-grow bg-white" />}>
-        <main className="flex-grow">
+        <main className="min-w-0 flex-grow overflow-x-hidden">
           {children}
         </main>
         {!hideTopNavFooter && <Footer />}

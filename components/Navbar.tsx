@@ -4,7 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useEffect, Suspense } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { Menu, X, User, Briefcase, Globe, Megaphone, Users, UserCircle, HelpCircle, ChevronDown, Home, ArrowRight, Settings, LogOut, LayoutDashboard, Building2 } from 'lucide-react';
+import { Menu, X, User, Briefcase, Globe, ChevronDown, Home, ArrowRight, Settings, LogOut, LayoutDashboard, Building2, Newspaper, BookOpen } from 'lucide-react';
 import { getSession, logoutUser } from '@/app/actions/user';
 import { getBusinessSession, logoutBusiness } from '@/app/actions/business';
 import { useRouter } from 'next/navigation';
@@ -80,13 +80,14 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
     { name: 'Home', href: '/', icon: Home },
     { name: 'Businesses', href: '/categories', icon: Building2 },
     { name: 'Jobs', href: '/categories/job', icon: Briefcase },
-    { name: 'Deals', href: '/pricing', icon: Megaphone },
-    { name: 'News', href: '/blog', icon: HelpCircle },
+    { name: 'News', href: '/#news', icon: Newspaper },
+    { name: 'Blog', href: '/blog', icon: BookOpen },
   ];
 
   const languages = ['English', 'Hindi', 'Bengali', 'Tamil', 'Telugu'];
 
   const isLight = !scrolled && whiteText;
+  const showBusinessLogo = pathname === '/business/register';
 
   return (
     <nav className={`fixed top-0 w-full z-[9999] transition-all duration-700 ${
@@ -98,12 +99,12 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
         <div className="flex justify-between items-center h-full">
           {/* Logo - Left aligned */}
           <Link
-            href="/"
+            href={showBusinessLogo ? '/business/register' : '/'}
             className={`relative z-[10002] flex items-center shrink-0 ${isOpen ? 'max-lg:hidden' : ''}`}
           >
             <Image
-              src="/logo1.png"
-              alt="FinderB Logo"
+              src={showBusinessLogo ? '/businesslogo.png' : '/logo1.png'}
+              alt={showBusinessLogo ? 'FinderB Business' : 'FinderB Logo'}
               width={160}
               height={50}
               className="h-8 sm:h-10 w-auto object-contain"

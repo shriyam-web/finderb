@@ -3,6 +3,7 @@
 import { createClient } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
+import { buildJobApplicationMessage } from '@/lib/jobLeadMessage';
 
 export async function createJob(data: {
   title: string;
@@ -161,6 +162,7 @@ export async function getAllJobs() {
 export async function submitJobApplication(data: {
   jobId: string;
   businessId: string;
+  jobTitle?: string;
   fullName: string;
   email: string;
   phone: string;
@@ -168,8 +170,17 @@ export async function submitJobApplication(data: {
 }) {
   try {
     const supabase = createClient(await cookies());
-    
-    // Store in leads table for now
+
+    let jobTitle = data.jobTitle?.trim();
+    if (!jobTitle) {
+      const { data: job } = await supabase
+        .from('jobs')
+        .select('title')
+        .eq('id', data.jobId)
+        .single();
+      jobTitle = job?.title?.trim() || 'Job posting';
+    }
+
     const { error } = await supabase
       .from('leads')
       .insert({
@@ -178,7 +189,7 @@ export async function submitJobApplication(data: {
         phone: data.phone,
         category: 'Job Application',
         business_id: data.businessId,
-        message: `Applied for Job ID: ${data.jobId}\n\nCandidate Message: ${data.message || 'No message provided'}`,
+        message: buildJobApplicationMessage(jobTitle, data.message),
         status: 'New',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()

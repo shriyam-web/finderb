@@ -5,7 +5,16 @@ import { articles } from '@/lib/mockData';
 import { getBlogBySlug } from '@/app/actions/blog';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowLeft, Calendar, Share2, Bookmark, User, Clock } from 'lucide-react';
+import { ArrowLeft, Calendar, Share2, Bookmark, User } from 'lucide-react';
+import { stripHtml } from '@/lib/stripHtml';
+
+function shouldShowExcerpt(excerpt: string | undefined, title: string): boolean {
+  const plain = stripHtml(excerpt || '').trim();
+  if (plain.length < 60) return false;
+  if (plain.toLowerCase().startsWith('conclusion')) return false;
+  if (plain === stripHtml(title).trim()) return false;
+  return true;
+}
 
 export default function BlogDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -15,9 +24,7 @@ export default function BlogDetailPage({ params }: { params: Promise<{ id: strin
   useEffect(() => {
     async function fetchBlog() {
       if (!id) return;
-      
-      console.log('Fetching blog with ID/Slug:', id);
-      // First try to find in mock data
+
       const mockArticle = articles.find((a) => a.id === id);
       if (mockArticle) {
         setArticle(mockArticle);
@@ -25,7 +32,6 @@ export default function BlogDetailPage({ params }: { params: Promise<{ id: strin
         return;
       }
 
-      // If not in mock, fetch from DB
       const result = await getBlogBySlug(id);
       if (result.success && result.blog) {
         setArticle(result.blog);
@@ -37,10 +43,10 @@ export default function BlogDetailPage({ params }: { params: Promise<{ id: strin
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
+      <div className="flex min-h-screen items-center justify-center bg-white pt-20">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-secondary border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-gray-500 font-medium animate-pulse">Loading story...</p>
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#2563eb] border-t-transparent" />
+          <p className="text-sm font-medium text-[#64748b]">Loading article...</p>
         </div>
       </div>
     );
@@ -48,126 +54,113 @@ export default function BlogDetailPage({ params }: { params: Promise<{ id: strin
 
   if (!article) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <div className="text-center space-y-6 max-w-md px-4">
-          <div className="w-20 h-20 bg-primary/5 rounded-full flex items-center justify-center mx-auto text-primary">
-            <ArrowLeft size={40} />
-          </div>
-          <div className="space-y-2">
-            <h1 className="text-3xl font-black text-primary">Story not available</h1>
-            <p className="text-gray-500 font-medium">We couldn&apos;t find the article you&apos;re looking for. It might have been moved or deleted.</p>
-          </div>
-          <Link href="/" className="inline-flex items-center justify-center px-8 py-4 bg-primary text-white rounded-2xl font-bold hover:bg-secondary transition-all active:scale-95 shadow-lg">
-            Back to Home
+      <div className="flex min-h-screen items-center justify-center bg-white px-4 pt-20">
+        <div className="max-w-md space-y-6 text-center">
+          <h1 className="text-2xl font-bold text-[#1e293b]">Article not found</h1>
+          <p className="text-sm text-[#64748b]">
+            We couldn&apos;t find the article you&apos;re looking for.
+          </p>
+          <Link
+            href="/blog"
+            className="inline-flex items-center justify-center rounded-xl bg-[#2563eb] px-6 py-3 text-sm font-semibold text-white hover:bg-[#1d4ed8]"
+          >
+            Browse articles
           </Link>
         </div>
       </div>
     );
   }
 
+  const showExcerpt = shouldShowExcerpt(article.excerpt, article.title);
+  const articleHtml = article.content?.includes('<')
+    ? article.content
+    : `<p>${(article.content || 'Content not available.').replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br />')}</p>`;
+
   return (
-    <div className="min-h-screen bg-white pb-20">
-      {/* Hero Section */}
-      <div className="relative h-[50vh] sm:h-[70vh] w-full overflow-hidden">
-        <Image
-          src={article.image}
-          alt={article.title}
-          fill
-          className="object-cover scale-105"
-          priority
+    <div className="min-h-screen bg-white pb-24 lg:pb-12">
+      {/* Clear space below fixed navbar */}
+      <div className="border-b border-gray-100 bg-white pt-[4.25rem] sm:pt-24">
+        <div className="mx-auto max-w-3xl px-4 py-3 sm:px-6">
+          <Link
+            href="/blog"
+            className="inline-flex items-center gap-2 text-sm font-medium text-[#64748b] transition-colors hover:text-[#2563eb]"
+          >
+            <ArrowLeft size={16} />
+            Back to articles
+          </Link>
+        </div>
+      </div>
+
+      <article className="mx-auto max-w-3xl px-4 py-5 sm:px-6 sm:py-8">
+        <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-medium text-[#64748b] sm:text-xs">
+          <span className="inline-flex items-center gap-1">
+            <Calendar size={12} className="text-[#94a3b8]" />
+            {article.date}
+          </span>
+          <span className="hidden sm:inline text-[#cbd5e1]">·</span>
+          <span className="inline-flex items-center gap-1">
+            <User size={12} className="text-[#94a3b8]" />
+            {article.author || 'FinderB Admin'}
+          </span>
+          <span className="hidden sm:inline text-[#cbd5e1]">·</span>
+          <span>5 min read</span>
+        </div>
+
+        <h1 className="mb-5 text-[1.35rem] font-bold leading-snug tracking-tight text-[#1e293b] sm:text-2xl lg:text-[1.75rem]">
+          {article.title}
+        </h1>
+
+        <div className="relative mb-6 aspect-[16/10] overflow-hidden rounded-xl border border-gray-100 sm:mb-8 sm:aspect-[2/1]">
+          <Image
+            src={article.image}
+            alt={article.title}
+            fill
+            className="object-cover"
+            priority
+            sizes="(max-width: 768px) 100vw, 768px"
+          />
+        </div>
+
+        {showExcerpt && (
+          <p className="mb-6 border-l-4 border-[#2563eb] pl-4 text-[15px] leading-relaxed text-[#64748b] sm:mb-8">
+            {stripHtml(article.excerpt)}
+          </p>
+        )}
+
+        <div
+          className="article-content text-[15px] leading-[1.75] text-[#334155] sm:text-base [&_a]:text-[#2563eb] [&_a]:underline [&_blockquote]:my-4 [&_blockquote]:border-l-4 [&_blockquote]:border-[#e2e8f0] [&_blockquote]:pl-4 [&_blockquote]:italic [&_h2]:mb-3 [&_h2]:mt-8 [&_h2]:text-lg [&_h2]:font-bold [&_h2]:text-[#1e293b] sm:[&_h2]:text-xl [&_h3]:mb-2 [&_h3]:mt-6 [&_h3]:text-base [&_h3]:font-semibold [&_h3]:text-[#1e293b] sm:[&_h3]:text-lg [&_img]:my-4 [&_img]:rounded-lg [&_li]:mb-1 [&_ol]:mb-4 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:mb-4 [&_ul]:mb-4 [&_ul]:list-disc [&_ul]:pl-5"
+          dangerouslySetInnerHTML={{ __html: articleHtml }}
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
-        <div className="absolute inset-0 flex items-end">
-          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 w-full">
-            <Link 
-              href="/" 
-              className="inline-flex items-center gap-2 text-white/70 hover:text-secondary mb-8 transition-all group"
+
+        <div className="mt-10 flex flex-col gap-4 border-t border-gray-100 pt-8 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-wrap gap-2">
+            {['Local', 'Insights', 'Guide', 'India'].map((tag) => (
+              <span
+                key={tag}
+                className="rounded-full border border-gray-100 bg-[#f8fafc] px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-[#64748b]"
+              >
+                #{tag}
+              </span>
+            ))}
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-xs font-semibold text-[#475569] transition-colors hover:border-[#2563eb]/30 hover:text-[#2563eb]"
             >
-              <div className="w-8 h-8 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center group-hover:bg-secondary group-hover:text-white transition-all">
-                <ArrowLeft size={16} />
-              </div>
-              <span className="text-xs font-black uppercase tracking-[0.2em]">Back to Insights</span>
-            </Link>
-            
-            <div className="space-y-6 max-w-4xl">
-              <div className="inline-flex items-center gap-2 px-3 py-1 bg-secondary rounded-full text-white text-[10px] font-black uppercase tracking-widest shadow-lg">
-                <Clock size={12} />
-                <span>5 min read</span>
-              </div>
-              
-              <h1 className="text-3xl sm:text-5xl lg:text-7xl font-black text-white leading-[1.1] tracking-tighter">
-                {article.title}
-              </h1>
-              
-              <div className="flex flex-wrap items-center gap-6 pt-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30">
-                    <User size={18} className="text-white" />
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-white/60 font-black uppercase tracking-widest">Written by</p>
-                    <p className="text-sm font-bold text-white">{article.author || 'FinderB Admin'}</p>
-                  </div>
-                </div>
-                
-                <div className="h-8 w-px bg-white/20 hidden sm:block" />
-                
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30">
-                    <Calendar size={18} className="text-secondary" />
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-white/60 font-black uppercase tracking-widest">Published on</p>
-                    <p className="text-sm font-bold text-white">{article.date}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
+              <Share2 size={14} />
+              Share
+            </button>
+            <button
+              type="button"
+              className="rounded-lg border border-gray-200 bg-white p-2 text-[#94a3b8] transition-colors hover:text-[#2563eb]"
+              aria-label="Bookmark"
+            >
+              <Bookmark size={18} />
+            </button>
           </div>
         </div>
-      </div>
-
-      {/* Content Section */}
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 mt-16">
-        <div className="flex flex-col lg:flex-row gap-16">
-          {/* Main Content */}
-          <div className="flex-1">
-            <div className="prose prose-xl prose-slate max-w-none">
-              <p className="text-2xl text-gray-600 leading-relaxed font-semibold mb-12 border-l-4 border-secondary pl-8 py-2 italic">
-                {article.excerpt}
-              </p>
-              
-              <div className="text-gray-800 leading-[1.8] space-y-8 text-lg font-medium">
-                {(article.content || 'Content not available.').split('\n').map((paragraph: string, i: number) => (
-                  paragraph ? <p key={i}>{paragraph}</p> : <br key={i} />
-                ))}
-              </div>
-            </div>
-
-            {/* Tags/Footer */}
-            <div className="mt-16 pt-12 border-t border-gray-100 flex flex-wrap items-center justify-between gap-8">
-              <div className="flex flex-wrap gap-3">
-                {['Local', 'Insights', 'Guide', 'India'].map((tag) => (
-                  <span key={tag} className="px-5 py-2.5 bg-slate-50 text-slate-500 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-slate-100 hover:border-secondary/20 hover:text-secondary transition-all cursor-default">
-                    #{tag}
-                  </span>
-                ))}
-              </div>
-              <div className="flex items-center gap-4">
-                <button className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-slate-50 text-slate-600 hover:bg-secondary hover:text-white transition-all font-bold text-xs uppercase tracking-widest border border-slate-100 shadow-sm">
-                  <Share2 size={16} />
-                  Share Story
-                </button>
-                <button className="p-3.5 rounded-2xl bg-slate-50 text-slate-400 hover:text-secondary border border-slate-100 transition-all shadow-sm">
-                  <Bookmark size={20} />
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Sidebar / More Stories could go here */}
-        </div>
-      </div>
+      </article>
     </div>
   );
 }

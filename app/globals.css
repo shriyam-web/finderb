@@ -93,6 +93,12 @@ h1, h2, h3, h4, h5, h6 {
   color: var(--color-primary-800);
 }
 
+/* Merchant dashboard: single font stack everywhere (matches Total Views stat cards) */
+.merchant-dashboard,
+.merchant-dashboard :is(h1, h2, h3, h4, h5, h6, p, span, a, button, label, li, td, th, input, textarea, select) {
+  font-family: 'Google Sans', var(--font-inter), 'Inter', system-ui, -apple-system, sans-serif !important;
+}
+
 .shadow-premium {
   box-shadow: 0 10px 40px -10px rgba(33, 84, 129, 0.15);
 }

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Search, Filter, ChevronRight, LayoutGrid, ShoppingBag, Home, Sparkles, TrendingUp, Grid } from 'lucide-react';
+import { Search, Filter, ChevronRight, LayoutGrid, TrendingUp } from 'lucide-react';
 import {
   getCategories,
   getSubCategories,
@@ -368,33 +368,39 @@ export default function CategoriesPage() {
     }));
   }, [isGlobalSearch, filteredAndSortedBusinesses, searchQuery]);
 
+  const globalSearchTotalCount = useMemo(() => {
+    if (!isGlobalSearch) return 0;
+    return (
+      globalSearchCategoryPartitions.best.length +
+      globalSearchCategoryPartitions.related.length +
+      globalSearchBusinessPartitions.best.length +
+      globalSearchBusinessPartitions.related.length
+    );
+  }, [isGlobalSearch, globalSearchCategoryPartitions, globalSearchBusinessPartitions]);
+
   const renderCategoryHitGrid = (hits: CategorySearchHit[]) => (
-    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 sm:gap-4">
+    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2.5 sm:gap-3">
       {hits.map((hit) => (
         <button
           key={hit.id}
           type="button"
           onClick={() => openCategorySearchHit(hit)}
-          className="flex flex-col items-center gap-2 p-4 bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-lg hover:shadow-primary/10 transition-all text-center"
+          className="flex flex-col items-center gap-2 rounded-xl border border-slate-200/80 bg-white p-3.5 text-center transition-colors hover:border-[#215481]/25 hover:bg-slate-50/80 sm:p-4"
         >
           <CategoryIcon
             icon={hit.icon}
             name={hit.name}
-            size={52}
-            className="h-12 w-12 text-slate-600"
+            size={48}
+            className="h-11 w-11 text-slate-600"
             imageClassName="object-contain"
           />
-          <span className="text-[10px] font-semibold text-slate-800 line-clamp-2 leading-snug">
+          <span className="text-[11px] font-medium text-slate-800 line-clamp-2 leading-snug">
             {hit.name}
           </span>
           {hit.parentName ? (
-            <span className="text-[8px] font-medium text-slate-400 line-clamp-1">
-              in {hit.parentName}
-            </span>
+            <span className="text-[10px] text-slate-400 line-clamp-1">{hit.parentName}</span>
           ) : (
-            <span className="text-[8px] font-medium text-slate-400">
-              {hit.businessCount}+ places
-            </span>
+            <span className="text-[10px] text-slate-400">{hit.businessCount}+ listings</span>
           )}
         </button>
       ))}
@@ -402,44 +408,40 @@ export default function CategoriesPage() {
   );
 
   const renderGlobalBusinessCard = (biz: (typeof businesses)[number]) => (
-    <div className="group relative bg-white border border-slate-100 overflow-hidden flex flex-row transition-all duration-500 rounded-2xl">
-      <div className="relative w-24 sm:w-36 aspect-square overflow-hidden shrink-0">
+    <button
+      type="button"
+      onClick={() => {
+        if (searchQuery.trim()) setLastSearchQuery(searchQuery);
+        router.push(`/business/${biz.id}`);
+      }}
+      className="group flex w-full overflow-hidden rounded-xl border border-slate-200/80 bg-white text-left transition-colors hover:border-[#215481]/25 hover:bg-slate-50/50"
+    >
+      <div className="relative h-[88px] w-[88px] shrink-0 overflow-hidden sm:h-24 sm:w-24">
         <Image
           src={biz.image || biz.profilePictureUrl || 'https://images.unsplash.com/photo-1581244277943-fe4a9c777189?auto=format&fit=crop&q=80&w=400'}
           alt={biz.name}
           fill
-          className="object-cover group-hover:scale-110 transition-transform duration-1000"
+          className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
         />
       </div>
-      <div className="p-3 sm:p-4 flex-1 flex flex-col justify-between min-w-0">
-        <div>
-          <span className="text-[8px] font-black text-primary uppercase px-1.5 py-0.5 bg-primary/5 rounded-full">
-            {biz.category || 'Business'}
-          </span>
-          <h3 className="text-xs font-black text-slate-900 mt-1 truncate">{biz.name}</h3>
-          {biz.location ? (
-            <p className="text-[9px] font-bold text-slate-400 line-clamp-1 mt-0.5">{biz.location}</p>
-          ) : null}
-        </div>
-        <button
-          type="button"
-          onClick={() => {
-            if (searchQuery.trim()) setLastSearchQuery(searchQuery);
-            router.push(`/business/${biz.id}`);
-          }}
-          className="mt-2 self-start px-3 py-1.5 bg-primary text-white rounded-lg text-[9px] font-black uppercase"
-        >
-          View
-        </button>
+      <div className="flex min-w-0 flex-1 flex-col justify-center gap-1 px-3.5 py-3 sm:px-4">
+        <span className="text-[10px] font-medium text-[#215481]">{biz.category || 'Business'}</span>
+        <h3 className="truncate text-sm font-semibold text-slate-900">{biz.name}</h3>
+        {biz.location ? (
+          <p className="truncate text-xs text-slate-500">{biz.location}</p>
+        ) : null}
       </div>
-    </div>
+      <div className="hidden shrink-0 items-center pr-4 sm:flex">
+        <ChevronRight size={16} className="text-slate-300 transition-colors group-hover:text-[#215481]" />
+      </div>
+    </button>
   );
 
   return (
-    <div className="flex flex-col h-screen bg-slate-50 overflow-hidden font-sans">
+    <div className="flex h-screen flex-col overflow-hidden bg-[#f4f7fb] font-sans">
       {/* Header / Search Bar */}
-      <header className="bg-white px-4 py-4 shadow-sm z-10">
-        <div className="flex items-center gap-4">
+      <header className="z-10 border-b border-slate-200/80 bg-white px-4 py-3">
+        <div className="flex items-center gap-3">
           <button 
             onClick={() => {
               if (viewMode === 'global-search') {
@@ -454,16 +456,17 @@ export default function CategoriesPage() {
                 router.back();
               }
             }} 
-            className="p-2 hover:bg-slate-100 rounded-full transition-colors active:scale-95"
+            className="rounded-lg p-2 text-slate-600 transition-colors hover:bg-slate-100 active:scale-95"
+            aria-label="Go back"
           >
-            <ChevronRight className="rotate-180 text-slate-700" size={20} />
+            <ChevronRight className="rotate-180" size={20} />
           </button>
-          <div className="flex-1 relative group">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors" size={18} />
+          <div className="group relative flex-1">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-[#215481]" size={17} />
             <input
               type="text"
-              placeholder={isGlobalSearch ? 'Search categories & businesses...' : 'Search categories...'}
-              className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-3 pl-12 pr-4 text-sm font-medium focus:ring-4 focus:ring-primary/10 focus:border-primary focus:bg-white transition-all outline-none"
+              placeholder={isGlobalSearch ? 'Search categories and businesses' : 'Search categories'}
+              className="w-full rounded-lg border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-900 outline-none transition-all placeholder:text-slate-400 focus:border-[#215481]/40 focus:ring-4 focus:ring-[#215481]/10"
               value={searchQuery}
               onChange={(e) => handleSearchInputChange(e.target.value)}
               onKeyDown={(e) => {
@@ -477,18 +480,18 @@ export default function CategoriesPage() {
       </header>
 
       {/* Sort & Filter Bar */}
-      <div className="flex bg-white border-b border-slate-100 relative z-10">
+      <div className="relative z-10 flex border-b border-slate-200/80 bg-white">
         <button 
           onClick={() => {
             setFilterActive(!filterActive);
             setSortActive(false);
           }}
-          className={`flex-1 py-3 flex items-center justify-center gap-2 text-[10px] font-bold transition-all uppercase border-r border-slate-100 ${
-            filterActive ? 'bg-primary text-white' : 'text-slate-600 hover:bg-slate-50'
+          className={`flex flex-1 items-center justify-center gap-1.5 border-r border-slate-100 py-2.5 text-xs font-medium transition-colors ${
+            filterActive ? 'bg-[#215481] text-white' : 'text-slate-600 hover:bg-slate-50'
           }`}
         >
-          <Filter size={12} className={filterActive ? 'text-white' : 'text-slate-400'} />
-          Filter {activeFilters.length > 0 && `(${activeFilters.length})`}
+          <Filter size={13} className={filterActive ? 'text-white' : 'text-slate-400'} />
+          Filter{activeFilters.length > 0 ? ` · ${activeFilters.length}` : ''}
         </button>
 
         <button 
@@ -496,25 +499,25 @@ export default function CategoriesPage() {
             setSortActive(!sortActive);
             setFilterActive(false);
           }}
-          className={`flex-1 py-3 flex items-center justify-center gap-2 text-[10px] font-bold transition-all uppercase ${
-            sortActive ? 'bg-primary text-white' : 'text-slate-600 hover:bg-slate-50'
+          className={`flex flex-1 items-center justify-center gap-1.5 py-2.5 text-xs font-medium transition-colors ${
+            sortActive ? 'bg-[#215481] text-white' : 'text-slate-600 hover:bg-slate-50'
           }`}
         >
-          <TrendingUp size={12} className={sortActive ? 'text-white' : 'text-slate-400'} />
+          <TrendingUp size={13} className={sortActive ? 'text-white' : 'text-slate-400'} />
           Sort
         </button>
 
         {/* Filter Dropdown */}
         {filterActive && (
-          <div className="absolute top-full left-0 w-full bg-white shadow-xl border-t border-slate-100 p-4 z-50 animate-in slide-in-from-top-2 duration-300">
+          <div className="absolute top-full left-0 z-50 w-full animate-in slide-in-from-top-2 border-t border-slate-100 bg-white p-4 shadow-lg duration-300">
             <div className="space-y-4">
-              <div className="flex items-center justify-between mb-2">
-                <h4 className="text-[10px] font-black text-slate-400 uppercase">Filters</h4>
+              <div className="mb-2 flex items-center justify-between">
+                <h4 className="text-xs font-semibold text-slate-700">Filters</h4>
                 <button 
                   onClick={resetFilters}
-                  className="text-[9px] font-bold text-primary uppercase hover:underline"
+                  className="text-xs font-medium text-[#215481] hover:underline"
                 >
-                  Reset All
+                  Clear all
                 </button>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -522,10 +525,10 @@ export default function CategoriesPage() {
                   <button
                     key={f}
                     onClick={() => toggleFilter(f)}
-                    className={`px-4 py-2 border rounded-full text-[9px] font-bold uppercase transition-all ${
+                    className={`rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors ${
                       activeFilters.includes(f)
-                        ? 'bg-primary border-primary text-white shadow-md'
-                        : 'bg-slate-50 border-slate-100 text-slate-600 hover:border-primary/30'
+                        ? 'border-[#215481] bg-[#215481] text-white'
+                        : 'border-slate-200 bg-white text-slate-600 hover:border-[#215481]/30'
                     }`}
                   >
                     {f}
@@ -534,9 +537,9 @@ export default function CategoriesPage() {
               </div>
               <button 
                 onClick={() => setFilterActive(false)}
-                className="w-full py-2.5 bg-slate-900 text-white text-[10px] font-black uppercase rounded-xl shadow-lg mt-2"
+                className="mt-2 w-full rounded-lg bg-slate-900 py-2.5 text-xs font-semibold text-white transition-colors hover:bg-slate-800"
               >
-                Apply Filters
+                Apply
               </button>
             </div>
           </div>
@@ -544,9 +547,9 @@ export default function CategoriesPage() {
 
         {/* Sort Dropdown */}
         {sortActive && (
-          <div className="absolute top-full left-0 w-full bg-white shadow-xl border-t border-slate-100 p-4 z-50 animate-in slide-in-from-top-2 duration-300">
-            <div className="space-y-4">
-              <h4 className="text-[10px] font-black text-slate-400 uppercase mb-3">Sort Order</h4>
+          <div className="absolute top-full left-0 z-50 w-full animate-in slide-in-from-top-2 border-t border-slate-100 bg-white p-4 shadow-lg duration-300">
+            <div className="space-y-3">
+              <h4 className="text-xs font-semibold text-slate-700">Sort by name</h4>
               <div className="grid grid-cols-2 gap-2">
                 {(['asc', 'desc'] as const).map((order) => (
                   <button
@@ -555,13 +558,13 @@ export default function CategoriesPage() {
                       setSortOrder(order);
                       setSortActive(false);
                     }}
-                    className={`py-2 rounded-xl text-[10px] font-bold uppercase border transition-all ${
+                    className={`rounded-lg border py-2 text-xs font-medium transition-colors ${
                       sortOrder === order 
-                        ? 'bg-primary border-primary text-white shadow-lg' 
-                        : 'bg-slate-50 border-slate-100 text-slate-600 hover:border-primary/30'
+                        ? 'border-[#215481] bg-[#215481] text-white' 
+                        : 'border-slate-200 bg-white text-slate-600 hover:border-[#215481]/30'
                     }`}
                   >
-                    {order === 'asc' ? 'Ascending' : 'Descending'}
+                    {order === 'asc' ? 'A → Z' : 'Z → A'}
                   </button>
                 ))}
               </div>
@@ -653,7 +656,7 @@ export default function CategoriesPage() {
         )}
 
         {/* Right Panel - Modern Grid */}
-        <main className="flex-1 overflow-y-auto pb-32 scrollbar-hide bg-slate-50/50">
+        <main className="scrollbar-hide flex-1 overflow-y-auto bg-[#f4f7fb] pb-32">
           {isLoading ? (
             <div className="p-5 max-w-4xl mx-auto w-full">
               <div className="mb-8 mt-4">
@@ -682,31 +685,31 @@ export default function CategoriesPage() {
               ))}
             </div>
           ) : viewMode === 'categories' ? (
-            <div className="p-5 max-w-4xl mx-auto w-full">
-              <div className="mb-8 mt-4">
-                <h1 className="text-3xl font-black text-slate-900 mb-2">All Categories</h1>
-                <p className="text-slate-500 text-sm font-medium">Select a category to explore sub-categories and local businesses</p>
+            <div className="mx-auto w-full max-w-4xl p-5">
+              <div className="mb-6 mt-2">
+                <h1 className="text-xl font-semibold tracking-tight text-slate-900">Browse categories</h1>
+                <p className="mt-1 text-sm text-slate-500">Pick a category to see services and listings near you</p>
               </div>
-              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 sm:gap-4">
+              <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-4 sm:gap-3 md:grid-cols-5">
                 {categories.filter(cat => !searchQuery || textMatchesSearch(cat.name, searchQuery)).map((cat, index) => (
                   <button
                     key={cat.id}
                     onClick={() => handleCategoryClick(cat)}
-                    className="flex flex-col items-center gap-2 p-4 sm:gap-3 sm:p-5 bg-white rounded-2xl sm:rounded-[2rem] shadow-sm hover:shadow-lg hover:shadow-primary/10 transition-all duration-300 group border border-slate-100"
+                    className="group flex flex-col items-center gap-2 rounded-xl border border-slate-200/80 bg-white p-3.5 transition-colors hover:border-[#215481]/25 hover:bg-slate-50/80 sm:gap-2.5 sm:p-4"
                   >
                     <CategoryIcon
                       icon={cat.icon}
                       name={cat.name}
-                      size={56}
-                      className="h-14 w-14 sm:h-16 sm:w-16 text-slate-600 transition-transform duration-300 group-hover:scale-105 group-hover:text-primary"
+                      size={52}
+                      className="h-12 w-12 text-slate-600 transition-transform duration-200 group-hover:scale-[1.03] sm:h-14 sm:w-14"
                       imageClassName="object-contain"
                     />
-                    <div className="flex flex-col items-center gap-0.5 w-full">
-                      <span className="text-[10px] sm:text-xs font-semibold text-slate-800 text-center group-hover:text-primary transition-colors line-clamp-2 leading-snug w-full">
+                    <div className="flex w-full flex-col items-center gap-0.5">
+                      <span className="line-clamp-2 w-full text-center text-[11px] font-medium leading-snug text-slate-800 group-hover:text-[#215481] sm:text-xs">
                         {cat.name}
                       </span>
-                      <span className="text-[8px] sm:text-[9px] font-medium text-slate-400">
-                        {cat.businessCount || 0}+ Places
+                      <span className="text-[10px] text-slate-400">
+                        {cat.businessCount || 0} listings
                       </span>
                     </div>
                   </button>
@@ -715,81 +718,72 @@ export default function CategoriesPage() {
             </div>
           ) : viewMode === 'subcategories' ? (
             <div className="p-5">
-              <div className="mb-6 flex items-end justify-between">
+              <div className="mb-5 flex items-end justify-between">
                 <div>
-                  <h1 className="text-2xl font-black text-slate-900 leading-none mb-2">{selectedCategory?.name}</h1>
-                  <div className="flex items-center gap-2">
-                    <span className="px-2 py-0.5 bg-primary/10 text-primary text-[9px] font-bold uppercase rounded-full">
-                      {subCategories.length} Options
-                    </span>
-                  </div>
+                  <h1 className="text-lg font-semibold tracking-tight text-slate-900">{selectedCategory?.name}</h1>
+                  <p className="mt-0.5 text-sm text-slate-500">{subCategories.length} subcategories</p>
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 sm:gap-4">
+              <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-4 sm:gap-3 md:grid-cols-5">
                 {subCategories.filter(sub => !searchQuery || textMatchesSearch(sub.name, searchQuery)).length > 0 ? (
                   subCategories.filter(sub => !searchQuery || textMatchesSearch(sub.name, searchQuery)).map((sub, index) => (
                     <button
                       key={sub.id}
                       onClick={() => handleSubCategoryClick(sub)}
-                      className="group flex w-full flex-col items-center gap-2 rounded-2xl border border-slate-100 bg-white p-4 text-center shadow-sm transition-all duration-300 hover:shadow-lg hover:shadow-primary/10 sm:rounded-[2rem] sm:p-5"
+                      className="group flex w-full flex-col items-center gap-2 rounded-xl border border-slate-200/80 bg-white p-3.5 text-center transition-colors hover:border-[#215481]/25 hover:bg-slate-50/80 sm:p-4"
                     >
                       <CategoryIcon
                         icon={sub.icon}
                         name={sub.name}
-                        size={52}
-                        className="h-12 w-12 sm:h-14 sm:w-14 text-slate-600 transition-transform duration-300 group-hover:scale-105 group-hover:text-primary"
+                        size={48}
+                        className="h-11 w-11 text-slate-600 transition-transform duration-200 group-hover:scale-[1.03] sm:h-12 sm:w-12"
                         imageClassName="object-contain"
                       />
                       <div className="flex w-full flex-col items-center gap-0.5">
-                        <h3 className="text-[9px] sm:text-[11px] font-semibold text-slate-900 leading-snug line-clamp-2 w-full group-hover:text-primary transition-colors">
+                        <h3 className="line-clamp-2 w-full text-[11px] font-medium leading-snug text-slate-900 group-hover:text-[#215481] sm:text-xs">
                           {sub.name}
                         </h3>
-                        <p className="text-[7px] sm:text-[8px] font-medium text-slate-400">View</p>
                       </div>
                     </button>
                   ))
                 ) : (
-                  <div className="col-span-2 py-24 flex flex-col items-center justify-center text-slate-300">
-                    <div className="w-20 h-20 rounded-full bg-slate-100 flex items-center justify-center mb-4">
-                      <LayoutGrid size={32} />
+                  <div className="col-span-2 flex flex-col items-center justify-center py-24 text-slate-400">
+                    <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-slate-100">
+                      <LayoutGrid size={28} />
                     </div>
-                    <p className="text-xs font-black uppercase">Coming Soon</p>
+                    <p className="text-sm font-medium text-slate-500">No subcategories yet</p>
                   </div>
                 )}
               </div>
             </div>
           ) : viewMode === 'global-search' ? (
-            <div className="p-5 max-w-4xl mx-auto w-full space-y-8">
-              <div className="mt-2">
-                <h1 className="text-2xl font-black text-slate-900 mb-1">Results for &ldquo;{searchQuery}&rdquo;</h1>
-                <p className="text-slate-500 text-sm font-medium">
-                  {parsedGlobalSearch.terms.length > 0 ? (
+            <div className="mx-auto w-full max-w-3xl space-y-6 p-5">
+              <div className="flex items-center justify-between gap-3 border-b border-slate-200/80 pb-3">
+                <p className="text-sm text-slate-500">
+                  {isSearchCategoriesLoading ? (
+                    'Searching…'
+                  ) : globalSearchTotalCount > 0 ? (
                     <>
-                      Matching{' '}
-                      <span className="text-slate-700 font-semibold">
-                        {parsedGlobalSearch.terms.join(', ')}
-                      </span>
+                      <span className="font-medium text-slate-800">{globalSearchTotalCount}</span>
+                      {' '}result{globalSearchTotalCount !== 1 ? 's' : ''}
                       {parsedGlobalSearch.locationHint ? (
                         <>
-                          {' '}
-                          in{' '}
-                          <span className="text-slate-700 font-semibold capitalize">
+                          {' '}in{' '}
+                          <span className="capitalize text-slate-700">
                             {parsedGlobalSearch.locationHint}
                           </span>
                         </>
                       ) : null}
                     </>
                   ) : (
-                    'Categories, subcategories, and local businesses'
+                    'No results'
                   )}
                 </p>
               </div>
 
-              <section className="space-y-4">
-                <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                  Categories &amp; subcategories
-                </h2>
+              <section className="space-y-3">
+                <h2 className="text-xs font-semibold text-slate-700">Categories</h2>
                 {isSearchCategoriesLoading ? (
                   <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
                     {[1, 2, 3, 4, 5, 6].map((i) => (
@@ -801,46 +795,40 @@ export default function CategoriesPage() {
                   </div>
                 ) : globalSearchCategoryPartitions.best.length > 0 ||
                   globalSearchCategoryPartitions.related.length > 0 ? (
-                  <div className="space-y-6">
+                  <div className="space-y-5">
                     {globalSearchCategoryPartitions.best.length > 0
                       ? renderCategoryHitGrid(globalSearchCategoryPartitions.best)
                       : null}
                     {globalSearchCategoryPartitions.related.length > 0 ? (
-                      <div className="space-y-3 pt-2 border-t border-slate-100">
-                        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                          Related categories
-                        </h3>
+                      <div className="space-y-3 border-t border-slate-200/80 pt-4">
+                        <h3 className="text-xs font-medium text-slate-500">Related categories</h3>
                         {renderCategoryHitGrid(globalSearchCategoryPartitions.related)}
                       </div>
                     ) : null}
                   </div>
                 ) : (
-                  <p className="text-sm font-medium text-slate-400 py-4">
-                    No matching categories or subcategories.
+                  <p className="py-3 text-sm text-slate-400">
+                    No matching categories.
                   </p>
                 )}
               </section>
 
-              <section className="space-y-4">
-                <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                  Businesses
-                </h2>
+              <section className="space-y-3">
+                <h2 className="text-xs font-semibold text-slate-700">Businesses</h2>
                 {globalSearchBusinessPartitions.best.length > 0 ||
                 globalSearchBusinessPartitions.related.length > 0 ? (
-                  <div className="space-y-6">
+                  <div className="space-y-5">
                     {globalSearchBusinessPartitions.best.length > 0 ? (
-                      <div className="flex flex-col gap-3 sm:gap-4">
+                      <div className="flex flex-col gap-2.5">
                         {globalSearchBusinessPartitions.best.map((biz) => (
                           <div key={biz.id}>{renderGlobalBusinessCard(biz)}</div>
                         ))}
                       </div>
                     ) : null}
                     {globalSearchBusinessPartitions.related.length > 0 ? (
-                      <div className="space-y-3 pt-2 border-t border-slate-100">
-                        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                          Related businesses
-                        </h3>
-                        <div className="flex flex-col gap-3 sm:gap-4">
+                      <div className="space-y-3 border-t border-slate-200/80 pt-4">
+                        <h3 className="text-xs font-medium text-slate-500">Related businesses</h3>
+                        <div className="flex flex-col gap-2.5">
                           {globalSearchBusinessPartitions.related.map((biz) => (
                             <div key={biz.id}>{renderGlobalBusinessCard(biz)}</div>
                           ))}
@@ -849,7 +837,7 @@ export default function CategoriesPage() {
                     ) : null}
                   </div>
                 ) : (
-                  <p className="text-sm font-medium text-slate-400 py-4">No matching businesses.</p>
+                  <p className="py-3 text-sm text-slate-400">No matching businesses.</p>
                 )}
               </section>
 
@@ -858,88 +846,33 @@ export default function CategoriesPage() {
                 globalSearchCategoryPartitions.related.length === 0 &&
                 globalSearchBusinessPartitions.best.length === 0 &&
                 globalSearchBusinessPartitions.related.length === 0 && (
-                  <div className="py-16 flex flex-col items-center text-slate-300">
-                    <LayoutGrid size={40} className="mb-4 opacity-40" />
-                    <p className="text-sm font-black text-slate-500">No results found</p>
-                    <p className="text-xs text-slate-400 mt-1">Try a different keyword</p>
+                  <div className="flex flex-col items-center py-16 text-slate-400">
+                    <LayoutGrid size={36} className="mb-3 opacity-40" />
+                    <p className="text-sm font-medium text-slate-500">Nothing matched your search</p>
+                    <p className="mt-1 text-xs text-slate-400">Try a different spelling or keyword</p>
                   </div>
                 )}
             </div>
           ) : (
-            <div className="p-4 space-y-6">
+            <div className="space-y-4 p-4">
               <div className="flex items-center justify-between px-1">
                 <div>
-                  <h2 className="text-[10px] font-black text-slate-400 uppercase mb-1">
-                    Available Businesses
-                  </h2>
-                  <h3 className="text-lg font-black text-slate-900">
+                  <p className="text-xs text-slate-500">{selectedCategory?.name}</p>
+                  <h3 className="text-lg font-semibold tracking-tight text-slate-900">
                     {selectedSubCategory?.name}
                   </h3>
                 </div>
                 <button
                   onClick={() => setViewMode('subcategories')}
-                  className="px-4 py-2 bg-white border border-slate-200 hover:border-primary hover:text-primary rounded-full text-[9px] font-black uppercase transition-all shadow-sm"
+                  className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:border-[#215481]/30 hover:text-[#215481]"
                 >
                   Change
                 </button>
               </div>
 
-              <div className="flex flex-col gap-3 sm:gap-4">
+              <div className="flex flex-col gap-2.5">
                 {filteredAndSortedBusinesses.filter(b => !searchQuery || textMatchesSearch(b.name, searchQuery)).map((biz) => (
-                  <div key={biz.id} className="group relative bg-white border border-slate-100 overflow-hidden flex flex-row transition-all duration-500 rounded-2xl sm:rounded-none">
-                    <div className="relative w-24 sm:w-36 aspect-square overflow-hidden shrink-0">
-                      <Image
-                        src={biz.image || biz.profilePictureUrl || 'https://images.unsplash.com/photo-1581244277943-fe4a9c777189?auto=format&fit=crop&q=80&w=400'}
-                        alt={biz.name}
-                        fill
-                        className="object-cover group-hover:scale-110 transition-transform duration-1000"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-r from-black/20 to-transparent" />
-                      <div className="absolute top-1.5 left-1.5 sm:top-2 sm:left-2 bg-secondary text-white text-[7px] sm:text-[8px] font-black px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-full shadow-lg">
-                        {Math.floor(Math.random() * 40) + 20}% OFF
-                      </div>
-                    </div>
-
-                    <div className="p-3 sm:p-4 flex-1 flex flex-col justify-between min-w-0">
-                      <div>
-                        <div className="flex items-center justify-between mb-0.5 sm:mb-1">
-                          <span className="text-[7px] sm:text-[8px] font-black text-primary uppercase px-1.5 py-0.5 bg-primary/5 rounded-full line-clamp-1">
-                            {biz.category || 'Premium'}
-                          </span>
-                          <div className="flex items-center gap-0.5">
-                            <Sparkles size={7} className="text-yellow-400 fill-yellow-400 sm:w-2 sm:h-2" />
-                            <span className="text-[8px] sm:text-[9px] font-black text-slate-900">4.9</span>
-                          </div>
-                        </div>
-                        <h3 className="text-[10px] sm:text-xs font-black text-slate-900 leading-tight mb-0.5 sm:mb-1 truncate group-hover:text-primary transition-colors">{biz.name}</h3>
-                        <p className="text-[8px] sm:text-[9px] font-bold text-slate-400 line-clamp-1 flex items-center gap-1">
-                          <Home size={7} className="sm:w-2 sm:h-2" /> 2.4 km • Open
-                        </p>
-                      </div>
-
-                      <div className="flex items-center justify-between mt-1.5 sm:mt-2">
-                        <div className="flex flex-col">
-                          <div className="flex items-baseline gap-1">
-                            <span className="text-xs sm:text-sm font-black text-slate-900">₹{Math.floor(Math.random() * 300) + 50}</span>
-                            <span className="text-[7px] sm:text-[8px] text-slate-400 line-through font-bold">₹{Math.floor(Math.random() * 500) + 300}</span>
-                          </div>
-                          <span className="text-[7px] sm:text-[8px] font-bold text-emerald-500">Best Price</span>
-                        </div>
-                        
-                        <div className="flex gap-1.5">
-                          <button 
-                            onClick={() => {
-                              if (searchQuery.trim()) setLastSearchQuery(searchQuery);
-                              router.push(`/business/${biz.id}`);
-                            }}
-                            className="px-2.5 py-1.5 sm:px-3 sm:py-2 bg-primary text-white rounded-lg text-[8px] sm:text-[9px] font-black uppercase hover:bg-primary/90 active:scale-95 transition-all shadow-sm"
-                          >
-                            View
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                  <div key={biz.id}>{renderGlobalBusinessCard(biz)}</div>
                 ))}
               </div>
             </div>

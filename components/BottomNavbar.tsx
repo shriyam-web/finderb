@@ -152,8 +152,8 @@ export default function BottomNavbar() {
                   >
                     <div className="h-5 w-5 shrink-0" aria-hidden />
                     <span
-                      className={`text-[10px] font-semibold leading-none ${
-                        active ? 'text-[#2563eb]' : 'text-[#64748b]'
+                      className={`text-[10px] leading-none tracking-tight ${
+                        active ? 'font-medium text-[#215481]' : 'font-normal text-slate-500'
                       }`}
                     >
                       {tab.label}
@@ -170,12 +170,12 @@ export default function BottomNavbar() {
                 >
                   <Icon
                     size={20}
-                    strokeWidth={active ? 2.25 : 1.75}
-                    className={active ? 'text-[#2563eb]' : 'text-[#64748b]'}
+                    strokeWidth={active ? 2 : 1.75}
+                    className={active ? 'text-[#215481]' : 'text-slate-400'}
                   />
                   <span
-                    className={`text-[10px] leading-none ${
-                      active ? 'font-bold text-[#2563eb]' : 'font-medium text-[#64748b]'
+                    className={`text-[10px] leading-none tracking-tight ${
+                      active ? 'font-medium text-[#215481]' : 'font-normal text-slate-500'
                     }`}
                   >
                     {tab.label}

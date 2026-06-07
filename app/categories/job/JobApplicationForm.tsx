@@ -24,6 +24,7 @@ export default function JobApplicationForm({ job, onSuccess }: { job: Job; onSuc
     const data = {
       jobId: job.id,
       businessId: job.business_id,
+      jobTitle: job.title,
       fullName: formData.get('fullName') as string,
       email: formData.get('email') as string,
       phone: formData.get('phone') as string,

@@ -3,7 +3,16 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Mail, Lock, Briefcase, ChevronRight, ArrowLeft, Eye, EyeOff } from 'lucide-react';
+import {
+  Mail,
+  Lock,
+  ChevronRight,
+  ArrowRight,
+  Eye,
+  EyeOff,
+  AlertCircle,
+  ShieldCheck,
+} from 'lucide-react';
 import { loginBusiness } from '@/app/actions/business';
 import { useRouter } from 'next/navigation';
 
@@ -31,129 +40,176 @@ export default function BusinessLoginPage() {
     setError('');
 
     try {
-      console.log('Attempting login with email:', email);
       const result = await loginBusiness(email, password);
 
       if (result.success) {
-        console.log('Login successful, redirecting to dashboard...');
         router.push('/business/dashboard');
       } else {
-        console.warn('Login failed:', result.error);
         setError(result.error || 'Login failed');
       }
-    } catch (err: any) {
-      console.error('Login error:', err);
-      setError(err.message || 'An unexpected error occurred');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'An unexpected error occurred';
+      setError(message);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 p-6">
-      {/* Background Subtle Gradient */}
-      <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-blue-100/40 via-transparent to-transparent -z-10" />
-      <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_var(--tw-gradient-stops))] from-purple-100/40 via-transparent to-transparent -z-10" />
+    <div className="relative min-h-[calc(100dvh-5rem)] bg-[#f4f7fb] px-4 pb-8 pt-[5.25rem] sm:px-6 sm:pt-28 lg:min-h-screen lg:py-10">
+      <div
+        className="pointer-events-none absolute inset-0 opacity-[0.35]"
+        aria-hidden
+        style={{
+          backgroundImage:
+            'radial-gradient(circle at 20% 20%, rgba(33,84,129,0.08) 0%, transparent 45%), radial-gradient(circle at 80% 0%, rgba(249,184,100,0.12) 0%, transparent 40%)',
+        }}
+      />
 
-      <div className="w-full max-w-sm">
-
-        <div className="bg-white/70 backdrop-blur-xl rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.05)] border border-white p-8 md:p-10">
-          <div className="mb-10">
-            <Link href="/" className="inline-block mb-6">
+      <div className="relative mx-auto flex min-h-[calc(100dvh-8rem)] max-w-5xl flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_24px_64px_-32px_rgba(15,39,59,0.28)] lg:min-h-[560px] lg:flex-row">
+        <aside className="relative hidden overflow-hidden bg-[#153551] lg:flex lg:w-[42%] lg:flex-col lg:justify-between">
+          <div
+            className="pointer-events-none absolute inset-0 opacity-[0.07]"
+            aria-hidden
+            style={{
+              backgroundImage:
+                'linear-gradient(rgba(255,255,255,0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.6) 1px, transparent 1px)',
+              backgroundSize: '32px 32px',
+            }}
+          />
+          <div className="relative z-10 p-10 xl:p-12">
+            <Link href="/" className="inline-block">
               <Image
                 src="/businesslogo.png"
-                alt="FinderB"
-                width={120}
-                height={40}
-                className="h-8 w-auto object-contain"
+                alt="FinderB Business"
+                width={132}
+                height={44}
+                className="h-9 w-auto brightness-0 invert"
+                priority
               />
             </Link>
-            <div className="space-y-1">
-              <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Welcome back</h2>
-              <p className="text-slate-500 text-sm font-medium">Business Partner Portal</p>
+            <div className="mt-14 max-w-xs">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#f9b864]">
+                Partner portal
+              </p>
+              <h1 className="mt-3 text-[1.75rem] font-semibold leading-snug tracking-tight text-white xl:text-[2rem]">
+                Manage your business listing
+              </h1>
+              <p className="mt-3 text-sm leading-relaxed text-white/70">
+                Update details, track enquiries, and complete verification from one dashboard.
+              </p>
             </div>
           </div>
-
-          {error && (
-            <div className="mb-6 p-4 bg-red-50/50 border border-red-100/50 text-red-600 text-xs font-semibold rounded-2xl">
-              {error}
+          <div className="relative z-10 border-t border-white/10 px-10 py-8 xl:px-12">
+            <div className="flex items-start gap-2 text-xs text-white/70">
+              <ShieldCheck size={16} className="mt-0.5 shrink-0 text-[#f9b864]" />
+              Secure access for registered FinderB business partners only.
             </div>
-          )}
+          </div>
+        </aside>
 
-          <form onSubmit={handleLogin} className="space-y-5">
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Work Email</label>
-              <div className="relative group">
-                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors pointer-events-none">
-                  <Mail size={18} />
-                </div>
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="name@company.com"
-                  className="w-full pl-11 pr-4 py-4 bg-slate-50/50 border border-slate-100 rounded-2xl focus:bg-white focus:border-blue-500/30 focus:ring-4 focus:ring-blue-500/5 outline-none font-medium transition-all placeholder:text-slate-300 text-sm"
-                />
-              </div>
+        <div className="flex flex-1 flex-col justify-start px-6 pb-8 pt-10 sm:px-10 lg:justify-center lg:px-12 lg:py-10 xl:px-14">
+          <div className="mx-auto w-full max-w-sm">
+            <div className="mb-8">
+              <h2 className="text-2xl font-semibold tracking-tight text-[#0f273b]">Partner sign in</h2>
+              <p className="mt-1.5 text-sm text-[#64748b]">
+                Use the email and password from your business registration.
+              </p>
             </div>
 
-            <div className="space-y-1.5">
-              <div className="flex justify-between items-center px-1">
-                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Password</label>
-                <Link href="#" className="text-[11px] font-bold text-blue-600 hover:text-blue-700">Forgot?</Link>
+            {error && (
+              <div className="mb-5 flex items-start gap-2.5 rounded-lg border border-red-100 bg-red-50/80 px-3.5 py-3 text-sm text-red-700">
+                <AlertCircle size={17} className="mt-0.5 shrink-0" />
+                <span>{error}</span>
               </div>
-              <div className="relative group">
-                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors pointer-events-none">
-                  <Lock size={18} />
+            )}
+
+            <form onSubmit={handleLogin} className="space-y-5">
+              <div className="space-y-1.5">
+                <label htmlFor="email" className="text-sm font-medium text-[#334155]">
+                  Work email
+                </label>
+                <div className="group relative">
+                  <Mail
+                    size={17}
+                    className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#94a3b8] transition-colors group-focus-within:text-[#215481]"
+                  />
+                  <input
+                    id="email"
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@business.com"
+                    className="w-full rounded-lg border border-slate-200 bg-white py-3 pl-10 pr-4 text-sm text-[#0f172a] outline-none transition-all placeholder:text-slate-400 focus:border-[#215481]/40 focus:ring-4 focus:ring-[#215481]/10"
+                  />
                 </div>
-                <input
-                  type={showPassword ? "text" : "password"}
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full pl-11 pr-12 py-4 bg-slate-50/50 border border-slate-100 rounded-2xl focus:bg-white focus:border-blue-500/30 focus:ring-4 focus:ring-blue-500/5 outline-none font-medium transition-all placeholder:text-slate-300 text-sm"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+              </div>
+
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label htmlFor="password" className="text-sm font-medium text-[#334155]">
+                    Password
+                  </label>
+                  <Link
+                    href="#"
+                    className="text-xs font-medium text-[#215481] hover:text-[#1a4367]"
+                  >
+                    Forgot password?
+                  </Link>
+                </div>
+                <div className="group relative">
+                  <Lock
+                    size={17}
+                    className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#94a3b8] transition-colors group-focus-within:text-[#215481]"
+                  />
+                  <input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Enter your password"
+                    className="w-full rounded-lg border border-slate-200 bg-white py-3 pl-10 pr-11 text-sm text-[#0f172a] outline-none transition-all placeholder:text-slate-400 focus:border-[#215481]/40 focus:ring-4 focus:ring-[#215481]/10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-[#94a3b8] transition-colors hover:text-[#215481]"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+                  </button>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="group mt-1 flex w-full items-center justify-center gap-2 rounded-lg bg-[#215481] py-3 text-sm font-semibold text-white transition-all hover:bg-[#1a4367] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {loading ? 'Signing in…' : 'Sign in'}
+                {!loading && (
+                  <ChevronRight size={16} className="transition-transform group-hover:translate-x-0.5" />
+                )}
+              </button>
+            </form>
+
+            <div className="mt-8 space-y-4 border-t border-slate-100 pt-6">
+              <p className="text-center text-sm text-[#64748b]">
+                New to FinderB?{' '}
+                <Link
+                  href="/business/register"
+                  className="inline-flex items-center gap-1 font-semibold text-[#215481] hover:text-[#1a4367]"
                 >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              </div>
+                  Register your business
+                  <ArrowRight size={14} />
+                </Link>
+              </p>
             </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-4 rounded-2xl shadow-lg shadow-slate-200 transition-all active:scale-[0.98] flex items-center justify-center gap-2 group disabled:opacity-70 disabled:active:scale-100 mt-2"
-            >
-              <span>{loading ? 'Authenticating...' : 'Sign In'}</span>
-              {!loading && <ChevronRight size={18} className="group-hover:translate-x-0.5 transition-transform" />}
-            </button>
-          </form>
-
-          <div className="mt-10 text-center">
-            <p className="text-slate-400 text-xs font-medium mb-4">
-              New to FinderB?
-            </p>
-            <Link
-              href="/business/register"
-              className="inline-flex items-center gap-2 text-slate-900 font-bold text-sm hover:text-blue-600 transition-colors"
-            >
-              Create Business Account
-              <ArrowLeft size={14} className="rotate-180" />
-            </Link>
           </div>
         </div>
-
-        <p className="mt-10 text-center text-slate-400 text-[11px] font-medium tracking-wide">
-          &copy; {new Date().getFullYear()} FINDERB INDIA &bull; PARTNER PORTAL
-        </p>
       </div>
     </div>
   );
-
 }
