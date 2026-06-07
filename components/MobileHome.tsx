@@ -30,6 +30,8 @@ type MobileHomeProps = {
   manualQuery: string;
   onQueryChange: (value: string) => void;
   onSearch: (query?: string) => void;
+  onVoiceSearch?: () => void;
+  voiceActive?: boolean;
   categories: Category[];
   businesses: Business[];
   isBusinessesLoading: boolean;
@@ -39,6 +41,8 @@ export default function MobileHome({
   manualQuery,
   onQueryChange,
   onSearch,
+  onVoiceSearch,
+  voiceActive = false,
   categories,
   businesses,
   isBusinessesLoading,
@@ -53,6 +57,8 @@ export default function MobileHome({
         manualQuery={manualQuery}
         onQueryChange={onQueryChange}
         onSearch={onSearch}
+        onVoiceSearch={onVoiceSearch}
+        voiceActive={voiceActive}
       />
 
       {/* Popular Categories */}

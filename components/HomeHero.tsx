@@ -15,6 +15,8 @@ type HomeHeroProps = {
   manualQuery: string;
   onQueryChange: (value: string) => void;
   onSearch: (query?: string) => void;
+  onVoiceSearch?: () => void;
+  voiceActive?: boolean;
 };
 
 export default function HomeHero({
@@ -22,6 +24,8 @@ export default function HomeHero({
   manualQuery,
   onQueryChange,
   onSearch,
+  onVoiceSearch,
+  voiceActive = false,
 }: HomeHeroProps) {
   const isDesktop = variant === 'desktop';
 
@@ -117,13 +121,23 @@ export default function HomeHero({
                 <input
                   type="text"
                   value={manualQuery}
+                  disabled={voiceActive}
                   onChange={(e) => onQueryChange(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && onSearch()}
+                  onKeyDown={(e) => e.key === 'Enter' && !voiceActive && onSearch()}
                   placeholder="Search anything... (e.g. Dentist, CA, Gym, Salon)"
-                  className="min-w-0 flex-1 border-none bg-transparent text-sm text-[#334155] placeholder:text-[#94a3b8] focus:ring-0"
+                  className="min-w-0 flex-1 border-none bg-transparent text-sm text-[#334155] placeholder:text-[#94a3b8] focus:ring-0 disabled:opacity-50"
                 />
-                <button type="button" className="shrink-0 text-[#94a3b8]" aria-label="Voice search">
-                  <Mic size={17} strokeWidth={2} />
+                <button
+                  type="button"
+                  onClick={onVoiceSearch}
+                  aria-label={voiceActive ? 'Stop voice search' : 'Start voice search'}
+                  className={`shrink-0 rounded-lg p-1 transition-all ${
+                    voiceActive
+                      ? 'bg-red-500 text-white animate-pulse'
+                      : 'text-[#94a3b8] hover:bg-slate-50 hover:text-[#2563eb]'
+                  }`}
+                >
+                  <Mic size={17} strokeWidth={2} className={voiceActive ? 'animate-bounce' : ''} />
                 </button>
               </div>
               <div className="flex items-center gap-1.5 border-r border-gray-100 px-3.5 py-2.5">
@@ -147,17 +161,23 @@ export default function HomeHero({
               <input
                 type="text"
                 value={manualQuery}
+                disabled={voiceActive}
                 onChange={(e) => onQueryChange(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && onSearch()}
+                onKeyDown={(e) => e.key === 'Enter' && !voiceActive && onSearch()}
                 placeholder="Search anything... (e.g. Dentist, CA, Gym, Salon)"
-                className="min-w-0 flex-1 border-none bg-transparent text-[13px] text-[#334155] placeholder:text-[#94a3b8] focus:ring-0"
+                className="min-w-0 flex-1 border-none bg-transparent text-[13px] text-[#334155] placeholder:text-[#94a3b8] focus:ring-0 disabled:opacity-50"
               />
               <button
                 type="button"
-                className="shrink-0 p-0.5 text-[#94a3b8]"
-                aria-label="Voice search"
+                onClick={onVoiceSearch}
+                aria-label={voiceActive ? 'Stop voice search' : 'Start voice search'}
+                className={`shrink-0 rounded-lg p-1 transition-all ${
+                  voiceActive
+                    ? 'bg-red-500 text-white animate-pulse'
+                    : 'text-[#94a3b8] hover:bg-slate-50 hover:text-[#2563eb]'
+                }`}
               >
-                <Mic size={18} strokeWidth={2} />
+                <Mic size={18} strokeWidth={2} className={voiceActive ? 'animate-bounce' : ''} />
               </button>
             </div>
 

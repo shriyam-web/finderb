@@ -697,6 +697,8 @@ export default function HomeClient({ initialData }: { initialData: any }) {
               setManualQuery(v);
             }}
             onSearch={handleManualSearch}
+            onVoiceSearch={toggleVoiceSearch}
+            voiceActive={voiceActive}
           />
 
               <div className="mx-auto mt-4 hidden max-w-[1280px] px-8 lg:block">
@@ -931,6 +933,8 @@ export default function HomeClient({ initialData }: { initialData: any }) {
               setManualQuery(v);
             }}
             onSearch={handleManualSearch}
+            onVoiceSearch={toggleVoiceSearch}
+            voiceActive={voiceActive}
             categories={sortedCategories}
             businesses={realBusinesses}
             isBusinessesLoading={isBusinessesLoading}
