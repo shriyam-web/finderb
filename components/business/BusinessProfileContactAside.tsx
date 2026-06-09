@@ -14,7 +14,7 @@ const SOCIAL_BRAND: Record<string, { Icon: IconType; colorClass: string }> = {
 };
 
 type BusinessProfileContactAsideProps = {
-  phoneLink: string | null;
+  phoneLink: string | null | undefined;
   phone: string;
   email?: string;
   website?: string;

@@ -200,7 +200,7 @@ export default function MobileHome({
                             key={s}
                             size={10}
                             className={
-                              s <= Math.round(biz.rating)
+                              s <= Math.round(biz.rating ?? 0)
                                 ? 'fill-amber-400 text-amber-400'
                                 : 'fill-gray-200 text-gray-200'
                             }

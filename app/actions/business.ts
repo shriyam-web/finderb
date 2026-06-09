@@ -3,6 +3,7 @@
 import { createClient } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
+import { sortBusinessesByProfileCompleteness } from '@/lib/businessProfileCompleteness';
 import { parseBusinessReviews } from '@/lib/businessReviews';
 
 function parseBusinessServices(business: {
@@ -32,14 +33,20 @@ function mapBusinessRecord(business: Record<string, unknown>) {
   return {
     ...business,
     id: business.id as string,
+    businessName: (business.businessName as string) || '',
     name: (business.businessName as string) || (business.displayName as string) || 'Business',
     location: (business.location as string) || (business.city as string) || '',
     city: (business.city as string | null) ?? null,
     state: (business.state as string | null) ?? null,
+    country: (business.country as string | null) ?? null,
     category: (business.category as string) || '',
     description: (business.about as string) || '',
     about: (business.about as string | null) ?? null,
     contact: (business.publicPhone as string) || '',
+    publicPhone: (business.publicPhone as string) || '',
+    mobile: (business.mobile as string) || '',
+    serviceCategory: (business.serviceCategory as string | null) ?? null,
+    profileQrLink: (business.profileQrLink as string | null) ?? null,
     image: (business.profilePictureUrl as string) || undefined,
     profilePictureUrl: (business.profilePictureUrl as string) || undefined,
     priceRange: business.selectedPlan === 'free' ? 'Free listing' : 'Premium listing',
@@ -401,17 +408,17 @@ export async function getFeaturedBusinesses() {
       .from('Business')
       .select('*')
       .eq('status', 'Active')
-      .eq('isVerified', true)
-      .limit(10);
+      .or('isVerified.eq.true,isFinderBVerified.eq.true')
+      .limit(60);
 
     if (error) {
       throw error;
     }
 
-    // Map DB fields to the expected Business interface
     const mappedBusinesses = businesses.map((b: Record<string, unknown>) => mapBusinessRecord(b));
+    const rankedBusinesses = sortBusinessesByProfileCompleteness(mappedBusinesses).slice(0, 12);
 
-    return { success: true, businesses: mappedBusinesses };
+    return { success: true, businesses: rankedBusinesses };
   } catch (error: any) {
     const errorMessage = handleError(error, 'Get Featured Businesses');
     return { success: false, error: errorMessage };

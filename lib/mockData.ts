@@ -24,7 +24,7 @@ export interface Business {
   whatsappNumber?: string;
   youtubeUrl?: string;
   timings?: any;
-  yearsInBusiness?: number;
+  yearsInBusiness?: number | null;
   isFinderBVerified?: boolean;
   paymentModes?: string[];
   email?: string;

@@ -839,7 +839,7 @@ export default function HomeClient({ initialData }: { initialData: any }) {
                                     key={star}
                                     size={11}
                                     className={
-                                      star <= Math.round(biz.rating)
+                                      star <= Math.round(biz.rating ?? 0)
                                         ? 'fill-amber-400 text-amber-400'
                                         : 'fill-gray-200 text-gray-200'
                                     }
