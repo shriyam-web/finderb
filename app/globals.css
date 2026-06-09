@@ -35,6 +35,7 @@
   --animate-spin-slow: spin 8s linear infinite;
   --animate-ai-fab-gradient: ai-fab-gradient 3.5s ease infinite;
   --animate-ai-fab-glow: ai-fab-glow 2.5s ease-in-out infinite;
+  --animate-fire-flicker: fire-flicker 1.15s ease-in-out infinite;
   --font-sans: 'Google Sans', var(--font-inter), 'Inter', system-ui, -apple-system, sans-serif;
   --font-outfit: 'Google Sans', var(--font-outfit), 'Outfit', 'Inter', sans-serif;
   --font-heading: 'Google Sans', var(--font-poppins), 'Poppins', 'Inter', sans-serif;
@@ -68,6 +69,13 @@
   @keyframes ai-fab-glow {
     0%, 100% { opacity: 0.45; transform: scale(0.95); }
     50% { opacity: 0.9; transform: scale(1.05); }
+  }
+
+  @keyframes fire-flicker {
+    0%, 100% { transform: scale(1) rotate(0deg); opacity: 1; }
+    25% { transform: scale(1.15) rotate(-8deg); opacity: 0.85; }
+    50% { transform: scale(0.92) rotate(5deg); opacity: 1; }
+    75% { transform: scale(1.08) rotate(-4deg); opacity: 0.9; }
   }
 }
 

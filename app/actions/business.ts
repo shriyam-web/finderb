@@ -3,6 +3,75 @@
 import { createClient } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
+import { parseBusinessReviews } from '@/lib/businessReviews';
+
+function parseBusinessServices(business: {
+  serviceCategory?: string | null;
+  keywords?: string[] | null;
+}): string[] {
+  const services = new Set<string>();
+
+  if (business.serviceCategory?.trim()) {
+    business.serviceCategory
+      .split(/[,|]/)
+      .map((item) => item.trim())
+      .filter(Boolean)
+      .forEach((item) => services.add(item));
+  }
+
+  return [...services];
+}
+
+function mapBusinessRecord(business: Record<string, unknown>) {
+  const reviews = parseBusinessReviews(business.review);
+  const services = parseBusinessServices({
+    serviceCategory: business.serviceCategory as string | null | undefined,
+    keywords: business.keywords as string[] | null | undefined,
+  });
+
+  return {
+    ...business,
+    id: business.id as string,
+    name: (business.businessName as string) || (business.displayName as string) || 'Business',
+    location: (business.location as string) || (business.city as string) || '',
+    city: (business.city as string | null) ?? null,
+    state: (business.state as string | null) ?? null,
+    category: (business.category as string) || '',
+    description: (business.about as string) || '',
+    about: (business.about as string | null) ?? null,
+    contact: (business.publicPhone as string) || '',
+    image: (business.profilePictureUrl as string) || undefined,
+    profilePictureUrl: (business.profilePictureUrl as string) || undefined,
+    priceRange: business.selectedPlan === 'free' ? 'Free listing' : 'Premium listing',
+    rating: typeof business.rating === 'number' ? business.rating : null,
+    reviewsCount: reviews.length,
+    services,
+    website: (business.website as string) || undefined,
+    instagramUrl: (business.instagramUrl as string) || undefined,
+    facebookUrl: (business.facebookUrl as string) || undefined,
+    whatsappNumber: (business.whatsappNumber as string) || undefined,
+    youtubeUrl: (business.youtubeUrl as string) || undefined,
+    timings: business.timings,
+    yearsInBusiness:
+      typeof business.yearsInBusiness === 'number' ? business.yearsInBusiness : null,
+    isFinderBVerified: Boolean(business.isFinderBVerified || business.isVerified),
+    paymentModes: Array.isArray(business.paymentModes) ? business.paymentModes : [],
+    email: (business.email as string) || (business.workEmail as string) || undefined,
+    businessAddress: (business.businessAddress as string) || undefined,
+    images: Array.isArray(business.images) ? business.images : [],
+    latitude: (business.latitude as number | null) ?? null,
+    longitude: (business.longitude as number | null) ?? null,
+    hasVerifiedBadge: Boolean(
+      business.hasVerifiedBadge || business.isFinderBVerified || business.isVerified
+    ),
+    review: business.review,
+    reviewReply: business.reviewReply,
+    keywords: Array.isArray(business.keywords) ? business.keywords : [],
+    discountRange: (business.discountRange as string | null) ?? null,
+    displayName: (business.displayName as string | null) ?? null,
+    registrationNumber: (business.registrationNumber as string | null) ?? null,
+  };
+}
 
 // Safe error handler wrapper
 function handleError(error: any, context: string): string {
@@ -238,37 +307,7 @@ export async function getBusiness(id: string) {
       throw error;
     }
 
-    // Map DB fields to the expected Business interface
-    const mappedBusiness: any = {
-      ...business,
-      id: business.id,
-      name: business.businessName,
-      location: business.location || business.city || 'Location not specified',
-      city: business.city ?? null,
-      state: business.state ?? null,
-      category: business.category,
-      description: business.about || business.businessAddress,
-      contact: business.publicPhone,
-      image: business.profilePictureUrl || 'https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&q=80&w=800',
-      priceRange: business.selectedPlan === 'free' ? 'Free' : 'Premium',
-      rating: business.rating || 4.5,
-      reviewsCount: 150, // Default for now
-      services: business.serviceCategory ? [business.serviceCategory] : ['General Services'],
-      website: business.website,
-      instagramUrl: business.instagramUrl,
-      facebookUrl: business.facebookUrl,
-      whatsappNumber: business.whatsappNumber,
-      youtubeUrl: business.youtubeUrl,
-      timings: business.timings,
-      yearsInBusiness: business.yearsInBusiness || 12,
-      isFinderBVerified: business.isFinderBVerified || business.isVerified,
-      paymentModes: business.paymentModes || [],
-      email: business.email || business.workEmail,
-      businessAddress: business.businessAddress,
-      images: business.images || []
-    };
-
-    return { success: true, business: mappedBusiness };
+    return { success: true, business: mapBusinessRecord(business) };
   } catch (error: any) {
     const errorMessage = handleError(error, 'Get Business');
     return { success: false, error: errorMessage };
@@ -370,28 +409,7 @@ export async function getFeaturedBusinesses() {
     }
 
     // Map DB fields to the expected Business interface
-    const mappedBusinesses = businesses.map((b: any) => ({
-      id: b.id,
-      name: b.businessName,
-      category: b.category,
-      rating: b.rating ?? 4.5,
-      reviewsCount: 0,
-      location: b.location || b.city || 'Location not specified',
-      city: b.city ?? null,
-      state: b.state ?? null,
-      description: b.about || b.businessAddress || '',
-      contact: b.publicPhone,
-      services: b.serviceCategory ? [b.serviceCategory] : [],
-      image: b.profilePictureUrl || 'https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&q=80&w=800',
-      profilePictureUrl: b.profilePictureUrl,
-      priceRange: b.selectedPlan === 'free' ? 'Free' : 'Premium',
-      timings: b.timings,
-      isFinderBVerified: Boolean(b.isFinderBVerified || b.isVerified),
-      hasVerifiedBadge: Boolean(b.hasVerifiedBadge || b.isFinderBVerified || b.isVerified),
-      latitude: b.latitude,
-      longitude: b.longitude,
-      businessAddress: b.businessAddress,
-    }));
+    const mappedBusinesses = businesses.map((b: Record<string, unknown>) => mapBusinessRecord(b));
 
     return { success: true, businesses: mappedBusinesses };
   } catch (error: any) {
@@ -417,20 +435,9 @@ export async function getBusinessesByCategory(categoryName: string) {
       throw error;
     }
 
-    const mappedBusinesses = businesses.map((b: any) => ({
-      id: b.id,
-      name: b.businessName,
-      category: b.category,
-      rating: 4.5,
-      reviewsCount: 0,
-      location: b.location || b.city || 'Location not specified',
-      description: b.businessAddress,
-      contact: b.publicPhone,
-      services: [],
-      image: b.profilePictureUrl || 'https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&q=80&w=800',
-      profilePictureUrl: b.profilePictureUrl,
-      priceRange: b.selectedPlan === 'free' ? 'Free' : 'Premium'
-    }));
+    const mappedBusinesses = businesses
+      .map((b: Record<string, unknown>) => mapBusinessRecord(b))
+      .filter((b) => b.id);
 
     return { success: true, businesses: mappedBusinesses };
   } catch (error: any) {

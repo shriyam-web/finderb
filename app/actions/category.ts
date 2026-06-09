@@ -159,6 +159,77 @@ export async function getFeaturedGroups() {
   }
 }
 
+export type CategoryBreadcrumb = {
+  id: string;
+  name: string;
+  slug: string;
+  parentId: string | null;
+  href: string;
+};
+
+export async function findCategoryForBreadcrumb(categoryName: string) {
+  const name = categoryName?.trim();
+  if (!name) {
+    return { success: true as const, category: null };
+  }
+
+  try {
+    const supabase = createClient(await cookies());
+    const pattern = escapeIlikePattern(name);
+
+    const { data, error } = await supabase
+      .from('categories')
+      .select('id, name, slug, parent_id')
+      .eq('status', 'Active')
+      .ilike('name', pattern)
+      .limit(1)
+      .maybeSingle();
+
+    if (error) throw error;
+
+    if (!data) {
+      return {
+        success: true as const,
+        category: {
+          id: '',
+          name,
+          slug: name.toLowerCase().replace(/\s+/g, '-'),
+          parentId: null,
+          href: `/categories?search=${encodeURIComponent(name)}`,
+        } satisfies CategoryBreadcrumb,
+      };
+    }
+
+    const slug = data.slug || data.name.toLowerCase().replace(/\s+/g, '-');
+    const href = data.parent_id
+      ? `/categories?search=${encodeURIComponent(data.name)}`
+      : `/categories?id=${data.id}`;
+
+    return {
+      success: true as const,
+      category: {
+        id: data.id,
+        name: data.name,
+        slug,
+        parentId: data.parent_id,
+        href,
+      } satisfies CategoryBreadcrumb,
+    };
+  } catch (error: any) {
+    console.error('Find Category For Breadcrumb Error:', error);
+    return {
+      success: true as const,
+      category: {
+        id: '',
+        name,
+        slug: name.toLowerCase().replace(/\s+/g, '-'),
+        parentId: null,
+        href: `/categories?search=${encodeURIComponent(name)}`,
+      } satisfies CategoryBreadcrumb,
+    };
+  }
+}
+
 export type CategorySearchHit = {
   id: string;
   name: string;

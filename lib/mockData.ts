@@ -2,7 +2,7 @@ export interface Business {
   id: string;
   name: string;
   category: string;
-  rating: number;
+  rating: number | null;
   reviewsCount: number;
   location: string;
   city?: string | null;
@@ -32,6 +32,13 @@ export interface Business {
   latitude?: number | null;
   longitude?: number | null;
   hasVerifiedBadge?: boolean;
+  review?: unknown;
+  reviewReply?: unknown;
+  keywords?: string[];
+  discountRange?: string | null;
+  displayName?: string | null;
+  about?: string | null;
+  registrationNumber?: string | null;
 }
 
 export interface Category {

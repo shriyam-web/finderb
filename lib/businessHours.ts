@@ -29,15 +29,10 @@ function parseTimeToMinutes(time: string): number | null {
   return hours * 60 + minutes;
 }
 
-function formatCloseTime(close: string): string {
-  const minutes = parseTimeToMinutes(close);
-  if (minutes === null) return close;
+import { formatTime12h } from '@/lib/formatBusinessHours';
 
-  const h = Math.floor(minutes / 60);
-  const m = minutes % 60;
-  const hour12 = h % 12 || 12;
-  const ampm = h >= 12 ? 'PM' : 'AM';
-  return `${hour12}${m > 0 ? `:${m.toString().padStart(2, '0')}` : ''} ${ampm}`;
+function formatCloseTime(close: string): string {
+  return formatTime12h(close);
 }
 
 function closedState(message = 'Closed now'): BusinessOpenState {

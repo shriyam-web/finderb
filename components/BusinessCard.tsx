@@ -84,7 +84,7 @@ export default function BusinessCard({
         >
           <Star className="fill-secondary text-secondary" size={compact || uniform ? 10 : 12} />
           <span className={`font-bold text-primary ${uniform ? 'text-[10px]' : compact ? 'text-[10px]' : 'text-xs'}`}>
-            {business.rating}
+            {business.rating ?? '—'}
           </span>
         </div>
       </div>
