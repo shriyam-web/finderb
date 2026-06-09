@@ -80,7 +80,7 @@ export default function BusinessProfileBackdrop() {
       {MERCHANT_FLOATERS.map(({ Icon, profession, top, side, offset, size, rotate, opacity, tint }, index) => (
         <div
           key={index}
-          className="absolute flex flex-col items-center gap-1"
+          className="absolute hidden flex-col items-center gap-1 sm:flex lg:hidden"
           style={{
             top,
             [side]: offset,

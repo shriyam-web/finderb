@@ -113,3 +113,14 @@ export function getPublicReviewRating(reviews: BusinessReview[]): number | null 
   const total = reviews.reduce((sum, review) => sum + review.rating, 0);
   return Math.round((total / reviews.length) * 10) / 10;
 }
+
+export function getBusinessPublicRatingStats(review: unknown): {
+  rating: number | null;
+  reviewCount: number;
+} {
+  const reviews = parseBusinessReviews(review);
+  return {
+    rating: getPublicReviewRating(reviews),
+    reviewCount: reviews.length,
+  };
+}

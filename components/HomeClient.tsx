@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import CategoryIcon from '@/components/CategoryIcon';
 import MobileHome from '@/components/MobileHome';
+import MerchantListingRating from '@/components/business/MerchantListingRating';
 import HomeHero from '@/components/HomeHero';
 import SubcategoryScrollRow from '@/components/SubcategoryScrollRow';
 import NewsWidget from '@/components/NewsWidget';
@@ -810,7 +811,7 @@ export default function HomeClient({ initialData }: { initialData: any }) {
                               voiceSearchQueryRef.current.trim();
                             if (q) setLastSearchQuery(q);
                           }}
-                          className="group overflow-hidden rounded-xl border border-gray-100 bg-white transition-shadow hover:shadow-md"
+                          className="group overflow-hidden rounded-xl border border-gray-200 bg-white transition-colors hover:border-gray-300"
                         >
                           <div className="relative aspect-[4/3] overflow-hidden bg-gray-100">
                             <Image
@@ -832,27 +833,10 @@ export default function HomeClient({ initialData }: { initialData: any }) {
                               {biz.name}
                             </p>
                             <p className="line-clamp-1 text-[12px] text-[#94a3b8]">{biz.category}</p>
-                            <div className="flex items-center gap-1">
-                              <div className="flex">
-                                {[1, 2, 3, 4, 5].map((star) => (
-                                  <Star
-                                    key={star}
-                                    size={11}
-                                    className={
-                                      star <= Math.round(biz.rating ?? 0)
-                                        ? 'fill-amber-400 text-amber-400'
-                                        : 'fill-gray-200 text-gray-200'
-                                    }
-                                  />
-                                ))}
-                              </div>
-                              <span className="text-[12px] font-medium text-[#475569]">
-                                {biz.rating}{' '}
-                                <span className="font-normal text-[#94a3b8]">
-                                  ({biz.reviewsCount ?? 0})
-                                </span>
-                              </span>
-                            </div>
+                            <MerchantListingRating
+                              rating={biz.rating}
+                              reviewCount={biz.reviewsCount}
+                            />
                             <div className="flex items-start gap-1 text-[11px] leading-snug text-[#94a3b8]">
                               <MapPin size={12} className="mt-0.5 shrink-0" />
                               <span className="line-clamp-2">{biz.location}</span>

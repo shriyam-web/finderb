@@ -47,14 +47,51 @@ export function mapEmbedSrc(options: {
   return `https://maps.google.com/maps?q=${encodeURIComponent(query)}&z=15&output=embed`;
 }
 
-export async function shareBusinessPage(title: string, url: string) {
-  if (typeof navigator !== 'undefined' && navigator.share) {
-    await navigator.share({ title, url });
-    return 'shared';
+export type ShareBusinessResult = 'shared' | 'copied' | 'cancelled' | 'unsupported';
+
+async function copyTextToClipboard(text: string): Promise<boolean> {
+  if (typeof document === 'undefined') return false;
+
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch {
+    // Fall through to legacy copy.
   }
 
-  if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
-    await navigator.clipboard.writeText(url);
+  try {
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.setAttribute('readonly', '');
+    textarea.style.position = 'fixed';
+    textarea.style.left = '-9999px';
+    document.body.appendChild(textarea);
+    textarea.select();
+    const copied = document.execCommand('copy');
+    document.body.removeChild(textarea);
+    return copied;
+  } catch {
+    return false;
+  }
+}
+
+export async function shareBusinessPage(title: string, url: string): Promise<ShareBusinessResult> {
+  const shareTitle = `Check out ${title} on FinderB`;
+
+  if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+    try {
+      await navigator.share({ title: shareTitle, text: shareTitle, url });
+      return 'shared';
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        return 'cancelled';
+      }
+    }
+  }
+
+  if (await copyTextToClipboard(url)) {
     return 'copied';
   }
 

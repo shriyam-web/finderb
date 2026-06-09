@@ -46,6 +46,8 @@ import {
   whatsAppHref,
 } from '@/lib/businessContact';
 import { formatTimingRange12h } from '@/lib/formatBusinessHours';
+import { buildLoginHref } from '@/lib/authRedirect';
+import { getBusinessShareUrl } from '@/lib/businessSeo';
 import { resolveClientSearchQuery, setLastSearchQuery } from '@/lib/lastSearchQuery';
 
 const WEEKDAYS = [
@@ -62,6 +64,7 @@ const SECTIONS = [
   { id: 'about', label: 'About' },
   { id: 'services', label: 'Services' },
   { id: 'location', label: 'Location' },
+  { id: 'contact', label: 'Contact' },
   { id: 'reviews', label: 'Reviews' },
 ] as const;
 
@@ -205,6 +208,16 @@ export default function BusinessProfilePage({ id }: { id: string }) {
   }, [id]);
 
   useEffect(() => {
+    if (isLoading || !business) return;
+
+    const timer = window.setTimeout(() => {
+      setConnectModalOpen(true);
+    }, 10_000);
+
+    return () => window.clearTimeout(timer);
+  }, [isLoading, business?.id]);
+
+  useEffect(() => {
     if (!shareMessage) return;
     const timer = window.setTimeout(() => setShareMessage(null), 2400);
     return () => window.clearTimeout(timer);
@@ -235,11 +248,20 @@ export default function BusinessProfilePage({ id }: { id: string }) {
   );
 
   const handleShare = async () => {
-    if (!business) return;
-    const url = typeof window !== 'undefined' ? window.location.href : '';
-    const result = await shareBusinessPage(business.name, url);
-    if (result === 'copied') setShareMessage('Link copied');
-    else if (result === 'shared') setShareMessage('Shared');
+    if (!business || typeof window === 'undefined') return;
+
+    try {
+      const url = getBusinessShareUrl(business.id, window.location.origin);
+      const result = await shareBusinessPage(business.name, url);
+
+      if (result === 'copied') setShareMessage('Link copied to clipboard');
+      else if (result === 'shared') setShareMessage('Shared successfully');
+      else if (result === 'unsupported') {
+        setShareMessage('Copy blocked — use your browser share menu');
+      }
+    } catch {
+      setShareMessage('Could not share this listing');
+    }
   };
 
   const handleReviewSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -315,7 +337,7 @@ export default function BusinessProfilePage({ id }: { id: string }) {
       <BusinessProfileBackdrop />
 
       <header className="sticky top-[4.25rem] z-40 border-b border-stone-200/80 bg-white/90 backdrop-blur-md sm:top-24">
-        <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-2.5 sm:px-6">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-2.5 sm:px-6 lg:max-w-7xl">
           <Link
             href="/"
             className="inline-flex items-center gap-1.5 text-sm font-medium text-[#57534e] hover:text-[#215481]"
@@ -340,19 +362,20 @@ export default function BusinessProfilePage({ id }: { id: string }) {
         </div>
       )}
 
-      <main className="relative z-10 mx-auto max-w-4xl px-4 sm:px-6">
+      <main className="relative z-10 mx-auto max-w-6xl px-4 sm:px-6 lg:max-w-7xl">
         <BusinessProfileBreadcrumb business={business} categoryBreadcrumb={categoryBreadcrumb} />
 
         <section className="border-b border-stone-200/80 py-5 md:py-8">
-          <StackedPhotoGallery
-            images={galleryImages}
-            alt={business.name}
-            activeIndex={activeImage}
-            onSelect={setActiveImage}
-          />
+          <div className="md:grid md:grid-cols-2 md:items-start md:gap-10 lg:gap-14">
+            <StackedPhotoGallery
+              images={galleryImages}
+              alt={business.name}
+              activeIndex={activeImage}
+              onSelect={setActiveImage}
+            />
 
-          <div className="mt-5 flex flex-col gap-2.5">
-            <h1 className="text-[1.65rem] font-semibold leading-snug text-[#153551] sm:text-[1.85rem]">
+            <div className="mt-5 flex flex-col gap-2.5 md:mt-0 md:border-l md:border-stone-200/70 md:pl-10 lg:gap-3 lg:pl-12">
+            <h1 className="text-[1.65rem] font-semibold leading-snug text-[#153551] sm:text-[1.85rem] lg:text-[2rem]">
               {business.name}
             </h1>
 
@@ -421,6 +444,7 @@ export default function BusinessProfilePage({ id }: { id: string }) {
             >
               Send enquiry
             </button>
+            </div>
           </div>
         </section>
 
@@ -441,8 +465,8 @@ export default function BusinessProfilePage({ id }: { id: string }) {
           ))}
         </nav>
 
-        <div className="grid gap-10 py-8 lg:grid-cols-[1fr_280px] lg:gap-12">
-          <div className="min-w-0 space-y-10">
+        <div className="grid gap-10 py-8 lg:grid-cols-[1fr_300px] lg:items-start lg:gap-12 xl:grid-cols-[1fr_340px]">
+          <div className="min-w-0 space-y-10 lg:col-start-1 lg:row-start-1">
             <section id="about" className="scroll-mt-40">
               <h2 className="text-base font-semibold text-[#153551]">About</h2>
               {business.description ? (
@@ -461,7 +485,7 @@ export default function BusinessProfilePage({ id }: { id: string }) {
             <section id="services" className="scroll-mt-40 border-t border-stone-200/60 pt-8">
               <h2 className="text-base font-semibold text-[#153551]">Services</h2>
               {business.services && business.services.length > 0 ? (
-                <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                   {business.services.map((service) => (
                     <div
                       key={service}
@@ -511,7 +535,7 @@ export default function BusinessProfilePage({ id }: { id: string }) {
                   <iframe
                     title={`Map for ${business.name}`}
                     src={embedSrc}
-                    className="h-52 w-full sm:h-60"
+                    className="h-52 w-full sm:h-60 lg:h-72"
                     loading="lazy"
                     referrerPolicy="no-referrer-when-downgrade"
                   />
@@ -561,105 +585,113 @@ export default function BusinessProfilePage({ id }: { id: string }) {
                 <p className="mt-3 text-sm text-stone-400">Hours not listed.</p>
               )}
             </section>
-
-            <section id="reviews" className="scroll-mt-40 border-t border-stone-200/60 pt-8">
-              <div className="flex items-baseline justify-between gap-3">
-                <h2 className="text-base font-semibold text-[#153551]">Reviews</h2>
-                {displayRating != null ? (
-                  <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800">
-                    <Star size={10} className="fill-amber-500 text-amber-500" />
-                    {displayRating} · {reviews.length} total
-                  </span>
-                ) : (
-                  <span className="text-xs text-stone-400">No reviews yet</span>
-                )}
-              </div>
-
-              {!sessionUser ? (
-                <div className="mt-4 rounded-lg border border-[#f9b864]/30 bg-[#fff8ef] px-4 py-3 text-sm text-stone-600">
-                  <Link href="/login" className="font-medium text-[#215481] hover:underline">
-                    Log in
-                  </Link>{' '}
-                  to write a review.
-                </div>
-              ) : userHasReviewed ? (
-                <p className="mt-4 text-sm text-stone-500">You have already reviewed this business.</p>
-              ) : (
-                <form onSubmit={handleReviewSubmit} className="mt-4 rounded-lg border border-stone-200 bg-white p-4">
-                  <p className="text-sm text-stone-700">
-                    Posting as <span className="font-medium text-stone-900">{sessionUser.fullName}</span>
-                  </p>
-                  <div className="mt-3">
-                    <StarPicker value={reviewRating} onChange={setReviewRating} />
-                  </div>
-                  <textarea
-                    value={reviewContent}
-                    onChange={(event) => setReviewContent(event.target.value)}
-                    placeholder="What was your experience?"
-                    rows={3}
-                    className="mt-3 w-full rounded-lg border border-stone-200 px-3 py-2 text-sm outline-none focus:border-[#215481]"
-                    required
-                    minLength={10}
-                  />
-                  {reviewError && <p className="mt-2 text-xs text-red-600">{reviewError}</p>}
-                  {reviewSuccess && <p className="mt-2 text-xs text-emerald-700">{reviewSuccess}</p>}
-                  <button
-                    type="submit"
-                    disabled={reviewSubmitting}
-                    className="mt-3 rounded-lg bg-[#215481] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1a4367] disabled:opacity-50"
-                  >
-                    {reviewSubmitting ? 'Posting…' : 'Post review'}
-                  </button>
-                </form>
-              )}
-
-              <div className="mt-6 space-y-5">
-                {reviews.length === 0 ? (
-                  <p className="text-sm text-stone-400">No reviews yet.</p>
-                ) : (
-                  reviews.map((review) => (
-                    <article key={review.id} className="border-b border-stone-100 pb-5 last:border-0">
-                      <div className="flex items-center justify-between gap-3">
-                        <div>
-                          <p className="text-sm font-medium text-stone-900">{review.author}</p>
-                          {review.date && <p className="text-xs text-stone-400">{review.date}</p>}
-                        </div>
-                        <div className="flex gap-0.5">
-                          {Array.from({ length: 5 }).map((_, i) => (
-                            <Star
-                              key={i}
-                              size={11}
-                              className={
-                                i < review.rating ? 'fill-amber-500 text-amber-500' : 'text-stone-200'
-                              }
-                            />
-                          ))}
-                        </div>
-                      </div>
-                      <p className="mt-2 text-sm leading-relaxed text-stone-600">{review.content}</p>
-                    </article>
-                  ))
-                )}
-              </div>
-
-              {ownerReply && (
-                <div className="mt-5 border-l-2 border-stone-300 pl-4">
-                  <p className="text-xs font-medium uppercase tracking-wide text-stone-400">Owner reply</p>
-                  <p className="mt-1 text-sm text-stone-700">{ownerReply.content}</p>
-                </div>
-              )}
-            </section>
           </div>
 
-          <BusinessProfileContactAside
-            phoneLink={phoneLink}
-            phone={business.contact}
-            email={business.email}
-            website={business.website}
-            paymentModes={business.paymentModes ?? []}
-            socialLinks={socialLinks}
-            onEnquire={() => setConnectModalOpen(true)}
-          />
+          <section
+            id="contact"
+            className="scroll-mt-40 border-t border-stone-200/60 pt-8 lg:col-start-2 lg:row-start-1 lg:sticky lg:top-32 lg:self-start lg:border-t-0 lg:pt-0"
+          >
+            <BusinessProfileContactAside
+              phoneLink={phoneLink}
+              phone={business.contact}
+              email={business.email}
+              website={business.website}
+              paymentModes={business.paymentModes ?? []}
+              socialLinks={socialLinks}
+              onEnquire={() => setConnectModalOpen(true)}
+            />
+          </section>
+
+          <section id="reviews" className="scroll-mt-40 border-t border-stone-200/60 pt-8 lg:col-start-1 lg:row-start-2">
+            <div className="flex items-baseline justify-between gap-3">
+              <h2 className="text-base font-semibold text-[#153551]">Reviews</h2>
+              {displayRating != null ? (
+                <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800">
+                  <Star size={10} className="fill-amber-500 text-amber-500" />
+                  {displayRating} · {reviews.length} total
+                </span>
+              ) : (
+                <span className="text-xs text-stone-400">No reviews yet</span>
+              )}
+            </div>
+
+            {!sessionUser ? (
+              <div className="mt-4 rounded-lg border border-[#f9b864]/30 bg-[#fff8ef] px-4 py-3 text-sm text-stone-600">
+                <Link
+                  href={buildLoginHref(`/business/${id}#reviews`)}
+                  className="font-medium text-[#215481] hover:underline"
+                >
+                  Log in
+                </Link>{' '}
+                to write a review.
+              </div>
+            ) : userHasReviewed ? (
+              <p className="mt-4 text-sm text-stone-500">You have already reviewed this business.</p>
+            ) : (
+              <form onSubmit={handleReviewSubmit} className="mt-4 rounded-lg border border-stone-200 bg-white p-4">
+                <p className="text-sm text-stone-700">
+                  Posting as <span className="font-medium text-stone-900">{sessionUser.fullName}</span>
+                </p>
+                <div className="mt-3">
+                  <StarPicker value={reviewRating} onChange={setReviewRating} />
+                </div>
+                <textarea
+                  value={reviewContent}
+                  onChange={(event) => setReviewContent(event.target.value)}
+                  placeholder="What was your experience?"
+                  rows={3}
+                  className="mt-3 w-full rounded-lg border border-stone-200 px-3 py-2 text-sm outline-none focus:border-[#215481]"
+                  required
+                  minLength={10}
+                />
+                {reviewError && <p className="mt-2 text-xs text-red-600">{reviewError}</p>}
+                {reviewSuccess && <p className="mt-2 text-xs text-emerald-700">{reviewSuccess}</p>}
+                <button
+                  type="submit"
+                  disabled={reviewSubmitting}
+                  className="mt-3 rounded-lg bg-[#215481] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1a4367] disabled:opacity-50"
+                >
+                  {reviewSubmitting ? 'Posting…' : 'Post review'}
+                </button>
+              </form>
+            )}
+
+            <div className="mt-6 space-y-5">
+              {reviews.length === 0 ? (
+                <p className="text-sm text-stone-400">No reviews yet.</p>
+              ) : (
+                reviews.map((review) => (
+                  <article key={review.id} className="border-b border-stone-100 pb-5 last:border-0">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-medium text-stone-900">{review.author}</p>
+                        {review.date && <p className="text-xs text-stone-400">{review.date}</p>}
+                      </div>
+                      <div className="flex gap-0.5">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <Star
+                            key={i}
+                            size={11}
+                            className={
+                              i < review.rating ? 'fill-amber-500 text-amber-500' : 'text-stone-200'
+                            }
+                          />
+                        ))}
+                      </div>
+                    </div>
+                    <p className="mt-2 text-sm leading-relaxed text-stone-600">{review.content}</p>
+                  </article>
+                ))
+              )}
+            </div>
+
+            {ownerReply && (
+              <div className="mt-5 border-l-2 border-stone-300 pl-4">
+                <p className="text-xs font-medium uppercase tracking-wide text-stone-400">Owner reply</p>
+                <p className="mt-1 text-sm text-stone-700">{ownerReply.content}</p>
+              </div>
+            )}
+          </section>
         </div>
 
         {related.length > 0 && (

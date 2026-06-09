@@ -4,7 +4,7 @@ import { createClient } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import { sortBusinessesByProfileCompleteness } from '@/lib/businessProfileCompleteness';
-import { parseBusinessReviews } from '@/lib/businessReviews';
+import { getBusinessPublicRatingStats } from '@/lib/businessReviews';
 
 function parseBusinessServices(business: {
   serviceCategory?: string | null;
@@ -24,7 +24,7 @@ function parseBusinessServices(business: {
 }
 
 function mapBusinessRecord(business: Record<string, unknown>) {
-  const reviews = parseBusinessReviews(business.review);
+  const { rating, reviewCount } = getBusinessPublicRatingStats(business.review);
   const services = parseBusinessServices({
     serviceCategory: business.serviceCategory as string | null | undefined,
     keywords: business.keywords as string[] | null | undefined,
@@ -50,8 +50,8 @@ function mapBusinessRecord(business: Record<string, unknown>) {
     image: (business.profilePictureUrl as string) || undefined,
     profilePictureUrl: (business.profilePictureUrl as string) || undefined,
     priceRange: business.selectedPlan === 'free' ? 'Free listing' : 'Premium listing',
-    rating: typeof business.rating === 'number' ? business.rating : null,
-    reviewsCount: reviews.length,
+    rating,
+    reviewsCount: reviewCount,
     services,
     website: (business.website as string) || undefined,
     instagramUrl: (business.instagramUrl as string) || undefined,

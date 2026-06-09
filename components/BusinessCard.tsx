@@ -79,14 +79,16 @@ export default function BusinessCard({
           </div>
         )}
 
-        <div
-          className={`absolute ${compact ? 'top-2 right-2' : 'top-3 right-3'} z-10 flex items-center gap-1 rounded-lg border border-white/20 bg-white/95 px-2 py-0.5 shadow-md backdrop-blur-md`}
-        >
-          <Star className="fill-secondary text-secondary" size={compact || uniform ? 10 : 12} />
-          <span className={`font-bold text-primary ${uniform ? 'text-[10px]' : compact ? 'text-[10px]' : 'text-xs'}`}>
-            {business.rating ?? '—'}
-          </span>
-        </div>
+        {(business.reviewsCount ?? 0) > 0 && business.rating != null ? (
+          <div
+            className={`absolute ${compact ? 'top-2 right-2' : 'top-3 right-3'} z-10 flex items-center gap-1 rounded-lg border border-white/20 bg-white/95 px-2 py-0.5 shadow-md backdrop-blur-md`}
+          >
+            <Star className="fill-secondary text-secondary" size={compact || uniform ? 10 : 12} />
+            <span className={`font-bold text-primary ${uniform ? 'text-[10px]' : compact ? 'text-[10px]' : 'text-xs'}`}>
+              {business.rating}
+            </span>
+          </div>
+        ) : null}
       </div>
 
       {/* Content Section */}

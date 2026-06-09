@@ -25,7 +25,7 @@ export default function StackedPhotoGallery({
 }: StackedPhotoGalleryProps) {
   if (images.length === 0) {
     return (
-      <div className="flex aspect-[16/10] max-h-[220px] items-center justify-center rounded-lg border border-dashed border-stone-200 bg-[#fffdf8] sm:max-h-[240px]">
+      <div className="flex aspect-[16/10] max-h-[220px] items-center justify-center rounded-lg border border-dashed border-stone-200 bg-[#fffdf8] sm:max-h-[240px] md:max-h-[300px] lg:max-h-[340px]">
         <div className="text-center">
           <Building2 className="mx-auto text-stone-300" size={36} />
           <p className="mt-2 text-sm text-stone-400">No photos yet</p>
@@ -36,8 +36,8 @@ export default function StackedPhotoGallery({
 
   if (images.length === 1) {
     return (
-      <div className="relative aspect-[16/10] max-h-[220px] overflow-hidden rounded-lg border border-stone-200 bg-stone-100 sm:max-h-[240px]">
-        <Image src={images[0]} alt={alt} fill className="object-cover" priority sizes="(max-width: 1024px) 100vw, 50vw" />
+      <div className="relative aspect-[16/10] max-h-[220px] overflow-hidden rounded-lg border border-stone-200 bg-stone-100 sm:max-h-[240px] md:max-h-[300px] lg:max-h-[340px]">
+        <Image src={images[0]} alt={alt} fill className="object-cover" priority sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 560px" />
       </div>
     );
   }
@@ -49,7 +49,7 @@ export default function StackedPhotoGallery({
 
   return (
     <div className="space-y-3">
-      <div className="relative mx-auto aspect-[16/10] max-h-[220px] w-full max-w-xl sm:max-h-[240px]">
+      <div className="relative aspect-[16/10] max-h-[220px] w-full sm:max-h-[240px] md:max-h-[300px] lg:max-h-[340px]">
         {orderedIndices.map((imageIndex, stackPosition) => {
           const offset = STACK_OFFSETS[stackPosition] ?? STACK_OFFSETS[3];
           const isTop = stackPosition === 0;
@@ -74,7 +74,7 @@ export default function StackedPhotoGallery({
                 alt={`${alt} photo ${imageIndex + 1}`}
                 fill
                 className="object-cover"
-                sizes="(max-width: 1024px) 90vw, 420px"
+                sizes="(max-width: 768px) 90vw, (max-width: 1280px) 45vw, 560px"
                 priority={isTop}
               />
             </button>

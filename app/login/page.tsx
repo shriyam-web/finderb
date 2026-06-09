@@ -16,6 +16,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { loginUser } from '@/app/actions/user';
+import { getSafeRedirectPath } from '@/lib/authRedirect';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 function LoginContent() {
@@ -48,7 +49,8 @@ function LoginContent() {
     try {
       const result = await loginUser(email, password);
       if (result.success) {
-        router.push('/dashboard');
+        const redirectTo = getSafeRedirectPath(searchParams.get('redirect'));
+        router.push(redirectTo);
       } else {
         setError(result.error || 'Login failed');
       }

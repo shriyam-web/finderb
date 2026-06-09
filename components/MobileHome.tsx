@@ -7,7 +7,6 @@ import {
   MapPin,
   ChevronRight,
   TrendingUp,
-  Star,
   Check,
   ShieldCheck,
   MessageSquare,
@@ -16,6 +15,7 @@ import {
   Grid3X3,
 } from 'lucide-react';
 import CategoryIcon from '@/components/CategoryIcon';
+import MerchantListingRating from '@/components/business/MerchantListingRating';
 import HomeHero from '@/components/HomeHero';
 import { Business, Category } from '@/lib/mockData';
 
@@ -175,7 +175,7 @@ export default function MobileHome({
                   onClick={() => {
                     if (manualQuery.trim()) setLastSearchQuery(manualQuery);
                   }}
-                  className="w-[200px] shrink-0 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-[0_2px_8px_rgba(0,0,0,0.06)]"
+                  className="w-[200px] shrink-0 overflow-hidden rounded-xl border border-gray-200 bg-white"
                 >
                   <div className="relative h-[110px]">
                     <Image
@@ -193,25 +193,13 @@ export default function MobileHome({
                   <div className="space-y-1 p-3">
                     <p className="line-clamp-1 text-[13px] font-bold text-[#0f2a4a]">{biz.name}</p>
                     <p className="line-clamp-1 text-[11px] text-[#94a3b8]">{biz.category}</p>
-                    <div className="flex items-center gap-1">
-                      <div className="flex">
-                        {[1, 2, 3, 4, 5].map((s) => (
-                          <Star
-                            key={s}
-                            size={10}
-                            className={
-                              s <= Math.round(biz.rating ?? 0)
-                                ? 'fill-amber-400 text-amber-400'
-                                : 'fill-gray-200 text-gray-200'
-                            }
-                          />
-                        ))}
-                      </div>
-                      <span className="text-[11px] font-medium text-[#475569]">
-                        {biz.rating}{' '}
-                        <span className="text-[#94a3b8]">({biz.reviewsCount ?? 0})</span>
-                      </span>
-                    </div>
+                    <MerchantListingRating
+                      rating={biz.rating}
+                      reviewCount={biz.reviewsCount}
+                      starSize={10}
+                      textClassName="text-[11px] font-medium text-[#475569]"
+                      emptyClassName="text-[11px] text-[#94a3b8]"
+                    />
                     <div className="flex items-start gap-1 text-[10px] text-[#94a3b8]">
                       <MapPin size={11} className="mt-0.5 shrink-0" />
                       <span className="line-clamp-2">{biz.location}</span>
