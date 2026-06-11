@@ -140,62 +140,6 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
                 </Link>
               )}
 
-              {isBusinessLoggedIn && (
-                <div className="relative">
-                  <button
-                    onClick={() => setIsBusinessMenuOpen(!isBusinessMenuOpen)}
-                    className={`flex items-center gap-2 px-4 py-2 border rounded-xl transition-all duration-300 font-medium text-xs shadow-sm hover:shadow-md ${isLight
-                      ? 'bg-white/10 backdrop-blur-md text-white border-white/20 hover:bg-white/20'
-                      : 'bg-white/50 backdrop-blur-md text-gray-700 border-gray-200 hover:bg-white hover:border-gray-300'
-                      }`}
-                  >
-                    <div className="w-5 h-5 bg-indigo-600 rounded-full flex items-center justify-center text-[10px] text-white font-bold shadow-sm">
-                      <Briefcase size={12} />
-                    </div>
-                    <span>{business?.businessName?.split(' ')[0] || 'Business'}</span>
-                    <ChevronDown size={14} className={`transition-transform duration-300 ${isBusinessMenuOpen ? 'rotate-180' : ''}`} />
-                  </button>
-
-                  {isBusinessMenuOpen && (
-                    <>
-                      <div
-                        className="fixed inset-0 z-40"
-                        onClick={() => setIsBusinessMenuOpen(false)}
-                      />
-                      <div className="absolute top-full right-0 mt-2 w-48 bg-white border border-gray-100 rounded-2xl shadow-xl py-2 z-50 animate-in fade-in zoom-in-95 duration-200">
-                        <div className="px-4 py-2 mb-1 border-b border-gray-50">
-                          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Business Portal</p>
-                        </div>
-                        <Link
-                          href={`/business/dashboard?id=${business.id}`}
-                          onClick={() => setIsBusinessMenuOpen(false)}
-                          className="flex items-center gap-2.5 px-4 py-2.5 text-xs font-medium text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 transition-all"
-                        >
-                          <LayoutDashboard size={16} className="text-gray-400" />
-                          Dashboard
-                        </Link>
-                        <Link
-                          href={`/business/dashboard?id=${business.id}&tab=settings`}
-                          onClick={() => setIsBusinessMenuOpen(false)}
-                          className="flex items-center gap-2.5 px-4 py-2.5 text-xs font-medium text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 transition-all"
-                        >
-                          <Settings size={16} className="text-gray-400" />
-                          Settings
-                        </Link>
-                        <div className="my-1 border-t border-gray-50" />
-                        <button
-                          onClick={handleBusinessLogout}
-                          className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs font-medium text-red-500 hover:bg-red-50 transition-all"
-                        >
-                          <LogOut size={16} />
-                          Log Out
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </div>
-              )}
-
               {isLoggedIn ? (
                 <div className="relative">
                   <button
@@ -208,7 +152,7 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
                     <div className="w-5 h-5 bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center text-[10px] text-white font-bold shadow-sm">
                       {user?.fullName?.split(' ').map((n: string) => n[0]).join('').toUpperCase().substring(0, 1)}
                     </div>
-                    <span>{user?.fullName?.split(' ')[0] || 'User'}</span>
+                    <span>{user?.fullName?.split(' ')[0] || 'My Account'}</span>
                     <ChevronDown size={14} className={`transition-transform duration-300 ${isUserMenuOpen ? 'rotate-180' : ''}`} />
                   </button>
 
@@ -258,6 +202,64 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
                     </>
                   )}
                 </div>
+              ) : isBusinessLoggedIn ? (
+                <div className="relative">
+                  <button
+                    onClick={() => setIsBusinessMenuOpen(!isBusinessMenuOpen)}
+                    className={`flex items-center gap-2 px-4 py-2 border rounded-xl transition-all duration-300 font-medium text-xs shadow-sm hover:shadow-md ${isLight
+                      ? 'bg-white/10 backdrop-blur-md text-white border-white/20 hover:bg-white/20'
+                      : 'bg-white/50 backdrop-blur-md text-gray-700 border-gray-200 hover:bg-white hover:border-gray-300'
+                      }`}
+                  >
+                    <div className="w-5 h-5 bg-primary rounded-full flex items-center justify-center text-[10px] text-white font-bold shadow-sm">
+                      <Briefcase size={12} />
+                    </div>
+                    <span>My Account</span>
+                    <ChevronDown size={14} className={`transition-transform duration-300 ${isBusinessMenuOpen ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {isBusinessMenuOpen && (
+                    <>
+                      <div
+                        className="fixed inset-0 z-40"
+                        onClick={() => setIsBusinessMenuOpen(false)}
+                      />
+                      <div className="absolute top-full right-0 mt-2 w-52 bg-white border border-gray-100 rounded-2xl shadow-xl py-2 z-50 animate-in fade-in zoom-in-95 duration-200">
+                        <div className="px-4 py-2 mb-1 border-b border-gray-50">
+                          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">My Account</p>
+                          {business?.businessName && (
+                            <p className="mt-0.5 truncate text-xs font-medium text-gray-700">{business.businessName}</p>
+                          )}
+                        </div>
+                        <Link
+                          href={`/business/dashboard?id=${business.id}`}
+                          onClick={() => setIsBusinessMenuOpen(false)}
+                          className="flex items-center gap-2.5 px-4 py-2.5 text-xs font-medium text-gray-600 hover:bg-primary/5 hover:text-primary transition-all"
+                        >
+                          <LayoutDashboard size={16} className="text-gray-400" />
+                          Merchant dashboard
+                        </Link>
+                        <Link
+                          href={`/business/${business.id}`}
+                          target="_blank"
+                          onClick={() => setIsBusinessMenuOpen(false)}
+                          className="flex items-center gap-2.5 px-4 py-2.5 text-xs font-medium text-gray-600 hover:bg-primary/5 hover:text-primary transition-all"
+                        >
+                          <Building2 size={16} className="text-gray-400" />
+                          Public listing
+                        </Link>
+                        <div className="my-1 border-t border-gray-50" />
+                        <button
+                          onClick={handleBusinessLogout}
+                          className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs font-medium text-red-500 hover:bg-red-50 transition-all"
+                        >
+                          <LogOut size={16} />
+                          Log Out
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
               ) : (
                 <Link
                   href="/login"
@@ -271,16 +273,20 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
           </div>
 
           <div className="flex lg:hidden items-center gap-2">
-            {isLoggedIn ? (
+            {isLoggedIn || isBusinessLoggedIn ? (
               <Link
-                href="/dashboard"
+                href={
+                  isLoggedIn
+                    ? '/dashboard'
+                    : `/business/dashboard?id=${business?.id ?? ''}`
+                }
                 className={`rounded-lg px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider transition-all ${
                   scrolled
                     ? 'text-primary border border-primary/10 bg-white'
                     : 'text-primary border border-primary/15 bg-white/90 shadow-sm backdrop-blur-sm'
                 }`}
               >
-                Account
+                My Account
               </Link>
             ) : (
               <Link
@@ -407,7 +413,22 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
                     <div className="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-50 text-slate-400">
                       <User size={18} />
                     </div>
-                    <span className="text-base text-slate-800 tracking-tight">Account Dashboard</span>
+                    <span className="text-base text-slate-800 tracking-tight">My Account</span>
+                  </div>
+                  <ArrowRight size={16} className="text-slate-300" />
+                </Link>
+              )}
+              {isBusinessLoggedIn && !isLoggedIn && (
+                <Link
+                  href={`/business/dashboard?id=${business?.id ?? ''}`}
+                  onClick={() => setIsOpen(false)}
+                  className="flex items-center justify-between py-3 px-2 rounded-2xl active:bg-slate-50 transition-all"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-50 text-slate-400">
+                      <Briefcase size={18} />
+                    </div>
+                    <span className="text-base text-slate-800 tracking-tight">My Account</span>
                   </div>
                   <ArrowRight size={16} className="text-slate-300" />
                 </Link>

@@ -25,6 +25,7 @@ export default function SignupPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [suggestedLoginPath, setSuggestedLoginPath] = useState('');
   const router = useRouter();
 
   const handleSignup = async (e: React.FormEvent) => {
@@ -52,6 +53,7 @@ export default function SignupPage() {
 
     setLoading(true);
     setError('');
+    setSuggestedLoginPath('');
 
     try {
       const result = await registerUser({ fullName, email, password });
@@ -59,6 +61,7 @@ export default function SignupPage() {
         router.push('/dashboard');
       } else {
         setError(result.error || 'Registration failed');
+        setSuggestedLoginPath(result.suggestedLoginPath || '');
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'An unexpected error occurred';
@@ -156,7 +159,17 @@ export default function SignupPage() {
             {error && (
               <div className="mb-5 flex items-start gap-2.5 rounded-lg border border-red-100 bg-red-50/80 px-3.5 py-3 text-sm text-red-700">
                 <AlertCircle size={17} className="mt-0.5 shrink-0" />
-                <span>{error}</span>
+                <div>
+                  <p>{error}</p>
+                  {suggestedLoginPath && (
+                    <Link
+                      href={suggestedLoginPath}
+                      className="mt-2 inline-flex font-semibold text-[#2563eb] underline-offset-2 hover:underline"
+                    >
+                      Sign in with your existing account
+                    </Link>
+                  )}
+                </div>
               </div>
             )}
 

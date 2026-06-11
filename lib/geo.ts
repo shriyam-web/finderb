@@ -1,3 +1,12 @@
+export function parseCoordinate(value: unknown): number | null {
+  if (value == null || value === '') return null;
+
+  const num = typeof value === 'number' ? value : Number(value);
+  if (!Number.isFinite(num)) return null;
+
+  return num;
+}
+
 export function getDistanceKm(
   lat1: number,
   lon1: number,
@@ -19,20 +28,17 @@ export function getDistanceKm(
 
 export function formatDistanceFromUser(
   user: { lat: number; lng: number } | null | undefined,
-  businessLat?: number | null,
-  businessLng?: number | null
+  businessLat?: number | null | string,
+  businessLng?: number | null | string
 ): string | null {
-  if (
-    !user ||
-    businessLat == null ||
-    businessLng == null ||
-    Number.isNaN(businessLat) ||
-    Number.isNaN(businessLng)
-  ) {
+  const lat = parseCoordinate(businessLat);
+  const lng = parseCoordinate(businessLng);
+
+  if (!user || lat == null || lng == null || (lat === 0 && lng === 0)) {
     return null;
   }
 
-  const km = getDistanceKm(user.lat, user.lng, businessLat, businessLng);
+  const km = getDistanceKm(user.lat, user.lng, lat, lng);
   if (km < 1) {
     return `${Math.max(100, Math.round(km * 1000))} m away`;
   }

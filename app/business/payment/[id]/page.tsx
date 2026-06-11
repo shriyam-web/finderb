@@ -1,181 +1,352 @@
 'use client';
 
-import { use, useState, useEffect } from 'react';
+import { use, useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { 
-  CheckCircle2, 
-  ShieldCheck, 
+import {
+  CheckCircle2,
+  ShieldCheck,
   CreditCard,
-  Rocket,
   ArrowRight,
-  ArrowLeft
+  ArrowLeft,
+  AlertCircle,
+  Loader2,
 } from 'lucide-react';
-import { updateBusinessPayment, getBusiness } from '@/app/actions/business';
+import {
+  completeMerchantPayment,
+  createMerchantPaymentOrder,
+  getPaymentPageData,
+} from '@/app/actions/payment';
+import { MERCHANT_PLANS } from '@/lib/razorpay/plans';
+import { openRazorpayCheckout } from '@/lib/razorpay/client';
+
+type BillingCycle = 'monthly' | 'annual';
 
 export default function PaymentPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [paying, setPaying] = useState(false);
+  const [error, setError] = useState('');
   const [business, setBusiness] = useState<any>(null);
-  const [selectedPlan, setSelectedPlan] = useState('pro');
-  const [billingCycle, setBillingCycle] = useState('monthly');
+  const [isAuthorized, setIsAuthorized] = useState(false);
+  const [razorpayConfigured, setRazorpayConfigured] = useState(false);
+  const [billingCycle, setBillingCycle] = useState<BillingCycle>('monthly');
 
-  useEffect(() => {
-    const fetchBusiness = async () => {
-      const res = await getBusiness(id);
-      if (res.success && res.business) {
-        setBusiness(res.business);
-      }
-    };
-    fetchBusiness();
+  const plan = MERCHANT_PLANS.pro;
+  const price = plan.prices[billingCycle];
+
+  const loadPage = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    const result = await getPaymentPageData(id);
+    if (!result.success) {
+      setError(result.error || 'Unable to load payment page');
+      setLoading(false);
+      return;
+    }
+    setBusiness(result.business);
+    setIsAuthorized(result.isAuthorized);
+    setRazorpayConfigured(result.razorpayConfigured);
+    if (!result.isAuthorized) {
+      setError(result.authError || 'Please sign in to continue');
+    }
+    setLoading(false);
   }, [id]);
 
+  useEffect(() => {
+    loadPage();
+  }, [loadPage]);
+
   const handleRazorpayPayment = async () => {
-    setLoading(true);
-    // Simulate Razorpay popup and success
-    setTimeout(async () => {
-      try {
-        const result = await updateBusinessPayment(id, {
-          paymentId: `pay_${Math.random().toString(36).substring(2, 11)}`,
-          orderId: `order_${Math.random().toString(36).substring(2, 11)}`,
-          selectedPlan,
-          billingCycle
-        });
-        if (result.success) {
-          alert('Payment Successful! Welcome to FinderB Business.');
-          router.push(`/business/dashboard?id=${id}`);
-        } else {
-          alert(result.error || 'Payment update failed');
-        }
-      } catch (error) {
-        alert('An unexpected error occurred');
-      } finally {
-        setLoading(false);
+    if (!isAuthorized) {
+      setError('Please sign in to your merchant account before paying.');
+      return;
+    }
+
+    if (!razorpayConfigured) {
+      setError('Payment gateway is not configured yet. Add Razorpay API keys to your environment.');
+      return;
+    }
+
+    if (business?.paymentStatus === 'completed') {
+      router.push(`/business/dashboard?id=${id}`);
+      return;
+    }
+
+    setPaying(true);
+    setError('');
+
+    try {
+      const orderResult = await createMerchantPaymentOrder({
+        businessId: id,
+        plan: 'pro',
+        billingCycle,
+      });
+
+      if (!orderResult.success) {
+        setError(orderResult.error || 'Could not start payment');
+        setPaying(false);
+        return;
       }
-    }, 2000);
+
+      await openRazorpayCheckout(
+        {
+          key: orderResult.keyId,
+          amount: orderResult.order.amount,
+          currency: orderResult.order.currency,
+          name: 'FinderB Business',
+          description: `${plan.name} — ${billingCycle === 'monthly' ? 'Monthly' : 'Annual'}`,
+          order_id: orderResult.order.id,
+          prefill: {
+            name: orderResult.business.fullName || orderResult.business.businessName,
+            email: orderResult.business.email || undefined,
+            contact: orderResult.business.mobile || undefined,
+          },
+          notes: {
+            businessId: id,
+            plan: 'pro',
+            billingCycle,
+          },
+          theme: { color: '#215481' },
+          handler: async (response) => {
+            try {
+              const verifyResult = await completeMerchantPayment({
+                businessId: id,
+                plan: 'pro',
+                billingCycle,
+                razorpayOrderId: response.razorpay_order_id,
+                razorpayPaymentId: response.razorpay_payment_id,
+                razorpaySignature: response.razorpay_signature,
+              });
+
+              if (verifyResult.success) {
+                router.push(`/business/dashboard?id=${id}&payment=success`);
+              } else {
+                setError(verifyResult.error || 'Payment verification failed');
+                setPaying(false);
+              }
+            } catch {
+              setError('Payment verification failed. Please contact support if amount was deducted.');
+              setPaying(false);
+            }
+          },
+          modal: {
+            ondismiss: () => setPaying(false),
+          },
+        },
+        (message) => {
+          setError(message);
+          setPaying(false);
+        }
+      );
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unable to open payment gateway';
+      setError(message);
+      setPaying(false);
+    }
   };
 
-  if (!business) return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="w-10 h-10 border-[3px] border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-    </div>
-  );
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#f4f7fb]">
+        <Loader2 className="h-8 w-8 animate-spin text-[#215481]" />
+      </div>
+    );
+  }
+
+  if (!business) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-[#f4f7fb] px-4">
+        <AlertCircle className="h-10 w-10 text-red-500" />
+        <p className="text-center text-sm text-slate-600">{error || 'Business not found'}</p>
+        <Link href="/business/login" className="text-sm font-semibold text-[#215481] hover:underline">
+          Go to merchant login
+        </Link>
+      </div>
+    );
+  }
+
+  const isPaid = business.paymentStatus === 'completed';
 
   return (
-    <main className="min-h-screen bg-gray-50 flex flex-col items-center p-4 md:p-8 pt-32 md:pt-48 pb-20">
-      <div className="w-full max-w-4xl bg-white rounded-[48px] shadow-2xl overflow-hidden flex flex-col md:flex-row min-h-[600px]">
-        {/* Left Info Panel */}
-        <div className="w-full md:w-80 bg-blue-600 text-white p-12 flex flex-col justify-between relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl -mr-16 -mt-16"></div>
-          
-          <div className="relative z-10 space-y-12">
+    <main className="min-h-screen bg-[#f4f7fb] px-4 pb-12 pt-24 md:px-8 md:pt-32">
+      <div className="mx-auto flex w-full max-w-4xl flex-col overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-[0_24px_64px_-32px_rgba(15,39,59,0.28)] md:min-h-[560px] md:flex-row">
+        {/* Left panel */}
+        <div className="relative flex w-full flex-col justify-between overflow-hidden bg-[#153551] p-8 text-white md:w-[320px] md:p-10">
+          <div className="pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full bg-white/10 blur-3xl" />
+
+          <div className="relative z-10 space-y-8">
             <Link href="/" className="inline-flex items-center gap-2">
-              <div className="w-7 h-7 bg-white rounded-lg flex items-center justify-center text-blue-600 font-bold italic">F</div>
-              <span className="text-lg font-extrabold tracking-tighter italic">FINDERB</span>
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white text-sm font-bold text-[#215481]">
+                F
+              </div>
+              <span className="text-lg font-bold tracking-tight">FinderB Business</span>
             </Link>
 
-            <div className="space-y-6">
-              <div className="p-4 bg-white/10 rounded-2xl border border-white/10 backdrop-blur-sm">
-                <div className="flex items-center gap-3 mb-2">
-                  <CreditCard size={16} className="text-blue-200" />
-                  <span className="text-[10px] font-bold uppercase tracking-wider">Premium Access</span>
+            <div className="space-y-4">
+              <div className="rounded-2xl border border-white/10 bg-white/10 p-4 backdrop-blur-sm">
+                <div className="mb-2 flex items-center gap-2">
+                  <CreditCard size={16} className="text-[#f9b864]" />
+                  <span className="text-[10px] font-bold uppercase tracking-wider">Premium access</span>
                 </div>
-                <p className="text-[10px] text-blue-100 leading-relaxed font-medium">Unlock full growth potential with Pro listing.</p>
+                <p className="text-xs leading-relaxed text-white/75">
+                  Activate leads and unlock full growth features for your listing.
+                </p>
               </div>
-              
-              <div className="space-y-4">
-                <p className="text-[9px] font-bold text-blue-200 uppercase tracking-widest">Business</p>
-                <p className="font-black text-xl italic">{business.businessName}</p>
-                <p className="text-xs text-blue-100/60 font-medium">ID: {business.registrationNumber}</p>
+
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-white/50">Business</p>
+                <p className="mt-1 text-xl font-bold">{business.businessName}</p>
+                {business.registrationNumber && (
+                  <p className="mt-1 text-xs text-white/50">ID: {business.registrationNumber}</p>
+                )}
               </div>
             </div>
           </div>
-          
-          <div className="relative z-10">
-            <button 
-              onClick={() => router.back()}
-              className="flex items-center gap-2 text-xs font-bold text-blue-200 hover:text-white transition-colors"
-            >
-              <ArrowLeft size={14} /> Back to Portal
-            </button>
-          </div>
+
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="relative z-10 mt-8 flex items-center gap-2 text-xs font-semibold text-white/70 transition-colors hover:text-white"
+          >
+            <ArrowLeft size={14} />
+            Back to dashboard
+          </button>
         </div>
 
-        {/* Right Content Panel */}
-        <div className="flex-grow p-8 md:p-16 relative flex flex-col justify-center">
-          {loading && (
-            <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center">
-              <div className="w-10 h-10 border-[3px] border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
-              <p className="font-bold text-blue-600 animate-pulse uppercase tracking-[0.2em] text-[10px]">Connecting to Gateway...</p>
+        {/* Right panel */}
+        <div className="relative flex flex-1 flex-col justify-center p-6 md:p-10">
+          {paying && (
+            <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/90 backdrop-blur-sm">
+              <Loader2 className="mb-3 h-8 w-8 animate-spin text-[#215481]" />
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#215481]">
+                Opening Razorpay…
+              </p>
             </div>
           )}
 
-          <div className="max-w-xl mx-auto space-y-10 w-full">
-            <div className="text-center space-y-2">
-              <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight leading-tight">Growth <br /><span className="text-blue-600 font-black italic">Accelerator</span></h2>
-              <p className="text-gray-400 font-medium text-sm">Power your business with premium features</p>
-            </div>
-
-            <div className="bg-gray-100 p-1.5 rounded-2xl flex items-center gap-1 border border-gray-200 w-fit mx-auto">
-              <button 
-                onClick={() => setBillingCycle('monthly')}
-                className={`px-6 py-2.5 rounded-xl font-extrabold text-[10px] uppercase tracking-widest transition-all ${billingCycle === 'monthly' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-400'}`}
-              >
-                Monthly
-              </button>
-              <button 
-                onClick={() => setBillingCycle('annual')}
-                className={`px-6 py-2.5 rounded-xl font-extrabold text-[10px] uppercase tracking-widest transition-all relative ${billingCycle === 'annual' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-400'}`}
-              >
-                Annual
-                <span className="absolute -top-3 -right-2 bg-green-500 text-white text-[7px] px-2 py-0.5 rounded-full uppercase tracking-tighter">Save 20%</span>
-              </button>
-            </div>
-
-            <div className="bg-blue-600 p-8 rounded-[32px] shadow-2xl shadow-blue-100 text-white space-y-8 group transition-all hover:scale-[1.01]">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-2xl font-black italic tracking-tight">Growth Pro</h3>
-                  <p className="text-blue-200 font-bold uppercase tracking-[0.2em] text-[9px]">Ultimate Business Suite</p>
+          <div className="mx-auto w-full max-w-md space-y-8">
+            {isPaid ? (
+              <div className="space-y-4 text-center">
+                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100">
+                  <CheckCircle2 className="h-8 w-8 text-emerald-600" />
                 </div>
-                <div className="text-right">
-                  <span className="text-3xl font-black tracking-tighter italic">₹{billingCycle === 'monthly' ? '299' : '2,990'}</span>
-                  <p className="text-blue-100 text-[9px] font-bold">/ {billingCycle === 'monthly' ? 'mo' : 'yr'}</p>
-                </div>
+                <h2 className="text-2xl font-bold text-slate-900">Payment complete</h2>
+                <p className="text-sm text-slate-500">
+                  Your Growth Pro plan is active. Lead contacts and premium features are unlocked.
+                </p>
+                <Link
+                  href={`/business/dashboard?id=${id}`}
+                  className="inline-flex items-center gap-2 rounded-xl bg-[#215481] px-6 py-3 text-sm font-semibold text-white hover:bg-[#1a4367]"
+                >
+                  Go to dashboard
+                  <ArrowRight size={16} />
+                </Link>
               </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {[
-                  'Top Ranking Results',
-                  'Verified Badge UI',
-                  'Call Lead Dashboard',
-                  'Premium Analytics',
-                  'Priority Support',
-                  'Custom URL Access'
-                ].map((f, i) => (
-                  <div key={i} className="flex items-center gap-2.5">
-                    <CheckCircle2 size={14} className="text-blue-300" />
-                    <span className="text-[10px] font-bold uppercase tracking-widest">{f}</span>
+            ) : (
+              <>
+                <div className="space-y-1 text-center">
+                  <h2 className="text-2xl font-bold text-slate-900">Growth Pro</h2>
+                  <p className="text-sm text-slate-500">Pay securely via Razorpay</p>
+                </div>
+
+                <div className="mx-auto flex w-fit rounded-2xl border border-slate-200 bg-slate-100 p-1">
+                  <button
+                    type="button"
+                    onClick={() => setBillingCycle('monthly')}
+                    className={`rounded-xl px-5 py-2 text-xs font-bold uppercase tracking-wider transition-all ${
+                      billingCycle === 'monthly'
+                        ? 'bg-white text-[#215481] shadow-sm'
+                        : 'text-slate-400'
+                    }`}
+                  >
+                    Monthly
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setBillingCycle('annual')}
+                    className={`relative rounded-xl px-5 py-2 text-xs font-bold uppercase tracking-wider transition-all ${
+                      billingCycle === 'annual'
+                        ? 'bg-white text-[#215481] shadow-sm'
+                        : 'text-slate-400'
+                    }`}
+                  >
+                    Annual
+                    <span className="absolute -right-1 -top-2 rounded-full bg-emerald-500 px-1.5 py-0.5 text-[8px] font-bold text-white">
+                      -20%
+                    </span>
+                  </button>
+                </div>
+
+                <div className="rounded-2xl border border-[#215481]/15 bg-gradient-to-br from-[#215481] to-[#1a4367] p-6 text-white shadow-lg">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <h3 className="text-xl font-bold">{plan.name}</h3>
+                      <p className="mt-0.5 text-xs text-white/70">{plan.description}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-3xl font-bold">{price.display}</p>
+                      <p className="text-[10px] font-semibold uppercase text-white/60">
+                        / {billingCycle === 'monthly' ? 'month' : 'year'}
+                      </p>
+                    </div>
                   </div>
-                ))}
-              </div>
-            </div>
 
-            <div className="space-y-4">
-              <button 
-                onClick={handleRazorpayPayment}
-                className="w-full flex items-center justify-center gap-3 px-10 py-5 bg-gray-900 hover:bg-black text-white rounded-2xl font-extrabold text-[10px] uppercase tracking-[0.2em] shadow-xl shadow-gray-200 transition-all hover:scale-[1.02] active:scale-95 group"
-              >
-                <CreditCard size={18} />
-                Pay Securely
-                <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
-              </button>
-              <div className="flex items-center justify-center gap-2 text-[9px] font-bold text-gray-400 uppercase tracking-widest">
-                <ShieldCheck size={14} className="text-green-500" />
-                PCIDSS COMPLIANT GATEWAY
-              </div>
-            </div>
+                  <ul className="mt-5 space-y-2">
+                    {plan.features.map((feature) => (
+                      <li key={feature} className="flex items-center gap-2 text-xs">
+                        <CheckCircle2 size={14} className="shrink-0 text-[#f9b864]" />
+                        {feature}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {error && (
+                  <div className="flex items-start gap-2 rounded-xl border border-red-100 bg-red-50 px-3.5 py-3 text-sm text-red-700">
+                    <AlertCircle size={16} className="mt-0.5 shrink-0" />
+                    <div>
+                      <p>{error}</p>
+                      {!isAuthorized && (
+                        <Link
+                          href="/business/login"
+                          className="mt-1 inline-block font-semibold text-[#215481] underline-offset-2 hover:underline"
+                        >
+                          Sign in to merchant portal
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {!razorpayConfigured && (
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-3 text-xs text-amber-800">
+                    Razorpay keys are missing. Set{' '}
+                    <code className="rounded bg-amber-100 px-1">NEXT_PUBLIC_RAZORPAY_KEY_ID</code> and{' '}
+                    <code className="rounded bg-amber-100 px-1">RAZORPAY_KEY_SECRET</code> in{' '}
+                    <code className="rounded bg-amber-100 px-1">.env.local</code>.
+                  </div>
+                )}
+
+                <div className="space-y-3">
+                  <button
+                    type="button"
+                    onClick={handleRazorpayPayment}
+                    disabled={paying || !isAuthorized || !razorpayConfigured}
+                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 py-4 text-sm font-bold text-white transition-all hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <CreditCard size={18} />
+                    Pay with Razorpay
+                    <ArrowRight size={16} />
+                  </button>
+                  <div className="flex items-center justify-center gap-2 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                    <ShieldCheck size={14} className="text-emerald-500" />
+                    Secured by Razorpay
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>

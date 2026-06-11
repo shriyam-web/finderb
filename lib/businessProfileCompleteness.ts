@@ -40,7 +40,9 @@ export function getBusinessProfileCompletenessScore(business: Business): number 
   if (hasText(business.location)) score += 4;
   if (hasText(business.city)) score += 3;
   if (hasText(business.state)) score += 2;
-  if (business.latitude != null && business.longitude != null) score += 4;
+    if (business?.latitude != null && business?.longitude != null && !(business.latitude === 0 && business.longitude === 0)) {
+      score += 4;
+    }
 
   if (hasText(business.category)) score += 5;
   if (hasText(business.contact)) score += 8;

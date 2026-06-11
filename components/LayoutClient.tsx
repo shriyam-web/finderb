@@ -6,6 +6,8 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import Loader from "@/components/Loader";
 import BottomNavbar from "@/components/BottomNavbar";
+import LocationPermissionPrompt from "@/components/LocationPermissionPrompt";
+import { UserLocationProvider } from '@/hooks/useUserCoords';
 
 export default function LayoutClient({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
@@ -14,6 +16,7 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
   const isCategories = pathname === '/categories' || pathname?.startsWith('/categories/');
   const hideTopNavFooter = isDashboard || isCategories;
   const showBottomNav = !isDashboard;
+  const showLocationPrompt = !isDashboard;
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -23,20 +26,26 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
     return () => clearTimeout(timer);
   }, []);
 
-  if (loading) {
-    return <Loader />;
-  }
-
   return (
-    <div className={`flex flex-col min-h-screen ${showBottomNav ? 'pb-[6.75rem] lg:pb-0' : ''}`}>
-      {!hideTopNavFooter && <Navbar />}
-      <Suspense fallback={<div className="flex-grow bg-white" />}>
-        <main className="min-w-0 flex-grow overflow-x-hidden">
-          {children}
-        </main>
-        {!hideTopNavFooter && <Footer />}
-      </Suspense>
-      {showBottomNav && <BottomNavbar />}
-    </div>
+    <UserLocationProvider>
+      {loading ? (
+        <>
+          <Loader />
+          {showLocationPrompt && <LocationPermissionPrompt />}
+        </>
+      ) : (
+        <div className={`flex flex-col min-h-screen ${showBottomNav ? 'pb-[6.75rem] lg:pb-0' : ''}`}>
+          {!hideTopNavFooter && <Navbar />}
+          <Suspense fallback={<div className="flex-grow bg-white" />}>
+            <main className="min-w-0 flex-grow overflow-x-hidden">
+              {children}
+            </main>
+            {!hideTopNavFooter && <Footer />}
+          </Suspense>
+          {showBottomNav && <BottomNavbar />}
+          {showLocationPrompt && <LocationPermissionPrompt />}
+        </div>
+      )}
+    </UserLocationProvider>
   );
 }

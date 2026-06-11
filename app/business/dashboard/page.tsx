@@ -44,8 +44,10 @@ import JobPostingTab from './components/JobPostingTab';
 import MessagesTab from './components/MessagesTab';
 import LeadsSection from './components/LeadsSection';
 import DashboardSidebar from './components/DashboardSidebar';
+import MyListingTab from './components/MyListingTab';
 import { CldUploadWidget } from 'next-cloudinary';
 import { createClient } from '@/utils/supabase/client';
+import { buildGoogleMapsUrl } from '@/lib/googleMapsLocation';
 
 function DashboardContent() {
   const router = useRouter();
@@ -105,6 +107,10 @@ function DashboardContent() {
     country: business?.country || '',
     latitude: business?.latitude || 0,
     longitude: business?.longitude || 0,
+    googleMapsUrl:
+      business?.latitude && business?.longitude
+        ? buildGoogleMapsUrl(business.latitude, business.longitude)
+        : '',
     website: business?.website || '',
     instagramUrl: business?.instagramUrl || '',
     facebookUrl: business?.facebookUrl || '',
@@ -157,6 +163,10 @@ function DashboardContent() {
             reviewReply: res.business.reviewReply || {},
             latitude: res.business.latitude || 0,
             longitude: res.business.longitude || 0,
+            googleMapsUrl:
+              res.business.latitude && res.business.longitude
+                ? buildGoogleMapsUrl(res.business.latitude, res.business.longitude)
+                : '',
             website: res.business.website || '',
             instagramUrl: res.business.instagramUrl || '',
             facebookUrl: res.business.facebookUrl || '',
@@ -181,6 +191,13 @@ function DashboardContent() {
     };
     fetchBusiness();
   }, [id, router]);
+
+  useEffect(() => {
+    if (searchParams.get('payment') === 'success') {
+      setSuccessMessage('Payment successful! Your Growth Pro plan is now active.');
+      router.replace(`/business/dashboard${id ? `?id=${id}` : ''}`);
+    }
+  }, [searchParams, id, router]);
 
   useEffect(() => {
     const fetchNotifications = async () => {
@@ -380,19 +397,28 @@ function DashboardContent() {
       { key: 'instagramUrl', label: 'Instagram URL' },
       { key: 'youtubeUrl', label: 'Youtube URL' },
       { key: 'whatsappNumber', label: 'Whatsapp Number' },
-      { key: 'latitude', label: 'Latitude' },
-      { key: 'longitude', label: 'Longitude' },
+      { key: 'mapLocation', label: 'Google Maps Location' },
     ];
 
     const missingFields: string[] = [];
     let completedCount = 0;
 
     fields.forEach(field => {
-      const value = business?.[field.key as keyof any];
+      if (field.key === 'mapLocation') {
+        const lat = business?.latitude;
+        const lng = business?.longitude;
+        const isCompleted = lat != null && lng != null && !(lat === 0 && lng === 0);
+        if (isCompleted) {
+          completedCount++;
+        } else {
+          missingFields.push(field.label);
+        }
+        return;
+      }
+
+      const value = business?.[field.key as keyof typeof business];
       const isCompleted = value !== undefined && value !== null && value !== '' && 
-        (typeof value !== 'object' || Object.keys(value).length > 0) &&
-        (field.key !== 'latitude' || value !== 0) &&
-        (field.key !== 'longitude' || value !== 0);
+        (typeof value !== 'object' || Object.keys(value).length > 0);
 
       if (isCompleted) {
         completedCount++;
@@ -448,7 +474,7 @@ function DashboardContent() {
       />
 
       {/* Main Content */}
-      <main className="relative z-10 flex-1 overflow-x-hidden p-4 pb-24 md:p-8 lg:p-10 lg:pb-8">
+      <main className="relative z-10 min-w-0 flex-1 overflow-x-hidden p-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:p-8 lg:p-10 lg:pb-8">
         <header className="relative z-[30] mb-6 flex items-start justify-between gap-4 md:mb-8">
           <div>
             <p className="text-xs font-medium text-slate-400">
@@ -519,7 +545,7 @@ function DashboardContent() {
           </div>
         </header>
 
-        {(activeTab === 'overview' || activeTab === 'leads' || activeTab === 'listings') && (
+        {(activeTab === 'overview' || activeTab === 'leads') && (
           <div className="space-y-8 md:space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
             {/* Alerts for Merchant */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -573,372 +599,6 @@ function DashboardContent() {
               )}
             </div>
 
-            {/* My Listing Preview Section */}
-            {activeTab === 'listings' && (
-              <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white p-6 md:p-8 rounded-[32px] border border-gray-100 shadow-sm">
-                  <div className="space-y-2">
-                    <h2 className="text-2xl font-semibold text-slate-900 tracking-tight">Profile Preview</h2>
-                    <p className="text-slate-500 text-sm font-medium leading-relaxed">This is how your business profile appears to potential customers on FinderB.</p>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-3">
-                    <Link 
-                      href={`/business/${businessId}`}
-                      target="_blank"
-                      className="inline-flex items-center gap-2 bg-[#215481] text-white px-6 py-3 rounded-2xl font-semibold text-xs uppercase tracking-widest hover:bg-[#1a4367] transition-all shadow-xl shadow-[#215481]/20 active:scale-95"
-                    >
-                      <HiOutlineEye size={18} /> View Public Profile
-                    </Link>
-                    <button 
-                      onClick={() => setActiveTab('settings')}
-                      className="inline-flex items-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-2xl font-semibold text-xs uppercase tracking-widest hover:bg-slate-800 transition-all shadow-xl shadow-slate-900/10 active:scale-95"
-                    >
-                      <HiOutlineCog8Tooth size={18} /> Edit Profile
-                    </button>
-                  </div>
-                </div>
-
-                {/* Simulated Profile Preview Card */}
-                <div className="border border-slate-100 rounded-[40px] overflow-hidden bg-white shadow-premium relative">
-                  {/* Hero Cover */}
-                  <div className="relative h-64 md:h-80 bg-slate-200">
-                    {images && images.length > 0 ? (
-                      <Image 
-                        src={images[0]} 
-                        alt="Profile Cover" 
-                        fill 
-                        className="object-cover"
-                      />
-                    ) : (
-                      <div className="absolute inset-0 flex items-center justify-center text-slate-400 bg-slate-100">
-                        <HiOutlinePlus size={48} className="opacity-20" />
-                      </div>
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/20 to-transparent"></div>
-                    
-                    <div className="absolute bottom-6 left-6 right-6 md:bottom-10 md:left-10 md:right-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
-                      <div className="flex flex-col md:flex-row items-center md:items-end gap-6 text-center md:text-left">
-                        <div className="w-20 h-20 sm:w-24 sm:h-24 md:w-32 md:h-32 bg-white rounded-3xl border-4 border-white shadow-2xl overflow-hidden relative shrink-0">
-                          {profilePictureUrl ? (
-                            <Image 
-                              src={profilePictureUrl} 
-                              alt="Logo" 
-                              fill 
-                              className="object-cover"
-                            />
-                          ) : (
-                            <div className="absolute inset-0 flex items-center justify-center bg-slate-50 text-slate-300">
-                              <HiOutlineUsers size={40} />
-                            </div>
-                          )}
-                        </div>
-                        <div className="space-y-1.5 pb-2">
-                          <h1 className="text-xl sm:text-2xl md:text-4xl font-semibold text-white tracking-tight leading-tight">{businessName}</h1>
-                          <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 sm:gap-3">
-                            <span className="text-[9px] sm:text-[10px] font-semibold text-white/80 uppercase tracking-[0.2em] bg-white/10 px-3 py-1.5 rounded-lg backdrop-blur-md border border-white/10">
-                              {profileData.category || 'General Business'}
-                            </span>
-                            <div className="flex items-center gap-1.5 bg-black/20 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/10">
-                              <HiOutlineStar size={14} className="text-amber-400 fill-amber-400" />
-                              <span className="text-xs font-semibold text-white">{profileData.rating?.toFixed(1) || '0.0'}</span>
-                            </div>
-                            {profileData.isFinderBVerified && (
-                              <div className="flex items-center gap-1.5 bg-[#215481]/20 backdrop-blur-md px-3 py-1.5 rounded-lg border border-[#215481]/30">
-                                <HiOutlineShieldCheck size={14} className="text-white/80" />
-                                <span className="text-[10px] font-semibold text-white/90 uppercase tracking-widest">Verified</span>
-                              </div>
-                            )}
-                            {profileData.discountRange && profileData.discountRange !== 'No Discount' && (
-                              <div className="flex items-center gap-1.5 bg-rose-500/20 backdrop-blur-md px-3 py-1.5 rounded-lg border border-rose-400/30">
-                                <HiOutlineStar size={14} className="text-rose-300" />
-                                <span className="text-[10px] font-semibold text-rose-100 uppercase tracking-widest">{profileData.discountRange}</span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Content Grid */}
-                  <div className="p-4 sm:p-6 md:p-10 grid grid-cols-1 md:grid-cols-12 gap-8 lg:gap-12">
-                    {/* Left Column: About & Media */}
-                    <div className="md:col-span-7 space-y-10 md:space-y-12">
-                      <div className="space-y-4">
-                        <h4 className="text-[10px] font-semibold text-slate-400 uppercase tracking-[0.3em] flex items-center gap-2">
-                          <div className="w-1.5 h-4 bg-[#215481] rounded-full"></div>
-                          About the Business
-                        </h4>
-                        <p className="text-slate-600 text-sm md:text-base leading-relaxed font-medium">
-                          {profileData.about || "No description provided yet. Update your profile to tell customers about your expertise and services."}
-                        </p>
-                      </div>
-
-                      <div className="space-y-6">
-                        <h4 className="text-[10px] font-semibold text-slate-400 uppercase tracking-[0.3em] flex items-center gap-2">
-                          <div className="w-1.5 h-4 bg-[#215481] rounded-full"></div>
-                          Business Highlights
-                        </h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          {profileData.serviceCategory && (
-                            <div className="space-y-2">
-                              <p className="text-[9px] font-semibold text-slate-400 uppercase tracking-widest">Service Category</p>
-                              <p className="text-sm font-bold text-slate-900">{profileData.serviceCategory}</p>
-                            </div>
-                          )}
-                          {profileData.paymentModes && profileData.paymentModes.length > 0 && (
-                            <div className="space-y-2">
-                              <p className="text-[9px] font-semibold text-slate-400 uppercase tracking-widest">Accepted Payments</p>
-                              <div className="flex flex-wrap gap-2">
-                                {profileData.paymentModes.map((mode: string, idx: number) => (
-                                  <span key={idx} className="text-[10px] font-bold text-[#215481] bg-[#215481]/10 px-2 py-1 rounded-md border border-[#215481]/15">{mode}</span>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                          {profileData.keywords && profileData.keywords.length > 0 && (
-                            <div className="space-y-2 md:col-span-2">
-                              <p className="text-[9px] font-semibold text-slate-400 uppercase tracking-widest">Keywords / Tags</p>
-                              <div className="flex flex-wrap gap-2">
-                                {profileData.keywords.map((tag: string, idx: number) => (
-                                  <span key={idx} className="text-[10px] font-bold text-slate-500 bg-slate-50 px-2 py-1 rounded-md border border-slate-100">#{tag}</span>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {profileData.yearsInBusiness > 0 && (
-                        <div className="grid grid-cols-2 gap-4">
-                           <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex items-center gap-3">
-                             <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-[#215481] shadow-sm">
-                               <HiOutlineBriefcase size={20} />
-                             </div>
-                             <div>
-                               <p className="text-[9px] font-semibold text-slate-400 uppercase tracking-widest">Experience</p>
-                               <p className="text-sm font-bold text-slate-900">{profileData.yearsInBusiness} Years+</p>
-                             </div>
-                           </div>
-                           <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex items-center gap-3">
-                             <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-[#215481] shadow-sm">
-                               <HiOutlineClock size={20} />
-                             </div>
-                             <div>
-                               <p className="text-[9px] font-semibold text-slate-400 uppercase tracking-widest">Response</p>
-                               <p className="text-sm font-bold text-slate-900">Quick Reply</p>
-                             </div>
-                           </div>
-                        </div>
-                      )}
-
-                      <div className="space-y-6">
-                        <div className="flex items-center justify-between">
-                          <h4 className="text-[10px] font-semibold text-slate-400 uppercase tracking-[0.3em] flex items-center gap-2">
-                            <div className="w-1.5 h-4 bg-[#215481] rounded-full"></div>
-                            Business Gallery
-                          </h4>
-                          <span className="text-[10px] font-bold text-slate-400">{images?.length || 0}/5 Photos</span>
-                        </div>
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                          {images && images.length > 0 ? images.map((img, i) => (
-                            <div key={i} className="aspect-square rounded-2xl overflow-hidden bg-slate-100 border border-slate-100 shadow-sm relative group">
-                              <Image src={img} alt={`Business ${i}`} fill className="object-cover group-hover:scale-110 transition-transform duration-700" />
-                            </div>
-                          )) : (
-                            <div className="aspect-square rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-3 text-slate-400 bg-white hover:bg-slate-50 transition-colors cursor-pointer" onClick={() => setActiveTab('settings')}>
-                              <HiOutlinePlus size={24} />
-                              <span className="text-[10px] font-semibold uppercase tracking-widest">Add Photos</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Right Column: Contact & Info */}
-                    <div className="md:col-span-5 space-y-8">
-                      {/* Contact Card */}
-                      <div className="bg-slate-50 rounded-[32px] p-6 md:p-8 border border-slate-100 shadow-sm space-y-8">
-                        <h4 className="text-[10px] font-semibold text-slate-900 uppercase tracking-[0.3em] flex items-center gap-2">Contact Details</h4>
-                        
-                        <div className="space-y-6">
-                          <div className="flex items-start gap-4 group">
-                            <div className="w-10 h-10 bg-white text-[#215481] rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm group-hover:bg-[#215481] group-hover:text-white transition-all">
-                              <HiOutlineDevicePhoneMobile size={20} />
-                            </div>
-                            <div>
-                              <p className="text-[9px] font-semibold text-slate-400 uppercase tracking-widest mb-0.5">Mobile Number</p>
-                              <p className="text-sm font-bold text-slate-900">{profileData.publicPhone || 'Not Provided'}</p>
-                            </div>
-                          </div>
-
-                          <div className="flex items-start gap-4 group">
-                            <div className="w-10 h-10 bg-white text-[#215481] rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm group-hover:bg-[#215481] group-hover:text-white transition-all">
-                              <HiOutlineEnvelope size={20} />
-                            </div>
-                            <div className="min-w-0">
-                              <p className="text-[9px] font-semibold text-slate-400 uppercase tracking-widest mb-0.5">Email Address</p>
-                              <p className="text-sm font-bold text-slate-900 break-all">{profileData.email || 'Not Provided'}</p>
-                            </div>
-                          </div>
-
-                          {profileData.website && (
-                            <div className="flex items-start gap-4 group">
-                              <div className="w-10 h-10 bg-white text-[#215481] rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm group-hover:bg-[#215481] group-hover:text-white transition-all">
-                                <HiOutlineGlobeAlt size={20} />
-                              </div>
-                              <div className="min-w-0">
-                                <p className="text-[9px] font-semibold text-slate-400 uppercase tracking-widest mb-0.5">Official Website</p>
-                                <p className="text-sm font-bold text-[#215481] truncate">{profileData.website}</p>
-                              </div>
-                            </div>
-                          )}
-
-                          <div className="flex items-start gap-4 group">
-                            <div className="w-10 h-10 bg-white text-[#215481] rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm group-hover:bg-[#215481] group-hover:text-white transition-all">
-                              <HiOutlineMapPin size={20} />
-                            </div>
-                            <div>
-                              <p className="text-[9px] font-semibold text-slate-400 uppercase tracking-widest mb-0.5">Business Address</p>
-                              <p className="text-sm font-bold text-slate-900 leading-relaxed">
-                                {profileData.businessAddress || 'No address added'}
-                                {(profileData.city || profileData.state) && (
-                                  <span className="block text-slate-500 font-medium">
-                                    {[profileData.city, profileData.state, profileData.country].filter(Boolean).join(', ')}
-                                  </span>
-                                )}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Social Links */}
-                        <div className="pt-8 border-t border-slate-200">
-                          <div className="flex gap-4">
-                            {profileData.instagramUrl && (
-                              <a href={profileData.instagramUrl} target="_blank" className="w-10 h-10 bg-white text-pink-600 rounded-xl flex items-center justify-center shadow-sm hover:scale-110 transition-transform">
-                                <FaInstagram size={20} />
-                              </a>
-                            )}
-                            {profileData.facebookUrl && (
-                              <a href={profileData.facebookUrl} target="_blank" className="w-10 h-10 bg-white text-blue-600 rounded-xl flex items-center justify-center shadow-sm hover:scale-110 transition-transform">
-                                <FaFacebook size={20} />
-                              </a>
-                            )}
-                            {profileData.youtubeUrl && (
-                              <a href={profileData.youtubeUrl} target="_blank" className="w-10 h-10 bg-white text-red-600 rounded-xl flex items-center justify-center shadow-sm hover:scale-110 transition-transform">
-                                <FaYoutube size={20} />
-                              </a>
-                            )}
-                            {profileData.whatsappNumber && (
-                              <a href={`https://wa.me/${profileData.whatsappNumber.replace(/\D/g, '')}`} target="_blank" className="w-10 h-10 bg-white text-emerald-600 rounded-xl flex items-center justify-center shadow-sm hover:scale-110 transition-transform">
-                                <FaWhatsapp size={20} />
-                              </a>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Timings Card */}
-                      <div className="bg-white rounded-[32px] p-6 md:p-8 border border-slate-100 shadow-sm space-y-6">
-                        <div className="flex items-center justify-between">
-                          <h4 className="text-[10px] font-semibold text-slate-900 uppercase tracking-[0.3em]">Business Timings</h4>
-                          <HiOutlineClock className="text-slate-300" size={18} />
-                        </div>
-                        <div className="space-y-3">
-                          {days.map((day) => {
-                            const timing = profileData.timings?.[day];
-                            const isClosed = !timing || timing === 'Closed' || timing.isClosed;
-                            return (
-                              <div key={day} className="flex justify-between items-center py-1 border-b border-slate-50 last:border-0">
-                                <span className="text-xs font-bold text-slate-500">{day}</span>
-                                <span className={`text-xs font-semibold ${isClosed ? 'text-rose-500' : 'text-slate-900'}`}>
-                                  {isClosed ? 'Closed' : (typeof timing === 'string' ? timing : `${timing.open} - ${timing.close}`)}
-                                </span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Reviews & Replies */}
-                    <div className="lg:col-span-12 pt-10 border-t border-slate-100 space-y-8">
-                       <h4 className="text-[10px] font-semibold text-slate-400 uppercase tracking-[0.3em] flex items-center gap-2">
-                          <div className="w-1.5 h-4 bg-[#215481] rounded-full"></div>
-                          Customer Reviews & Feedback
-                        </h4>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                          {profileData.review && (typeof profileData.review === 'object' ? Object.keys(profileData.review).length > 0 : profileData.review.length > 0) ? (
-                            <div className="bg-slate-50 p-6 rounded-[32px] border border-slate-100 space-y-4">
-                              <div className="flex justify-between items-start">
-                                <div className="space-y-1">
-                                  <p className="text-[10px] font-bold text-[#215481] uppercase tracking-widest">Featured Review</p>
-                                  <div className="flex text-amber-400 gap-0.5">
-                                    {[...Array(5)].map((_, i) => (
-                                      <HiOutlineStar key={i} size={14} fill={i < (profileData.rating || 5) ? "currentColor" : "none"} />
-                                    ))}
-                                  </div>
-                                </div>
-                                {typeof profileData.review === 'object' && (profileData.review as any).date && (
-                                  <span className="text-[10px] font-bold text-slate-400">{(profileData.review as any).date}</span>
-                                )}
-                              </div>
-                              <p className="text-slate-700 text-sm italic leading-relaxed">
-                                "{typeof profileData.review === 'object' ? (profileData.review as any).content || (profileData.review as any).text || '' : profileData.review}"
-                              </p>
-                              {typeof profileData.review === 'object' && (profileData.review as any).author && (
-                                <p className="text-xs font-semibold text-slate-900">— {(profileData.review as any).author}</p>
-                              )}
-                            </div>
-                          ) : (
-                            <div className="bg-slate-50 p-8 rounded-[32px] border border-dashed border-slate-200 flex flex-col items-center justify-center text-center space-y-3">
-                              <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-slate-300">
-                                <HiOutlineChatBubbleLeftRight size={24} />
-                              </div>
-                              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">No reviews yet</p>
-                            </div>
-                          )}
-
-                          {profileData.reviewReply && (typeof profileData.reviewReply === 'object' ? (profileData.reviewReply as any).content : profileData.reviewReply) ? (
-                            <div className="bg-[#215481] p-6 rounded-[32px] text-white space-y-4 shadow-xl shadow-[#215481]/20 relative overflow-hidden group">
-                              <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:rotate-12 transition-transform">
-                                <HiOutlineChatBubbleLeftRight size={80} />
-                              </div>
-                              <div className="relative z-10 space-y-4">
-                                <div>
-                                  <p className="text-[10px] font-bold text-white/70 uppercase tracking-widest">Owner's Response</p>
-                                  <h5 className="font-semibold text-white text-sm">Thank you for your feedback!</h5>
-                                </div>
-                                <p className="text-white/80 text-sm leading-relaxed italic">
-                                  "{typeof profileData.reviewReply === 'object' ? (profileData.reviewReply as any).content || '' : profileData.reviewReply}"
-                                </p>
-                                <div className="flex items-center gap-2 pt-2">
-                                  <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
-                                    <HiOutlineShieldCheck size={12} />
-                                  </div>
-                                  <span className="text-[10px] font-bold uppercase tracking-widest">Verified Merchant</span>
-                                </div>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="bg-slate-900 p-8 rounded-[32px] flex flex-col items-center justify-center text-center space-y-4 group cursor-pointer hover:bg-slate-800 transition-all" onClick={() => setActiveTab('settings')}>
-                              <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center text-white group-hover:scale-110 transition-transform">
-                                <HiOutlinePlus size={24} />
-                              </div>
-                              <div className="space-y-1">
-                                <p className="text-xs font-bold text-white uppercase tracking-widest">Set Default Reply</p>
-                                <p className="text-[10px] text-slate-400 font-medium">Automatic response for new reviews</p>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
             {/* Profile Completion Meter - Premium Redesign */}
             {activeTab === 'overview' && completionPercent < 100 && (
               <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 md:p-8 relative overflow-hidden group hover:shadow-premium-hover transition-all">
@@ -1242,6 +902,19 @@ function DashboardContent() {
               </div>
             )}
           </div>
+        )}
+
+        {activeTab === 'listings' && businessId && (
+          <MyListingTab
+            businessId={businessId}
+            businessName={businessName}
+            profileData={profileData}
+            images={images}
+            profilePictureUrl={profilePictureUrl}
+            completionPercent={completionPercent}
+            missingFields={missingFields}
+            onEditProfile={() => setActiveTab('settings')}
+          />
         )}
 
         {activeTab === 'jobs' && businessId && (

@@ -27,6 +27,7 @@ import { FaInstagram, FaFacebook, FaYoutube, FaWhatsapp } from 'react-icons/fa';
 import { useState } from 'react';
 import Image from 'next/image';
 import { CldUploadWidget } from 'next-cloudinary';
+import GoogleMapsLocationEditor from './GoogleMapsLocationEditor';
 
 interface SettingsTabProps {
   business: any;
@@ -92,8 +93,7 @@ export default function SettingsTab({
     { key: 'city', label: 'City', icon: HiOutlineMapPin, type: 'text', significance: 'Local search relevance' },
     { key: 'state', label: 'State', icon: HiOutlineMapPin, type: 'text', significance: 'Regional identification' },
     { key: 'country', label: 'Country', icon: HiOutlineGlobeAlt, type: 'text', significance: 'Global location context' },
-    { key: 'latitude', label: 'Latitude', icon: HiOutlineMap, type: 'number', significance: 'Precise GPS navigation' },
-    { key: 'longitude', label: 'Longitude', icon: HiOutlineMap, type: 'number', significance: 'Precise GPS navigation' },
+    { key: 'mapLocation', label: 'Google Maps Location', icon: HiOutlineMap, type: 'googleMaps', significance: 'Pin your shop on the map for directions' },
     { key: 'serviceCategory', label: 'Service Category', icon: HiOutlineQueueList, type: 'text', significance: 'Specific niche targeting' },
     { key: 'yearsInBusiness', label: 'Years Active', icon: HiOutlineCalendar, type: 'number', significance: 'Establishes industry trust' },
     { key: 'discountRange', label: 'Discount Offer', icon: HiOutlineTag, type: 'select', options: discountOptions, significance: 'Convert price-sensitive leads' },
@@ -104,6 +104,11 @@ export default function SettingsTab({
     if (field.key === 'media') return images.length === 0 || !profilePictureUrl;
     if (field.key === 'timings') return !profileData.timings || Object.keys(profileData.timings).length === 0;
     if (field.key === 'keywords') return !profileData.keywords || profileData.keywords.length === 0;
+    if (field.key === 'mapLocation') {
+      const lat = profileData.latitude;
+      const lng = profileData.longitude;
+      return lat == null || lng == null || (lat === 0 && lng === 0);
+    }
     
     const value = profileData[field.key];
     return value === undefined || value === null || value === '' || value === 0;
@@ -113,6 +118,14 @@ export default function SettingsTab({
     if (field.key === 'media') return `${images.length} Photos`;
     if (field.key === 'timings') return Object.keys(profileData.timings || {}).length > 0 ? 'Hours Set' : 'Not Set';
     if (field.key === 'keywords') return Array.isArray(profileData.keywords) ? profileData.keywords.join(', ') : profileData.keywords || 'Not Set';
+    if (field.key === 'mapLocation') {
+      const lat = profileData.latitude;
+      const lng = profileData.longitude;
+      if (lat != null && lng != null && (lat !== 0 || lng !== 0)) {
+        return profileData.googleMapsUrl ? 'Google Maps pin set' : `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+      }
+      return 'Not Set';
+    }
     
     return profileData[field.key] || 'Not Set';
   };
@@ -197,29 +210,37 @@ export default function SettingsTab({
       </div>
 
       {activeModal && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in duration-300">
-          <div className="bg-white rounded-[40px] shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-300 border border-slate-100">
-            <div className="p-8 border-b border-slate-50 flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-900">
-                  {fields.find(f => f.key === activeModal)?.icon({ size: 24 })}
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-300">
+          <div className={`bg-white shadow-2xl w-full max-h-[92vh] sm:max-h-[90vh] overflow-hidden flex flex-col animate-in slide-in-from-bottom-4 sm:zoom-in-95 duration-300 border border-slate-100 ${
+            activeModal === 'mapLocation'
+              ? 'rounded-t-[28px] sm:rounded-[32px] max-w-lg'
+              : 'rounded-t-[28px] sm:rounded-[40px] max-w-2xl'
+          }`}>
+            <div className="p-5 sm:p-8 border-b border-slate-50 flex items-start sm:items-center justify-between gap-3">
+              <div className="flex items-start sm:items-center gap-3 sm:gap-4 min-w-0">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-900 shrink-0">
+                  {fields.find(f => f.key === activeModal)?.icon({ size: 22 })}
                 </div>
-                <div>
-                  <h3 className="text-xl font-semibold text-slate-900 tracking-tight">
-                    Edit {fields.find(f => f.key === activeModal)?.label}
+                <div className="min-w-0">
+                  <h3 className="text-lg sm:text-xl font-semibold text-slate-900 tracking-tight leading-snug">
+                    {activeModal === 'mapLocation' ? 'Set your map location' : `Edit ${fields.find(f => f.key === activeModal)?.label}`}
                   </h3>
-                  <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-0.5">Update Information</p>
+                  <p className="text-slate-500 text-xs sm:text-sm mt-0.5">
+                    {activeModal === 'mapLocation'
+                      ? 'So customers can get directions to your shop'
+                      : 'Update Information'}
+                  </p>
                 </div>
               </div>
               <button 
                 onClick={() => setActiveModal(null)}
-                className="w-10 h-10 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-400 hover:text-slate-900 transition-all flex items-center justify-center"
+                className="w-10 h-10 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-400 hover:text-slate-900 transition-all flex items-center justify-center shrink-0"
               >
                 <HiOutlineXMark size={20} />
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-8">
+            <div className="flex-1 overflow-y-auto overscroll-contain p-5 sm:p-8">
               <form onSubmit={async (e) => {
                 await handleUpdateProfile(e);
                 setActiveModal(null);
@@ -312,6 +333,17 @@ export default function SettingsTab({
                       {discountOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                     </select>
                   </div>
+                ) : activeModal === 'mapLocation' ? (
+                  <GoogleMapsLocationEditor
+                    googleMapsUrl={profileData.googleMapsUrl || ''}
+                    latitude={profileData.latitude}
+                    longitude={profileData.longitude}
+                    onResolved={({ googleMapsUrl, latitude, longitude }) => {
+                      updateField('googleMapsUrl', googleMapsUrl);
+                      updateField('latitude', latitude);
+                      updateField('longitude', longitude);
+                    }}
+                  />
                 ) : activeModal === 'timings' ? (
                   <div className="space-y-4">
                     {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((day) => (
@@ -369,20 +401,20 @@ export default function SettingsTab({
                   </div>
                 )}
 
-                <div className="pt-6 border-t border-slate-50 flex gap-3">
+                <div className="pt-5 sm:pt-6 border-t border-slate-50 flex flex-col-reverse sm:flex-row gap-3 sticky bottom-0 bg-white pb-1 sm:pb-0">
                   <button
                     type="button"
                     onClick={() => setActiveModal(null)}
-                    className="flex-1 px-6 py-4 rounded-2xl font-semibold text-[11px] uppercase tracking-widest text-slate-600 bg-slate-50 hover:bg-slate-100 transition-all"
+                    className="flex-1 px-6 py-3.5 sm:py-4 rounded-2xl font-semibold text-[11px] uppercase tracking-widest text-slate-600 bg-slate-50 hover:bg-slate-100 transition-all"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    disabled={updating}
-                    className="flex-[2] px-6 py-4 bg-slate-900 text-white rounded-2xl font-semibold text-[11px] uppercase tracking-widest hover:bg-indigo-600 transition-all shadow-xl shadow-slate-900/10 disabled:opacity-50"
+                    disabled={updating || (activeModal === 'mapLocation' && checkIsMissing(fields.find(f => f.key === 'mapLocation')!))}
+                    className="flex-[2] px-6 py-3.5 sm:py-4 bg-slate-900 text-white rounded-2xl font-semibold text-[11px] uppercase tracking-widest hover:bg-indigo-600 transition-all shadow-xl shadow-slate-900/10 disabled:opacity-50"
                   >
-                    {updating ? 'Saving...' : 'Save Changes'}
+                    {updating ? 'Saving...' : activeModal === 'mapLocation' ? 'Save location' : 'Save Changes'}
                   </button>
                 </div>
               </form>

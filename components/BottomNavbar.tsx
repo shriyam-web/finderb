@@ -5,6 +5,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { House, LayoutGrid, Briefcase, User } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { getSession } from '@/app/actions/user';
+import { getBusinessSession } from '@/app/actions/business';
 
 type TabItem = {
   label: string;
@@ -60,8 +61,16 @@ export default function BottomNavbar() {
   }, [searchParams, router]);
 
   useEffect(() => {
-    getSession().then((result) => {
-      setAccountHref(result?.success ? '/dashboard' : '/login');
+    Promise.all([getSession(), getBusinessSession()]).then(([userResult, businessResult]) => {
+      if (userResult?.success) {
+        setAccountHref('/dashboard');
+        return;
+      }
+      if (businessResult?.success && businessResult.business?.id) {
+        setAccountHref(`/business/dashboard?id=${businessResult.business.id}`);
+        return;
+      }
+      setAccountHref('/login');
     });
   }, [pathname]);
 
@@ -80,7 +89,12 @@ export default function BottomNavbar() {
       return pathname === '/categories' || Boolean(pathname?.startsWith('/categories/'));
     }
     if (tab.label === 'Account') {
-      return pathname === '/dashboard' || Boolean(pathname?.startsWith('/dashboard'));
+      return (
+        pathname === '/dashboard' ||
+        Boolean(pathname?.startsWith('/dashboard')) ||
+        pathname === '/business/dashboard' ||
+        Boolean(pathname?.startsWith('/business/dashboard'))
+      );
     }
     if (tab.label === 'Business') {
       return pathname === tab.href || Boolean(pathname?.startsWith('/business'));

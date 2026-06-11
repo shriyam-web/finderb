@@ -5,6 +5,15 @@ import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import { sortBusinessesByProfileCompleteness } from '@/lib/businessProfileCompleteness';
 import { getBusinessPublicRatingStats } from '@/lib/businessReviews';
+import {
+  formatRegistrationConflictMessage,
+  formatWrongPortalLoginMessage,
+  getRegistrationConflict,
+  getAlternateAccountType,
+  LOGIN_PATHS,
+  lookupEmailAccountTypes,
+} from '@/lib/emailAccountLookup';
+import { parseCoordinate } from '@/lib/geo';
 
 function parseBusinessServices(business: {
   serviceCategory?: string | null;
@@ -66,8 +75,8 @@ function mapBusinessRecord(business: Record<string, unknown>) {
     email: (business.email as string) || (business.workEmail as string) || undefined,
     businessAddress: (business.businessAddress as string) || undefined,
     images: Array.isArray(business.images) ? business.images : [],
-    latitude: (business.latitude as number | null) ?? null,
-    longitude: (business.longitude as number | null) ?? null,
+    latitude: parseCoordinate(business.latitude),
+    longitude: parseCoordinate(business.longitude),
     hasVerifiedBadge: Boolean(
       business.hasVerifiedBadge || business.isFinderBVerified || business.isVerified
     ),
@@ -130,6 +139,16 @@ export async function registerBusiness(formData: any) {
     const normalizedEmail = formData.email.toLowerCase().trim();
 
     const supabase = createClient(await cookies());
+
+    const existingAccount = await getRegistrationConflict(supabase, normalizedEmail, 'merchant');
+    if (existingAccount) {
+      return {
+        success: false,
+        error: formatRegistrationConflictMessage(existingAccount, 'merchant'),
+        suggestedLoginPath: LOGIN_PATHS[existingAccount],
+        registeredAs: existingAccount,
+      };
+    }
 
     console.log('[REGISTER] Creating business record...');
 
@@ -351,7 +370,23 @@ export async function loginBusiness(email: string, password: string) {
 
     if (!businesses?.length) {
       console.log('No business found with email:', normalizedEmail);
-      return { success: false, error: 'Business account not found. Please check your email or register a new account.' };
+
+      const accountTypes = await lookupEmailAccountTypes(supabase, normalizedEmail);
+      const alternateType = getAlternateAccountType(accountTypes, 'merchant');
+
+      if (alternateType) {
+        return {
+          success: false,
+          error: formatWrongPortalLoginMessage(alternateType, 'merchant'),
+          suggestedLoginPath: LOGIN_PATHS[alternateType],
+          registeredAs: alternateType,
+        };
+      }
+
+      return {
+        success: false,
+        error: 'No Merchant account found with this email. Please check your email or register a new business.',
+      };
     }
 
     const matches = businesses.filter((row) => row.password === cleanPassword);
@@ -463,6 +498,10 @@ export async function updateBusinessProfile(id: string, profileData: any) {
 
     const supabase = createClient(await cookies());
 
+    const lat = parseCoordinate(profileData.latitude);
+    const lng = parseCoordinate(profileData.longitude);
+    const hasValidMapPin = lat != null && lng != null && !(lat === 0 && lng === 0);
+
     const { data: business, error } = await supabase
       .from('Business')
       .update({
@@ -482,8 +521,7 @@ export async function updateBusinessProfile(id: string, profileData: any) {
         isFinderBVerified: profileData.isFinderBVerified,
         review: profileData.review,
         reviewReply: profileData.reviewReply,
-        latitude: profileData.latitude,
-        longitude: profileData.longitude,
+        ...(hasValidMapPin ? { latitude: lat, longitude: lng } : {}),
         website: profileData.website,
         instagramUrl: profileData.instagramUrl,
         facebookUrl: profileData.facebookUrl,
@@ -507,7 +545,8 @@ export async function updateBusinessProfile(id: string, profileData: any) {
     }
 
     revalidatePath(`/business/dashboard`);
-    return { success: true, business };
+    revalidatePath(`/business/${id}`);
+    return { success: true, business: mapBusinessRecord(business) };
   } catch (error: any) {
     const errorMessage = handleError(error, 'Profile Update');
     return { success: false, error: errorMessage };

@@ -48,6 +48,8 @@ import {
 import { formatTimingRange12h } from '@/lib/formatBusinessHours';
 import { buildLoginHref } from '@/lib/authRedirect';
 import { getBusinessShareUrl } from '@/lib/businessSeo';
+import { formatDistanceFromUser } from '@/lib/geo';
+import { useUserCoords } from '@/hooks/useUserCoords';
 import { resolveClientSearchQuery, setLastSearchQuery } from '@/lib/lastSearchQuery';
 
 const WEEKDAYS = [
@@ -149,6 +151,7 @@ export default function BusinessProfilePage({ id }: { id: string }) {
   const [reviewError, setReviewError] = useState<string | null>(null);
   const [reviewSuccess, setReviewSuccess] = useState<string | null>(null);
   const [categoryBreadcrumb, setCategoryBreadcrumb] = useState<CategoryBreadcrumb | null>(null);
+  const userCoords = useUserCoords();
 
   useEffect(() => {
     async function fetchData() {
@@ -324,6 +327,11 @@ export default function BusinessProfilePage({ id }: { id: string }) {
     address: business.businessAddress,
     location: business.location,
   });
+  const distanceLabel = formatDistanceFromUser(
+    userCoords,
+    business.latitude,
+    business.longitude
+  );
   const todayName = new Date().toLocaleDateString('en-US', { weekday: 'long' });
 
   const socialLinks = [
@@ -385,6 +393,13 @@ export default function BusinessProfilePage({ id }: { id: string }) {
 
             {getBusinessLocationLabel(business) && (
               <p className="text-sm text-stone-600">{getBusinessLocationLabel(business)}</p>
+            )}
+
+            {distanceLabel && (
+              <p className="flex items-center gap-1.5 text-sm font-semibold text-[#215481]">
+                <Navigation size={14} className="shrink-0" />
+                {distanceLabel}
+              </p>
             )}
 
             {business.yearsInBusiness != null && (
@@ -512,6 +527,12 @@ export default function BusinessProfilePage({ id }: { id: string }) {
                     <MapPin size={15} />
                   </span>
                   <div className="min-w-0">
+                    {distanceLabel && (
+                      <p className="mb-1 flex items-center gap-1.5 text-sm font-semibold text-[#215481]">
+                        <Navigation size={13} className="shrink-0" />
+                        {distanceLabel}
+                      </p>
+                    )}
                     <p className="text-sm leading-relaxed text-stone-700">
                       {business.businessAddress || business.location}
                     </p>
@@ -699,7 +720,12 @@ export default function BusinessProfilePage({ id }: { id: string }) {
             <h2 className="text-base font-semibold text-[#153551]">Similar listings</h2>
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
               {related.map((item) => (
-                <BusinessCard key={item.id} business={item} compact />
+                <BusinessCard
+                  key={item.id}
+                  business={item}
+                  compact
+                  distanceLabel={formatDistanceFromUser(userCoords, item.latitude, item.longitude)}
+                />
               ))}
             </div>
           </section>

@@ -25,6 +25,7 @@ function LoginContent() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [suggestedLoginPath, setSuggestedLoginPath] = useState('');
   const [success, setSuccess] = useState('');
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -44,6 +45,7 @@ function LoginContent() {
 
     setLoading(true);
     setError('');
+    setSuggestedLoginPath('');
     setSuccess('');
 
     try {
@@ -53,6 +55,7 @@ function LoginContent() {
         router.push(redirectTo);
       } else {
         setError(result.error || 'Login failed');
+        setSuggestedLoginPath(result.suggestedLoginPath || '');
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'An unexpected error occurred';
@@ -150,7 +153,17 @@ function LoginContent() {
             {error && (
               <div className="mb-5 flex items-start gap-2.5 rounded-lg border border-red-100 bg-red-50/80 px-3.5 py-3 text-sm text-red-700">
                 <AlertCircle size={17} className="mt-0.5 shrink-0" />
-                <span>{error}</span>
+                <div>
+                  <p>{error}</p>
+                  {suggestedLoginPath && (
+                    <Link
+                      href={suggestedLoginPath}
+                      className="mt-2 inline-flex font-semibold text-[#2563eb] underline-offset-2 hover:underline"
+                    >
+                      Go to the correct sign-in page
+                    </Link>
+                  )}
+                </div>
               </div>
             )}
 

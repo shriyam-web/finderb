@@ -3,6 +3,14 @@
 import { createClient } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
+import {
+  formatRegistrationConflictMessage,
+  formatWrongPortalLoginMessage,
+  getRegistrationConflict,
+  getAlternateAccountType,
+  LOGIN_PATHS,
+  lookupEmailAccountTypes,
+} from '@/lib/emailAccountLookup';
 
 // Safe error handler wrapper
 function handleError(error: any, context: string): string {
@@ -41,6 +49,16 @@ export async function registerUser(formData: any) {
     
     const normalizedEmail = formData.email.toLowerCase().trim();
     const supabase = createClient(await cookies());
+
+    const existingAccount = await getRegistrationConflict(supabase, normalizedEmail, 'user');
+    if (existingAccount) {
+      return {
+        success: false,
+        error: formatRegistrationConflictMessage(existingAccount, 'user'),
+        suggestedLoginPath: LOGIN_PATHS[existingAccount],
+        registeredAs: existingAccount,
+      };
+    }
 
     console.log('[USER REGISTER] Creating user record...');
 
@@ -102,7 +120,19 @@ export async function loginUser(email: string, password: string) {
 
     if (error) {
       if (error.code === 'PGRST116') {
-        return { success: false, error: 'User account not found.' };
+        const accountTypes = await lookupEmailAccountTypes(supabase, normalizedEmail);
+        const alternateType = getAlternateAccountType(accountTypes, 'user');
+
+        if (alternateType) {
+          return {
+            success: false,
+            error: formatWrongPortalLoginMessage(alternateType, 'user'),
+            suggestedLoginPath: LOGIN_PATHS[alternateType],
+            registeredAs: alternateType,
+          };
+        }
+
+        return { success: false, error: 'No User account found with this email.' };
       }
       throw error;
     }

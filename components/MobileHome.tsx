@@ -18,6 +18,8 @@ import CategoryIcon from '@/components/CategoryIcon';
 import MerchantListingRating from '@/components/business/MerchantListingRating';
 import HomeHero from '@/components/HomeHero';
 import { Business, Category } from '@/lib/mockData';
+import { formatDistanceFromUser } from '@/lib/geo';
+import type { UserCoords } from '@/hooks/useUserCoords';
 
 const MOBILE_TRENDING = [
   { label: 'Best Cafes in Delhi', trend: 12 },
@@ -35,6 +37,7 @@ type MobileHomeProps = {
   categories: Category[];
   businesses: Business[];
   isBusinessesLoading: boolean;
+  userCoords?: UserCoords | null;
 };
 
 export default function MobileHome({
@@ -46,6 +49,7 @@ export default function MobileHome({
   categories,
   businesses,
   isBusinessesLoading,
+  userCoords = null,
 }: MobileHomeProps) {
   const gridCategories = categories.slice(0, 7);
   const featured = businesses.slice(0, 6);
@@ -168,7 +172,14 @@ export default function MobileHome({
                   className="h-[220px] w-[200px] shrink-0 animate-pulse rounded-xl bg-gray-100"
                 />
               ))
-            : featured.map((biz) => (
+            : featured.map((biz) => {
+                const distanceLabel = formatDistanceFromUser(
+                  userCoords,
+                  biz.latitude,
+                  biz.longitude
+                );
+
+                return (
                 <Link
                   key={biz.id}
                   href={`/business/${biz.id}`}
@@ -202,11 +213,17 @@ export default function MobileHome({
                     />
                     <div className="flex items-start gap-1 text-[10px] text-[#94a3b8]">
                       <MapPin size={11} className="mt-0.5 shrink-0" />
-                      <span className="line-clamp-2">{biz.location}</span>
+                      <span className="line-clamp-2">
+                        {distanceLabel && (
+                          <span className="font-semibold text-[#2563eb]">{distanceLabel} · </span>
+                        )}
+                        {biz.location}
+                      </span>
                     </div>
                   </div>
                 </Link>
-              ))}
+                );
+              })}
         </div>
       </section>
 

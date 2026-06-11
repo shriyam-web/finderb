@@ -176,7 +176,12 @@ export default function BusinessCard({
             >
               <MapPin size={compact ? 10 : 12} className="shrink-0 text-secondary" />
               <span className="line-clamp-1">
-                {distanceLabel ? `${distanceLabel} · ` : ''}
+                {distanceLabel ? (
+                  <>
+                    <span className="text-primary">{distanceLabel}</span>
+                    <span className="text-gray-300"> · </span>
+                  </>
+                ) : null}
                 {business.location}
               </span>
             </div>

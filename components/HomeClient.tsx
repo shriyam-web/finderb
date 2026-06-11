@@ -47,6 +47,7 @@ import { getMovies } from '@/app/actions/movie';
 import { getTouristPlaces } from '@/app/actions/touristPlace';
 import { getBlogs } from '@/app/actions/blog';
 import { getSession } from '@/app/actions/user';
+import { useUserCoords } from '@/hooks/useUserCoords';
 import { formatDistanceFromUser } from '@/lib/geo';
 import {
   createVoiceRecognition,
@@ -123,7 +124,7 @@ export default function HomeClient({ initialData }: { initialData: any }) {
   const voiceSessionRef = useRef(0);
   const voiceSilenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const voiceSearchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const userCoords = useUserCoords();
 
   /** Silence while speaking → show what you said. */
   const VOICE_SILENCE_MS = 2000;
@@ -325,21 +326,6 @@ export default function HomeClient({ initialData }: { initialData: any }) {
   }, [voiceActive, cancelVoiceSession, startVoiceSession]);
 
   useEffect(() => () => cancelVoiceSession(), [cancelVoiceSession]);
-
-  useEffect(() => {
-    if (typeof window === 'undefined' || !navigator.geolocation) return;
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setUserCoords({
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-        });
-      },
-      () => {},
-      { enableHighAccuracy: false, maximumAge: 600_000, timeout: 10_000 }
-    );
-  }, []);
 
   const aiLoadStages = [
     { threshold: 15, label: 'Initializing assistant' },
@@ -801,7 +787,14 @@ export default function HomeClient({ initialData }: { initialData: any }) {
                       </Link>
                     </div>
                     <div className="grid grid-cols-4 gap-4">
-                      {desktopFeaturedBusinesses.map((biz) => (
+                      {desktopFeaturedBusinesses.map((biz) => {
+                        const distanceLabel = formatDistanceFromUser(
+                          userCoords,
+                          biz.latitude,
+                          biz.longitude
+                        );
+
+                        return (
                         <Link
                           key={biz.id}
                           href={`/business/${biz.id}`}
@@ -839,11 +832,17 @@ export default function HomeClient({ initialData }: { initialData: any }) {
                             />
                             <div className="flex items-start gap-1 text-[11px] leading-snug text-[#94a3b8]">
                               <MapPin size={12} className="mt-0.5 shrink-0" />
-                              <span className="line-clamp-2">{biz.location}</span>
+                              <span className="line-clamp-2">
+                                {distanceLabel && (
+                                  <span className="font-semibold text-[#2563eb]">{distanceLabel} · </span>
+                                )}
+                                {biz.location}
+                              </span>
                             </div>
                           </div>
                         </Link>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 </section>
@@ -922,6 +921,7 @@ export default function HomeClient({ initialData }: { initialData: any }) {
             categories={sortedCategories}
             businesses={realBusinesses}
             isBusinessesLoading={isBusinessesLoading}
+            userCoords={userCoords}
           />
 
       {/* Featured Group Categories — parents & subcategories from DB */}

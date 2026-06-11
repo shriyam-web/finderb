@@ -1,61 +1,117 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 
+const STATUS_MESSAGES = [
+  'Curating local excellence for you...',
+  'Finding verified businesses nearby...',
+  'Loading top destinations...',
+  'Almost ready...',
+];
+
 const Loader = () => {
+  const [messageIndex, setMessageIndex] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setMessageIndex((prev) => (prev + 1) % STATUS_MESSAGES.length);
+    }, 2200);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
-    <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-white animate-[fade-in_0.5s_ease-out]">
-      <div className="relative flex flex-col items-center">
-        {/* Animated rings */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-          <div className="h-64 w-64 animate-[ping_4s_linear_infinite] rounded-full border-2 border-primary-50 opacity-10"></div>
-        </div>
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-          <div className="h-48 w-48 animate-[ping_3s_linear_infinite] rounded-full border-2 border-primary-100 opacity-20"></div>
-        </div>
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-          <div className="h-32 w-32 animate-[ping_2s_linear_infinite] rounded-full border-2 border-primary-200 opacity-40"></div>
-        </div>
-        
-        {/* Logo container with float animation */}
-        <div className="relative mb-8 flex h-36 w-36 items-center justify-center rounded-3xl bg-white p-6 shadow-premium animate-float ring-8 ring-primary-50/50">
-          <Image
-            src="/icon.png"
-            alt="FinderB Logo"
-            width={140}
-            height={140}
-            className="h-auto w-full object-contain"
-            priority
-          />
+    <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center overflow-hidden bg-gradient-to-br from-white via-primary-50/40 to-secondary-50/30">
+      {/* Ambient background orbs */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute -left-24 top-1/4 h-72 w-72 animate-[pulse_6s_ease-in-out_infinite] rounded-full bg-primary-200/30 blur-3xl" />
+        <div className="absolute -right-16 bottom-1/4 h-80 w-80 animate-[pulse_8s_ease-in-out_infinite_1s] rounded-full bg-secondary-200/35 blur-3xl" />
+        <div className="absolute left-1/2 top-0 h-56 w-56 -translate-x-1/2 animate-[pulse_7s_ease-in-out_infinite_0.5s] rounded-full bg-primary-100/40 blur-3xl" />
+      </div>
+
+      {/* Subtle grid pattern */}
+      <div
+        className="pointer-events-none absolute inset-0 opacity-[0.03]"
+        style={{
+          backgroundImage:
+            'linear-gradient(rgba(33,84,129,1) 1px, transparent 1px), linear-gradient(90deg, rgba(33,84,129,1) 1px, transparent 1px)',
+          backgroundSize: '48px 48px',
+        }}
+      />
+
+      <div className="relative flex flex-col items-center px-6">
+        {/* Orbital rings */}
+        <div className="relative mb-10 flex h-44 w-44 items-center justify-center">
+          <div className="absolute inset-0 animate-spin-slow rounded-full border border-dashed border-primary-200/60" />
+          <div className="absolute inset-3 animate-[spin_12s_linear_infinite_reverse] rounded-full border border-primary-300/30" />
+          <div className="absolute inset-6 animate-[ping_3s_cubic-bezier(0,0,0.2,1)_infinite] rounded-full bg-primary-100/20" />
+
+          {/* Logo card */}
+          <div className="relative flex h-28 w-28 items-center justify-center rounded-2xl border border-white/80 bg-white/90 p-4 shadow-premium backdrop-blur-sm animate-float ring-1 ring-primary-100/80">
+            <div className="absolute inset-0 overflow-hidden rounded-2xl">
+              <div className="absolute inset-0 -translate-x-full animate-shimmer bg-gradient-to-r from-transparent via-white/60 to-transparent" />
+            </div>
+            <Image
+              src="/icon.png"
+              alt="FinderB Logo"
+              width={96}
+              height={96}
+              className="relative h-auto w-full object-contain drop-shadow-sm"
+              priority
+            />
+          </div>
         </div>
 
-        {/* Text and progress bar */}
-        <div className="text-center px-4">
-          <h2 className="mb-4 text-3xl font-bold tracking-tight text-primary-800 animate-[slide-up_0.8s_ease-out]">
-            Finder<span className="text-secondary-500">B</span>
+        {/* Brand & progress */}
+        <div className="text-center">
+          <h2 className="mb-1 text-3xl font-bold tracking-tight text-primary-800">
+            Finder<span className="bg-gradient-to-r from-secondary-500 to-secondary-400 bg-clip-text text-transparent">B</span>
           </h2>
-          <div className="mx-auto h-2 w-64 overflow-hidden rounded-full bg-primary-50 shadow-inner">
-            <div className="h-full animate-[loading-bar_3s_ease-in-out_infinite] rounded-full bg-gradient-to-r from-primary-500 via-secondary-400 to-primary-600"></div>
+          <p className="mb-6 text-xs font-semibold uppercase tracking-[0.2em] text-primary-400">
+            Discover Local
+          </p>
+
+          {/* Progress bar */}
+          <div className="relative mx-auto h-1.5 w-56 overflow-hidden rounded-full bg-primary-100/80">
+            <div className="absolute inset-y-0 left-0 w-1/3 animate-[loader-progress_2s_ease-in-out_infinite] rounded-full bg-gradient-to-r from-primary-500 via-secondary-400 to-primary-600" />
           </div>
-          <p className="mt-6 text-base font-medium text-primary-600/80 animate-pulse">
-            Curating local excellence for you...
+
+          {/* Bouncing dots */}
+          <div className="mt-5 flex items-center justify-center gap-1.5">
+            {[0, 1, 2].map((i) => (
+              <span
+                key={i}
+                className="h-1.5 w-1.5 rounded-full bg-primary-400"
+                style={{
+                  animation: 'loader-dot 1.4s ease-in-out infinite',
+                  animationDelay: `${i * 0.2}s`,
+                }}
+              />
+            ))}
+          </div>
+
+          {/* Cycling status message */}
+          <p
+            key={messageIndex}
+            className="mt-5 min-h-[1.25rem] text-sm font-medium text-primary-600/80 animate-[fade-in_0.4s_ease-out]"
+          >
+            {STATUS_MESSAGES[messageIndex]}
           </p>
         </div>
       </div>
 
       <style jsx global>{`
-        @keyframes loading-bar {
-          0% { width: 0%; transform: translateX(-100%); }
-          50% { width: 80%; transform: translateX(0%); }
-          100% { width: 100%; transform: translateX(100%); }
+        @keyframes loader-progress {
+          0% { left: -33%; width: 33%; }
+          50% { left: 33%; width: 50%; }
+          100% { left: 100%; width: 33%; }
+        }
+        @keyframes loader-dot {
+          0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+          40% { transform: scale(1); opacity: 1; }
         }
         @keyframes fade-in {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        @keyframes slide-up {
-          from { opacity: 0; transform: translateY(20px); }
+          from { opacity: 0; transform: translateY(4px); }
           to { opacity: 1; transform: translateY(0); }
         }
       `}</style>
