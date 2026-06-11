@@ -29,6 +29,7 @@ import BusinessProfileHeroBadges from '@/components/business/BusinessProfileHero
 import BusinessProfileContactAside from '@/components/business/BusinessProfileContactAside';
 import BusinessProfileOfferBanner from '@/components/business/BusinessProfileOfferBanner';
 import BusinessProfileReviewCard from '@/components/business/BusinessProfileReviewCard';
+import DistanceBadge from '@/components/business/DistanceBadge';
 import { getBusinessLocationLabel } from '@/lib/businessBreadcrumb';
 import { getBusinessOpenStatus } from '@/lib/businessHours';
 import {
@@ -395,11 +396,8 @@ export default function BusinessProfilePage({ id }: { id: string }) {
               <p className="text-sm text-stone-600">{getBusinessLocationLabel(business)}</p>
             )}
 
-            {distanceLabel && (
-              <p className="flex items-center gap-1.5 text-sm font-semibold text-[#215481]">
-                <Navigation size={14} className="shrink-0" />
-                {distanceLabel}
-              </p>
+            {distanceLabel && directionsLink && (
+              <DistanceBadge label={distanceLabel} mapsHref={directionsLink} />
             )}
 
             {business.yearsInBusiness != null && (
@@ -526,22 +524,19 @@ export default function BusinessProfilePage({ id }: { id: string }) {
                   <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#f9b864]/15 text-[#b45309]">
                     <MapPin size={15} />
                   </span>
-                  <div className="min-w-0">
-                    {distanceLabel && (
-                      <p className="mb-1 flex items-center gap-1.5 text-sm font-semibold text-[#215481]">
-                        <Navigation size={13} className="shrink-0" />
-                        {distanceLabel}
-                      </p>
+                  <div className="min-w-0 space-y-2">
+                    {distanceLabel && directionsLink && (
+                      <DistanceBadge label={distanceLabel} mapsHref={directionsLink} />
                     )}
                     <p className="text-sm leading-relaxed text-stone-700">
                       {business.businessAddress || business.location}
                     </p>
-                    {directionsLink && (
+                    {directionsLink && !distanceLabel && (
                       <a
                         href={directionsLink}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="mt-1.5 inline-flex items-center gap-1 text-xs font-medium text-[#215481] hover:underline"
+                        className="inline-flex items-center gap-1 text-xs font-medium text-[#215481] hover:underline"
                       >
                         <Navigation size={12} />
                         Get directions

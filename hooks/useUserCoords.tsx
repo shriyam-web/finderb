@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
+import { resolveCityFromCoordinates } from '@/app/actions/location';
 
 export type UserCoords = { lat: number; lng: number };
 
@@ -8,19 +9,23 @@ export type LocationPermissionState = 'granted' | 'denied' | 'prompt' | 'unsuppo
 
 type UserLocationContextValue = {
   userCoords: UserCoords | null;
+  userCity: string | null;
   isLocating: boolean;
+  isResolvingCity: boolean;
   permissionState: LocationPermissionState;
   requestLocation: () => void;
 };
 
 const UserLocationContext = createContext<UserLocationContextValue>({
   userCoords: null,
+  userCity: null,
   isLocating: true,
+  isResolvingCity: false,
   permissionState: 'unknown',
   requestLocation: () => {},
 });
 
-function tryBrowserGeolocation(timeoutMs = 20_000): Promise<{
+function getCurrentPosition(options: PositionOptions): Promise<{
   coords: UserCoords | null;
   denied: boolean;
   timedOut: boolean;
@@ -49,48 +54,35 @@ function tryBrowserGeolocation(timeoutMs = 20_000): Promise<{
           timedOut: error.code === error.TIMEOUT,
         });
       },
-      {
-        enableHighAccuracy: true,
-        maximumAge: 0,
-        timeout: timeoutMs,
-      }
+      options
     );
   });
 }
 
-async function tryIpGeolocation(): Promise<UserCoords | null> {
-  const providers = [
-    async () => {
-      const response = await fetch('https://ipapi.co/json/', { cache: 'no-store' });
-      if (!response.ok) return null;
-      const data = await response.json();
-      return { lat: Number(data.latitude), lng: Number(data.longitude) };
-    },
-    async () => {
-      const response = await fetch('https://ipwho.is/', { cache: 'no-store' });
-      if (!response.ok) return null;
-      const data = await response.json();
-      return { lat: Number(data.latitude), lng: Number(data.longitude) };
-    },
+/** Network/Wi‑Fi fix first (fast on desktop), then high-accuracy retry. No IP fallback — IP is often wrong (e.g. Delhi vs Lucknow). */
+async function tryBrowserGeolocation(): Promise<{
+  coords: UserCoords | null;
+  denied: boolean;
+}> {
+  const attempts: PositionOptions[] = [
+    { enableHighAccuracy: false, maximumAge: 0, timeout: 12_000 },
+    { enableHighAccuracy: true, maximumAge: 0, timeout: 18_000 },
   ];
 
-  for (const provider of providers) {
-    try {
-      const coords = await provider();
-      if (
-        coords &&
-        Number.isFinite(coords.lat) &&
-        Number.isFinite(coords.lng) &&
-        !(coords.lat === 0 && coords.lng === 0)
-      ) {
-        return coords;
-      }
-    } catch {
-      continue;
+  let denied = false;
+
+  for (const options of attempts) {
+    const result = await getCurrentPosition(options);
+    if (result.coords) {
+      return { coords: result.coords, denied: false };
+    }
+    if (result.denied) {
+      denied = true;
+      break;
     }
   }
 
-  return null;
+  return { coords: null, denied };
 }
 
 async function readPermissionState(): Promise<LocationPermissionState> {
@@ -112,24 +104,35 @@ async function readPermissionState(): Promise<LocationPermissionState> {
 
 export function UserLocationProvider({ children }: { children: ReactNode }) {
   const [userCoords, setUserCoords] = useState<UserCoords | null>(null);
+  const [userCity, setUserCity] = useState<string | null>(null);
   const [isLocating, setIsLocating] = useState(true);
+  const [isResolvingCity, setIsResolvingCity] = useState(false);
   const [permissionState, setPermissionState] = useState<LocationPermissionState>('unknown');
   const permissionStatusRef = useRef<PermissionStatus | null>(null);
   const hasAutoRequestedRef = useRef(false);
+  const cityRequestRef = useRef(0);
 
   const applyCoords = useCallback((coords: UserCoords) => {
     setUserCoords(coords);
     setIsLocating(false);
   }, []);
 
-  const applyIpFallback = useCallback(async () => {
-    const ip = await tryIpGeolocation();
-    if (ip) {
-      applyCoords(ip);
+  useEffect(() => {
+    if (!userCoords) {
+      setUserCity(null);
+      setIsResolvingCity(false);
       return;
     }
-    setIsLocating(false);
-  }, [applyCoords]);
+
+    const requestId = ++cityRequestRef.current;
+    setIsResolvingCity(true);
+
+    resolveCityFromCoordinates(userCoords.lat, userCoords.lng).then((result) => {
+      if (requestId !== cityRequestRef.current) return;
+      setUserCity(result.success && result.city ? result.city : null);
+      setIsResolvingCity(false);
+    });
+  }, [userCoords]);
 
   const resolveLocation = useCallback(async () => {
     setIsLocating(true);
@@ -138,47 +141,33 @@ export function UserLocationProvider({ children }: { children: ReactNode }) {
     setPermissionState(permission);
 
     if (permission === 'unsupported') {
-      await applyIpFallback();
+      setIsLocating(false);
       return;
     }
 
     if (permission === 'denied') {
       setPermissionState('denied');
-      await applyIpFallback();
+      setIsLocating(false);
       return;
     }
 
-    const firstAttempt = await tryBrowserGeolocation();
-    if (firstAttempt.coords) {
+    const result = await tryBrowserGeolocation();
+
+    if (result.coords) {
       setPermissionState('granted');
-      applyCoords(firstAttempt.coords);
+      applyCoords(result.coords);
       return;
     }
 
-    if (firstAttempt.denied) {
+    if (result.denied) {
       setPermissionState('denied');
-      await applyIpFallback();
+      setIsLocating(false);
       return;
     }
 
     setPermissionState('prompt');
-
-    if (firstAttempt.timedOut) {
-      const retry = await tryBrowserGeolocation(15_000);
-      if (retry.coords) {
-        setPermissionState('granted');
-        applyCoords(retry.coords);
-        return;
-      }
-      if (retry.denied) {
-        setPermissionState('denied');
-        await applyIpFallback();
-        return;
-      }
-    }
-
     setIsLocating(false);
-  }, [applyCoords, applyIpFallback]);
+  }, [applyCoords]);
 
   const requestLocation = useCallback(() => {
     void resolveLocation();
@@ -212,11 +201,6 @@ export function UserLocationProvider({ children }: { children: ReactNode }) {
                 applyCoords(result.coords);
               }
             });
-            return;
-          }
-
-          if (status.state === 'denied' && !userCoords) {
-            void applyIpFallback();
           }
         };
       })
@@ -228,11 +212,11 @@ export function UserLocationProvider({ children }: { children: ReactNode }) {
         permissionStatusRef.current.onchange = null;
       }
     };
-  }, [applyCoords, applyIpFallback, userCoords]);
+  }, [applyCoords]);
 
   return (
     <UserLocationContext.Provider
-      value={{ userCoords, isLocating, permissionState, requestLocation }}
+      value={{ userCoords, userCity, isLocating, isResolvingCity, permissionState, requestLocation }}
     >
       {children}
     </UserLocationContext.Provider>
@@ -241,6 +225,13 @@ export function UserLocationProvider({ children }: { children: ReactNode }) {
 
 export function useUserCoords() {
   return useContext(UserLocationContext).userCoords;
+}
+
+export function useUserCity() {
+  const { userCity, isLocating, isResolvingCity } = useContext(UserLocationContext);
+  if (userCity) return userCity;
+  if (isLocating || isResolvingCity) return 'Detecting…';
+  return 'Near you';
 }
 
 export function useUserLocationState() {

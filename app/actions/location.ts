@@ -128,6 +128,74 @@ async function reverseGeocodeCoordinates(
   return null;
 }
 
+function extractCityFromGoogleResults(
+  results: Array<{ address_components?: Array<{ long_name: string; types: string[] }> }>
+): string | null {
+  const cityTypes = ['locality', 'administrative_area_level_2', 'administrative_area_level_3'];
+
+  for (const result of results) {
+    for (const type of cityTypes) {
+      const match = result.address_components?.find((component) => component.types.includes(type));
+      if (match?.long_name) return match.long_name;
+    }
+  }
+
+  return null;
+}
+
+async function reverseGeocodeCity(latitude: number, longitude: number): Promise<string | null> {
+  const googleKey = process.env.GOOGLE_MAPS_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+
+  if (googleKey) {
+    try {
+      const params = new URLSearchParams({
+        latlng: `${latitude},${longitude}`,
+        key: googleKey,
+      });
+      const response = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?${params.toString()}`);
+      const data = await response.json();
+      const results = data?.results;
+      if (Array.isArray(results) && results.length > 0) {
+        const city = extractCityFromGoogleResults(results);
+        if (city) return city;
+      }
+    } catch (error) {
+      console.error('Google city reverse geocoding failed:', error);
+    }
+  }
+
+  try {
+    const params = new URLSearchParams({
+      lat: String(latitude),
+      lon: String(longitude),
+      format: 'json',
+      addressdetails: '1',
+    });
+    const response = await fetch(`https://nominatim.openstreetmap.org/reverse?${params.toString()}`, {
+      headers: {
+        'User-Agent': 'FinderB/1.0 (location-resolver)',
+      },
+    });
+    const data = await response.json();
+    const address = data?.address;
+    if (address) {
+      return (
+        address.city ||
+        address.town ||
+        address.village ||
+        address.county ||
+        address.state_district ||
+        address.suburb ||
+        null
+      );
+    }
+  } catch (error) {
+    console.error('Nominatim city reverse geocoding failed:', error);
+  }
+
+  return null;
+}
+
 async function resolvePlaceName(
   resolvedUrl: string,
   latitude: number,
@@ -218,4 +286,13 @@ export async function lookupPlaceNameFromCoordinates(
     fromUrl || (await reverseGeocodeCoordinates(latitude, longitude));
 
   return { success: true as const, placeName };
+}
+
+export async function resolveCityFromCoordinates(latitude: number, longitude: number) {
+  if (latitude == null || longitude == null || (latitude === 0 && longitude === 0)) {
+    return { success: false as const, city: null };
+  }
+
+  const city = await reverseGeocodeCity(latitude, longitude);
+  return { success: true as const, city };
 }

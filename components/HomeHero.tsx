@@ -7,8 +7,10 @@ import {
   ChevronDown,
   ChevronRight,
   Mic,
+  RefreshCw,
 } from 'lucide-react';
 import { HERO_TRUST_BADGES, POPULAR_SEARCHES } from '@/lib/homeHeroConstants';
+import { useUserLocationState } from '@/hooks/useUserCoords';
 
 type HomeHeroProps = {
   variant: 'mobile' | 'desktop';
@@ -18,6 +20,47 @@ type HomeHeroProps = {
   onVoiceSearch?: () => void;
   voiceActive?: boolean;
 };
+
+function HeroLocationField({ compact = false }: { compact?: boolean }) {
+  const { userCity, isLocating, isResolvingCity, requestLocation } = useUserLocationState();
+  const isPending = isLocating || isResolvingCity;
+  const label = userCity || (isPending ? 'Detecting…' : 'Near you');
+  const showRetry = !userCity && !isPending;
+
+  return (
+    <>
+      <MapPin
+        size={compact ? 17 : 16}
+        className="shrink-0 text-[#2563eb]"
+        strokeWidth={2.25}
+      />
+      <span
+        className={`whitespace-nowrap font-semibold text-[#1e293b] ${
+          compact ? 'text-[13px]' : 'text-sm'
+        } ${showRetry ? 'text-[#64748b]' : ''}`}
+      >
+        {label}
+      </span>
+      {showRetry ? (
+        <button
+          type="button"
+          onClick={requestLocation}
+          className={`inline-flex shrink-0 items-center gap-1 rounded-md font-semibold text-[#2563eb] transition-colors hover:bg-[#2563eb]/10 ${
+            compact ? 'px-1.5 py-0.5 text-[11px]' : 'px-2 py-1 text-xs'
+          }`}
+        >
+          <RefreshCw size={compact ? 12 : 13} strokeWidth={2.25} />
+          Retry
+        </button>
+      ) : (
+        <ChevronDown
+          size={compact ? 15 : 14}
+          className={`shrink-0 text-[#94a3b8] ${compact ? 'ml-auto' : ''}`}
+        />
+      )}
+    </>
+  );
+}
 
 export default function HomeHero({
   variant,
@@ -141,9 +184,7 @@ export default function HomeHero({
                 </button>
               </div>
               <div className="flex items-center gap-1.5 border-r border-gray-100 px-3.5 py-2.5">
-                <MapPin size={16} className="shrink-0 text-[#2563eb]" strokeWidth={2.25} />
-                <span className="whitespace-nowrap text-sm font-semibold text-[#1e293b]">New Delhi</span>
-                <ChevronDown size={14} className="shrink-0 text-[#94a3b8]" />
+                <HeroLocationField />
               </div>
               <button
                 type="button"
@@ -182,9 +223,7 @@ export default function HomeHero({
             </div>
 
             <div className="flex items-center gap-2 border-b border-gray-100 px-3.5 py-2.5">
-              <MapPin size={17} className="shrink-0 text-[#2563eb]" strokeWidth={2.25} />
-              <span className="text-[13px] font-semibold text-[#1e293b]">New Delhi</span>
-              <ChevronDown size={15} className="ml-auto shrink-0 text-[#94a3b8]" />
+              <HeroLocationField compact />
             </div>
 
             <button

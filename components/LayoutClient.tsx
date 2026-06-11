@@ -29,10 +29,7 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
   return (
     <UserLocationProvider>
       {loading ? (
-        <>
-          <Loader />
-          {showLocationPrompt && <LocationPermissionPrompt />}
-        </>
+        <Loader />
       ) : (
         <div className={`flex flex-col min-h-screen ${showBottomNav ? 'pb-[6.75rem] lg:pb-0' : ''}`}>
           {!hideTopNavFooter && <Navbar />}
@@ -43,7 +40,7 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
             {!hideTopNavFooter && <Footer />}
           </Suspense>
           {showBottomNav && <BottomNavbar />}
-          {showLocationPrompt && <LocationPermissionPrompt />}
+          {showLocationPrompt && <LocationPermissionPrompt appReady />}
         </div>
       )}
     </UserLocationProvider>
