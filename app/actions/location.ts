@@ -128,19 +128,87 @@ async function reverseGeocodeCoordinates(
   return null;
 }
 
-function extractCityFromGoogleResults(
+function normalizeLocationPart(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  return trimmed || null;
+}
+
+function formatLocationLabel(area: string | null, city: string | null): string | null {
+  const areaPart = normalizeLocationPart(area);
+  const cityPart = normalizeLocationPart(city);
+
+  if (areaPart && cityPart && areaPart.toLowerCase() === cityPart.toLowerCase()) {
+    return cityPart;
+  }
+
+  if (areaPart && cityPart) {
+    return `${areaPart}, ${cityPart}`;
+  }
+
+  return cityPart || areaPart;
+}
+
+function extractAreaAndCityFromGoogleResults(
   results: Array<{ address_components?: Array<{ long_name: string; types: string[] }> }>
-): string | null {
+): { area: string | null; city: string | null } {
+  let area: string | null = null;
+  let city: string | null = null;
+
+  const areaTypes = [
+    'sublocality_level_1',
+    'sublocality',
+    'neighborhood',
+    'premise',
+    'route',
+  ];
   const cityTypes = ['locality', 'administrative_area_level_2', 'administrative_area_level_3'];
 
   for (const result of results) {
-    for (const type of cityTypes) {
-      const match = result.address_components?.find((component) => component.types.includes(type));
-      if (match?.long_name) return match.long_name;
+    if (!area) {
+      for (const type of areaTypes) {
+        const match = result.address_components?.find((component) => component.types.includes(type));
+        if (match?.long_name) {
+          area = match.long_name;
+          break;
+        }
+      }
     }
+
+    if (!city) {
+      for (const type of cityTypes) {
+        const match = result.address_components?.find((component) => component.types.includes(type));
+        if (match?.long_name) {
+          city = match.long_name;
+          break;
+        }
+      }
+    }
+
+    if (area && city) break;
   }
 
-  return null;
+  return { area, city };
+}
+
+function extractAreaAndCityFromNominatimAddress(
+  address: Record<string, string | undefined>
+): { area: string | null; city: string | null } {
+  const area =
+    normalizeLocationPart(address.suburb) ||
+    normalizeLocationPart(address.neighbourhood) ||
+    normalizeLocationPart(address.quarter) ||
+    normalizeLocationPart(address.residential) ||
+    normalizeLocationPart(address.city_district);
+
+  const city =
+    normalizeLocationPart(address.city) ||
+    normalizeLocationPart(address.state_district) ||
+    normalizeLocationPart(address.town) ||
+    normalizeLocationPart(address.county) ||
+    normalizeLocationPart(address.municipality);
+
+  return { area, city };
 }
 
 async function reverseGeocodeCity(latitude: number, longitude: number): Promise<string | null> {
@@ -156,8 +224,9 @@ async function reverseGeocodeCity(latitude: number, longitude: number): Promise<
       const data = await response.json();
       const results = data?.results;
       if (Array.isArray(results) && results.length > 0) {
-        const city = extractCityFromGoogleResults(results);
-        if (city) return city;
+        const { area, city } = extractAreaAndCityFromGoogleResults(results);
+        const label = formatLocationLabel(area, city);
+        if (label) return label;
       }
     } catch (error) {
       console.error('Google city reverse geocoding failed:', error);
@@ -179,15 +248,9 @@ async function reverseGeocodeCity(latitude: number, longitude: number): Promise<
     const data = await response.json();
     const address = data?.address;
     if (address) {
-      return (
-        address.city ||
-        address.town ||
-        address.village ||
-        address.county ||
-        address.state_district ||
-        address.suburb ||
-        null
-      );
+      const { area, city } = extractAreaAndCityFromNominatimAddress(address);
+      const label = formatLocationLabel(area, city);
+      if (label) return label;
     }
   } catch (error) {
     console.error('Nominatim city reverse geocoding failed:', error);

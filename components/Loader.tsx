@@ -3,22 +3,41 @@
 import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 
-const STATUS_MESSAGES = [
+const DEFAULT_STATUS_MESSAGES = [
   'Curating local excellence for you...',
   'Finding verified businesses nearby...',
   'Loading top destinations...',
   'Almost ready...',
 ];
 
-const Loader = () => {
+export const MERCHANT_PROFILE_LOADER_MESSAGES = [
+  'Opening business profile…',
+  'Fetching photos and details…',
+  'Loading reviews and location…',
+  'Almost ready…',
+];
+
+type LoaderProps = {
+  messages?: string[];
+  tagline?: string;
+};
+
+const Loader = ({
+  messages = DEFAULT_STATUS_MESSAGES,
+  tagline = 'Discover Local',
+}: LoaderProps) => {
   const [messageIndex, setMessageIndex] = useState(0);
 
   useEffect(() => {
+    setMessageIndex(0);
+  }, [messages]);
+
+  useEffect(() => {
     const interval = setInterval(() => {
-      setMessageIndex((prev) => (prev + 1) % STATUS_MESSAGES.length);
+      setMessageIndex((prev) => (prev + 1) % messages.length);
     }, 2200);
     return () => clearInterval(interval);
-  }, []);
+  }, [messages]);
 
   return (
     <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center overflow-hidden bg-gradient-to-br from-white via-primary-50/40 to-secondary-50/30">
@@ -68,7 +87,7 @@ const Loader = () => {
             Finder<span className="bg-gradient-to-r from-secondary-500 to-secondary-400 bg-clip-text text-transparent">B</span>
           </h2>
           <p className="mb-6 text-xs font-semibold uppercase tracking-[0.2em] text-primary-400">
-            Discover Local
+            {tagline}
           </p>
 
           {/* Progress bar */}
@@ -95,7 +114,7 @@ const Loader = () => {
             key={messageIndex}
             className="mt-5 min-h-[1.25rem] text-sm font-medium text-primary-600/80 animate-[fade-in_0.4s_ease-out]"
           >
-            {STATUS_MESSAGES[messageIndex]}
+            {messages[messageIndex]}
           </p>
         </div>
       </div>

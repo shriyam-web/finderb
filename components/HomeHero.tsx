@@ -35,9 +35,10 @@ function HeroLocationField({ compact = false }: { compact?: boolean }) {
         strokeWidth={2.25}
       />
       <span
-        className={`whitespace-nowrap font-semibold text-[#1e293b] ${
+        className={`min-w-0 max-w-[9rem] truncate font-semibold text-[#1e293b] sm:max-w-[11rem] ${
           compact ? 'text-[13px]' : 'text-sm'
         } ${showRetry ? 'text-[#64748b]' : ''}`}
+        title={label}
       >
         {label}
       </span>
@@ -183,7 +184,7 @@ export default function HomeHero({
                   <Mic size={17} strokeWidth={2} className={voiceActive ? 'animate-bounce' : ''} />
                 </button>
               </div>
-              <div className="flex items-center gap-1.5 border-r border-gray-100 px-3.5 py-2.5">
+              <div className="flex min-w-0 items-center gap-1.5 border-r border-gray-100 px-3.5 py-2.5">
                 <HeroLocationField />
               </div>
               <button

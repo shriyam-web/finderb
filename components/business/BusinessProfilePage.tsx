@@ -52,6 +52,7 @@ import { getBusinessShareUrl } from '@/lib/businessSeo';
 import { formatDistanceFromUser } from '@/lib/geo';
 import { useUserCoords } from '@/hooks/useUserCoords';
 import { resolveClientSearchQuery, setLastSearchQuery } from '@/lib/lastSearchQuery';
+import Loader, { MERCHANT_PROFILE_LOADER_MESSAGES } from '@/components/Loader';
 
 const WEEKDAYS = [
   'Monday',
@@ -83,24 +84,6 @@ function getGalleryImages(business: Business): string[] {
     Boolean
   ) as string[];
   return [...new Set(pool)];
-}
-
-function ProfileSkeleton() {
-  return (
-    <div className="min-h-screen bg-[#faf9f7] pt-[4.25rem] sm:pt-24">
-      <div className="mx-auto max-w-4xl animate-pulse space-y-8 px-4 pb-32 sm:px-6">
-        <div className="h-4 w-28 bg-stone-100" />
-        <div className="grid gap-8 md:grid-cols-2">
-          <div className="aspect-[16/10] max-h-[220px] bg-stone-100" />
-          <div className="space-y-3">
-            <div className="h-8 w-2/3 bg-stone-100" />
-            <div className="h-4 w-1/2 bg-stone-100" />
-            <div className="h-20 bg-stone-100" />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
 }
 
 function StarPicker({
@@ -296,7 +279,14 @@ export default function BusinessProfilePage({ id }: { id: string }) {
     setReviewSubmitting(false);
   };
 
-  if (isLoading) return <ProfileSkeleton />;
+  if (isLoading) {
+    return (
+      <Loader
+        tagline="Loading profile"
+        messages={MERCHANT_PROFILE_LOADER_MESSAGES}
+      />
+    );
+  }
 
   if (notFound || !business) {
     return (
