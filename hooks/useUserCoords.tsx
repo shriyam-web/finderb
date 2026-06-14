@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { resolveCityFromCoordinates } from '@/app/actions/location';
+import { geolocateViaGoogleIp } from '@/lib/geolocateClient';
 
 export type UserCoords = { lat: number; lng: number };
 
@@ -35,24 +36,33 @@ const UserLocationContext = createContext<UserLocationContextValue>({
   setSearchLocation: () => {},
 });
 
+const GOOD_ACCURACY_METERS = 80;
+const ACCEPTABLE_ACCURACY_METERS = 250;
+
+function coordsFromPosition(position: GeolocationPosition): UserCoords {
+  return {
+    lat: position.coords.latitude,
+    lng: position.coords.longitude,
+  };
+}
+
 function getCurrentPosition(options: PositionOptions): Promise<{
   coords: UserCoords | null;
+  accuracyMeters: number | null;
   denied: boolean;
   timedOut: boolean;
 }> {
   return new Promise((resolve) => {
     if (typeof window === 'undefined' || !navigator.geolocation) {
-      resolve({ coords: null, denied: true, timedOut: false });
+      resolve({ coords: null, accuracyMeters: null, denied: true, timedOut: false });
       return;
     }
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
         resolve({
-          coords: {
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-          },
+          coords: coordsFromPosition(position),
+          accuracyMeters: position.coords.accuracy,
           denied: false,
           timedOut: false,
         });
@@ -60,6 +70,7 @@ function getCurrentPosition(options: PositionOptions): Promise<{
       (error) => {
         resolve({
           coords: null,
+          accuracyMeters: null,
           denied: error.code === error.PERMISSION_DENIED,
           timedOut: error.code === error.TIMEOUT,
         });
@@ -69,30 +80,115 @@ function getCurrentPosition(options: PositionOptions): Promise<{
   });
 }
 
-/** Network/Wi‑Fi fix first (fast on desktop), then high-accuracy retry. No IP fallback — IP is often wrong (e.g. Delhi vs Lucknow). */
+function watchForBestPosition(timeoutMs: number): Promise<{
+  coords: UserCoords | null;
+  accuracyMeters: number | null;
+  denied: boolean;
+  timedOut: boolean;
+}> {
+  return new Promise((resolve) => {
+    if (typeof window === 'undefined' || !navigator.geolocation) {
+      resolve({ coords: null, accuracyMeters: null, denied: true, timedOut: false });
+      return;
+    }
+
+    let best: { coords: UserCoords; accuracyMeters: number } | null = null;
+    let watchId: number | null = null;
+    let settled = false;
+
+    const finish = (result: {
+      coords: UserCoords | null;
+      accuracyMeters: number | null;
+      denied: boolean;
+      timedOut: boolean;
+    }) => {
+      if (settled) return;
+      settled = true;
+      if (watchId != null) navigator.geolocation.clearWatch(watchId);
+      clearTimeout(timer);
+      resolve(result);
+    };
+
+    const timer = setTimeout(() => {
+      finish({
+        coords: best?.coords ?? null,
+        accuracyMeters: best?.accuracyMeters ?? null,
+        denied: false,
+        timedOut: !best,
+      });
+    }, timeoutMs);
+
+    watchId = navigator.geolocation.watchPosition(
+      (position) => {
+        const accuracyMeters = position.coords.accuracy;
+        const coords = coordsFromPosition(position);
+
+        if (!best || accuracyMeters < best.accuracyMeters) {
+          best = { coords, accuracyMeters };
+        }
+
+        if (accuracyMeters <= GOOD_ACCURACY_METERS) {
+          finish({ coords, accuracyMeters, denied: false, timedOut: false });
+        }
+      },
+      (error) => {
+        finish({
+          coords: best?.coords ?? null,
+          accuracyMeters: best?.accuracyMeters ?? null,
+          denied: error.code === error.PERMISSION_DENIED,
+          timedOut: error.code === error.TIMEOUT,
+        });
+      },
+      { enableHighAccuracy: true, maximumAge: 0, timeout: timeoutMs }
+    );
+  });
+}
+
+/** Browser GPS/Wi‑Fi first; watch briefly for a sharper fix. No IP here — that is a separate fallback. */
 async function tryBrowserGeolocation(): Promise<{
   coords: UserCoords | null;
   denied: boolean;
 }> {
-  const attempts: PositionOptions[] = [
-    { enableHighAccuracy: false, maximumAge: 0, timeout: 12_000 },
-    { enableHighAccuracy: true, maximumAge: 0, timeout: 18_000 },
-  ];
+  const quick = await getCurrentPosition({
+    enableHighAccuracy: true,
+    maximumAge: 0,
+    timeout: 10_000,
+  });
 
-  let denied = false;
-
-  for (const options of attempts) {
-    const result = await getCurrentPosition(options);
-    if (result.coords) {
-      return { coords: result.coords, denied: false };
-    }
-    if (result.denied) {
-      denied = true;
-      break;
+  if (quick.coords) {
+    if (quick.accuracyMeters == null || quick.accuracyMeters <= ACCEPTABLE_ACCURACY_METERS) {
+      return { coords: quick.coords, denied: false };
     }
   }
 
-  return { coords: null, denied };
+  if (quick.denied) {
+    return { coords: null, denied: true };
+  }
+
+  const refined = await watchForBestPosition(12_000);
+  if (refined.coords) {
+    return { coords: refined.coords, denied: false };
+  }
+
+  if (refined.denied) {
+    return { coords: null, denied: true };
+  }
+
+  if (quick.coords) {
+    return { coords: quick.coords, denied: false };
+  }
+
+  const networkFix = await getCurrentPosition({
+    enableHighAccuracy: false,
+    maximumAge: 0,
+    timeout: 8_000,
+  });
+
+  if (networkFix.coords) {
+    return { coords: networkFix.coords, denied: false };
+  }
+
+  return { coords: null, denied: networkFix.denied };
 }
 
 async function readPermissionState(): Promise<LocationPermissionState> {
@@ -164,31 +260,43 @@ export function UserLocationProvider({ children }: { children: ReactNode }) {
     setPermissionState(permission);
 
     if (permission === 'unsupported') {
+      const googleCoords = await geolocateViaGoogleIp();
+      if (googleCoords) {
+        applyCoords(googleCoords);
+        return;
+      }
       setIsLocating(false);
       return;
     }
 
-    if (permission === 'denied') {
+    let browserDenied = false;
+
+    if (permission !== 'denied') {
+      const browserResult = await tryBrowserGeolocation();
+
+      if (browserResult.coords) {
+        setPermissionState('granted');
+        applyCoords(browserResult.coords);
+        return;
+      }
+
+      browserDenied = browserResult.denied;
+    } else {
+      browserDenied = true;
+    }
+
+    const googleCoords = await geolocateViaGoogleIp();
+    if (googleCoords) {
+      setPermissionState(browserDenied ? 'denied' : 'prompt');
+      applyCoords(googleCoords);
+      return;
+    }
+
+    if (browserDenied) {
       setPermissionState('denied');
-      setIsLocating(false);
-      return;
+    } else {
+      setPermissionState('prompt');
     }
-
-    const result = await tryBrowserGeolocation();
-
-    if (result.coords) {
-      setPermissionState('granted');
-      applyCoords(result.coords);
-      return;
-    }
-
-    if (result.denied) {
-      setPermissionState('denied');
-      setIsLocating(false);
-      return;
-    }
-
-    setPermissionState('prompt');
     setIsLocating(false);
   }, [applyCoords]);
 

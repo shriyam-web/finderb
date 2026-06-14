@@ -1,5 +1,6 @@
 'use server';
 
+import { getGoogleMapsServerKeyOrFallback } from '@/lib/googleMapsKeys';
 import {
   buildGoogleMapsUrl,
   extractGoogleMapsSearchQuery,
@@ -27,7 +28,7 @@ async function expandShortGoogleMapsUrl(url: string): Promise<string> {
 async function geocodePlaceQuery(
   query: string
 ): Promise<{ latitude: number; longitude: number; placeName?: string } | null> {
-  const googleKey = process.env.GOOGLE_MAPS_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+  const googleKey = getGoogleMapsServerKeyOrFallback();
 
   if (googleKey) {
     try {
@@ -81,7 +82,7 @@ async function reverseGeocodeCoordinates(
   latitude: number,
   longitude: number
 ): Promise<string | null> {
-  const googleKey = process.env.GOOGLE_MAPS_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+  const googleKey = getGoogleMapsServerKeyOrFallback();
 
   if (googleKey) {
     try {
@@ -232,7 +233,7 @@ type ResolvedUserLocation = {
 };
 
 async function reverseGeocodeCity(latitude: number, longitude: number): Promise<ResolvedUserLocation | null> {
-  const googleKey = process.env.GOOGLE_MAPS_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+  const googleKey = getGoogleMapsServerKeyOrFallback();
 
   if (googleKey) {
     try {
