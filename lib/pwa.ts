@@ -51,16 +51,16 @@ export interface BeforeInstallPromptEvent extends Event {
 export const PWA_COPY = {
   brandName: 'FinderB',
   bar: {
-    title: 'Install FinderB App',
+    title: 'Install FinderB Web App',
     subtitle: 'Quick access to local services near you',
   },
   modal: {
-    title: 'Install our app for the best experience',
+    title: 'Install our Web App for the best experience',
     subtitle:
       'Get instant access to verified businesses, search, and updates — right from your home screen.',
   },
   install: 'Install',
-  installNow: 'Install App Now',
+  installNow: 'Install Web App',
   installing: 'Installing…',
   later: 'Maybe later',
   dismiss: "Don't show again",

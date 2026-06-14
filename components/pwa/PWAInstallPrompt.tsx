@@ -102,7 +102,7 @@ export default function PWAInstallPrompt() {
 
   return (
     <>
-      <div className="fixed inset-x-0 bottom-[4.75rem] z-[70] border-t border-slate-200/90 bg-white/95 p-3 shadow-[0_-8px_30px_rgba(0,0,0,0.12)] backdrop-blur-md md:hidden">
+      <div className="fixed inset-x-0 bottom-[calc(5.75rem+env(safe-area-inset-bottom,0px))] z-[10000] border-t border-slate-200/90 bg-white/95 p-3 shadow-[0_-8px_30px_rgba(0,0,0,0.12)] backdrop-blur-md md:hidden">
         <div className="mx-auto flex max-w-lg items-center gap-3">
           <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-slate-50 ring-1 ring-slate-200/80">
             <Image
@@ -137,14 +137,14 @@ export default function PWAInstallPrompt() {
       </div>
 
       {showModal && (
-        <div className="fixed inset-0 z-[80] flex items-end justify-center bg-black/50 p-4 backdrop-blur-sm sm:items-center md:hidden">
+        <div className="fixed inset-0 z-[10050] flex items-end justify-center bg-black/50 p-4 pb-[calc(5.75rem+env(safe-area-inset-bottom,0px))] backdrop-blur-sm sm:items-center sm:pb-4 md:hidden">
           <div
             role="dialog"
             aria-modal="true"
             aria-labelledby="finderb-pwa-install-title"
             className="w-full max-w-md overflow-hidden rounded-3xl bg-white shadow-2xl"
           >
-            <div className="bg-gradient-to-br from-[#215481] to-[#0f172a] px-6 pb-8 pt-6 text-white">
+            <div className="bg-gradient-to-br from-[#215481] to-[#0f172a] px-6 pb-8 pt-6">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl bg-white/10 ring-1 ring-white/20">
@@ -157,12 +157,12 @@ export default function PWAInstallPrompt() {
                     />
                   </div>
                   <div>
-                    <p className="text-xs uppercase tracking-widest text-white/70">
+                    <p className="text-xs uppercase tracking-widest text-white/80">
                       {PWA_COPY.brandName}
                     </p>
                     <h2
                       id="finderb-pwa-install-title"
-                      className="text-lg font-semibold leading-tight text-white"
+                      className="text-lg font-semibold leading-tight !text-white"
                     >
                       {PWA_COPY.modal.title}
                     </h2>
@@ -171,13 +171,13 @@ export default function PWAInstallPrompt() {
                 <button
                   type="button"
                   onClick={handleLater}
-                  className="rounded-full p-2 text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+                  className="rounded-full p-2 text-white/80 transition-colors hover:bg-white/10 hover:text-white"
                   aria-label={PWA_COPY.later}
                 >
                   <X size={18} />
                 </button>
               </div>
-              <p className="mt-4 text-sm leading-relaxed text-white/85">{PWA_COPY.modal.subtitle}</p>
+              <p className="mt-4 text-sm leading-relaxed !text-white/90">{PWA_COPY.modal.subtitle}</p>
             </div>
 
             <div className="space-y-4 px-6 py-5">
