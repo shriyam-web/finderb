@@ -147,7 +147,7 @@ export default function PWAInstallPrompt() {
             <div className="bg-gradient-to-br from-[#215481] to-[#0f172a] px-6 pb-8 pt-6">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl bg-white/10 ring-1 ring-white/20">
+                  <div className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl bg-white ring-1 ring-white/30">
                     <Image
                       src="/icon.png"
                       alt=""
@@ -210,42 +210,41 @@ export default function PWAInstallPrompt() {
                 </ul>
               )}
 
-              {!isIosGuide && deferredPrompt && (
-                <button
-                  type="button"
-                  onClick={handleInstall}
-                  disabled={installing}
-                  className="inline-flex h-12 w-full items-center justify-center rounded-2xl bg-[#215481] text-base font-semibold text-white transition-colors hover:bg-[#1a4368] disabled:opacity-70"
-                >
-                  <Download size={18} className="mr-2" />
-                  {installing ? PWA_COPY.installing : PWA_COPY.installNow}
-                </button>
-              )}
-
-              {!isIosGuide && !deferredPrompt && (
-                <p className="rounded-xl bg-blue-50 px-4 py-3 text-sm leading-relaxed text-slate-700">
-                  {PWA_COPY.androidFallback}
-                </p>
-              )}
-
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={handleLater}
-                  className="h-11 flex-1 rounded-xl border border-slate-200 bg-white text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
-                >
-                  {PWA_COPY.later}
-                </button>
-                {!isIosGuide && (
+              {!isIosGuide && deferredPrompt ? (
+                <div className="flex gap-3">
                   <button
                     type="button"
-                    onClick={handleDismiss}
-                    className="h-11 flex-1 rounded-xl text-sm font-medium text-slate-500 transition-colors hover:bg-slate-100"
+                    onClick={handleLater}
+                    className="h-11 flex-1 rounded-xl border border-slate-200 bg-white text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
                   >
-                    {PWA_COPY.dismiss}
+                    {PWA_COPY.later}
                   </button>
-                )}
-              </div>
+                  <button
+                    type="button"
+                    onClick={handleInstall}
+                    disabled={installing}
+                    className="inline-flex h-11 flex-1 items-center justify-center rounded-xl bg-[#215481] text-sm font-semibold text-white transition-colors hover:bg-[#1a4368] disabled:opacity-70"
+                  >
+                    <Download size={16} className="mr-1.5" />
+                    {installing ? PWA_COPY.installing : PWA_COPY.installNow}
+                  </button>
+                </div>
+              ) : (
+                <>
+                  {!isIosGuide && !deferredPrompt && (
+                    <p className="rounded-xl bg-blue-50 px-4 py-3 text-sm leading-relaxed text-slate-700">
+                      {PWA_COPY.androidFallback}
+                    </p>
+                  )}
+                  <button
+                    type="button"
+                    onClick={handleLater}
+                    className="h-11 w-full rounded-xl border border-slate-200 bg-white text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
+                  >
+                    {PWA_COPY.later}
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>

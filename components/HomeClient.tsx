@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import CategoryIcon from '@/components/CategoryIcon';
 import MobileHome from '@/components/MobileHome';
+import NativeAppsComingSoon from '@/components/NativeAppsComingSoon';
 import MerchantListingRating from '@/components/business/MerchantListingRating';
 import HomeHero from '@/components/HomeHero';
 import SubcategoryScrollRow from '@/components/SubcategoryScrollRow';
@@ -1115,6 +1116,8 @@ export default function HomeClient({ initialData }: { initialData: any }) {
           </div>
         </div>
       </section>
+
+      <NativeAppsComingSoon />
 
       {/* Testimonials Section */}
       <section className="relative overflow-hidden bg-slate-50 py-6 lg:py-12">
