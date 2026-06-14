@@ -65,6 +65,11 @@ export const metadata: Metadata = {
     google: "google-site-verification-placeholder", // User should replace this
   },
   category: "Business",
+  appleWebApp: {
+    capable: true,
+    title: "FinderB",
+    statusBarStyle: "default",
+  },
   icons: {
     icon: "/icon.png",
     apple: "/icon.png",

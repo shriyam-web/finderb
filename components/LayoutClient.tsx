@@ -7,6 +7,8 @@ import Footer from "@/components/Footer";
 import Loader from "@/components/Loader";
 import BottomNavbar from "@/components/BottomNavbar";
 import LocationPermissionPrompt from "@/components/LocationPermissionPrompt";
+import ServiceWorkerRegister from "@/components/pwa/ServiceWorkerRegister";
+import PWAInstallPrompt from "@/components/pwa/PWAInstallPrompt";
 import { UserLocationProvider } from '@/hooks/useUserCoords';
 
 export default function LayoutClient({ children }: { children: React.ReactNode }) {
@@ -41,6 +43,8 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
           </Suspense>
           {showBottomNav && <BottomNavbar />}
           {showLocationPrompt && <LocationPermissionPrompt appReady />}
+          <ServiceWorkerRegister />
+          <PWAInstallPrompt />
         </div>
       )}
     </UserLocationProvider>
