@@ -3,6 +3,7 @@ import Image from 'next/image';
 import type { ReactNode } from 'react';
 import { Mail, Phone, MapPin, Smartphone, Store } from 'lucide-react';
 import AppStoreIcon from '@/components/icons/AppStoreIcon';
+import IndianFlagIcon from '@/components/icons/IndianFlagIcon';
 import {
   FaFacebook,
   FaInstagram,
@@ -152,12 +153,7 @@ function SocialButton({ label, href, icon, brandClass }: (typeof FOOTER_SOCIAL_L
 function MadeInIndiaBadge() {
   return (
     <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-medium text-slate-600 shadow-sm">
-      <span className="relative flex h-3 w-4 overflow-hidden rounded-[2px] shadow-sm" aria-hidden>
-        <span className="absolute inset-0 bg-[#FF9933]" />
-        <span className="absolute inset-x-0 top-1/3 h-1/3 bg-white" />
-        <span className="absolute inset-x-0 bottom-0 top-2/3 bg-[#138808]" />
-        <span className="absolute left-1/2 top-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#000080]/30 bg-[#000080]/10" />
-      </span>
+      <IndianFlagIcon className="h-3.5 w-[21px] shrink-0 rounded-[2px] shadow-sm ring-1 ring-black/5" />
       Made in India
     </span>
   );
