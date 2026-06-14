@@ -8,6 +8,7 @@ import Loader from "@/components/Loader";
 import BottomNavbar from "@/components/BottomNavbar";
 import LocationPermissionPrompt from "@/components/LocationPermissionPrompt";
 import PWAInstallPrompt from "@/components/pwa/PWAInstallPrompt";
+import ScrollRestoration from "@/components/ScrollRestoration";
 import { UserLocationProvider } from '@/hooks/useUserCoords';
 
 export default function LayoutClient({ children }: { children: React.ReactNode }) {
@@ -34,6 +35,9 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
         <Loader />
       ) : (
         <div className={`flex flex-col min-h-screen ${showBottomNav ? 'pb-[6.75rem] lg:pb-0' : ''}`}>
+          <Suspense fallback={null}>
+            <ScrollRestoration />
+          </Suspense>
           {!hideTopNavFooter && <Navbar />}
           <Suspense fallback={<div className="flex-grow bg-white" />}>
             <main className="min-w-0 flex-grow overflow-x-hidden">
