@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import {
   Search,
@@ -9,7 +10,7 @@ import {
   Mic,
   RefreshCw,
 } from 'lucide-react';
-import { HERO_TRUST_BADGES, POPULAR_SEARCHES } from '@/lib/homeHeroConstants';
+import { HERO_TRUST_BADGES, POPULAR_SEARCHES, HERO_POPULAR_CITIES } from '@/lib/homeHeroConstants';
 import { useUserLocationState } from '@/hooks/useUserCoords';
 
 type HomeHeroProps = {
@@ -22,44 +23,135 @@ type HomeHeroProps = {
 };
 
 function HeroLocationField({ compact = false }: { compact?: boolean }) {
-  const { userCity, isLocating, isResolvingCity, requestLocation } = useUserLocationState();
+  const {
+    effectiveSearchLocation,
+    isLocating,
+    isResolvingCity,
+    requestLocation,
+    setSearchLocation,
+  } = useUserLocationState();
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+
   const isPending = isLocating || isResolvingCity;
-  const label = userCity || (isPending ? 'Detecting…' : 'Near you');
-  const showRetry = !userCity && !isPending;
+  const label = effectiveSearchLocation || (isPending ? 'Detecting…' : 'Near you');
+  const showRetry = !effectiveSearchLocation && !isPending;
+
+  useEffect(() => {
+    if (!open) return;
+
+    const onPointerDown = (event: MouseEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', onPointerDown);
+    return () => document.removeEventListener('mousedown', onPointerDown);
+  }, [open]);
+
+  const handleUseMyLocation = () => {
+    setSearchLocation(null);
+    requestLocation();
+    setOpen(false);
+  };
+
+  const handlePickCity = (city: string) => {
+    setSearchLocation(city);
+    setOpen(false);
+  };
 
   return (
-    <>
-      <MapPin
-        size={compact ? 17 : 16}
-        className="shrink-0 text-[#2563eb]"
-        strokeWidth={2.25}
-      />
-      <span
-        className={`min-w-0 max-w-[9rem] truncate font-semibold text-[#1e293b] sm:max-w-[11rem] ${
-          compact ? 'text-[13px]' : 'text-sm'
-        } ${showRetry ? 'text-[#64748b]' : ''}`}
-        title={label}
-      >
-        {label}
-      </span>
-      {showRetry ? (
-        <button
-          type="button"
-          onClick={requestLocation}
-          className={`inline-flex shrink-0 items-center gap-1 rounded-md font-semibold text-[#2563eb] transition-colors hover:bg-[#2563eb]/10 ${
-            compact ? 'px-1.5 py-0.5 text-[11px]' : 'px-2 py-1 text-xs'
+    <div ref={rootRef} className={`relative min-w-0 ${compact ? 'flex-1' : ''}`}>
+      <div className={`flex items-center gap-1.5 ${compact ? 'w-full' : ''}`}>
+        <MapPin
+          size={compact ? 17 : 16}
+          className="shrink-0 text-[#2563eb]"
+          strokeWidth={2.25}
+        />
+        <span
+          className={`min-w-0 flex-1 truncate font-semibold text-[#1e293b] ${
+            compact ? 'text-[13px]' : 'text-sm'
+          } ${showRetry ? 'text-[#64748b]' : ''}`}
+          title={label}
+        >
+          {label}
+        </span>
+        {showRetry ? (
+          <button
+            type="button"
+            onClick={requestLocation}
+            className={`inline-flex shrink-0 items-center gap-1 rounded-md font-semibold text-[#2563eb] transition-colors hover:bg-[#2563eb]/10 ${
+              compact ? 'px-1.5 py-0.5 text-[11px]' : 'px-2 py-1 text-xs'
+            }`}
+          >
+            <RefreshCw size={compact ? 12 : 13} strokeWidth={2.25} />
+            Retry
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setOpen((prev) => !prev)}
+            aria-expanded={open}
+            aria-haspopup="listbox"
+            aria-label="Change search location"
+            className={`inline-flex shrink-0 items-center justify-center rounded-md text-[#64748b] transition-colors hover:bg-slate-100 hover:text-[#2563eb] ${
+              compact ? 'h-7 w-7' : 'h-8 w-8'
+            } ${open ? 'bg-slate-100 text-[#2563eb]' : ''}`}
+          >
+            <ChevronDown
+              size={compact ? 15 : 14}
+              className={`transition-transform ${open ? 'rotate-180' : ''}`}
+            />
+          </button>
+        )}
+      </div>
+
+      {open && (
+        <div
+          role="listbox"
+          aria-label="Choose location"
+          className={`absolute z-50 mt-2 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl ring-1 ring-black/5 ${
+            compact ? 'left-0 right-0' : 'left-0 w-[min(100%,16rem)]'
           }`}
         >
-          <RefreshCw size={compact ? 12 : 13} strokeWidth={2.25} />
-          Retry
-        </button>
-      ) : (
-        <ChevronDown
-          size={compact ? 15 : 14}
-          className={`shrink-0 text-[#94a3b8] ${compact ? 'ml-auto' : ''}`}
-        />
+          <button
+            type="button"
+            onClick={handleUseMyLocation}
+            className="flex w-full items-center gap-2 border-b border-slate-100 px-3 py-2.5 text-left text-xs font-semibold text-[#2563eb] transition-colors hover:bg-blue-50"
+          >
+            <MapPin size={14} strokeWidth={2.25} />
+            Use my current location
+          </button>
+          <p className="px-3 pb-1 pt-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+            Popular cities
+          </p>
+          <ul className="max-h-48 overflow-y-auto pb-1">
+            {HERO_POPULAR_CITIES.map((city) => {
+              const selected =
+                effectiveSearchLocation?.toLowerCase() === city.toLowerCase() ||
+                effectiveSearchLocation?.toLowerCase().endsWith(city.toLowerCase());
+              return (
+                <li key={city}>
+                  <button
+                    type="button"
+                    role="option"
+                    aria-selected={selected}
+                    onClick={() => handlePickCity(city)}
+                    className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-slate-50 ${
+                      selected ? 'bg-blue-50/80 font-semibold text-[#2563eb]' : 'text-slate-700'
+                    }`}
+                  >
+                    <MapPin size={13} className={selected ? 'text-[#2563eb]' : 'text-slate-400'} />
+                    {city}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
       )}
-    </>
+    </div>
   );
 }
 
@@ -159,7 +251,7 @@ export default function HomeHero({
 
         <div className={`${isDesktop ? 'mt-4 max-w-2xl' : 'mt-3 px-4'}`}>
           {isDesktop ? (
-            <div className="flex items-stretch overflow-hidden rounded-xl border border-gray-100/80 bg-white shadow-[0_4px_20px_rgba(15,23,42,0.07)]">
+            <div className="flex items-stretch overflow-visible rounded-xl border border-gray-100/80 bg-white shadow-[0_4px_20px_rgba(15,23,42,0.07)]">
               <div className="flex min-w-0 flex-[1.4] items-center gap-2 border-r border-gray-100 px-3.5 py-2.5">
                 <Search size={18} className="shrink-0 text-[#94a3b8]" strokeWidth={2} />
                 <input
@@ -184,7 +276,7 @@ export default function HomeHero({
                   <Mic size={17} strokeWidth={2} className={voiceActive ? 'animate-bounce' : ''} />
                 </button>
               </div>
-              <div className="flex min-w-0 items-center gap-1.5 border-r border-gray-100 px-3.5 py-2.5">
+              <div className="relative flex min-w-0 flex-[1.1] items-center border-r border-gray-100 px-3.5 py-2.5">
                 <HeroLocationField />
               </div>
               <button
@@ -197,75 +289,75 @@ export default function HomeHero({
               </button>
             </div>
           ) : (
-          <div className="overflow-hidden rounded-2xl border border-gray-100/80 bg-white text-left shadow-[0_8px_30px_rgba(15,23,42,0.08)]">
-            <div className="flex items-center gap-2 border-b border-gray-100 px-3.5 py-3">
-              <Search size={18} className="shrink-0 text-[#94a3b8]" strokeWidth={2} />
-              <input
-                type="text"
-                value={manualQuery}
-                disabled={voiceActive}
-                onChange={(e) => onQueryChange(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && !voiceActive && onSearch()}
-                placeholder="Search anything... (e.g. Dentist, CA, Gym, Salon)"
-                className="min-w-0 flex-1 border-none bg-transparent text-[13px] text-[#334155] placeholder:text-[#94a3b8] focus:ring-0 disabled:opacity-50"
-              />
+            <div className="overflow-visible rounded-2xl border border-gray-100/80 bg-white text-left shadow-[0_8px_30px_rgba(15,23,42,0.08)]">
+              <div className="flex items-center gap-2 border-b border-gray-100 px-3.5 py-3">
+                <Search size={18} className="shrink-0 text-[#94a3b8]" strokeWidth={2} />
+                <input
+                  type="text"
+                  value={manualQuery}
+                  disabled={voiceActive}
+                  onChange={(e) => onQueryChange(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && !voiceActive && onSearch()}
+                  placeholder="Search anything... (e.g. Dentist, CA, Gym, Salon)"
+                  className="min-w-0 flex-1 border-none bg-transparent text-[13px] text-[#334155] placeholder:text-[#94a3b8] focus:ring-0 disabled:opacity-50"
+                />
+                <button
+                  type="button"
+                  onClick={onVoiceSearch}
+                  aria-label={voiceActive ? 'Stop voice search' : 'Start voice search'}
+                  className={`shrink-0 rounded-lg p-1 transition-all ${
+                    voiceActive
+                      ? 'bg-red-500 text-white animate-pulse'
+                      : 'text-[#94a3b8] hover:bg-slate-50 hover:text-[#2563eb]'
+                  }`}
+                >
+                  <Mic size={18} strokeWidth={2} className={voiceActive ? 'animate-bounce' : ''} />
+                </button>
+              </div>
+
+              <div className="border-b border-gray-100 px-3.5 py-2.5">
+                <HeroLocationField compact />
+              </div>
+
               <button
                 type="button"
-                onClick={onVoiceSearch}
-                aria-label={voiceActive ? 'Stop voice search' : 'Start voice search'}
-                className={`shrink-0 rounded-lg p-1 transition-all ${
-                  voiceActive
-                    ? 'bg-red-500 text-white animate-pulse'
-                    : 'text-[#94a3b8] hover:bg-slate-50 hover:text-[#2563eb]'
-                }`}
+                onClick={() => onSearch()}
+                className="flex w-full items-center justify-center gap-2 bg-[#2563eb] py-3.5 text-[15px] font-bold text-white active:bg-[#1d4ed8]"
               >
-                <Mic size={18} strokeWidth={2} className={voiceActive ? 'animate-bounce' : ''} />
+                <Search size={18} strokeWidth={2.5} />
+                Search
               </button>
             </div>
-
-            <div className="flex items-center gap-2 border-b border-gray-100 px-3.5 py-2.5">
-              <HeroLocationField compact />
-            </div>
-
-            <button
-              type="button"
-              onClick={() => onSearch()}
-              className="flex w-full items-center justify-center gap-2 bg-[#2563eb] py-3.5 text-[15px] font-bold text-white active:bg-[#1d4ed8]"
-            >
-              <Search size={18} strokeWidth={2.5} />
-              Search
-            </button>
-          </div>
           )}
         </div>
 
         {!isDesktop && (
-        <div className="mt-5 px-4">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-[15px] font-bold text-[#0f172a]">Popular Searches</h2>
-            <button
-              type="button"
-              onClick={() => onSearch()}
-              className="flex items-center gap-0.5 text-[13px] font-semibold text-[#2563eb]"
-            >
-              View All
-              <ChevronRight size={16} strokeWidth={2.25} />
-            </button>
-          </div>
-          <div className="scrollbar-hide flex gap-2 overflow-x-auto pb-0.5">
-            {POPULAR_SEARCHES.map(({ term, icon: Icon, iconColor }) => (
+          <div className="mt-5 px-4">
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-[15px] font-bold text-[#0f172a]">Popular Searches</h2>
               <button
-                key={term}
                 type="button"
-                onClick={() => onSearch(term)}
-                className="flex shrink-0 items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3.5 py-2 text-[12px] font-semibold text-[#334155] shadow-[0_1px_3px_rgba(0,0,0,0.06)]"
+                onClick={() => onSearch()}
+                className="flex items-center gap-0.5 text-[13px] font-semibold text-[#2563eb]"
               >
-                <Icon size={15} className={`shrink-0 ${iconColor}`} strokeWidth={2} />
-                {term}
+                View All
+                <ChevronRight size={16} strokeWidth={2.25} />
               </button>
-            ))}
+            </div>
+            <div className="scrollbar-hide flex gap-2 overflow-x-auto pb-0.5">
+              {POPULAR_SEARCHES.map(({ term, icon: Icon, iconColor }) => (
+                <button
+                  key={term}
+                  type="button"
+                  onClick={() => onSearch(term)}
+                  className="flex shrink-0 items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3.5 py-2 text-[12px] font-semibold text-[#334155] shadow-[0_1px_3px_rgba(0,0,0,0.06)]"
+                >
+                  <Icon size={15} className={`shrink-0 ${iconColor}`} strokeWidth={2} />
+                  {term}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
         )}
       </div>
     </section>

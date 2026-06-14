@@ -13,7 +13,7 @@ import {
   type BeforeInstallPromptEvent,
 } from '@/lib/pwa';
 
-export default function PWAInstallPrompt() {
+export default function PWAInstallPrompt({ appReady = true }: { appReady?: boolean }) {
   const pathname = usePathname();
   const [visible, setVisible] = useState(false);
   const [showModal, setShowModal] = useState(false);
@@ -24,7 +24,7 @@ export default function PWAInstallPrompt() {
   const isDashboard = pathname?.includes('/dashboard') ?? false;
 
   useEffect(() => {
-    if (isDashboard || isStandaloneMode() || !shouldShowInstallPrompt()) return;
+    if (!appReady || isDashboard || isStandaloneMode() || !shouldShowInstallPrompt()) return;
 
     setVisible(true);
 
@@ -36,7 +36,7 @@ export default function PWAInstallPrompt() {
       }, 1200);
       return () => window.clearTimeout(timer);
     }
-  }, [isDashboard, pathname]);
+  }, [appReady, isDashboard, pathname]);
 
   useEffect(() => {
     if (isDashboard) return;
@@ -98,7 +98,7 @@ export default function PWAInstallPrompt() {
     setVisible(false);
   }, []);
 
-  if (isDashboard || !visible || isStandaloneMode()) return null;
+  if (!appReady || isDashboard || !visible || isStandaloneMode()) return null;
 
   return (
     <>

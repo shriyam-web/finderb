@@ -3,7 +3,6 @@ import { Inter, Outfit } from "next/font/google";
 import "./globals.css";
 import LayoutClient from "@/components/LayoutClient";
 import ServiceWorkerRegister from "@/components/pwa/ServiceWorkerRegister";
-import PWAInstallPrompt from "@/components/pwa/PWAInstallPrompt";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -135,7 +134,6 @@ export default function RootLayout({
           {children}
         </LayoutClient>
         <ServiceWorkerRegister />
-        <PWAInstallPrompt />
       </body>
     </html>
   );

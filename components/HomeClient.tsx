@@ -48,7 +48,8 @@ import { getMovies } from '@/app/actions/movie';
 import { getTouristPlaces } from '@/app/actions/touristPlace';
 import { getBlogs } from '@/app/actions/blog';
 import { getSession } from '@/app/actions/user';
-import { useUserCoords } from '@/hooks/useUserCoords';
+import { useUserCoords, useUserLocationState } from '@/hooks/useUserCoords';
+import { appendLocationToSearchQuery } from '@/lib/searchQuery';
 import { formatDistanceFromUser } from '@/lib/geo';
 import {
   createVoiceRecognition,
@@ -126,6 +127,7 @@ export default function HomeClient({ initialData }: { initialData: any }) {
   const voiceSilenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const voiceSearchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const userCoords = useUserCoords();
+  const { effectiveSearchLocation } = useUserLocationState();
 
   /** Silence while speaking → show what you said. */
   const VOICE_SILENCE_MS = 2000;
@@ -177,12 +179,13 @@ export default function HomeClient({ initialData }: { initialData: any }) {
     (q: string) => {
       const trimmed = normalizeVoiceTranscript(q);
       if (!trimmed) return;
+      const withLocation = appendLocationToSearchQuery(trimmed, effectiveSearchLocation);
       cancelVoiceSession();
       setManualQuery('');
       manualQueryRef.current = '';
-      router.push(`/categories?search=${encodeURIComponent(trimmed)}`, { scroll: false });
+      router.push(`/categories?search=${encodeURIComponent(withLocation)}`, { scroll: false });
     },
-    [router, cancelVoiceSession]
+    [router, cancelVoiceSession, effectiveSearchLocation]
   );
 
   const handleManualSearch = useCallback(

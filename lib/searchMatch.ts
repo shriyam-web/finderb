@@ -103,7 +103,7 @@ export function parseNaturalSearchQuery(query: string): ParsedSearchQuery {
   text = text.replace(/\b(near|around|close to)\s+me\b/g, ' ').trim();
 
   let locationHint: string | null = null;
-  const inAtMatch = text.match(/\b(?:in|at)\s+([a-z][a-z\s-]{1,40})\s*$/i);
+  const inAtMatch = text.match(/\b(?:in|at|near)\s+(.+)$/i);
   if (inAtMatch) {
     const loc = inAtMatch[1].trim().replace(/\s+/g, ' ');
     if (loc && loc !== 'me' && !STOP_WORDS.has(loc)) {
@@ -344,7 +344,12 @@ export function businessMatchesNaturalSearch(
       .filter((f) => f != null)
       .map((f) => normalizeSearchQuery(String(f)))
       .join(' ');
-    return locBlob.includes(parsed.locationHint);
+    const hintParts = parsed.locationHint
+      .split(',')
+      .map((part) => part.trim().toLowerCase())
+      .filter(Boolean);
+    if (hintParts.length === 0) return true;
+    return hintParts.some((part) => locBlob.includes(part));
   }
 
   return true;

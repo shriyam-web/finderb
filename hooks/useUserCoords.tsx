@@ -10,19 +10,25 @@ export type LocationPermissionState = 'granted' | 'denied' | 'prompt' | 'unsuppo
 type UserLocationContextValue = {
   userCoords: UserCoords | null;
   userCity: string | null;
+  searchLocation: string | null;
+  effectiveSearchLocation: string | null;
   isLocating: boolean;
   isResolvingCity: boolean;
   permissionState: LocationPermissionState;
   requestLocation: () => void;
+  setSearchLocation: (location: string | null) => void;
 };
 
 const UserLocationContext = createContext<UserLocationContextValue>({
   userCoords: null,
   userCity: null,
+  searchLocation: null,
+  effectiveSearchLocation: null,
   isLocating: true,
   isResolvingCity: false,
   permissionState: 'unknown',
   requestLocation: () => {},
+  setSearchLocation: () => {},
 });
 
 function getCurrentPosition(options: PositionOptions): Promise<{
@@ -105,12 +111,19 @@ async function readPermissionState(): Promise<LocationPermissionState> {
 export function UserLocationProvider({ children }: { children: ReactNode }) {
   const [userCoords, setUserCoords] = useState<UserCoords | null>(null);
   const [userCity, setUserCity] = useState<string | null>(null);
+  const [searchLocation, setSearchLocationState] = useState<string | null>(null);
   const [isLocating, setIsLocating] = useState(true);
   const [isResolvingCity, setIsResolvingCity] = useState(false);
   const [permissionState, setPermissionState] = useState<LocationPermissionState>('unknown');
   const permissionStatusRef = useRef<PermissionStatus | null>(null);
   const hasAutoRequestedRef = useRef(false);
   const cityRequestRef = useRef(0);
+
+  const effectiveSearchLocation = searchLocation ?? userCity;
+
+  const setSearchLocation = useCallback((location: string | null) => {
+    setSearchLocationState(location?.trim() || null);
+  }, []);
 
   const applyCoords = useCallback((coords: UserCoords) => {
     setUserCoords(coords);
@@ -216,7 +229,17 @@ export function UserLocationProvider({ children }: { children: ReactNode }) {
 
   return (
     <UserLocationContext.Provider
-      value={{ userCoords, userCity, isLocating, isResolvingCity, permissionState, requestLocation }}
+      value={{
+        userCoords,
+        userCity,
+        searchLocation,
+        effectiveSearchLocation,
+        isLocating,
+        isResolvingCity,
+        permissionState,
+        requestLocation,
+        setSearchLocation,
+      }}
     >
       {children}
     </UserLocationContext.Provider>
