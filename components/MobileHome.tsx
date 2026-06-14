@@ -200,7 +200,7 @@ export default function MobileHome({
                   <div className="space-y-1 p-3">
                     <p className="flex items-center gap-1 text-[13px] font-bold text-[#0f2a4a]">
                       <span className="min-w-0 truncate">{biz.name}</span>
-                      {(biz.isFinderBVerified || biz.hasVerifiedBadge || biz.isVerified) && (
+                      {(biz.isFinderBVerified || biz.hasVerifiedBadge) && (
                         <VerifiedNameTick size={13} className="shrink-0" />
                       )}
                     </p>

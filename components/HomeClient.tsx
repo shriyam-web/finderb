@@ -822,7 +822,7 @@ export default function HomeClient({ initialData }: { initialData: any }) {
                           <div className="space-y-1.5 p-3">
                             <p className="flex items-center gap-1 text-[14px] font-semibold text-[#1e293b] group-hover:text-[#2563eb]">
                               <span className="min-w-0 truncate">{biz.name}</span>
-                              {(biz.isFinderBVerified || biz.hasVerifiedBadge || biz.isVerified) && (
+                              {(biz.isFinderBVerified || biz.hasVerifiedBadge) && (
                                 <VerifiedNameTick size={14} className="shrink-0" />
                               )}
                             </p>
