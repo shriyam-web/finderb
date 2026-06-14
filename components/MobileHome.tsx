@@ -7,7 +7,6 @@ import {
   MapPin,
   ChevronRight,
   TrendingUp,
-  Check,
   ShieldCheck,
   MessageSquare,
   RefreshCw,
@@ -16,6 +15,7 @@ import {
 } from 'lucide-react';
 import CategoryIcon from '@/components/CategoryIcon';
 import MerchantListingRating from '@/components/business/MerchantListingRating';
+import { VerifiedNameTick } from '@/components/business/VerifiedMark';
 import HomeHero from '@/components/HomeHero';
 import { Business, Category } from '@/lib/mockData';
 import { formatDistanceFromUser } from '@/lib/geo';
@@ -196,13 +196,14 @@ export default function MobileHome({
                       className="object-cover"
                       sizes="200px"
                     />
-                    <div className="absolute right-2 top-2 flex items-center gap-0.5 rounded bg-[#22c55e] px-1.5 py-0.5">
-                      <Check size={9} className="text-white" strokeWidth={3} />
-                      <span className="text-[8px] font-bold uppercase text-white">Verified</span>
-                    </div>
                   </div>
                   <div className="space-y-1 p-3">
-                    <p className="line-clamp-1 text-[13px] font-bold text-[#0f2a4a]">{biz.name}</p>
+                    <p className="flex items-center gap-1 text-[13px] font-bold text-[#0f2a4a]">
+                      <span className="min-w-0 truncate">{biz.name}</span>
+                      {(biz.isFinderBVerified || biz.hasVerifiedBadge || biz.isVerified) && (
+                        <VerifiedNameTick size={13} className="shrink-0" />
+                      )}
+                    </p>
                     <p className="line-clamp-1 text-[11px] text-[#94a3b8]">{biz.category}</p>
                     <MerchantListingRating
                       rating={biz.rating}

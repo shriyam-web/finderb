@@ -6,6 +6,7 @@ import CategoryIcon from '@/components/CategoryIcon';
 import MobileHome from '@/components/MobileHome';
 import NativeAppsComingSoon from '@/components/NativeAppsComingSoon';
 import MerchantListingRating from '@/components/business/MerchantListingRating';
+import { VerifiedNameTick } from '@/components/business/VerifiedMark';
 import HomeHero from '@/components/HomeHero';
 import SubcategoryScrollRow from '@/components/SubcategoryScrollRow';
 import NewsWidget from '@/components/NewsWidget';
@@ -31,7 +32,6 @@ import {
   ChevronRight,
   TrendingUp,
   ShieldCheck,
-  Check,
   RefreshCw,
   Phone,
   X,
@@ -818,16 +818,13 @@ export default function HomeClient({ initialData }: { initialData: any }) {
                               className="object-cover transition-transform duration-300 group-hover:scale-105"
                               sizes="(max-width: 1280px) 25vw"
                             />
-                            <div className="absolute right-2 top-2 flex items-center gap-1 rounded bg-[#22c55e] px-1.5 py-0.5 shadow-sm">
-                              <Check size={10} className="text-white" strokeWidth={3} />
-                              <span className="text-[9px] font-bold uppercase tracking-wide text-white">
-                                Verified
-                              </span>
-                            </div>
                           </div>
                           <div className="space-y-1.5 p-3">
-                            <p className="line-clamp-1 text-[14px] font-semibold text-[#1e293b] group-hover:text-[#2563eb]">
-                              {biz.name}
+                            <p className="flex items-center gap-1 text-[14px] font-semibold text-[#1e293b] group-hover:text-[#2563eb]">
+                              <span className="min-w-0 truncate">{biz.name}</span>
+                              {(biz.isFinderBVerified || biz.hasVerifiedBadge || biz.isVerified) && (
+                                <VerifiedNameTick size={14} className="shrink-0" />
+                              )}
                             </p>
                             <p className="line-clamp-1 text-[12px] text-[#94a3b8]">{biz.category}</p>
                             <MerchantListingRating

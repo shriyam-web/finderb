@@ -4,6 +4,7 @@ import { createClient } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import { buildJobApplicationMessage } from '@/lib/jobLeadMessage';
+import { formatMerchantName } from '@/lib/formatMerchantName';
 
 export async function createJob(data: {
   title: string;
@@ -151,8 +152,20 @@ export async function getAllJobs() {
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    
-    return { success: true, jobs };
+
+    const normalizedJobs = (jobs ?? []).map((job) => {
+      if (!job.business || typeof job.business !== 'object') return job;
+      const business = job.business as { businessName?: string | null };
+      return {
+        ...job,
+        business: {
+          ...job.business,
+          businessName: formatMerchantName(business.businessName) || business.businessName,
+        },
+      };
+    });
+
+    return { success: true, jobs: normalizedJobs };
   } catch (error: any) {
     console.error('Get All Jobs Error:', error);
     return { success: false, error: error.message || 'Failed to fetch jobs' };

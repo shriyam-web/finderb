@@ -2,9 +2,10 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { Star, MapPin, ShieldCheck } from 'lucide-react';
+import { Star, MapPin } from 'lucide-react';
 import { Business } from '@/lib/mockData';
 import { getBusinessOpenStatus } from '@/lib/businessHours';
+import { VerifiedNameTick } from '@/components/business/VerifiedMark';
 
 interface BusinessCardProps {
   business: Business;
@@ -59,26 +60,6 @@ export default function BusinessCard({
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-80 group-hover:opacity-60 transition-opacity" />
 
-        {!uniform && (
-          <div className={`absolute ${compact ? 'top-2 left-2' : 'top-4 left-4'} z-10 flex flex-col gap-2`}>
-            {showVerified && (
-              <div
-                className={`flex items-center gap-1.5 rounded-full border border-white/20 bg-gradient-to-r from-primary to-secondary font-bold uppercase text-white shadow-lg ${compact ? 'px-2 py-1 text-[8px]' : 'px-3 py-1.5 text-[9px]'}`}
-              >
-                <Star size={compact ? 8 : 10} fill="white" />
-                Verified
-              </div>
-            )}
-          </div>
-        )}
-
-        {uniform && showVerified && (
-          <div className="absolute top-2 left-2 z-10 flex items-center gap-1 rounded-full border border-white/30 bg-primary/95 px-2 py-0.5 text-[8px] font-bold uppercase text-white shadow-md">
-            <ShieldCheck size={10} />
-            Verified
-          </div>
-        )}
-
         {(business.reviewsCount ?? 0) > 0 && business.rating != null ? (
           <div
             className={`absolute ${compact ? 'top-2 right-2' : 'top-3 right-3'} z-10 flex items-center gap-1 rounded-lg border border-white/20 bg-white/95 px-2 py-0.5 shadow-md backdrop-blur-md`}
@@ -115,8 +96,9 @@ export default function BusinessCard({
               </span>
             </div>
 
-            <h3 className="mb-0.5 line-clamp-2 min-h-[2.25rem] text-sm font-extrabold leading-snug text-primary group-hover:text-secondary">
-              {business.name}
+            <h3 className="mb-0.5 flex min-h-[2.25rem] items-start gap-1 text-sm font-extrabold leading-snug text-primary group-hover:text-secondary">
+              <span className="line-clamp-2 min-w-0 flex-1">{business.name}</span>
+              {showVerified && <VerifiedNameTick size={14} className="mt-0.5 shrink-0" />}
             </h3>
 
             <p className="mb-1.5 line-clamp-1 text-[9px] font-bold uppercase text-gray-400">
@@ -152,11 +134,12 @@ export default function BusinessCard({
         ) : (
           <>
             <h3
-              className={`mb-1 font-extrabold leading-tight text-primary transition-colors group-hover:text-secondary ${
-                compact ? 'line-clamp-1 text-base' : 'line-clamp-1 text-lg'
+              className={`mb-1 flex items-center gap-1 font-extrabold leading-tight text-primary transition-colors group-hover:text-secondary ${
+                compact ? 'text-base' : 'text-lg'
               }`}
             >
-              {business.name}
+              <span className="min-w-0 truncate">{business.name}</span>
+              {showVerified && <VerifiedNameTick size={compact ? 14 : 16} className="shrink-0" />}
             </h3>
 
             <p className={`font-bold uppercase text-gray-400 ${compact ? 'mb-3 text-[10px]' : 'mb-4 text-[10px]'}`}>

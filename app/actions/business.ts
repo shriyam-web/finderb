@@ -14,6 +14,7 @@ import {
   lookupEmailAccountTypes,
 } from '@/lib/emailAccountLookup';
 import { parseCoordinate } from '@/lib/geo';
+import { formatMerchantName } from '@/lib/formatMerchantName';
 
 function parseBusinessServices(business: {
   serviceCategory?: string | null;
@@ -39,11 +40,18 @@ function mapBusinessRecord(business: Record<string, unknown>) {
     keywords: business.keywords as string[] | null | undefined,
   });
 
+  const rawBusinessName = (business.businessName as string) || '';
+  const rawDisplayName = (business.displayName as string) || '';
+  const formattedBusinessName = formatMerchantName(rawBusinessName) || rawBusinessName;
+  const formattedDisplayName = formatMerchantName(rawDisplayName) || rawDisplayName;
+  const displayName =
+    formattedBusinessName || formattedDisplayName || formatMerchantName('Business') || 'Business';
+
   return {
     ...business,
     id: business.id as string,
-    businessName: (business.businessName as string) || '',
-    name: (business.businessName as string) || (business.displayName as string) || 'Business',
+    businessName: formattedBusinessName,
+    name: displayName,
     location: (business.location as string) || (business.city as string) || '',
     city: (business.city as string | null) ?? null,
     state: (business.state as string | null) ?? null,
@@ -84,7 +92,7 @@ function mapBusinessRecord(business: Record<string, unknown>) {
     reviewReply: business.reviewReply,
     keywords: Array.isArray(business.keywords) ? business.keywords : [],
     discountRange: (business.discountRange as string | null) ?? null,
-    displayName: (business.displayName as string | null) ?? null,
+    displayName: formattedDisplayName || null,
     registrationNumber: (business.registrationNumber as string | null) ?? null,
   };
 }
