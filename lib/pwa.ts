@@ -71,7 +71,9 @@ export const PWA_COPY = {
     step1: 'Tap the Share button at the bottom of Safari',
     step2: 'Scroll and tap "Add to Home Screen"',
     step3: 'Tap Add — FinderB will appear on your home screen',
+    installCta: 'Add to Home Screen',
   },
   androidFallback:
-    'Tap the menu (⋮) in your browser and select "Install app" or "Add to Home screen".',
+    'Open your browser menu (⋮) and tap "Install app" or "Add to Home screen". If you don\'t see it, try refreshing the page first.',
+  retryInstall: 'Try install again',
 } as const;

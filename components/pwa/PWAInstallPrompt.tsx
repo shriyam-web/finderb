@@ -1,9 +1,9 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { Download, Share, X, Plus, Smartphone } from 'lucide-react';
+import { Download, Share, X, Plus, Smartphone, RefreshCw } from 'lucide-react';
 import {
   PWA_COPY,
   dismissInstallPrompt,
@@ -23,31 +23,22 @@ export default function PWAInstallPrompt() {
   const [showModal, setShowModal] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isIosGuide, setIsIosGuide] = useState(false);
+  const [isManualGuide, setIsManualGuide] = useState(false);
   const [installing, setInstalling] = useState(false);
+  const deferredPromptRef = useRef<BeforeInstallPromptEvent | null>(null);
+  const modalAutoOpenedRef = useRef(false);
 
   const excluded = isExcludedRoute(pathname ?? '');
 
   useEffect(() => {
     if (excluded || isStandaloneMode() || !shouldShowInstallPrompt()) return;
 
-    setVisible(true);
-
-    const modalShown = sessionStorage.getItem('finderb-pwa-modal-shown');
-    if (!modalShown) {
-      const timer = window.setTimeout(() => {
-        setShowModal(true);
-        sessionStorage.setItem('finderb-pwa-modal-shown', '1');
-      }, 1200);
-      return () => window.clearTimeout(timer);
-    }
-  }, [excluded, pathname]);
-
-  useEffect(() => {
-    if (excluded) return;
-
     const onBeforeInstall = (event: Event) => {
       event.preventDefault();
-      setDeferredPrompt(event as BeforeInstallPromptEvent);
+      const promptEvent = event as BeforeInstallPromptEvent;
+      deferredPromptRef.current = promptEvent;
+      setDeferredPrompt(promptEvent);
+      setIsManualGuide(false);
       setIsIosGuide(false);
       setVisible(true);
     };
@@ -56,14 +47,26 @@ export default function PWAInstallPrompt() {
       setVisible(false);
       setShowModal(false);
       setDeferredPrompt(null);
+      deferredPromptRef.current = null;
     };
 
     window.addEventListener('beforeinstallprompt', onBeforeInstall);
     window.addEventListener('appinstalled', onInstalled);
 
-    if (isIosSafari() && !isStandaloneMode() && shouldShowInstallPrompt()) {
+    if (isIosSafari() && !isStandaloneMode()) {
       setIsIosGuide(true);
       setVisible(true);
+    } else {
+      const fallbackTimer = window.setTimeout(() => {
+        setIsManualGuide(true);
+        setVisible(true);
+      }, 2500);
+
+      return () => {
+        window.clearTimeout(fallbackTimer);
+        window.removeEventListener('beforeinstallprompt', onBeforeInstall);
+        window.removeEventListener('appinstalled', onInstalled);
+      };
     }
 
     return () => {
@@ -72,25 +75,49 @@ export default function PWAInstallPrompt() {
     };
   }, [excluded]);
 
+  useEffect(() => {
+    if (!visible || excluded || modalAutoOpenedRef.current) return;
+
+    const timer = window.setTimeout(() => {
+      setShowModal(true);
+      modalAutoOpenedRef.current = true;
+    }, 1500);
+
+    return () => window.clearTimeout(timer);
+  }, [visible, excluded]);
+
   const handleInstall = useCallback(async () => {
-    if (!deferredPrompt) {
-      if (isIosGuide) setShowModal(true);
+    const promptEvent = deferredPromptRef.current ?? deferredPrompt;
+
+    if (promptEvent) {
+      setInstalling(true);
+      try {
+        await promptEvent.prompt();
+        const choice = await promptEvent.userChoice;
+        if (choice.outcome === 'accepted') {
+          setVisible(false);
+          setShowModal(false);
+        }
+      } finally {
+        deferredPromptRef.current = null;
+        setDeferredPrompt(null);
+        setInstalling(false);
+      }
       return;
     }
 
-    setInstalling(true);
-    try {
-      await deferredPrompt.prompt();
-      const choice = await deferredPrompt.userChoice;
-      if (choice.outcome === 'accepted') {
-        setVisible(false);
-        setShowModal(false);
-      }
-    } finally {
-      setDeferredPrompt(null);
-      setInstalling(false);
+    if (isIosGuide) {
+      setShowModal(true);
+      return;
     }
+
+    setIsManualGuide(true);
+    setShowModal(true);
   }, [deferredPrompt, isIosGuide]);
+
+  const openModal = useCallback(() => {
+    setShowModal(true);
+  }, []);
 
   const handleLater = useCallback(() => {
     setShowModal(false);
@@ -101,6 +128,9 @@ export default function PWAInstallPrompt() {
     setShowModal(false);
     setVisible(false);
   }, []);
+
+  const hasNativeInstall = Boolean(deferredPromptRef.current ?? deferredPrompt);
+  const showManualHelp = isManualGuide && !hasNativeInstall && !isIosGuide;
 
   if (excluded || !visible || isStandaloneMode()) return null;
 
@@ -123,7 +153,7 @@ export default function PWAInstallPrompt() {
           </div>
           <button
             type="button"
-            onClick={() => (deferredPrompt || isIosGuide ? setShowModal(true) : handleInstall())}
+            onClick={hasNativeInstall ? handleInstall : openModal}
             className="inline-flex shrink-0 items-center rounded-full bg-[#215481] px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-[#1a4368]"
           >
             <Download size={14} className="mr-1.5" />
@@ -161,10 +191,13 @@ export default function PWAInstallPrompt() {
                     />
                   </div>
                   <div>
-                    <p className="text-xs uppercase tracking-widest text-blue-100/80">
+                    <p className="text-xs uppercase tracking-widest text-white/70">
                       {PWA_COPY.brandName}
                     </p>
-                    <h2 id="finderb-pwa-install-title" className="text-lg font-semibold leading-tight">
+                    <h2
+                      id="finderb-pwa-install-title"
+                      className="text-lg font-semibold leading-tight text-white"
+                    >
                       {PWA_COPY.modal.title}
                     </h2>
                   </div>
@@ -178,7 +211,7 @@ export default function PWAInstallPrompt() {
                   <X size={18} />
                 </button>
               </div>
-              <p className="mt-4 text-sm leading-relaxed text-blue-50/90">{PWA_COPY.modal.subtitle}</p>
+              <p className="mt-4 text-sm leading-relaxed text-white/85">{PWA_COPY.modal.subtitle}</p>
             </div>
 
             <div className="space-y-4 px-6 py-5">
@@ -203,6 +236,17 @@ export default function PWAInstallPrompt() {
                     <span>{PWA_COPY.ios.step3}</span>
                   </li>
                 </ol>
+              ) : showManualHelp ? (
+                <div className="space-y-3">
+                  <p className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm leading-relaxed text-slate-700">
+                    {PWA_COPY.androidFallback}
+                  </p>
+                  <ul className="space-y-2 text-sm text-slate-600">
+                    <li>• {PWA_COPY.benefit1}</li>
+                    <li>• {PWA_COPY.benefit2}</li>
+                    <li>• {PWA_COPY.benefit3}</li>
+                  </ul>
+                </div>
               ) : (
                 <ul className="space-y-2 text-sm text-slate-600">
                   <li>• {PWA_COPY.benefit1}</li>
@@ -211,23 +255,29 @@ export default function PWAInstallPrompt() {
                 </ul>
               )}
 
-              {!isIosGuide && deferredPrompt && (
-                <button
-                  type="button"
-                  onClick={handleInstall}
-                  disabled={installing}
-                  className="inline-flex h-12 w-full items-center justify-center rounded-2xl bg-[#215481] text-base font-semibold text-white transition-colors hover:bg-[#1a4368] disabled:opacity-70"
-                >
-                  <Download size={18} className="mr-2" />
-                  {installing ? PWA_COPY.installing : PWA_COPY.installNow}
-                </button>
-              )}
-
-              {!isIosGuide && !deferredPrompt && (
-                <p className="rounded-xl bg-blue-50 px-4 py-3 text-sm leading-relaxed text-slate-800">
-                  {PWA_COPY.androidFallback}
-                </p>
-              )}
+              <button
+                type="button"
+                onClick={handleInstall}
+                disabled={installing}
+                className="inline-flex h-12 w-full items-center justify-center rounded-2xl bg-[#215481] text-base font-semibold text-white transition-colors hover:bg-[#1a4368] disabled:opacity-70"
+              >
+                {hasNativeInstall ? (
+                  <>
+                    <Download size={18} className="mr-2" />
+                    {installing ? PWA_COPY.installing : PWA_COPY.installNow}
+                  </>
+                ) : isIosGuide ? (
+                  <>
+                    <Share size={18} className="mr-2" />
+                    {PWA_COPY.ios.installCta}
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw size={18} className="mr-2" />
+                    {showManualHelp ? PWA_COPY.retryInstall : PWA_COPY.installNow}
+                  </>
+                )}
+              </button>
 
               <div className="flex gap-3">
                 <button
@@ -237,15 +287,13 @@ export default function PWAInstallPrompt() {
                 >
                   {PWA_COPY.later}
                 </button>
-                {!isIosGuide && (
-                  <button
-                    type="button"
-                    onClick={handleDismiss}
-                    className="h-11 flex-1 rounded-xl text-sm font-medium text-slate-500 transition-colors hover:bg-slate-100"
-                  >
-                    {PWA_COPY.dismiss}
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={handleDismiss}
+                  className="h-11 flex-1 rounded-xl text-sm font-medium text-slate-500 transition-colors hover:bg-slate-100"
+                >
+                  {PWA_COPY.dismiss}
+                </button>
               </div>
             </div>
           </div>
