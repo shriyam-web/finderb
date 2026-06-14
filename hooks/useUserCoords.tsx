@@ -10,6 +10,8 @@ export type LocationPermissionState = 'granted' | 'denied' | 'prompt' | 'unsuppo
 type UserLocationContextValue = {
   userCoords: UserCoords | null;
   userCity: string | null;
+  userCityName: string | null;
+  userState: string | null;
   searchLocation: string | null;
   effectiveSearchLocation: string | null;
   isLocating: boolean;
@@ -22,6 +24,8 @@ type UserLocationContextValue = {
 const UserLocationContext = createContext<UserLocationContextValue>({
   userCoords: null,
   userCity: null,
+  userCityName: null,
+  userState: null,
   searchLocation: null,
   effectiveSearchLocation: null,
   isLocating: true,
@@ -111,6 +115,8 @@ async function readPermissionState(): Promise<LocationPermissionState> {
 export function UserLocationProvider({ children }: { children: ReactNode }) {
   const [userCoords, setUserCoords] = useState<UserCoords | null>(null);
   const [userCity, setUserCity] = useState<string | null>(null);
+  const [userCityName, setUserCityName] = useState<string | null>(null);
+  const [userState, setUserState] = useState<string | null>(null);
   const [searchLocation, setSearchLocationState] = useState<string | null>(null);
   const [isLocating, setIsLocating] = useState(true);
   const [isResolvingCity, setIsResolvingCity] = useState(false);
@@ -133,6 +139,8 @@ export function UserLocationProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!userCoords) {
       setUserCity(null);
+      setUserCityName(null);
+      setUserState(null);
       setIsResolvingCity(false);
       return;
     }
@@ -143,6 +151,8 @@ export function UserLocationProvider({ children }: { children: ReactNode }) {
     resolveCityFromCoordinates(userCoords.lat, userCoords.lng).then((result) => {
       if (requestId !== cityRequestRef.current) return;
       setUserCity(result.success && result.city ? result.city : null);
+      setUserCityName(result.success && result.cityName ? result.cityName : null);
+      setUserState(result.success && result.state ? result.state : null);
       setIsResolvingCity(false);
     });
   }, [userCoords]);
@@ -232,6 +242,8 @@ export function UserLocationProvider({ children }: { children: ReactNode }) {
       value={{
         userCoords,
         userCity,
+        userCityName,
+        userState,
         searchLocation,
         effectiveSearchLocation,
         isLocating,

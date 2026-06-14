@@ -8,8 +8,11 @@ import {
   getFallbackImages,
   getFeedUrlsForCategory,
   getGoogleNewsUrl,
+  getLocalFeedUrls,
+  getLocalGoogleNewsUrl,
   normalizeCategorySlug,
   normalizeNewsLanguage,
+  type LocalNewsLocation,
   type NewsCategorySlug,
   type NewsLanguage,
 } from '@/lib/newsFeeds';
@@ -35,8 +38,16 @@ async function parseFeed(url: string) {
   return parser.parseURL(url);
 }
 
-async function fetchCategoryFeed(slug: NewsCategorySlug, lang: NewsLanguage) {
-  const feedUrls = [...getFeedUrlsForCategory(slug, lang), getGoogleNewsUrl(slug, lang)];
+async function fetchCategoryFeed(
+  slug: NewsCategorySlug,
+  lang: NewsLanguage,
+  localLocation?: LocalNewsLocation
+) {
+  const hasLocalLocation = Boolean(localLocation?.city || localLocation?.state);
+  const feedUrls =
+    slug === 'local' && hasLocalLocation
+      ? [...getLocalFeedUrls(localLocation!, lang), getLocalGoogleNewsUrl(localLocation!, lang)]
+      : [...getFeedUrlsForCategory(slug, lang), getGoogleNewsUrl(slug, lang)];
 
   for (const url of feedUrls) {
     try {
@@ -57,6 +68,9 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const slug = normalizeCategorySlug(searchParams.get('category'));
     const lang = normalizeNewsLanguage(searchParams.get('lang'));
+    const city = searchParams.get('city')?.trim() || null;
+    const state = searchParams.get('state')?.trim() || null;
+    const localLocation: LocalNewsLocation = { city, state };
     const meta = getCategoryMeta(slug);
     const fallbacks = getFallbackImages(slug);
     const dateLocale = lang === 'en' ? 'en-IN' : 'hi-IN';
@@ -64,7 +78,7 @@ export async function GET(request: NextRequest) {
     const defaultDate = lang === 'en' ? 'Recently' : 'हाल ही में';
     const defaultSource = lang === 'en' ? 'News' : 'समाचार';
 
-    const feed = await fetchCategoryFeed(slug, lang);
+    const feed = await fetchCategoryFeed(slug, lang, slug === 'local' ? localLocation : undefined);
     if (!feed?.items?.length) {
       return NextResponse.json(
         {
@@ -118,6 +132,7 @@ export async function GET(request: NextRequest) {
       articles,
       lang,
       category: { ...meta, label: getCategoryLabel(meta, lang) },
+      location: slug === 'local' && (city || state) ? { city, state } : null,
     });
   } catch (error) {
     console.error('RSS Fetch Error:', error);

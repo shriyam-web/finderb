@@ -151,9 +151,10 @@ function formatLocationLabel(area: string | null, city: string | null): string |
 
 function extractAreaAndCityFromGoogleResults(
   results: Array<{ address_components?: Array<{ long_name: string; types: string[] }> }>
-): { area: string | null; city: string | null } {
+): { area: string | null; city: string | null; state: string | null } {
   let area: string | null = null;
   let city: string | null = null;
+  let state: string | null = null;
 
   const areaTypes = [
     'sublocality_level_1',
@@ -163,6 +164,7 @@ function extractAreaAndCityFromGoogleResults(
     'route',
   ];
   const cityTypes = ['locality', 'administrative_area_level_2', 'administrative_area_level_3'];
+  const stateTypes = ['administrative_area_level_1'];
 
   for (const result of results) {
     if (!area) {
@@ -185,15 +187,25 @@ function extractAreaAndCityFromGoogleResults(
       }
     }
 
-    if (area && city) break;
+    if (!state) {
+      for (const type of stateTypes) {
+        const match = result.address_components?.find((component) => component.types.includes(type));
+        if (match?.long_name) {
+          state = match.long_name;
+          break;
+        }
+      }
+    }
+
+    if (area && city && state) break;
   }
 
-  return { area, city };
+  return { area, city, state };
 }
 
 function extractAreaAndCityFromNominatimAddress(
   address: Record<string, string | undefined>
-): { area: string | null; city: string | null } {
+): { area: string | null; city: string | null; state: string | null } {
   const area =
     normalizeLocationPart(address.suburb) ||
     normalizeLocationPart(address.neighbourhood) ||
@@ -208,10 +220,18 @@ function extractAreaAndCityFromNominatimAddress(
     normalizeLocationPart(address.county) ||
     normalizeLocationPart(address.municipality);
 
-  return { area, city };
+  const state = normalizeLocationPart(address.state);
+
+  return { area, city, state };
 }
 
-async function reverseGeocodeCity(latitude: number, longitude: number): Promise<string | null> {
+type ResolvedUserLocation = {
+  label: string;
+  city: string | null;
+  state: string | null;
+};
+
+async function reverseGeocodeCity(latitude: number, longitude: number): Promise<ResolvedUserLocation | null> {
   const googleKey = process.env.GOOGLE_MAPS_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
   if (googleKey) {
@@ -224,9 +244,9 @@ async function reverseGeocodeCity(latitude: number, longitude: number): Promise<
       const data = await response.json();
       const results = data?.results;
       if (Array.isArray(results) && results.length > 0) {
-        const { area, city } = extractAreaAndCityFromGoogleResults(results);
+        const { area, city, state } = extractAreaAndCityFromGoogleResults(results);
         const label = formatLocationLabel(area, city);
-        if (label) return label;
+        if (label) return { label, city, state };
       }
     } catch (error) {
       console.error('Google city reverse geocoding failed:', error);
@@ -248,9 +268,9 @@ async function reverseGeocodeCity(latitude: number, longitude: number): Promise<
     const data = await response.json();
     const address = data?.address;
     if (address) {
-      const { area, city } = extractAreaAndCityFromNominatimAddress(address);
+      const { area, city, state } = extractAreaAndCityFromNominatimAddress(address);
       const label = formatLocationLabel(area, city);
-      if (label) return label;
+      if (label) return { label, city, state };
     }
   } catch (error) {
     console.error('Nominatim city reverse geocoding failed:', error);
@@ -353,9 +373,14 @@ export async function lookupPlaceNameFromCoordinates(
 
 export async function resolveCityFromCoordinates(latitude: number, longitude: number) {
   if (latitude == null || longitude == null || (latitude === 0 && longitude === 0)) {
-    return { success: false as const, city: null };
+    return { success: false as const, city: null, state: null, cityName: null };
   }
 
-  const city = await reverseGeocodeCity(latitude, longitude);
-  return { success: true as const, city };
+  const resolved = await reverseGeocodeCity(latitude, longitude);
+  return {
+    success: true as const,
+    city: resolved?.label ?? null,
+    state: resolved?.state ?? null,
+    cityName: resolved?.city ?? null,
+  };
 }

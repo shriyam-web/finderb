@@ -1,142 +1,440 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { Mail, Phone, MapPin, ExternalLink } from 'lucide-react';
-import { FaFacebook, FaTwitter, FaInstagram, FaLinkedin } from 'react-icons/fa6';
+import type { ReactNode } from 'react';
+import { Mail, Phone, MapPin, Smartphone, Store } from 'lucide-react';
+import AppStoreIcon from '@/components/icons/AppStoreIcon';
+import {
+  FaFacebook,
+  FaInstagram,
+  FaXTwitter,
+  FaLinkedin,
+  FaYoutube,
+  FaGooglePlay,
+} from 'react-icons/fa6';
+import {
+  FOOTER_ABOUT,
+  FOOTER_ABOUT_SECONDARY,
+  FOOTER_B2B_LINKS,
+  FOOTER_CONTACT,
+  FOOTER_CITY_GROUPS,
+  FOOTER_LOCAL_LISTINGS,
+  FOOTER_NAV_COLUMNS,
+  FOOTER_POPULAR_SEARCHES,
+  FOOTER_PROFESSIONAL_LINKS,
+  FOOTER_SECTION_INTROS,
+  FOOTER_SEO_NOTES,
+  FOOTER_SERVICE_LINKS,
+  FOOTER_SOCIAL_LINKS,
+  FOOTER_TAGLINE,
+  type FooterSocialIcon,
+  getFooterStructuredData,
+  footerCityHref,
+  footerLocalHref,
+  footerSearchHref,
+} from '@/lib/footerData';
 
-export default function Footer() {
-  const topCities = [
-    'Bangalore', 'Mumbai', 'Delhi', 'Hyderabad', 'Chennai',
-    'Pune', 'Ahmedabad', 'Kolkata', 'Jaipur', 'Lucknow'
-  ];
+const SOCIAL_ICON_MAP: Record<
+  FooterSocialIcon,
+  typeof FaFacebook
+> = {
+  facebook: FaFacebook,
+  instagram: FaInstagram,
+  x: FaXTwitter,
+  linkedin: FaLinkedin,
+  youtube: FaYoutube,
+};
 
-  const popularSearches = [
-    'Best Plumbers near me', 'Top rated Restaurants', 'Verified Doctors in India',
-    'Real Estate Agents', 'Local Gyms & Fitness', 'Professional CA Services',
-    'Wedding Photographers', 'Home Cleaning Services', 'Emergency Hospital services'
-  ];
+function Column({
+  title,
+  links,
+}: {
+  title: string;
+  links: ReadonlyArray<{ label: string; href: string }>;
+}) {
+  return (
+    <nav aria-label={title}>
+      <p className="mb-3 text-sm font-medium text-slate-900">{title}</p>
+      <ul className="space-y-2.5">
+        {links.map((link) => (
+          <li key={link.label}>
+            <Link
+              href={link.href}
+              className="text-sm text-slate-500 transition-colors hover:text-primary"
+            >
+              {link.label}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  );
+}
+
+function LinkGrid({
+  links,
+}: {
+  links: ReadonlyArray<{ label: string; href: string }>;
+}) {
+  return (
+    <ul className="grid grid-cols-2 gap-x-6 gap-y-2.5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+      {links.map((link) => (
+        <li key={link.label}>
+          <Link
+            href={link.href}
+            className="text-sm text-slate-500 transition-colors hover:text-primary"
+          >
+            {link.label}
+          </Link>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function SectionHeader({ title, description }: { title: string; description: string }) {
+  return (
+    <div className="mb-5 max-w-3xl space-y-1">
+      <h2 className="text-sm font-medium text-slate-900">{title}</h2>
+      <p className="text-xs leading-relaxed text-slate-400">{description}</p>
+    </div>
+  );
+}
+
+function ContactRow({
+  icon: Icon,
+  href,
+  children,
+}: {
+  icon: typeof Mail;
+  href?: string;
+  children: ReactNode;
+}) {
+  const content = (
+    <>
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-50 text-slate-400">
+        <Icon size={15} strokeWidth={1.75} />
+      </span>
+      <span>{children}</span>
+    </>
+  );
+
+  const className =
+    'group flex items-center gap-3 text-sm text-slate-500 transition-colors hover:text-slate-900';
+
+  if (href) {
+    return (
+      <a href={href} className={className}>
+        {content}
+      </a>
+    );
+  }
+
+  return <div className={className}>{content}</div>;
+}
+
+function SocialButton({ label, href, icon, brandClass }: (typeof FOOTER_SOCIAL_LINKS)[number]) {
+  const Icon = SOCIAL_ICON_MAP[icon];
 
   return (
-    <footer className="relative z-10 bg-white border-t border-gray-100 text-gray-600 pt-24 pb-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-20">
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label={`Follow FinderB on ${label}`}
+      title={label}
+      className={`flex h-9 w-9 items-center justify-center rounded-lg text-white shadow-sm transition-all hover:scale-105 hover:shadow-md ${brandClass}`}
+    >
+      <Icon size={16} />
+    </a>
+  );
+}
 
-          {/* About & SEO Description */}
-          <div className="space-y-8">
-            <Link href="/" className="flex items-center group">
+function MadeInIndiaBadge() {
+  return (
+    <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-medium text-slate-600 shadow-sm">
+      <span className="relative flex h-3 w-4 overflow-hidden rounded-[2px] shadow-sm" aria-hidden>
+        <span className="absolute inset-0 bg-[#FF9933]" />
+        <span className="absolute inset-x-0 top-1/3 h-1/3 bg-white" />
+        <span className="absolute inset-x-0 bottom-0 top-2/3 bg-[#138808]" />
+        <span className="absolute left-1/2 top-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#000080]/30 bg-[#000080]/10" />
+      </span>
+      Made in India
+    </span>
+  );
+}
+
+function Divider() {
+  return <div className="border-t border-slate-100" />;
+}
+
+export default function Footer() {
+  const serviceLinks = FOOTER_SERVICE_LINKS.map((item) => ({
+    label: item.label,
+    href: item.href,
+  }));
+
+  const professionalLinks = FOOTER_PROFESSIONAL_LINKS.map((item) => ({
+    label: item.label,
+    href: item.href,
+  }));
+
+  const b2bLinks = FOOTER_B2B_LINKS.map((item) => ({
+    label: item.label,
+    href: item.href,
+  }));
+
+  const searchLinks = FOOTER_POPULAR_SEARCHES.map((term) => ({
+    label: term,
+    href: footerSearchHref(term),
+  }));
+
+  const structuredData = getFooterStructuredData();
+
+  return (
+    <footer className="relative z-10 border-t border-slate-200 bg-white text-slate-600">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+      />
+
+      <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
+        <div className="grid gap-12 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] lg:gap-20">
+          <div className="space-y-5">
+            <Link href="/" className="inline-block">
               <Image
                 src="/logo1.png"
-                alt="FinderB Logo"
-                width={140}
-                height={40}
-                className="h-9 w-auto object-contain transition-transform group-hover:scale-105"
+                alt="FinderB — local business directory India"
+                width={128}
+                height={36}
+                className="h-8 w-auto object-contain"
                 quality={100}
               />
             </Link>
-            <div className="space-y-4">
-              <h4 className="text-primary font-semibold text-[10px] uppercase tracking-widest">About FinderB</h4>
-              <p className="text-gray-500 text-sm leading-relaxed font-normal">
-                FinderB is India's premier local discovery platform, connecting millions of users with verified local businesses, professional services, and entertainment. We are your go-to destination for finding top-rated plumbers, doctors, restaurants, and real estate across 500+ cities in India.
-              </p>
+            <p className="text-sm font-medium text-slate-800">{FOOTER_TAGLINE}</p>
+            <div className="max-w-xl space-y-3 text-sm leading-relaxed text-slate-500">
+              <p>{FOOTER_ABOUT}</p>
+              <p>{FOOTER_ABOUT_SECONDARY}</p>
             </div>
           </div>
 
-          {/* Business Links */}
-          <div>
-            <h3 className="text-gray-900 font-semibold text-sm mb-8 tracking-tight">Business Solutions</h3>
-            <ul className="space-y-4">
-              <li><Link href="/business/register" className="text-sm hover:text-secondary font-normal transition-colors flex items-center gap-2 group">List Your Business <ExternalLink size={12} className="opacity-0 group-hover:opacity-100 transition-opacity" /></Link></li>
-              <li><Link href="/advertisements" className="text-sm hover:text-secondary font-normal transition-colors">Advertise with Us</Link></li>
-              <li><Link href="/pricing" className="text-sm hover:text-secondary font-normal transition-colors">Premium Plans</Link></li>
-              <li><Link href="/hirings" className="text-sm hover:text-secondary font-normal transition-colors">Careers</Link></li>
-              <li><Link href="/contact" className="text-sm hover:text-secondary font-normal transition-colors">Contact Support</Link></li>
-            </ul>
-          </div>
+          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-1">
+            <div className="space-y-4">
+              <p className="text-sm font-medium text-slate-900">Contact</p>
+              <div className="space-y-3">
+                <ContactRow icon={Mail} href={`mailto:${FOOTER_CONTACT.email}`}>
+                  {FOOTER_CONTACT.email}
+                </ContactRow>
+                <ContactRow icon={Phone} href={FOOTER_CONTACT.phoneHref}>
+                  {FOOTER_CONTACT.phone}
+                </ContactRow>
+                <ContactRow icon={MapPin}>{FOOTER_CONTACT.coverage}</ContactRow>
+              </div>
+            </div>
 
-          {/* Popular Categories for SEO */}
-          <div>
-            <h3 className="text-gray-900 font-semibold text-sm mb-8 tracking-tight">Top Categories</h3>
-            <ul className="space-y-4">
-              <li><Link href="/categories/real-estate" className="text-sm hover:text-secondary font-normal transition-colors">Real Estate & Property</Link></li>
-              <li><Link href="/categories/doctors" className="text-sm hover:text-secondary font-normal transition-colors">Doctors & Healthcare</Link></li>
-              <li><Link href="/categories/restaurants" className="text-sm hover:text-secondary font-normal transition-colors">Top Rated Restaurants</Link></li>
-              <li><Link href="/categories/repairs-services" className="text-sm hover:text-secondary font-normal transition-colors">Home Repairs & Services</Link></li>
-              <li><Link href="/categories/education" className="text-sm hover:text-secondary font-normal transition-colors">Education & Coaching</Link></li>
-              <li><Link href="/categories/finance" className="text-sm hover:text-secondary font-normal transition-colors">Finance & Legal Services</Link></li>
-            </ul>
-          </div>
-
-          {/* Follow Us & App Links */}
-          <div className="space-y-10">
-            <div>
-              <h3 className="text-gray-900 font-semibold text-sm mb-6 tracking-tight">Follow Our Journey</h3>
-              <div className="flex space-x-3">
-                {[
-                  { icon: FaFacebook, href: '#' },
-                  { icon: FaTwitter, href: '#' },
-                  { icon: FaInstagram, href: '#' },
-                  { icon: FaLinkedin, href: '#' }
-                ].map((social, i) => (
-                  <Link key={i} href={social.href} className="w-10 h-10 flex items-center justify-center rounded-xl bg-gray-50 text-gray-400 hover:bg-secondary hover:text-white transition-all shadow-sm border border-gray-100">
-                    <social.icon size={18} />
-                  </Link>
+            <div className="space-y-4">
+              <p className="text-sm font-medium text-slate-900">Follow us</p>
+              <div className="flex flex-wrap gap-2.5">
+                {FOOTER_SOCIAL_LINKS.map((social) => (
+                  <SocialButton key={social.label} {...social} />
                 ))}
               </div>
-            </div>
-            <div className="space-y-4">
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Get our mobile app</p>
-              <div className="flex flex-wrap gap-2">
-                <div className="h-10 px-4 bg-gray-900 text-white rounded-xl flex items-center gap-2 cursor-not-allowed grayscale hover:grayscale-0 transition-all font-sans">
-                  <div className="text-[8px] font-semibold leading-none">Coming soon on <br /><span className="text-sm">App Store</span></div>
-                </div>
-                <div className="h-10 px-4 bg-gray-900 text-white rounded-xl flex items-center gap-2 cursor-not-allowed grayscale hover:grayscale-0 transition-all font-sans">
-                  <div className="text-[8px] font-semibold leading-none">Coming soon on <br /><span className="text-sm">Google Play</span></div>
+
+              <div className="flex items-start gap-3 pt-1">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-50 text-slate-400">
+                  <Smartphone size={15} strokeWidth={1.75} />
+                </span>
+                <div className="space-y-2.5">
+                  <p className="text-sm text-slate-500">Mobile app coming soon</p>
+                  <div className="flex flex-wrap gap-2">
+                    <span className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-1.5 text-xs text-slate-400">
+                      <AppStoreIcon className="h-3.5 w-3.5 text-slate-800" />
+                      App Store
+                    </span>
+                    <span className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-1.5 text-xs text-slate-400">
+                      <FaGooglePlay size={13} />
+                      Google Play
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* SEO - Cities & Searches */}
-        <div className="border-t border-gray-100 py-0 space-y-10">
-          <div className="space-y-4">
-            <h4 className="text-xs font-semibold text-gray-900 uppercase tracking-widest">Top Cities in India</h4>
-            <div className="flex flex-wrap gap-x-6 gap-y-3">
-              {topCities.map((city) => (
-                <Link key={city} href={`/cities/${city.toLowerCase()}`} className="text-xs font-normal text-gray-500 hover:text-secondary transition-colors underline decoration-gray-200 underline-offset-4 decoration-1">
-                  {city}
-                </Link>
-              ))}
-              <Link href="/cities" className="text-xs font-semibold text-primary hover:underline underline-offset-4 decoration-2">View All Cities</Link>
-            </div>
-          </div>
+        <div className="my-12">
+          <Divider />
+        </div>
 
-          <div className="space-y-4">
-            <h4 className="text-xs font-semibold text-gray-900 uppercase tracking-widest">Popular Searches</h4>
-            <div className="flex flex-wrap gap-2">
-              {popularSearches.map((search) => (
-                <Link key={search} href={`/search?q=${search.replace(/ /g, '+')}`} className="px-3 py-1.5 bg-gray-50 hover:bg-white border border-gray-100 text-[10px] font-semibold text-gray-500 hover:text-primary hover:border-primary/20 rounded-lg transition-all">
-                  {search}
-                </Link>
-              ))}
+        <div className="grid grid-cols-2 gap-10 md:grid-cols-4">
+          {FOOTER_NAV_COLUMNS.map((column) => (
+            <Column key={column.title} title={column.title} links={column.links} />
+          ))}
+        </div>
+
+        <div className="my-12">
+          <Divider />
+        </div>
+
+        <section aria-labelledby="footer-services">
+          <SectionHeader title="Services" description={FOOTER_SECTION_INTROS.services} />
+          <LinkGrid links={serviceLinks} />
+        </section>
+
+        <div className="my-12">
+          <Divider />
+        </div>
+
+        <section aria-labelledby="footer-professional">
+          <SectionHeader
+            title="Professional services"
+            description={FOOTER_SECTION_INTROS.professional}
+          />
+          <LinkGrid links={professionalLinks} />
+        </section>
+
+        <div className="my-12">
+          <Divider />
+        </div>
+
+        <section aria-labelledby="footer-b2b">
+          <SectionHeader title="B2B & suppliers" description={FOOTER_SECTION_INTROS.b2b} />
+          <LinkGrid links={b2bLinks} />
+        </section>
+
+        <div className="my-12">
+          <Divider />
+        </div>
+
+        <section aria-labelledby="footer-cities">
+          <SectionHeader title="Cities" description={FOOTER_SECTION_INTROS.cities} />
+          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+            {FOOTER_CITY_GROUPS.map((group) => (
+              <div key={group.label}>
+                <p className="mb-3 text-xs font-medium text-slate-400">{group.label}</p>
+                <ul className="space-y-2.5">
+                  {group.cities.map((city) => (
+                    <li key={city}>
+                      <Link
+                        href={footerCityHref(city)}
+                        className="text-sm text-slate-500 transition-colors hover:text-primary"
+                      >
+                        Businesses in {city}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <div className="my-12">
+          <Divider />
+        </div>
+
+        <section aria-labelledby="footer-searches">
+          <SectionHeader title="Popular searches" description={FOOTER_SECTION_INTROS.searches} />
+          <LinkGrid links={searchLinks} />
+        </section>
+
+        <div className="my-12">
+          <Divider />
+        </div>
+
+        <section aria-labelledby="footer-local">
+          <SectionHeader title="Browse by city" description={FOOTER_SECTION_INTROS.local} />
+          <div className="grid gap-8 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
+            {FOOTER_LOCAL_LISTINGS.cities.map((city) => (
+              <div key={city}>
+                <p className="mb-3 text-sm font-medium text-slate-800">{city}</p>
+                <ul className="space-y-2">
+                  {FOOTER_LOCAL_LISTINGS.services.map((service) => (
+                    <li key={`${city}-${service}`}>
+                      <Link
+                        href={footerLocalHref(service, city)}
+                        className="text-sm text-slate-500 transition-colors hover:text-primary"
+                        title={`${service} in ${city}`}
+                      >
+                        {service} in {city}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <div className="my-12">
+          <Divider />
+        </div>
+
+        <div className="max-w-5xl space-y-3">
+          {FOOTER_SEO_NOTES.map((note) => (
+            <p key={note} className="text-xs leading-relaxed text-slate-400">
+              {note}
+            </p>
+          ))}
+        </div>
+
+        <div className="mt-8 overflow-hidden rounded-2xl border border-primary/15 bg-gradient-to-r from-primary/[0.06] via-white to-secondary/[0.08]">
+          <div className="flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+            <div className="flex gap-4">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary text-white shadow-sm">
+                <Store size={20} strokeWidth={1.75} />
+              </span>
+              <div className="space-y-1">
+                <p className="text-base font-semibold text-slate-900">List your business on FinderB</p>
+                <p className="max-w-xl text-sm leading-relaxed text-slate-500">
+                  Free registration, local SEO visibility, and customer reviews — reach people searching in
+                  your city.
+                </p>
+              </div>
+            </div>
+            <div className="flex shrink-0 flex-wrap items-center gap-3 sm:justify-end">
+              <Link
+                href="/business/register"
+                className="inline-flex items-center justify-center rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-600"
+              >
+                Get started free
+              </Link>
+              <Link
+                href="/pricing"
+                className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:border-primary/20 hover:text-primary"
+              >
+                View plans
+              </Link>
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Bottom Bar */}
-        <div className="border-t border-gray-100 pt-10 flex flex-col md:flex-row justify-between items-center gap-6">
-          <div className="space-y-2 text-center md:text-left">
-            <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">
-              © {new Date().getFullYear()} FinderB Technologies Pvt Ltd.
-            </p>
-            <p className="text-[10px] text-gray-400 font-normal max-w-xl">
-              FinderB helps you find the best services and businesses in your locality. Verified profiles, user reviews, and instant contact details for thousands of categories.
-            </p>
-          </div>
-          <div className="flex flex-wrap justify-center gap-6 text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
-            <Link href="/privacy" className="hover:text-secondary transition-colors">Privacy</Link>
-            <Link href="/terms" className="hover:text-secondary transition-colors">Terms</Link>
-            <Link href="/sitemap" className="hover:text-secondary transition-colors">Sitemap</Link>
-            <Link href="/cookies" className="hover:text-secondary transition-colors">Cookies</Link>
+      <div className="border-t border-slate-200 bg-slate-50/50">
+        <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-6 sm:px-6 lg:px-8">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+              <p className="text-sm text-slate-400">
+                © {new Date().getFullYear()} FinderB Technologies Pvt Ltd.
+              </p>
+              <MadeInIndiaBadge />
+            </div>
+            <nav className="flex flex-wrap gap-x-5 gap-y-1 text-sm text-slate-400" aria-label="Legal">
+            <Link href="/privacy" className="hover:text-slate-600">
+              Privacy
+            </Link>
+            <Link href="/terms" className="hover:text-slate-600">
+              Terms
+            </Link>
+            <Link href="/policy" className="hover:text-slate-600">
+              Policy
+            </Link>
+            <Link href="/sitemap" className="hover:text-slate-600">
+              Sitemap
+            </Link>
+            <Link href="/contact" className="hover:text-slate-600">
+              Contact
+            </Link>
+          </nav>
           </div>
         </div>
       </div>

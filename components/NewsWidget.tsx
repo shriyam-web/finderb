@@ -24,6 +24,7 @@ import {
   type NewsLanguage,
 } from '@/lib/newsFeeds';
 import { encodeNewsArticleId, NEWS_CACHE_PREFIX } from '@/lib/newsId';
+import { useUserLocationState } from '@/hooks/useUserCoords';
 import Link from 'next/link';
 
 const CATEGORY_ICONS: Record<NewsCategorySlug, typeof Cpu> = {
@@ -48,6 +49,9 @@ const UI_COPY = {
     emptyTitle: 'कोई समाचार नहीं मिला',
     emptyBody: (label: string) =>
       `${label} श्रेणी के लिए अभी समाचार उपलब्ध नहीं हैं। दूसरी श्रेणी आज़माएँ।`,
+    emptyLocalNoLocation:
+      'स्थानीय समाचार के लिए अपना शहर जानने हेतु लोकेशन की अनुमति दें, या ऊपर शहर चुनें।',
+    detectingLocation: 'आपका स्थान पता किया जा रहा है…',
     retry: 'पुनः लोड करें',
     language: 'भाषा',
   },
@@ -58,10 +62,19 @@ const UI_COPY = {
     emptyTitle: 'No news found',
     emptyBody: (label: string) =>
       `No articles are available for ${label} right now. Try another category.`,
+    emptyLocalNoLocation:
+      'Allow location access or pick your city above to see news for your area.',
+    detectingLocation: 'Detecting your location…',
     retry: 'Reload',
     language: 'Language',
   },
 } as const;
+
+function parseCityFromLocation(location: string | null): string | null {
+  if (!location) return null;
+  const parts = location.split(',').map((part) => part.trim()).filter(Boolean);
+  return parts[parts.length - 1] ?? null;
+}
 
 function NewsThumbnail({ src, alt }: { src: string; alt: string }) {
   const [imgSrc, setImgSrc] = useState(src);
@@ -90,43 +103,72 @@ function NewsThumbnail({ src, alt }: { src: string; alt: string }) {
 export default function NewsWidget() {
   const [news, setNews] = useState<NewsArticle[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedSlug, setSelectedSlug] = useState<NewsCategorySlug>('politics');
+  const [selectedSlug, setSelectedSlug] = useState<NewsCategorySlug>('local');
   const [language, setLanguage] = useState<NewsLanguage>('hi');
+  const {
+    effectiveSearchLocation,
+    userCityName,
+    userState,
+    isLocating,
+    isResolvingCity,
+    requestLocation,
+  } = useUserLocationState();
+
+  const localCity = userCityName || parseCityFromLocation(effectiveSearchLocation);
+  const localState = userState;
+  const isResolvingLocalLocation = isLocating || isResolvingCity;
 
   const selectedCategory =
     NEWS_CATEGORIES.find((c) => c.slug === selectedSlug) ?? NEWS_CATEGORIES[0];
   const copy = UI_COPY[language];
-  const categoryLabel = getCategoryLabel(selectedCategory, language);
+  const baseCategoryLabel = getCategoryLabel(selectedCategory, language);
+  const categoryLabel =
+    selectedSlug === 'local' && effectiveSearchLocation
+      ? `${baseCategoryLabel} · ${effectiveSearchLocation}`
+      : selectedSlug === 'local' && localState
+        ? `${baseCategoryLabel} · ${localState}`
+        : baseCategoryLabel;
 
-  const fetchNews = useCallback(async (slug: NewsCategorySlug, lang: NewsLanguage) => {
-    setLoading(true);
-    try {
-      const params = new URLSearchParams({
-        category: slug,
-        lang,
-      });
-      const res = await fetch(`/api/news?${params.toString()}`);
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(`News API error ${res.status}: ${text.slice(0, 200)}`);
+  const fetchNews = useCallback(
+    async (slug: NewsCategorySlug, lang: NewsLanguage) => {
+      setLoading(true);
+      try {
+        const params = new URLSearchParams({
+          category: slug,
+          lang,
+        });
+        if (slug === 'local') {
+          if (localCity) params.set('city', localCity);
+          if (localState) params.set('state', localState);
+        }
+        const res = await fetch(`/api/news?${params.toString()}`);
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(`News API error ${res.status}: ${text.slice(0, 200)}`);
+        }
+        const data = await res.json();
+        if (data.success) {
+          setNews(data.articles);
+        } else {
+          throw new Error(data.error || 'News API returned no articles');
+        }
+      } catch (error) {
+        console.error('Error fetching news:', error);
+        setNews([]);
+      } finally {
+        setLoading(false);
       }
-      const data = await res.json();
-      if (data.success) {
-        setNews(data.articles);
-      } else {
-        throw new Error(data.error || 'News API returned no articles');
-      }
-    } catch (error) {
-      console.error('Error fetching news:', error);
-      setNews([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    },
+    [localCity, localState]
+  );
 
   useEffect(() => {
+    if (selectedSlug === 'local' && isResolvingLocalLocation) {
+      setLoading(true);
+      return;
+    }
     fetchNews(selectedSlug, language);
-  }, [selectedSlug, language, fetchNews]);
+  }, [selectedSlug, language, fetchNews, isResolvingLocalLocation]);
 
   const filteredNews = news.slice(0, MAX_NEWS_ITEMS);
 
@@ -220,7 +262,12 @@ export default function NewsWidget() {
     return (
       <div className="w-full min-w-0 space-y-4 overflow-hidden">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="h-8 w-40 animate-pulse rounded-lg bg-slate-200" />
+          <div className="space-y-1">
+            <div className="h-8 w-40 animate-pulse rounded-lg bg-slate-200" />
+            {selectedSlug === 'local' && isResolvingLocalLocation && (
+              <p className="text-[11px] font-medium text-[#64748b]">{copy.detectingLocation}</p>
+            )}
+          </div>
           {languageToggle}
         </div>
         {categoryButtons}
@@ -242,6 +289,8 @@ export default function NewsWidget() {
   }
 
   if (!loading && filteredNews.length === 0) {
+    const showLocalLocationHint = selectedSlug === 'local' && !localCity && !localState;
+
     return (
       <div className="w-full min-w-0 space-y-5 overflow-hidden">
         {metaRow}
@@ -253,16 +302,26 @@ export default function NewsWidget() {
           <div className="space-y-2">
             <h3 className="text-base font-bold text-[#1e293b]">{copy.emptyTitle}</h3>
             <p className="mx-auto max-w-xs text-sm text-slate-500">
-              {copy.emptyBody(categoryLabel)}
+              {showLocalLocationHint ? copy.emptyLocalNoLocation : copy.emptyBody(categoryLabel)}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => fetchNews(selectedSlug, language)}
-            className="rounded-full bg-[#2563eb] px-5 py-2 text-xs font-bold text-white hover:bg-[#1d4ed8]"
-          >
-            {copy.retry}
-          </button>
+          {showLocalLocationHint ? (
+            <button
+              type="button"
+              onClick={requestLocation}
+              className="rounded-full bg-[#2563eb] px-5 py-2 text-xs font-bold text-white hover:bg-[#1d4ed8]"
+            >
+              {language === 'hi' ? 'लोकेशन चालू करें' : 'Enable location'}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => fetchNews(selectedSlug, language)}
+              className="rounded-full bg-[#2563eb] px-5 py-2 text-xs font-bold text-white hover:bg-[#1d4ed8]"
+            >
+              {copy.retry}
+            </button>
+          )}
         </div>
       </div>
     );

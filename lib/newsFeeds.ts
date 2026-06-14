@@ -18,6 +18,7 @@ export type NewsCategory = {
 };
 
 export const NEWS_CATEGORIES: NewsCategory[] = [
+  { slug: 'local', labelHi: 'स्थानीय', labelEn: 'Local' },
   { slug: 'politics', labelHi: 'राजनीति', labelEn: 'Politics' },
   { slug: 'business', labelHi: 'व्यापार', labelEn: 'Business' },
   { slug: 'sports', labelHi: 'खेल', labelEn: 'Sports' },
@@ -25,7 +26,6 @@ export const NEWS_CATEGORIES: NewsCategory[] = [
   { slug: 'bollywood', labelHi: 'मनोरंजन', labelEn: 'Entertainment' },
   { slug: 'technology', labelHi: 'तकनीक', labelEn: 'Technology' },
   { slug: 'real-estate', labelHi: 'रियल एस्टेट', labelEn: 'Real Estate' },
-  { slug: 'local', labelHi: 'स्थानीय', labelEn: 'Local' },
   { slug: 'startups', labelHi: 'स्टार्टअप', labelEn: 'Startups' },
 ];
 
@@ -221,6 +221,67 @@ export function getGoogleNewsUrl(slug: NewsCategorySlug, lang: NewsLanguage): st
   }
   const q = encodeURIComponent(HINDI_GOOGLE_QUERIES[slug]);
   return `https://news.google.com/rss/search?q=${q}&hl=hi&gl=IN&ceid=IN:hi`;
+}
+
+function toFeedSlug(name: string): string {
+  return name
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
+function toHinduCitySegment(name: string): string {
+  return name
+    .split(/\s+/)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join('');
+}
+
+export type LocalNewsLocation = {
+  city: string | null;
+  state: string | null;
+};
+
+export function getLocalFeedUrls(location: LocalNewsLocation, lang: NewsLanguage): string[] {
+  const urls: string[] = [];
+  const city = location.city?.trim() || null;
+
+  if (city) {
+    const slug = toFeedSlug(city);
+    if (slug) {
+      urls.push(`https://www.livehindustan.com/rss/cities/${slug}-news`);
+    }
+    const hinduCity = toHinduCitySegment(city);
+    if (hinduCity) {
+      urls.push(`https://www.thehindu.com/news/cities/${hinduCity}/feeder/default.rss`);
+    }
+  }
+
+  urls.push(...getFeedUrlsForCategory('local', lang));
+  return [...new Set(urls)];
+}
+
+export function getLocalGoogleNewsUrl(location: LocalNewsLocation, lang: NewsLanguage): string {
+  const city = location.city?.trim() || null;
+  const state = location.state?.trim() || null;
+
+  if (lang === 'en') {
+    const query = city
+      ? `${city} local news India`
+      : state
+        ? `${state} news India`
+        : ENGLISH_GOOGLE_QUERIES.local;
+    return `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=en-IN&gl=IN&ceid=IN:en`;
+  }
+
+  const query = city
+    ? `${city} समाचार`
+    : state
+      ? `${state} समाचार`
+      : HINDI_GOOGLE_QUERIES.local;
+  return `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=hi&gl=IN&ceid=IN:hi`;
 }
 
 /** @deprecated use NEWS_CATEGORIES */
