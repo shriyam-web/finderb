@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Inter, Outfit } from "next/font/google";
 import "./globals.css";
 import LayoutClient from "@/components/LayoutClient";
+import ServiceWorkerRegister from "@/components/pwa/ServiceWorkerRegister";
+import PWAInstallPrompt from "@/components/pwa/PWAInstallPrompt";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -71,8 +73,8 @@ export const metadata: Metadata = {
     statusBarStyle: "default",
   },
   icons: {
-    icon: "/icon.png",
-    apple: "/icon.png",
+    icon: "/icon-192.png",
+    apple: "/icon-192.png",
   },
 };
 
@@ -132,6 +134,8 @@ export default function RootLayout({
         <LayoutClient>
           {children}
         </LayoutClient>
+        <ServiceWorkerRegister />
+        <PWAInstallPrompt />
       </body>
     </html>
   );

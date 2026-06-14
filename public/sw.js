@@ -1,9 +1,9 @@
-const CACHE_NAME = 'finderb-v1';
+const CACHE_NAME = 'finderb-v2';
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) =>
-      cache.addAll(['/', '/manifest.webmanifest', '/logo1.png', '/icon.png'])
+      cache.addAll(['/', '/manifest.webmanifest', '/icon-192.png', '/icon-512.png'])
     )
   );
   self.skipWaiting();

@@ -74,6 +74,5 @@ export const PWA_COPY = {
     installCta: 'Add to Home Screen',
   },
   androidFallback:
-    'Open your browser menu (⋮) and tap "Install app" or "Add to Home screen". If you don\'t see it, try refreshing the page first.',
-  retryInstall: 'Try install again',
+    'Open your browser menu (⋮) and tap "Install app" or "Add to Home screen".',
 } as const;
