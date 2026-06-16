@@ -37,6 +37,8 @@ export {
   HERO_CITIES_BY_STATE,
   HERO_POPULAR_CITIES,
   isHeroCitySelected,
+  filterCitiesByState,
+  sortStatesByPopularity,
 } from '@/lib/indianCities';
 export type { CitiesByState } from '@/lib/indianCities';
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import Image from 'next/image';
 import {
@@ -11,7 +11,13 @@ import {
   Mic,
   RefreshCw,
 } from 'lucide-react';
-import { HERO_TRUST_BADGES, POPULAR_SEARCHES, HERO_CITIES_BY_STATE, isHeroCitySelected } from '@/lib/homeHeroConstants';
+import {
+  HERO_TRUST_BADGES,
+  POPULAR_SEARCHES,
+  HERO_CITIES_BY_STATE,
+  isHeroCitySelected,
+  filterCitiesByState,
+} from '@/lib/homeHeroConstants';
 import { useUserLocationState } from '@/hooks/useUserCoords';
 
 type HomeHeroProps = {
@@ -32,17 +38,45 @@ function HeroLocationField({ compact = false }: { compact?: boolean }) {
     setSearchLocation,
   } = useUserLocationState();
   const [open, setOpen] = useState(false);
+  const [citySearch, setCitySearch] = useState('');
   const [mounted, setMounted] = useState(false);
   const [dropdownStyle, setDropdownStyle] = useState<CSSProperties>({});
   const rootRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  const filteredCityGroups = useMemo(
+    () => filterCitiesByState(HERO_CITIES_BY_STATE, citySearch),
+    [citySearch]
+  );
+
+  const visibleCityCount = useMemo(
+    () => filteredCityGroups.reduce((count, group) => count + group.cities.length, 0),
+    [filteredCityGroups]
+  );
 
   const isPending = isLocating || isResolvingCity;
-  const label = effectiveSearchLocation || (isPending ? 'Detecting…' : 'Near you');
   const showRetry = !effectiveSearchLocation && !isPending;
+
+  const displayLabel = useMemo(() => {
+    if (isPending) return 'Detecting…';
+    if (!effectiveSearchLocation) return 'Near you';
+    const cityPart = effectiveSearchLocation.split(',')[0]?.trim();
+    return cityPart || effectiveSearchLocation;
+  }, [effectiveSearchLocation, isPending]);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (!open) {
+      setCitySearch('');
+      return;
+    }
+
+    const timer = window.setTimeout(() => searchInputRef.current?.focus(), 0);
+    return () => window.clearTimeout(timer);
+  }, [open]);
 
   const updateDropdownPosition = () => {
     const el = rootRef.current;
@@ -50,7 +84,7 @@ function HeroLocationField({ compact = false }: { compact?: boolean }) {
 
     const rect = el.getBoundingClientRect();
     const viewportPadding = 12;
-    const preferredWidth = compact ? rect.width : Math.min(256, rect.width);
+    const preferredWidth = compact ? Math.max(rect.width, 240) : Math.max(260, Math.min(300, rect.width + 40));
     const maxWidth = window.innerWidth - viewportPadding * 2;
     const width = Math.min(preferredWidth, maxWidth);
     let left = rect.left;
@@ -104,8 +138,8 @@ function HeroLocationField({ compact = false }: { compact?: boolean }) {
     setOpen(false);
   };
 
-  const handlePickCity = (city: string) => {
-    setSearchLocation(city);
+  const handlePickCity = (city: string, state: string) => {
+    setSearchLocation(`${city}, ${state}`);
     setOpen(false);
   };
 
@@ -115,77 +149,106 @@ function HeroLocationField({ compact = false }: { compact?: boolean }) {
       role="listbox"
       aria-label="Choose location"
       style={dropdownStyle}
-      className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl ring-1 ring-black/5"
+      className="overflow-hidden rounded-lg border border-slate-200/90 bg-white shadow-[0_8px_30px_rgba(15,23,42,0.08)]"
     >
+      <div className="border-b border-slate-100 px-2.5 py-2">
+        <div className="flex items-center gap-1.5">
+          <Search size={13} className="shrink-0 text-slate-400" strokeWidth={2} />
+          <input
+            ref={searchInputRef}
+            type="search"
+            value={citySearch}
+            onChange={(e) => setCitySearch(e.target.value)}
+            placeholder="Search city or state"
+            className="min-w-0 flex-1 border-none bg-transparent py-0.5 text-[13px] text-slate-700 placeholder:text-slate-400 focus:ring-0"
+          />
+        </div>
+      </div>
+
       <button
         type="button"
         onClick={handleUseMyLocation}
-        className="flex w-full items-center gap-2 border-b border-slate-100 px-3 py-2.5 text-left text-xs font-semibold text-[#2563eb] transition-colors hover:bg-blue-50"
+        className="flex w-full items-center gap-1.5 border-b border-slate-100 px-2.5 py-2 text-left text-[12px] font-medium text-[#2563eb] transition-colors hover:bg-slate-50"
       >
-        <MapPin size={14} strokeWidth={2.25} />
-        Use my current location
+        <MapPin size={12} strokeWidth={2.25} />
+        Use current location
       </button>
-      <p className="px-3 pb-1 pt-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-        Choose city
-      </p>
-      <ul className="max-h-64 overflow-y-auto pb-1">
-        {HERO_CITIES_BY_STATE.map((group) => (
-          <li key={group.state}>
-            <p className="sticky top-0 z-[1] border-b border-slate-100 bg-slate-50 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">
-              {group.state}
-            </p>
-            <ul>
-              {group.cities.map((city) => {
-                const selected = isHeroCitySelected(effectiveSearchLocation, city);
-                return (
-                  <li key={`${group.state}-${city}`}>
-                    <button
-                      type="button"
-                      role="option"
-                      aria-selected={selected}
-                      onClick={() => handlePickCity(city)}
-                      className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-slate-50 ${
-                        selected ? 'bg-blue-50/80 font-semibold text-[#2563eb]' : 'text-slate-700'
-                      }`}
-                    >
-                      <MapPin size={13} className={selected ? 'text-[#2563eb]' : 'text-slate-400'} />
-                      {city}
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          </li>
-        ))}
+
+      <ul className="max-h-[min(15rem,42vh)] overflow-y-auto py-1">
+        {filteredCityGroups.length === 0 ? (
+          <li className="px-2.5 py-5 text-center text-[12px] text-slate-400">No matches</li>
+        ) : (
+          filteredCityGroups.map((group) => (
+            <li key={group.state}>
+              <p className="sticky top-0 bg-white/95 px-2.5 py-1 text-[10px] font-semibold tracking-wide text-slate-400 backdrop-blur-sm">
+                {group.state}
+                {citySearch.trim() ? (
+                  <span className="ml-1 font-normal text-slate-300">({group.cities.length})</span>
+                ) : null}
+              </p>
+              <ul>
+                {group.cities.map((city) => {
+                  const selected = isHeroCitySelected(effectiveSearchLocation, city);
+                  return (
+                    <li key={`${group.state}-${city}`}>
+                      <button
+                        type="button"
+                        role="option"
+                        aria-selected={selected}
+                        onClick={() => handlePickCity(city, group.state)}
+                        className={`flex w-full items-center justify-between gap-2 px-2.5 py-1.5 text-left text-[13px] transition-colors ${
+                          selected
+                            ? 'bg-[#2563eb]/[0.06] font-medium text-[#2563eb]'
+                            : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                        }`}
+                      >
+                        <span className="min-w-0 truncate">{city}</span>
+                        {selected ? (
+                          <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#2563eb]" aria-hidden />
+                        ) : null}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </li>
+          ))
+        )}
       </ul>
+
+      {citySearch.trim() ? (
+        <p className="border-t border-slate-100 px-2.5 py-1.5 text-[10px] text-slate-400">
+          {visibleCityCount} result{visibleCityCount === 1 ? '' : 's'}
+        </p>
+      ) : null}
     </div>
   ) : null;
 
   return (
     <div ref={rootRef} className={`relative z-20 min-w-0 ${compact ? 'flex-1' : ''}`}>
-      <div className={`flex items-center gap-1.5 ${compact ? 'w-full' : ''}`}>
+      <div className={`flex items-center gap-1 ${compact ? 'w-full' : ''}`}>
         <MapPin
-          size={compact ? 17 : 16}
+          size={compact ? 15 : 14}
           className="shrink-0 text-[#2563eb]"
           strokeWidth={2.25}
         />
         <span
-          className={`min-w-0 flex-1 truncate font-semibold text-[#1e293b] ${
-            compact ? 'text-[13px]' : 'text-sm'
+          className={`min-w-0 flex-1 truncate font-medium text-[#1e293b] ${
+            compact ? 'text-[12px]' : 'text-[13px]'
           } ${showRetry ? 'text-[#64748b]' : ''}`}
-          title={label}
+          title={effectiveSearchLocation || displayLabel}
         >
-          {label}
+          {displayLabel}
         </span>
         {showRetry ? (
           <button
             type="button"
             onClick={requestLocation}
-            className={`inline-flex shrink-0 items-center gap-1 rounded-md font-semibold text-[#2563eb] transition-colors hover:bg-[#2563eb]/10 ${
-              compact ? 'px-1.5 py-0.5 text-[11px]' : 'px-2 py-1 text-xs'
+            className={`inline-flex shrink-0 items-center gap-0.5 rounded font-medium text-[#2563eb] transition-colors hover:bg-[#2563eb]/10 ${
+              compact ? 'px-1 py-0.5 text-[10px]' : 'px-1.5 py-0.5 text-[11px]'
             }`}
           >
-            <RefreshCw size={compact ? 12 : 13} strokeWidth={2.25} />
+            <RefreshCw size={compact ? 11 : 12} strokeWidth={2.25} />
             Retry
           </button>
         ) : (
@@ -195,12 +258,12 @@ function HeroLocationField({ compact = false }: { compact?: boolean }) {
             aria-expanded={open}
             aria-haspopup="listbox"
             aria-label="Change search location"
-            className={`inline-flex shrink-0 items-center justify-center rounded-md text-[#64748b] transition-colors hover:bg-slate-100 hover:text-[#2563eb] ${
-              compact ? 'h-7 w-7' : 'h-8 w-8'
+            className={`inline-flex shrink-0 items-center justify-center rounded text-slate-400 transition-colors hover:bg-slate-100 hover:text-[#2563eb] ${
+              compact ? 'h-6 w-6' : 'h-7 w-7'
             } ${open ? 'bg-slate-100 text-[#2563eb]' : ''}`}
           >
             <ChevronDown
-              size={compact ? 15 : 14}
+              size={compact ? 14 : 13}
               className={`transition-transform ${open ? 'rotate-180' : ''}`}
             />
           </button>

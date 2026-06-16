@@ -1,208 +1,69 @@
+import rawCitiesByState from '@/lib/data/indianCitiesByState.json';
+
 export type CitiesByState = {
   state: string;
   cities: readonly string[];
 };
 
-/** Major cities grouped by state/UT for the hero location picker. */
-export const HERO_CITIES_BY_STATE: readonly CitiesByState[] = [
-  {
-    state: 'Delhi NCR',
-    cities: [
-      'New Delhi',
-      'South Delhi',
-      'North Delhi',
-      'East Delhi',
-      'West Delhi',
-      'Central Delhi',
-      'Noida',
-      'Greater Noida',
-      'Gurgaon',
-      'Faridabad',
-      'Ghaziabad',
-    ],
-  },
-  {
-    state: 'Uttar Pradesh',
-    cities: [
-      'Lucknow',
-      'Kanpur',
-      'Agra',
-      'Varanasi',
-      'Prayagraj',
-      'Meerut',
-      'Bareilly',
-      'Gorakhpur',
-      'Aligarh',
-      'Moradabad',
-      'Saharanpur',
-      'Jhansi',
-    ],
-  },
-  {
-    state: 'Maharashtra',
-    cities: [
-      'Mumbai',
-      'Pune',
-      'Nagpur',
-      'Thane',
-      'Nashik',
-      'Aurangabad',
-      'Solapur',
-      'Kolhapur',
-      'Amravati',
-      'Navi Mumbai',
-    ],
-  },
-  {
-    state: 'Karnataka',
-    cities: [
-      'Bangalore',
-      'Mysore',
-      'Mangalore',
-      'Hubli',
-      'Belgaum',
-      'Gulbarga',
-      'Davangere',
-      'Shimoga',
-    ],
-  },
-  {
-    state: 'Tamil Nadu',
-    cities: [
-      'Chennai',
-      'Coimbatore',
-      'Madurai',
-      'Tiruchirappalli',
-      'Salem',
-      'Tirunelveli',
-      'Vellore',
-      'Erode',
-    ],
-  },
-  {
-    state: 'Telangana',
-    cities: ['Hyderabad', 'Warangal', 'Nizamabad', 'Karimnagar', 'Khammam'],
-  },
-  {
-    state: 'Andhra Pradesh',
-    cities: [
-      'Visakhapatnam',
-      'Vijayawada',
-      'Guntur',
-      'Nellore',
-      'Tirupati',
-      'Kakinada',
-      'Rajahmundry',
-    ],
-  },
-  {
-    state: 'West Bengal',
-    cities: ['Kolkata', 'Howrah', 'Durgapur', 'Siliguri', 'Asansol', 'Kharagpur'],
-  },
-  {
-    state: 'Gujarat',
-    cities: [
-      'Ahmedabad',
-      'Surat',
-      'Vadodara',
-      'Rajkot',
-      'Bhavnagar',
-      'Jamnagar',
-      'Gandhinagar',
-      'Anand',
-    ],
-  },
-  {
-    state: 'Rajasthan',
-    cities: [
-      'Jaipur',
-      'Jodhpur',
-      'Udaipur',
-      'Kota',
-      'Ajmer',
-      'Bikaner',
-      'Alwar',
-      'Bhilwara',
-    ],
-  },
-  {
-    state: 'Madhya Pradesh',
-    cities: [
-      'Bhopal',
-      'Indore',
-      'Gwalior',
-      'Jabalpur',
-      'Ujjain',
-      'Sagar',
-      'Ratlam',
-    ],
-  },
-  {
-    state: 'Punjab',
-    cities: ['Ludhiana', 'Amritsar', 'Jalandhar', 'Patiala', 'Bathinda', 'Mohali'],
-  },
-  {
-    state: 'Haryana',
-    cities: ['Panipat', 'Ambala', 'Karnal', 'Rohtak', 'Hisar', 'Sonipat'],
-  },
-  {
-    state: 'Kerala',
-    cities: [
-      'Kochi',
-      'Thiruvananthapuram',
-      'Kozhikode',
-      'Thrissur',
-      'Kollam',
-      'Kannur',
-    ],
-  },
-  {
-    state: 'Bihar',
-    cities: ['Patna', 'Gaya', 'Muzaffarpur', 'Bhagalpur', 'Darbhanga', 'Purnia'],
-  },
-  {
-    state: 'Odisha',
-    cities: ['Bhubaneswar', 'Cuttack', 'Rourkela', 'Berhampur', 'Sambalpur'],
-  },
-  {
-    state: 'Assam',
-    cities: ['Guwahati', 'Silchar', 'Dibrugarh', 'Jorhat', 'Tezpur'],
-  },
-  {
-    state: 'Jharkhand',
-    cities: ['Ranchi', 'Jamshedpur', 'Dhanbad', 'Bokaro', 'Deoghar'],
-  },
-  {
-    state: 'Chhattisgarh',
-    cities: ['Raipur', 'Bhilai', 'Bilaspur', 'Korba', 'Durg'],
-  },
-  {
-    state: 'Uttarakhand',
-    cities: ['Dehradun', 'Haridwar', 'Roorkee', 'Haldwani', 'Nainital'],
-  },
-  {
-    state: 'Himachal Pradesh',
-    cities: ['Shimla', 'Dharamshala', 'Solan', 'Mandi', 'Kullu'],
-  },
-  {
-    state: 'Goa',
-    cities: ['Panaji', 'Margao', 'Vasco da Gama', 'Mapusa'],
-  },
-  {
-    state: 'Chandigarh',
-    cities: ['Chandigarh'],
-  },
-  {
-    state: 'Jammu & Kashmir',
-    cities: ['Srinagar', 'Jammu', 'Anantnag', 'Baramulla'],
-  },
-  {
-    state: 'Puducherry',
-    cities: ['Puducherry', 'Karaikal'],
-  },
+/** States shown first in the location picker (highest traffic / search interest). */
+const POPULAR_STATE_ORDER = [
+  'Uttar Pradesh',
+  'Delhi',
+  'Madhya Pradesh',
+  'Uttarakhand',
+  'Maharashtra',
+  'Karnataka',
+  'Telangana',
+  'Tamil Nadu',
+  'Gujarat',
+  'West Bengal',
+  'Rajasthan',
+  'Punjab',
+  'Haryana',
+  'Bihar',
+  'Kerala',
+  'Andhra Pradesh',
+  'Jharkhand',
+  'Chhattisgarh',
+  'Odisha',
+  'Assam',
+  'Himachal Pradesh',
+  'Jammu and Kashmir',
+  'Goa',
+  'Chandigarh',
+  'Puducherry',
+  'Ladakh',
 ] as const;
 
-/** Flat list of all hero picker cities (deduplicated). */
+function normalizeStateName(value: string): string {
+  return value.trim().toLowerCase();
+}
+
+function getStatePopularityRank(state: string): number {
+  const key = normalizeStateName(state);
+  const index = POPULAR_STATE_ORDER.findIndex(
+    (popular) => normalizeStateName(popular) === key
+  );
+  return index === -1 ? POPULAR_STATE_ORDER.length : index;
+}
+
+export function sortStatesByPopularity(groups: readonly CitiesByState[]): CitiesByState[] {
+  return [...groups].sort((a, b) => {
+    const rankDiff = getStatePopularityRank(a.state) - getStatePopularityRank(b.state);
+    if (rankDiff !== 0) return rankDiff;
+    return a.state.localeCompare(b.state, 'en', { sensitivity: 'base' });
+  });
+}
+
+/**
+ * All Indian states & union territories with every district (administrative city/town).
+ * Sourced from official state–district lists, merged for completeness (~865 locations).
+ */
+export const HERO_CITIES_BY_STATE: readonly CitiesByState[] = sortStatesByPopularity(
+  rawCitiesByState as CitiesByState[]
+);
+
+/** Flat list of every picker city (deduplicated). */
 export const HERO_POPULAR_CITIES = [
   ...new Set(HERO_CITIES_BY_STATE.flatMap((group) => group.cities)),
 ] as const;
@@ -222,4 +83,26 @@ export function isHeroCitySelected(
   if (location.endsWith(`, ${target}`)) return true;
   if (location.startsWith(`${target},`)) return true;
   return location.split(',').some((part) => part.trim() === target);
+}
+
+export function filterCitiesByState(
+  groups: readonly CitiesByState[],
+  query: string
+): CitiesByState[] {
+  const q = normalizeCity(query);
+  if (!q) return sortStatesByPopularity(groups).map((group) => ({ state: group.state, cities: [...group.cities] }));
+
+  const results: CitiesByState[] = [];
+
+  for (const group of groups) {
+    const stateMatches = normalizeCity(group.state).includes(q);
+    const cities = group.cities.filter(
+      (city) => stateMatches || normalizeCity(city).includes(q)
+    );
+    if (cities.length > 0) {
+      results.push({ state: group.state, cities });
+    }
+  }
+
+  return sortStatesByPopularity(results);
 }
