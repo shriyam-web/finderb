@@ -33,18 +33,12 @@ export const POPULAR_SEARCHES = [
   { term: 'Makeup Artist', icon: Sparkles, iconColor: 'text-slate-600' },
 ] as const;
 
-export const HERO_POPULAR_CITIES = [
-  'Lucknow',
-  'Delhi',
-  'Mumbai',
-  'Bangalore',
-  'Hyderabad',
-  'Chennai',
-  'Pune',
-  'Kolkata',
-  'Ahmedabad',
-  'Jaipur',
-] as const;
+export {
+  HERO_CITIES_BY_STATE,
+  HERO_POPULAR_CITIES,
+  isHeroCitySelected,
+} from '@/lib/indianCities';
+export type { CitiesByState } from '@/lib/indianCities';
 
 export const HERO_TRUST_BADGES = [
   {

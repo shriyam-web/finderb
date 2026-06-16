@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
+import { createPortal } from 'react-dom';
 import Image from 'next/image';
 import {
   Search,
@@ -10,7 +11,7 @@ import {
   Mic,
   RefreshCw,
 } from 'lucide-react';
-import { HERO_TRUST_BADGES, POPULAR_SEARCHES, HERO_POPULAR_CITIES } from '@/lib/homeHeroConstants';
+import { HERO_TRUST_BADGES, POPULAR_SEARCHES, HERO_CITIES_BY_STATE, isHeroCitySelected } from '@/lib/homeHeroConstants';
 import { useUserLocationState } from '@/hooks/useUserCoords';
 
 type HomeHeroProps = {
@@ -31,6 +32,8 @@ function HeroLocationField({ compact = false }: { compact?: boolean }) {
     setSearchLocation,
   } = useUserLocationState();
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [dropdownStyle, setDropdownStyle] = useState<CSSProperties>({});
   const rootRef = useRef<HTMLDivElement>(null);
 
   const isPending = isLocating || isResolvingCity;
@@ -38,12 +41,57 @@ function HeroLocationField({ compact = false }: { compact?: boolean }) {
   const showRetry = !effectiveSearchLocation && !isPending;
 
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const updateDropdownPosition = () => {
+    const el = rootRef.current;
+    if (!el) return;
+
+    const rect = el.getBoundingClientRect();
+    const viewportPadding = 12;
+    const preferredWidth = compact ? rect.width : Math.min(256, rect.width);
+    const maxWidth = window.innerWidth - viewportPadding * 2;
+    const width = Math.min(preferredWidth, maxWidth);
+    let left = rect.left;
+
+    if (left + width > window.innerWidth - viewportPadding) {
+      left = window.innerWidth - viewportPadding - width;
+    }
+    left = Math.max(viewportPadding, left);
+
+    setDropdownStyle({
+      position: 'fixed',
+      top: rect.bottom + 8,
+      left,
+      width,
+      zIndex: 10000,
+    });
+  };
+
+  useLayoutEffect(() => {
+    if (!open) return;
+
+    updateDropdownPosition();
+
+    const onScrollOrResize = () => updateDropdownPosition();
+    window.addEventListener('resize', onScrollOrResize);
+    window.addEventListener('scroll', onScrollOrResize, true);
+
+    return () => {
+      window.removeEventListener('resize', onScrollOrResize);
+      window.removeEventListener('scroll', onScrollOrResize, true);
+    };
+  }, [open, compact]);
+
+  useEffect(() => {
     if (!open) return;
 
     const onPointerDown = (event: MouseEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) {
-        setOpen(false);
-      }
+      const target = event.target as Node;
+      if (rootRef.current?.contains(target)) return;
+      if (target instanceof Element && target.closest('[data-hero-location-dropdown]')) return;
+      setOpen(false);
     };
 
     document.addEventListener('mousedown', onPointerDown);
@@ -61,8 +109,60 @@ function HeroLocationField({ compact = false }: { compact?: boolean }) {
     setOpen(false);
   };
 
+  const dropdown = open ? (
+    <div
+      data-hero-location-dropdown
+      role="listbox"
+      aria-label="Choose location"
+      style={dropdownStyle}
+      className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl ring-1 ring-black/5"
+    >
+      <button
+        type="button"
+        onClick={handleUseMyLocation}
+        className="flex w-full items-center gap-2 border-b border-slate-100 px-3 py-2.5 text-left text-xs font-semibold text-[#2563eb] transition-colors hover:bg-blue-50"
+      >
+        <MapPin size={14} strokeWidth={2.25} />
+        Use my current location
+      </button>
+      <p className="px-3 pb-1 pt-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+        Choose city
+      </p>
+      <ul className="max-h-64 overflow-y-auto pb-1">
+        {HERO_CITIES_BY_STATE.map((group) => (
+          <li key={group.state}>
+            <p className="sticky top-0 z-[1] border-b border-slate-100 bg-slate-50 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+              {group.state}
+            </p>
+            <ul>
+              {group.cities.map((city) => {
+                const selected = isHeroCitySelected(effectiveSearchLocation, city);
+                return (
+                  <li key={`${group.state}-${city}`}>
+                    <button
+                      type="button"
+                      role="option"
+                      aria-selected={selected}
+                      onClick={() => handlePickCity(city)}
+                      className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-slate-50 ${
+                        selected ? 'bg-blue-50/80 font-semibold text-[#2563eb]' : 'text-slate-700'
+                      }`}
+                    >
+                      <MapPin size={13} className={selected ? 'text-[#2563eb]' : 'text-slate-400'} />
+                      {city}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </li>
+        ))}
+      </ul>
+    </div>
+  ) : null;
+
   return (
-    <div ref={rootRef} className={`relative min-w-0 ${compact ? 'flex-1' : ''}`}>
+    <div ref={rootRef} className={`relative z-20 min-w-0 ${compact ? 'flex-1' : ''}`}>
       <div className={`flex items-center gap-1.5 ${compact ? 'w-full' : ''}`}>
         <MapPin
           size={compact ? 17 : 16}
@@ -107,50 +207,7 @@ function HeroLocationField({ compact = false }: { compact?: boolean }) {
         )}
       </div>
 
-      {open && (
-        <div
-          role="listbox"
-          aria-label="Choose location"
-          className={`absolute z-50 mt-2 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl ring-1 ring-black/5 ${
-            compact ? 'left-0 right-0' : 'left-0 w-[min(100%,16rem)]'
-          }`}
-        >
-          <button
-            type="button"
-            onClick={handleUseMyLocation}
-            className="flex w-full items-center gap-2 border-b border-slate-100 px-3 py-2.5 text-left text-xs font-semibold text-[#2563eb] transition-colors hover:bg-blue-50"
-          >
-            <MapPin size={14} strokeWidth={2.25} />
-            Use my current location
-          </button>
-          <p className="px-3 pb-1 pt-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-            Popular cities
-          </p>
-          <ul className="max-h-48 overflow-y-auto pb-1">
-            {HERO_POPULAR_CITIES.map((city) => {
-              const selected =
-                effectiveSearchLocation?.toLowerCase() === city.toLowerCase() ||
-                effectiveSearchLocation?.toLowerCase().endsWith(city.toLowerCase());
-              return (
-                <li key={city}>
-                  <button
-                    type="button"
-                    role="option"
-                    aria-selected={selected}
-                    onClick={() => handlePickCity(city)}
-                    className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-slate-50 ${
-                      selected ? 'bg-blue-50/80 font-semibold text-[#2563eb]' : 'text-slate-700'
-                    }`}
-                  >
-                    <MapPin size={13} className={selected ? 'text-[#2563eb]' : 'text-slate-400'} />
-                    {city}
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      )}
+      {mounted && dropdown ? createPortal(dropdown, document.body) : null}
     </div>
   );
 }
@@ -167,7 +224,7 @@ export default function HomeHero({
 
   return (
     <section
-      className={`relative overflow-hidden bg-gradient-to-b from-white via-[#f5f9ff] to-[#e8f2fc] ${
+      className={`relative overflow-visible bg-gradient-to-b from-white via-[#f5f9ff] to-[#e8f2fc] ${
         isDesktop ? 'hidden lg:block' : 'lg:hidden'
       } ${isDesktop ? 'pb-10' : 'pb-6'}`}
     >
@@ -249,9 +306,9 @@ export default function HomeHero({
           </div>
         </div>
 
-        <div className={`${isDesktop ? 'mt-4 max-w-2xl' : 'mt-3 px-4'}`}>
+        <div className={`${isDesktop ? 'mt-4 max-w-2xl' : 'mt-3 px-4'} relative z-30`}>
           {isDesktop ? (
-            <div className="flex items-stretch overflow-visible rounded-xl border border-gray-100/80 bg-white shadow-[0_4px_20px_rgba(15,23,42,0.07)]">
+            <div className="relative z-30 flex items-stretch overflow-visible rounded-xl border border-gray-100/80 bg-white shadow-[0_4px_20px_rgba(15,23,42,0.07)]">
               <div className="flex min-w-0 flex-[1.4] items-center gap-2 border-r border-gray-100 px-3.5 py-2.5">
                 <Search size={18} className="shrink-0 text-[#94a3b8]" strokeWidth={2} />
                 <input
@@ -276,7 +333,7 @@ export default function HomeHero({
                   <Mic size={17} strokeWidth={2} className={voiceActive ? 'animate-bounce' : ''} />
                 </button>
               </div>
-              <div className="relative flex min-w-0 flex-[1.1] items-center border-r border-gray-100 px-3.5 py-2.5">
+              <div className="relative z-30 flex min-w-0 flex-[1.1] items-center overflow-visible border-r border-gray-100 px-3.5 py-2.5">
                 <HeroLocationField />
               </div>
               <button
@@ -289,7 +346,7 @@ export default function HomeHero({
               </button>
             </div>
           ) : (
-            <div className="overflow-visible rounded-2xl border border-gray-100/80 bg-white text-left shadow-[0_8px_30px_rgba(15,23,42,0.08)]">
+            <div className="relative z-30 overflow-visible rounded-2xl border border-gray-100/80 bg-white text-left shadow-[0_8px_30px_rgba(15,23,42,0.08)]">
               <div className="flex items-center gap-2 border-b border-gray-100 px-3.5 py-3">
                 <Search size={18} className="shrink-0 text-[#94a3b8]" strokeWidth={2} />
                 <input
