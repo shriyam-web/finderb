@@ -59,7 +59,7 @@ export default function BusinessLoginPage() {
   };
 
   return (
-    <div className="relative min-h-[calc(100dvh-5rem)] bg-[#f4f7fb] px-4 pb-8 pt-[5.25rem] sm:px-6 sm:pt-28 lg:min-h-screen lg:py-10">
+    <div className="relative min-h-[calc(100dvh-5rem)] bg-[#f4f7fb] px-4 pb-8 pt-24 sm:px-6 sm:pt-28 md:pt-32 lg:min-h-screen lg:py-12">
       <div
         className="pointer-events-none absolute inset-0 opacity-[0.35]"
         aria-hidden
@@ -81,13 +81,13 @@ export default function BusinessLoginPage() {
             }}
           />
           <div className="relative z-10 p-10 xl:p-12">
-            <Link href="/" className="inline-block">
+            <Link href="/" className="inline-block rounded-lg bg-white px-3 py-2 shadow-sm">
               <Image
                 src="/businesslogo.png"
                 alt="FinderB Business"
                 width={132}
                 height={44}
-                className="h-9 w-auto brightness-0 invert"
+                className="h-8 w-auto"
                 priority
               />
             </Link>
@@ -95,7 +95,7 @@ export default function BusinessLoginPage() {
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#f9b864]">
                 Partner portal
               </p>
-              <h1 className="mt-3 text-[1.75rem] font-semibold leading-snug tracking-tight text-white xl:text-[2rem]">
+              <h1 className="mt-3 text-[1.75rem] font-semibold leading-snug tracking-tight !text-white xl:text-[2rem]">
                 Manage your business listing
               </h1>
               <p className="mt-3 text-sm leading-relaxed text-white/70">

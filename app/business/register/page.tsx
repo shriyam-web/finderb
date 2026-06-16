@@ -420,7 +420,7 @@ function RegisterFormContent() {
 
   if (showForm) {
     return (
-      <div className="min-h-screen bg-[#f4f7fb] px-4 pb-8 pt-[5.25rem] sm:px-6 sm:pt-28 lg:pt-10">
+      <div className="min-h-screen bg-[#f4f7fb] px-4 pb-8 pt-24 sm:px-6 sm:pt-28 md:pt-32 lg:pt-12">
         <div className="mx-auto w-full max-w-4xl overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_24px_64px_-32px_rgba(15,39,59,0.2)] md:flex md:min-h-[520px]">
           {/* Sidebar */}
           <div
@@ -438,13 +438,13 @@ function RegisterFormContent() {
 
             <div className="relative z-10 px-6 py-5 md:py-8">
               <div className="mb-6 flex items-center justify-between md:mb-10">
-                <Link href="/" className="inline-block">
+                <Link href="/" className="inline-block rounded-lg bg-white px-2.5 py-1.5 shadow-sm">
                   <Image
                     src="/businesslogo.png"
                     alt="FinderB Business"
                     width={120}
                     height={40}
-                    className="h-7 w-auto brightness-0 invert"
+                    className="h-7 w-auto"
                   />
                 </Link>
                 <button
@@ -804,7 +804,7 @@ function RegisterFormContent() {
   return (
     <div className="min-h-screen bg-[#f4f7fb] selection:bg-[#215481]/10">
       {/* Hero */}
-      <section className="border-b border-slate-200/80 bg-white pt-[5.25rem] pb-14 sm:pt-28 lg:pb-20">
+      <section className="border-b border-slate-200/80 bg-white pt-24 pb-14 sm:pt-28 md:pt-32 lg:pb-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid items-start gap-10 lg:grid-cols-5 lg:gap-12">
             <div className="lg:col-span-3">

@@ -35,6 +35,7 @@
   --animate-spin-slow: spin 8s linear infinite;
   --animate-ai-fab-gradient: ai-fab-gradient 3.5s ease infinite;
   --animate-ai-fab-glow: ai-fab-glow 2.5s ease-in-out infinite;
+  --animate-ai-search-badge-shine: ai-search-badge-shine 2.4s ease-in-out infinite;
   --animate-fire-flicker: fire-flicker 1.15s ease-in-out infinite;
   --animate-app-phone-left: app-phone-left 5s ease-in-out infinite;
   --animate-app-phone-right: app-phone-right 5.5s ease-in-out infinite;
@@ -84,6 +85,11 @@
     0% { transform: translateY(-100%); opacity: 0; }
     50% { opacity: 1; }
     100% { transform: translateY(200%); opacity: 0; }
+  }
+
+  @keyframes ai-search-badge-shine {
+    0% { transform: translateX(-160%) skewX(-18deg); }
+    100% { transform: translateX(260%) skewX(-18deg); }
   }
 
   @keyframes ai-fab-gradient {

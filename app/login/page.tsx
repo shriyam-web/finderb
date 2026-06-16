@@ -66,7 +66,7 @@ function LoginContent() {
   };
 
   return (
-    <div className="relative min-h-[calc(100dvh-5rem)] bg-[#f4f7fb] px-4 pb-8 pt-[5.25rem] sm:px-6 sm:pt-28 lg:min-h-[calc(100dvh-4rem)] lg:py-10">
+    <div className="relative min-h-[calc(100dvh-5rem)] bg-[#f4f7fb] px-4 pb-8 pt-24 sm:px-6 sm:pt-28 md:pt-32 lg:min-h-[calc(100dvh-4rem)] lg:py-12">
       <div
         className="pointer-events-none absolute inset-0 opacity-[0.35]"
         aria-hidden
@@ -88,17 +88,19 @@ function LoginContent() {
               backgroundSize: '32px 32px',
             }}
           />
-          <div className="pointer-events-none absolute -right-8 bottom-0 h-[72%] w-[88%] opacity-90 relative">
-            <Image
-              src="/hero-new.png"
-              alt=""
-              fill
-              className="object-contain object-right-bottom"
-              sizes="420px"
-              priority
-            />
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[1] h-[46%] max-h-[300px]">
+            <div className="absolute bottom-0 right-0 h-full w-[90%] translate-x-4">
+              <Image
+                src="/hero-new.png"
+                alt=""
+                fill
+                className="object-contain object-right-bottom"
+                sizes="420px"
+                priority
+              />
+            </div>
           </div>
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#153551] via-[#153551]/40 to-transparent" />
+          <div className="pointer-events-none absolute inset-0 z-[2] bg-gradient-to-t from-[#153551] via-[#153551]/55 to-[#153551]/90" />
 
           <div className="relative z-10 p-10 xl:p-12">
             <Link href="/" className="inline-block">
@@ -115,7 +117,7 @@ function LoginContent() {
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#f9b864]">
                 Your city, mapped
               </p>
-              <h1 className="mt-3 text-[1.75rem] font-semibold leading-snug tracking-tight text-white xl:text-[2rem]">
+              <h1 className="mt-3 text-[1.75rem] font-semibold leading-snug tracking-tight !text-white xl:text-[2rem]">
                 Pick up where you left off
               </h1>
               <p className="mt-3 text-sm leading-relaxed text-white/70">
@@ -285,7 +287,7 @@ function LoginContent() {
 
 function LoginFallback() {
   return (
-    <div className="flex min-h-[calc(100dvh-5rem)] items-center justify-center bg-[#f4f7fb] pt-[5.25rem] sm:pt-28 lg:pt-0">
+    <div className="flex min-h-[calc(100dvh-5rem)] items-center justify-center bg-[#f4f7fb] pt-24 sm:pt-28 md:pt-32">
       <div className="h-9 w-9 animate-spin rounded-full border-2 border-[#215481] border-t-transparent" />
     </div>
   );

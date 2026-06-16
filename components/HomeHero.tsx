@@ -3,6 +3,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import Image from 'next/image';
+import Link from 'next/link';
 import {
   Search,
   MapPin,
@@ -10,6 +11,7 @@ import {
   ChevronRight,
   Mic,
   RefreshCw,
+  Sparkles,
 } from 'lucide-react';
 import {
   HERO_TRUST_BADGES,
@@ -31,6 +33,31 @@ type HomeHeroProps = {
 
 function normalizeLocationPart(value: string): string {
   return value.trim().toLowerCase();
+}
+
+function HeroAiSearchBadge({ compact = false }: { compact?: boolean }) {
+  return (
+    <Link
+      href="/?tab=ai"
+      className={`relative inline-flex shrink-0 overflow-hidden items-center rounded-md border border-slate-200 bg-white font-semibold transition-colors hover:border-slate-300 ${
+        compact ? 'gap-0.5 px-1.5 py-0.5 text-[10px]' : 'gap-1 px-2 py-1 text-[11px]'
+      }`}
+    >
+      <span className="relative flex items-center gap-1">
+        <span className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
+          <span className="absolute inset-y-0 w-[38%] animate-ai-search-badge-shine bg-gradient-to-r from-transparent via-white/90 to-transparent" />
+        </span>
+        <Sparkles
+          size={compact ? 11 : 12}
+          strokeWidth={2.25}
+          className="relative z-[1] shrink-0 text-fuchsia-500"
+        />
+        <span className="relative z-[1] bg-[length:200%_auto] animate-ai-fab-gradient bg-gradient-to-r from-amber-500 via-fuchsia-500 to-cyan-500 bg-clip-text text-transparent">
+          AI Search
+        </span>
+      </span>
+    </Link>
+  );
 }
 
 function HeroLocationField({ compact = false }: { compact?: boolean }) {
@@ -393,8 +420,9 @@ export default function HomeHero({
                   onChange={(e) => onQueryChange(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && !voiceActive && onSearch()}
                   placeholder="Search anything... (e.g. Dentist, CA, Gym, Salon)"
-                  className="min-w-0 flex-1 border-none bg-transparent text-sm text-[#334155] placeholder:text-[#94a3b8] focus:ring-0 disabled:opacity-50"
+                  className="min-w-0 flex-1 border-none bg-transparent text-xs text-[#334155] placeholder:text-[11px] placeholder:text-[#94a3b8] focus:ring-0 disabled:opacity-50"
                 />
+                <HeroAiSearchBadge />
                 <button
                   type="button"
                   onClick={onVoiceSearch}
@@ -431,8 +459,9 @@ export default function HomeHero({
                   onChange={(e) => onQueryChange(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && !voiceActive && onSearch()}
                   placeholder="Search anything... (e.g. Dentist, CA, Gym, Salon)"
-                  className="min-w-0 flex-1 border-none bg-transparent text-[13px] text-[#334155] placeholder:text-[#94a3b8] focus:ring-0 disabled:opacity-50"
+                  className="min-w-0 flex-1 border-none bg-transparent text-[11px] text-[#334155] placeholder:text-[10px] placeholder:text-[#94a3b8] focus:ring-0 disabled:opacity-50"
                 />
+                <HeroAiSearchBadge compact />
                 <button
                   type="button"
                   onClick={onVoiceSearch}
