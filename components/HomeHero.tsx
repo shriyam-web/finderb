@@ -29,6 +29,10 @@ type HomeHeroProps = {
   voiceActive?: boolean;
 };
 
+function normalizeLocationPart(value: string): string {
+  return value.trim().toLowerCase();
+}
+
 function HeroLocationField({ compact = false }: { compact?: boolean }) {
   const {
     effectiveSearchLocation,
@@ -36,6 +40,7 @@ function HeroLocationField({ compact = false }: { compact?: boolean }) {
     isResolvingCity,
     requestLocation,
     setSearchLocation,
+    userState,
   } = useUserLocationState();
   const [open, setOpen] = useState(false);
   const [citySearch, setCitySearch] = useState('');
@@ -60,9 +65,16 @@ function HeroLocationField({ compact = false }: { compact?: boolean }) {
   const displayLabel = useMemo(() => {
     if (isPending) return 'Detecting…';
     if (!effectiveSearchLocation) return 'Near you';
-    const cityPart = effectiveSearchLocation.split(',')[0]?.trim();
-    return cityPart || effectiveSearchLocation;
-  }, [effectiveSearchLocation, isPending]);
+
+    const location = effectiveSearchLocation.trim();
+    if (location.includes(',')) return location;
+
+    if (userState && normalizeLocationPart(userState) !== normalizeLocationPart(location)) {
+      return `${location}, ${userState}`;
+    }
+
+    return location;
+  }, [effectiveSearchLocation, isPending, userState]);
 
   useEffect(() => {
     setMounted(true);
@@ -236,7 +248,7 @@ function HeroLocationField({ compact = false }: { compact?: boolean }) {
           className={`min-w-0 flex-1 truncate font-medium text-[#1e293b] ${
             compact ? 'text-[12px]' : 'text-[13px]'
           } ${showRetry ? 'text-[#64748b]' : ''}`}
-          title={effectiveSearchLocation || displayLabel}
+          title={displayLabel}
         >
           {displayLabel}
         </span>

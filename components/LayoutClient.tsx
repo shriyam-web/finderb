@@ -9,6 +9,7 @@ import BottomNavbar from "@/components/BottomNavbar";
 import LocationPermissionPrompt from "@/components/LocationPermissionPrompt";
 import PWAInstallPrompt from "@/components/pwa/PWAInstallPrompt";
 import ScrollRestoration from "@/components/ScrollRestoration";
+import ScrollToTopButton from "@/components/ScrollToTopButton";
 import { UserLocationProvider } from '@/hooks/useUserCoords';
 
 export default function LayoutClient({ children }: { children: React.ReactNode }) {
@@ -47,6 +48,7 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
           </Suspense>
           {showBottomNav && <BottomNavbar />}
           {showLocationPrompt && <LocationPermissionPrompt appReady />}
+          <ScrollToTopButton showBottomNav={showBottomNav} />
         </div>
       )}
     </UserLocationProvider>
