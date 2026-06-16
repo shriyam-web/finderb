@@ -59,7 +59,7 @@ export default function BusinessLoginPage() {
   };
 
   return (
-    <div className="relative min-h-[calc(100dvh-5rem)] bg-[#f4f7fb] px-4 pb-8 pt-24 sm:px-6 sm:pt-28 md:pt-32 lg:min-h-screen lg:py-12">
+    <div className="relative min-h-[calc(100dvh-5rem)] bg-[#f4f7fb] px-4 pb-8 pt-24 sm:px-6 sm:pt-28 md:pt-32 lg:min-h-screen lg:pt-36 lg:pb-12 xl:pt-40">
       <div
         className="pointer-events-none absolute inset-0 opacity-[0.35]"
         aria-hidden

@@ -112,6 +112,7 @@ export default function HomeClient({ initialData }: { initialData: any }) {
   const [protectedTab, setProtectedTab] = useState<string | null>(null);
   const [manualQuery, setManualQuery] = useState('');
   const manualQueryRef = useRef('');
+  const [searchHint, setSearchHint] = useState(false);
 
   type VoicePhase = 'speak-now' | 'listening' | 'preview' | 'searching';
   const [voiceActive, setVoiceActive] = useState(false);
@@ -192,10 +193,27 @@ export default function HomeClient({ initialData }: { initialData: any }) {
     (queryText?: string) => {
       if (voiceActive) return;
       const q = (queryText ?? manualQueryRef.current).trim();
+      if (!q) {
+        setSearchHint(true);
+        return;
+      }
+      setSearchHint(false);
       navigateToSearch(q);
     },
     [navigateToSearch, voiceActive]
   );
+
+  const handleQueryChange = useCallback((value: string) => {
+    manualQueryRef.current = value;
+    setManualQuery(value);
+    setSearchHint(false);
+  }, []);
+
+  useEffect(() => {
+    if (!searchHint) return;
+    const timer = window.setTimeout(() => setSearchHint(false), 4000);
+    return () => window.clearTimeout(timer);
+  }, [searchHint]);
 
   const beginPreviewAndSearch = useCallback(
     (session: number) => {
@@ -683,13 +701,11 @@ export default function HomeClient({ initialData }: { initialData: any }) {
           <HomeHero
             variant="desktop"
             manualQuery={manualQuery}
-            onQueryChange={(v) => {
-              manualQueryRef.current = v;
-              setManualQuery(v);
-            }}
+            onQueryChange={handleQueryChange}
             onSearch={handleManualSearch}
             onVoiceSearch={toggleVoiceSearch}
             voiceActive={voiceActive}
+            searchHint={searchHint}
           />
 
               <div className="mx-auto mt-4 hidden max-w-[1280px] px-8 lg:block">
@@ -912,13 +928,11 @@ export default function HomeClient({ initialData }: { initialData: any }) {
 
           <MobileHome
             manualQuery={manualQuery}
-            onQueryChange={(v) => {
-              manualQueryRef.current = v;
-              setManualQuery(v);
-            }}
+            onQueryChange={handleQueryChange}
             onSearch={handleManualSearch}
             onVoiceSearch={toggleVoiceSearch}
             voiceActive={voiceActive}
+            searchHint={searchHint}
             categories={sortedCategories}
             businesses={realBusinesses}
             isBusinessesLoading={isBusinessesLoading}

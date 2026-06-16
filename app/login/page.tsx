@@ -66,7 +66,7 @@ function LoginContent() {
   };
 
   return (
-    <div className="relative min-h-[calc(100dvh-5rem)] bg-[#f4f7fb] px-4 pb-8 pt-24 sm:px-6 sm:pt-28 md:pt-32 lg:min-h-[calc(100dvh-4rem)] lg:py-12">
+    <div className="relative min-h-[calc(100dvh-5rem)] bg-[#f4f7fb] px-4 pb-8 pt-24 sm:px-6 sm:pt-28 md:pt-32 lg:min-h-[calc(100dvh-4rem)] lg:pt-36 lg:pb-12 xl:pt-40">
       <div
         className="pointer-events-none absolute inset-0 opacity-[0.35]"
         aria-hidden
@@ -287,7 +287,7 @@ function LoginContent() {
 
 function LoginFallback() {
   return (
-    <div className="flex min-h-[calc(100dvh-5rem)] items-center justify-center bg-[#f4f7fb] pt-24 sm:pt-28 md:pt-32">
+    <div className="flex min-h-[calc(100dvh-5rem)] items-center justify-center bg-[#f4f7fb] pt-24 sm:pt-28 md:pt-32 lg:pt-36 xl:pt-40">
       <div className="h-9 w-9 animate-spin rounded-full border-2 border-[#215481] border-t-transparent" />
     </div>
   );

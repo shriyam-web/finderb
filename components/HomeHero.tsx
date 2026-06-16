@@ -29,7 +29,31 @@ type HomeHeroProps = {
   onSearch: (query?: string) => void;
   onVoiceSearch?: () => void;
   voiceActive?: boolean;
+  searchHint?: boolean;
 };
+
+function SearchInputHint() {
+  return (
+    <div
+      role="tooltip"
+      className="pointer-events-none absolute bottom-full left-0 z-50 mb-1.5 pl-9 pr-14 animate-in fade-in slide-in-from-bottom-1 duration-200"
+    >
+      <div className="relative">
+        <p className="whitespace-nowrap rounded-lg border border-amber-300 bg-amber-50 px-2.5 py-1.5 text-[11px] font-semibold leading-snug text-amber-900 shadow-sm">
+          Enter your search term here
+        </p>
+        <span
+          aria-hidden
+          className="absolute left-5 top-full -mt-px block border-x-[7px] border-t-[7px] border-x-transparent border-t-amber-300"
+        />
+        <span
+          aria-hidden
+          className="absolute left-[21px] top-full block border-x-[6px] border-t-[6px] border-x-transparent border-t-amber-50"
+        />
+      </div>
+    </div>
+  );
+}
 
 function normalizeLocationPart(value: string): string {
   return value.trim().toLowerCase();
@@ -321,8 +345,15 @@ export default function HomeHero({
   onSearch,
   onVoiceSearch,
   voiceActive = false,
+  searchHint = false,
 }: HomeHeroProps) {
   const isDesktop = variant === 'desktop';
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!searchHint) return;
+    searchInputRef.current?.focus({ preventScroll: true });
+  }, [searchHint]);
 
   return (
     <section
@@ -411,16 +442,22 @@ export default function HomeHero({
         <div className={`${isDesktop ? 'mt-4 max-w-2xl' : 'mt-3 px-4'} relative z-30`}>
           {isDesktop ? (
             <div className="relative z-30 flex items-stretch overflow-visible rounded-xl border border-gray-100/80 bg-white shadow-[0_4px_20px_rgba(15,23,42,0.07)]">
-              <div className="flex min-w-0 flex-[1.4] items-center gap-2 border-r border-gray-100 px-3.5 py-2.5">
+              <div
+                className={`relative flex min-w-0 flex-[1.4] items-center gap-2 border-r border-gray-100 px-3.5 py-2.5 transition-colors ${
+                  searchHint ? 'rounded-l-xl bg-amber-50/60 ring-2 ring-inset ring-amber-300' : ''
+                }`}
+              >
+                {searchHint ? <SearchInputHint /> : null}
                 <Search size={18} className="shrink-0 text-[#94a3b8]" strokeWidth={2} />
                 <input
+                  ref={searchInputRef}
                   type="text"
                   value={manualQuery}
                   disabled={voiceActive}
                   onChange={(e) => onQueryChange(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && !voiceActive && onSearch()}
                   placeholder="Search anything... (e.g. Dentist, CA, Gym, Salon)"
-                  className="min-w-0 flex-1 border-none bg-transparent text-xs text-[#334155] placeholder:text-[11px] placeholder:text-[#94a3b8] focus:ring-0 disabled:opacity-50"
+                  className="min-w-0 flex-1 border-none bg-transparent text-[13px] text-[#334155] placeholder:text-[13px] placeholder:text-[#94a3b8] focus:ring-0 disabled:opacity-50"
                 />
                 <HeroAiSearchBadge />
                 <button
@@ -450,16 +487,22 @@ export default function HomeHero({
             </div>
           ) : (
             <div className="relative z-30 overflow-visible rounded-2xl border border-gray-100/80 bg-white text-left shadow-[0_8px_30px_rgba(15,23,42,0.08)]">
-              <div className="flex items-center gap-2 border-b border-gray-100 px-3.5 py-3">
+              <div
+                className={`relative flex items-center gap-2 border-b border-gray-100 px-3.5 py-3 transition-colors ${
+                  searchHint ? 'rounded-t-2xl bg-amber-50/60 ring-2 ring-inset ring-amber-300' : ''
+                }`}
+              >
+                {searchHint ? <SearchInputHint /> : null}
                 <Search size={18} className="shrink-0 text-[#94a3b8]" strokeWidth={2} />
                 <input
+                  ref={searchInputRef}
                   type="text"
                   value={manualQuery}
                   disabled={voiceActive}
                   onChange={(e) => onQueryChange(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && !voiceActive && onSearch()}
                   placeholder="Search anything... (e.g. Dentist, CA, Gym, Salon)"
-                  className="min-w-0 flex-1 border-none bg-transparent text-[11px] text-[#334155] placeholder:text-[10px] placeholder:text-[#94a3b8] focus:ring-0 disabled:opacity-50"
+                  className="min-w-0 flex-1 border-none bg-transparent text-[12px] text-[#334155] placeholder:text-[12px] placeholder:text-[#94a3b8] focus:ring-0 disabled:opacity-50"
                 />
                 <HeroAiSearchBadge compact />
                 <button
