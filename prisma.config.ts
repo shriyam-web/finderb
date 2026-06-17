@@ -5,8 +5,6 @@ import { defineConfig } from "prisma/config";
 
 config({ override: true });
 
-console.log("DATABASE_URL from process.env:", process.env["DATABASE_URL"]);
-
 export default defineConfig({
   schema: "prisma/schema.prisma",
   migrations: {

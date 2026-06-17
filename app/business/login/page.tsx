@@ -182,6 +182,7 @@ export default function BusinessLoginPage() {
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    maxLength={128}
                     placeholder="Enter your password"
                     className="w-full rounded-lg border border-slate-200 bg-white py-3 pl-10 pr-11 text-sm text-[#0f172a] outline-none transition-all placeholder:text-slate-400 focus:border-[#215481]/40 focus:ring-4 focus:ring-[#215481]/10"
                   />

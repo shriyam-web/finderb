@@ -2,7 +2,6 @@
 
 import { createClient } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';
-import { revalidatePath } from 'next/cache';
 import {
   formatRegistrationConflictMessage,
   formatWrongPortalLoginMessage,
@@ -11,18 +10,31 @@ import {
   LOGIN_PATHS,
   lookupEmailAccountTypes,
 } from '@/lib/emailAccountLookup';
+import {
+  hashPassword,
+  PASSWORD_MIN_LENGTH_USER,
+  validatePasswordLength,
+  verifyPassword,
+} from '@/lib/security/password';
+import {
+  getSessionUserId,
+  setUserSessionCookie,
+} from '@/lib/security/session';
 
-// Safe error handler wrapper
-function handleError(error: any, context: string): string {
+const USER_PUBLIC_FIELDS =
+  'id, fullName, email, favorites, searchHistory, createdAt, updatedAt';
+
+function handleError(error: unknown, context: string): string {
   console.error(`${context} Error:`, error);
 
-  const msg = error?.message || String(error) || 'An unexpected error occurred';
+  const err = error as { message?: string; code?: string };
+  const msg = err?.message || String(error) || 'An unexpected error occurred';
 
-  if (error?.code === 'PGRST116') {
+  if (err?.code === 'PGRST116') {
     return 'Record not found.';
   }
 
-  if (error?.code === '23505') {
+  if (err?.code === '23505') {
     if (msg.includes('email')) {
       return 'This email already exists.';
     }
@@ -36,17 +48,19 @@ function handleError(error: any, context: string): string {
   return msg;
 }
 
-export async function registerUser(formData: any) {
+export async function registerUser(formData: { fullName?: string; email?: string; password?: string }) {
   const startTime = Date.now();
 
   try {
-    // Validate required fields
     if (!formData.fullName || !formData.email || !formData.password) {
       return { success: false, error: 'All fields are required' };
     }
 
-    console.log('✓ [USER REGISTER] Validation passed');
-    
+    const passwordCheck = validatePasswordLength(formData.password, PASSWORD_MIN_LENGTH_USER);
+    if (!passwordCheck.ok) {
+      return { success: false, error: passwordCheck.error };
+    }
+
     const normalizedEmail = formData.email.toLowerCase().trim();
     const supabase = createClient(await cookies());
 
@@ -60,8 +74,7 @@ export async function registerUser(formData: any) {
       };
     }
 
-    console.log('[USER REGISTER] Creating user record...');
-
+    const hashedPassword = await hashPassword(formData.password);
     const now = new Date().toISOString();
     const { data: user, error } = await supabase
       .from('User')
@@ -69,35 +82,26 @@ export async function registerUser(formData: any) {
         id: crypto.randomUUID(),
         fullName: formData.fullName,
         email: normalizedEmail,
-        password: formData.password, // In a real app, hash this!
+        password: hashedPassword,
         favorites: [],
         searchHistory: [],
         createdAt: now,
         updatedAt: now,
       })
-      .select()
+      .select(USER_PUBLIC_FIELDS)
       .single();
 
     if (error) {
       throw error;
     }
 
-    console.log('[USER REGISTER] ✓ Success:', user.id);
-    
-    // Set a cookie for the user ID to maintain session
-    (await cookies()).set('user_id', user.id, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      maxAge: 60 * 60 * 24 * 7, // 1 week
-      path: '/',
-    });
+    await setUserSessionCookie(user.id);
 
     return { success: true, user };
-  } catch (error: any) {
+  } catch (error: unknown) {
     const duration = Date.now() - startTime;
-    console.error(`[USER REGISTER] ✗ Failed after ${duration}ms:`, error);
-    const errorMessage = handleError(error, 'User Registration');
-    return { success: false, error: errorMessage };
+    console.error(`[USER REGISTER] Failed after ${duration}ms:`, error);
+    return { success: false, error: handleError(error, 'User Registration') };
   }
 }
 
@@ -107,14 +111,17 @@ export async function loginUser(email: string, password: string) {
       return { success: false, error: 'Email and password are required' };
     }
 
-    console.log('User login attempt:', email);
+    const passwordCheck = validatePasswordLength(password, 1);
+    if (!passwordCheck.ok) {
+      return { success: false, error: passwordCheck.error };
+    }
 
     const normalizedEmail = email.toLowerCase().trim();
     const supabase = createClient(await cookies());
 
     const { data: user, error } = await supabase
       .from('User')
-      .select('*')
+      .select('id, password')
       .eq('email', normalizedEmail)
       .single();
 
@@ -137,24 +144,24 @@ export async function loginUser(email: string, password: string) {
       throw error;
     }
 
-    if (user.password !== password.trim()) {
+    const verification = await verifyPassword(password, user.password);
+    if (!verification.valid) {
       return { success: false, error: 'Incorrect password.' };
     }
 
-    console.log('User login successful:', user.id);
-    
-    // Set a cookie for the user ID to maintain session
-    (await cookies()).set('user_id', user.id, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      maxAge: 60 * 60 * 24 * 7, // 1 week
-      path: '/',
-    });
+    if (verification.needsRehash) {
+      const hashedPassword = await hashPassword(password);
+      await supabase
+        .from('User')
+        .update({ password: hashedPassword, updatedAt: new Date().toISOString() })
+        .eq('id', user.id);
+    }
+
+    await setUserSessionCookie(user.id);
 
     return { success: true, userId: user.id };
-  } catch (error: any) {
-    const errorMessage = handleError(error, 'User Login');
-    return { success: false, error: errorMessage };
+  } catch (error: unknown) {
+    return { success: false, error: handleError(error, 'User Login') };
   }
 }
 
@@ -164,11 +171,16 @@ export async function getUser(id: string) {
       return { success: false, error: 'User ID is required' };
     }
 
+    const session = await getSessionUserId();
+    if (!session || session !== id) {
+      return { success: false, error: 'Unauthorized' };
+    }
+
     const supabase = createClient(await cookies());
 
     const { data: user, error } = await supabase
       .from('User')
-      .select('*')
+      .select(USER_PUBLIC_FIELDS)
       .eq('id', id)
       .single();
 
@@ -180,9 +192,8 @@ export async function getUser(id: string) {
     }
 
     return { success: true, user };
-  } catch (error: any) {
-    const errorMessage = handleError(error, 'Get User');
-    return { success: false, error: errorMessage };
+  } catch (error: unknown) {
+    return { success: false, error: handleError(error, 'Get User') };
   }
 }
 
@@ -190,13 +201,15 @@ export async function logoutUser() {
   try {
     (await cookies()).delete('user_id');
     return { success: true };
-  } catch (error: any) {
+  } catch {
     return { success: false, error: 'Failed to logout' };
   }
 }
 
 export async function getSession() {
-  const userId = (await cookies()).get('user_id')?.value;
+  const userId = await getSessionUserId();
   if (!userId) return null;
-  return await getUser(userId);
+  const result = await getUser(userId);
+  if (!result.success || !result.user) return null;
+  return { success: true, user: result.user };
 }

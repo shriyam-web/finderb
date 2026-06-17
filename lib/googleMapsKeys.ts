@@ -10,7 +10,7 @@ export function getGoogleMapsPublicKey(): string | undefined {
   return key || undefined;
 }
 
-/** Prefer dedicated server key; fall back for local dev only. */
+/** Prefer dedicated server key; never use the public browser key in production server routes. */
 export function getGoogleMapsServerKeyOrFallback(): string | undefined {
-  return getGoogleMapsServerKey() || getGoogleMapsPublicKey();
+  return getGoogleMapsServerKey();
 }

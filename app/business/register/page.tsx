@@ -590,6 +590,7 @@ function RegisterFormContent() {
                           type={passwordVisible ? 'text' : 'password'}
                           value={formData.password}
                           onChange={handleChange}
+                          maxLength={128}
                           className="w-full rounded-lg border border-slate-200 py-3 pl-10 pr-11 text-sm text-slate-900 outline-none transition-all placeholder:text-slate-400 focus:border-[#215481]/40 focus:ring-4 focus:ring-[#215481]/10"
                           placeholder="At least 6 characters"
                         />

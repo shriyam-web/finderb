@@ -148,6 +148,19 @@ export async function completeMerchantPayment(params: {
     return { success: false as const, error: 'Payment verification failed. Please contact support if amount was deducted.' };
   }
 
+  const businessResult = await getBusiness(businessId);
+  if (!businessResult.success || !businessResult.business) {
+    return { success: false as const, error: 'Business not found' };
+  }
+
+  const business = businessResult.business as Record<string, unknown>;
+  if (business.paymentStatus === 'completed') {
+    if (business.paymentId === razorpayPaymentId) {
+      return { success: true as const, business: businessResult.business };
+    }
+    return { success: false as const, error: 'Payment is already completed for this business.' };
+  }
+
   const result = await updateBusinessPayment(businessId, {
     paymentId: razorpayPaymentId,
     orderId: razorpayOrderId,

@@ -29,13 +29,10 @@ export function decodeNewsArticleId(id: string): string {
   return fromBase64Url(id);
 }
 
+import { isSafeExternalUrl } from '@/lib/security/ssrf';
+
 export function isValidNewsUrl(url: string): boolean {
-  try {
-    const parsed = new URL(url);
-    return parsed.protocol === 'https:' || parsed.protocol === 'http:';
-  } catch {
-    return false;
-  }
+  return isSafeExternalUrl(url);
 }
 
 export const NEWS_CACHE_PREFIX = 'finderb-news-meta:';

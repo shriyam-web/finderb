@@ -1,5 +1,7 @@
 import { stripHtml, decodeHtmlEntities } from '@/lib/stripHtml';
 import { pickBestNewsImage } from '@/lib/newsImage';
+import { assertResolvablePublicUrl } from '@/lib/security/ssrf';
+import { sanitizeRichHtml } from '@/lib/security/sanitizeHtml';
 
 const BROWSER_UA =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
@@ -87,12 +89,7 @@ function extractArticleImages(html: string, extra: string[] = []): string | null
 }
 
 function sanitizeArticleHtml(html: string): string {
-  return html
-    .replace(/<script[\s\S]*?<\/script>/gi, '')
-    .replace(/<style[\s\S]*?<\/style>/gi, '')
-    .replace(/<iframe[\s\S]*?<\/iframe>/gi, '')
-    .replace(/\son\w+="[^"]*"/gi, '')
-    .replace(/\son\w+='[^']*'/gi, '');
+  return sanitizeRichHtml(html);
 }
 
 function paragraphsFromHtml(html: string, max = 14): string[] {
@@ -153,6 +150,9 @@ export async function fetchArticleFromUrl(
   fallbackTitle = ''
 ): Promise<ExtractedArticle | null> {
   try {
+    const isPublic = await assertResolvablePublicUrl(url);
+    if (!isPublic) return null;
+
     const response = await fetch(url, {
       headers: {
         'User-Agent': BROWSER_UA,

@@ -93,8 +93,10 @@ export function escapeIlikePattern(value: string): string {
   return value.replace(/[%_\\]/g, '\\$&');
 }
 
+export const MAX_SEARCH_QUERY_LENGTH = 200;
+
 export function parseNaturalSearchQuery(query: string): ParsedSearchQuery {
-  const raw = query.trim();
+  const raw = query.trim().slice(0, MAX_SEARCH_QUERY_LENGTH);
   if (!raw) {
     return { raw: '', terms: [], locationHint: null };
   }

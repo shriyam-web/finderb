@@ -100,5 +100,12 @@ export function verifyRazorpayPaymentSignature(params: {
     .update(`${params.orderId}|${params.paymentId}`)
     .digest('hex');
 
-  return expected === params.signature;
+  try {
+    const expectedBuf = Buffer.from(expected, 'hex');
+    const signatureBuf = Buffer.from(params.signature, 'hex');
+    if (expectedBuf.length !== signatureBuf.length) return false;
+    return crypto.timingSafeEqual(expectedBuf, signatureBuf);
+  } catch {
+    return false;
+  }
 }

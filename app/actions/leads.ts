@@ -8,6 +8,8 @@ import {
   enrichLegacyJobLeadMessage,
   extractLegacyJobId,
 } from '@/lib/jobLeadMessage';
+import { escapeIlikePattern } from '@/lib/searchMatch';
+import { assertBusinessSession } from '@/lib/security/session';
 
 export type BusinessLead = {
   id: string;
@@ -34,7 +36,7 @@ export async function getBusinessLeads(businessId: string) {
     }
 
     const sessionId = await getSessionBusinessId();
-    if (sessionId && sessionId !== businessId) {
+    if (!sessionId || sessionId !== businessId) {
       return { success: false as const, error: 'Unauthorized' };
     }
 
@@ -156,17 +158,25 @@ export async function submitBroadcastEnquiry(data: {
     }
 
     const supabase = createClient(await cookies());
-    const areaPattern = `%${areaTrimmed}%`;
-    const categoryPattern = `%${category.trim()}%`;
+    const areaPattern = `%${escapeIlikePattern(areaTrimmed)}%`;
+    const categoryPattern = `%${escapeIlikePattern(category.trim())}%`;
 
-    const { data: businesses, error: fetchError } = await supabase
-      .from('Business')
-      .select('id')
-      .eq('status', 'Active')
-      .ilike('category', categoryPattern)
-      .or(`city.ilike.${areaPattern},location.ilike.${areaPattern}`);
+    const [{ data: byCity }, { data: byLocation }] = await Promise.all([
+      supabase
+        .from('Business')
+        .select('id')
+        .eq('status', 'Active')
+        .ilike('category', categoryPattern)
+        .ilike('city', areaPattern),
+      supabase
+        .from('Business')
+        .select('id')
+        .eq('status', 'Active')
+        .ilike('category', categoryPattern)
+        .ilike('location', areaPattern),
+    ]);
 
-    if (fetchError) throw fetchError;
+    const businesses = [...(byCity ?? []), ...(byLocation ?? [])];
 
     const merchantIds = new Set<string>([sourceBusinessId]);
     for (const b of businesses ?? []) {

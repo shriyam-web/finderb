@@ -3,6 +3,7 @@
 import { createClient } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';
 import { stripHtml } from '@/lib/stripHtml';
+import { sanitizeRichHtml } from '@/lib/security/sanitizeHtml';
 
 function plainExcerpt(excerpt: string | null | undefined, content: string | null | undefined, maxLen = 150): string {
   const raw = excerpt || (content ? content.substring(0, maxLen) + '...' : '');
@@ -94,7 +95,7 @@ export async function getBlogBySlug(slugOrId: string) {
       title: blog.title || 'Untitled Story',
       slug: blog.slug,
       excerpt: plainExcerpt(blog.excerpt, blog.content),
-      content: blog.content || 'Story content is currently not available.',
+      content: sanitizeRichHtml(blog.content || 'Story content is currently not available.'),
       image: blog.image_url || 'https://images.unsplash.com/photo-1499750310107-5fef28a66643?auto=format&fit=crop&q=80&w=800',
       date: blog.published_at ? new Date(blog.published_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Recently',
       author: blog.author || 'FinderB Admin'

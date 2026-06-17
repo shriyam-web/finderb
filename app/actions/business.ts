@@ -16,6 +16,17 @@ import {
 import { parseCoordinate } from '@/lib/geo';
 import { formatMerchantName } from '@/lib/formatMerchantName';
 import { revalidateSitemap } from '@/lib/sitemapData';
+import { escapeIlikePattern } from '@/lib/searchMatch';
+import {
+  hashPassword,
+  PASSWORD_MIN_LENGTH_MERCHANT,
+  validatePasswordLength,
+  verifyPassword,
+} from '@/lib/security/password';
+import {
+  assertBusinessSession,
+  setBusinessSessionCookie,
+} from '@/lib/security/session';
 
 function parseBusinessServices(business: {
   serviceCategory?: string | null;
@@ -35,39 +46,40 @@ function parseBusinessServices(business: {
 }
 
 function mapBusinessRecord(business: Record<string, unknown>) {
-  const { rating, reviewCount } = getBusinessPublicRatingStats(business.review);
+  const { password: _password, ...safeBusiness } = business;
+  const { rating, reviewCount } = getBusinessPublicRatingStats(safeBusiness.review);
   const services = parseBusinessServices({
     serviceCategory: business.serviceCategory as string | null | undefined,
     keywords: business.keywords as string[] | null | undefined,
   });
 
-  const rawBusinessName = (business.businessName as string) || '';
-  const rawDisplayName = (business.displayName as string) || '';
+  const rawBusinessName = (safeBusiness.businessName as string) || '';
+  const rawDisplayName = (safeBusiness.displayName as string) || '';
   const formattedBusinessName = formatMerchantName(rawBusinessName) || rawBusinessName;
   const formattedDisplayName = formatMerchantName(rawDisplayName) || rawDisplayName;
   const displayName =
     formattedBusinessName || formattedDisplayName || formatMerchantName('Business') || 'Business';
 
   return {
-    ...business,
-    id: business.id as string,
+    ...safeBusiness,
+    id: safeBusiness.id as string,
     businessName: formattedBusinessName,
     name: displayName,
-    location: (business.location as string) || (business.city as string) || '',
-    city: (business.city as string | null) ?? null,
-    state: (business.state as string | null) ?? null,
-    country: (business.country as string | null) ?? null,
-    category: (business.category as string) || '',
-    description: (business.about as string) || '',
-    about: (business.about as string | null) ?? null,
-    contact: (business.publicPhone as string) || '',
-    publicPhone: (business.publicPhone as string) || '',
-    mobile: (business.mobile as string) || '',
-    serviceCategory: (business.serviceCategory as string | null) ?? null,
-    profileQrLink: (business.profileQrLink as string | null) ?? null,
-    image: (business.profilePictureUrl as string) || undefined,
-    profilePictureUrl: (business.profilePictureUrl as string) || undefined,
-    priceRange: business.selectedPlan === 'free' ? 'Free listing' : 'Premium listing',
+    location: (safeBusiness.location as string) || (safeBusiness.city as string) || '',
+    city: (safeBusiness.city as string | null) ?? null,
+    state: (safeBusiness.state as string | null) ?? null,
+    country: (safeBusiness.country as string | null) ?? null,
+    category: (safeBusiness.category as string) || '',
+    description: (safeBusiness.about as string) || '',
+    about: (safeBusiness.about as string | null) ?? null,
+    contact: (safeBusiness.publicPhone as string) || '',
+    publicPhone: (safeBusiness.publicPhone as string) || '',
+    mobile: (safeBusiness.mobile as string) || '',
+    serviceCategory: (safeBusiness.serviceCategory as string | null) ?? null,
+    profileQrLink: (safeBusiness.profileQrLink as string | null) ?? null,
+    image: (safeBusiness.profilePictureUrl as string) || undefined,
+    profilePictureUrl: (safeBusiness.profilePictureUrl as string) || undefined,
+    priceRange: safeBusiness.selectedPlan === 'free' ? 'Free listing' : 'Premium listing',
     rating,
     reviewsCount: reviewCount,
     services,
@@ -139,6 +151,13 @@ export async function registerBusiness(formData: any) {
       return { success: false, error: 'All required fields must be filled' };
     }
 
+    if (formData.password) {
+      const passwordCheck = validatePasswordLength(formData.password, PASSWORD_MIN_LENGTH_MERCHANT);
+      if (!passwordCheck.ok) {
+        return { success: false, error: passwordCheck.error };
+      }
+    }
+
     console.log('✓ [REGISTER] Validation passed');
     console.log('[REGISTER] Attempting database operation...');
 
@@ -162,6 +181,10 @@ export async function registerBusiness(formData: any) {
     console.log('[REGISTER] Creating business record...');
 
     const now = new Date().toISOString();
+    const passwordValue = formData.password
+      ? await hashPassword(formData.password)
+      : null;
+
     const { data: business, error } = await supabase
       .from('Business')
       .insert({
@@ -181,7 +204,7 @@ export async function registerBusiness(formData: any) {
         selectedPlan: formData.selectedPlan || 'free',
         billingCycle: formData.billingCycle || 'monthly',
         registrationNumber: regNo,
-        password: formData.password,
+        ...(passwordValue ? { password: passwordValue } : {}),
         createdAt: now,
         updatedAt: now,
       })
@@ -195,12 +218,7 @@ export async function registerBusiness(formData: any) {
     console.log('[REGISTER] ✓ Success:', business.id);
     
     // Set a cookie for the business ID to maintain session
-    (await cookies()).set('business_id', business.id, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      maxAge: 60 * 60 * 24 * 7, // 1 week
-      path: '/',
-    });
+    await setBusinessSessionCookie(business.id);
 
     revalidatePath('/business');
     revalidateSitemap();
@@ -217,6 +235,11 @@ export async function updateBusinessKYC(id: string, kycData: any) {
   try {
     if (!id) {
       return { success: false, error: 'Business ID is required' };
+    }
+
+    const auth = await assertBusinessSession(id);
+    if (!auth.ok) {
+      return { success: false, error: auth.error };
     }
 
     console.log('Updating KYC for business:', id);
@@ -257,9 +280,49 @@ export async function updateBusinessPayment(id: string, paymentData: any) {
       return { success: false, error: 'Business ID is required' };
     }
 
+    const auth = await assertBusinessSession(id);
+    if (!auth.ok) {
+      return { success: false, error: auth.error };
+    }
+
+    if (!paymentData?.paymentId || !paymentData?.orderId) {
+      return { success: false, error: 'Invalid payment details' };
+    }
+
     console.log('Updating payment for business:', id);
 
     const supabase = createClient(await cookies());
+
+    const { data: current, error: currentError } = await supabase
+      .from('Business')
+      .select('paymentStatus, paymentId')
+      .eq('id', id)
+      .single();
+
+    if (currentError) {
+      throw currentError;
+    }
+
+    if (current?.paymentStatus === 'completed') {
+      if (current.paymentId === paymentData.paymentId) {
+        const existing = await getBusiness(id);
+        return existing.success
+          ? { success: true, business: existing.business }
+          : { success: false, error: 'Business not found' };
+      }
+      return { success: false, error: 'Payment is already completed for this business.' };
+    }
+
+    const { data: duplicatePayment } = await supabase
+      .from('Business')
+      .select('id')
+      .eq('paymentId', paymentData.paymentId)
+      .neq('id', id)
+      .maybeSingle();
+
+    if (duplicatePayment) {
+      return { success: false, error: 'This payment has already been used.' };
+    }
 
     const { data: business, error } = await supabase
       .from('Business')
@@ -291,6 +354,11 @@ export async function updateBusinessImages(id: string, images: string[], profile
   try {
     if (!id) {
       return { success: false, error: 'Business ID is required' };
+    }
+
+    const auth = await assertBusinessSession(id);
+    if (!auth.ok) {
+      return { success: false, error: auth.error };
     }
 
     console.log('Updating images for business:', id);
@@ -352,35 +420,41 @@ export async function getBusiness(id: string) {
 
 export async function loginBusiness(email: string, password: string) {
   try {
-    // Validate inputs
     if (!email || !password) {
       return { success: false, error: 'Email and password are required' };
+    }
+
+    const passwordCheck = validatePasswordLength(password, 1);
+    if (!passwordCheck.ok) {
+      return { success: false, error: passwordCheck.error };
     }
 
     if (!email.includes('@')) {
       return { success: false, error: 'Please enter a valid email address' };
     }
 
-    console.log('Login attempt with email:', email);
-
     const normalizedEmail = email.toLowerCase().trim();
-    const cleanPassword = password.trim();
-
     const supabase = createClient(await cookies());
+    const loginFields = 'id, password, createdAt';
 
-    const { data: businesses, error } = await supabase
-      .from('Business')
-      .select('*')
-      .or(`workEmail.eq.${normalizedEmail},email.eq.${normalizedEmail}`)
-      .order('createdAt', { ascending: false });
+    const [{ data: byWorkEmail }, { data: byEmail }] = await Promise.all([
+      supabase.from('Business').select(loginFields).eq('workEmail', normalizedEmail),
+      supabase.from('Business').select(loginFields).eq('email', normalizedEmail),
+    ]);
 
-    if (error) {
-      throw error;
-    }
+    const seen = new Set<string>();
+    const businesses = [...(byWorkEmail ?? []), ...(byEmail ?? [])]
+      .filter((row) => {
+        if (seen.has(row.id)) return false;
+        seen.add(row.id);
+        return true;
+      })
+      .sort(
+        (a, b) =>
+          new Date(b.createdAt as string).getTime() - new Date(a.createdAt as string).getTime()
+      );
 
-    if (!businesses?.length) {
-      console.log('No business found with email:', normalizedEmail);
-
+    if (!businesses.length) {
       const accountTypes = await lookupEmailAccountTypes(supabase, normalizedEmail);
       const alternateType = getAlternateAccountType(accountTypes, 'merchant');
 
@@ -399,25 +473,29 @@ export async function loginBusiness(email: string, password: string) {
       };
     }
 
-    const matches = businesses.filter((row) => row.password === cleanPassword);
-    if (!matches.length) {
-      console.log('Incorrect password for email:', normalizedEmail);
+    let matchedBusiness: (typeof businesses)[number] | null = null;
+    for (const row of businesses) {
+      const verification = await verifyPassword(password, row.password);
+      if (verification.valid) {
+        matchedBusiness = row;
+        if (verification.needsRehash) {
+          const hashedPassword = await hashPassword(password);
+          await supabase
+            .from('Business')
+            .update({ password: hashedPassword, updatedAt: new Date().toISOString() })
+            .eq('id', row.id);
+        }
+        break;
+      }
+    }
+
+    if (!matchedBusiness) {
       return { success: false, error: 'Incorrect password. Please try again.' };
     }
 
-    const business = matches[0];
+    await setBusinessSessionCookie(matchedBusiness.id);
 
-    console.log('Login successful for business:', business.id);
-
-    // Set a cookie for the business ID to maintain session
-    (await cookies()).set('business_id', business.id, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      maxAge: 60 * 60 * 24 * 7, // 1 week
-      path: '/',
-    });
-
-    return { success: true, businessId: business.id };
+    return { success: true, businessId: matchedBusiness.id };
   } catch (error: any) {
     const errorMessage = handleError(error, 'Login');
     return { success: false, error: errorMessage };
@@ -477,8 +555,8 @@ export async function getBusinessesByCategory(categoryName: string) {
     let query = supabase.from('Business').select('*');
     
     if (categoryName !== 'all') {
-      // Find the category to get the exact name if possible, or use the slug
-      query = query.ilike('category', `%${categoryName.replace(/-/g, ' ')}%`);
+      const escapedCategory = escapeIlikePattern(categoryName.replace(/-/g, ' '));
+      query = query.ilike('category', `%${escapedCategory}%`);
     }
 
     const { data: businesses, error } = await query;
@@ -504,6 +582,11 @@ export async function updateBusinessProfile(id: string, profileData: any) {
       return { success: false, error: 'Business ID is required' };
     }
 
+    const auth = await assertBusinessSession(id);
+    if (!auth.ok) {
+      return { success: false, error: auth.error };
+    }
+
     console.log('Updating profile for business:', id);
 
     const supabase = createClient(await cookies());
@@ -526,11 +609,7 @@ export async function updateBusinessProfile(id: string, profileData: any) {
         state: profileData.state,
         country: profileData.country,
         location: profileData.location || (profileData.city && profileData.state ? `${profileData.city}, ${profileData.state}` : profileData.city || profileData.state || ''),
-        rating: profileData.rating,
         yearsInBusiness: profileData.yearsInBusiness,
-        isFinderBVerified: profileData.isFinderBVerified,
-        review: profileData.review,
-        reviewReply: profileData.reviewReply,
         ...(hasValidMapPin ? { latitude: lat, longitude: lng } : {}),
         website: profileData.website,
         instagramUrl: profileData.instagramUrl,

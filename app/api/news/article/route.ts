@@ -5,6 +5,7 @@ import { pickBestNewsImage } from '@/lib/newsImage';
 import { normalizeNewsLanguage } from '@/lib/newsFeeds';
 import { isValidNewsUrl } from '@/lib/newsId';
 import { stripHtml, decodeHtmlEntities } from '@/lib/stripHtml';
+import { sanitizeRichHtml } from '@/lib/security/sanitizeHtml';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -42,9 +43,10 @@ export async function GET(request: NextRequest) {
         }
       })();
 
-    const contentHtml =
+    const contentHtml = sanitizeRichHtml(
       extracted?.contentHtml ||
-      `<p>${stripHtml(resolvedExcerpt).replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>`;
+        `<p>${stripHtml(resolvedExcerpt).replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>`
+    );
 
     return NextResponse.json({
       success: true,
