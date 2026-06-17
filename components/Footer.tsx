@@ -153,8 +153,8 @@ function SocialButton({ label, href, icon, brandClass }: (typeof FOOTER_SOCIAL_L
 
 function MadeInIndiaBadge() {
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-medium text-slate-600">
-      <IndianFlagIcon className="h-3 w-[18px] shrink-0 rounded-[2px] ring-1 ring-black/5" />
+    <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[8px] font-medium text-slate-600">
+      <IndianFlagIcon className="h-2.5 w-[15px] shrink-0 rounded-[2px] ring-1 ring-black/5" />
       Made in India
     </span>
   );
