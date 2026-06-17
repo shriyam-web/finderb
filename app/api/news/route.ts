@@ -59,6 +59,74 @@ function itemTimestamp(item: Item): number {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+const LOCAL_NEWS_MAX_AGE_DAYS = 60;
+
+function isRecentNewsItem(item: Item, maxAgeDays: number): boolean {
+  const ts = itemTimestamp(item);
+  if (!ts) return true;
+  return Date.now() - ts <= maxAgeDays * 24 * 60 * 60 * 1000;
+}
+
+async function fetchAllFeedItems(
+  feedUrls: string[]
+): Promise<{ items: Item[]; feedTitle: string }> {
+  const merged: Item[] = [];
+  const seen = new Set<string>();
+  let feedTitle = '';
+
+  for (const url of feedUrls) {
+    try {
+      const feed = await parseFeed(url);
+      if (!feed.items?.length) continue;
+      if (!feedTitle) feedTitle = feed.title || '';
+
+      for (const item of feed.items) {
+        const key = normalizeTitle(item.title);
+        if (!key || seen.has(key)) continue;
+        seen.add(key);
+        merged.push(item);
+      }
+    } catch (error) {
+      console.error(`News feed failed: ${url}`, error);
+    }
+  }
+
+  return { items: merged, feedTitle };
+}
+
+function compareLocalItems(
+  a: Item,
+  b: Item,
+  city: string | null,
+  state: string | null
+): number {
+  const dateDiff = itemTimestamp(b) - itemTimestamp(a);
+  const relevanceDiff =
+    scoreLocalArticleRelevance(b, city, state) - scoreLocalArticleRelevance(a, city, state);
+
+  // Prefer city match only when articles are similarly recent (within 7 days).
+  const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
+  if (Math.abs(dateDiff) <= sevenDaysMs && relevanceDiff !== 0) {
+    return relevanceDiff;
+  }
+
+  if (dateDiff !== 0) return dateDiff;
+  return relevanceDiff;
+}
+
+function prepareLocalItems(
+  items: Item[],
+  city: string | null,
+  state: string | null,
+  limit: number
+): Item[] {
+  const fresh = items.filter((item) => isRecentNewsItem(item, LOCAL_NEWS_MAX_AGE_DAYS));
+
+  fresh.sort((a, b) => compareLocalItems(a, b, city, state));
+
+  return fresh.slice(0, limit);
+}
+
 /** Fill items from feeds in priority order — avoids mixing national BBC into every category. */
 async function fetchCategoryItems(
   feedUrls: string[],
@@ -102,10 +170,12 @@ async function fetchCategoryFeed(
   if (slug === 'local' && hasLocalLocation) {
     const publisherUrls = getLocalFeedUrls(localLocation!, lang);
     const googleUrl = getLocalGoogleNewsUrl(localLocation!, lang);
+    const city = localLocation?.city ?? null;
+    const state = localLocation?.state ?? null;
 
-    const { items: merged, feedTitle } = await fetchCategoryItems(publisherUrls, limit);
+    const { items: merged, feedTitle } = await fetchAllFeedItems(publisherUrls);
 
-    if (merged.length < limit) {
+    if (prepareLocalItems(merged, city, state, limit).length < limit) {
       try {
         const googleFeed = await parseFeed(googleUrl);
         const seen = new Set(merged.map((item) => normalizeTitle(item.title)));
@@ -113,7 +183,8 @@ async function fetchCategoryFeed(
         let googleAdded = 0;
 
         for (const item of googleFeed.items ?? []) {
-          if (merged.length >= limit || googleAdded >= maxGoogle) break;
+          if (googleAdded >= maxGoogle) break;
+          if (!isRecentNewsItem(item, LOCAL_NEWS_MAX_AGE_DAYS)) continue;
           const key = normalizeTitle(item.title);
           if (!key || seen.has(key)) continue;
           seen.add(key);
@@ -125,16 +196,7 @@ async function fetchCategoryFeed(
       }
     }
 
-    const city = localLocation?.city ?? null;
-    const state = localLocation?.state ?? null;
-    merged.sort((a, b) => {
-      const relevance =
-        scoreLocalArticleRelevance(b, city, state) - scoreLocalArticleRelevance(a, city, state);
-      if (relevance !== 0) return relevance;
-      return itemTimestamp(b) - itemTimestamp(a);
-    });
-
-    return { items: merged.slice(0, limit), feedTitle };
+    return { items: prepareLocalItems(merged, city, state, limit), feedTitle };
   }
 
   if (usesGoogleNewsPrimary(slug, lang)) {
@@ -148,7 +210,11 @@ async function fetchCategoryFeed(
   }
 
   const publisherUrls = getFeedUrlsForCategory(slug, lang);
-  const { items, feedTitle: publisherFeedTitle } = await fetchCategoryItems(publisherUrls, limit);
+  const fetchLimit = slug === 'local' ? limit * 3 : limit;
+  const { items, feedTitle: publisherFeedTitle } = await fetchCategoryItems(
+    publisherUrls,
+    fetchLimit
+  );
   let feedTitle = publisherFeedTitle;
 
   if (items.length === 0) {
@@ -157,6 +223,7 @@ async function fetchCategoryFeed(
       const seen = new Set<string>();
       for (const item of googleFeed.items ?? []) {
         if (items.length >= limit) break;
+        if (slug === 'local' && !isRecentNewsItem(item, LOCAL_NEWS_MAX_AGE_DAYS)) continue;
         const key = normalizeTitle(item.title);
         if (!key || seen.has(key)) continue;
         seen.add(key);
@@ -168,8 +235,16 @@ async function fetchCategoryFeed(
     }
   }
 
-  items.sort((a, b) => itemTimestamp(b) - itemTimestamp(a));
-  return { items: items.slice(0, limit), feedTitle };
+  let preparedItems =
+    slug === 'local'
+      ? prepareLocalItems(items, null, null, limit)
+      : items.slice(0, limit);
+
+  if (slug !== 'local') {
+    preparedItems.sort((a, b) => itemTimestamp(b) - itemTimestamp(a));
+  }
+
+  return { items: preparedItems.slice(0, limit), feedTitle };
 }
 
 async function resolveArticleImage(
