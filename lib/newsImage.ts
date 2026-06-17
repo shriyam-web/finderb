@@ -35,7 +35,7 @@ export function scoreNewsImage(url: string): number {
   if (/\.(?:jpg|jpeg|webp)(\?|$)/i.test(url)) score += 8;
   if (/\.png(\?|$)/i.test(url)) score += 4;
   if (/og-image|featured|lead|hero|thumb|resize|images\//i.test(url)) score += 5;
-  if (/ichef\.bbci\.co\.uk|livehindustan|jagran|aajtak|ndtv|hindustantimes|thehindu|amarujala|staticimg\.amarujala|tosshub/i.test(url)) {
+  if (/ichef\.bbci\.co\.uk|livehindustan|jagran|aajtak|ndtv|hindustantimes|thehindu|amarujala|staticimg\.amarujala|tosshub|inc42|yourstory|thgim\.com|ht-img/i.test(url)) {
     score += 6;
   }
   if (/googleusercontent\.com/i.test(url)) score += 2;

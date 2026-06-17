@@ -19,6 +19,7 @@ import {
   normalizeCategorySlug,
   normalizeNewsLanguage,
   scoreLocalArticleRelevance,
+  usesGoogleNewsPrimary,
   type LocalNewsLocation,
   type NewsCategorySlug,
   type NewsLanguage,
@@ -58,52 +59,70 @@ function itemTimestamp(item: Item): number {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-async function fetchMergedCategoryFeed(
-  slug: NewsCategorySlug,
-  lang: NewsLanguage,
-  localLocation?: LocalNewsLocation,
-  limit = 24
-) {
-  const hasLocalLocation = Boolean(localLocation?.city || localLocation?.state);
-  const publisherUrls =
-    slug === 'local' && hasLocalLocation
-      ? getLocalFeedUrls(localLocation!, lang)
-      : getFeedUrlsForCategory(slug, lang);
-
-  const googleUrl =
-    slug === 'local' && hasLocalLocation
-      ? getLocalGoogleNewsUrl(localLocation!, lang)
-      : getGoogleNewsUrl(slug, lang);
-
-  const settled = await Promise.allSettled(publisherUrls.map((url) => parseFeed(url)));
+/** Fill items from feeds in priority order — avoids mixing national BBC into every category. */
+async function fetchCategoryItems(
+  feedUrls: string[],
+  limit: number
+): Promise<{ items: Item[]; feedTitle: string }> {
   const merged: Item[] = [];
   const seen = new Set<string>();
   let feedTitle = '';
 
-  for (const result of settled) {
-    if (result.status !== 'fulfilled' || !result.value.items?.length) continue;
-    if (!feedTitle) feedTitle = result.value.title || '';
-    for (const item of result.value.items) {
-      const key = normalizeTitle(item.title);
-      if (!key || seen.has(key)) continue;
-      seen.add(key);
-      merged.push(item);
-    }
-  }
+  for (const url of feedUrls) {
+    if (merged.length >= limit) break;
 
-  merged.sort((a, b) => itemTimestamp(b) - itemTimestamp(a));
-
-  if (slug === 'local' && hasLocalLocation) {
     try {
-      const googleFeed = await parseFeed(googleUrl);
-      for (const item of googleFeed.items ?? []) {
+      const feed = await parseFeed(url);
+      if (!feed.items?.length) continue;
+      if (!feedTitle) feedTitle = feed.title || '';
+
+      for (const item of feed.items) {
+        if (merged.length >= limit) break;
         const key = normalizeTitle(item.title);
         if (!key || seen.has(key)) continue;
         seen.add(key);
         merged.push(item);
       }
     } catch (error) {
-      console.error(`Local Google News failed (${lang})`, error);
+      console.error(`News feed failed: ${url}`, error);
+    }
+  }
+
+  return { items: merged, feedTitle };
+}
+
+async function fetchCategoryFeed(
+  slug: NewsCategorySlug,
+  lang: NewsLanguage,
+  localLocation: LocalNewsLocation | undefined,
+  limit: number
+) {
+  const hasLocalLocation = Boolean(localLocation?.city || localLocation?.state);
+
+  if (slug === 'local' && hasLocalLocation) {
+    const publisherUrls = getLocalFeedUrls(localLocation!, lang);
+    const googleUrl = getLocalGoogleNewsUrl(localLocation!, lang);
+
+    const { items: merged, feedTitle } = await fetchCategoryItems(publisherUrls, limit);
+
+    if (merged.length < limit) {
+      try {
+        const googleFeed = await parseFeed(googleUrl);
+        const seen = new Set(merged.map((item) => normalizeTitle(item.title)));
+        const maxGoogle = Math.max(2, Math.floor(limit / 3));
+        let googleAdded = 0;
+
+        for (const item of googleFeed.items ?? []) {
+          if (merged.length >= limit || googleAdded >= maxGoogle) break;
+          const key = normalizeTitle(item.title);
+          if (!key || seen.has(key)) continue;
+          seen.add(key);
+          merged.push(item);
+          googleAdded++;
+        }
+      } catch (error) {
+        console.error('Local Google News failed', error);
+      }
     }
 
     const city = localLocation?.city ?? null;
@@ -114,36 +133,57 @@ async function fetchMergedCategoryFeed(
       if (relevance !== 0) return relevance;
       return itemTimestamp(b) - itemTimestamp(a);
     });
-  } else if (merged.length < Math.min(limit, 8)) {
+
+    return { items: merged.slice(0, limit), feedTitle };
+  }
+
+  if (usesGoogleNewsPrimary(slug, lang)) {
     try {
-      const googleFeed = await parseFeed(googleUrl);
+      const googleFeed = await parseFeed(getGoogleNewsUrl(slug, lang));
+      const items = (googleFeed.items ?? []).slice(0, limit);
+      return { items, feedTitle: googleFeed.title || '' };
+    } catch (error) {
+      console.error(`Google News primary failed (${lang}/${slug})`, error);
+    }
+  }
+
+  const publisherUrls = getFeedUrlsForCategory(slug, lang);
+  const { items, feedTitle: publisherFeedTitle } = await fetchCategoryItems(publisherUrls, limit);
+  let feedTitle = publisherFeedTitle;
+
+  if (items.length === 0) {
+    try {
+      const googleFeed = await parseFeed(getGoogleNewsUrl(slug, lang));
+      const seen = new Set<string>();
       for (const item of googleFeed.items ?? []) {
+        if (items.length >= limit) break;
         const key = normalizeTitle(item.title);
         if (!key || seen.has(key)) continue;
         seen.add(key);
-        merged.push(item);
+        items.push(item);
       }
-      merged.sort((a, b) => itemTimestamp(b) - itemTimestamp(a));
       if (!feedTitle) feedTitle = googleFeed.title || '';
     } catch (error) {
       console.error(`Google News fallback failed (${lang}/${slug})`, error);
     }
   }
 
-  return { items: merged.slice(0, limit), feedTitle };
+  items.sort((a, b) => itemTimestamp(b) - itemTimestamp(a));
+  return { items: items.slice(0, limit), feedTitle };
 }
 
 async function resolveArticleImage(
   link: string | undefined,
   rawItem: Record<string, unknown>,
-  title?: string
+  title: string | undefined,
+  lang: NewsLanguage
 ): Promise<string | null> {
   const feedImage = pickBestNewsImage(extractAllImagesFromRssItem(rawItem));
   if (feedImage) return feedImage;
 
   if (!link) return null;
 
-  const publisherUrl = await resolveNewsArticleUrl(link);
+  const publisherUrl = await resolveNewsArticleUrl(link, lang === 'en' ? 'en' : 'hi');
 
   try {
     const article = await fetchArticleFromUrl(publisherUrl, title || '');
@@ -162,7 +202,7 @@ async function resolveArticleImage(
 
 async function mapWithConcurrency<T, R>(
   items: T[],
-  limit: number,
+  concurrency: number,
   mapper: (item: T, index: number) => Promise<R>
 ): Promise<R[]> {
   const results: R[] = new Array(items.length);
@@ -175,7 +215,9 @@ async function mapWithConcurrency<T, R>(
     }
   }
 
-  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, () => worker()));
+  await Promise.all(
+    Array.from({ length: Math.min(concurrency, items.length) }, () => worker())
+  );
   return results;
 }
 
@@ -194,7 +236,7 @@ export async function GET(request: NextRequest) {
     const defaultSource = lang === 'en' ? 'News' : 'समाचार';
     const limit = Math.min(Number(searchParams.get('limit') || 12), 24);
 
-    const { items, feedTitle } = await fetchMergedCategoryFeed(
+    const { items, feedTitle } = await fetchCategoryFeed(
       slug,
       lang,
       slug === 'local' ? localLocation : undefined,
@@ -214,9 +256,9 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const articles = await mapWithConcurrency(items, 6, async (item, index) => {
+    const articles = await mapWithConcurrency(items, 8, async (item, index) => {
       const rawItem = item as unknown as Record<string, unknown>;
-      const image = await resolveArticleImage(item.link, rawItem, item.title);
+      const image = await resolveArticleImage(item.link, rawItem, item.title, lang);
       const snippet = cleanNewsSnippet(
         item.contentSnippet || item.content || (item as Record<string, unknown>)['content:encoded'],
         item.title
@@ -255,6 +297,6 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('RSS Fetch Error:', error);
-    return NextResponse.json({ success: false, error: 'Failed to fetch news' }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Failed to fetch news' }, { status: 502 });
   }
 }
