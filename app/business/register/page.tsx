@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import Script from 'next/script';
-import { registerBusiness, updateBusinessKYC, updateBusinessPayment } from '@/app/actions/business';
+import { registerBusiness, updateBusinessKYC } from '@/app/actions/business';
 import {
   CheckCircle2,
   ChevronRight,

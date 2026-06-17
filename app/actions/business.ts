@@ -28,6 +28,8 @@ import {
   setBusinessSessionCookie,
 } from '@/lib/security/session';
 import { enforceRateLimit } from '@/lib/security/enforceRateLimit.server';
+import { redactPublicBusinessFields } from '@/lib/security/businessFields';
+import { verifyRazorpayPaymentSignature } from '@/lib/razorpay/server';
 
 function parseBusinessServices(business: {
   serviceCategory?: string | null;
@@ -281,7 +283,16 @@ export async function updateBusinessKYC(id: string, kycData: any) {
   }
 }
 
-export async function updateBusinessPayment(id: string, paymentData: any) {
+export async function updateBusinessPayment(
+  id: string,
+  paymentData: {
+    paymentId: string;
+    orderId: string;
+    selectedPlan: string;
+    billingCycle: string;
+    razorpaySignature: string;
+  }
+) {
   try {
     if (!id) {
       return { success: false, error: 'Business ID is required' };
@@ -292,11 +303,23 @@ export async function updateBusinessPayment(id: string, paymentData: any) {
       return { success: false, error: auth.error };
     }
 
-    if (!paymentData?.paymentId || !paymentData?.orderId) {
+    if (
+      !paymentData?.paymentId ||
+      !paymentData?.orderId ||
+      !paymentData?.razorpaySignature
+    ) {
       return { success: false, error: 'Invalid payment details' };
     }
 
-    console.log('Updating payment for business:', id);
+    const isValidSignature = verifyRazorpayPaymentSignature({
+      orderId: paymentData.orderId,
+      paymentId: paymentData.paymentId,
+      signature: paymentData.razorpaySignature,
+    });
+
+    if (!isValidSignature) {
+      return { success: false, error: 'Payment verification failed' };
+    }
 
     const supabase = createClient(await cookies());
 
@@ -312,7 +335,7 @@ export async function updateBusinessPayment(id: string, paymentData: any) {
 
     if (current?.paymentStatus === 'completed') {
       if (current.paymentId === paymentData.paymentId) {
-        const existing = await getBusiness(id);
+        const existing = await getOwnedBusiness(id);
         return existing.success
           ? { success: true, business: existing.business }
           : { success: false, error: 'Business not found' };
@@ -401,7 +424,40 @@ export async function getBusiness(id: string) {
       return { success: false, error: 'Business ID is required' };
     }
 
-    console.log('Fetching business:', id);
+    const supabase = createClient(await cookies());
+
+    const { data: business, error } = await supabase
+      .from('Business')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return { success: false, error: 'Business not found' };
+      }
+      throw error;
+    }
+
+    const publicBusiness = redactPublicBusinessFields(mapBusinessRecord(business));
+    return { success: true, business: publicBusiness };
+  } catch (error: any) {
+    const errorMessage = handleError(error, 'Get Business');
+    return { success: false, error: errorMessage };
+  }
+}
+
+/** Full merchant record for the logged-in owner only (no password). */
+export async function getOwnedBusiness(id: string) {
+  try {
+    if (!id) {
+      return { success: false, error: 'Business ID is required' };
+    }
+
+    const auth = await assertBusinessSession(id);
+    if (!auth.ok) {
+      return { success: false, error: auth.error };
+    }
 
     const supabase = createClient(await cookies());
 
@@ -420,7 +476,7 @@ export async function getBusiness(id: string) {
 
     return { success: true, business: mapBusinessRecord(business) };
   } catch (error: any) {
-    const errorMessage = handleError(error, 'Get Business');
+    const errorMessage = handleError(error, 'Get Owned Business');
     return { success: false, error: errorMessage };
   }
 }
@@ -530,7 +586,7 @@ export async function getBusinessSession() {
   try {
     const businessId = (await cookies()).get('business_id')?.value;
     if (!businessId) return null;
-    return await getBusiness(businessId);
+    return await getOwnedBusiness(businessId);
   } catch (error) {
     console.error('Get Business Session Error:', error);
     return null;

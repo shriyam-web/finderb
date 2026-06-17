@@ -37,7 +37,7 @@ import { RiDashboardFill, RiListCheck, RiMessage3Line, RiSettings4Line } from 'r
 import { FaInstagram, FaFacebook, FaYoutube, FaWhatsapp } from 'react-icons/fa';
 import Link from 'next/link';
 import Image from 'next/image';
-import { getBusiness, updateBusinessImages, getBusinessSession, logoutBusiness, updateBusinessProfile } from '@/app/actions/business';
+import { getBusinessSession, updateBusinessImages, logoutBusiness, updateBusinessProfile } from '@/app/actions/business';
 import { getBusinessLeads } from '@/app/actions/leads';
 import SettingsTab from './components/SettingsTab';
 import JobPostingTab from './components/JobPostingTab';
@@ -52,7 +52,6 @@ import { buildGoogleMapsUrl } from '@/lib/googleMapsLocation';
 function DashboardContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const id = searchParams.get('id');
   const [activeTab, setActiveTab] = useState('overview');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
@@ -132,72 +131,60 @@ function DashboardContent() {
 
   useEffect(() => {
     const fetchBusiness = async () => {
-      let currentId = id;
-
-      if (!currentId) {
-        const sessionRes = await getBusinessSession();
-        if (sessionRes && sessionRes.success && sessionRes.business) {
-          currentId = sessionRes.business.id;
-        }
-      }
-
-      if (currentId) {
-        const res = await getBusiness(currentId);
-        if (res.success && res.business) {
-          setBusiness(res.business);
-          setImages(res.business.images || []);
-          setprofilePictureUrl(res.business.profilePictureUrl || null);
-            setProfileData({
-            rating: res.business.rating || 0,
-            yearsInBusiness: res.business.yearsInBusiness || 0,
-            displayName: res.business.displayName || '',
-            businessName: res.business.businessName || '',
-            category: res.business.category || '',
-            publicPhone: res.business.publicPhone || '',
-            businessAddress: res.business.businessAddress || '',
-            city: res.business.city || '',
-            state: res.business.state || '',
-            country: res.business.country || '',
-            isFinderBVerified: res.business.isFinderBVerified || false,
-            review: res.business.review || {},
-            reviewReply: res.business.reviewReply || {},
-            latitude: res.business.latitude || 0,
-            longitude: res.business.longitude || 0,
-            googleMapsUrl:
-              res.business.latitude && res.business.longitude
-                ? buildGoogleMapsUrl(res.business.latitude, res.business.longitude)
-                : '',
-            website: res.business.website || '',
-            instagramUrl: res.business.instagramUrl || '',
-            facebookUrl: res.business.facebookUrl || '',
-            whatsappNumber: res.business.whatsappNumber || '',
-            youtubeUrl: res.business.youtubeUrl || '',
-            about: res.business.about || '',
-            keywords: res.business.keywords || [],
-            email: res.business.email || '',
-            timings: res.business.timings || {},
-            discountRange: res.business.discountRange || '',
-            serviceCategory: res.business.serviceCategory || '',
-            paymentModes: res.business.paymentModes || [],
-            profileQrLink: res.business.profileQrLink || '',
-          });
-        } else if (!id) {
-          router.push('/business/login');
-        }
+      const sessionRes = await getBusinessSession();
+      if (sessionRes?.success && sessionRes.business) {
+        const resBusiness = sessionRes.business;
+        setBusiness(resBusiness);
+        setImages(resBusiness.images || []);
+        setprofilePictureUrl(resBusiness.profilePictureUrl || null);
+        setProfileData({
+          rating: resBusiness.rating || 0,
+          yearsInBusiness: resBusiness.yearsInBusiness || 0,
+          displayName: resBusiness.displayName || '',
+          businessName: resBusiness.businessName || '',
+          category: resBusiness.category || '',
+          publicPhone: resBusiness.publicPhone || '',
+          businessAddress: resBusiness.businessAddress || '',
+          city: resBusiness.city || '',
+          state: resBusiness.state || '',
+          country: resBusiness.country || '',
+          isFinderBVerified: resBusiness.isFinderBVerified || false,
+          review: resBusiness.review || {},
+          reviewReply: resBusiness.reviewReply || {},
+          latitude: resBusiness.latitude || 0,
+          longitude: resBusiness.longitude || 0,
+          googleMapsUrl:
+            resBusiness.latitude && resBusiness.longitude
+              ? buildGoogleMapsUrl(resBusiness.latitude, resBusiness.longitude)
+              : '',
+          website: resBusiness.website || '',
+          instagramUrl: resBusiness.instagramUrl || '',
+          facebookUrl: resBusiness.facebookUrl || '',
+          whatsappNumber: resBusiness.whatsappNumber || '',
+          youtubeUrl: resBusiness.youtubeUrl || '',
+          about: resBusiness.about || '',
+          keywords: resBusiness.keywords || [],
+          email: resBusiness.email || '',
+          timings: resBusiness.timings || {},
+          discountRange: resBusiness.discountRange || '',
+          serviceCategory: resBusiness.serviceCategory || '',
+          paymentModes: resBusiness.paymentModes || [],
+          profileQrLink: resBusiness.profileQrLink || '',
+        });
       } else {
         router.push('/business/login');
       }
       setLoading(false);
     };
     fetchBusiness();
-  }, [id, router]);
+  }, [router]);
 
   useEffect(() => {
     if (searchParams.get('payment') === 'success') {
       setSuccessMessage('Payment successful! Your Growth Pro plan is now active.');
-      router.replace(`/business/dashboard${id ? `?id=${id}` : ''}`);
+      router.replace('/business/dashboard');
     }
-  }, [searchParams, id, router]);
+  }, [searchParams, router]);
 
   useEffect(() => {
     const fetchNotifications = async () => {
@@ -223,7 +210,7 @@ function DashboardContent() {
     }
   }, [business]);
 
-  const businessId = id || business?.id;
+  const businessId = business?.id;
 
   useEffect(() => {
     if (!businessId) return;

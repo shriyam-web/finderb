@@ -2,7 +2,7 @@
 
 import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
-import { updateBusinessPayment, getBusiness } from '@/app/actions/business';
+import { updateBusinessPayment, getOwnedBusiness } from '@/app/actions/business';
 import {
   type BillingCycle,
   type MerchantPlan,
@@ -31,8 +31,11 @@ export async function getPaymentPageData(businessId: string) {
   }
 
   const session = await assertBusinessSession(businessId);
-  const businessResult = await getBusiness(businessId);
+  if (!session.ok) {
+    return { success: false as const, error: session.error };
+  }
 
+  const businessResult = await getOwnedBusiness(businessId);
   if (!businessResult.success || !businessResult.business) {
     return { success: false as const, error: businessResult.error || 'Business not found' };
   }
@@ -40,8 +43,7 @@ export async function getPaymentPageData(businessId: string) {
   return {
     success: true as const,
     business: businessResult.business,
-    isAuthorized: session.ok,
-    authError: session.ok ? undefined : session.error,
+    isAuthorized: true,
     razorpayConfigured: isRazorpayConfigured(),
   };
 }
@@ -73,7 +75,7 @@ export async function createMerchantPaymentOrder(params: {
     return { success: false as const, error: session.error };
   }
 
-  const businessResult = await getBusiness(businessId);
+  const businessResult = await getOwnedBusiness(businessId);
   if (!businessResult.success || !businessResult.business) {
     return { success: false as const, error: 'Business not found' };
   }
@@ -155,7 +157,7 @@ export async function completeMerchantPayment(params: {
     return { success: false as const, error: 'Payment verification failed. Please contact support if amount was deducted.' };
   }
 
-  const businessResult = await getBusiness(businessId);
+  const businessResult = await getOwnedBusiness(businessId);
   if (!businessResult.success || !businessResult.business) {
     return { success: false as const, error: 'Business not found' };
   }
@@ -173,6 +175,7 @@ export async function completeMerchantPayment(params: {
     orderId: razorpayOrderId,
     selectedPlan: plan as MerchantPlan,
     billingCycle: billingCycle as BillingCycle,
+    razorpaySignature,
   });
 
   if (!result.success) {

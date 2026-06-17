@@ -46,11 +46,8 @@ export default function PaymentPage({ params }: { params: Promise<{ id: string }
       return;
     }
     setBusiness(result.business);
-    setIsAuthorized(result.isAuthorized);
+    setIsAuthorized(true);
     setRazorpayConfigured(result.razorpayConfigured);
-    if (!result.isAuthorized) {
-      setError(result.authError || 'Please sign in to continue');
-    }
     setLoading(false);
   }, [id]);
 

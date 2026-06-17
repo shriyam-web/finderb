@@ -11,7 +11,7 @@ import {
   ArrowRight,
   ArrowLeft
 } from 'lucide-react';
-import { updateBusinessKYC, getBusiness } from '@/app/actions/business';
+import { updateBusinessKYC, getOwnedBusiness } from '@/app/actions/business';
 
 export default function KYCPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -28,13 +28,15 @@ export default function KYCPage({ params }: { params: Promise<{ id: string }> })
 
   useEffect(() => {
     const fetchBusiness = async () => {
-      const res = await getBusiness(id);
+      const res = await getOwnedBusiness(id);
       if (res.success && res.business) {
         setBusiness(res.business);
+      } else {
+        router.push('/business/login');
       }
     };
     fetchBusiness();
-  }, [id]);
+  }, [id, router]);
 
   const handleKycChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;

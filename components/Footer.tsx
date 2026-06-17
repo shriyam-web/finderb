@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import type { ReactNode } from 'react';
-import { Mail, Phone, MapPin, Smartphone, Store } from 'lucide-react';
+import { Mail, Phone, MapPin, Smartphone, Store, ShieldCheck } from 'lucide-react';
 import AppStoreIcon from '@/components/icons/AppStoreIcon';
 import IndianFlagIcon from '@/components/icons/IndianFlagIcon';
 import {
@@ -46,6 +46,10 @@ const SOCIAL_ICON_MAP: Record<FooterSocialIcon, typeof FaFacebook> = {
   youtube: FaYoutube,
 };
 
+function footerLinkKey(link: { label: string; href: string }) {
+  return `${link.href}::${link.label}`;
+}
+
 function Column({
   title,
   links,
@@ -58,7 +62,7 @@ function Column({
       <p className="mb-3 text-sm font-medium text-neutral-900">{title}</p>
       <ul className="space-y-2.5">
         {links.map((link) => (
-          <li key={link.label}>
+          <li key={footerLinkKey(link)}>
             <Link href={link.href} className={linkClass}>
               {link.label}
             </Link>
@@ -77,7 +81,7 @@ function LinkGrid({
   return (
     <ul className="grid grid-cols-2 gap-x-6 gap-y-2.5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
       {links.map((link) => (
-        <li key={link.label}>
+        <li key={footerLinkKey(link)}>
           <Link href={link.href} className={linkClass}>
             {link.label}
           </Link>
@@ -148,6 +152,18 @@ function MadeInIndiaBadge() {
     <span className="inline-flex items-center gap-1 rounded border border-neutral-300 bg-white px-2 py-0.5 font-medium text-inherit">
       <IndianFlagIcon className="h-2.5 w-[15px] shrink-0 rounded-[2px] ring-1 ring-black/5" />
       Made in India
+    </span>
+  );
+}
+
+function SecureSiteBadge() {
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 rounded border border-emerald-200 bg-emerald-50 px-2 py-0.5 font-medium text-emerald-800"
+      title="HTTPS encryption, secure sessions, and protected payments on FinderB"
+    >
+      <ShieldCheck size={12} strokeWidth={2.25} className="shrink-0 text-emerald-600" aria-hidden />
+      Secure site
     </span>
   );
 }
@@ -400,6 +416,7 @@ export default function Footer() {
                 of {LEGAL_COMPANY.name}.
               </p>
               <MadeInIndiaBadge />
+              <SecureSiteBadge />
             </div>
             <nav className="flex flex-wrap gap-x-4 gap-y-1" aria-label="Legal">
               <Link href="/privacy" className="hover:text-neutral-900 hover:underline underline-offset-2">

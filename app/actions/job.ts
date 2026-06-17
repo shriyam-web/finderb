@@ -224,13 +224,22 @@ export async function submitJobApplication(data: {
     const supabase = createClient(await cookies());
 
     let jobTitle: string = data.jobTitle?.trim() || '';
+    const { data: job, error: jobError } = await supabase
+      .from('jobs')
+      .select('id, title, business_id')
+      .eq('id', data.jobId)
+      .single();
+
+    if (jobError || !job) {
+      return { success: false, error: 'Job not found' };
+    }
+
+    if (job.business_id !== data.businessId) {
+      return { success: false, error: 'Invalid job application' };
+    }
+
     if (!jobTitle) {
-      const { data: job } = await supabase
-        .from('jobs')
-        .select('title')
-        .eq('id', data.jobId)
-        .single();
-      jobTitle = job?.title?.trim() || 'Job posting';
+      jobTitle = job.title?.trim() || 'Job posting';
     }
 
     const { error } = await supabase
