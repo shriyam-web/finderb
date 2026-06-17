@@ -4,6 +4,7 @@ import "./globals.css";
 import LayoutClient from "@/components/LayoutClient";
 import ServiceWorkerRegister from "@/components/pwa/ServiceWorkerRegister";
 import { LEGAL_COMPANY } from "@/lib/legalContent";
+import { FOOTER_SOCIAL_LINKS } from "@/lib/footerData";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -101,12 +102,7 @@ const jsonLd = [
     "url": "https://finderb.com",
     "logo": "https://finderb.com/logo1.png",
     "description": "FinderB is India's premium local discovery platform connecting users with verified professionals and top-rated services across 300+ cities.",
-    "sameAs": [
-      "https://facebook.com/finderb",
-      "https://twitter.com/finderb",
-      "https://instagram.com/finderb",
-      "https://linkedin.com/company/finderb"
-    ],
+    "sameAs": FOOTER_SOCIAL_LINKS.map((item) => item.href),
     "contactPoint": {
       "@type": "ContactPoint",
       "telephone": LEGAL_COMPANY.phone,

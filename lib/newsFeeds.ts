@@ -29,44 +29,53 @@ export const NEWS_CATEGORIES: NewsCategory[] = [
   { slug: 'startups', labelHi: 'स्टार्टअप', labelEn: 'Startups' },
 ];
 
-/** Primary Hindi RSS feeds per category */
+/** Primary Hindi RSS feeds per category — publisher feeds first; Google News is last-resort only */
 const HINDI_CATEGORY_FEEDS: Record<NewsCategorySlug, string[]> = {
   politics: [
-    'https://feeds.bbci.co.uk/hindi/rss.xml',
     'https://www.livehindustan.com/rss/national',
-    'https://feeds.feedburner.com/ndtvnews-hindi-news',
+    'https://www.aajtak.in/rssfeeds/?id=home',
+    'https://feeds.bbci.co.uk/hindi/rss.xml',
+    'https://www.jagran.com/rss/news/national.xml',
   ],
   business: [
     'https://www.livehindustan.com/rss/business',
     'https://hindi.economictimes.com/rssfeeds/2279790.cms',
+    'https://www.aajtak.in/rssfeeds/?id=business',
   ],
   sports: [
     'https://www.livehindustan.com/rss/sports',
-    'https://www.jagran.com/rss/sports.xml',
+    'https://www.aajtak.in/rssfeeds/?id=sports',
+    'https://www.jagran.com/rss/sports/cricket.xml',
   ],
   cricket: [
-    'https://www.jagran.com/rss/cricket.xml',
+    'https://www.jagran.com/rss/sports/cricket.xml',
     'https://www.livehindustan.com/rss/sports',
+    'https://www.aajtak.in/rssfeeds/?id=sports',
   ],
   bollywood: [
     'https://www.livehindustan.com/rss/entertainment',
-    'https://www.jagran.com/rss/entertainment.xml',
+    'https://www.aajtak.in/rssfeeds/?id=entertainment',
+    'https://www.jagran.com/rss/entertainment/bollywood.xml',
   ],
   technology: [
-    'https://www.jagran.com/rss/technology.xml',
+    'https://www.aajtak.in/rssfeeds/?id=technology',
     'https://www.livehindustan.com/rss/gadgets',
+    'https://www.jagran.com/rss/technology.xml',
   ],
   'real-estate': [
     'https://hindi.economictimes.com/rssfeeds/65552464.cms',
     'https://www.livehindustan.com/rss/business',
+    'https://www.aajtak.in/rssfeeds/?id=business',
   ],
   local: [
     'https://www.livehindustan.com/rss/cities/delhi-news',
+    'https://www.aajtak.in/rssfeeds/?id=delhi',
     'https://www.livehindustan.com/rss/national',
   ],
   startups: [
-    'https://www.jagran.com/rss/business.xml',
     'https://hindi.economictimes.com/rssfeeds/2279790.cms',
+    'https://www.aajtak.in/rssfeeds/?id=business',
+    'https://www.jagran.com/rss/business.xml',
   ],
 };
 
@@ -291,77 +300,7 @@ export function getFallbackImages(slug: NewsCategorySlug): string[] {
   return CATEGORY_FALLBACK_IMAGES[slug] || DEFAULT_FALLBACK_IMAGES;
 }
 
-function pickMediaUrl(value: unknown): string | null {
-  if (!value) return null;
-  if (typeof value === 'string' && value.startsWith('http')) return value;
-  if (typeof value === 'object') {
-    const obj = value as Record<string, unknown>;
-    if (typeof obj.url === 'string') return obj.url;
-    const attrs = obj.$ as Record<string, string> | undefined;
-    if (attrs?.url) return attrs.url;
-  }
-  return null;
-}
-
-function normalizeNewsImageUrl(url: string): string | null {
-  if (!url?.trim()) return null;
-  let value = url.trim().replace(/&amp;/g, '&');
-  if (value.startsWith('//')) value = `https:${value}`;
-  if (!value.startsWith('http')) return null;
-  if (value.includes('pixel') || value.includes('1x1') || value.includes('spacer')) return null;
-  return value;
-}
-
-export function extractImageFromRssItem(item: Record<string, unknown>): string | null {
-  const enclosure = item.enclosure as { url?: string; type?: string } | undefined;
-  if (enclosure?.url) {
-    const type = enclosure.type?.toLowerCase() ?? '';
-    if (!type || type.startsWith('image') || type.includes('jpeg') || type.includes('png')) {
-      const normalized = normalizeNewsImageUrl(enclosure.url);
-      if (normalized) return normalized;
-    }
-  }
-
-  const mediaContent = item['media:content'];
-  const mediaList = Array.isArray(mediaContent) ? mediaContent : mediaContent ? [mediaContent] : [];
-
-  const mediaCandidates = [
-    ...mediaList,
-    item['media:thumbnail'],
-    item['media:group'],
-    item.mediaContent,
-    item.mediaThumbnail,
-    item.image,
-    item.thumbnail,
-    (item as { itunes?: { image?: string } }).itunes?.image,
-  ];
-
-  for (const candidate of mediaCandidates) {
-    const url = pickMediaUrl(candidate);
-    const normalized = url ? normalizeNewsImageUrl(url) : null;
-    if (normalized) return normalized;
-  }
-
-  const html = String(item.content || item['content:encoded'] || item.summary || item.description || '');
-
-  const imgPatterns = [
-    /<img[^>]+src=["']([^"']+)["']/i,
-    /<img[^>]+data-src=["']([^"']+)["']/i,
-    /<img[^>]+srcset=["']([^"'\s,]+)/i,
-    /property=["']og:image["'][^>]+content=["']([^"']+)["']/i,
-    /content=["']([^"']+)["'][^>]+property=["']og:image["']/i,
-  ];
-
-  for (const pattern of imgPatterns) {
-    const match = html.match(pattern);
-    if (match?.[1]) {
-      const normalized = normalizeNewsImageUrl(match[1]);
-      if (normalized) return normalized;
-    }
-  }
-
-  return null;
-}
+export { extractImageFromRssItem, normalizeNewsImageUrl } from '@/lib/newsImage';
 
 export function cleanNewsSnippet(raw: unknown, title?: string): string {
   let snippet = String(raw || '');

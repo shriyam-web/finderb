@@ -1,4 +1,8 @@
 import { stripHtml } from '@/lib/stripHtml';
+import { pickBestNewsImage } from '@/lib/newsImage';
+
+const BROWSER_UA =
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
 
 export type ExtractedArticle = {
   title: string;
@@ -23,12 +27,28 @@ function metaContent(html: string, property: string): string | null {
     new RegExp(`property=["']${property}["'][^>]+content=["']([^"']+)["']`, 'i'),
     new RegExp(`content=["']([^"']+)["'][^>]+property=["']${property}["']`, 'i'),
     new RegExp(`name=["']${property}["'][^>]+content=["']([^"']+)["']`, 'i'),
+    new RegExp(`content=["']([^"']+)["'][^>]+name=["']${property}["']`, 'i'),
   ];
   for (const pattern of patterns) {
     const match = html.match(pattern);
     if (match?.[1]) return decodeHtmlEntities(match[1].trim());
   }
   return null;
+}
+
+function extractArticleImages(html: string): string | null {
+  const candidates = [
+    metaContent(html, 'og:image:secure_url'),
+    metaContent(html, 'og:image:url'),
+    metaContent(html, 'og:image'),
+    metaContent(html, 'twitter:image'),
+    metaContent(html, 'twitter:image:src'),
+  ];
+
+  const firstImg = html.match(/<img[^>]+(?:src|data-src)=["']([^"']+)["']/i)?.[1] ?? null;
+  if (firstImg) candidates.push(firstImg);
+
+  return pickBestNewsImage(candidates);
 }
 
 function sanitizeArticleHtml(html: string): string {
@@ -61,7 +81,7 @@ export function extractArticleFromHtml(html: string, fallbackTitle = ''): Extrac
     metaContent(cleaned, 'og:description') ||
     metaContent(cleaned, 'description') ||
     '';
-  const image = metaContent(cleaned, 'og:image');
+  const image = extractArticleImages(cleaned);
 
   const articleMatch = cleaned.match(/<article[\s\S]*?>([\s\S]*?)<\/article>/i);
   let paragraphs: string[] = [];
@@ -99,10 +119,12 @@ export async function fetchArticleFromUrl(
   try {
     const response = await fetch(url, {
       headers: {
-        'User-Agent': 'FinderB/1.0 (+https://finderb.com)',
+        'User-Agent': BROWSER_UA,
         Accept: 'text/html,application/xhtml+xml',
+        'Accept-Language': 'hi-IN,hi;q=0.9,en;q=0.8',
       },
       next: { revalidate: 300 },
+      signal: AbortSignal.timeout(12_000),
     });
 
     if (!response.ok) return null;

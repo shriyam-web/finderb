@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { fetchArticleFromUrl } from '@/lib/extractArticle';
+import { resolveNewsArticleUrl } from '@/lib/googleNewsUrl';
+import { pickBestNewsImage } from '@/lib/newsImage';
 import { isValidNewsUrl } from '@/lib/newsId';
 import { stripHtml } from '@/lib/stripHtml';
 
@@ -21,11 +23,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Invalid article URL' }, { status: 400 });
     }
 
-    const extracted = await fetchArticleFromUrl(url, title);
+    const publisherUrl = await resolveNewsArticleUrl(url);
+    const extracted = await fetchArticleFromUrl(publisherUrl, title);
 
     const resolvedTitle = extracted?.title || title || 'समाचार';
     const resolvedExcerpt = extracted?.excerpt || stripHtml(excerpt) || resolvedTitle;
-    const resolvedImage = extracted?.image || image || null;
+    const resolvedImage = pickBestNewsImage([extracted?.image, image]) || null;
     const resolvedSource =
       extracted?.source ||
       source ||
@@ -51,7 +54,7 @@ export async function GET(request: NextRequest) {
         source: resolvedSource,
         date: date || 'हाल ही में',
         category: category || 'समाचार',
-        sourceUrl: url,
+        sourceUrl: publisherUrl,
       },
     });
   } catch (error) {
