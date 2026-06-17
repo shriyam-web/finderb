@@ -15,6 +15,7 @@ import {
   isRazorpayConfigured,
   verifyRazorpayPaymentSignature,
 } from '@/lib/razorpay/server';
+import { enforceRateLimit } from '@/lib/security/enforceRateLimit.server';
 
 async function assertBusinessSession(businessId: string) {
   const sessionBusinessId = (await cookies()).get('business_id')?.value;
@@ -55,6 +56,9 @@ export async function createMerchantPaymentOrder(params: {
   if (!businessId) {
     return { success: false as const, error: 'Business ID is required' };
   }
+
+  const paymentLimit = await enforceRateLimit('payment', `order:${businessId}`);
+  if (!paymentLimit.ok) return { success: false as const, error: paymentLimit.error };
 
   if (!isValidMerchantPlan(plan)) {
     return { success: false as const, error: 'Invalid plan selected' };
@@ -128,6 +132,9 @@ export async function completeMerchantPayment(params: {
   if (!businessId || !razorpayOrderId || !razorpayPaymentId || !razorpaySignature) {
     return { success: false as const, error: 'Incomplete payment details received' };
   }
+
+  const paymentLimit = await enforceRateLimit('payment', `complete:${businessId}`);
+  if (!paymentLimit.ok) return { success: false as const, error: paymentLimit.error };
 
   if (!isValidMerchantPlan(plan) || !isValidBillingCycle(billingCycle)) {
     return { success: false as const, error: 'Invalid plan or billing cycle' };

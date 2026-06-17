@@ -8,6 +8,7 @@ import {
   getSearchTermsForQuery,
   sortBySearchRelevance,
 } from '@/lib/searchMatch';
+import { enforceRateLimit } from '@/lib/security/enforceRateLimit.server';
 
 export async function getCategories(topLevelOnly = true) {
   try {
@@ -246,6 +247,11 @@ export async function searchCategoriesByQuery(query: string) {
   const terms = getSearchTermsForQuery(query);
   if (terms.length === 0) {
     return { success: true as const, results: [] as CategorySearchHit[] };
+  }
+
+  const searchLimit = await enforceRateLimit('search');
+  if (!searchLimit.ok) {
+    return { success: false as const, error: searchLimit.error };
   }
 
   try {

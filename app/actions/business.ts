@@ -27,6 +27,7 @@ import {
   assertBusinessSession,
   setBusinessSessionCookie,
 } from '@/lib/security/session';
+import { enforceRateLimit } from '@/lib/security/enforceRateLimit.server';
 
 function parseBusinessServices(business: {
   serviceCategory?: string | null;
@@ -165,6 +166,12 @@ export async function registerBusiness(formData: any) {
     const regNo = `FINDERB-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
 
     const normalizedEmail = formData.email.toLowerCase().trim();
+
+    const ipLimit = await enforceRateLimit('register');
+    if (!ipLimit.ok) return { success: false, error: ipLimit.error };
+
+    const emailLimit = await enforceRateLimit('authEmail', `register:${normalizedEmail}`);
+    if (!emailLimit.ok) return { success: false, error: emailLimit.error };
 
     const supabase = createClient(await cookies());
 
@@ -434,6 +441,13 @@ export async function loginBusiness(email: string, password: string) {
     }
 
     const normalizedEmail = email.toLowerCase().trim();
+
+    const ipLimit = await enforceRateLimit('auth');
+    if (!ipLimit.ok) return { success: false, error: ipLimit.error };
+
+    const emailLimit = await enforceRateLimit('authEmail', `login:${normalizedEmail}`);
+    if (!emailLimit.ok) return { success: false, error: emailLimit.error };
+
     const supabase = createClient(await cookies());
     const loginFields = 'id, password, createdAt';
 

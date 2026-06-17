@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache';
 import { buildJobApplicationMessage } from '@/lib/jobLeadMessage';
 import { formatMerchantName } from '@/lib/formatMerchantName';
 import { assertBusinessSession } from '@/lib/security/session';
+import { enforceRateLimit } from '@/lib/security/enforceRateLimit.server';
 
 export async function createJob(data: {
   title: string;
@@ -217,6 +218,9 @@ export async function submitJobApplication(data: {
   message?: string;
 }) {
   try {
+    const writeLimit = await enforceRateLimit('write', 'job-application');
+    if (!writeLimit.ok) return { success: false, error: writeLimit.error };
+
     const supabase = createClient(await cookies());
 
     let jobTitle: string = data.jobTitle?.trim() || '';

@@ -1,6 +1,7 @@
 'use server';
 
 import { getGoogleMapsServerKeyOrFallback } from '@/lib/googleMapsKeys';
+import { enforceRateLimit } from '@/lib/security/enforceRateLimit.server';
 import {
   buildGoogleMapsUrl,
   extractGoogleMapsSearchQuery,
@@ -28,6 +29,9 @@ async function expandShortGoogleMapsUrl(url: string): Promise<string> {
 export async function geocodePlaceQuery(
   query: string
 ): Promise<{ latitude: number; longitude: number; placeName?: string } | null> {
+  const geocodeLimit = await enforceRateLimit('geocode');
+  if (!geocodeLimit.ok) return null;
+
   const googleKey = getGoogleMapsServerKeyOrFallback();
 
   if (googleKey) {
@@ -293,6 +297,11 @@ async function resolvePlaceName(
 }
 
 export async function resolveGoogleMapsLocation(input: string) {
+  const geocodeLimit = await enforceRateLimit('geocode', 'resolve-maps');
+  if (!geocodeLimit.ok) {
+    return { success: false as const, error: geocodeLimit.error };
+  }
+
   const normalizedInput = normalizeGoogleMapsInput(input);
 
   if (!normalizedInput) {
@@ -361,6 +370,11 @@ export async function lookupPlaceNameFromCoordinates(
   longitude: number,
   googleMapsUrl?: string
 ) {
+  const geocodeLimit = await enforceRateLimit('geocode', 'lookup-place');
+  if (!geocodeLimit.ok) {
+    return { success: false as const, placeName: null };
+  }
+
   if (latitude == null || longitude == null || (latitude === 0 && longitude === 0)) {
     return { success: false as const, placeName: null };
   }
@@ -373,6 +387,11 @@ export async function lookupPlaceNameFromCoordinates(
 }
 
 export async function resolveCityFromCoordinates(latitude: number, longitude: number) {
+  const geocodeLimit = await enforceRateLimit('geocode', 'resolve-city');
+  if (!geocodeLimit.ok) {
+    return { success: false as const, city: null, state: null, cityName: null };
+  }
+
   if (latitude == null || longitude == null || (latitude === 0 && longitude === 0)) {
     return { success: false as const, city: null, state: null, cityName: null };
   }

@@ -8,6 +8,7 @@ import {
   parseBusinessReviews,
   type BusinessReview,
 } from '@/lib/businessReviews';
+import { enforceRateLimit } from '@/lib/security/enforceRateLimit.server';
 
 async function getLoggedInUser() {
   const userId = (await cookies()).get('user_id')?.value;
@@ -30,6 +31,9 @@ export async function submitBusinessReview(data: {
   content: string;
 }) {
   try {
+    const writeLimit = await enforceRateLimit('write', 'business-review');
+    if (!writeLimit.ok) return { success: false as const, error: writeLimit.error };
+
     const user = await getLoggedInUser();
     if (!user) {
       return { success: false as const, error: 'Please log in to post a review.' };

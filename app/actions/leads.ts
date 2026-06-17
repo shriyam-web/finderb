@@ -10,6 +10,7 @@ import {
 } from '@/lib/jobLeadMessage';
 import { escapeIlikePattern } from '@/lib/searchMatch';
 import { assertBusinessSession } from '@/lib/security/session';
+import { enforceRateLimit } from '@/lib/security/enforceRateLimit.server';
 
 export type BusinessLead = {
   id: string;
@@ -141,6 +142,9 @@ export async function submitBroadcastEnquiry(data: {
   lookingFor: string;
 }) {
   try {
+    const writeLimit = await enforceRateLimit('write', 'broadcast-enquiry');
+    if (!writeLimit.ok) return { success: false, error: writeLimit.error };
+
     const { sourceBusinessId, category, area, name, email, phone, lookingFor } = data;
 
     if (!name?.trim() || !email?.trim() || !phone?.trim() || !lookingFor?.trim()) {

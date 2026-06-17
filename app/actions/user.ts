@@ -20,6 +20,7 @@ import {
   getSessionUserId,
   setUserSessionCookie,
 } from '@/lib/security/session';
+import { enforceRateLimit } from '@/lib/security/enforceRateLimit.server';
 
 const USER_PUBLIC_FIELDS =
   'id, fullName, email, favorites, searchHistory, createdAt, updatedAt';
@@ -62,6 +63,13 @@ export async function registerUser(formData: { fullName?: string; email?: string
     }
 
     const normalizedEmail = formData.email.toLowerCase().trim();
+
+    const ipLimit = await enforceRateLimit('register');
+    if (!ipLimit.ok) return { success: false, error: ipLimit.error };
+
+    const emailLimit = await enforceRateLimit('authEmail', `register:${normalizedEmail}`);
+    if (!emailLimit.ok) return { success: false, error: emailLimit.error };
+
     const supabase = createClient(await cookies());
 
     const existingAccount = await getRegistrationConflict(supabase, normalizedEmail, 'user');
@@ -117,6 +125,13 @@ export async function loginUser(email: string, password: string) {
     }
 
     const normalizedEmail = email.toLowerCase().trim();
+
+    const ipLimit = await enforceRateLimit('auth');
+    if (!ipLimit.ok) return { success: false, error: ipLimit.error };
+
+    const emailLimit = await enforceRateLimit('authEmail', `login:${normalizedEmail}`);
+    if (!emailLimit.ok) return { success: false, error: emailLimit.error };
+
     const supabase = createClient(await cookies());
 
     const { data: user, error } = await supabase
