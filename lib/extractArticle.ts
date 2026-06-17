@@ -36,8 +36,52 @@ function metaContent(html: string, property: string): string | null {
   return null;
 }
 
-function extractArticleImages(html: string): string | null {
+function extractJsonLdImages(html: string): string[] {
+  const images: string[] = [];
+
+  const pushImage = (value: unknown) => {
+    if (typeof value === 'string' && value.startsWith('http')) {
+      images.push(value);
+      return;
+    }
+    if (value && typeof value === 'object') {
+      const obj = value as { url?: string };
+      if (obj.url?.startsWith('http')) images.push(obj.url);
+    }
+  };
+
+  for (const match of html.matchAll(
+    /<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi
+  )) {
+    try {
+      const parsed = JSON.parse(match[1]);
+      const nodes = Array.isArray(parsed) ? parsed : [parsed];
+      for (const node of nodes) {
+        const graph = (node as { '@graph'?: unknown[] })['@graph'];
+        const candidates = graph ? [...nodes, ...graph] : nodes;
+        for (const entry of candidates) {
+          const type = String((entry as { '@type'?: string })['@type'] || '');
+          if (!/(NewsArticle|Article|WebPage)/i.test(type)) continue;
+          const record = entry as { image?: unknown; thumbnailUrl?: unknown };
+          const image = record.image ?? record.thumbnailUrl;
+          if (Array.isArray(image)) {
+            image.forEach(pushImage);
+          } else {
+            pushImage(image);
+          }
+        }
+      }
+    } catch {
+      /* ignore malformed JSON-LD */
+    }
+  }
+
+  return images;
+}
+
+function extractArticleImages(html: string, extra: string[] = []): string | null {
   const candidates = [
+    ...extra,
     metaContent(html, 'og:image:secure_url'),
     metaContent(html, 'og:image:url'),
     metaContent(html, 'og:image'),
@@ -75,13 +119,14 @@ function escapeHtml(text: string): string {
 }
 
 export function extractArticleFromHtml(html: string, fallbackTitle = ''): ExtractedArticle {
+  const jsonLdImages = extractJsonLdImages(html);
   const cleaned = sanitizeArticleHtml(html);
   const title = metaContent(cleaned, 'og:title') || fallbackTitle;
   const excerpt =
     metaContent(cleaned, 'og:description') ||
     metaContent(cleaned, 'description') ||
     '';
-  const image = extractArticleImages(cleaned);
+  const image = extractArticleImages(cleaned, jsonLdImages);
 
   const articleMatch = cleaned.match(/<article[\s\S]*?>([\s\S]*?)<\/article>/i);
   let paragraphs: string[] = [];
@@ -124,7 +169,7 @@ export async function fetchArticleFromUrl(
         'Accept-Language': 'hi-IN,hi;q=0.9,en;q=0.8',
       },
       next: { revalidate: 300 },
-      signal: AbortSignal.timeout(12_000),
+      signal: AbortSignal.timeout(15_000),
     });
 
     if (!response.ok) return null;

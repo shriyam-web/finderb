@@ -224,7 +224,7 @@ export default function Footer() {
               <p className="text-sm font-medium text-neutral-900">Follow us</p>
               <div className="flex flex-wrap gap-2">
                 {FOOTER_SOCIAL_LINKS.map((social) => (
-                  <SocialButton key={social.label} {...social} />
+                  <SocialButton key={social.href} {...social} />
                 ))}
               </div>
 

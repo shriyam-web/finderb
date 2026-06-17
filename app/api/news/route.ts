@@ -191,7 +191,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const articles = await mapWithConcurrency(items, 4, async (item, index) => {
+    const articles = await mapWithConcurrency(items, 6, async (item, index) => {
       const rawItem = item as unknown as Record<string, unknown>;
       const image = await resolveArticleImage(item.link, rawItem, item.title);
       const snippet = cleanNewsSnippet(

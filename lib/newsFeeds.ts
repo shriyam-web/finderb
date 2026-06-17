@@ -29,53 +29,50 @@ export const NEWS_CATEGORIES: NewsCategory[] = [
   { slug: 'startups', labelHi: 'स्टार्टअप', labelEn: 'Startups' },
 ];
 
-/** Primary Hindi RSS feeds per category — publisher feeds first; Google News is last-resort only */
+/** Primary Hindi RSS feeds per category — Amar Ujala + BBC/AajTak where reliable */
 const HINDI_CATEGORY_FEEDS: Record<NewsCategorySlug, string[]> = {
   politics: [
-    'https://www.livehindustan.com/rss/national',
-    'https://www.aajtak.in/rssfeeds/?id=home',
     'https://feeds.bbci.co.uk/hindi/rss.xml',
-    'https://www.jagran.com/rss/news/national.xml',
+    'https://www.aajtak.in/rssfeeds/?id=home',
+    'https://www.amarujala.com/rss/india-news.xml',
+    'https://www.livehindustan.com/rss/national',
   ],
   business: [
-    'https://www.livehindustan.com/rss/business',
-    'https://hindi.economictimes.com/rssfeeds/2279790.cms',
-    'https://www.aajtak.in/rssfeeds/?id=business',
+    'https://www.amarujala.com/rss/business.xml',
+    'https://www.amarujala.com/rss/india-news.xml',
+    'https://feeds.bbci.co.uk/hindi/rss.xml',
   ],
   sports: [
-    'https://www.livehindustan.com/rss/sports',
-    'https://www.aajtak.in/rssfeeds/?id=sports',
-    'https://www.jagran.com/rss/sports/cricket.xml',
+    'https://www.amarujala.com/rss/sports.xml',
+    'https://www.amarujala.com/rss/cricket.xml',
+    'https://feeds.bbci.co.uk/hindi/rss.xml',
   ],
   cricket: [
-    'https://www.jagran.com/rss/sports/cricket.xml',
-    'https://www.livehindustan.com/rss/sports',
-    'https://www.aajtak.in/rssfeeds/?id=sports',
+    'https://www.amarujala.com/rss/cricket.xml',
+    'https://www.amarujala.com/rss/sports.xml',
+    'https://feeds.bbci.co.uk/hindi/rss.xml',
   ],
   bollywood: [
-    'https://www.livehindustan.com/rss/entertainment',
-    'https://www.aajtak.in/rssfeeds/?id=entertainment',
-    'https://www.jagran.com/rss/entertainment/bollywood.xml',
+    'https://www.amarujala.com/rss/entertainment.xml',
+    'https://feeds.bbci.co.uk/hindi/rss.xml',
   ],
   technology: [
-    'https://www.aajtak.in/rssfeeds/?id=technology',
-    'https://www.livehindustan.com/rss/gadgets',
-    'https://www.jagran.com/rss/technology.xml',
+    'https://www.amarujala.com/rss/technology.xml',
+    'https://feeds.bbci.co.uk/hindi/rss.xml',
   ],
   'real-estate': [
-    'https://hindi.economictimes.com/rssfeeds/65552464.cms',
-    'https://www.livehindustan.com/rss/business',
-    'https://www.aajtak.in/rssfeeds/?id=business',
+    'https://www.amarujala.com/rss/business.xml',
+    'https://www.amarujala.com/rss/india-news.xml',
   ],
   local: [
-    'https://www.livehindustan.com/rss/cities/delhi-news',
-    'https://www.aajtak.in/rssfeeds/?id=delhi',
-    'https://www.livehindustan.com/rss/national',
+    'https://www.amarujala.com/rss/delhi.xml',
+    'https://www.amarujala.com/rss/lucknow.xml',
+    'https://www.amarujala.com/rss/india-news.xml',
+    'https://feeds.bbci.co.uk/hindi/rss.xml',
   ],
   startups: [
-    'https://hindi.economictimes.com/rssfeeds/2279790.cms',
-    'https://www.aajtak.in/rssfeeds/?id=business',
-    'https://www.jagran.com/rss/business.xml',
+    'https://www.amarujala.com/rss/technology.xml',
+    'https://www.amarujala.com/rss/business.xml',
   ],
 };
 
@@ -260,6 +257,9 @@ export function getLocalFeedUrls(location: LocalNewsLocation, lang: NewsLanguage
   if (city) {
     const slug = toFeedSlug(city);
     if (slug) {
+      if (lang === 'hi') {
+        urls.push(`https://www.amarujala.com/rss/${slug}.xml`);
+      }
       urls.push(`https://www.livehindustan.com/rss/cities/${slug}-news`);
     }
     const hinduCity = toHinduCitySegment(city);

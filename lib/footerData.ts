@@ -1,4 +1,5 @@
 import { LEGAL_COMPANY } from '@/lib/legalContent';
+import { FINDERB_SOCIAL_URLS } from '@/lib/finderbSocial';
 
 export function footerSearchHref(query: string): string {
   return `/categories?search=${encodeURIComponent(query)}`;
@@ -359,32 +360,32 @@ export type FooterSocialLink = {
 export const FOOTER_SOCIAL_LINKS: readonly FooterSocialLink[] = [
   {
     label: 'Facebook',
-    href: 'https://www.facebook.com/share/17LJ3pbkrn/',
+    href: FINDERB_SOCIAL_URLS.facebook,
     icon: 'facebook',
     brandClass: 'bg-[#1877F2] hover:bg-[#1664d8]',
   },
   {
     label: 'Instagram',
-    href: 'https://www.instagram.com/finderb_com',
+    href: FINDERB_SOCIAL_URLS.instagram,
     icon: 'instagram',
     brandClass:
       'bg-gradient-to-br from-[#f9ce34] via-[#ee2a7b] to-[#6228d6] hover:from-[#f5c82e] hover:via-[#e02573] hover:to-[#5c24c8]',
   },
   {
     label: 'X',
-    href: 'https://x.com/finderb_com',
+    href: FINDERB_SOCIAL_URLS.x,
     icon: 'x',
     brandClass: 'bg-[#000000] hover:bg-[#1a1a1a]',
   },
   {
     label: 'LinkedIn',
-    href: 'https://www.linkedin.com/in/finderb-11260b403',
+    href: FINDERB_SOCIAL_URLS.linkedin,
     icon: 'linkedin',
     brandClass: 'bg-[#0A66C2] hover:bg-[#0958aa]',
   },
   {
     label: 'YouTube',
-    href: 'https://www.youtube.com/@FinderB',
+    href: FINDERB_SOCIAL_URLS.youtube,
     icon: 'youtube',
     brandClass: 'bg-[#FF0000] hover:bg-[#e60000]',
   },
