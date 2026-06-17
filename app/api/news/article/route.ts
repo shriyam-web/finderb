@@ -3,6 +3,7 @@ import { fetchArticleFromUrl } from '@/lib/extractArticle';
 import { resolveNewsArticleUrl } from '@/lib/googleNewsUrl';
 import { pickBestNewsImage } from '@/lib/newsImage';
 import { normalizeNewsLanguage } from '@/lib/newsFeeds';
+import { isValidNewsUrl } from '@/lib/newsId';
 import { stripHtml, decodeHtmlEntities } from '@/lib/stripHtml';
 
 export const dynamic = 'force-dynamic';
