@@ -1,116 +1,136 @@
-'use client';
+import type { Metadata } from 'next';
+import LegalPageLayout, {
+  LegalContactBox,
+  LegalList,
+  LegalSection,
+} from '@/components/legal/LegalPageLayout';
+import { LEGAL_COMPANY } from '@/lib/legalContent';
+
+export const metadata: Metadata = {
+  title: 'Privacy Policy',
+  description:
+    'Learn how FinderB collects, uses, stores, and protects your personal information, including payment data processed via Razorpay.',
+  alternates: { canonical: '/privacy' },
+};
 
 export default function PrivacyPage() {
-    return (
-        <div className="min-h-screen flex flex-col bg-white overflow-hidden">
-            <main className="flex-1 pt-24 lg:pt-32 pb-24">
-                <section className="px-4 mb-32 relative">
-                    <div className="max-w-4xl mx-auto text-center space-y-10 relative z-10">
-                        <div className="inline-flex items-center gap-2 bg-primary/5 text-primary px-6 py-2 rounded-full font-black text-xs uppercase tracking-[0.2em] shadow-sm">
-                            Legal
-                        </div>
-                        <h1 className="text-5xl md:text-6xl font-black text-primary tracking-tight leading-[0.95]">
-                            Privacy Policy
-                        </h1>
-                        <p className="text-gray-500 text-xl font-medium leading-relaxed max-w-2xl mx-auto">
-                            Your privacy is important to us. Learn how we collect, use, and protect your personal information.
-                        </p>
-                    </div>
-                </section>
+  return (
+    <LegalPageLayout
+      title="Privacy Policy"
+      description="Your privacy is important to us. This policy explains how we collect, use, and protect your information when you use FinderB."
+    >
+      <LegalSection title="1. Introduction">
+        <p>
+          {LEGAL_COMPANY.name} (&quot;{LEGAL_COMPANY.brand}&quot;, &quot;we&quot;, &quot;us&quot;, or
+          &quot;our&quot;) operates {LEGAL_COMPANY.website}, a local business discovery and merchant
+          services platform in India. This Privacy Policy describes how we handle personal information
+          when you browse listings, create an account, register a business, or purchase paid plans.
+        </p>
+      </LegalSection>
 
-                <section className="max-w-4xl mx-auto px-4 mb-32">
-                    <div className="prose prose-lg max-w-none">
-                        <div className="bg-gray-50 rounded-3xl p-8 md:p-12 mb-8">
-                            <p className="text-sm text-gray-500 mb-4">Last updated: January 1, 2024</p>
-                        </div>
+      <LegalSection title="2. Information We Collect">
+        <p>We may collect the following categories of information:</p>
+        <LegalList
+          items={[
+            'Identity & contact details: name, email address, phone number, business name, and address',
+            'Account & profile data: login credentials, business category, photos, descriptions, and verification documents submitted for KYC',
+            'Transaction data: plan selected, billing cycle, payment status, order IDs, and invoices for merchant subscriptions',
+            'Payment information: payments are processed by Razorpay. We do not store full card, UPI PIN, or net-banking credentials on our servers',
+            'Usage data: pages visited, searches, clicks, device type, browser, IP address, and approximate location for local discovery',
+            'Communications: messages you send through contact forms, support requests, and lead enquiries',
+          ]}
+        />
+      </LegalSection>
 
-                        <div className="space-y-12">
-                            <div>
-                                <h2 className="text-2xl font-black text-primary mb-6">1. Information We Collect</h2>
-                                <div className="space-y-4 text-gray-700">
-                                    <p>We collect information you provide directly to us, such as when you create an account, use our services, or contact us for support.</p>
-                                    <ul className="list-disc pl-6 space-y-2">
-                                        <li><strong>Personal Information:</strong> Name, email address, phone number, business information</li>
-                                        <li><strong>Usage Data:</strong> How you interact with our platform, pages visited, features used</li>
-                                        <li><strong>Device Information:</strong> IP address, browser type, operating system</li>
-                                        <li><strong>Location Data:</strong> General location information for local business matching</li>
-                                    </ul>
-                                </div>
-                            </div>
+      <LegalSection title="3. How We Use Your Information">
+        <p>We use collected information to:</p>
+        <LegalList
+          items={[
+            'Provide, operate, and improve the FinderB platform',
+            'Create and manage user and merchant accounts',
+            'Process subscription payments and deliver paid features such as lead access and premium visibility',
+            'Verify businesses, prevent fraud, and maintain platform safety',
+            'Respond to support requests and communicate service updates',
+            'Send transactional messages related to payments, renewals, and account activity',
+            'Analyze usage to improve search, recommendations, and product experience',
+            'Comply with applicable laws, regulations, and lawful requests',
+          ]}
+        />
+      </LegalSection>
 
-                            <div>
-                                <h2 className="text-2xl font-black text-primary mb-6">2. How We Use Your Information</h2>
-                                <div className="space-y-4 text-gray-700">
-                                    <p>We use the information we collect to:</p>
-                                    <ul className="list-disc pl-6 space-y-2">
-                                        <li>Provide and maintain our services</li>
-                                        <li>Process transactions and send related information</li>
-                                        <li>Send you technical notices and support messages</li>
-                                        <li>Communicate with you about products, services, and promotions</li>
-                                        <li>Improve our services and develop new features</li>
-                                        <li>Monitor and analyze usage patterns</li>
-                                        <li>Detect, prevent, and address technical issues</li>
-                                    </ul>
-                                </div>
-                            </div>
+      <LegalSection title="4. Payment Processing">
+        <p>
+          Online payments on FinderB are facilitated through Razorpay Software Private Limited, a
+          third-party payment gateway. When you make a payment, Razorpay may collect and process
+          payment information in accordance with its own privacy policy and RBI guidelines. We
+          receive limited payment confirmation details such as transaction ID, amount, status, and
+          billing metadata required to activate your plan.
+        </p>
+      </LegalSection>
 
-                            <div>
-                                <h2 className="text-2xl font-black text-primary mb-6">3. Information Sharing</h2>
-                                <div className="space-y-4 text-gray-700">
-                                    <p>We do not sell, trade, or otherwise transfer your personal information to third parties without your consent, except as described in this policy.</p>
-                                    <p>We may share your information in the following circumstances:</p>
-                                    <ul className="list-disc pl-6 space-y-2">
-                                        <li>With service providers who assist us in operating our platform</li>
-                                        <li>When required by law or to protect our rights</li>
-                                        <li>In connection with a business transfer or acquisition</li>
-                                        <li>With your explicit consent</li>
-                                    </ul>
-                                </div>
-                            </div>
+      <LegalSection title="5. Information Sharing">
+        <p>
+          We do not sell your personal information. We may share information only with trusted
+          service providers who help us operate the platform, including payment processors,
+          hosting providers, analytics tools, and customer support systems — under appropriate
+          confidentiality and data protection obligations.
+        </p>
+        <p>We may also disclose information when required by law or to protect our rights, users, and platform integrity.</p>
+      </LegalSection>
 
-                            <div>
-                                <h2 className="text-2xl font-black text-primary mb-6">4. Data Security</h2>
-                                <div className="space-y-4 text-gray-700">
-                                    <p>We implement appropriate technical and organizational measures to protect your personal information against unauthorized access, alteration, disclosure, or destruction.</p>
-                                    <p>However, no method of transmission over the internet or electronic storage is 100% secure. While we strive to protect your information, we cannot guarantee absolute security.</p>
-                                </div>
-                            </div>
+      <LegalSection title="6. Data Retention">
+        <p>
+          We retain personal information for as long as necessary to provide services, comply with
+          legal obligations, resolve disputes, and enforce agreements. Payment and invoice records may
+          be retained as required under applicable tax and accounting laws in India.
+        </p>
+      </LegalSection>
 
-                            <div>
-                                <h2 className="text-2xl font-black text-primary mb-6">5. Your Rights</h2>
-                                <div className="space-y-4 text-gray-700">
-                                    <p>You have the right to:</p>
-                                    <ul className="list-disc pl-6 space-y-2">
-                                        <li>Access the personal information we hold about you</li>
-                                        <li>Correct inaccurate or incomplete information</li>
-                                        <li>Request deletion of your personal information</li>
-                                        <li>Object to or restrict certain processing of your information</li>
-                                        <li>Data portability</li>
-                                    </ul>
-                                </div>
-                            </div>
+      <LegalSection title="7. Data Security">
+        <p>
+          We implement reasonable technical and organizational safeguards, including encrypted
+          connections (HTTPS), access controls, and secure infrastructure. However, no method of
+          transmission or storage is completely secure, and we cannot guarantee absolute security.
+        </p>
+      </LegalSection>
 
-                            <div>
-                                <h2 className="text-2xl font-black text-primary mb-6">6. Cookies and Tracking</h2>
-                                <div className="space-y-4 text-gray-700">
-                                    <p>We use cookies and similar technologies to enhance your experience on our platform. You can control cookie settings through your browser preferences.</p>
-                                </div>
-                            </div>
+      <LegalSection title="8. Your Rights">
+        <p>Subject to applicable law, you may request to:</p>
+        <LegalList
+          items={[
+            'Access the personal information we hold about you',
+            'Correct inaccurate or incomplete information',
+            'Delete your account and associated data, where permitted',
+            'Withdraw consent for optional communications',
+            'Raise a grievance regarding data handling',
+          ]}
+        />
+      </LegalSection>
 
-                            <div>
-                                <h2 className="text-2xl font-black text-primary mb-6">7. Contact Us</h2>
-                                <div className="space-y-4 text-gray-700">
-                                    <p>If you have any questions about this Privacy Policy, please contact us at:</p>
-                                    <div className="bg-gray-50 rounded-xl p-6">
-                                        <p><strong>Email:</strong> privacy@finderb.com</p>
-                                        <p><strong>Address:</strong> 123 Business Street, Tech City, Karnataka, India - 560001</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-            </main>
-        </div>
-    );
+      <LegalSection title="9. Cookies">
+        <p>
+          We use cookies and similar technologies to keep you signed in, remember preferences, and
+          understand how the platform is used. You can manage cookies through your browser settings,
+          though some features may not function properly if cookies are disabled.
+        </p>
+      </LegalSection>
+
+      <LegalSection title="10. Grievance Officer">
+        <p>
+          In accordance with the Information Technology Act, 2000 and applicable rules, the grievance
+          officer for {LEGAL_COMPANY.brand} is:
+        </p>
+        <LegalContactBox
+          email={LEGAL_COMPANY.grievanceOfficer.email}
+          phone={LEGAL_COMPANY.phoneDisplay}
+          note={`We aim to respond to privacy-related grievances ${LEGAL_COMPANY.grievanceOfficer.responseTime}.`}
+        />
+      </LegalSection>
+
+      <LegalSection title="11. Contact Us">
+        <p>For privacy-related questions, contact us at:</p>
+        <LegalContactBox email={LEGAL_COMPANY.privacyEmail} phone={LEGAL_COMPANY.phoneDisplay} />
+      </LegalSection>
+    </LegalPageLayout>
+  );
 }

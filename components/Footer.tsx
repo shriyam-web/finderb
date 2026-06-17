@@ -33,6 +33,7 @@ import {
   footerLocalHref,
   footerSearchHref,
 } from '@/lib/footerData';
+import { LEGAL_COMPANY } from '@/lib/legalContent';
 
 const SOCIAL_ICON_MAP: Record<
   FooterSocialIcon,
@@ -410,25 +411,29 @@ export default function Footer() {
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
               <p className="text-sm text-slate-400">
-                © {new Date().getFullYear()} FinderB Technologies Pvt Ltd.
+                © {new Date().getFullYear()} {LEGAL_COMPANY.name}. {LEGAL_COMPANY.brand} is a brand
+                of {LEGAL_COMPANY.name}.
               </p>
               <MadeInIndiaBadge />
             </div>
             <nav className="flex flex-wrap gap-x-5 gap-y-1 text-sm text-slate-400" aria-label="Legal">
             <Link href="/privacy" className="hover:text-slate-600">
-              Privacy
+              Privacy Policy
             </Link>
             <Link href="/terms" className="hover:text-slate-600">
-              Terms
+              Terms & Conditions
             </Link>
-            <Link href="/policy" className="hover:text-slate-600">
-              Policy
+            <Link href="/cancellation-refund" className="hover:text-slate-600">
+              Cancellation & Refund
+            </Link>
+            <Link href="/contact" className="hover:text-slate-600">
+              Contact Us
+            </Link>
+            <Link href="/shipping-delivery" className="hover:text-slate-600">
+              Shipping & Delivery
             </Link>
             <Link href="/sitemap" className="hover:text-slate-600">
               Sitemap
-            </Link>
-            <Link href="/contact" className="hover:text-slate-600">
-              Contact
             </Link>
           </nav>
           </div>

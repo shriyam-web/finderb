@@ -23,7 +23,7 @@ export const metadata: Metadata = {
   keywords: ["local services", "verified professionals", "business directory", "India local search", "FinderB services", "local attractions", "top-rated businesses", "premium local services", "verified businesses India", "service discovery engine"],
   authors: [{ name: "FinderB" }],
   creator: "FinderB",
-  publisher: "FinderB Inc.",
+  publisher: "MAAGAA Connect Private Limited",
   metadataBase: new URL("https://finderb.com"),
   alternates: {
     canonical: "/",
@@ -96,6 +96,7 @@ const jsonLd = [
     "@context": "https://schema.org",
     "@type": "Organization",
     "name": "FinderB",
+    "legalName": "MAAGAA Connect Private Limited",
     "url": "https://finderb.com",
     "logo": "https://finderb.com/logo1.png",
     "description": "FinderB is India's premium local discovery platform connecting users with verified professionals and top-rated services across 300+ cities.",

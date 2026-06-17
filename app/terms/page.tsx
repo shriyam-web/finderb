@@ -1,116 +1,152 @@
-'use client';
+import type { Metadata } from 'next';
+import LegalPageLayout, {
+  LegalContactBox,
+  LegalList,
+  LegalSection,
+} from '@/components/legal/LegalPageLayout';
+import { LEGAL_COMPANY } from '@/lib/legalContent';
+
+export const metadata: Metadata = {
+  title: 'Terms and Conditions',
+  description:
+    'Terms and conditions governing your use of FinderB, including merchant subscriptions, payments, and platform rules.',
+  alternates: { canonical: '/terms' },
+};
 
 export default function TermsPage() {
-    return (
-        <div className="min-h-screen flex flex-col bg-white overflow-hidden">
-            <main className="flex-1 pt-24 lg:pt-32 pb-24">
-                <section className="px-4 mb-32 relative">
-                    <div className="max-w-4xl mx-auto text-center space-y-10 relative z-10">
-                        <div className="inline-flex items-center gap-2 bg-primary/5 text-primary px-6 py-2 rounded-full font-black text-xs uppercase tracking-[0.2em] shadow-sm">
-                            Legal
-                        </div>
-                        <h1 className="text-5xl md:text-6xl font-black text-primary tracking-tight leading-[0.95]">
-                            Terms of Use
-                        </h1>
-                        <p className="text-gray-500 text-xl font-medium leading-relaxed max-w-2xl mx-auto">
-                            Please read these terms carefully before using our platform.
-                        </p>
-                    </div>
-                </section>
+  return (
+    <LegalPageLayout
+      title="Terms and Conditions"
+      description="Please read these terms carefully before using FinderB or purchasing any paid merchant plans."
+    >
+      <LegalSection title="1. Agreement to Terms">
+        <p>
+          By accessing or using {LEGAL_COMPANY.website} (the &quot;Platform&quot;) operated by{' '}
+          {LEGAL_COMPANY.name}, you agree to be bound by these Terms and Conditions. If you do not
+          agree, please do not use the Platform.
+        </p>
+      </LegalSection>
 
-                <section className="max-w-4xl mx-auto px-4 mb-32">
-                    <div className="prose prose-lg max-w-none">
-                        <div className="bg-gray-50 rounded-3xl p-8 md:p-12 mb-8">
-                            <p className="text-sm text-gray-500 mb-4">Last updated: January 1, 2024</p>
-                        </div>
+      <LegalSection title="2. Services Offered">
+        <p>
+          FinderB provides a local business discovery platform that allows users to search for
+          businesses and services, and allows merchants to create listings, receive enquiries, and
+          optionally subscribe to paid plans such as Growth Pro for enhanced visibility and lead
+          access.
+        </p>
+        <p>
+          FinderB acts as an intermediary platform. Unless explicitly stated, we are not the provider
+          of third-party services listed on the Platform and are not responsible for the quality,
+          safety, or delivery of services offered by listed businesses.
+        </p>
+      </LegalSection>
 
-                        <div className="space-y-12">
-                            <div>
-                                <h2 className="text-2xl font-black text-primary mb-6">1. Acceptance of Terms</h2>
-                                <div className="space-y-4 text-gray-700">
-                                    <p>By accessing and using FinderB, you accept and agree to be bound by the terms and provision of this agreement.</p>
-                                    <p>If you do not agree to abide by the above, please do not use this service.</p>
-                                </div>
-                            </div>
+      <LegalSection title="3. Eligibility">
+        <p>
+          You must be at least 18 years old and capable of entering into a binding contract under
+          Indian law to register a business or purchase a paid plan. By using the Platform, you
+          represent that the information you provide is accurate and complete.
+        </p>
+      </LegalSection>
 
-                            <div>
-                                <h2 className="text-2xl font-black text-primary mb-6">2. Use License</h2>
-                                <div className="space-y-4 text-gray-700">
-                                    <p>Permission is granted to temporarily use FinderB for personal and business use.</p>
-                                    <p>This license shall automatically terminate if you violate any of these restrictions and may be terminated by FinderB at any time.</p>
-                                    <ul className="list-disc pl-6 space-y-2">
-                                        <li>You must not modify or copy the materials</li>
-                                        <li>You must not use the materials for any commercial purpose</li>
-                                        <li>You must not attempt to decompile or reverse engineer any software</li>
-                                        <li>You must not remove any copyright or other proprietary notations</li>
-                                    </ul>
-                                </div>
-                            </div>
+      <LegalSection title="4. User Accounts">
+        <p>When you create an account, you agree to:</p>
+        <LegalList
+          items={[
+            'Provide accurate, current, and complete registration information',
+            'Maintain the security of your login credentials',
+            'Notify us promptly of any unauthorized access to your account',
+            'Accept responsibility for activities conducted through your account',
+          ]}
+        />
+      </LegalSection>
 
-                            <div>
-                                <h2 className="text-2xl font-black text-primary mb-6">3. User Accounts</h2>
-                                <div className="space-y-4 text-gray-700">
-                                    <p>When you create an account with us, you must provide information that is accurate, complete, and current at all times.</p>
-                                    <p>You are responsible for safeguarding the password and for all activities that occur under your account.</p>
-                                    <p>You must immediately notify us of any unauthorized uses of your account.</p>
-                                </div>
-                            </div>
+      <LegalSection title="5. Merchant Listings & Subscriptions">
+        <p>
+          Merchants may register a business profile and optionally purchase subscription plans. Plan
+          features, pricing, and billing cycles are displayed on the pricing and checkout pages at
+          the time of purchase. Subscription benefits such as lead access, verified badges, and
+          premium placement are activated after successful payment confirmation.
+        </p>
+        <p>
+          You agree not to post false, misleading, infringing, or unlawful content in your listing.
+          We reserve the right to review, moderate, suspend, or remove listings that violate these
+          terms or applicable law.
+        </p>
+      </LegalSection>
 
-                            <div>
-                                <h2 className="text-2xl font-black text-primary mb-6">4. Content</h2>
-                                <div className="space-y-4 text-gray-700">
-                                    <p>Our service allows you to post, link, store, share and otherwise make available certain information, text, graphics, or other material.</p>
-                                    <p>You are responsible for content that you post to the service, including its legality, reliability, and appropriateness.</p>
-                                    <p>By posting content to the service, you grant us the right to use, modify, publicly perform, publicly display, reproduce, and distribute such content.</p>
-                                </div>
-                            </div>
+      <LegalSection title="6. Payments">
+        <p>
+          All online payments on FinderB are processed through Razorpay, our authorized payment
+          gateway partner. By making a payment, you also agree to Razorpay&apos;s terms and
+          applicable payment network rules. Prices are shown in Indian Rupees (INR) and include
+          applicable taxes unless stated otherwise.
+        </p>
+        <p>
+          Failed, incomplete, or disputed transactions may result in delayed or revoked access to
+          paid features until the issue is resolved.
+        </p>
+      </LegalSection>
 
-                            <div>
-                                <h2 className="text-2xl font-black text-primary mb-6">5. Prohibited Uses</h2>
-                                <div className="space-y-4 text-gray-700">
-                                    <p>You may not use our service:</p>
-                                    <ul className="list-disc pl-6 space-y-2">
-                                        <li>For any unlawful purpose or to solicit others to perform unlawful acts</li>
-                                        <li>To violate any international, federal, provincial, or state regulations, rules, laws, or local ordinances</li>
-                                        <li>To infringe upon or violate our intellectual property rights or the intellectual property rights of others</li>
-                                        <li>To harass, abuse, insult, harm, defame, slander, disparage, intimidate, or discriminate</li>
-                                        <li>To submit false or misleading information</li>
-                                        <li>To upload or transmit viruses or any other type of malicious code</li>
-                                        <li>To spam, phish, pharm, pretext, spider, crawl, or scrape</li>
-                                    </ul>
-                                </div>
-                            </div>
+      <LegalSection title="7. Acceptable Use">
+        <p>You agree not to:</p>
+        <LegalList
+          items={[
+            'Use the Platform for unlawful, fraudulent, or harmful purposes',
+            'Scrape, copy, or redistribute Platform content without permission',
+            'Impersonate another person or business',
+            'Upload malware, spam, or misleading information',
+            'Interfere with the security or operation of the Platform',
+            'Circumvent payment or access controls for paid features',
+          ]}
+        />
+      </LegalSection>
 
-                            <div>
-                                <h2 className="text-2xl font-black text-primary mb-6">6. Termination</h2>
-                                <div className="space-y-4 text-gray-700">
-                                    <p>We may terminate or suspend your account immediately, without prior notice or liability, for any reason whatsoever, including without limitation if you breach the Terms.</p>
-                                    <p>Upon termination, your right to use the service will cease immediately.</p>
-                                </div>
-                            </div>
+      <LegalSection title="8. Intellectual Property">
+        <p>
+          The {LEGAL_COMPANY.brand} name, logo, software, and platform design are owned by{' '}
+          {LEGAL_COMPANY.name} or its licensors. Merchants retain ownership of their own business
+          content but grant {LEGAL_COMPANY.brand} a non-exclusive license to display, promote, and
+          distribute listing content on the Platform.
+        </p>
+      </LegalSection>
 
-                            <div>
-                                <h2 className="text-2xl font-black text-primary mb-6">7. Limitation of Liability</h2>
-                                <div className="space-y-4 text-gray-700">
-                                    <p>In no event shall FinderB, nor its directors, employees, partners, agents, suppliers, or affiliates, be liable for any indirect, incidental, special, consequential, or punitive damages.</p>
-                                    <p>This includes without limitation, loss of profits, data, use, goodwill, or other intangible losses, resulting from your use of the service.</p>
-                                </div>
-                            </div>
+      <LegalSection title="9. Disclaimers">
+        <p>
+          The Platform is provided on an &quot;as is&quot; and &quot;as available&quot; basis. We do
+          not warrant uninterrupted access, error-free operation, or specific business outcomes from
+          using paid plans. Listings and reviews reflect user and merchant-provided information.
+        </p>
+      </LegalSection>
 
-                            <div>
-                                <h2 className="text-2xl font-black text-primary mb-6">8. Contact Information</h2>
-                                <div className="space-y-4 text-gray-700">
-                                    <p>If you have any questions about these Terms of Use, please contact us at:</p>
-                                    <div className="bg-gray-50 rounded-xl p-6">
-                                        <p><strong>Email:</strong> legal@finderb.com</p>
-                                        <p><strong>Address:</strong> 123 Business Street, Tech City, Karnataka, India - 560001</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-            </main>
-        </div>
-    );
+      <LegalSection title="10. Limitation of Liability">
+        <p>
+          To the maximum extent permitted by law, {LEGAL_COMPANY.name} shall not be liable for any
+          indirect, incidental, special, consequential, or punitive damages arising from your use of
+          the Platform, including loss of profits, data, or business opportunities.
+        </p>
+      </LegalSection>
+
+      <LegalSection title="11. Termination">
+        <p>
+          We may suspend or terminate your account or listing if you breach these terms, engage in
+          fraudulent activity, or if required by law. Upon termination, your right to use the
+          Platform ceases, subject to any surviving payment, refund, or legal obligations.
+        </p>
+      </LegalSection>
+
+      <LegalSection title="12. Governing Law">
+        <p>
+          These Terms are governed by the laws of India. Courts in Bangalore, Karnataka shall have
+          exclusive jurisdiction over disputes arising from these Terms, subject to applicable
+          consumer protection laws.
+        </p>
+      </LegalSection>
+
+      <LegalSection title="13. Contact Information">
+        <p>For questions about these Terms and Conditions, contact:</p>
+        <LegalContactBox email={LEGAL_COMPANY.legalEmail} phone={LEGAL_COMPANY.phoneDisplay} />
+      </LegalSection>
+    </LegalPageLayout>
+  );
 }
