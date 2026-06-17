@@ -41,7 +41,10 @@ const MAX_ITEMS = 24;
 function parseCityFromLocation(location: string | null): string | null {
   if (!location) return null;
   const parts = location.split(',').map((p) => p.trim()).filter(Boolean);
-  return parts[parts.length - 1] ?? null;
+  if (parts.length >= 2) {
+    return parts[parts.length - 2] ?? null;
+  }
+  return parts[0] ?? null;
 }
 
 function NewsThumb({ src, alt }: { src: string | null; alt: string }) {

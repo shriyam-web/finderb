@@ -4,7 +4,7 @@ import { use, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Calendar, ExternalLink } from 'lucide-react';
 import { decodeNewsArticleId, isValidNewsUrl, NEWS_CACHE_PREFIX } from '@/lib/newsId';
-import { stripHtml } from '@/lib/stripHtml';
+import { stripHtml, decodeHtmlEntities } from '@/lib/stripHtml';
 
 type NewsArticleView = {
   title: string;
@@ -62,7 +62,7 @@ export default function NewsReaderPage({ params }: { params: Promise<{ id: strin
       } catch (err) {
         if (cached.title) {
           setArticle({
-            title: cached.title,
+            title: decodeHtmlEntities(cached.title),
             excerpt: stripHtml(cached.excerpt || cached.title),
             contentHtml: `<p>${stripHtml(cached.excerpt || cached.title)}</p>`,
             image: cached.image || null,

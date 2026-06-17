@@ -1,4 +1,4 @@
-import { stripHtml } from '@/lib/stripHtml';
+import { stripHtml, decodeHtmlEntities } from '@/lib/stripHtml';
 import { pickBestNewsImage } from '@/lib/newsImage';
 
 const BROWSER_UA =
@@ -12,15 +12,6 @@ export type ExtractedArticle = {
   source: string | null;
 };
 
-function decodeHtmlEntities(text: string): string {
-  return text
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'");
-}
 
 function metaContent(html: string, property: string): string | null {
   const patterns = [

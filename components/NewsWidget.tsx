@@ -74,7 +74,10 @@ const UI_COPY = {
 function parseCityFromLocation(location: string | null): string | null {
   if (!location) return null;
   const parts = location.split(',').map((part) => part.trim()).filter(Boolean);
-  return parts[parts.length - 1] ?? null;
+  if (parts.length >= 2) {
+    return parts[parts.length - 2] ?? null;
+  }
+  return parts[0] ?? null;
 }
 
 function NewsThumbnail({ src, alt }: { src: string | null; alt: string }) {

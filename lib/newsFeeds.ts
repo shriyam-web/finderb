@@ -1,3 +1,5 @@
+import { decodeHtmlEntities } from '@/lib/stripHtml';
+
 export type NewsCategorySlug =
   | 'politics'
   | 'business'
@@ -67,8 +69,6 @@ const HINDI_CATEGORY_FEEDS: Record<NewsCategorySlug, string[]> = {
   local: [
     'https://www.amarujala.com/rss/delhi.xml',
     'https://www.amarujala.com/rss/lucknow.xml',
-    'https://www.amarujala.com/rss/india-news.xml',
-    'https://feeds.bbci.co.uk/hindi/rss.xml',
   ],
   startups: [
     'https://www.amarujala.com/rss/technology.xml',
@@ -266,10 +266,38 @@ export function getLocalFeedUrls(location: LocalNewsLocation, lang: NewsLanguage
     if (hinduCity) {
       urls.push(`https://www.thehindu.com/news/cities/${hinduCity}/feeder/default.rss`);
     }
+    return [...new Set(urls)];
   }
 
-  urls.push(...getFeedUrlsForCategory('local', lang));
-  return [...new Set(urls)];
+  return getFeedUrlsForCategory('local', lang);
+}
+
+export function scoreLocalArticleRelevance(
+  item: { title?: string; link?: string },
+  city: string | null,
+  state: string | null
+): number {
+  const title = (item.title || '').toLowerCase();
+  const link = (item.link || '').toLowerCase();
+  let score = 0;
+
+  if (city) {
+    const cityKey = city.toLowerCase();
+    if (title.includes(cityKey)) score += 12;
+    if (link.includes(cityKey)) score += 10;
+  }
+
+  if (state) {
+    const stateKey = state.toLowerCase();
+    if (title.includes(stateKey)) score += 4;
+    if (link.includes(stateKey)) score += 3;
+  }
+
+  if (link.includes('amarujala.com') || link.includes('livehindustan.com')) score += 2;
+  if (link.includes('thehindu.com/news/cities')) score += 3;
+  if (link.includes('bbc.com/hindi')) score -= 8;
+
+  return score;
 }
 
 export function getLocalGoogleNewsUrl(location: LocalNewsLocation, lang: NewsLanguage): string {
@@ -307,8 +335,10 @@ export function cleanNewsSnippet(raw: unknown, title?: string): string {
   if (snippet.includes('<')) {
     snippet = snippet.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
   }
+  snippet = decodeHtmlEntities(snippet);
+  const cleanTitle = title ? decodeHtmlEntities(title) : '';
   if (snippet.length < 20 || snippet.toLowerCase().includes('rss feed')) {
-    return title || '';
+    return cleanTitle;
   }
   return snippet;
 }

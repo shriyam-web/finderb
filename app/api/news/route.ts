@@ -18,10 +18,12 @@ import {
   getLocalGoogleNewsUrl,
   normalizeCategorySlug,
   normalizeNewsLanguage,
+  scoreLocalArticleRelevance,
   type LocalNewsLocation,
   type NewsCategorySlug,
   type NewsLanguage,
 } from '@/lib/newsFeeds';
+import { decodeHtmlEntities } from '@/lib/stripHtml';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -91,7 +93,28 @@ async function fetchMergedCategoryFeed(
 
   merged.sort((a, b) => itemTimestamp(b) - itemTimestamp(a));
 
-  if (merged.length < Math.min(limit, 8)) {
+  if (slug === 'local' && hasLocalLocation) {
+    try {
+      const googleFeed = await parseFeed(googleUrl);
+      for (const item of googleFeed.items ?? []) {
+        const key = normalizeTitle(item.title);
+        if (!key || seen.has(key)) continue;
+        seen.add(key);
+        merged.push(item);
+      }
+    } catch (error) {
+      console.error(`Local Google News failed (${lang})`, error);
+    }
+
+    const city = localLocation?.city ?? null;
+    const state = localLocation?.state ?? null;
+    merged.sort((a, b) => {
+      const relevance =
+        scoreLocalArticleRelevance(b, city, state) - scoreLocalArticleRelevance(a, city, state);
+      if (relevance !== 0) return relevance;
+      return itemTimestamp(b) - itemTimestamp(a);
+    });
+  } else if (merged.length < Math.min(limit, 8)) {
     try {
       const googleFeed = await parseFeed(googleUrl);
       for (const item of googleFeed.items ?? []) {
@@ -201,7 +224,7 @@ export async function GET(request: NextRequest) {
 
       return {
         id: String(item.guid || item.link || `${lang}-${slug}-${index}`),
-        title: item.title || defaultTitle,
+        title: decodeHtmlEntities(item.title || defaultTitle),
         link: item.link,
         excerpt: snippet,
         date: item.pubDate

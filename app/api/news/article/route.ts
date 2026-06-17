@@ -3,7 +3,7 @@ import { fetchArticleFromUrl } from '@/lib/extractArticle';
 import { resolveNewsArticleUrl } from '@/lib/googleNewsUrl';
 import { pickBestNewsImage } from '@/lib/newsImage';
 import { isValidNewsUrl } from '@/lib/newsId';
-import { stripHtml } from '@/lib/stripHtml';
+import { stripHtml, decodeHtmlEntities } from '@/lib/stripHtml';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
     const publisherUrl = await resolveNewsArticleUrl(url);
     const extracted = await fetchArticleFromUrl(publisherUrl, title);
 
-    const resolvedTitle = extracted?.title || title || 'समाचार';
+    const resolvedTitle = decodeHtmlEntities(extracted?.title || title || 'समाचार');
     const resolvedExcerpt = extracted?.excerpt || stripHtml(excerpt) || resolvedTitle;
     const resolvedImage = pickBestNewsImage([extracted?.image, image]) || null;
     const resolvedSource =
