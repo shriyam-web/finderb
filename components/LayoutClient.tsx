@@ -16,8 +16,10 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
   const [loading, setLoading] = useState(true);
   const pathname = usePathname();
   const isDashboard = pathname?.includes('/dashboard');
-  const isCategories = pathname === '/categories' || pathname?.startsWith('/categories/');
-  const hideTopNavFooter = isDashboard || isCategories;
+  const isCategoriesBrowse =
+    pathname === '/categories' ||
+    (pathname?.startsWith('/categories/') && !pathname.startsWith('/categories/job'));
+  const hideTopNavFooter = isDashboard || isCategoriesBrowse;
   const showBottomNav = !isDashboard;
   const showLocationPrompt = !isDashboard;
 

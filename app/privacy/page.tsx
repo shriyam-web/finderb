@@ -17,7 +17,7 @@ export default function PrivacyPage() {
   return (
     <LegalPageLayout
       title="Privacy Policy"
-      description="Your privacy is important to us. This policy explains how we collect, use, and protect your information when you use FinderB."
+      description="How we handle your data when you use FinderB — as a visitor, user, or registered business."
     >
       <LegalSection title="1. Introduction">
         <p>

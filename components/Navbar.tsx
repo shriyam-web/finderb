@@ -78,9 +78,9 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
 
   const menuItems = [
     { name: 'Home', href: '/', icon: Home },
-    { name: 'Businesses', href: '/categories', icon: Building2 },
+    { name: 'For Business', href: '/business/login', icon: Building2 },
     { name: 'Jobs', href: '/categories/job', icon: Briefcase },
-    { name: 'News', href: '/#news', icon: Newspaper },
+    { name: 'News', href: '/news', icon: Newspaper },
     { name: 'Blog', href: '/blog', icon: BookOpen },
   ];
 

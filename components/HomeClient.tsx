@@ -1014,13 +1014,21 @@ export default function HomeClient({ initialData }: { initialData: any }) {
       {/* Latest News — RSS headlines only */}
       <section id="news" className="relative w-full min-w-0 overflow-hidden bg-white py-6 lg:py-10">
         <div className="mx-auto w-full min-w-0 max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="mb-5 min-w-0 space-y-2">
-            <h2 className="text-2xl font-extrabold tracking-tight text-primary sm:text-3xl lg:text-4xl">
-              Latest <span className="text-secondary">News</span>
-            </h2>
-            <p className="text-sm font-medium text-gray-500">
-              Top headlines by category — switch between Hindi and English.
-            </p>
+          <div className="mb-5 flex min-w-0 items-end justify-between gap-3">
+            <div className="min-w-0 space-y-2">
+              <h2 className="text-2xl font-extrabold tracking-tight text-primary sm:text-3xl lg:text-4xl">
+                Latest <span className="text-secondary">News</span>
+              </h2>
+              <p className="text-sm font-medium text-gray-500">
+                Top headlines by category — switch between Hindi and English.
+              </p>
+            </div>
+            <Link
+              href="/news"
+              className="hidden shrink-0 items-center gap-2 text-sm font-semibold text-neutral-700 underline-offset-2 hover:text-neutral-900 hover:underline sm:flex"
+            >
+              View all news <ArrowRight size={16} />
+            </Link>
           </div>
           <NewsWidget />
         </div>

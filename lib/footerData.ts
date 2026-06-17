@@ -45,7 +45,7 @@ export const FOOTER_NAV_COLUMNS = [
       { label: 'All Categories', href: '/categories' },
       { label: 'Top Picks Near You', href: '/?tab=top-picks' },
       { label: 'AI Search Assistant', href: '/?tab=ai' },
-      { label: 'Latest Local News', href: '/?tab=news' },
+      { label: 'Latest Local News', href: '/news' },
       { label: 'Movies & Showtimes', href: '/movies' },
       { label: 'Tourist Places', href: '/tourist-places' },
       { label: 'Blog & City Guides', href: '/blog' },

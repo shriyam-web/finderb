@@ -16,8 +16,8 @@ export const metadata: Metadata = {
 export default function CancellationRefundPage() {
   return (
     <LegalPageLayout
-      title="Cancellation and Refund Policy"
-      description="This policy explains how cancellations, renewals, and refunds work for paid plans on FinderB."
+      title="Cancellation & Refund"
+      description="How to cancel a subscription and when refunds apply for payments made on FinderB."
     >
       <LegalSection title="1. Scope">
         <p>

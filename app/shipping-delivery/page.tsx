@@ -16,8 +16,8 @@ export const metadata: Metadata = {
 export default function ShippingDeliveryPage() {
   return (
     <LegalPageLayout
-      title="Shipping and Delivery Policy"
-      description="FinderB provides digital platform services. This policy explains how access and delivery of our services work after purchase."
+      title="Shipping & Delivery"
+      description="FinderB sells digital services, not physical products. Here's when your plan goes live after payment."
     >
       <LegalSection title="1. Nature of Services">
         <p>

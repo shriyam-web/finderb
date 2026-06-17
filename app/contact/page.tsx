@@ -1,184 +1,147 @@
 'use client';
 
 import Link from 'next/link';
-import { Mail, Phone, MapPin, Clock, MessageSquare } from 'lucide-react';
-import { LEGAL_COMPANY, LEGAL_FOOTER_LINKS } from '@/lib/legalContent';
+import { LEGAL_COMPANY, LEGAL_FOOTER_LINKS, LEGAL_LAST_UPDATED } from '@/lib/legalContent';
 
 export default function ContactPage() {
   return (
-    <div className="min-h-screen flex flex-col bg-white overflow-hidden">
-      <main className="flex-1 pt-24 lg:pt-32 pb-24">
-        <section className="px-4 mb-16 relative">
-          <div className="max-w-4xl mx-auto text-center space-y-6 relative z-10">
-            <div className="inline-flex items-center gap-2 bg-primary/5 text-primary px-6 py-2 rounded-full font-black text-xs uppercase tracking-[0.2em] shadow-sm">
-              Get In Touch
+    <div className="min-h-screen bg-[#fafaf9]">
+      <main className="mx-auto max-w-5xl px-5 pt-28 pb-20 sm:px-6 lg:pt-32">
+        <header className="mb-10 max-w-2xl border-b border-neutral-200 pb-8">
+          <p className="text-sm text-neutral-500">{LEGAL_COMPANY.brand}</p>
+          <h1 className="mt-1 text-3xl font-semibold tracking-tight text-neutral-900 sm:text-[2rem]">
+            Contact us
+          </h1>
+          <p className="mt-3 text-base leading-relaxed text-neutral-600">
+            Questions about listings, subscriptions, payments, or refunds — write to us and we&apos;ll
+            get back within 1–2 business days.
+          </p>
+        </header>
+
+        <div className="grid gap-12 lg:grid-cols-[1fr_1.1fr] lg:gap-16">
+          <div className="max-w-md space-y-8 text-[15px] leading-7 text-neutral-700">
+            <div>
+              <p className="font-medium text-neutral-900">{LEGAL_COMPANY.name}</p>
+              <p className="mt-1 text-neutral-600">
+                {LEGAL_COMPANY.brand} is operated by {LEGAL_COMPANY.name}, based in Noida.
+              </p>
             </div>
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-primary tracking-tight leading-[1.05]">
-              Contact Us
-            </h1>
-            <p className="text-gray-500 text-lg md:text-xl font-medium leading-relaxed max-w-2xl mx-auto">
-              Have questions about listings, subscriptions, payments, or refunds? Our team is here to
-              help.
-            </p>
-          </div>
-        </section>
 
-        <section className="max-w-6xl mx-auto px-4 mb-16">
-          <div className="grid lg:grid-cols-2 gap-12 lg:gap-16">
-            <div className="space-y-8">
+            <dl className="space-y-5">
               <div>
-                <h2 className="text-2xl font-black text-primary mb-2">{LEGAL_COMPANY.brand}</h2>
-                <p className="text-gray-500">
-                  A brand of {LEGAL_COMPANY.name}. India&apos;s local business discovery platform
-                  for users and merchants.
-                </p>
+                <dt className="text-sm font-medium text-neutral-900">Email</dt>
+                <dd className="mt-0.5">
+                  <a
+                    href={`mailto:${LEGAL_COMPANY.email}`}
+                    className="text-neutral-700 underline underline-offset-2 hover:text-neutral-900"
+                  >
+                    {LEGAL_COMPANY.email}
+                  </a>
+                </dd>
               </div>
-
-              <div className="space-y-6">
-                <ContactItem
-                  icon={Mail}
-                  title="Email Support"
-                  lines={[LEGAL_COMPANY.email, 'We respond within 1–2 business days']}
-                  href={`mailto:${LEGAL_COMPANY.email}`}
-                />
-                <ContactItem
-                  icon={Phone}
-                  title="Phone Support"
-                  lines={[LEGAL_COMPANY.phoneDisplay, 'Mon–Fri 9 AM – 6 PM IST']}
-                  href={`tel:${LEGAL_COMPANY.phone}`}
-                />
-                <ContactItem
-                  icon={MapPin}
-                  title="Registered Office"
-                  lines={[
-                    LEGAL_COMPANY.address.line1,
-                    `${LEGAL_COMPANY.address.line2}, ${LEGAL_COMPANY.address.country} – ${LEGAL_COMPANY.address.pincode}`,
-                  ]}
-                />
-                <ContactItem
-                  icon={Clock}
-                  title="Business Hours"
-                  lines={[
-                    LEGAL_COMPANY.businessHours.weekdays,
-                    LEGAL_COMPANY.businessHours.saturday,
-                    LEGAL_COMPANY.businessHours.sunday,
-                  ]}
-                />
+              <div>
+                <dt className="text-sm font-medium text-neutral-900">Phone</dt>
+                <dd className="mt-0.5">
+                  <a
+                    href={`tel:${LEGAL_COMPANY.phone}`}
+                    className="text-neutral-700 underline underline-offset-2 hover:text-neutral-900"
+                  >
+                    {LEGAL_COMPANY.phoneDisplay}
+                  </a>
+                  <span className="block text-sm text-neutral-500">Mon–Fri, 9 AM – 6 PM IST</span>
+                </dd>
               </div>
-
-              <div className="rounded-2xl border border-gray-100 bg-slate-50 p-6">
-                <div className="flex items-center gap-2 mb-3">
-                  <MessageSquare size={18} className="text-primary" />
-                  <h3 className="font-bold text-primary">Grievance Officer</h3>
-                </div>
-                <p className="text-sm text-gray-600 leading-relaxed">
-                  For privacy or consumer grievances, write to{' '}
+              <div>
+                <dt className="text-sm font-medium text-neutral-900">Office</dt>
+                <dd className="mt-0.5">
+                  {LEGAL_COMPANY.address.line1}
+                  <br />
+                  {LEGAL_COMPANY.address.line2}, {LEGAL_COMPANY.address.country}{' '}
+                  {LEGAL_COMPANY.address.pincode}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-sm font-medium text-neutral-900">Hours</dt>
+                <dd className="mt-0.5 space-y-0.5">
+                  <p>{LEGAL_COMPANY.businessHours.weekdays}</p>
+                  <p>{LEGAL_COMPANY.businessHours.saturday}</p>
+                  <p>{LEGAL_COMPANY.businessHours.sunday}</p>
+                </dd>
+              </div>
+              <div>
+                <dt className="text-sm font-medium text-neutral-900">Grievance officer</dt>
+                <dd className="mt-0.5">
                   <a
                     href={`mailto:${LEGAL_COMPANY.grievanceOfficer.email}`}
-                    className="text-primary font-medium hover:underline"
+                    className="text-neutral-700 underline underline-offset-2 hover:text-neutral-900"
                   >
                     {LEGAL_COMPANY.grievanceOfficer.email}
                   </a>
-                  . We aim to respond {LEGAL_COMPANY.grievanceOfficer.responseTime}.
-                </p>
+                  <span className="block text-sm text-neutral-500">
+                    Response {LEGAL_COMPANY.grievanceOfficer.responseTime}
+                  </span>
+                </dd>
               </div>
-            </div>
-
-            <div className="bg-gray-50 rounded-3xl border border-gray-100 p-8 md:p-10">
-              <h2 className="text-2xl font-black text-primary mb-6">Send us a Message</h2>
-
-              <form className="space-y-5" onSubmit={(e) => e.preventDefault()}>
-                <div className="grid sm:grid-cols-2 gap-5">
-                  <Field label="First Name" placeholder="Your first name" />
-                  <Field label="Last Name" placeholder="Your last name" />
-                </div>
-                <Field label="Email" type="email" placeholder="your@email.com" />
-                <div>
-                  <label className="block text-sm font-bold text-primary mb-2">Subject</label>
-                  <select className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-colors">
-                    <option>General Inquiry</option>
-                    <option>Business Registration</option>
-                    <option>Payment / Subscription Issue</option>
-                    <option>Refund Request</option>
-                    <option>Technical Support</option>
-                    <option>Partnership</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-primary mb-2">Message</label>
-                  <textarea
-                    rows={5}
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-colors resize-none"
-                    placeholder="Tell us how we can help you..."
-                  />
-                </div>
-                <button
-                  type="submit"
-                  className="w-full bg-primary text-white font-bold py-4 px-8 rounded-xl hover:bg-primary/90 transition-colors shadow-lg hover:shadow-xl"
-                >
-                  Send Message
-                </button>
-              </form>
-            </div>
+            </dl>
           </div>
-        </section>
 
-        <section className="max-w-6xl mx-auto px-4">
-          <div className="rounded-2xl border border-gray-100 bg-slate-50 p-6 md:p-8">
-            <h2 className="text-sm font-black uppercase tracking-wider text-primary mb-4">
-              Legal & policy pages
-            </h2>
-            <nav aria-label="Legal pages">
-              <ul className="grid gap-2 sm:grid-cols-2 md:grid-cols-3">
-                {LEGAL_FOOTER_LINKS.map((link) => (
-                  <li key={link.href}>
-                    <Link
-                      href={link.href}
-                      className="text-sm font-medium text-slate-600 transition-colors hover:text-primary"
-                    >
-                      {link.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </nav>
-          </div>
-        </section>
-      </main>
-    </div>
-  );
-}
-
-function ContactItem({
-  icon: Icon,
-  title,
-  lines,
-  href,
-}: {
-  icon: typeof Mail;
-  title: string;
-  lines: string[];
-  href?: string;
-}) {
-  return (
-    <div className="flex items-start gap-4">
-      <div className="w-11 h-11 bg-primary/10 rounded-xl flex items-center justify-center text-primary shrink-0">
-        <Icon size={20} />
-      </div>
-      <div>
-        <h3 className="font-bold text-primary mb-1">{title}</h3>
-        {lines.map((line, index) =>
-          index === 0 && href ? (
-            <a key={line} href={href} className="text-gray-700 hover:text-primary hover:underline">
-              {line}
-            </a>
-          ) : (
-            <p key={line} className={index === 0 ? 'text-gray-700' : 'text-sm text-gray-500'}>
-              {line}
+          <div className="rounded-lg border border-neutral-200 bg-white p-6 sm:p-8">
+            <h2 className="text-lg font-semibold text-neutral-900">Send a message</h2>
+            <p className="mt-1 text-sm text-neutral-500">
+              Or email us directly at {LEGAL_COMPANY.email}
             </p>
-          )
-        )}
-      </div>
+
+            <form className="mt-6 space-y-4" onSubmit={(e) => e.preventDefault()}>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="First name" placeholder="Rahul" />
+                <Field label="Last name" placeholder="Sharma" />
+              </div>
+              <Field label="Email" type="email" placeholder="you@example.com" />
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-neutral-800">Subject</label>
+                <select className="w-full rounded-md border border-neutral-300 bg-white px-3 py-2.5 text-sm text-neutral-800 outline-none focus:border-neutral-500">
+                  <option>General enquiry</option>
+                  <option>Business listing</option>
+                  <option>Payment or subscription</option>
+                  <option>Refund request</option>
+                  <option>Technical issue</option>
+                </select>
+              </div>
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-neutral-800">Message</label>
+                <textarea
+                  rows={5}
+                  className="w-full resize-none rounded-md border border-neutral-300 px-3 py-2.5 text-sm text-neutral-800 outline-none focus:border-neutral-500"
+                  placeholder="What do you need help with?"
+                />
+              </div>
+              <button
+                type="submit"
+                className="rounded-md bg-neutral-900 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-neutral-800"
+              >
+                Send message
+              </button>
+            </form>
+          </div>
+        </div>
+
+        <footer className="mt-14 max-w-2xl border-t border-neutral-200 pt-8">
+          <p className="text-sm font-medium text-neutral-800">Policy pages</p>
+          <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-2">
+            {LEGAL_FOOTER_LINKS.filter((l) => l.href !== '/contact').map((link) => (
+              <li key={link.href}>
+                <Link
+                  href={link.href}
+                  className="text-sm text-neutral-600 underline-offset-2 hover:text-neutral-900 hover:underline"
+                >
+                  {link.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-6 text-xs text-neutral-400">Last updated {LEGAL_LAST_UPDATED}</p>
+        </footer>
+      </main>
     </div>
   );
 }
@@ -194,10 +157,10 @@ function Field({
 }) {
   return (
     <div>
-      <label className="block text-sm font-bold text-primary mb-2">{label}</label>
+      <label className="mb-1.5 block text-sm font-medium text-neutral-800">{label}</label>
       <input
         type={type}
-        className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-colors"
+        className="w-full rounded-md border border-neutral-300 px-3 py-2.5 text-sm text-neutral-800 outline-none placeholder:text-neutral-400 focus:border-neutral-500"
         placeholder={placeholder}
       />
     </div>

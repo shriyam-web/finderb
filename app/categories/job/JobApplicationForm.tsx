@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { submitJobApplication } from '@/app/actions/job';
-import { Send, User, Mail, Phone, MessageSquare, Loader2, CheckCircle2 } from 'lucide-react';
+import { Loader2, CheckCircle2 } from 'lucide-react';
 
 interface Job {
   id: string;
@@ -10,7 +10,13 @@ interface Job {
   title: string;
 }
 
-export default function JobApplicationForm({ job, onSuccess }: { job: Job; onSuccess: () => void }) {
+export default function JobApplicationForm({
+  job,
+  onSuccess,
+}: {
+  job: Job;
+  onSuccess: () => void;
+}) {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -21,7 +27,7 @@ export default function JobApplicationForm({ job, onSuccess }: { job: Job; onSuc
     setError(null);
 
     const formData = new FormData(e.currentTarget);
-    const data = {
+    const result = await submitJobApplication({
       jobId: job.id,
       businessId: job.business_id,
       jobTitle: job.title,
@@ -29,9 +35,7 @@ export default function JobApplicationForm({ job, onSuccess }: { job: Job; onSuc
       email: formData.get('email') as string,
       phone: formData.get('phone') as string,
       message: formData.get('message') as string,
-    };
-
-    const result = await submitJobApplication(data);
+    });
 
     if (result.success) {
       setSuccess(true);
@@ -44,101 +48,81 @@ export default function JobApplicationForm({ job, onSuccess }: { job: Job; onSuc
 
   if (success) {
     return (
-      <div className="py-12 text-center animate-in fade-in slide-in-from-bottom-4 duration-500">
-        <div className="bg-green-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
-          <CheckCircle2 size={40} className="text-green-600" />
-        </div>
-        <h3 className="text-2xl font-black text-slate-900 mb-2">Application Sent!</h3>
-        <p className="text-slate-500 font-medium">Your application for {job.title} has been submitted successfully. The employer will contact you soon.</p>
+      <div className="py-8 text-center">
+        <CheckCircle2 size={40} className="mx-auto text-neutral-700" />
+        <h3 className="mt-4 text-lg font-semibold text-neutral-900">Application sent</h3>
+        <p className="mt-2 text-sm text-neutral-600">
+          The employer for {job.title} will reach out if you&apos;re shortlisted.
+        </p>
       </div>
     );
   }
 
+  const inputClass =
+    'w-full rounded-md border border-neutral-300 px-3 py-2.5 text-sm text-neutral-900 outline-none placeholder:text-neutral-400 focus:border-neutral-500';
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-4">
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl text-sm font-bold">
+        <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
           {error}
-        </div>
+        </p>
       )}
 
-      <div className="space-y-4">
-        <div>
-          <label className="text-xs font-black text-slate-400 uppercase mb-2 block">Full Name</label>
-          <div className="relative">
-            <User size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              required
-              name="fullName"
-              type="text"
-              placeholder="John Doe"
-              className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl text-sm font-bold focus:border-blue-500 focus:bg-white transition-all outline-none"
-            />
-          </div>
-        </div>
+      <div>
+        <label className="mb-1.5 block text-sm font-medium text-neutral-800">Full name</label>
+        <input required name="fullName" type="text" placeholder="Your name" className={inputClass} />
+      </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="text-xs font-black text-slate-400 uppercase mb-2 block">Email Address</label>
-            <div className="relative">
-              <Mail size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                required
-                name="email"
-                type="email"
-                placeholder="john@example.com"
-                className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl text-sm font-bold focus:border-blue-500 focus:bg-white transition-all outline-none"
-              />
-            </div>
-          </div>
-          <div>
-            <label className="text-xs font-black text-slate-400 uppercase mb-2 block">Phone Number</label>
-            <div className="relative">
-              <Phone size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                required
-                name="phone"
-                type="tel"
-                placeholder="+91 00000 00000"
-                className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl text-sm font-bold focus:border-blue-500 focus:bg-white transition-all outline-none"
-              />
-            </div>
-          </div>
-        </div>
-
+      <div className="grid gap-4 sm:grid-cols-2">
         <div>
-          <label className="text-xs font-black text-slate-400 uppercase mb-2 block">Short Message / Experience</label>
-          <div className="relative">
-            <MessageSquare size={18} className="absolute left-4 top-4 text-slate-400" />
-            <textarea
-              name="message"
-              rows={4}
-              placeholder="Tell the employer why you're a good fit..."
-              className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border-2 border-transparent rounded-2xl text-sm font-bold focus:border-blue-500 focus:bg-white transition-all outline-none resize-none"
-            ></textarea>
-          </div>
+          <label className="mb-1.5 block text-sm font-medium text-neutral-800">Email</label>
+          <input
+            required
+            name="email"
+            type="email"
+            placeholder="you@email.com"
+            className={inputClass}
+          />
+        </div>
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-neutral-800">Phone</label>
+          <input
+            required
+            name="phone"
+            type="tel"
+            placeholder="10-digit mobile"
+            className={inputClass}
+          />
         </div>
       </div>
 
-      <div className="pt-2">
-        <button
-          disabled={loading}
-          type="submit"
-          className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-black py-4 rounded-2xl shadow-xl shadow-blue-200 transition-all flex items-center justify-center gap-3 text-lg"
-        >
-          {loading ? (
-            <Loader2 className="animate-spin" />
-          ) : (
-            <>
-              Submit Application
-              <Send size={20} />
-            </>
-          )}
-        </button>
-        <p className="text-[10px] text-slate-400 text-center mt-4 font-bold uppercase tracking-wider">
-          By applying, you agree to our terms and safety guidelines.
-        </p>
+      <div>
+        <label className="mb-1.5 block text-sm font-medium text-neutral-800">
+          Message <span className="font-normal text-neutral-400">(optional)</span>
+        </label>
+        <textarea
+          name="message"
+          rows={4}
+          placeholder="Brief intro or relevant experience"
+          className={`${inputClass} resize-none`}
+        />
       </div>
+
+      <button
+        type="submit"
+        disabled={loading}
+        className="flex w-full items-center justify-center gap-2 rounded-md bg-neutral-900 py-2.5 text-sm font-medium text-white transition-colors hover:bg-neutral-800 disabled:opacity-60"
+      >
+        {loading ? (
+          <>
+            <Loader2 size={16} className="animate-spin" />
+            Sending…
+          </>
+        ) : (
+          'Submit application'
+        )}
+      </button>
     </form>
   );
 }

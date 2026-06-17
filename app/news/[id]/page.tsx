@@ -2,7 +2,7 @@
 
 import { use, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Calendar, ExternalLink, Newspaper } from 'lucide-react';
+import { ArrowLeft, Calendar, ExternalLink } from 'lucide-react';
 import { decodeNewsArticleId, isValidNewsUrl, NEWS_CACHE_PREFIX } from '@/lib/newsId';
 import { stripHtml } from '@/lib/stripHtml';
 
@@ -66,9 +66,9 @@ export default function NewsReaderPage({ params }: { params: Promise<{ id: strin
             excerpt: stripHtml(cached.excerpt || cached.title),
             contentHtml: `<p>${stripHtml(cached.excerpt || cached.title)}</p>`,
             image: cached.image || null,
-            source: cached.source || 'स्रोत',
-            date: cached.date || 'हाल ही में',
-            category: cached.category || 'समाचार',
+            source: cached.source || 'Source',
+            date: cached.date || 'Recently',
+            category: cached.category || 'News',
             sourceUrl,
           });
         } else {
@@ -84,27 +84,24 @@ export default function NewsReaderPage({ params }: { params: Promise<{ id: strin
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-white pt-20">
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#2563eb] border-t-transparent" />
-          <p className="text-sm text-[#64748b]">समाचार लोड हो रहा है...</p>
-        </div>
+      <div className="flex min-h-screen items-center justify-center bg-[#fafaf9] pt-20">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-neutral-300 border-t-neutral-800" />
       </div>
     );
   }
 
   if (error || !article) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-white px-4 pt-20">
+      <div className="flex min-h-screen items-center justify-center bg-[#fafaf9] px-4 pt-20">
         <div className="max-w-md space-y-4 text-center">
-          <h1 className="text-xl font-bold text-[#1e293b]">समाचार उपलब्ध नहीं</h1>
-          <p className="text-sm text-[#64748b]">{error || 'Unable to load this story.'}</p>
+          <h1 className="text-lg font-semibold text-neutral-900">Story unavailable</h1>
+          <p className="text-sm text-neutral-600">{error || 'Unable to load this article.'}</p>
           <Link
-            href="/#news"
-            className="inline-flex items-center gap-2 rounded-lg bg-[#2563eb] px-5 py-2.5 text-sm font-semibold text-white"
+            href="/news"
+            className="inline-flex items-center gap-2 text-sm font-medium text-neutral-800 underline underline-offset-2"
           >
-            <ArrowLeft size={16} />
-            वापस समाचार पर
+            <ArrowLeft size={15} />
+            Back to FinderB News
           </Link>
         </div>
       </div>
@@ -112,72 +109,63 @@ export default function NewsReaderPage({ params }: { params: Promise<{ id: strin
   }
 
   return (
-    <div className="min-h-screen bg-white pb-24 lg:pb-12">
-      <div className="border-b border-gray-100 bg-white pt-[4.25rem] sm:pt-24">
-        <div className="mx-auto max-w-3xl px-4 py-3 sm:px-6">
+    <div className="min-h-screen bg-[#fafaf9] pb-16">
+      <div className="border-b border-neutral-200 bg-white pt-[4.25rem] sm:pt-24">
+        <div className="mx-auto max-w-2xl px-4 py-4 sm:px-6">
           <Link
-            href="/#news"
-            className="inline-flex items-center gap-2 text-sm font-medium text-[#64748b] hover:text-[#2563eb]"
+            href="/news"
+            className="inline-flex items-center gap-1.5 text-sm text-neutral-500 hover:text-neutral-900"
           >
-            <ArrowLeft size={16} />
-            वापस समाचार
+            <ArrowLeft size={15} />
+            FinderB News
           </Link>
         </div>
       </div>
 
-      <article className="mx-auto max-w-3xl px-4 py-5 sm:px-6 sm:py-8">
-        <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-medium text-[#64748b] sm:text-xs">
-          <span className="rounded-md bg-[#eff6ff] px-2 py-0.5 text-[10px] font-bold text-[#2563eb]">
-            {article.category}
-          </span>
+      <article className="mx-auto max-w-2xl px-4 py-6 sm:px-6 sm:py-8">
+        <div className="mb-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-neutral-500">
+          <span className="font-medium text-neutral-700">{article.category}</span>
+          <span className="text-neutral-300">·</span>
           <span className="inline-flex items-center gap-1">
-            <Calendar size={12} />
+            <Calendar size={11} />
             {article.date}
           </span>
-          <span className="inline-flex items-center gap-1">
-            <Newspaper size={12} />
-            {article.source}
-          </span>
+          <span className="text-neutral-300">·</span>
+          <span>{article.source}</span>
         </div>
 
-        <h1 className="mb-5 text-[1.35rem] font-bold leading-snug tracking-tight text-[#1e293b] sm:text-2xl">
+        <h1 className="font-[family-name:var(--font-outfit)] text-2xl font-semibold leading-snug tracking-tight text-neutral-900 sm:text-[1.75rem]">
           {article.title}
         </h1>
 
         {article.image && (
-          <div className="relative mb-6 aspect-[16/10] overflow-hidden rounded-xl border border-gray-100 sm:mb-8 sm:aspect-[2/1]">
+          <div className="relative mt-6 aspect-[16/10] overflow-hidden rounded-md border border-neutral-200 bg-neutral-100">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={article.image}
-              alt={article.title}
-              className="h-full w-full object-cover"
-            />
+            <img src={article.image} alt="" className="h-full w-full object-cover" />
           </div>
         )}
 
         {article.excerpt && (
-          <p className="mb-6 border-l-4 border-[#2563eb] pl-4 text-[15px] leading-relaxed text-[#64748b] sm:mb-8">
+          <p className="mt-6 border-l-2 border-neutral-300 pl-4 text-[15px] leading-relaxed text-neutral-600">
             {stripHtml(article.excerpt)}
           </p>
         )}
 
         <div
-          className="news-article-body text-[15px] leading-[1.75] text-[#334155] sm:text-base [&_p]:mb-4"
+          className="news-article-body mt-6 text-[15px] leading-7 text-neutral-700 [&_p]:mb-4"
           dangerouslySetInnerHTML={{ __html: article.contentHtml }}
         />
 
-        <div className="mt-10 rounded-xl border border-gray-100 bg-[#f8fafc] p-4 sm:p-5">
-          <p className="mb-3 text-sm text-[#64748b]">
-            पूरी खबर और अपडेट के लिए मूल स्रोत पर जाएँ।
-          </p>
+        <div className="mt-10 border-t border-neutral-200 pt-6">
+          <p className="text-sm text-neutral-600">Read the full story at the original publisher.</p>
           <a
             href={article.sourceUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 rounded-lg border border-[#2563eb]/20 bg-white px-4 py-2.5 text-sm font-semibold text-[#2563eb] transition-colors hover:bg-[#eff6ff]"
+            className="mt-3 inline-flex items-center gap-2 rounded-md border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-800 transition-colors hover:border-neutral-400 hover:bg-neutral-50"
           >
-            {article.source} पर पढ़ें
-            <ExternalLink size={15} />
+            Continue on {article.source}
+            <ExternalLink size={14} />
           </a>
         </div>
       </article>

@@ -35,10 +35,10 @@ import {
 } from '@/lib/footerData';
 import { LEGAL_COMPANY } from '@/lib/legalContent';
 
-const SOCIAL_ICON_MAP: Record<
-  FooterSocialIcon,
-  typeof FaFacebook
-> = {
+const linkClass =
+  'text-sm text-neutral-600 transition-colors hover:text-neutral-900 hover:underline underline-offset-2';
+
+const SOCIAL_ICON_MAP: Record<FooterSocialIcon, typeof FaFacebook> = {
   facebook: FaFacebook,
   instagram: FaInstagram,
   x: FaXTwitter,
@@ -55,14 +55,11 @@ function Column({
 }) {
   return (
     <nav aria-label={title}>
-      <p className="mb-3 text-sm font-medium text-slate-900">{title}</p>
+      <p className="mb-3 text-sm font-medium text-neutral-900">{title}</p>
       <ul className="space-y-2.5">
         {links.map((link) => (
           <li key={link.label}>
-            <Link
-              href={link.href}
-              className="text-sm text-slate-500 transition-colors hover:text-primary"
-            >
+            <Link href={link.href} className={linkClass}>
               {link.label}
             </Link>
           </li>
@@ -81,10 +78,7 @@ function LinkGrid({
     <ul className="grid grid-cols-2 gap-x-6 gap-y-2.5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
       {links.map((link) => (
         <li key={link.label}>
-          <Link
-            href={link.href}
-            className="text-sm text-slate-500 transition-colors hover:text-primary"
-          >
+          <Link href={link.href} className={linkClass}>
             {link.label}
           </Link>
         </li>
@@ -96,8 +90,8 @@ function LinkGrid({
 function SectionHeader({ title, description }: { title: string; description: string }) {
   return (
     <div className="mb-5 max-w-3xl space-y-1">
-      <h2 className="text-sm font-medium text-slate-900">{title}</h2>
-      <p className="text-xs leading-relaxed text-slate-400">{description}</p>
+      <h2 className="text-sm font-medium text-neutral-900">{title}</h2>
+      <p className="text-xs leading-relaxed text-neutral-500">{description}</p>
     </div>
   );
 }
@@ -113,15 +107,13 @@ function ContactRow({
 }) {
   const content = (
     <>
-      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-50 text-slate-400">
-        <Icon size={15} strokeWidth={1.75} />
-      </span>
+      <Icon size={15} strokeWidth={1.75} className="shrink-0 text-neutral-400" />
       <span>{children}</span>
     </>
   );
 
   const className =
-    'group flex items-center gap-3 text-sm text-slate-500 transition-colors hover:text-slate-900';
+    'group flex items-center gap-2.5 text-sm text-neutral-600 transition-colors hover:text-neutral-900';
 
   if (href) {
     return (
@@ -144,16 +136,16 @@ function SocialButton({ label, href, icon, brandClass }: (typeof FOOTER_SOCIAL_L
       rel="noopener noreferrer"
       aria-label={`Follow FinderB on ${label}`}
       title={label}
-      className={`flex h-9 w-9 items-center justify-center rounded-lg text-white shadow-sm transition-all hover:scale-105 hover:shadow-md ${brandClass}`}
+      className={`flex h-8 w-8 items-center justify-center rounded-md text-white transition-opacity hover:opacity-90 ${brandClass}`}
     >
-      <Icon size={16} />
+      <Icon size={15} />
     </a>
   );
 }
 
 function MadeInIndiaBadge() {
   return (
-    <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2 py-0.5 font-medium text-inherit">
+    <span className="inline-flex items-center gap-1 rounded border border-neutral-300 bg-white px-2 py-0.5 font-medium text-inherit">
       <IndianFlagIcon className="h-2.5 w-[15px] shrink-0 rounded-[2px] ring-1 ring-black/5" />
       Made in India
     </span>
@@ -161,7 +153,7 @@ function MadeInIndiaBadge() {
 }
 
 function Divider() {
-  return <div className="border-t border-slate-100" />;
+  return <div className="border-t border-neutral-200" />;
 }
 
 export default function Footer() {
@@ -188,7 +180,7 @@ export default function Footer() {
   const structuredData = getFooterStructuredData();
 
   return (
-    <footer className="relative z-10 border-t border-slate-200 bg-white text-slate-600">
+    <footer className="relative z-10 border-t border-neutral-200 bg-[#fafaf9] text-neutral-600">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
@@ -207,8 +199,8 @@ export default function Footer() {
                 quality={100}
               />
             </Link>
-            <p className="text-sm font-medium text-slate-800">{FOOTER_TAGLINE}</p>
-            <div className="max-w-xl space-y-3 text-sm leading-relaxed text-slate-500">
+            <p className="text-sm font-medium text-neutral-800">{FOOTER_TAGLINE}</p>
+            <div className="max-w-xl space-y-3 text-sm leading-relaxed text-neutral-600">
               <p>{FOOTER_ABOUT}</p>
               <p>{FOOTER_ABOUT_SECONDARY}</p>
             </div>
@@ -216,7 +208,7 @@ export default function Footer() {
 
           <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-1">
             <div className="space-y-4">
-              <p className="text-sm font-medium text-slate-900">Contact</p>
+              <p className="text-sm font-medium text-neutral-900">Contact</p>
               <div className="space-y-3">
                 <ContactRow icon={Mail} href={`mailto:${FOOTER_CONTACT.email}`}>
                   {FOOTER_CONTACT.email}
@@ -229,25 +221,23 @@ export default function Footer() {
             </div>
 
             <div className="space-y-4">
-              <p className="text-sm font-medium text-slate-900">Follow us</p>
-              <div className="flex flex-wrap gap-2.5">
+              <p className="text-sm font-medium text-neutral-900">Follow us</p>
+              <div className="flex flex-wrap gap-2">
                 {FOOTER_SOCIAL_LINKS.map((social) => (
                   <SocialButton key={social.label} {...social} />
                 ))}
               </div>
 
-              <div className="flex items-start gap-3 pt-1">
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-50 text-slate-400">
-                  <Smartphone size={15} strokeWidth={1.75} />
-                </span>
+              <div className="flex items-start gap-2.5 pt-1">
+                <Smartphone size={15} strokeWidth={1.75} className="mt-0.5 shrink-0 text-neutral-400" />
                 <div className="space-y-2.5">
-                  <p className="text-sm text-slate-500">Mobile app coming soon</p>
+                  <p className="text-sm text-neutral-600">Mobile app coming soon</p>
                   <div className="flex flex-wrap gap-2">
-                    <span className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-1.5 text-xs text-slate-400">
-                      <AppStoreIcon className="h-3.5 w-3.5 text-slate-800" />
+                    <span className="inline-flex items-center gap-2 rounded-md border border-neutral-300 px-3 py-1.5 text-xs text-neutral-500">
+                      <AppStoreIcon className="h-3.5 w-3.5 text-neutral-800" />
                       App Store
                     </span>
-                    <span className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-1.5 text-xs text-slate-400">
+                    <span className="inline-flex items-center gap-2 rounded-md border border-neutral-300 px-3 py-1.5 text-xs text-neutral-500">
                       <FaGooglePlay size={13} />
                       Google Play
                     </span>
@@ -307,14 +297,11 @@ export default function Footer() {
           <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             {FOOTER_CITY_GROUPS.map((group) => (
               <div key={group.label}>
-                <p className="mb-3 text-xs font-medium text-slate-400">{group.label}</p>
+                <p className="mb-3 text-xs font-medium text-neutral-500">{group.label}</p>
                 <ul className="space-y-2.5">
                   {group.cities.map((city) => (
                     <li key={city}>
-                      <Link
-                        href={footerCityHref(city)}
-                        className="text-sm text-slate-500 transition-colors hover:text-primary"
-                      >
+                      <Link href={footerCityHref(city)} className={linkClass}>
                         Businesses in {city}
                       </Link>
                     </li>
@@ -343,13 +330,13 @@ export default function Footer() {
           <div className="grid gap-8 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
             {FOOTER_LOCAL_LISTINGS.cities.map((city) => (
               <div key={city}>
-                <p className="mb-3 text-sm font-medium text-slate-800">{city}</p>
+                <p className="mb-3 text-sm font-medium text-neutral-800">{city}</p>
                 <ul className="space-y-2">
                   {FOOTER_LOCAL_LISTINGS.services.map((service) => (
                     <li key={`${city}-${service}`}>
                       <Link
                         href={footerLocalHref(service, city)}
-                        className="text-sm text-slate-500 transition-colors hover:text-primary"
+                        className={linkClass}
                         title={`${service} in ${city}`}
                       >
                         {service} in {city}
@@ -368,22 +355,20 @@ export default function Footer() {
 
         <div className="max-w-5xl space-y-3">
           {FOOTER_SEO_NOTES.map((note) => (
-            <p key={note} className="text-xs leading-relaxed text-slate-400">
+            <p key={note} className="text-xs leading-relaxed text-neutral-500">
               {note}
             </p>
           ))}
         </div>
 
-        <div className="mt-8 overflow-hidden rounded-2xl border border-primary/15 bg-gradient-to-r from-primary/[0.06] via-white to-secondary/[0.08]">
+        <div className="mt-8 rounded-lg border border-neutral-200 bg-white">
           <div className="flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
-            <div className="flex gap-4">
-              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary text-white shadow-sm">
-                <Store size={20} strokeWidth={1.75} />
-              </span>
+            <div className="flex gap-3">
+              <Store size={20} strokeWidth={1.75} className="mt-0.5 shrink-0 text-neutral-700" />
               <div className="space-y-1">
-                <p className="text-base font-semibold text-slate-900">List your business on FinderB</p>
-                <p className="max-w-xl text-sm leading-relaxed text-slate-500">
-                  Free registration, local SEO visibility, and customer reviews — reach people searching in
+                <p className="text-base font-medium text-neutral-900">List your business on FinderB</p>
+                <p className="max-w-xl text-sm leading-relaxed text-neutral-600">
+                  Free registration, local visibility, and customer reviews — reach people searching in
                   your city.
                 </p>
               </div>
@@ -391,13 +376,13 @@ export default function Footer() {
             <div className="flex shrink-0 flex-wrap items-center gap-3 sm:justify-end">
               <Link
                 href="/business/register"
-                className="inline-flex items-center justify-center rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-600"
+                className="inline-flex items-center justify-center rounded-md bg-neutral-900 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-neutral-800"
               >
                 Get started free
               </Link>
               <Link
                 href="/pricing"
-                className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:border-primary/20 hover:text-primary"
+                className="inline-flex items-center justify-center rounded-md border border-neutral-300 bg-white px-5 py-2.5 text-sm font-medium text-neutral-700 transition-colors hover:border-neutral-400 hover:text-neutral-900"
               >
                 View plans
               </Link>
@@ -406,7 +391,7 @@ export default function Footer() {
         </div>
       </div>
 
-      <div className="border-t border-slate-200 bg-slate-50/50 text-[11px] leading-snug text-slate-400">
+      <div className="border-t border-neutral-200 bg-white text-[11px] leading-snug text-neutral-500">
         <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-4 sm:px-6 lg:px-8">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
@@ -417,25 +402,25 @@ export default function Footer() {
               <MadeInIndiaBadge />
             </div>
             <nav className="flex flex-wrap gap-x-4 gap-y-1" aria-label="Legal">
-            <Link href="/privacy" className="hover:text-slate-600">
-              Privacy Policy
-            </Link>
-            <Link href="/terms" className="hover:text-slate-600">
-              Terms & Conditions
-            </Link>
-            <Link href="/cancellation-refund" className="hover:text-slate-600">
-              Cancellation & Refund
-            </Link>
-            <Link href="/contact" className="hover:text-slate-600">
-              Contact Us
-            </Link>
-            <Link href="/shipping-delivery" className="hover:text-slate-600">
-              Shipping & Delivery
-            </Link>
-            <Link href="/sitemap" className="hover:text-slate-600">
-              Sitemap
-            </Link>
-          </nav>
+              <Link href="/privacy" className="hover:text-neutral-900 hover:underline underline-offset-2">
+                Privacy Policy
+              </Link>
+              <Link href="/terms" className="hover:text-neutral-900 hover:underline underline-offset-2">
+                Terms & Conditions
+              </Link>
+              <Link href="/cancellation-refund" className="hover:text-neutral-900 hover:underline underline-offset-2">
+                Cancellation & Refund
+              </Link>
+              <Link href="/contact" className="hover:text-neutral-900 hover:underline underline-offset-2">
+                Contact Us
+              </Link>
+              <Link href="/shipping-delivery" className="hover:text-neutral-900 hover:underline underline-offset-2">
+                Shipping & Delivery
+              </Link>
+              <Link href="/sitemap" className="hover:text-neutral-900 hover:underline underline-offset-2">
+                Sitemap
+              </Link>
+            </nav>
           </div>
         </div>
       </div>

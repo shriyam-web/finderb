@@ -4,7 +4,7 @@ import { LEGAL_COMPANY, LEGAL_FOOTER_LINKS, LEGAL_LAST_UPDATED } from '@/lib/leg
 
 type LegalPageLayoutProps = {
   title: string;
-  description: string;
+  description?: string;
   children: ReactNode;
 };
 
@@ -14,48 +14,36 @@ export default function LegalPageLayout({
   children,
 }: LegalPageLayoutProps) {
   return (
-    <div className="min-h-screen flex flex-col bg-white overflow-hidden">
-      <main className="flex-1 pt-24 lg:pt-32 pb-24">
-        <section className="px-4 mb-16 relative">
-          <div className="max-w-4xl mx-auto text-center space-y-6 relative z-10">
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-primary tracking-tight leading-[1.05]">
-              {title}
-            </h1>
-            <p className="text-gray-500 text-lg md:text-xl font-medium leading-relaxed max-w-2xl mx-auto">
-              {description}
-            </p>
-          </div>
-        </section>
+    <div className="min-h-screen bg-[#fafaf9]">
+      <main className="mx-auto max-w-2xl px-5 pt-28 pb-20 sm:px-6 lg:pt-32">
+        <header className="mb-10 border-b border-neutral-200 pb-8">
+          <p className="text-sm text-neutral-500">{LEGAL_COMPANY.brand}</p>
+          <h1 className="mt-1 text-3xl font-semibold tracking-tight text-neutral-900 sm:text-[2rem]">
+            {title}
+          </h1>
+          {description ? (
+            <p className="mt-3 text-base leading-relaxed text-neutral-600">{description}</p>
+          ) : null}
+          <p className="mt-4 text-sm text-neutral-400">Last updated {LEGAL_LAST_UPDATED}</p>
+        </header>
 
-        <section className="max-w-4xl mx-auto px-4 mb-16">
-          <div className="bg-gray-50 rounded-2xl border border-gray-100 px-6 py-4 mb-10">
-            <p className="text-sm text-gray-500">
-              Last updated: <span className="font-semibold text-gray-700">{LEGAL_LAST_UPDATED}</span>
-            </p>
-          </div>
+        <article className="space-y-9 text-[15px] leading-7 text-neutral-700">{children}</article>
 
-          <div className="space-y-12 text-gray-700 leading-relaxed">{children}</div>
-
-          <aside className="mt-16 rounded-2xl border border-gray-100 bg-slate-50 p-6 md:p-8">
-            <h2 className="text-sm font-black uppercase tracking-wider text-primary mb-4">
-              Related policies
-            </h2>
-            <nav aria-label="Related legal pages">
-              <ul className="grid gap-2 sm:grid-cols-2">
-                {LEGAL_FOOTER_LINKS.map((link) => (
-                  <li key={link.href}>
-                    <Link
-                      href={link.href}
-                      className="text-sm font-medium text-slate-600 transition-colors hover:text-primary"
-                    >
-                      {link.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </nav>
-          </aside>
-        </section>
+        <footer className="mt-14 border-t border-neutral-200 pt-8">
+          <p className="text-sm font-medium text-neutral-800">Other pages</p>
+          <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-2">
+            {LEGAL_FOOTER_LINKS.map((link) => (
+              <li key={link.href}>
+                <Link
+                  href={link.href}
+                  className="text-sm text-neutral-600 underline-offset-2 hover:text-neutral-900 hover:underline"
+                >
+                  {link.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </footer>
       </main>
     </div>
   );
@@ -70,15 +58,15 @@ export function LegalSection({
 }) {
   return (
     <section>
-      <h2 className="text-2xl font-black text-primary mb-5">{title}</h2>
-      <div className="space-y-4">{children}</div>
+      <h2 className="mb-3 text-lg font-semibold text-neutral-900">{title}</h2>
+      <div className="space-y-3">{children}</div>
     </section>
   );
 }
 
 export function LegalList({ items }: { items: string[] }) {
   return (
-    <ul className="list-disc pl-6 space-y-2">
+    <ul className="list-disc space-y-2 pl-5 marker:text-neutral-400">
       {items.map((item) => (
         <li key={item}>{item}</li>
       ))}
@@ -96,29 +84,31 @@ export function LegalContactBox({
   note?: string;
 }) {
   return (
-    <div className="rounded-xl bg-gray-50 border border-gray-100 p-6 space-y-2 text-gray-700">
+    <div className="border-l-2 border-neutral-300 pl-4 text-neutral-700">
       {email && (
         <p>
-          <strong>Email:</strong>{' '}
-          <a href={`mailto:${email}`} className="text-primary hover:underline">
+          Email:{' '}
+          <a href={`mailto:${email}`} className="text-neutral-900 underline underline-offset-2">
             {email}
           </a>
         </p>
       )}
       {phone && (
-        <p>
-          <strong>Phone:</strong>{' '}
-          <a href={`tel:${phone.replace(/\s/g, '')}`} className="text-primary hover:underline">
+        <p className="mt-1">
+          Phone:{' '}
+          <a
+            href={`tel:${phone.replace(/\s/g, '')}`}
+            className="text-neutral-900 underline underline-offset-2"
+          >
             {phone}
           </a>
         </p>
       )}
-      <p>
-        <strong>Address:</strong> {LEGAL_COMPANY.address.line1},{' '}
-        {LEGAL_COMPANY.address.line2}, {LEGAL_COMPANY.address.country} –{' '}
-        {LEGAL_COMPANY.address.pincode}
+      <p className="mt-1">
+        {LEGAL_COMPANY.address.line1}, {LEGAL_COMPANY.address.line2},{' '}
+        {LEGAL_COMPANY.address.country} {LEGAL_COMPANY.address.pincode}
       </p>
-      {note && <p className="text-sm text-gray-500 pt-1">{note}</p>}
+      {note && <p className="mt-2 text-sm text-neutral-500">{note}</p>}
     </div>
   );
 }

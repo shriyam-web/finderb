@@ -46,6 +46,7 @@ const STATIC_PAGES: Array<{
   { path: '/movies', changeFrequency: 'daily', priority: 0.7 },
   { path: '/tourist-places', changeFrequency: 'weekly', priority: 0.7 },
   { path: '/blog', changeFrequency: 'daily', priority: 0.8 },
+  { path: '/news', changeFrequency: 'daily', priority: 0.8 },
   { path: '/pricing', changeFrequency: 'monthly', priority: 0.5 },
   { path: '/about', changeFrequency: 'monthly', priority: 0.4 },
   { path: '/contact', changeFrequency: 'monthly', priority: 0.4 },

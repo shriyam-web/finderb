@@ -17,7 +17,7 @@ export default function TermsPage() {
   return (
     <LegalPageLayout
       title="Terms and Conditions"
-      description="Please read these terms carefully before using FinderB or purchasing any paid merchant plans."
+      description="The rules for using FinderB, including business listings and paid merchant plans."
     >
       <LegalSection title="1. Agreement to Terms">
         <p>
