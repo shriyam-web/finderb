@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Calendar, Languages } from 'lucide-react';
+import { ArrowLeft, Calendar, Languages, Newspaper } from 'lucide-react';
 import {
   NEWS_CATEGORIES,
   getCategoryLabel,
@@ -44,21 +44,29 @@ function parseCityFromLocation(location: string | null): string | null {
   return parts[parts.length - 1] ?? null;
 }
 
-function NewsThumb({ src, alt }: { src: string; alt: string }) {
-  const [imgSrc, setImgSrc] = useState(src);
-  useEffect(() => setImgSrc(src), [src]);
+function NewsThumb({ src, alt }: { src: string | null; alt: string }) {
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    setFailed(false);
+  }, [src]);
+
+  if (!src || failed) {
+    return (
+      <div className="flex h-full w-full items-center justify-center bg-slate-100 text-[#cbd5e1]">
+        <Newspaper size={24} aria-hidden />
+      </div>
+    );
+  }
+
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src={imgSrc}
+      src={src}
       alt={alt}
       loading="lazy"
       className="h-full w-full object-cover"
-      onError={() =>
-        setImgSrc(
-          'https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&q=80&w=600'
-        )
-      }
+      onError={() => setFailed(true)}
     />
   );
 }
@@ -69,7 +77,7 @@ export default function NewsPageContent() {
       id: string;
       title: string;
       excerpt: string;
-      image: string;
+      image: string | null;
       source: string;
       date: string;
       category: string;
@@ -107,14 +115,18 @@ export default function NewsPageContent() {
     async (slug: NewsCategorySlug, lang: NewsLanguage) => {
       setLoading(true);
       try {
-        const params = new URLSearchParams({ category: slug, lang });
+        const params = new URLSearchParams({
+          category: slug,
+          lang,
+          limit: String(MAX_ITEMS),
+        });
         if (slug === 'local') {
           if (localCity) params.set('city', localCity);
           if (localState) params.set('state', localState);
         }
         const res = await fetch(`/api/news?${params.toString()}`);
         const data = await res.json();
-        if (data.success) setArticles(data.articles.slice(0, MAX_ITEMS));
+        if (data.success) setArticles(data.articles);
         else setArticles([]);
       } catch {
         setArticles([]);
@@ -154,46 +166,45 @@ export default function NewsPageContent() {
   };
 
   return (
-    <div className="min-h-screen bg-[#fafaf9] pb-16">
-      <div className="border-b border-neutral-200 bg-white">
-        <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:py-10">
+    <div className="min-h-screen bg-[#f8fafc] pb-24 lg:pb-12">
+      <div className="border-b border-gray-100 bg-white pt-[4.25rem] sm:pt-24">
+        <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
           <Link
             href="/"
-            className="mb-5 inline-flex items-center gap-1.5 text-sm text-neutral-500 hover:text-neutral-900"
+            className="mb-5 inline-flex items-center gap-2 text-sm font-medium text-[#64748b] transition-colors hover:text-[#2563eb]"
           >
-            <ArrowLeft size={15} />
-            Home
+            <ArrowLeft size={16} />
+            Back to home
           </Link>
-          <p className="text-sm text-neutral-500">FinderB</p>
-          <h1 className="mt-1 font-[family-name:var(--font-outfit)] text-3xl font-semibold tracking-tight text-neutral-900 sm:text-4xl">
-            News
+          <h1 className="text-2xl font-bold tracking-tight text-[#1e293b] sm:text-3xl">
+            FinderB <span className="text-[#2563eb]">News</span>
           </h1>
-          <p className="mt-2 max-w-lg text-[15px] leading-relaxed text-neutral-600">
+          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[#64748b] sm:text-base">
             Headlines from trusted sources — local, national, and by topic. Updated throughout the
             day.
           </p>
         </div>
       </div>
 
-      <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6">
-        <div className="flex flex-col gap-4 border-b border-neutral-200 pb-5 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm text-neutral-600">
-            {copy.category}: <span className="font-medium text-neutral-900">{displayLabel}</span>
-            <span className="mx-1.5 text-neutral-300">·</span>
+      <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="flex flex-col gap-4 border-b border-gray-100 pb-5 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-[#64748b]">
+            {copy.category}: <span className="font-semibold text-[#1e293b]">{displayLabel}</span>
+            <span className="mx-1.5 text-[#cbd5e1]">·</span>
             {copy.newsIn}
           </p>
           <div className="flex items-center gap-2">
-            <Languages size={14} className="text-neutral-400" aria-hidden />
-            <div className="inline-flex rounded-md border border-neutral-300 p-0.5">
+            <Languages size={14} className="shrink-0 text-[#94a3b8]" aria-hidden />
+            <div className="inline-flex rounded-lg border border-slate-200 bg-white p-0.5">
               {(['hi', 'en'] as const).map((lang) => (
                 <button
                   key={lang}
                   type="button"
                   onClick={() => setLanguage(lang)}
-                  className={`rounded px-3 py-1 text-xs font-medium transition-colors ${
+                  className={`rounded-md px-3 py-1 text-xs font-semibold transition-colors ${
                     language === lang
-                      ? 'bg-neutral-900 text-white'
-                      : 'text-neutral-600 hover:text-neutral-900'
+                      ? 'bg-[#2563eb] text-white'
+                      : 'text-[#64748b] hover:text-[#2563eb]'
                   }`}
                 >
                   {lang === 'hi' ? 'हिंदी' : 'English'}
@@ -212,10 +223,10 @@ export default function NewsPageContent() {
                 key={cat.slug}
                 type="button"
                 onClick={() => setSelectedSlug(cat.slug)}
-                className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-bold transition-all ${
                   active
-                    ? 'border-neutral-900 bg-neutral-900 text-white'
-                    : 'border-neutral-300 bg-white text-neutral-600 hover:border-neutral-400'
+                    ? 'border-[#2563eb] bg-[#2563eb] text-white shadow-sm'
+                    : 'border-slate-200 bg-white text-slate-600 hover:border-[#2563eb]/30 hover:text-[#2563eb]'
                 }`}
               >
                 {label}
@@ -225,27 +236,30 @@ export default function NewsPageContent() {
         </div>
 
         {selectedSlug === 'local' && isResolvingLocal && (
-          <p className="mt-4 text-sm text-neutral-500">{copy.detecting}</p>
+          <p className="mt-4 text-sm text-[#64748b]">{copy.detecting}</p>
         )}
 
         {loading ? (
-          <ul className="mt-6 divide-y divide-neutral-200 border-y border-neutral-200">
+          <ul className="mt-6 space-y-3">
             {[1, 2, 3, 4, 5].map((i) => (
-              <li key={i} className="flex gap-4 py-4 animate-pulse">
-                <div className="h-20 w-28 shrink-0 rounded bg-neutral-200" />
+              <li
+                key={i}
+                className="flex animate-pulse gap-4 rounded-xl border border-gray-100 bg-white p-4"
+              >
+                <div className="h-20 w-28 shrink-0 rounded-lg bg-slate-200" />
                 <div className="flex-1 space-y-2 py-1">
-                  <div className="h-3 w-1/4 rounded bg-neutral-200" />
-                  <div className="h-4 w-3/4 rounded bg-neutral-200" />
-                  <div className="h-3 w-full rounded bg-neutral-200" />
+                  <div className="h-3 w-1/4 rounded bg-slate-200" />
+                  <div className="h-4 w-3/4 rounded bg-slate-200" />
+                  <div className="h-3 w-full rounded bg-slate-200" />
                 </div>
               </li>
             ))}
           </ul>
         ) : articles.length === 0 ? (
-          <div className="mt-8 rounded-lg border border-neutral-200 bg-white px-6 py-12 text-center">
-            <Calendar size={24} className="mx-auto text-neutral-300" />
-            <p className="mt-3 font-medium text-neutral-800">{copy.emptyTitle}</p>
-            <p className="mt-1 text-sm text-neutral-500">
+          <div className="mt-8 rounded-xl border border-gray-100 bg-white px-6 py-16 text-center">
+            <Calendar size={24} className="mx-auto text-[#cbd5e1]" />
+            <p className="mt-3 text-base font-semibold text-[#1e293b]">{copy.emptyTitle}</p>
+            <p className="mt-2 text-sm text-[#64748b]">
               {selectedSlug === 'local' && !localCity && !localState
                 ? copy.emptyLocal
                 : copy.emptyBody(categoryLabel)}
@@ -254,7 +268,7 @@ export default function NewsPageContent() {
               <button
                 type="button"
                 onClick={requestLocation}
-                className="mt-4 rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800"
+                className="mt-4 rounded-full bg-[#2563eb] px-5 py-2 text-xs font-bold text-white hover:bg-[#1d4ed8]"
               >
                 {copy.enableLocation}
               </button>
@@ -262,14 +276,14 @@ export default function NewsPageContent() {
               <button
                 type="button"
                 onClick={() => fetchNews(selectedSlug, language)}
-                className="mt-4 text-sm font-medium text-neutral-700 underline underline-offset-2 hover:text-neutral-900"
+                className="mt-4 text-sm font-semibold text-[#2563eb] hover:underline"
               >
                 {copy.retry}
               </button>
             )}
           </div>
         ) : (
-          <ul className="mt-6 divide-y divide-neutral-200 border-y border-neutral-200 bg-white">
+          <ul className="mt-6 space-y-3">
             {articles.map((item) => {
               if (!item.link) return null;
               const articleId = encodeNewsArticleId(item.link);
@@ -278,28 +292,30 @@ export default function NewsPageContent() {
                   <Link
                     href={`/news/${articleId}`}
                     onClick={() => cacheMeta(item)}
-                    className="group flex gap-4 py-4 transition-colors hover:bg-neutral-50 sm:gap-5 sm:py-5"
+                    className="group flex gap-4 overflow-hidden rounded-xl border border-gray-100 bg-white p-4 shadow-[0_1px_4px_rgba(15,23,42,0.06)] transition-all hover:border-[#2563eb]/20 hover:shadow-md sm:gap-5 sm:p-5"
                   >
-                    <div className="relative h-[4.5rem] w-28 shrink-0 overflow-hidden rounded-md bg-neutral-100 sm:h-24 sm:w-36">
-                      <NewsThumb src={item.image} alt="" />
+                    <div className="relative h-[4.5rem] w-28 shrink-0 overflow-hidden rounded-lg bg-slate-100 sm:h-24 sm:w-36">
+                      <NewsThumb src={item.image} alt={item.title} />
                     </div>
-                    <div className="min-w-0 flex-1 pr-2">
-                      <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-neutral-500">
-                        <span className="font-medium text-neutral-700">{item.category}</span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-[#64748b]">
+                        <span className="rounded bg-[#eff6ff] px-1.5 py-0.5 text-[10px] font-bold text-[#2563eb]">
+                          {item.category}
+                        </span>
                         {item.source && (
                           <>
-                            <span className="text-neutral-300">·</span>
+                            <span className="text-[#cbd5e1]">·</span>
                             <span className="truncate">{item.source}</span>
                           </>
                         )}
-                        <span className="text-neutral-300">·</span>
+                        <span className="text-[#cbd5e1]">·</span>
                         <span>{item.date}</span>
                       </div>
-                      <h2 className="mt-1 font-[family-name:var(--font-outfit)] text-base font-semibold leading-snug text-neutral-900 group-hover:underline sm:text-lg">
+                      <h2 className="mt-1.5 line-clamp-2 text-[15px] font-bold leading-snug text-[#1e293b] transition-colors group-hover:text-[#2563eb] sm:text-base">
                         {item.title}
                       </h2>
                       {item.excerpt && (
-                        <p className="mt-1 line-clamp-2 text-sm leading-relaxed text-neutral-600">
+                        <p className="mt-1.5 line-clamp-2 text-[13px] leading-relaxed text-[#64748b]">
                           {stripHtml(item.excerpt)}
                         </p>
                       )}

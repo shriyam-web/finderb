@@ -6,6 +6,7 @@ import { ArrowLeft, MapPin, Star } from 'lucide-react';
 import { touristPlaces } from '@/lib/mockData';
 import { getTouristPlaces } from '@/app/actions/touristPlace';
 import TouristPlaceImage from '@/components/TouristPlaceImage';
+import { useSortedTouristPlaces } from '@/hooks/useSortedTouristPlaces';
 
 type Place = {
   id: string;
@@ -18,6 +19,7 @@ type Place = {
 
 export default function TouristPlacesListingPage() {
   const [places, setPlaces] = useState<Place[]>(touristPlaces);
+  const sortedPlaces = useSortedTouristPlaces(places);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -74,7 +76,7 @@ export default function TouristPlacesListingPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {places.map((place) => (
+            {sortedPlaces.map((place) => (
               <Link
                 key={place.id}
                 href={`/tourist-places/${place.id}`}

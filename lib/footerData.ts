@@ -1,3 +1,5 @@
+import { LEGAL_COMPANY } from '@/lib/legalContent';
+
 export function footerSearchHref(query: string): string {
   return `/categories?search=${encodeURIComponent(query)}`;
 }
@@ -31,9 +33,9 @@ export const FOOTER_SEO_NOTES = [
 ] as const;
 
 export const FOOTER_CONTACT = {
-  email: 'support@finderb.com',
-  phone: '1800-000-0000',
-  phoneHref: 'tel:+911800000000',
+  email: LEGAL_COMPANY.email,
+  phone: LEGAL_COMPANY.phoneDisplay,
+  phoneHref: `tel:${LEGAL_COMPANY.phone}`,
   coverage: '500+ cities across India',
 } as const;
 
@@ -417,7 +419,7 @@ export function getFooterStructuredData() {
         logo: `${FOOTER_SITE_URL}/logo1.png`,
         description: FOOTER_ABOUT,
         email: FOOTER_CONTACT.email,
-        telephone: FOOTER_CONTACT.phone,
+        telephone: LEGAL_COMPANY.phone,
         areaServed: {
           '@type': 'Country',
           name: 'India',
@@ -425,7 +427,7 @@ export function getFooterStructuredData() {
         sameAs: FOOTER_SOCIAL_LINKS.map((item) => item.href),
         contactPoint: {
           '@type': 'ContactPoint',
-          telephone: FOOTER_CONTACT.phone,
+          telephone: LEGAL_COMPANY.phone,
           email: FOOTER_CONTACT.email,
           contactType: 'customer support',
           areaServed: 'IN',

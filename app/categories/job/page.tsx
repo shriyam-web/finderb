@@ -11,8 +11,12 @@ export default async function JobPortalPage() {
 
   if (!success || !jobs) {
     return (
-      <div className="flex min-h-[50vh] items-center justify-center bg-[#fafaf9] px-4 pt-28">
-        <p className="text-sm text-neutral-600">Could not load jobs. Please try again later.</p>
+      <div className="min-h-screen bg-[#f8fafc] pb-24 lg:pb-12">
+        <div className="border-b border-gray-100 bg-white pt-[4.25rem] sm:pt-24">
+          <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
+            <p className="text-sm text-[#64748b]">Could not load jobs. Please try again later.</p>
+          </div>
+        </div>
       </div>
     );
   }

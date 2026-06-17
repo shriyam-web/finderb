@@ -48,6 +48,7 @@ import { getMovies } from '@/app/actions/movie';
 import { getTouristPlaces } from '@/app/actions/touristPlace';
 import { getBlogs } from '@/app/actions/blog';
 import { getSession } from '@/app/actions/user';
+import { useSortedTouristPlaces } from '@/hooks/useSortedTouristPlaces';
 import { useUserCoords, useUserLocationState } from '@/hooks/useUserCoords';
 import { appendLocationToSearchQuery } from '@/lib/searchQuery';
 import { formatDistanceFromUser } from '@/lib/geo';
@@ -104,6 +105,7 @@ export default function HomeClient({ initialData }: { initialData: any }) {
   const [realCategories, setRealCategories] = useState<Category[]>(initialData.categories);
   const [realMovies, setRealMovies] = useState<Movie[]>(initialData.movies);
   const [realTouristPlaces, setRealTouristPlaces] = useState<TouristPlace[]>(initialData.touristPlaces);
+  const sortedTouristPlaces = useSortedTouristPlaces(realTouristPlaces);
   const [realBlogs, setRealBlogs] = useState<any[]>(initialData.blogs);
   const [featuredGroups, setFeaturedGroups] = useState<any[]>(initialData.featuredGroups ?? []);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -974,7 +976,7 @@ export default function HomeClient({ initialData }: { initialData: any }) {
             </Link>
           </div>
           <div className="scrollbar-hide flex max-w-full gap-3 overflow-x-auto pb-1 sm:grid sm:grid-cols-3 sm:gap-4 sm:overflow-visible">
-            {realTouristPlaces.slice(0, 6).map((place) => (
+            {sortedTouristPlaces.slice(0, 6).map((place) => (
               <Link
                 key={place.id}
                 href={`/tourist-places/${place.id}`}
@@ -1002,7 +1004,9 @@ export default function HomeClient({ initialData }: { initialData: any }) {
                       <Star size={11} className="fill-[#f59e0b]" />
                       <span className="text-[11px] font-semibold text-[#1e293b]">{place.rating}</span>
                     </div>
-                    <span className="text-[10px] text-[#94a3b8]">· {place.distance}</span>
+                    {place.distance && (
+                      <span className="text-[10px] text-[#94a3b8]">· {place.distance}</span>
+                    )}
                   </div>
                 </div>
               </Link>

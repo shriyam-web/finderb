@@ -14,6 +14,7 @@ import {
   MapPin,
   Rocket,
   Languages,
+  Newspaper,
 } from 'lucide-react';
 import { NewsArticle } from '@/lib/mockData';
 import { stripHtml } from '@/lib/stripHtml';
@@ -76,12 +77,22 @@ function parseCityFromLocation(location: string | null): string | null {
   return parts[parts.length - 1] ?? null;
 }
 
-function NewsThumbnail({ src, alt }: { src: string; alt: string }) {
-  const [imgSrc, setImgSrc] = useState(src);
+function NewsThumbnail({ src, alt }: { src: string | null; alt: string }) {
+  const [imgSrc, setImgSrc] = useState<string | null>(src);
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     setImgSrc(src);
+    setFailed(false);
   }, [src]);
+
+  if (!imgSrc || failed) {
+    return (
+      <div className="flex h-full w-full items-center justify-center bg-slate-100 text-slate-300">
+        <Newspaper size={22} aria-hidden />
+      </div>
+    );
+  }
 
   return (
     // eslint-disable-next-line @next/next/no-img-element
@@ -91,11 +102,7 @@ function NewsThumbnail({ src, alt }: { src: string; alt: string }) {
       loading="lazy"
       decoding="async"
       className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-      onError={() => {
-        setImgSrc(
-          'https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&q=80&w=400'
-        );
-      }}
+      onError={() => setFailed(true)}
     />
   );
 }
@@ -136,6 +143,7 @@ export default function NewsWidget() {
         const params = new URLSearchParams({
           category: slug,
           lang,
+          limit: String(MAX_NEWS_ITEMS),
         });
         if (slug === 'local') {
           if (localCity) params.set('city', localCity);

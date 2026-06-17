@@ -3,6 +3,7 @@ import { Inter, Outfit } from "next/font/google";
 import "./globals.css";
 import LayoutClient from "@/components/LayoutClient";
 import ServiceWorkerRegister from "@/components/pwa/ServiceWorkerRegister";
+import { LEGAL_COMPANY } from "@/lib/legalContent";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -108,7 +109,7 @@ const jsonLd = [
     ],
     "contactPoint": {
       "@type": "ContactPoint",
-      "telephone": "+91-000-0000000",
+      "telephone": LEGAL_COMPANY.phone,
       "contactType": "customer service",
       "areaServed": "IN",
       "availableLanguage": ["en", "hi"]

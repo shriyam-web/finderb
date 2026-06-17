@@ -1,5 +1,7 @@
 'use client';
 
+import { LEGAL_COMPANY } from '@/lib/legalContent';
+
 export default function PolicyPage() {
     return (
         <div className="min-h-screen flex flex-col bg-white overflow-hidden">
@@ -80,7 +82,7 @@ export default function PolicyPage() {
                                         <p><strong>Copyright Agent</strong></p>
                                         <p><strong>Email:</strong> copyright@finderb.com</p>
                                         <p><strong>Address:</strong> 123 Business Street, Tech City, Karnataka, India - 560001</p>
-                                        <p><strong>Phone:</strong> +91 1800-FINDERB-HELP</p>
+                                        <p><strong>Phone:</strong> {LEGAL_COMPANY.phoneDisplay}</p>
                                     </div>
                                 </div>
                             </div>

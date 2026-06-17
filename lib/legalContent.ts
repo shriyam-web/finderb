@@ -3,8 +3,8 @@ export const LEGAL_COMPANY = {
   brand: 'FinderB',
   website: 'https://finderb.com',
   email: 'support@finderb.com',
-  phone: '1800-000-0000',
-  phoneDisplay: '+91 1800-000-0000',
+  phone: '+919990222346',
+  phoneDisplay: '+91 9990222346',
   address: {
     line1: 'MAAGAA Connect Private Limited',
     line2: 'Noida, Uttar Pradesh',

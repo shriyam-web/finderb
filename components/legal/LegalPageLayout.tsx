@@ -76,7 +76,7 @@ export function LegalList({ items }: { items: string[] }) {
 
 export function LegalContactBox({
   email,
-  phone,
+  phone = LEGAL_COMPANY.phoneDisplay,
   note,
 }: {
   email?: string;

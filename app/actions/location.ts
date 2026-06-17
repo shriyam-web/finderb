@@ -25,7 +25,7 @@ async function expandShortGoogleMapsUrl(url: string): Promise<string> {
   }
 }
 
-async function geocodePlaceQuery(
+export async function geocodePlaceQuery(
   query: string
 ): Promise<{ latitude: number; longitude: number; placeName?: string } | null> {
   const googleKey = getGoogleMapsServerKeyOrFallback();

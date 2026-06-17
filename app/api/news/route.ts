@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Parser from 'rss-parser';
+import { fetchArticleFromUrl } from '@/lib/extractArticle';
 import {
   cleanNewsSnippet,
   extractImageFromRssItem,
   getCategoryLabel,
   getCategoryMeta,
-  getFallbackImages,
   getFeedUrlsForCategory,
   getGoogleNewsUrl,
   getLocalFeedUrls,
@@ -25,7 +25,9 @@ const parser = new Parser({
     item: [
       ['media:content', 'media:content'],
       ['media:thumbnail', 'media:thumbnail'],
+      ['media:group', 'media:group'],
       ['content:encoded', 'content:encoded'],
+      ['itunes:image', 'itunes:image'],
     ],
   },
   headers: {
@@ -63,6 +65,28 @@ async function fetchCategoryFeed(
   return null;
 }
 
+async function resolveArticleImage(
+  link: string | undefined,
+  rawItem: Record<string, unknown>,
+  title?: string
+): Promise<string | null> {
+  const fromFeed = extractImageFromRssItem(rawItem);
+  if (fromFeed) return fromFeed;
+
+  if (!link) return null;
+
+  try {
+    const article = await fetchArticleFromUrl(link, title || '');
+    if (article?.image) {
+      return article.image;
+    }
+  } catch (error) {
+    console.error('News article image fetch failed:', link, error);
+  }
+
+  return null;
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -72,11 +96,11 @@ export async function GET(request: NextRequest) {
     const state = searchParams.get('state')?.trim() || null;
     const localLocation: LocalNewsLocation = { city, state };
     const meta = getCategoryMeta(slug);
-    const fallbacks = getFallbackImages(slug);
     const dateLocale = lang === 'en' ? 'en-IN' : 'hi-IN';
     const defaultTitle = lang === 'en' ? 'News' : 'समाचार';
     const defaultDate = lang === 'en' ? 'Recently' : 'हाल ही में';
     const defaultSource = lang === 'en' ? 'News' : 'समाचार';
+    const limit = Math.min(Number(searchParams.get('limit') || 12), 24);
 
     const feed = await fetchCategoryFeed(slug, lang, slug === 'local' ? localLocation : undefined);
     if (!feed?.items?.length) {
@@ -92,40 +116,40 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const items = feed.items.slice(0, 6);
-    const articles = items.map((item, index) => {
-      const rawItem = item as unknown as Record<string, unknown>;
-      const extractedImage = extractImageFromRssItem(rawItem);
-      const image = extractedImage || fallbacks[index % fallbacks.length];
+    const items = feed.items.slice(0, limit);
+    const articles = await Promise.all(
+      items.map(async (item, index) => {
+        const rawItem = item as unknown as Record<string, unknown>;
+        const image = await resolveArticleImage(item.link, rawItem, item.title);
+        const snippet = cleanNewsSnippet(
+          item.contentSnippet || item.content || item['content:encoded'],
+          item.title
+        );
 
-      const snippet = cleanNewsSnippet(
-        item.contentSnippet || item.content || item['content:encoded'],
-        item.title
-      );
-
-      return {
-        id: String(item.guid || item.link || `${lang}-${slug}-${index}`),
-        title: item.title || defaultTitle,
-        link: item.link,
-        excerpt: snippet,
-        date: item.pubDate
-          ? new Date(item.pubDate).toLocaleDateString(dateLocale, {
-              day: '2-digit',
-              month: 'short',
-              year: 'numeric',
-            })
-          : defaultDate,
-        category: getCategoryLabel(meta, lang),
-        categorySlug: slug,
-        source:
-          (item as { creator?: string }).creator ||
-          (item as { author?: string }).author ||
-          feed.title?.split('|')[0]?.trim() ||
-          defaultSource,
-        image,
-        imageFromFeed: Boolean(extractedImage),
-      };
-    });
+        return {
+          id: String(item.guid || item.link || `${lang}-${slug}-${index}`),
+          title: item.title || defaultTitle,
+          link: item.link,
+          excerpt: snippet,
+          date: item.pubDate
+            ? new Date(item.pubDate).toLocaleDateString(dateLocale, {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric',
+              })
+            : defaultDate,
+          category: getCategoryLabel(meta, lang),
+          categorySlug: slug,
+          source:
+            (item as { creator?: string }).creator ||
+            (item as { author?: string }).author ||
+            feed.title?.split('|')[0]?.trim() ||
+            defaultSource,
+          image: image || null,
+          imageFromFeed: Boolean(image),
+        };
+      })
+    );
 
     return NextResponse.json({
       success: true,

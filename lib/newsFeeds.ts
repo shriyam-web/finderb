@@ -303,28 +303,62 @@ function pickMediaUrl(value: unknown): string | null {
   return null;
 }
 
+function normalizeNewsImageUrl(url: string): string | null {
+  if (!url?.trim()) return null;
+  let value = url.trim().replace(/&amp;/g, '&');
+  if (value.startsWith('//')) value = `https:${value}`;
+  if (!value.startsWith('http')) return null;
+  if (value.includes('pixel') || value.includes('1x1') || value.includes('spacer')) return null;
+  return value;
+}
+
 export function extractImageFromRssItem(item: Record<string, unknown>): string | null {
   const enclosure = item.enclosure as { url?: string; type?: string } | undefined;
-  if (enclosure?.url && (!enclosure.type || enclosure.type.startsWith('image'))) {
-    return enclosure.url;
+  if (enclosure?.url) {
+    const type = enclosure.type?.toLowerCase() ?? '';
+    if (!type || type.startsWith('image') || type.includes('jpeg') || type.includes('png')) {
+      const normalized = normalizeNewsImageUrl(enclosure.url);
+      if (normalized) return normalized;
+    }
   }
 
+  const mediaContent = item['media:content'];
+  const mediaList = Array.isArray(mediaContent) ? mediaContent : mediaContent ? [mediaContent] : [];
+
   const mediaCandidates = [
-    item['media:content'],
+    ...mediaList,
     item['media:thumbnail'],
+    item['media:group'],
     item.mediaContent,
     item.mediaThumbnail,
     item.image,
+    item.thumbnail,
+    (item as { itunes?: { image?: string } }).itunes?.image,
   ];
 
   for (const candidate of mediaCandidates) {
     const url = pickMediaUrl(candidate);
-    if (url) return url;
+    const normalized = url ? normalizeNewsImageUrl(url) : null;
+    if (normalized) return normalized;
   }
 
-  const html = String(item.content || item['content:encoded'] || item.summary || '');
-  const imgMatch = html.match(/<img[^>]+src=["']([^"']+)["']/i);
-  if (imgMatch?.[1]) return imgMatch[1];
+  const html = String(item.content || item['content:encoded'] || item.summary || item.description || '');
+
+  const imgPatterns = [
+    /<img[^>]+src=["']([^"']+)["']/i,
+    /<img[^>]+data-src=["']([^"']+)["']/i,
+    /<img[^>]+srcset=["']([^"'\s,]+)/i,
+    /property=["']og:image["'][^>]+content=["']([^"']+)["']/i,
+    /content=["']([^"']+)["'][^>]+property=["']og:image["']/i,
+  ];
+
+  for (const pattern of imgPatterns) {
+    const match = html.match(pattern);
+    if (match?.[1]) {
+      const normalized = normalizeNewsImageUrl(match[1]);
+      if (normalized) return normalized;
+    }
+  }
 
   return null;
 }

@@ -12,6 +12,7 @@ import {
   X,
   ChevronRight,
   Navigation,
+  ArrowLeft,
 } from 'lucide-react';
 import JobApplicationForm from './JobApplicationForm';
 import { cities } from '@/lib/mockData';
@@ -134,40 +135,46 @@ export default function JobPortalClient({ initialJobs }: { initialJobs: Job[] })
   };
 
   return (
-    <div className="min-h-screen bg-[#fafaf9] pb-16 font-sans">
-      <div className="border-b border-neutral-200 bg-white">
-        <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:py-10">
-          <p className="text-sm text-neutral-500">FinderB Jobs</p>
-          <h1 className="mt-1 font-[family-name:var(--font-outfit)] text-3xl font-semibold tracking-tight text-neutral-900 sm:text-4xl">
-            Open roles near you
+    <div className="min-h-screen bg-[#f8fafc] pb-24 lg:pb-12 font-sans">
+      <div className="border-b border-gray-100 bg-white pt-[4.25rem] sm:pt-24">
+        <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
+          <Link
+            href="/"
+            className="mb-5 inline-flex items-center gap-2 text-sm font-medium text-[#64748b] transition-colors hover:text-[#2563eb]"
+          >
+            <ArrowLeft size={16} />
+            Back to home
+          </Link>
+          <h1 className="text-2xl font-bold tracking-tight text-[#1e293b] sm:text-3xl">
+            FinderB <span className="text-[#2563eb]">Jobs</span>
           </h1>
-          <p className="mt-2 max-w-xl text-[15px] leading-relaxed text-neutral-600">
+          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[#64748b] sm:text-base">
             Positions posted directly by local businesses on FinderB. Always verify the employer
             before sharing personal details.
           </p>
         </div>
       </div>
 
-      <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6">
-        <div className="rounded-lg border border-neutral-200 bg-white p-4 shadow-sm sm:p-5">
+      <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-[0_1px_4px_rgba(15,23,42,0.06)] sm:p-5">
           <div className="flex flex-col gap-3 sm:flex-row">
             <div className="relative flex-1">
               <Search
                 size={16}
-                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400"
+                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#94a3b8]"
               />
               <input
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Job title or company"
-                className="w-full rounded-md border border-neutral-300 py-2.5 pl-9 pr-3 text-sm text-neutral-900 outline-none placeholder:text-neutral-400 focus:border-neutral-500"
+                className="w-full rounded-md border border-gray-200 py-2.5 pl-9 pr-3 text-sm text-[#1e293b] outline-none placeholder:text-[#94a3b8] focus:border-[#2563eb]"
               />
             </div>
             <div ref={locationRef} className="relative flex-1">
               <MapPin
                 size={16}
-                className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 text-neutral-400"
+                className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 text-[#94a3b8]"
               />
               <input
                 type="text"
@@ -178,19 +185,19 @@ export default function JobPortalClient({ initialJobs }: { initialJobs: Job[] })
                 }}
                 onFocus={() => setShowCitySuggestions(true)}
                 placeholder="City or area"
-                className="w-full rounded-md border border-neutral-300 py-2.5 pl-9 pr-3 text-sm text-neutral-900 outline-none placeholder:text-neutral-400 focus:border-neutral-500"
+                className="w-full rounded-md border border-gray-200 py-2.5 pl-9 pr-3 text-sm text-[#1e293b] outline-none placeholder:text-[#94a3b8] focus:border-[#2563eb]"
               />
               {showCitySuggestions && (
-                <div className="absolute top-[calc(100%+4px)] z-30 max-h-56 w-full overflow-y-auto rounded-md border border-neutral-200 bg-white py-1 shadow-lg">
+                <div className="absolute top-[calc(100%+4px)] z-30 max-h-56 w-full overflow-y-auto rounded-md border border-gray-100 bg-white py-1 shadow-lg">
                   <button
                     type="button"
                     onClick={() => {
                       handleGetLocation();
                       setShowCitySuggestions(false);
                     }}
-                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-neutral-800 hover:bg-neutral-50"
+                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-[#1e293b] hover:bg-slate-50"
                   >
-                    <Navigation size={14} className="text-neutral-500" />
+                    <Navigation size={14} className="text-[#64748b]" />
                     Use my location
                   </button>
                   {cities
@@ -204,7 +211,7 @@ export default function JobPortalClient({ initialJobs }: { initialJobs: Job[] })
                           setLocationFilter(city.name);
                           setShowCitySuggestions(false);
                         }}
-                        className="w-full px-3 py-2 text-left text-sm text-neutral-700 hover:bg-neutral-50"
+                        className="w-full px-3 py-2 text-left text-sm text-[#64748b] hover:bg-slate-50"
                       >
                         {city.name}
                       </button>
@@ -222,8 +229,8 @@ export default function JobPortalClient({ initialJobs }: { initialJobs: Job[] })
                 onClick={() => setTypeFilter(type)}
                 className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
                   typeFilter === type
-                    ? 'border-neutral-900 bg-neutral-900 text-white'
-                    : 'border-neutral-300 bg-white text-neutral-600 hover:border-neutral-400'
+                    ? 'border-[#2563eb] bg-[#2563eb] text-white'
+                    : 'border-gray-200 bg-white text-[#64748b] hover:border-[#2563eb]/30 hover:text-[#2563eb]'
                 }`}
               >
                 {type}
@@ -233,7 +240,7 @@ export default function JobPortalClient({ initialJobs }: { initialJobs: Job[] })
               <button
                 type="button"
                 onClick={clearFilters}
-                className="ml-1 text-xs font-medium text-neutral-500 underline underline-offset-2 hover:text-neutral-800"
+                className="ml-1 text-xs font-medium text-[#64748b] underline underline-offset-2 hover:text-[#2563eb]"
               >
                 Clear
               </button>
@@ -241,8 +248,8 @@ export default function JobPortalClient({ initialJobs }: { initialJobs: Job[] })
           </div>
         </div>
 
-        <p className="mt-5 text-sm text-neutral-500">
-          <span className="font-medium text-neutral-800">{filteredJobs.length}</span> open{' '}
+        <p className="mt-5 text-sm text-[#64748b]">
+          <span className="font-semibold text-[#1e293b]">{filteredJobs.length}</span> open{' '}
           {filteredJobs.length === 1 ? 'role' : 'roles'}
           {sortByDistance ? ' · sorted by distance' : ''}
         </p>
@@ -251,10 +258,10 @@ export default function JobPortalClient({ initialJobs }: { initialJobs: Job[] })
           {filteredJobs.map((job) => (
             <li
               key={job.id}
-              className="rounded-lg border border-neutral-200 bg-white p-4 transition-colors hover:border-neutral-300 sm:p-5"
+              className="rounded-xl border border-gray-100 bg-white p-4 shadow-[0_1px_4px_rgba(15,23,42,0.06)] transition-all hover:border-[#2563eb]/20 hover:shadow-md sm:p-5"
             >
               <div className="flex gap-4">
-                <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-md border border-neutral-100 bg-neutral-50">
+                <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-md border border-gray-100 bg-slate-50">
                   {job.business.profilePictureUrl ? (
                     <Image
                       src={job.business.profilePictureUrl}
@@ -263,7 +270,7 @@ export default function JobPortalClient({ initialJobs }: { initialJobs: Job[] })
                       className="object-cover"
                     />
                   ) : (
-                    <div className="flex h-full w-full items-center justify-center text-neutral-400">
+                    <div className="flex h-full w-full items-center justify-center text-[#94a3b8]">
                       <Building2 size={18} />
                     </div>
                   )}
@@ -272,25 +279,25 @@ export default function JobPortalClient({ initialJobs }: { initialJobs: Job[] })
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <div>
-                      <h2 className="font-[family-name:var(--font-outfit)] text-lg font-semibold text-neutral-900">
+                      <h2 className="text-lg font-bold text-[#1e293b]">
                         {job.title}
                       </h2>
                       <Link
                         href={`/business/${job.business.id}`}
-                        className="mt-0.5 inline-flex items-center gap-1 text-sm text-neutral-600 hover:text-neutral-900 hover:underline"
+                        className="mt-0.5 inline-flex items-center gap-1 text-sm text-[#64748b] hover:text-[#2563eb] hover:underline"
                       >
                         {job.business.businessName}
                         {job.business.isVerified && (
-                          <span className="text-[10px] font-medium text-neutral-400">· Verified</span>
+                          <span className="text-[10px] font-medium text-[#94a3b8]">· Verified</span>
                         )}
                       </Link>
                     </div>
-                    <span className="shrink-0 rounded border border-neutral-200 px-2 py-0.5 text-[11px] font-medium text-neutral-600">
+                    <span className="shrink-0 rounded-full border border-gray-200 bg-slate-50 px-2.5 py-0.5 text-[11px] font-medium text-[#64748b]">
                       {job.type}
                     </span>
                   </div>
 
-                  <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-neutral-500">
+                  <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-[#64748b]">
                     <span className="inline-flex items-center gap-1">
                       <MapPin size={12} />
                       {job.location}
@@ -304,7 +311,7 @@ export default function JobPortalClient({ initialJobs }: { initialJobs: Job[] })
                     <span suppressHydrationWarning>{timeAgo(job.created_at)}</span>
                   </div>
 
-                  <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-neutral-600">
+                  <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-[#64748b]">
                     {job.description}
                   </p>
 
@@ -314,7 +321,7 @@ export default function JobPortalClient({ initialJobs }: { initialJobs: Job[] })
                       setSelectedJob(job);
                       setIsFormOpen(true);
                     }}
-                    className="mt-3 inline-flex items-center gap-1 rounded-md bg-neutral-900 px-4 py-2 text-xs font-medium text-white transition-colors hover:bg-neutral-800"
+                    className="mt-3 inline-flex items-center gap-1 rounded-full bg-[#2563eb] px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-[#1d4ed8]"
                   >
                     Apply
                     <ChevronRight size={14} />
@@ -326,17 +333,17 @@ export default function JobPortalClient({ initialJobs }: { initialJobs: Job[] })
         </ul>
 
         {filteredJobs.length === 0 && (
-          <div className="mt-8 rounded-lg border border-dashed border-neutral-300 bg-white px-6 py-14 text-center">
-            <Briefcase size={28} className="mx-auto text-neutral-300" />
-            <p className="mt-3 font-medium text-neutral-800">No matching jobs</p>
-            <p className="mt-1 text-sm text-neutral-500">Try a different city or job type.</p>
+          <div className="mt-8 rounded-xl border border-gray-100 bg-white px-6 py-14 text-center">
+            <Briefcase size={28} className="mx-auto text-[#cbd5e1]" />
+            <p className="mt-3 text-base font-semibold text-[#1e293b]">No matching jobs</p>
+            <p className="mt-1 text-sm text-[#64748b]">Try a different city or job type.</p>
           </div>
         )}
 
-        <p className="mt-10 border-t border-neutral-200 pt-6 text-xs leading-relaxed text-neutral-500">
+        <p className="mt-10 border-t border-gray-100 pt-6 text-xs leading-relaxed text-[#64748b]">
           FinderB lists jobs posted by merchants on our platform. We do not guarantee hiring outcomes.
           Never pay for a job offer, interview slot, or training. Report suspicious listings to{' '}
-          <a href="mailto:support@finderb.com" className="underline hover:text-neutral-800">
+          <a href="mailto:support@finderb.com" className="text-[#2563eb] hover:underline">
             support@finderb.com
           </a>
           .

@@ -404,7 +404,7 @@ export interface NewsArticle {
   id: string;
   title: string;
   excerpt: string;
-  image: string;
+  image: string | null;
   date: string;
   category: string;
   source?: string;
