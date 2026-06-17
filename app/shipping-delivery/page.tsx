@@ -81,7 +81,7 @@ export default function ShippingDeliveryPage() {
 
       <LegalSection title="7. Contact Us">
         <p>For questions about service delivery or activation, contact:</p>
-        <LegalContactBox email={LEGAL_COMPANY.email} phone={LEGAL_COMPANY.phoneDisplay} />
+        <LegalContactBox email={LEGAL_COMPANY.email} />
       </LegalSection>
     </LegalPageLayout>
   );

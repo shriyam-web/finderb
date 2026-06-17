@@ -122,14 +122,13 @@ export default function PrivacyPage() {
         </p>
         <LegalContactBox
           email={LEGAL_COMPANY.grievanceOfficer.email}
-          phone={LEGAL_COMPANY.phoneDisplay}
           note={`We aim to respond to privacy-related grievances ${LEGAL_COMPANY.grievanceOfficer.responseTime}.`}
         />
       </LegalSection>
 
       <LegalSection title="11. Contact Us">
         <p>For privacy-related questions, contact us at:</p>
-        <LegalContactBox email={LEGAL_COMPANY.privacyEmail} phone={LEGAL_COMPANY.phoneDisplay} />
+        <LegalContactBox email={LEGAL_COMPANY.email} />
       </LegalSection>
     </LegalPageLayout>
   );

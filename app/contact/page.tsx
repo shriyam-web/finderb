@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Mail, Phone, MapPin, Clock, CreditCard, MessageSquare } from 'lucide-react';
+import { Mail, Phone, MapPin, Clock, MessageSquare } from 'lucide-react';
 import { LEGAL_COMPANY, LEGAL_FOOTER_LINKS } from '@/lib/legalContent';
 
 export default function ContactPage() {
@@ -37,15 +37,9 @@ export default function ContactPage() {
               <div className="space-y-6">
                 <ContactItem
                   icon={Mail}
-                  title="General Support"
+                  title="Email Support"
                   lines={[LEGAL_COMPANY.email, 'We respond within 1–2 business days']}
                   href={`mailto:${LEGAL_COMPANY.email}`}
-                />
-                <ContactItem
-                  icon={CreditCard}
-                  title="Payments & Refunds"
-                  lines={[LEGAL_COMPANY.refundsEmail, 'Include your Razorpay payment ID']}
-                  href={`mailto:${LEGAL_COMPANY.refundsEmail}`}
                 />
                 <ContactItem
                   icon={Phone}

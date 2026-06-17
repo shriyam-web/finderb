@@ -137,7 +137,7 @@ export default function TermsPage() {
 
       <LegalSection title="12. Governing Law">
         <p>
-          These Terms are governed by the laws of India. Courts in Bangalore, Karnataka shall have
+          These Terms are governed by the laws of India. Courts in Noida, Uttar Pradesh shall have
           exclusive jurisdiction over disputes arising from these Terms, subject to applicable
           consumer protection laws.
         </p>
@@ -145,7 +145,7 @@ export default function TermsPage() {
 
       <LegalSection title="13. Contact Information">
         <p>For questions about these Terms and Conditions, contact:</p>
-        <LegalContactBox email={LEGAL_COMPANY.legalEmail} phone={LEGAL_COMPANY.phoneDisplay} />
+        <LegalContactBox email={LEGAL_COMPANY.email} />
       </LegalSection>
     </LegalPageLayout>
   );

@@ -39,7 +39,7 @@ export default function CancellationRefundPage() {
         <p>Merchants may cancel auto-renewal or stop using a paid plan by:</p>
         <LegalList
           items={[
-            'Contacting support at support@finderb.com before the next billing date',
+            `Contacting support at ${LEGAL_COMPANY.email} before the next billing date`,
             'Requesting cancellation through the merchant dashboard, where available',
           ]}
         />
@@ -68,7 +68,7 @@ export default function CancellationRefundPage() {
       </LegalSection>
 
       <LegalSection title="5. Refund Process">
-        <p>To request a refund, email {LEGAL_COMPANY.refundsEmail} with:</p>
+        <p>To request a refund, email {LEGAL_COMPANY.email} with:</p>
         <LegalList
           items={[
             'Registered business name and account email',
@@ -88,7 +88,7 @@ export default function CancellationRefundPage() {
       <LegalSection title="6. Chargebacks & Disputes">
         <p>
           If you dispute a charge with your bank or card issuer, please also notify us at{' '}
-          {LEGAL_COMPANY.refundsEmail} so we can investigate promptly. Unfounded chargebacks for
+          {LEGAL_COMPANY.email} so we can investigate promptly. Unfounded chargebacks for
           services already delivered may result in account suspension.
         </p>
       </LegalSection>
@@ -104,8 +104,7 @@ export default function CancellationRefundPage() {
       <LegalSection title="8. Contact for Refunds">
         <p>For cancellation or refund assistance, contact:</p>
         <LegalContactBox
-          email={LEGAL_COMPANY.refundsEmail}
-          phone={LEGAL_COMPANY.phoneDisplay}
+          email={LEGAL_COMPANY.email}
           note="Please include your Razorpay payment ID for faster resolution."
         />
       </LegalSection>

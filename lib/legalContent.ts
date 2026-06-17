@@ -3,16 +3,13 @@ export const LEGAL_COMPANY = {
   brand: 'FinderB',
   website: 'https://finderb.com',
   email: 'support@finderb.com',
-  privacyEmail: 'privacy@finderb.com',
-  legalEmail: 'legal@finderb.com',
-  refundsEmail: 'refunds@finderb.com',
   phone: '1800-000-0000',
   phoneDisplay: '+91 1800-000-0000',
   address: {
     line1: 'MAAGAA Connect Private Limited',
-    line2: 'Bangalore, Karnataka',
+    line2: 'Noida, Uttar Pradesh',
     country: 'India',
-    pincode: '560001',
+    pincode: '201301',
   },
   businessHours: {
     weekdays: 'Monday – Friday: 9:00 AM – 6:00 PM IST',
