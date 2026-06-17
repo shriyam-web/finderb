@@ -1,7 +1,15 @@
-import { lookup } from 'dns/promises';
-import { isIP } from 'net';
-
 const BLOCKED_HOSTNAMES = new Set(['localhost', 'metadata.google.internal']);
+
+const IPV4_RE =
+  /^(?:(?:25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|1?\d?\d)$/;
+
+function isIpv4(ip: string): boolean {
+  return IPV4_RE.test(ip);
+}
+
+function isIpv6(ip: string): boolean {
+  return ip.includes(':');
+}
 
 function isPrivateIpv4(ip: string): boolean {
   const parts = ip.split('.').map(Number);
@@ -30,9 +38,8 @@ function isPrivateIpv6(ip: string): boolean {
 }
 
 function isBlockedIp(ip: string): boolean {
-  const version = isIP(ip);
-  if (version === 4) return isPrivateIpv4(ip);
-  if (version === 6) return isPrivateIpv6(ip);
+  if (isIpv4(ip)) return isPrivateIpv4(ip);
+  if (isIpv6(ip)) return isPrivateIpv6(ip);
   return true;
 }
 
@@ -42,6 +49,7 @@ function isAllowedPort(port: string | number | null | undefined): boolean {
   return numeric === 80 || numeric === 443;
 }
 
+/** Client-safe URL checks (no DNS lookup). */
 export function isSafeExternalUrl(url: string): boolean {
   try {
     const parsed = new URL(url);
@@ -59,7 +67,7 @@ export function isSafeExternalUrl(url: string): boolean {
       return false;
     }
 
-    if (isIP(hostname)) {
+    if (isIpv4(hostname) || isIpv6(hostname)) {
       return !isBlockedIp(hostname);
     }
 
@@ -73,20 +81,6 @@ export function isSafeExternalUrl(url: string): boolean {
   }
 }
 
-/** Resolve hostname and reject if any address is private (DNS rebinding mitigation). */
-export async function assertResolvablePublicUrl(url: string): Promise<boolean> {
-  if (!isSafeExternalUrl(url)) return false;
-
-  try {
-    const { hostname } = new URL(url);
-
-    if (isIP(hostname)) {
-      return !isBlockedIp(hostname);
-    }
-
-    const records = await lookup(hostname, { all: true });
-    return records.every((record) => !isBlockedIp(record.address));
-  } catch {
-    return false;
-  }
+export function isBlockedIpAddress(ip: string): boolean {
+  return isBlockedIp(ip);
 }

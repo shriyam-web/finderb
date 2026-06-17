@@ -1,6 +1,6 @@
 import { stripHtml, decodeHtmlEntities } from '@/lib/stripHtml';
 import { pickBestNewsImage } from '@/lib/newsImage';
-import { assertResolvablePublicUrl } from '@/lib/security/ssrf';
+import { assertResolvablePublicUrl } from '@/lib/security/ssrf.server';
 import { sanitizeRichHtml } from '@/lib/security/sanitizeHtml';
 
 const BROWSER_UA =

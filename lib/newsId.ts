@@ -1,3 +1,5 @@
+import { isSafeExternalUrl } from '@/lib/security/urlValidation';
+
 function toBase64Url(value: string): string {
   const base64 =
     typeof Buffer !== 'undefined'
@@ -28,8 +30,6 @@ export function encodeNewsArticleId(url: string): string {
 export function decodeNewsArticleId(id: string): string {
   return fromBase64Url(id);
 }
-
-import { isSafeExternalUrl } from '@/lib/security/ssrf';
 
 export function isValidNewsUrl(url: string): boolean {
   return isSafeExternalUrl(url);
