@@ -15,6 +15,7 @@ import {
 } from '@/lib/emailAccountLookup';
 import { parseCoordinate } from '@/lib/geo';
 import { formatMerchantName } from '@/lib/formatMerchantName';
+import { revalidateSitemap } from '@/lib/sitemapData';
 
 function parseBusinessServices(business: {
   serviceCategory?: string | null;
@@ -202,6 +203,7 @@ export async function registerBusiness(formData: any) {
     });
 
     revalidatePath('/business');
+    revalidateSitemap();
     return { success: true, business };
   } catch (error: any) {
     const duration = Date.now() - startTime;
@@ -554,6 +556,7 @@ export async function updateBusinessProfile(id: string, profileData: any) {
 
     revalidatePath(`/business/dashboard`);
     revalidatePath(`/business/${id}`);
+    revalidateSitemap();
     return { success: true, business: mapBusinessRecord(business) };
   } catch (error: any) {
     const errorMessage = handleError(error, 'Profile Update');
