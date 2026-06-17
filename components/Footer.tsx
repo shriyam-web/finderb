@@ -153,7 +153,7 @@ function SocialButton({ label, href, icon, brandClass }: (typeof FOOTER_SOCIAL_L
 
 function MadeInIndiaBadge() {
   return (
-    <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[8px] font-medium text-slate-600">
+    <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2 py-0.5 font-medium text-inherit">
       <IndianFlagIcon className="h-2.5 w-[15px] shrink-0 rounded-[2px] ring-1 ring-black/5" />
       Made in India
     </span>
@@ -406,17 +406,17 @@ export default function Footer() {
         </div>
       </div>
 
-      <div className="border-t border-slate-200 bg-slate-50/50">
-        <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-6 sm:px-6 lg:px-8">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
-              <p className="text-sm text-slate-400">
+      <div className="border-t border-slate-200 bg-slate-50/50 text-[8px] leading-snug text-slate-400">
+        <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+              <p>
                 © {new Date().getFullYear()} {LEGAL_COMPANY.name}. {LEGAL_COMPANY.brand} is a brand
                 of {LEGAL_COMPANY.name}.
               </p>
               <MadeInIndiaBadge />
             </div>
-            <nav className="flex flex-wrap gap-x-5 gap-y-1 text-sm text-slate-400" aria-label="Legal">
+            <nav className="flex flex-wrap gap-x-4 gap-y-1" aria-label="Legal">
             <Link href="/privacy" className="hover:text-slate-600">
               Privacy Policy
             </Link>
