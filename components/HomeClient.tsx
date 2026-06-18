@@ -8,7 +8,6 @@ import NativeAppsComingSoon from '@/components/NativeAppsComingSoon';
 import MerchantListingRating from '@/components/business/MerchantListingRating';
 import { VerifiedNameTick } from '@/components/business/VerifiedMark';
 import HomeHero from '@/components/HomeHero';
-import HomeQuickLinks from '@/components/HomeQuickLinks';
 import SubcategoryScrollRow from '@/components/SubcategoryScrollRow';
 import NewsWidget from '@/components/NewsWidget';
 import {
@@ -710,8 +709,6 @@ export default function HomeClient({ initialData }: { initialData: any }) {
             voiceActive={voiceActive}
             searchHint={searchHint}
           />
-
-          <HomeQuickLinks />
 
               <div className="mx-auto mt-4 hidden max-w-[1280px] px-8 lg:block">
                 {/* Popular Categories — desktop only (mobile uses MobileHome) */}
