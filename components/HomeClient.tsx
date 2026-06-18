@@ -129,6 +129,10 @@ export default function HomeClient({ initialData }: { initialData: any }) {
   const voiceSessionRef = useRef(0);
   const voiceSilenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const voiceSearchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const voiceActiveRef = useRef(false);
+  const voiceStartedAtRef = useRef(0);
+  const cancelVoiceSessionRef = useRef<() => void>(() => {});
+  const prevTabFromUrlRef = useRef<string | null | undefined>(undefined);
   const userCoords = useUserCoords();
   const { effectiveSearchLocation } = useUserLocationState();
 
@@ -176,7 +180,20 @@ export default function HomeClient({ initialData }: { initialData: any }) {
     setVoicePhase('speak-now');
     setVoiceError(null);
     setVoiceActive(false);
+    voiceActiveRef.current = false;
   }, [clearVoiceTimers, stopRecognitionEngine]);
+
+  cancelVoiceSessionRef.current = cancelVoiceSession;
+
+  useEffect(() => {
+    voiceActiveRef.current = voiceActive;
+  }, [voiceActive]);
+
+  useEffect(() => {
+    return () => {
+      cancelVoiceSessionRef.current();
+    };
+  }, []);
 
   const navigateToSearch = useCallback(
     (q: string) => {
@@ -227,9 +244,8 @@ export default function HomeClient({ initialData }: { initialData: any }) {
       clearVoiceTimers();
 
       if (q.length < 2) {
-        setVoiceError('No speech detected. Tap the mic and try again.');
+        setVoiceError('No speech detected. Try speaking again.');
         setVoicePhase('speak-now');
-        setVoiceActive(false);
         return;
       }
 
@@ -264,13 +280,19 @@ export default function HomeClient({ initialData }: { initialData: any }) {
     [beginPreviewAndSearch]
   );
 
+  const resetVoiceEngine = useCallback(() => {
+    clearVoiceTimers();
+    stopRecognitionEngine(true);
+  }, [clearVoiceTimers, stopRecognitionEngine]);
+
   const startVoiceSession = useCallback(() => {
     if (!getSpeechRecognitionCtor()) {
-      alert('Voice search is not supported in your browser. Try Chrome or Edge on mobile.');
+      alert('Voice search is not supported in your browser. Try Chrome or Edge.');
       return;
     }
 
-    cancelVoiceSession();
+    resetVoiceEngine();
+    voiceSessionRef.current += 1;
     const session = voiceSessionRef.current;
 
     voiceLockedRef.current = false;
@@ -282,6 +304,8 @@ export default function HomeClient({ initialData }: { initialData: any }) {
     setVoiceError(null);
     setVoicePhase('speak-now');
     setVoiceActive(true);
+    voiceActiveRef.current = true;
+    voiceStartedAtRef.current = Date.now();
 
     const recognition = createVoiceRecognition({
       lang: 'en-IN',
@@ -301,25 +325,66 @@ export default function HomeClient({ initialData }: { initialData: any }) {
       onError: (code) => {
         if (session !== voiceSessionRef.current) return;
         if (code === 'aborted') return;
+
+        const elapsed = Date.now() - voiceStartedAtRef.current;
+        const hasTranscript = voiceTranscriptRef.current.trim().length >= 2;
+
+        if (code === 'no-speech' && !hasTranscript && elapsed < 1500) {
+          window.setTimeout(() => {
+            if (session !== voiceSessionRef.current) return;
+            if (voiceLockedRef.current) return;
+            if (!voiceActiveRef.current) return;
+            try {
+              recognition.start();
+            } catch {
+              /* ignore — onEnd or a later error will handle it */
+            }
+          }, 120);
+          return;
+        }
+
         clearVoiceTimers();
         stopRecognitionEngine(true);
+
         if (code === 'not-allowed') {
           setVoiceError('Microphone permission denied. Allow mic access in browser settings.');
-        } else if (code === 'no-speech') {
-          setVoiceError('No speech detected. Tap the mic and try again.');
+          setVoiceActive(false);
+          voiceActiveRef.current = false;
+          setVoicePhase('speak-now');
+          return;
+        }
+
+        if (code === 'no-speech') {
+          setVoiceError('No speech detected. Try speaking again.');
         } else {
           setVoiceError('Could not hear you. Please try again.');
         }
-        setVoiceActive(false);
         setVoicePhase('speak-now');
       },
       onEnd: () => {
         if (session !== voiceSessionRef.current) return;
-        recognitionRef.current = null;
+        if (voiceLockedRef.current) return;
+        if (!voiceActiveRef.current) return;
+
+        recognitionRef.current = recognition;
+        window.setTimeout(() => {
+          if (session !== voiceSessionRef.current) return;
+          if (voiceLockedRef.current) return;
+          if (!voiceActiveRef.current) return;
+          try {
+            recognition.start();
+          } catch {
+            recognitionRef.current = null;
+          }
+        }, 80);
       },
     });
 
-    if (!recognition) return;
+    if (!recognition) {
+      setVoiceActive(false);
+      voiceActiveRef.current = false;
+      return;
+    }
 
     recognitionRef.current = recognition;
     recognition.onstart = () => {
@@ -328,28 +393,31 @@ export default function HomeClient({ initialData }: { initialData: any }) {
       setVoiceError(null);
     };
 
-    try {
-      recognition.start();
-    } catch {
-      setVoiceError('Unable to start microphone. Tap the mic to try again.');
-      cancelVoiceSession();
-    }
+    window.setTimeout(() => {
+      if (session !== voiceSessionRef.current) return;
+      try {
+        recognition.start();
+      } catch {
+        setVoiceError('Unable to start microphone. Tap the mic to try again.');
+        setVoiceActive(false);
+        voiceActiveRef.current = false;
+        stopRecognitionEngine(true);
+      }
+    }, 50);
   }, [
-    cancelVoiceSession,
+    resetVoiceEngine,
     scheduleSilenceDetection,
     clearVoiceTimers,
     stopRecognitionEngine,
   ]);
 
   const toggleVoiceSearch = useCallback(() => {
-    if (voiceActive) {
+    if (voiceActiveRef.current) {
       cancelVoiceSession();
       return;
     }
     startVoiceSession();
-  }, [voiceActive, cancelVoiceSession, startVoiceSession]);
-
-  useEffect(() => () => cancelVoiceSession(), [cancelVoiceSession]);
+  }, [cancelVoiceSession, startVoiceSession]);
 
   const aiLoadStages = [
     { threshold: 15, label: 'Initializing assistant' },
@@ -412,18 +480,21 @@ export default function HomeClient({ initialData }: { initialData: any }) {
   }, []);
 
   useEffect(() => {
-    const onAi =
-      activeTabFromUrl === 'ai' || activeTabFromUrl === 'finderb-ai';
+    const tab = activeTabFromUrl;
+    const onAi = tab === 'ai' || tab === 'finderb-ai';
+
+    if (prevTabFromUrlRef.current !== undefined && prevTabFromUrlRef.current !== tab) {
+      cancelVoiceSession();
+    }
+    prevTabFromUrlRef.current = tab;
 
     if (onAi) {
       setIsAiLoading(false);
       setActiveMobileTab('AI Search');
       setManualQuery('');
       manualQueryRef.current = '';
-      cancelVoiceSession();
     } else {
       setActiveMobileTab('Home');
-      cancelVoiceSession();
     }
   }, [activeTabFromUrl, cancelVoiceSession]);
 
@@ -1265,7 +1336,7 @@ export default function HomeClient({ initialData }: { initialData: any }) {
       )}
       {/* Voice-only overlay (separate from manual text search) */}
       {voiceActive && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md">
+        <div className="fixed inset-0 z-[10050] flex items-center justify-center bg-black/60 backdrop-blur-md">
           <div className="bg-white rounded-3xl p-8 max-w-sm w-full mx-4 flex flex-col items-center space-y-6 shadow-2xl transform animate-in fade-in zoom-in duration-300">
             <div className="relative">
               <div
