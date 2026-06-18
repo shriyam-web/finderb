@@ -12,7 +12,6 @@ import {
   SITE_NAME,
 } from '@/lib/siteSeo';
 import HomeStructuredData from '@/components/HomeStructuredData';
-import HomeQuickLinks from '@/components/HomeQuickLinks';
 
 export const metadata: Metadata = {
   title: HOME_PAGE_TITLE,
