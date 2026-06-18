@@ -56,7 +56,9 @@ const STATIC_PAGES: Array<{
   { path: '/shipping-delivery', changeFrequency: 'yearly', priority: 0.3 },
   { path: '/advertisements', changeFrequency: 'monthly', priority: 0.4 },
   { path: '/hirings', changeFrequency: 'weekly', priority: 0.4 },
-  { path: '/business/register', changeFrequency: 'monthly', priority: 0.6 },
+  { path: '/login', changeFrequency: 'monthly', priority: 0.7 },
+  { path: '/signup', changeFrequency: 'monthly', priority: 0.6 },
+  { path: '/business/login', changeFrequency: 'monthly', priority: 0.7 },
   { path: '/business/list', changeFrequency: 'weekly', priority: 0.5 },
 ];
 

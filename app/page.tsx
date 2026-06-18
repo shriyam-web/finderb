@@ -4,6 +4,33 @@ import { getCategories, getFeaturedGroups } from '@/app/actions/category';
 import { getMovies } from '@/app/actions/movie';
 import { getTouristPlaces } from '@/app/actions/touristPlace';
 import { getBlogs } from '@/app/actions/blog';
+import type { Metadata } from 'next';
+import {
+  HOME_PAGE_DESCRIPTION,
+  HOME_PAGE_TITLE,
+  SITE_HOME_URL,
+  SITE_NAME,
+} from '@/lib/siteSeo';
+import HomeStructuredData from '@/components/HomeStructuredData';
+import HomeQuickLinks from '@/components/HomeQuickLinks';
+
+export const metadata: Metadata = {
+  title: HOME_PAGE_TITLE,
+  description: HOME_PAGE_DESCRIPTION,
+  alternates: {
+    canonical: SITE_HOME_URL,
+  },
+  openGraph: {
+    title: HOME_PAGE_TITLE,
+    description: HOME_PAGE_DESCRIPTION,
+    url: SITE_HOME_URL,
+    siteName: SITE_NAME,
+  },
+  twitter: {
+    title: HOME_PAGE_TITLE,
+    description: HOME_PAGE_DESCRIPTION,
+  },
+};
 export default async function Home() {
   const [bizResult, catResult, movieResult, touristResult, blogResult, groupsResult] = await Promise.all([
     getFeaturedBusinesses(),
@@ -23,5 +50,10 @@ export default async function Home() {
     featuredGroups: groupsResult.success ? groupsResult.groups ?? [] : [],
   };
 
-  return <HomeClient initialData={initialData} />;
+  return (
+    <>
+      <HomeStructuredData />
+      <HomeClient initialData={initialData} />
+    </>
+  );
 }

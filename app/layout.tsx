@@ -3,8 +3,7 @@ import { Inter, Outfit } from "next/font/google";
 import "./globals.css";
 import LayoutClient from "@/components/LayoutClient";
 import ServiceWorkerRegister from "@/components/pwa/ServiceWorkerRegister";
-import { LEGAL_COMPANY } from "@/lib/legalContent";
-import { FOOTER_SOCIAL_LINKS } from "@/lib/footerData";
+import { getRootStructuredData, rootSiteMetadata } from "@/lib/siteSeo";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -17,101 +16,25 @@ const outfit = Outfit({
 });
 
 export const metadata: Metadata = {
-  title: {
-    default: "FinderB | India's #1 Local Services & Business Discovery Platform",
-    template: "%s | FinderB"
-  },
-  description: "FinderB is India's premier discovery engine for verified local services, businesses, and professionals. Explore 300+ cities to find top-rated services, movies, attractions, and more. Trusted by millions for professional excellence.",
-  keywords: ["local services", "verified professionals", "business directory", "India local search", "FinderB services", "local attractions", "top-rated businesses", "premium local services", "verified businesses India", "service discovery engine"],
-  authors: [{ name: "FinderB" }],
-  creator: "FinderB",
-  publisher: "MAAGAA Connect Private Limited",
-  metadataBase: new URL("https://finderb.com"),
-  alternates: {
-    canonical: "/",
-  },
-  openGraph: {
-    title: "FinderB - Discover the Best Local Services Near You",
-    description: "Your gateway to professional local services and verified businesses across 300+ cities in India. Experience premium local discovery.",
-    url: "https://finderb.com",
-    siteName: "FinderB",
-    images: [
-      {
-        url: "/logo1.png",
-        width: 1200,
-        height: 630,
-        alt: "FinderB - India's Premier Local Discovery Platform",
-      },
-    ],
-    locale: "en_IN",
-    type: "website",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "FinderB - India's #1 Local Services Platform",
-    description: "Find verified professionals and top-rated services in your city with FinderB. Trusted discovery for your local needs.",
-    images: ["/logo1.png"],
-  },
-  robots: {
-    index: true,
-    follow: true,
-    nocache: true,
-    googleBot: {
-      index: true,
-      follow: true,
-      "max-video-preview": -1,
-      "max-image-preview": "large",
-      "max-snippet": -1,
-    },
-  },
+  ...rootSiteMetadata,
+  keywords: [
+    "local services",
+    "verified professionals",
+    "business directory",
+    "India local search",
+    "FinderB services",
+    "local attractions",
+    "top-rated businesses",
+    "premium local services",
+    "verified businesses India",
+    "service discovery engine",
+  ],
   verification: {
-    google: "google-site-verification-placeholder", // User should replace this
-  },
-  category: "Business",
-  appleWebApp: {
-    capable: true,
-    title: "FinderB",
-    statusBarStyle: "default",
-  },
-  icons: {
-    icon: "/icon-192.png",
-    apple: "/icon-192.png",
+    google: "google-site-verification-placeholder",
   },
 };
 
-const jsonLd = [
-  {
-    "@context": "https://schema.org",
-    "@type": "WebSite",
-    "name": "FinderB",
-    "url": "https://finderb.com",
-    "potentialAction": {
-      "@type": "SearchAction",
-      "target": {
-        "@type": "EntryPoint",
-        "urlTemplate": "https://finderb.com/search?q={search_term_string}"
-      },
-      "query-input": "required name=search_term_string"
-    }
-  },
-  {
-    "@context": "https://schema.org",
-    "@type": "Organization",
-    "name": "FinderB",
-    "legalName": "MAAGAA Connect Private Limited",
-    "url": "https://finderb.com",
-    "logo": "https://finderb.com/logo1.png",
-    "description": "FinderB is India's premium local discovery platform connecting users with verified professionals and top-rated services across 300+ cities.",
-    "sameAs": FOOTER_SOCIAL_LINKS.map((item) => item.href),
-    "contactPoint": {
-      "@type": "ContactPoint",
-      "telephone": LEGAL_COMPANY.phone,
-      "contactType": "customer service",
-      "areaServed": "IN",
-      "availableLanguage": ["en", "hi"]
-    }
-  }
-];
+const jsonLd = getRootStructuredData();
 
 export default function RootLayout({
   children,

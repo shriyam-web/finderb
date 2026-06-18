@@ -409,56 +409,13 @@ export function getFooterStructuredData() {
 
   return {
     '@context': 'https://schema.org',
-    '@graph': [
-      {
-        '@type': 'Organization',
-        '@id': `${FOOTER_SITE_URL}/#organization`,
-        name: 'FinderB',
-        legalName: 'MAAGAA Connect Private Limited',
-        url: FOOTER_SITE_URL,
-        logo: `${FOOTER_SITE_URL}/logo1.png`,
-        description: FOOTER_ABOUT,
-        email: FOOTER_CONTACT.email,
-        telephone: LEGAL_COMPANY.phone,
-        areaServed: {
-          '@type': 'Country',
-          name: 'India',
-        },
-        sameAs: FOOTER_SOCIAL_LINKS.map((item) => item.href),
-        contactPoint: {
-          '@type': 'ContactPoint',
-          telephone: LEGAL_COMPANY.phone,
-          email: FOOTER_CONTACT.email,
-          contactType: 'customer support',
-          areaServed: 'IN',
-          availableLanguage: ['English', 'Hindi'],
-        },
-      },
-      {
-        '@type': 'WebSite',
-        '@id': `${FOOTER_SITE_URL}/#website`,
-        url: FOOTER_SITE_URL,
-        name: 'FinderB',
-        publisher: { '@id': `${FOOTER_SITE_URL}/#organization` },
-        potentialAction: {
-          '@type': 'SearchAction',
-          target: {
-            '@type': 'EntryPoint',
-            urlTemplate: `${FOOTER_SITE_URL}/categories?search={search_term_string}`,
-          },
-          'query-input': 'required name=search_term_string',
-        },
-      },
-      {
-        '@type': 'ItemList',
-        name: 'Popular local searches on FinderB',
-        itemListElement: searchTargets.map((name, index) => ({
-          '@type': 'ListItem',
-          position: index + 1,
-          name,
-          url: `${FOOTER_SITE_URL}${footerSearchHref(name)}`,
-        })),
-      },
-    ],
+    '@type': 'ItemList',
+    name: 'Popular local searches on FinderB',
+    itemListElement: searchTargets.map((name, index) => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      name,
+      url: `${FOOTER_SITE_URL}${footerSearchHref(name)}`,
+    })),
   };
 }

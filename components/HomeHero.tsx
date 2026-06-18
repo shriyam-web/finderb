@@ -21,6 +21,7 @@ import {
   filterCitiesByState,
 } from '@/lib/homeHeroConstants';
 import { useUserLocationState } from '@/hooks/useUserCoords';
+import { SITE_NAME } from '@/lib/siteSeo';
 
 type HomeHeroProps = {
   variant: 'mobile' | 'desktop';
@@ -390,11 +391,13 @@ export default function HomeHero({
           <div className={isDesktop ? '' : 'max-w-[62%]'}>
             {isDesktop ? (
               <h1 className="text-left text-[36px] font-extrabold leading-tight tracking-tight text-[#0f172a]">
+                <span className="sr-only">{`${SITE_NAME}. `}</span>
                 Find trusted{' '}
                 <span className="text-[#2563eb]">businesses near you</span>
               </h1>
             ) : (
               <h1 className="text-left text-[20px] font-extrabold leading-[1.15] tracking-tight">
+                <span className="sr-only">{`${SITE_NAME}. `}</span>
                 <span className="block whitespace-nowrap text-[#0f172a]">
                   Find trusted businesses
                 </span>
