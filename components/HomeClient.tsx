@@ -127,25 +127,22 @@ export default function HomeClient({ initialData }: { initialData: any }) {
   const voiceSearchQueryRef = useRef('');
   const voiceLockedRef = useRef(false);
   const voiceSessionRef = useRef(0);
-  const voiceSilenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const voiceSearchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const voiceActiveRef = useRef(false);
-  const voiceStartedAtRef = useRef(0);
+  const voiceOpenedAtRef = useRef(0);
+  const voiceRestartCountRef = useRef(0);
   const cancelVoiceSessionRef = useRef<() => void>(() => {});
   const prevTabFromUrlRef = useRef<string | null | undefined>(undefined);
+  /** Ignore mic toggle-close right after open (mobile touch + synthetic click). */
+  const VOICE_CANCEL_GRACE_MS = 450;
+  const MAX_VOICE_RESTARTS = 4;
   const userCoords = useUserCoords();
   const { effectiveSearchLocation } = useUserLocationState();
 
-  /** Silence while speaking → show what you said. */
-  const VOICE_SILENCE_MS = 2000;
   /** After showing transcript → run search. */
   const VOICE_PREVIEW_SEARCH_MS = 2000;
 
   const clearVoiceTimers = useCallback(() => {
-    if (voiceSilenceTimerRef.current) {
-      clearTimeout(voiceSilenceTimerRef.current);
-      voiceSilenceTimerRef.current = null;
-    }
     if (voiceSearchTimerRef.current) {
       clearTimeout(voiceSearchTimerRef.current);
       voiceSearchTimerRef.current = null;
@@ -266,24 +263,111 @@ export default function HomeClient({ initialData }: { initialData: any }) {
     [clearVoiceTimers, navigateToSearch, stopRecognitionEngine]
   );
 
-  const scheduleSilenceDetection = useCallback(
-    (session: number) => {
-      if (session !== voiceSessionRef.current) return;
-      if (voiceSilenceTimerRef.current) {
-        clearTimeout(voiceSilenceTimerRef.current);
-      }
-      voiceSilenceTimerRef.current = setTimeout(() => {
-        voiceSilenceTimerRef.current = null;
-        beginPreviewAndSearch(session);
-      }, VOICE_SILENCE_MS);
-    },
-    [beginPreviewAndSearch]
-  );
-
   const resetVoiceEngine = useCallback(() => {
     clearVoiceTimers();
     stopRecognitionEngine(true);
   }, [clearVoiceTimers, stopRecognitionEngine]);
+
+  const launchRecognition = useCallback(
+    (session: number) => {
+      if (session !== voiceSessionRef.current) return false;
+      if (!voiceActiveRef.current) return false;
+
+      stopRecognitionEngine(true);
+
+      const recognition = createVoiceRecognition({
+        lang: 'en-IN',
+        continuous: false,
+        onTranscript: (text) => {
+          if (session !== voiceSessionRef.current) return;
+          if (voiceLockedRef.current) return;
+          const trimmed = normalizeVoiceTranscript(text);
+          if (!trimmed) return;
+
+          voiceTranscriptRef.current = trimmed;
+          setVoiceTranscript(trimmed);
+          setVoicePhase('listening');
+          setVoiceError(null);
+        },
+        onError: (code) => {
+          if (session !== voiceSessionRef.current) return;
+          if (code === 'aborted') return;
+
+          if (code === 'not-allowed') {
+            clearVoiceTimers();
+            stopRecognitionEngine(true);
+            setVoiceError('Microphone permission denied. Allow mic access in browser settings.');
+            setVoiceActive(false);
+            voiceActiveRef.current = false;
+            setVoicePhase('speak-now');
+            return;
+          }
+
+          if (code === 'no-speech') {
+            setVoiceError('No speech detected. Try speaking again.');
+            setVoicePhase('speak-now');
+          } else {
+            setVoiceError('Could not hear you. Please try again.');
+            setVoicePhase('speak-now');
+          }
+
+          if (voiceRestartCountRef.current >= MAX_VOICE_RESTARTS) return;
+          voiceRestartCountRef.current += 1;
+          window.setTimeout(() => {
+            if (session !== voiceSessionRef.current) return;
+            if (!voiceActiveRef.current) return;
+            if (voiceLockedRef.current) return;
+            launchRecognition(session);
+          }, 280);
+        },
+        onEnd: () => {
+          if (session !== voiceSessionRef.current) return;
+          if (voiceLockedRef.current) return;
+          if (!voiceActiveRef.current) return;
+
+          recognitionRef.current = null;
+
+          const q = normalizeVoiceTranscript(voiceTranscriptRef.current);
+          if (q.length >= 2) {
+            beginPreviewAndSearch(session);
+            return;
+          }
+
+          if (voiceRestartCountRef.current >= MAX_VOICE_RESTARTS) {
+            setVoiceError('No speech detected. Tap Cancel and try the mic again.');
+            setVoicePhase('speak-now');
+            return;
+          }
+
+          voiceRestartCountRef.current += 1;
+          window.setTimeout(() => {
+            if (session !== voiceSessionRef.current) return;
+            if (!voiceActiveRef.current) return;
+            if (voiceLockedRef.current) return;
+            launchRecognition(session);
+          }, 280);
+        },
+      });
+
+      if (!recognition) return false;
+
+      recognitionRef.current = recognition;
+      recognition.onstart = () => {
+        if (session !== voiceSessionRef.current) return;
+        setVoicePhase('speak-now');
+        setVoiceError(null);
+      };
+
+      try {
+        recognition.start();
+        return true;
+      } catch {
+        recognitionRef.current = null;
+        return false;
+      }
+    },
+    [beginPreviewAndSearch, clearVoiceTimers, stopRecognitionEngine]
+  );
 
   const startVoiceSession = useCallback(() => {
     if (!getSpeechRecognitionCtor()) {
@@ -298,6 +382,7 @@ export default function HomeClient({ initialData }: { initialData: any }) {
     voiceLockedRef.current = false;
     voiceTranscriptRef.current = '';
     voiceSearchQueryRef.current = '';
+    voiceRestartCountRef.current = 0;
     setManualQuery('');
     manualQueryRef.current = '';
     setVoiceTranscript('');
@@ -305,118 +390,22 @@ export default function HomeClient({ initialData }: { initialData: any }) {
     setVoicePhase('speak-now');
     setVoiceActive(true);
     voiceActiveRef.current = true;
-    voiceStartedAtRef.current = Date.now();
-
-    const recognition = createVoiceRecognition({
-      lang: 'en-IN',
-      continuous: true,
-      onTranscript: (text) => {
-        if (session !== voiceSessionRef.current) return;
-        if (voiceLockedRef.current) return;
-        const trimmed = normalizeVoiceTranscript(text);
-        if (!trimmed) return;
-
-        voiceTranscriptRef.current = trimmed;
-        setVoiceTranscript(trimmed);
-        setVoicePhase('listening');
-        setVoiceError(null);
-        scheduleSilenceDetection(session);
-      },
-      onError: (code) => {
-        if (session !== voiceSessionRef.current) return;
-        if (code === 'aborted') return;
-
-        const elapsed = Date.now() - voiceStartedAtRef.current;
-        const hasTranscript = voiceTranscriptRef.current.trim().length >= 2;
-
-        if (code === 'no-speech' && !hasTranscript && elapsed < 1500) {
-          window.setTimeout(() => {
-            if (session !== voiceSessionRef.current) return;
-            if (voiceLockedRef.current) return;
-            if (!voiceActiveRef.current) return;
-            const activeRecognition = recognitionRef.current;
-            if (!activeRecognition) return;
-            try {
-              activeRecognition.start();
-            } catch {
-              /* ignore — onEnd or a later error will handle it */
-            }
-          }, 120);
-          return;
-        }
-
-        clearVoiceTimers();
-        stopRecognitionEngine(true);
-
-        if (code === 'not-allowed') {
-          setVoiceError('Microphone permission denied. Allow mic access in browser settings.');
-          setVoiceActive(false);
-          voiceActiveRef.current = false;
-          setVoicePhase('speak-now');
-          return;
-        }
-
-        if (code === 'no-speech') {
-          setVoiceError('No speech detected. Try speaking again.');
-        } else {
-          setVoiceError('Could not hear you. Please try again.');
-        }
-        setVoicePhase('speak-now');
-      },
-      onEnd: () => {
-        if (session !== voiceSessionRef.current) return;
-        if (voiceLockedRef.current) return;
-        if (!voiceActiveRef.current) return;
-
-        recognitionRef.current = recognition;
-        window.setTimeout(() => {
-          if (session !== voiceSessionRef.current) return;
-          if (voiceLockedRef.current) return;
-          if (!voiceActiveRef.current) return;
-          const activeRecognition = recognitionRef.current;
-          if (!activeRecognition) return;
-          try {
-            activeRecognition.start();
-          } catch {
-            recognitionRef.current = null;
-          }
-        }, 80);
-      },
-    });
-
-    if (!recognition) {
-      setVoiceActive(false);
-      voiceActiveRef.current = false;
-      return;
-    }
-
-    recognitionRef.current = recognition;
-    recognition.onstart = () => {
-      if (session !== voiceSessionRef.current) return;
-      setVoicePhase('speak-now');
-      setVoiceError(null);
-    };
+    voiceOpenedAtRef.current = Date.now();
 
     window.setTimeout(() => {
       if (session !== voiceSessionRef.current) return;
-      try {
-        recognition.start();
-      } catch {
-        setVoiceError('Unable to start microphone. Tap the mic to try again.');
-        setVoiceActive(false);
-        voiceActiveRef.current = false;
-        stopRecognitionEngine(true);
+      if (!launchRecognition(session)) {
+        setVoiceError('Unable to start microphone. Tap Cancel and try again.');
+        setVoicePhase('speak-now');
       }
-    }, 50);
-  }, [
-    resetVoiceEngine,
-    scheduleSilenceDetection,
-    clearVoiceTimers,
-    stopRecognitionEngine,
-  ]);
+    }, 80);
+  }, [launchRecognition, resetVoiceEngine]);
 
   const toggleVoiceSearch = useCallback(() => {
     if (voiceActiveRef.current) {
+      if (Date.now() - voiceOpenedAtRef.current < VOICE_CANCEL_GRACE_MS) {
+        return;
+      }
       cancelVoiceSession();
       return;
     }
@@ -692,9 +681,13 @@ export default function HomeClient({ initialData }: { initialData: any }) {
                   <div className="flex items-center gap-2 pr-2">
                     <button 
                       type="button"
-                      onClick={toggleVoiceSearch}
+                      onPointerDown={(e) => e.preventDefault()}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleVoiceSearch();
+                      }}
                       aria-label={voiceActive ? 'Stop voice search' : 'Start voice search'}
-                      className={`p-3 rounded-xl transition-all active:scale-95 ${voiceActive ? 'bg-red-500 text-white animate-pulse' : 'bg-slate-50 text-gray-400 hover:text-primary'}`}
+                      className={`touch-manipulation p-3 rounded-xl transition-all active:scale-95 ${voiceActive ? 'bg-red-500 text-white animate-pulse' : 'bg-slate-50 text-gray-400 hover:text-primary'}`}
                     >
                       <Mic size={20} className={voiceActive ? 'animate-bounce' : ''} />
                     </button>

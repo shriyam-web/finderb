@@ -467,9 +467,13 @@ export default function HomeHero({
                 <HeroAiSearchBadge />
                 <button
                   type="button"
-                  onClick={onVoiceSearch}
+                  onPointerDown={(e) => e.preventDefault()}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onVoiceSearch?.();
+                  }}
                   aria-label={voiceActive ? 'Stop voice search' : 'Start voice search'}
-                  className={`shrink-0 rounded-lg p-1 transition-all ${
+                  className={`shrink-0 touch-manipulation rounded-lg p-1 transition-all ${
                     voiceActive
                       ? 'bg-red-500 text-white animate-pulse'
                       : 'text-[#94a3b8] hover:bg-slate-50 hover:text-[#2563eb]'
@@ -512,9 +516,13 @@ export default function HomeHero({
                 <HeroAiSearchBadge compact />
                 <button
                   type="button"
-                  onClick={onVoiceSearch}
+                  onPointerDown={(e) => e.preventDefault()}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onVoiceSearch?.();
+                  }}
                   aria-label={voiceActive ? 'Stop voice search' : 'Start voice search'}
-                  className={`shrink-0 rounded-lg p-1 transition-all ${
+                  className={`shrink-0 touch-manipulation rounded-lg p-1 transition-all ${
                     voiceActive
                       ? 'bg-red-500 text-white animate-pulse'
                       : 'text-[#94a3b8] hover:bg-slate-50 hover:text-[#2563eb]'
