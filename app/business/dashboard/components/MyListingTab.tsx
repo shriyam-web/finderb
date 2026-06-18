@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
@@ -8,16 +9,48 @@ import {
   HiOutlineEnvelope,
   HiOutlineGlobeAlt,
   HiOutlineMapPin,
+  HiOutlinePencilSquare,
   HiOutlinePhone,
-  HiOutlinePhoto,
-  HiOutlinePlus,
   HiOutlineShieldCheck,
   HiOutlineStar,
-  HiOutlinePencilSquare,
 } from 'react-icons/hi2';
 import { FaFacebook, FaInstagram, FaWhatsapp, FaYoutube } from 'react-icons/fa';
+import { Navigation, Tag } from 'lucide-react';
+import StackedPhotoGallery from '@/components/business/StackedPhotoGallery';
+import BusinessProfileOfferBanner from '@/components/business/BusinessProfileOfferBanner';
+import { getBusinessLocationLabel } from '@/lib/businessBreadcrumb';
+import { directionsHref, mapEmbedSrc, phoneHref } from '@/lib/businessContact';
+import { getBusinessOpenStatus } from '@/lib/businessHours';
+import {
+  getPublicReviewRating,
+  parseBusinessReviewReply,
+  parseBusinessReviews,
+} from '@/lib/businessReviews';
+import { getDiscountOfferDisplay } from '@/lib/discountOffer';
+import { formatTimingRange12h } from '@/lib/formatBusinessHours';
+import { parseBusinessServices } from '@/lib/parseBusinessServices';
+import type { MissingProfileField } from '@/lib/dashboard/profileCompletion';
+import { dashboard } from './dashboard-ui';
 
-const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+const WEEKDAYS = [
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
+  'Sunday',
+] as const;
+
+const SECTIONS = [
+  { id: 'about', label: 'About' },
+  { id: 'services', label: 'Services' },
+  { id: 'location', label: 'Location' },
+  { id: 'contact', label: 'Contact' },
+  { id: 'reviews', label: 'Reviews' },
+] as const;
+
+type SectionId = (typeof SECTIONS)[number]['id'];
 
 type ProfileData = {
   category?: string;
@@ -54,32 +87,15 @@ type MyListingTabProps = {
   images: string[];
   profilePictureUrl: string | null;
   completionPercent: number;
-  missingFields: string[];
+  missingFields: MissingProfileField[];
   onEditProfile: () => void;
+  onOpenSettingsField?: (settingsKey: string) => void;
+  onOpenKyc?: () => void;
 };
 
-function hasReview(review: unknown) {
-  if (!review) return false;
-  if (typeof review === 'string') return review.trim().length > 0;
-  if (typeof review === 'object') return Object.keys(review as object).length > 0;
-  return false;
-}
-
-function reviewText(review: unknown) {
-  if (typeof review === 'string') return review;
-  if (review && typeof review === 'object') {
-    const r = review as { content?: string; text?: string; author?: string };
-    return r.content || r.text || '';
-  }
-  return '';
-}
-
-function replyText(reply: unknown) {
-  if (typeof reply === 'string') return reply;
-  if (reply && typeof reply === 'object') {
-    return (reply as { content?: string }).content || '';
-  }
-  return '';
+function getGalleryImages(profilePictureUrl: string | null, images: string[]) {
+  const pool = [profilePictureUrl, ...images].filter(Boolean) as string[];
+  return [...new Set(pool)];
 }
 
 export default function MyListingTab({
@@ -91,387 +107,605 @@ export default function MyListingTab({
   completionPercent,
   missingFields,
   onEditProfile,
+  onOpenSettingsField,
+  onOpenKyc,
 }: MyListingTabProps) {
-  const locationLine = [profileData.city, profileData.state, profileData.country]
-    .filter(Boolean)
-    .join(', ');
+  const [activeImage, setActiveImage] = useState(0);
+  const [activeSection, setActiveSection] = useState<SectionId>('about');
+
+  const galleryImages = useMemo(
+    () => getGalleryImages(profilePictureUrl, images),
+    [profilePictureUrl, images]
+  );
+
+  const services = useMemo(
+    () => parseBusinessServices(profileData.serviceCategory),
+    [profileData.serviceCategory]
+  );
+
+  const reviews = useMemo(() => parseBusinessReviews(profileData.review), [profileData.review]);
+  const ownerReply = useMemo(
+    () => parseBusinessReviewReply(profileData.reviewReply),
+    [profileData.reviewReply]
+  );
+  const displayRating = getPublicReviewRating(reviews);
+
+  const locationLabel = getBusinessLocationLabel({
+    city: profileData.city ?? null,
+    state: profileData.state ?? null,
+    location: profileData.businessAddress ?? '',
+  });
+
+  const fullAddress =
+    profileData.businessAddress?.trim() ||
+    [profileData.city, profileData.state, profileData.country].filter(Boolean).join(', ') ||
+    null;
+
+  const directionsLink = directionsHref({
+    latitude: profileData.latitude,
+    longitude: profileData.longitude,
+    address: profileData.businessAddress,
+    location: fullAddress,
+  });
+
+  const embedSrc = mapEmbedSrc({
+    latitude: profileData.latitude,
+    longitude: profileData.longitude,
+    address: profileData.businessAddress,
+    location: fullAddress,
+  });
+
+  const openStatus = getBusinessOpenStatus(profileData.timings);
+  const offerDisplay = getDiscountOfferDisplay(profileData.discountRange, businessName);
+  const todayName = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+  const telLink = phoneHref(profileData.publicPhone || '');
+
+  const socialLinks = [
+    { label: 'Instagram', href: profileData.instagramUrl },
+    { label: 'Facebook', href: profileData.facebookUrl },
+    { label: 'YouTube', href: profileData.youtubeUrl },
+  ].filter((item) => Boolean(item.href));
 
   const checklist = [
-    { label: 'Cover photo', done: images.length > 0 },
-    { label: 'Logo', done: Boolean(profilePictureUrl) },
-    { label: 'About text', done: Boolean(profileData.about?.trim()) },
-    { label: 'Phone number', done: Boolean(profileData.publicPhone) },
-    { label: 'Map pin (Google Maps)', done: Boolean(profileData.latitude && profileData.longitude && (profileData.latitude !== 0 || profileData.longitude !== 0)) },
-    { label: 'Business hours', done: Boolean(profileData.timings && Object.keys(profileData.timings).length) },
+    { label: 'Cover photo', done: images.length > 0, key: 'photos' },
+    { label: 'Logo', done: Boolean(profilePictureUrl), key: 'logo' },
+    { label: 'About text', done: Boolean(profileData.about?.trim()), key: 'about' },
+    { label: 'Phone number', done: Boolean(profileData.publicPhone), key: 'publicPhone' },
+    {
+      label: 'Map pin',
+      done: Boolean(
+        profileData.latitude &&
+          profileData.longitude &&
+          (profileData.latitude !== 0 || profileData.longitude !== 0)
+      ),
+      key: 'location',
+    },
+    {
+      label: 'Business hours',
+      done: Boolean(profileData.timings && Object.keys(profileData.timings).length),
+      key: 'timings',
+    },
   ];
 
+  const scrollToSection = (id: SectionId) => {
+    setActiveSection(id);
+    document.getElementById(`listing-preview-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
   return (
-    <div className="space-y-5">
-      {/* Toolbar */}
-      <div className="flex flex-col gap-4 rounded-xl border border-slate-200/80 bg-white p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col gap-4 border-b border-zinc-200 pb-5 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
-          <p className="text-xs font-medium text-slate-500">How customers see you on FinderB</p>
-          <h2 className="mt-0.5 truncate text-lg font-semibold text-slate-900">{businessName}</h2>
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#215481]">Public listing preview</p>
+            <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 ring-1 ring-emerald-200">
+              Matches live page
+            </span>
+          </div>
+          <p className="mt-1 truncate text-lg font-bold text-zinc-900">{businessName}</p>
+          <p className="mt-0.5 text-xs text-zinc-500">
+            This is how customers see your business on FinderB — including map and location.
+          </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-          <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-            <div className="relative h-8 w-8">
-              <svg className="h-8 w-8 -rotate-90" viewBox="0 0 36 36">
-                <circle cx="18" cy="18" r="15" fill="none" stroke="#e2e8f0" strokeWidth="3" />
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-2 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2">
+            <div className="relative h-9 w-9">
+              <svg className="h-9 w-9 -rotate-90" viewBox="0 0 36 36" aria-hidden>
+                <circle cx="18" cy="18" r="15" fill="none" stroke="#e4e4e7" strokeWidth="3" />
                 <circle
                   cx="18"
                   cy="18"
                   r="15"
                   fill="none"
-                  stroke="#215481"
+                  stroke="#f9b864"
                   strokeWidth="3"
                   strokeDasharray={`${completionPercent} 100`}
                   strokeLinecap="round"
                 />
               </svg>
-              <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-slate-700">
+              <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-[#153551]">
                 {completionPercent}%
               </span>
             </div>
-            <span className="text-xs font-medium text-slate-600">Profile complete</span>
+            <span className="text-xs font-medium text-zinc-600">Complete</span>
           </div>
-          <Link
-            href={`/business/${businessId}`}
-            target="_blank"
-            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition-colors hover:border-primary-200 hover:text-primary-700"
-          >
+          <Link href={`/business/${businessId}`} target="_blank" className={dashboard.btnSecondary}>
             View live
             <HiOutlineArrowTopRightOnSquare size={14} />
           </Link>
-          <button
-            type="button"
-            onClick={onEditProfile}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-primary-700 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-primary-800"
-          >
+          <button type="button" onClick={onEditProfile} className={dashboard.btnPrimary}>
             <HiOutlinePencilSquare size={14} />
             Edit listing
           </button>
         </div>
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_260px]">
-        {/* Preview */}
-        <div className="overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-sm">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_248px]">
+        <div className={`${dashboard.panel} overflow-hidden`}>
           {/* Browser chrome */}
-          <div className="flex items-center gap-2 border-b border-slate-100 bg-slate-50 px-4 py-2.5">
-            <span className="h-2.5 w-2.5 rounded-full bg-red-300" />
-            <span className="h-2.5 w-2.5 rounded-full bg-amber-300" />
-            <span className="h-2.5 w-2.5 rounded-full bg-emerald-300" />
-            <span className="ml-2 truncate text-[11px] text-slate-400">
+          <div className="flex items-center gap-2 border-b border-zinc-100 bg-zinc-50/90 px-4 py-2">
+            <span className="h-2 w-2 rounded-full bg-red-300" />
+            <span className="h-2 w-2 rounded-full bg-amber-300" />
+            <span className="h-2 w-2 rounded-full bg-emerald-300" />
+            <span className="ml-2 truncate text-[11px] text-zinc-400">
               finderb.com/business/{businessId.slice(0, 8)}…
             </span>
           </div>
 
-          {/* Cover */}
-          <div className="relative h-44 bg-slate-100 sm:h-52">
-            {images[0] ? (
-              <Image src={images[0]} alt="" fill className="object-cover" sizes="(max-width: 1024px) 100vw, 70vw" />
-            ) : (
-              <button
-                type="button"
-                onClick={onEditProfile}
-                className="flex h-full w-full flex-col items-center justify-center gap-2 text-slate-400 transition-colors hover:bg-slate-50 hover:text-primary-600"
-              >
-                <HiOutlinePhoto size={28} strokeWidth={1.5} />
-                <span className="text-xs font-medium">Add a cover photo</span>
-              </button>
-            )}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
-          </div>
+          {/* Hero — mirrors public profile */}
+          <div className="border-b border-zinc-100 p-4 sm:p-6">
+            <div className="grid gap-6 md:grid-cols-2 md:items-start">
+              <StackedPhotoGallery
+                images={galleryImages}
+                alt={businessName}
+                activeIndex={activeImage}
+                onSelect={setActiveImage}
+              />
 
-          {/* Identity row */}
-          <div className="relative px-4 pb-5 sm:px-6">
-            <div className="-mt-10 flex flex-col gap-4 sm:-mt-12 sm:flex-row sm:items-end">
-              <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl border-4 border-white bg-slate-100 shadow-md sm:h-24 sm:w-24">
-                {profilePictureUrl ? (
-                  <Image src={profilePictureUrl} alt="" fill className="object-cover" sizes="96px" />
-                ) : (
-                  <button
-                    type="button"
-                    onClick={onEditProfile}
-                    className="flex h-full w-full items-center justify-center text-slate-400 hover:text-primary-600"
-                  >
-                    <HiOutlinePlus size={24} />
-                  </button>
+              <div className="flex flex-col gap-2 md:border-l md:border-zinc-100 md:pl-6">
+                <h2 className="text-xl font-bold leading-snug text-[#153551] sm:text-2xl">{businessName}</h2>
+
+                {profileData.category && (
+                  <p className="text-sm font-medium text-[#215481]">{profileData.category}</p>
+                )}
+
+                {locationLabel && <p className="text-sm text-zinc-600">{locationLabel}</p>}
+
+                {profileData.yearsInBusiness != null && profileData.yearsInBusiness > 0 && (
+                  <p className="text-sm text-zinc-600">{profileData.yearsInBusiness} years in business</p>
+                )}
+
+                <div className="flex flex-wrap items-center gap-2 pt-1">
+                  {profileData.isFinderBVerified && (
+                    <span className="inline-flex items-center gap-1 rounded-md bg-[#215481]/8 px-2 py-0.5 text-xs font-semibold text-[#215481]">
+                      <HiOutlineShieldCheck size={13} />
+                      FinderB Verified
+                    </span>
+                  )}
+                  {openStatus && (
+                    <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${openStatus.colorClass}`}>
+                      <span className={`h-1.5 w-1.5 rounded-full ${openStatus.dotClass}`} />
+                      {openStatus.label}
+                    </span>
+                  )}
+                  {displayRating != null && (
+                    <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800">
+                      <HiOutlineStar size={12} className="text-amber-500" />
+                      {displayRating} · {reviews.length} review{reviews.length === 1 ? '' : 's'}
+                    </span>
+                  )}
+                </div>
+
+                {offerDisplay && (
+                  <div className="mt-2">
+                    <BusinessProfileOfferBanner
+                      headline={offerDisplay.headline}
+                      detail={offerDisplay.detail}
+                      label={offerDisplay.label}
+                    />
+                  </div>
                 )}
               </div>
-              <div className="min-w-0 flex-1 pb-1">
-                <h3 className="text-xl font-bold text-slate-900 sm:text-2xl">{businessName}</h3>
-                <div className="mt-1.5 flex flex-wrap items-center gap-2">
-                  {profileData.category && (
-                    <span className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
-                      {profileData.category}
-                    </span>
-                  )}
-                  <span className="flex items-center gap-1 text-xs font-medium text-slate-600">
-                    <HiOutlineStar size={13} className="text-amber-500" />
-                    {(profileData.rating ?? 0).toFixed(1)}
-                  </span>
-                  {profileData.isFinderBVerified && (
-                    <span className="flex items-center gap-1 rounded-md bg-primary-50 px-2 py-0.5 text-xs font-medium text-primary-700">
-                      <HiOutlineShieldCheck size={13} />
-                      Verified
-                    </span>
-                  )}
-                  {profileData.discountRange && profileData.discountRange !== 'No Discount' && (
-                    <span className="rounded-md bg-secondary-100 px-2 py-0.5 text-xs font-medium text-secondary-800">
-                      {profileData.discountRange}
-                    </span>
-                  )}
-                </div>
-              </div>
             </div>
+          </div>
 
-            {/* Body sections */}
-            <div className="mt-6 space-y-6 border-t border-slate-100 pt-6">
-              <section>
-                <h4 className="text-sm font-semibold text-slate-900">About</h4>
-                <p className="mt-2 text-sm leading-relaxed text-slate-600">
-                  {profileData.about?.trim() ||
-                    'No description yet. Add a short intro so customers know what you offer.'}
-                </p>
-              </section>
+          {/* Section nav */}
+          <nav className="sticky top-0 z-10 flex gap-1 overflow-x-auto border-b border-zinc-100 bg-white/95 px-4 backdrop-blur-sm sm:gap-0 sm:px-6">
+            {SECTIONS.map((section) => (
+              <button
+                key={section.id}
+                type="button"
+                onClick={() => scrollToSection(section.id)}
+                className={`shrink-0 border-b-2 px-3 py-3 text-xs font-semibold transition-colors sm:text-sm ${
+                  activeSection === section.id
+                    ? 'border-[#215481] text-[#215481]'
+                    : 'border-transparent text-zinc-500 hover:text-zinc-800'
+                }`}
+              >
+                {section.label}
+              </button>
+            ))}
+          </nav>
 
-              {(profileData.serviceCategory ||
-                (profileData.paymentModes && profileData.paymentModes.length > 0) ||
-                (profileData.keywords && profileData.keywords.length > 0)) && (
-                <section className="grid gap-4 sm:grid-cols-2">
-                  {profileData.serviceCategory && (
-                    <div className="rounded-lg bg-slate-50 p-3">
-                      <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">Services</p>
-                      <p className="mt-1 text-sm font-medium text-slate-800">{profileData.serviceCategory}</p>
-                    </div>
-                  )}
-                  {profileData.paymentModes && profileData.paymentModes.length > 0 && (
-                    <div className="rounded-lg bg-slate-50 p-3">
-                      <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">Payment</p>
-                      <p className="mt-1 text-sm text-slate-700">{profileData.paymentModes.join(' · ')}</p>
-                    </div>
-                  )}
-                  {profileData.keywords && profileData.keywords.length > 0 && (
-                    <div className="rounded-lg bg-slate-50 p-3 sm:col-span-2">
-                      <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">Tags</p>
-                      <div className="mt-2 flex flex-wrap gap-1.5">
-                        {profileData.keywords.map((tag) => (
-                          <span
-                            key={tag}
-                            className="rounded-md border border-slate-200 bg-white px-2 py-0.5 text-xs text-slate-600"
-                          >
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </section>
+          <div className="space-y-0 p-4 sm:p-6">
+            {/* About */}
+            <section id="listing-preview-about" className="scroll-mt-24 pb-8">
+              <h3 className="text-sm font-bold text-[#153551]">About</h3>
+              {profileData.about?.trim() ? (
+                <p className="mt-3 text-sm leading-7 text-zinc-600">{profileData.about}</p>
+              ) : (
+                <button
+                  type="button"
+                  onClick={onEditProfile}
+                  className="mt-3 text-sm text-zinc-400 hover:text-[#215481]"
+                >
+                  No description yet — add one in Settings
+                </button>
               )}
+              {profileData.keywords && profileData.keywords.length > 0 && (
+                <p className="mt-4 text-sm text-zinc-600">
+                  <span className="font-semibold text-zinc-800">Known for:</span>{' '}
+                  {profileData.keywords.join(', ')}
+                </p>
+              )}
+            </section>
 
-              <section>
-                <div className="mb-3 flex items-center justify-between">
-                  <h4 className="text-sm font-semibold text-slate-900">Photos</h4>
-                  <span className="text-xs text-slate-400">{images.length}/5</span>
-                </div>
-                <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-                  {images.length > 0
-                    ? images.map((img, i) => (
-                        <div key={i} className="relative aspect-square overflow-hidden rounded-lg bg-slate-100">
-                          <Image src={img} alt="" fill className="object-cover" sizes="120px" />
-                        </div>
-                      ))
-                    : null}
-                  {images.length < 5 && (
-                    <button
-                      type="button"
-                      onClick={onEditProfile}
-                      className="flex aspect-square flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-slate-200 text-slate-400 transition-colors hover:border-primary-200 hover:bg-primary-50/50 hover:text-primary-600"
+            {/* Services */}
+            <section
+              id="listing-preview-services"
+              className="scroll-mt-24 border-t border-zinc-100 py-8"
+            >
+              <h3 className="text-sm font-bold text-[#153551]">Services</h3>
+              {services.length > 0 ? (
+                <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                  {services.map((service) => (
+                    <div
+                      key={service}
+                      className="flex items-start gap-2.5 rounded-lg border border-zinc-200/80 bg-zinc-50/50 px-3.5 py-3"
                     >
-                      <HiOutlinePlus size={18} />
-                      <span className="text-[10px] font-medium">Add</span>
-                    </button>
-                  )}
+                      <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-[#215481]/8 text-[#215481]">
+                        <Tag size={11} />
+                      </span>
+                      <span className="text-sm leading-snug text-zinc-700">{service}</span>
+                    </div>
+                  ))}
                 </div>
-              </section>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => onOpenSettingsField?.('serviceCategory') ?? onEditProfile()}
+                  className="mt-3 text-sm text-zinc-400 hover:text-[#215481]"
+                >
+                  No services listed — add service categories in Settings
+                </button>
+              )}
+            </section>
 
-              <section className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-3 rounded-lg border border-slate-100 p-4">
-                  <h4 className="text-sm font-semibold text-slate-900">Contact</h4>
-                  <div className="space-y-2.5 text-sm">
-                    <p className="flex items-start gap-2 text-slate-600">
-                      <HiOutlinePhone size={16} className="mt-0.5 shrink-0 text-slate-400" />
-                      {profileData.publicPhone || '—'}
-                    </p>
-                    <p className="flex items-start gap-2 text-slate-600">
-                      <HiOutlineEnvelope size={16} className="mt-0.5 shrink-0 text-slate-400" />
-                      <span className="break-all">{profileData.email || '—'}</span>
-                    </p>
-                    {profileData.website && (
-                      <p className="flex items-start gap-2 text-primary-700">
-                        <HiOutlineGlobeAlt size={16} className="mt-0.5 shrink-0" />
-                        <span className="truncate">{profileData.website}</span>
+            {/* Location & hours */}
+            <section
+              id="listing-preview-location"
+              className="scroll-mt-24 border-t border-zinc-100 py-8"
+            >
+              <h3 className="text-sm font-bold text-[#153551]">Location & hours</h3>
+
+              {fullAddress ? (
+                <div className="mt-4 flex items-start gap-3 rounded-lg border border-zinc-200/80 bg-white px-3.5 py-3">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#f9b864]/15 text-[#b45309]">
+                    <HiOutlineMapPin size={16} />
+                  </span>
+                  <div className="min-w-0 space-y-2">
+                    <p className="text-sm leading-relaxed text-zinc-700">{fullAddress}</p>
+                    {(profileData.city || profileData.state) && profileData.businessAddress && (
+                      <p className="text-xs text-zinc-500">
+                        {[profileData.city, profileData.state, profileData.country].filter(Boolean).join(', ')}
                       </p>
                     )}
-                    <p className="flex items-start gap-2 text-slate-600">
-                      <HiOutlineMapPin size={16} className="mt-0.5 shrink-0 text-slate-400" />
-                      <span>
-                        {profileData.businessAddress || 'No address'}
-                        {locationLine && (
-                          <span className="block text-xs text-slate-400">{locationLine}</span>
-                        )}
-                      </span>
-                    </p>
+                    {profileData.latitude != null && profileData.longitude != null && (
+                      <p className="font-mono text-[11px] text-zinc-400">
+                        {profileData.latitude.toFixed(5)}, {profileData.longitude.toFixed(5)}
+                      </p>
+                    )}
+                    {directionsLink && (
+                      <a
+                        href={directionsLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-[#215481] hover:underline"
+                      >
+                        <Navigation size={12} />
+                        Get directions
+                      </a>
+                    )}
                   </div>
-                  {(profileData.instagramUrl ||
-                    profileData.facebookUrl ||
-                    profileData.youtubeUrl ||
-                    profileData.whatsappNumber) && (
-                    <div className="flex gap-2 pt-2">
-                      {profileData.instagramUrl && (
-                        <a
-                          href={profileData.instagramUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-pink-600 hover:bg-slate-50"
-                        >
-                          <FaInstagram size={16} />
-                        </a>
-                      )}
-                      {profileData.facebookUrl && (
-                        <a
-                          href={profileData.facebookUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-blue-600 hover:bg-slate-50"
-                        >
-                          <FaFacebook size={16} />
-                        </a>
-                      )}
-                      {profileData.youtubeUrl && (
-                        <a
-                          href={profileData.youtubeUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-red-600 hover:bg-slate-50"
-                        >
-                          <FaYoutube size={16} />
-                        </a>
-                      )}
-                      {profileData.whatsappNumber && (
-                        <a
-                          href={`https://wa.me/${profileData.whatsappNumber.replace(/\D/g, '')}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-emerald-600 hover:bg-slate-50"
-                        >
-                          <FaWhatsapp size={16} />
-                        </a>
-                      )}
-                    </div>
-                  )}
                 </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => onOpenSettingsField?.('businessAddress') ?? onEditProfile()}
+                  className="mt-4 flex w-full items-center gap-3 rounded-lg border border-dashed border-zinc-200 px-4 py-4 text-left text-sm text-zinc-500 hover:border-[#215481]/30 hover:bg-zinc-50"
+                >
+                  <HiOutlineMapPin size={18} className="shrink-0 text-zinc-300" />
+                  <span>Add your business address and map pin in Settings</span>
+                </button>
+              )}
 
-                <div className="rounded-lg border border-slate-100 p-4">
-                  <div className="mb-3 flex items-center justify-between">
-                    <h4 className="text-sm font-semibold text-slate-900">Hours</h4>
-                    <HiOutlineClock size={16} className="text-slate-300" />
+              {embedSrc ? (
+                <div className="mt-4 overflow-hidden rounded-lg border border-zinc-200/80">
+                  <iframe
+                    title={`Map for ${businessName}`}
+                    src={embedSrc}
+                    className="h-52 w-full sm:h-60"
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                  />
+                </div>
+              ) : (
+                <div className="mt-4 flex h-40 items-center justify-center rounded-lg border border-dashed border-zinc-200 bg-zinc-50 text-xs text-zinc-400">
+                  Map appears when address or coordinates are set
+                </div>
+              )}
+
+              {profileData.timings && Object.keys(profileData.timings).length > 0 ? (
+                <div className="mt-4 overflow-hidden rounded-lg border border-zinc-200/80 bg-white">
+                  <div className="flex items-center gap-2 border-b border-zinc-100 px-3.5 py-2.5">
+                    <HiOutlineClock size={14} className="text-[#215481]" />
+                    <span className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                      Opening hours
+                    </span>
                   </div>
-                  <ul className="space-y-1.5">
-                    {DAYS.map((day) => {
+                  <ul className="divide-y divide-zinc-100">
+                    {WEEKDAYS.map((day) => {
                       const timing = profileData.timings?.[day];
+                      const isToday = day === todayName;
                       const isClosed =
-                        !timing || timing === 'Closed' || (typeof timing === 'object' && timing.isClosed);
+                        !timing ||
+                        timing === 'Closed' ||
+                        (typeof timing === 'object' && timing.isClosed);
                       return (
-                        <li key={day} className="flex justify-between text-xs">
-                          <span className="text-slate-500">{day.slice(0, 3)}</span>
-                          <span className={isClosed ? 'text-red-500' : 'font-medium text-slate-800'}>
-                            {isClosed
-                              ? 'Closed'
-                              : typeof timing === 'string'
-                                ? timing
-                                : `${timing.open} – ${timing.close}`}
+                        <li
+                          key={day}
+                          className={`flex items-center justify-between gap-4 px-3.5 py-2.5 text-sm ${
+                            isToday ? 'bg-[#215481]/[0.04] font-medium text-zinc-900' : 'text-zinc-600'
+                          }`}
+                        >
+                          <span>
+                            {day}
+                            {isToday && (
+                              <span className="ml-2 rounded-full border border-[#215481]/20 bg-[#215481]/8 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#215481]">
+                                Today
+                              </span>
+                            )}
+                          </span>
+                          <span className={isClosed ? 'text-rose-600' : 'text-zinc-700'}>
+                            {formatTimingRange12h(timing)}
                           </span>
                         </li>
                       );
                     })}
                   </ul>
                 </div>
-              </section>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => onOpenSettingsField?.('timings') ?? onEditProfile()}
+                  className="mt-4 text-sm text-zinc-400 hover:text-[#215481]"
+                >
+                  Hours not listed — set opening hours in Settings
+                </button>
+              )}
+            </section>
 
-              {/* Reviews */}
-              <section className="border-t border-slate-100 pt-6">
-                <h4 className="text-sm font-semibold text-slate-900">Reviews</h4>
-                <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                  {hasReview(profileData.review) ? (
-                    <div className="rounded-lg bg-slate-50 p-4">
-                      <p className="text-xs font-medium text-slate-500">Latest review</p>
-                      <p className="mt-2 text-sm italic text-slate-700">&ldquo;{reviewText(profileData.review)}&rdquo;</p>
-                    </div>
+            {/* Contact */}
+            <section
+              id="listing-preview-contact"
+              className="scroll-mt-24 border-t border-zinc-100 py-8"
+            >
+              <h3 className="text-sm font-bold text-[#153551]">Contact</h3>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <div className="rounded-lg border border-zinc-200/80 p-4">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-zinc-400">Phone</p>
+                  {telLink ? (
+                    <a href={telLink} className="mt-1.5 flex items-center gap-2 text-sm font-medium text-[#215481]">
+                      <HiOutlinePhone size={15} />
+                      {profileData.publicPhone}
+                    </a>
                   ) : (
-                    <div className="rounded-lg border border-dashed border-slate-200 p-4 text-center text-xs text-slate-400">
-                      No reviews yet
-                    </div>
-                  )}
-                  {replyText(profileData.reviewReply) ? (
-                    <div className="rounded-lg bg-primary-700 p-4 text-white">
-                      <p className="text-xs font-medium text-white/70">Your reply</p>
-                      <p className="mt-2 text-sm leading-relaxed">&ldquo;{replyText(profileData.reviewReply)}&rdquo;</p>
-                    </div>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={onEditProfile}
-                      className="rounded-lg border border-dashed border-slate-200 p-4 text-left text-xs text-slate-500 transition-colors hover:border-primary-200 hover:bg-primary-50/30"
-                    >
-                      <span className="font-medium text-slate-700">Add a default reply</span>
-                      <span className="mt-1 block">Respond faster to new reviews</span>
-                    </button>
+                    <p className="mt-1.5 text-sm text-zinc-400">Not set</p>
                   )}
                 </div>
-              </section>
-            </div>
+                <div className="rounded-lg border border-zinc-200/80 p-4">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-zinc-400">Email</p>
+                  <p className="mt-1.5 flex items-start gap-2 break-all text-sm text-zinc-700">
+                    <HiOutlineEnvelope size={15} className="mt-0.5 shrink-0 text-zinc-400" />
+                    {profileData.email || 'Not set'}
+                  </p>
+                </div>
+                {profileData.website && (
+                  <div className="rounded-lg border border-zinc-200/80 p-4 sm:col-span-2">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-zinc-400">Website</p>
+                    <a
+                      href={profileData.website.startsWith('http') ? profileData.website : `https://${profileData.website}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-1.5 flex items-center gap-2 truncate text-sm font-medium text-[#215481]"
+                    >
+                      <HiOutlineGlobeAlt size={15} />
+                      {profileData.website}
+                    </a>
+                  </div>
+                )}
+                {profileData.paymentModes && profileData.paymentModes.length > 0 && (
+                  <div className="rounded-lg border border-zinc-200/80 p-4 sm:col-span-2">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-zinc-400">
+                      Payment accepted
+                    </p>
+                    <p className="mt-1.5 text-sm text-zinc-700">{profileData.paymentModes.join(' · ')}</p>
+                  </div>
+                )}
+              </div>
+
+              {(socialLinks.length > 0 || profileData.whatsappNumber) && (
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {profileData.instagramUrl && (
+                    <a
+                      href={profileData.instagramUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 px-3 py-2 text-xs font-semibold text-pink-600 hover:bg-zinc-50"
+                    >
+                      <FaInstagram size={14} />
+                      Instagram
+                    </a>
+                  )}
+                  {profileData.facebookUrl && (
+                    <a
+                      href={profileData.facebookUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 px-3 py-2 text-xs font-semibold text-blue-600 hover:bg-zinc-50"
+                    >
+                      <FaFacebook size={14} />
+                      Facebook
+                    </a>
+                  )}
+                  {profileData.youtubeUrl && (
+                    <a
+                      href={profileData.youtubeUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 px-3 py-2 text-xs font-semibold text-red-600 hover:bg-zinc-50"
+                    >
+                      <FaYoutube size={14} />
+                      YouTube
+                    </a>
+                  )}
+                  {profileData.whatsappNumber && (
+                    <a
+                      href={`https://wa.me/${profileData.whatsappNumber.replace(/\D/g, '')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 px-3 py-2 text-xs font-semibold text-emerald-600 hover:bg-zinc-50"
+                    >
+                      <FaWhatsapp size={14} />
+                      WhatsApp
+                    </a>
+                  )}
+                </div>
+              )}
+            </section>
+
+            {/* Reviews */}
+            <section
+              id="listing-preview-reviews"
+              className="scroll-mt-24 border-t border-zinc-100 py-8"
+            >
+              <div className="flex items-baseline justify-between gap-3">
+                <h3 className="text-sm font-bold text-[#153551]">Reviews</h3>
+                {displayRating != null && (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800">
+                    <HiOutlineStar size={10} className="text-amber-500" />
+                    {displayRating} average
+                  </span>
+                )}
+              </div>
+
+              {reviews.length > 0 ? (
+                <ul className="mt-4 space-y-3">
+                  {reviews.map((review) => (
+                    <li
+                      key={review.id}
+                      className="rounded-lg border border-zinc-200/80 bg-zinc-50/40 px-4 py-3"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-sm font-semibold text-zinc-800">{review.author}</p>
+                        <span className="inline-flex items-center gap-0.5 text-xs text-amber-700">
+                          <HiOutlineStar size={11} className="text-amber-500" />
+                          {review.rating}
+                        </span>
+                      </div>
+                      <p className="mt-2 text-sm leading-relaxed text-zinc-600">&ldquo;{review.content}&rdquo;</p>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-4 rounded-lg border border-dashed border-zinc-200 px-4 py-6 text-center text-sm text-zinc-400">
+                  No customer reviews yet — they will appear here as people rate your business.
+                </p>
+              )}
+
+              {ownerReply ? (
+                <div className="mt-4 rounded-lg border-l-[3px] border-[#215481] bg-[#215481]/5 px-4 py-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-[#215481]">Your default reply</p>
+                  <p className="mt-2 text-sm leading-relaxed text-zinc-700">&ldquo;{ownerReply.content}&rdquo;</p>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={onEditProfile}
+                  className="mt-4 w-full rounded-lg border border-dashed border-zinc-200 px-4 py-3 text-left text-xs text-zinc-500 hover:border-[#215481]/30 hover:bg-zinc-50"
+                >
+                  <span className="font-semibold text-zinc-700">Add a default review reply</span>
+                  <span className="mt-0.5 block">Respond faster when customers leave feedback</span>
+                </button>
+              )}
+            </section>
           </div>
         </div>
 
-        {/* Sidebar */}
+        {/* Sidebar checklist */}
         <aside className="space-y-4">
-          <div className="rounded-xl border border-slate-200/80 bg-white p-4">
-            <h3 className="text-sm font-semibold text-slate-900">Listing checklist</h3>
-            <ul className="mt-3 space-y-2">
-              {checklist.map(({ label, done }) => (
-                <li key={label} className="flex items-center gap-2 text-xs">
-                  <span
-                    className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[10px] ${
-                      done ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-400'
-                    }`}
+          <div className={`${dashboard.panel} p-4`}>
+            <h3 className="text-sm font-bold text-zinc-900">Listing checklist</h3>
+            <ul className="mt-3 space-y-2.5">
+              {checklist.map(({ label, done, key }) => (
+                <li key={label}>
+                  <button
+                    type="button"
+                    onClick={() => (onOpenSettingsField ? onOpenSettingsField(key) : onEditProfile())}
+                    className="flex w-full items-center gap-2.5 text-left text-xs hover:opacity-80"
                   >
-                    {done ? '✓' : '·'}
-                  </span>
-                  <span className={done ? 'text-slate-600' : 'text-slate-400'}>{label}</span>
+                    <span
+                      className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
+                        done ? 'bg-emerald-100 text-emerald-700' : 'bg-zinc-100 text-zinc-400'
+                      }`}
+                    >
+                      {done ? '✓' : '·'}
+                    </span>
+                    <span className={done ? 'text-zinc-600' : 'text-zinc-400'}>{label}</span>
+                  </button>
                 </li>
               ))}
             </ul>
+
             {missingFields.length > 0 && (
-              <button
-                type="button"
-                onClick={onEditProfile}
-                className="mt-4 w-full rounded-lg bg-slate-900 py-2 text-xs font-semibold text-white hover:bg-slate-800"
-              >
-                Complete missing fields
-              </button>
+              <>
+                <p className="mt-5 text-xs font-semibold text-zinc-500">Quick fixes</p>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {missingFields.slice(0, 8).map((field) => (
+                    <button
+                      key={field.key}
+                      type="button"
+                      onClick={() => {
+                        if (field.action === 'kyc') {
+                          onOpenKyc?.();
+                          return;
+                        }
+                        if (field.settingsKey && onOpenSettingsField) {
+                          onOpenSettingsField(field.settingsKey);
+                        } else {
+                          onEditProfile();
+                        }
+                      }}
+                      className="rounded-md border border-amber-200/80 bg-amber-50/60 px-2 py-1 text-[10px] font-semibold text-[#153551] hover:bg-amber-50"
+                    >
+                      {field.label}
+                    </button>
+                  ))}
+                </div>
+              </>
             )}
           </div>
-
-          {profileData.yearsInBusiness != null && profileData.yearsInBusiness > 0 && (
-            <div className="rounded-xl border border-slate-200/80 bg-white p-4">
-              <p className="text-xs text-slate-500">Experience</p>
-              <p className="mt-1 text-2xl font-bold text-slate-900">{profileData.yearsInBusiness}+</p>
-              <p className="text-xs text-slate-500">years in business</p>
-            </div>
-          )}
         </aside>
       </div>
     </div>

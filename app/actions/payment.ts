@@ -25,6 +25,10 @@ async function assertBusinessSession(businessId: string) {
   return { ok: true as const };
 }
 
+export async function getRazorpayGatewayStatus() {
+  return { configured: isRazorpayConfigured() };
+}
+
 export async function getPaymentPageData(businessId: string) {
   if (!businessId) {
     return { success: false as const, error: 'Business ID is required' };

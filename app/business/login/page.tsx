@@ -2,19 +2,18 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
-import {
-  Mail,
-  Lock,
-  ChevronRight,
-  ArrowRight,
-  Eye,
-  EyeOff,
-  AlertCircle,
-  ShieldCheck,
-} from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { loginBusiness } from '@/app/actions/business';
 import { useRouter } from 'next/navigation';
+import { MerchantAuthMain, MerchantAuthPage } from '@/components/business/MerchantAuthShell';
+import {
+  MerchantAuthField,
+  MerchantAuthFormAltLink,
+  MerchantAuthFormBody,
+  MerchantAuthFormCard,
+  MerchantAuthFormHeader,
+  MerchantAuthSubmitButton,
+} from '@/components/business/MerchantAuthForm';
 
 export default function BusinessLoginPage() {
   const [email, setEmail] = useState('');
@@ -59,171 +58,134 @@ export default function BusinessLoginPage() {
   };
 
   return (
-    <div className="relative min-h-[calc(100dvh-5rem)] bg-[#f4f7fb] px-4 pb-8 pt-24 sm:px-6 sm:pt-28 md:pt-32 lg:min-h-screen lg:pt-36 lg:pb-12 xl:pt-40">
-      <div
-        className="pointer-events-none absolute inset-0 opacity-[0.35]"
-        aria-hidden
-        style={{
-          backgroundImage:
-            'radial-gradient(circle at 20% 20%, rgba(33,84,129,0.08) 0%, transparent 45%), radial-gradient(circle at 80% 0%, rgba(249,184,100,0.12) 0%, transparent 40%)',
-        }}
-      />
+    <MerchantAuthPage>
+      <section className="register-hero relative overflow-hidden pb-16 sm:pb-20 lg:pb-24">
+        <div className="register-hero-bg pointer-events-none absolute inset-0" aria-hidden />
+        <div
+          className="pointer-events-none absolute -left-32 top-20 h-96 w-96 rounded-full bg-[#f9b864]/15 blur-[100px]"
+          aria-hidden
+        />
+        <div
+          className="pointer-events-none absolute -right-24 bottom-0 h-80 w-80 rounded-full bg-[#215481]/12 blur-[90px]"
+          aria-hidden
+        />
 
-      <div className="relative mx-auto flex min-h-[calc(100dvh-8rem)] max-w-5xl flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_24px_64px_-32px_rgba(15,39,59,0.28)] lg:min-h-[560px] lg:flex-row">
-        <aside className="relative hidden overflow-hidden bg-[#153551] lg:flex lg:w-[42%] lg:flex-col lg:justify-between">
-          <div
-            className="pointer-events-none absolute inset-0 opacity-[0.07]"
-            aria-hidden
-            style={{
-              backgroundImage:
-                'linear-gradient(rgba(255,255,255,0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.6) 1px, transparent 1px)',
-              backgroundSize: '32px 32px',
-            }}
-          />
-          <div className="relative z-10 p-10 xl:p-12">
-            <Link href="/" className="inline-block rounded-lg bg-white px-3 py-2 shadow-sm">
-              <Image
-                src="/businesslogo.png"
-                alt="FinderB Business"
-                width={132}
-                height={44}
-                className="h-8 w-auto"
-                priority
-              />
-            </Link>
-            <div className="mt-14 max-w-xs">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#f9b864]">
-                Partner portal
-              </p>
-              <h1 className="mt-3 text-[1.75rem] font-semibold leading-snug tracking-tight !text-white xl:text-[2rem]">
-                Manage your business listing
+        <MerchantAuthMain className="relative z-10">
+          <div className="flex flex-col gap-8 lg:grid lg:grid-cols-[1fr_minmax(0,400px)] lg:items-start lg:gap-x-12 xl:grid-cols-[1.05fr_minmax(0,420px)] xl:gap-x-16">
+            <div className="max-w-xl lg:col-start-1 lg:row-start-1">
+              <h1 className="text-[2rem] font-extrabold leading-[1.1] tracking-tight text-[#0a1520] sm:text-4xl lg:text-[2.75rem]">
+                Welcome back to your{' '}
+                <span className="register-hero-headline-accent">partner dashboard</span>
               </h1>
-              <p className="mt-3 text-sm leading-relaxed text-white/70">
-                Update details, track enquiries, and complete verification from one dashboard.
+              <p className="mt-5 text-base leading-relaxed text-[#3d4f63] sm:text-lg">
+                Manage your listing, respond to leads, track reviews, and complete verification —
+                everything your business needs in one place.
               </p>
-            </div>
-          </div>
-          <div className="relative z-10 border-t border-white/10 px-10 py-8 xl:px-12">
-            <div className="flex items-start gap-2 text-xs text-white/70">
-              <ShieldCheck size={16} className="mt-0.5 shrink-0 text-[#f9b864]" />
-              Secure access for registered FinderB business partners only.
-            </div>
-          </div>
-        </aside>
 
-        <div className="flex flex-1 flex-col justify-start px-6 pb-8 pt-10 sm:px-10 lg:justify-center lg:px-12 lg:py-10 xl:px-14">
-          <div className="mx-auto w-full max-w-sm">
-            <div className="mb-8">
-              <h2 className="text-2xl font-semibold tracking-tight text-[#0f273b]">Partner sign in</h2>
-              <p className="mt-1.5 text-sm text-[#64748b]">
-                Use the email and password from your business registration.
-              </p>
+              <ul className="mt-8 space-y-3.5">
+                {[
+                  'Update listing, photos, and business hours',
+                  'View and reply to customer enquiries',
+                  'Track growth and complete KYC verification',
+                ].map((item) => (
+                  <li key={item} className="flex items-start gap-3 text-sm font-medium text-[#3d4f63] sm:text-[15px]">
+                    <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#f9b864]" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
             </div>
 
-            {error && (
-              <div className="mb-5 flex items-start gap-2.5 rounded-lg border border-red-100 bg-red-50/80 px-3.5 py-3 text-sm text-red-700">
-                <AlertCircle size={17} className="mt-0.5 shrink-0" />
-                <div>
-                  <p>{error}</p>
-                  {suggestedLoginPath && (
-                    <Link
-                      href={suggestedLoginPath}
-                      className="mt-2 inline-flex font-semibold text-[#2563eb] underline-offset-2 hover:underline"
-                    >
-                      Go to the correct sign-in page
-                    </Link>
+            <div className="mx-auto w-full max-w-md lg:col-start-2 lg:row-start-1 lg:mx-0 lg:max-w-none lg:sticky lg:top-28">
+              <MerchantAuthFormCard>
+                <MerchantAuthFormHeader
+                  title="Partner sign in"
+                  subtitle="Use the email and password from your business registration."
+                />
+                <MerchantAuthFormBody>
+
+                  {error && (
+                    <div className="mb-6 flex items-start gap-2.5 rounded-xl border border-red-200/80 bg-red-50 px-4 py-3.5 text-sm text-red-700">
+                      <AlertCircle size={18} className="mt-0.5 shrink-0" />
+                      <div>
+                        <p>{error}</p>
+                        {suggestedLoginPath && (
+                          <Link
+                            href={suggestedLoginPath}
+                            className="mt-2 inline-flex font-semibold text-[#215481] underline-offset-2 hover:underline"
+                          >
+                            Go to the correct sign-in page
+                          </Link>
+                        )}
+                      </div>
+                    </div>
                   )}
-                </div>
-              </div>
-            )}
 
-            <form onSubmit={handleLogin} className="space-y-5">
-              <div className="space-y-1.5">
-                <label htmlFor="email" className="text-sm font-medium text-[#334155]">
-                  Work email
-                </label>
-                <div className="group relative">
-                  <Mail
-                    size={17}
-                    className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#94a3b8] transition-colors group-focus-within:text-[#215481]"
-                  />
-                  <input
-                    id="email"
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@business.com"
-                    className="w-full rounded-lg border border-slate-200 bg-white py-3 pl-10 pr-4 text-sm text-[#0f172a] outline-none transition-all placeholder:text-slate-400 focus:border-[#215481]/40 focus:ring-4 focus:ring-[#215481]/10"
-                  />
-                </div>
-              </div>
+                  <form onSubmit={handleLogin} className="space-y-4">
+                    <MerchantAuthField
+                      id="email"
+                      label="Work email"
+                      type="email"
+                      value={email}
+                      onChange={setEmail}
+                      placeholder="you@business.com"
+                      icon={Mail}
+                      autoComplete="email"
+                    />
 
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <label htmlFor="password" className="text-sm font-medium text-[#334155]">
-                    Password
-                  </label>
-                  <Link
-                    href="#"
-                    className="text-xs font-medium text-[#215481] hover:text-[#1a4367]"
-                  >
-                    Forgot password?
-                  </Link>
-                </div>
-                <div className="group relative">
-                  <Lock
-                    size={17}
-                    className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#94a3b8] transition-colors group-focus-within:text-[#215481]"
-                  />
-                  <input
-                    id="password"
-                    type={showPassword ? 'text' : 'password'}
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    maxLength={128}
-                    placeholder="Enter your password"
-                    className="w-full rounded-lg border border-slate-200 bg-white py-3 pl-10 pr-11 text-sm text-[#0f172a] outline-none transition-all placeholder:text-slate-400 focus:border-[#215481]/40 focus:ring-4 focus:ring-[#215481]/10"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-[#94a3b8] transition-colors hover:text-[#215481]"
-                    aria-label={showPassword ? 'Hide password' : 'Show password'}
-                  >
-                    {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
-                  </button>
-                </div>
-              </div>
+                    <div>
+                      <div className="mb-2 flex items-center justify-between">
+                        <label htmlFor="password" className="merchant-auth-label mb-0">
+                          Password
+                        </label>
+                        <Link
+                          href="#"
+                          className="text-xs font-medium text-[#215481] hover:text-[#153551] hover:underline"
+                        >
+                          Forgot password?
+                        </Link>
+                      </div>
+                      <MerchantAuthField
+                        id="password"
+                        label="Password"
+                        hideLabel
+                        type={showPassword ? 'text' : 'password'}
+                        value={password}
+                        onChange={setPassword}
+                        placeholder="Your password"
+                        icon={Lock}
+                        autoComplete="current-password"
+                        trailing={
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1 text-zinc-400 transition-colors hover:text-[#153551]"
+                            aria-label={showPassword ? 'Hide password' : 'Show password'}
+                          >
+                            {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+                          </button>
+                        }
+                      />
+                    </div>
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="group mt-1 flex w-full items-center justify-center gap-2 rounded-lg bg-[#215481] py-3 text-sm font-semibold text-white transition-all hover:bg-[#1a4367] disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {loading ? 'Signing in…' : 'Sign in'}
-                {!loading && (
-                  <ChevronRight size={16} className="transition-transform group-hover:translate-x-0.5" />
-                )}
-              </button>
-            </form>
+                    <div className="pt-1">
+                      <MerchantAuthSubmitButton type="submit" loading={loading}>
+                        Sign in
+                      </MerchantAuthSubmitButton>
+                    </div>
+                  </form>
 
-            <div className="mt-8 space-y-4 border-t border-slate-100 pt-6">
-              <p className="text-center text-sm text-[#64748b]">
-                New to FinderB?{' '}
-                <Link
-                  href="/business/register"
-                  className="inline-flex items-center gap-1 font-semibold text-[#215481] hover:text-[#1a4367]"
-                >
-                  Register your business
-                  <ArrowRight size={14} />
-                </Link>
-              </p>
+                  <MerchantAuthFormAltLink
+                    prompt="New to FinderB?"
+                    href="/business/register"
+                    linkText="Register your business"
+                  />
+                </MerchantAuthFormBody>
+              </MerchantAuthFormCard>
             </div>
           </div>
-        </div>
-      </div>
-    </div>
+        </MerchantAuthMain>
+      </section>
+    </MerchantAuthPage>
   );
 }

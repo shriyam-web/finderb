@@ -31,27 +31,19 @@ import { enforceRateLimit } from '@/lib/security/enforceRateLimit.server';
 import { redactPublicBusinessFields } from '@/lib/security/businessFields';
 import { verifyRazorpayPaymentSignature } from '@/lib/razorpay/server';
 
-function parseBusinessServices(business: {
+import { parseBusinessServices } from '@/lib/parseBusinessServices';
+
+function parseBusinessServicesFromRecord(business: {
   serviceCategory?: string | null;
   keywords?: string[] | null;
 }): string[] {
-  const services = new Set<string>();
-
-  if (business.serviceCategory?.trim()) {
-    business.serviceCategory
-      .split(/[,|]/)
-      .map((item) => item.trim())
-      .filter(Boolean)
-      .forEach((item) => services.add(item));
-  }
-
-  return [...services];
+  return parseBusinessServices(business.serviceCategory);
 }
 
 function mapBusinessRecord(business: Record<string, unknown>) {
   const { password: _password, ...safeBusiness } = business;
   const { rating, reviewCount } = getBusinessPublicRatingStats(safeBusiness.review);
-  const services = parseBusinessServices({
+  const services = parseBusinessServicesFromRecord({
     serviceCategory: business.serviceCategory as string | null | undefined,
     keywords: business.keywords as string[] | null | undefined,
   });

@@ -11,6 +11,7 @@ import {
   HiOutlineEnvelope,
   HiOutlineChevronRight,
   HiOutlineCheckCircle,
+  HiOutlineSparkles,
 } from 'react-icons/hi2';
 import { FaWhatsapp } from 'react-icons/fa';
 import {
@@ -21,6 +22,8 @@ import {
 import { leadBadgeClassName } from '@/lib/leadBadges';
 import { formatRelativeTime, phoneDigits, whatsappLink } from '@/lib/formatRelativeTime';
 import { parseJobLeadDisplay } from '@/lib/jobLeadMessage';
+import { dashboard } from './dashboard-ui';
+import { DashboardSectionHeader } from './DashboardShell';
 
 type LeadsSectionProps = {
   businessId: string;
@@ -69,6 +72,31 @@ function maskName(name: string, locked: boolean) {
   return locked ? name.replace(/(?<=.)./g, '•') : name;
 }
 
+function LeadStatChip({
+  label,
+  value,
+  accent,
+}: {
+  label: string;
+  value: number;
+  accent?: 'gold' | 'navy';
+}) {
+  return (
+    <div
+      className={`rounded-lg border px-4 py-3 ${
+        accent === 'gold'
+          ? 'border-[#f9b864]/40 bg-[#fff9ed]/80'
+          : accent === 'navy'
+            ? 'border-[#215481]/15 bg-[#215481]/[0.04]'
+            : 'border-zinc-200 bg-white'
+      }`}
+    >
+      <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">{label}</p>
+      <p className="mt-0.5 text-2xl font-bold tabular-nums text-[#153551]">{value}</p>
+    </div>
+  );
+}
+
 export default function LeadsSection({
   businessId,
   isPaymentPending,
@@ -108,6 +136,7 @@ export default function LeadsSection({
   const jobLeads = useMemo(() => leads.filter(isJobLead), [leads]);
   const newBusinessCount = businessLeads.filter(isNewLead).length;
   const newJobCount = jobLeads.filter(isNewLead).length;
+  const totalNew = newBusinessCount + newJobCount;
 
   useEffect(() => {
     if (activeTab === 'business' && businessLeads.length === 0 && jobLeads.length > 0) {
@@ -142,16 +171,16 @@ export default function LeadsSection({
     const phone = lead.phone?.trim();
     const email = lead.email?.trim();
     const btnBase =
-      'inline-flex items-center justify-center gap-1 rounded-md px-2.5 py-1.5 text-[11px] font-semibold transition-colors';
+      'inline-flex items-center justify-center gap-1 rounded-lg px-3 py-1.5 text-[11px] font-semibold transition-colors';
 
     if (isPaymentPending) {
       return (
         <Link
           href={`/business/payment/${businessId}`}
-          className={`${btnBase} bg-secondary-400 text-primary-900 hover:bg-secondary-300`}
+          className={`${btnBase} bg-[#f9b864] text-[#153551] hover:bg-[#ffcc70]`}
         >
           <HiOutlineRocketLaunch size={12} />
-          Activate
+          Activate to unlock
         </Link>
       );
     }
@@ -174,83 +203,103 @@ export default function LeadsSection({
               className={`${btnBase} bg-[#25D366] text-white hover:bg-[#1fb855]`}
             >
               <FaWhatsapp size={12} />
-              Chat
+              WhatsApp
             </a>
           </>
         )}
         {email && (
           <a
             href={`mailto:${email}?subject=${encodeURIComponent('Re: Your FinderB enquiry')}&body=${encodeURIComponent(contactMessage(lead))}`}
-            className={`${btnBase} border border-slate-200 bg-white text-slate-700 hover:border-primary-200 hover:text-primary-700`}
+            className={`${btnBase} border border-zinc-200 bg-white text-zinc-700 hover:border-[#215481]/30 hover:text-[#215481]`}
           >
             <HiOutlineEnvelope size={12} />
             Email
           </a>
         )}
-        {!phone && !email && <span className="text-[11px] text-slate-400">No contact</span>}
+        {!phone && !email && <span className="text-[11px] text-zinc-400">No contact on file</span>}
       </div>
     );
   };
 
-  const renderLeadRow = (lead: BusinessLead) => {
+  const renderLeadCard = (lead: BusinessLead) => {
     const enquiry = getLeadEnquiryDisplay(lead);
+    const isNew = isNewLead(lead);
+    const isJob = isJobLead(lead);
 
     return (
-      <div
+      <article
         key={lead.id}
-        className="flex flex-col gap-2 border-b border-slate-100 px-3 py-2.5 last:border-b-0 sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:px-4"
+        className={`relative overflow-hidden rounded-lg border bg-white transition-shadow hover:shadow-sm ${
+          isNew ? 'border-[#f9b864]/50 ring-1 ring-[#f9b864]/20' : 'border-zinc-200'
+        }`}
       >
-        <div className="flex min-w-0 flex-1 items-start gap-2.5">
-          <div
-            className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[11px] font-semibold ${
-              isNewLead(lead)
-                ? 'bg-secondary-400 text-primary-900'
-                : 'bg-primary-600 text-white'
-            }`}
-          >
-            {initials(lead.name)}
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-              <p className="truncate text-sm font-semibold text-slate-900">
-                {maskName(lead.name, isPaymentPending)}
-              </p>
-              <span className="text-[11px] text-slate-400">{formatRelativeTime(lead.created_at)}</span>
-            </div>
-            <p className="truncate text-sm text-slate-700">{enquiry.primary}</p>
-            {enquiry.secondary && (
-              <p className="truncate text-xs text-slate-500">{enquiry.secondary}</p>
-            )}
-            {!isPaymentPending && lead.phone && (
-              <p className="text-[11px] text-slate-400">{lead.phone}</p>
-            )}
-          </div>
-        </div>
+        {isNew && (
+          <div className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-[#f9b864] to-[#f69e32]" aria-hidden />
+        )}
 
-        <div className="flex flex-wrap items-center gap-2 sm:shrink-0 sm:justify-end">
-          <span
-            className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-medium ${leadBadgeClassName(lead.status)}`}
-          >
-            {lead.status}
-          </span>
-          {!isPaymentPending && isNewLead(lead) && (
-            <button
-              type="button"
-              disabled={updatingId === lead.id}
-              onClick={() => handleMarkContacted(lead.id)}
-              className="inline-flex items-center gap-0.5 text-[11px] font-medium text-primary-600 hover:text-primary-800 disabled:opacity-50"
+        <div className="flex flex-col gap-4 p-4 pl-5 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex min-w-0 flex-1 gap-3">
+            <div
+              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-xs font-bold ${
+                isNew ? 'bg-[#f9b864] text-[#153551]' : 'bg-[#153551] text-white'
+              }`}
             >
-              <HiOutlineCheckCircle size={12} />
-              {updatingId === lead.id ? 'Saving…' : 'Contacted'}
-            </button>
-          )}
-          {renderContactActions(lead)}
+              {initials(lead.name)}
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <h4 className="truncate text-sm font-bold text-zinc-900">
+                  {maskName(lead.name, isPaymentPending)}
+                </h4>
+                <span
+                  className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold ${leadBadgeClassName(lead.status)}`}
+                >
+                  {lead.status}
+                </span>
+                {isJob && (
+                  <span className="rounded-full bg-[#215481]/8 px-2 py-0.5 text-[10px] font-semibold text-[#215481]">
+                    Job application
+                  </span>
+                )}
+              </div>
+
+              <p className="mt-1 text-xs text-zinc-400">{formatRelativeTime(lead.created_at)}</p>
+
+              <p className="mt-2 text-sm font-medium leading-snug text-zinc-800">{enquiry.primary}</p>
+              {enquiry.secondary && (
+                <p className="mt-1 text-sm leading-relaxed text-zinc-500">{enquiry.secondary}</p>
+              )}
+
+              {!isPaymentPending && (lead.phone || lead.email) && (
+                <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-zinc-500">
+                  {lead.phone && <span>{lead.phone}</span>}
+                  {lead.email && <span className="break-all">{lead.email}</span>}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="flex shrink-0 flex-col items-stretch gap-2 sm:items-end sm:pl-4">
+            {!isPaymentPending && isNew && (
+              <button
+                type="button"
+                disabled={updatingId === lead.id}
+                onClick={() => handleMarkContacted(lead.id)}
+                className="inline-flex items-center justify-center gap-1 rounded-lg border border-zinc-200 px-3 py-1.5 text-[11px] font-semibold text-[#215481] hover:bg-zinc-50 disabled:opacity-50"
+              >
+                <HiOutlineCheckCircle size={13} />
+                {updatingId === lead.id ? 'Saving…' : 'Mark contacted'}
+              </button>
+            )}
+            {renderContactActions(lead)}
+          </div>
         </div>
-      </div>
+      </article>
     );
   };
 
-  const renderLeadBlock = (
+  const renderLeadList = (
     type: LeadTab,
     items: BusinessLead[],
     options?: { limit?: number; emptyTitle: string; emptyHint: string }
@@ -259,75 +308,58 @@ export default function LeadsSection({
     const visible = limit ? items.slice(0, limit) : items;
     const isJob = type === 'jobs';
     const Icon = isJob ? HiOutlineBriefcase : HiOutlineBuildingStorefront;
-    const label = isJob ? 'Job applications' : 'Business enquiries';
-    const newCount = isJob ? newJobCount : newBusinessCount;
 
     if (visible.length === 0) {
       return (
-        <div className="rounded-xl border border-slate-200/90 bg-white px-4 py-6 text-center">
-          <Icon size={22} className="mx-auto text-slate-300" />
-          <p className="mt-2 text-sm font-semibold text-slate-800">{options?.emptyTitle}</p>
-          <p className="mt-1 text-xs text-slate-500">{options?.emptyHint}</p>
+        <div className={`${dashboard.panel} ${dashboard.emptyState}`}>
+          <Icon size={28} className="text-zinc-300" />
+          <p className="mt-3 text-sm font-bold text-zinc-800">{options?.emptyTitle}</p>
+          <p className="mt-1 max-w-sm text-xs text-zinc-500">{options?.emptyHint}</p>
         </div>
       );
     }
 
     return (
-      <div className="overflow-hidden rounded-xl border border-slate-200/90 bg-white">
-        <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/80 px-3 py-2 sm:px-4">
-          <div className="flex items-center gap-2">
-            <Icon size={15} className="text-primary-600" />
-            <p className="text-sm font-semibold text-slate-900">{label}</p>
-            <span className="rounded-full bg-slate-200/80 px-1.5 py-0.5 text-[10px] font-medium text-slate-600">
-              {items.length}
-            </span>
-            {newCount > 0 && (
-              <span className="rounded-full bg-secondary-400 px-1.5 py-0.5 text-[10px] font-semibold text-primary-900">
-                {newCount} new
-              </span>
-            )}
-          </div>
-          {limit && items.length > limit && (
-            <span className="text-[11px] text-slate-400">Latest {limit}</span>
-          )}
-        </div>
-        <div>{visible.map(renderLeadRow)}</div>
+      <div className="space-y-3">
+        {limit && items.length > limit && (
+          <p className="text-right text-[11px] text-zinc-400">Showing latest {limit} of {items.length}</p>
+        )}
+        {visible.map(renderLeadCard)}
       </div>
     );
   };
 
-  const title = variant === 'overview' ? 'Recent leads' : 'Lead center';
-
   if (loading) {
     return (
-      <div className="space-y-4">
-        <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-slate-200/90 bg-white py-10">
-          <div className="h-7 w-7 animate-spin rounded-full border-2 border-primary-500 border-t-transparent" />
-          <p className="text-sm text-slate-500">Loading leads…</p>
-        </div>
+      <div className={`${dashboard.panel} ${dashboard.emptyState} py-16`}>
+        <div className="h-9 w-9 animate-spin rounded-full border-2 border-[#215481] border-t-transparent" />
+        <p className="mt-3 text-sm text-zinc-500">Loading your leads…</p>
       </div>
     );
   }
 
   if (leads.length === 0) {
     return (
-      <div className="space-y-4">
-        <div>
-          <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
-          <p className="mt-0.5 text-sm text-slate-500">Business and job leads appear here separately.</p>
-        </div>
-        <div className="rounded-xl border border-slate-200/90 bg-white px-4 py-8 text-center">
-          <HiOutlineCursorArrowRays size={28} className="mx-auto text-primary-400" />
-          <h4 className="mt-3 text-sm font-semibold text-slate-900">No leads yet</h4>
-          <p className="mx-auto mt-1 max-w-sm text-xs text-slate-500">
-            Customer enquiries and job applications will show up here when people reach out.
+      <div>
+        {variant === 'overview' && (
+          <DashboardSectionHeader
+            title="Latest enquiries"
+            description="Business and job leads appear here separately."
+          />
+        )}
+        <div className={`${dashboard.panel} ${dashboard.emptyState} py-14`}>
+          <HiOutlineCursorArrowRays size={36} className="text-[#f9b864]" />
+          <h4 className="mt-4 text-base font-bold text-zinc-900">No leads yet</h4>
+          <p className="mx-auto mt-2 max-w-md text-sm text-zinc-500">
+            When customers enquire on your profile or apply to your jobs, they show up here with contact
+            details ready to reach out.
           </p>
           <Link
             href={`/business/${businessId}`}
             target="_blank"
-            className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-primary-600 hover:text-primary-800"
+            className="mt-5 inline-flex items-center gap-1 text-sm font-semibold text-[#215481] hover:underline"
           >
-            View public profile <HiOutlineChevronRight size={14} />
+            View public profile <HiOutlineChevronRight size={16} />
           </Link>
         </div>
       </div>
@@ -336,22 +368,17 @@ export default function LeadsSection({
 
   if (isPaymentPending && variant === 'overview') {
     return (
-      <div className="space-y-4">
-        <div>
-          <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
-          <p className="mt-0.5 text-sm text-slate-500">
-            {businessLeads.length} business · {jobLeads.length} job — activate to view details
-          </p>
-        </div>
-        <div className="rounded-xl border border-slate-200/90 bg-white px-4 py-6 text-center">
-          <p className="text-2xl font-semibold text-primary-600">{leads.length}</p>
-          <p className="mt-1 text-sm text-slate-600">leads waiting for you</p>
-          <Link
-            href={`/business/payment/${businessId}`}
-            className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-primary-700 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-800"
-          >
+      <div>
+        <DashboardSectionHeader
+          title="Latest enquiries"
+          description="Activate Growth Pro to view contact details."
+        />
+        <div className={`${dashboard.panel} ${dashboard.emptyState} py-12`}>
+          <p className="text-5xl font-bold text-[#153551]">{leads.length}</p>
+          <p className="mt-2 text-sm text-zinc-600">leads waiting — contacts locked until activation</p>
+          <Link href={`/business/payment/${businessId}`} className={`mt-5 ${dashboard.btnPrimary}`}>
             <HiOutlineRocketLaunch size={16} />
-            Activate leads
+            Activate Growth Pro
           </Link>
         </div>
       </div>
@@ -359,77 +386,120 @@ export default function LeadsSection({
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
-          <p className="mt-0.5 text-sm text-slate-500">
-            {businessLeads.length} business · {jobLeads.length} job
-            {(newBusinessCount + newJobCount) > 0 && ` · ${newBusinessCount + newJobCount} new`}
-          </p>
-        </div>
-        {variant === 'leads' && isPaymentPending && (
-          <Link
-            href={`/business/payment/${businessId}`}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-secondary-300 bg-secondary-50 px-3 py-1.5 text-xs font-semibold text-primary-800 hover:bg-secondary-100"
-          >
-            <HiOutlineRocketLaunch size={14} />
-            Unlock contacts
-          </Link>
-        )}
-      </div>
-
+    <div className="space-y-5">
       {variant === 'leads' && (
-        <div className="flex gap-1 rounded-lg border border-slate-200/90 bg-slate-50 p-1">
-          <button
-            type="button"
-            onClick={() => setActiveTab('business')}
-            className={`flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-2 text-xs font-semibold transition-colors ${
-              activeTab === 'business'
-                ? 'bg-white text-primary-700 shadow-sm'
-                : 'text-slate-500 hover:text-slate-700'
-            }`}
-          >
-            <HiOutlineBuildingStorefront size={14} />
-            Business
-            <span className="rounded-full bg-slate-200/80 px-1.5 py-px text-[10px]">{businessLeads.length}</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('jobs')}
-            className={`flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-2 text-xs font-semibold transition-colors ${
-              activeTab === 'jobs'
-                ? 'bg-white text-primary-700 shadow-sm'
-                : 'text-slate-500 hover:text-slate-700'
-            }`}
-          >
-            <HiOutlineBriefcase size={14} />
-            Jobs
-            <span className="rounded-full bg-slate-200/80 px-1.5 py-px text-[10px]">{jobLeads.length}</span>
-          </button>
-        </div>
+        <>
+          {isPaymentPending && (
+            <div className="flex flex-col gap-3 rounded-lg border border-amber-200 bg-gradient-to-r from-amber-50 to-[#fff9ed] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-start gap-3">
+                <HiOutlineSparkles size={20} className="mt-0.5 shrink-0 text-[#f69e32]" />
+                <div>
+                  <p className="text-sm font-bold text-[#153551]">Contacts are locked</p>
+                  <p className="mt-0.5 text-xs text-zinc-600">
+                    You have {leads.length} lead{leads.length === 1 ? '' : 's'} — activate Growth Pro to see
+                    names, phone numbers, and email.
+                  </p>
+                </div>
+              </div>
+              <Link
+                href={`/business/payment/${businessId}`}
+                className={`shrink-0 ${dashboard.btnPrimary}`}
+              >
+                <HiOutlineRocketLaunch size={14} />
+                Unlock leads
+              </Link>
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <LeadStatChip label="Total leads" value={leads.length} accent="navy" />
+            <LeadStatChip label="New" value={totalNew} accent={totalNew > 0 ? 'gold' : undefined} />
+            <LeadStatChip label="Business" value={businessLeads.length} />
+            <LeadStatChip label="Job apps" value={jobLeads.length} />
+          </div>
+
+          <div className={dashboard.segmentGroup}>
+            <button
+              type="button"
+              onClick={() => setActiveTab('business')}
+              className={`${dashboard.segmentBtn} ${
+                activeTab === 'business' ? dashboard.segmentActive : dashboard.segmentInactive
+              }`}
+            >
+              <HiOutlineBuildingStorefront size={14} />
+              Business enquiries
+              <span
+                className={`rounded-full px-1.5 py-px text-[10px] ${
+                  activeTab === 'business' ? 'bg-[#215481]/10 text-[#215481]' : 'bg-zinc-200/80 text-zinc-600'
+                }`}
+              >
+                {businessLeads.length}
+                {newBusinessCount > 0 ? ` · ${newBusinessCount} new` : ''}
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('jobs')}
+              className={`${dashboard.segmentBtn} ${
+                activeTab === 'jobs' ? dashboard.segmentActive : dashboard.segmentInactive
+              }`}
+            >
+              <HiOutlineBriefcase size={14} />
+              Job applications
+              <span
+                className={`rounded-full px-1.5 py-px text-[10px] ${
+                  activeTab === 'jobs' ? 'bg-[#215481]/10 text-[#215481]' : 'bg-zinc-200/80 text-zinc-600'
+                }`}
+              >
+                {jobLeads.length}
+                {newJobCount > 0 ? ` · ${newJobCount} new` : ''}
+              </span>
+            </button>
+          </div>
+        </>
+      )}
+
+      {variant === 'overview' && (
+        <DashboardSectionHeader
+          title="Latest enquiries"
+          description="Recent business and job leads — open Lead center for the full list."
+        />
       )}
 
       {variant === 'overview' ? (
-        <div className="space-y-3">
-          {renderLeadBlock('business', businessLeads, {
-            limit: 3,
-            emptyTitle: 'No business enquiries yet',
-            emptyHint: 'Profile and category enquiries show up here.',
-          })}
-          {renderLeadBlock('jobs', jobLeads, {
-            limit: 2,
-            emptyTitle: 'No job applications yet',
-            emptyHint: 'Applications from your job postings show up here.',
-          })}
+        <div className="space-y-6">
+          {businessLeads.length > 0 && (
+            <div>
+              <p className="mb-3 text-xs font-bold uppercase tracking-wider text-zinc-500">
+                Business enquiries
+              </p>
+              {renderLeadList('business', businessLeads, {
+                limit: 3,
+                emptyTitle: 'No business enquiries yet',
+                emptyHint: 'Profile enquiries show up here.',
+              })}
+            </div>
+          )}
+          {jobLeads.length > 0 && (
+            <div>
+              <p className="mb-3 text-xs font-bold uppercase tracking-wider text-zinc-500">
+                Job applications
+              </p>
+              {renderLeadList('jobs', jobLeads, {
+                limit: 2,
+                emptyTitle: 'No job applications yet',
+                emptyHint: 'Applications from your job postings show up here.',
+              })}
+            </div>
+          )}
         </div>
       ) : activeTab === 'business' ? (
-        renderLeadBlock('business', businessLeads, {
+        renderLeadList('business', businessLeads, {
           emptyTitle: 'No business enquiries',
           emptyHint: 'When customers enquire on FinderB, they appear in this list.',
         })
       ) : (
-        renderLeadBlock('jobs', jobLeads, {
+        renderLeadList('jobs', jobLeads, {
           emptyTitle: 'No job applications',
           emptyHint: 'When candidates apply to your postings, they appear here.',
         })

@@ -52,13 +52,9 @@ import { useSortedTouristPlaces } from '@/hooks/useSortedTouristPlaces';
 import { useUserCoords, useUserLocationState } from '@/hooks/useUserCoords';
 import { appendLocationToSearchQuery } from '@/lib/searchQuery';
 import { formatDistanceFromUser } from '@/lib/geo';
-import {
-  createVoiceRecognition,
-  detachVoiceRecognition,
-  getSpeechRecognitionCtor,
-  normalizeVoiceTranscript,
-  type VoiceRecognitionInstance,
-} from '@/lib/voiceSearch';
+import { useVoiceSearch } from '@/hooks/useVoiceSearch';
+import VoiceSearchModal from '@/components/VoiceSearchModal';
+import { normalizeVoiceTranscript } from '@/lib/voiceSearch';
 import { setLastSearchQuery } from '@/lib/lastSearchQuery';
 import { stripHtml } from '@/lib/stripHtml';
 
@@ -115,95 +111,34 @@ export default function HomeClient({ initialData }: { initialData: any }) {
   const [manualQuery, setManualQuery] = useState('');
   const manualQueryRef = useRef('');
   const [searchHint, setSearchHint] = useState(false);
-
-  type VoicePhase = 'speak-now' | 'listening' | 'preview' | 'searching';
-  const [voiceActive, setVoiceActive] = useState(false);
-  const [voicePhase, setVoicePhase] = useState<VoicePhase>('speak-now');
-  const [voiceTranscript, setVoiceTranscript] = useState('');
-  const [voiceError, setVoiceError] = useState<string | null>(null);
-
-  const recognitionRef = useRef<VoiceRecognitionInstance | null>(null);
-  const voiceTranscriptRef = useRef('');
-  const voiceSearchQueryRef = useRef('');
-  const voiceLockedRef = useRef(false);
-  const voiceSessionRef = useRef(0);
-  const voiceSearchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const voiceActiveRef = useRef(false);
-  const voiceOpenedAtRef = useRef(0);
-  const voiceRestartCountRef = useRef(0);
-  const cancelVoiceSessionRef = useRef<() => void>(() => {});
   const prevTabFromUrlRef = useRef<string | null | undefined>(undefined);
-  /** Ignore mic toggle-close right after open (mobile touch + synthetic click). */
-  const VOICE_CANCEL_GRACE_MS = 450;
-  const MAX_VOICE_RESTARTS = 4;
   const userCoords = useUserCoords();
   const { effectiveSearchLocation } = useUserLocationState();
-
-  /** After showing transcript → run search. */
-  const VOICE_PREVIEW_SEARCH_MS = 2000;
-
-  const clearVoiceTimers = useCallback(() => {
-    if (voiceSearchTimerRef.current) {
-      clearTimeout(voiceSearchTimerRef.current);
-      voiceSearchTimerRef.current = null;
-    }
-  }, []);
-
-  const stopRecognitionEngine = useCallback((abort = false) => {
-    const recognition = recognitionRef.current;
-    if (!recognition) return;
-    recognitionRef.current = null;
-    detachVoiceRecognition(recognition);
-    try {
-      if (abort) recognition.abort();
-      else recognition.stop();
-    } catch {
-      try {
-        recognition.abort();
-      } catch {
-        /* ignore */
-      }
-    }
-  }, []);
-
-  const cancelVoiceSession = useCallback(() => {
-    voiceSessionRef.current += 1;
-    clearVoiceTimers();
-    stopRecognitionEngine(true);
-    voiceLockedRef.current = false;
-    voiceTranscriptRef.current = '';
-    voiceSearchQueryRef.current = '';
-    setVoiceTranscript('');
-    setVoicePhase('speak-now');
-    setVoiceError(null);
-    setVoiceActive(false);
-    voiceActiveRef.current = false;
-  }, [clearVoiceTimers, stopRecognitionEngine]);
-
-  cancelVoiceSessionRef.current = cancelVoiceSession;
-
-  useEffect(() => {
-    voiceActiveRef.current = voiceActive;
-  }, [voiceActive]);
-
-  useEffect(() => {
-    return () => {
-      cancelVoiceSessionRef.current();
-    };
-  }, []);
 
   const navigateToSearch = useCallback(
     (q: string) => {
       const trimmed = normalizeVoiceTranscript(q);
       if (!trimmed) return;
       const withLocation = appendLocationToSearchQuery(trimmed, effectiveSearchLocation);
-      cancelVoiceSession();
       setManualQuery('');
       manualQueryRef.current = '';
       router.push(`/categories?search=${encodeURIComponent(withLocation)}`, { scroll: false });
     },
-    [router, cancelVoiceSession, effectiveSearchLocation]
+    [router, effectiveSearchLocation]
   );
+
+  const {
+    voiceActive,
+    voicePhase,
+    voiceTranscript,
+    voiceError,
+    openVoiceSearch,
+    closeVoiceSearch,
+    retryVoiceSearch,
+  } = useVoiceSearch(navigateToSearch);
+
+  const closeVoiceSearchRef = useRef(closeVoiceSearch);
+  closeVoiceSearchRef.current = closeVoiceSearch;
 
   const handleManualSearch = useCallback(
     (queryText?: string) => {
@@ -230,187 +165,6 @@ export default function HomeClient({ initialData }: { initialData: any }) {
     const timer = window.setTimeout(() => setSearchHint(false), 4000);
     return () => window.clearTimeout(timer);
   }, [searchHint]);
-
-  const beginPreviewAndSearch = useCallback(
-    (session: number) => {
-      if (session !== voiceSessionRef.current) return;
-      if (voiceLockedRef.current) return;
-
-      const q = normalizeVoiceTranscript(voiceTranscriptRef.current);
-      stopRecognitionEngine(false);
-      clearVoiceTimers();
-
-      if (q.length < 2) {
-        setVoiceError('No speech detected. Try speaking again.');
-        setVoicePhase('speak-now');
-        return;
-      }
-
-      voiceLockedRef.current = true;
-      voiceTranscriptRef.current = q;
-      voiceSearchQueryRef.current = q;
-      setVoicePhase('preview');
-      setVoiceTranscript(q);
-
-      voiceSearchTimerRef.current = setTimeout(() => {
-        if (session !== voiceSessionRef.current) return;
-        const searchQ = voiceSearchQueryRef.current.trim();
-        if (!searchQ) return;
-        setVoicePhase('searching');
-        navigateToSearch(searchQ);
-      }, VOICE_PREVIEW_SEARCH_MS);
-    },
-    [clearVoiceTimers, navigateToSearch, stopRecognitionEngine]
-  );
-
-  const resetVoiceEngine = useCallback(() => {
-    clearVoiceTimers();
-    stopRecognitionEngine(true);
-  }, [clearVoiceTimers, stopRecognitionEngine]);
-
-  const launchRecognition = useCallback(
-    (session: number) => {
-      if (session !== voiceSessionRef.current) return false;
-      if (!voiceActiveRef.current) return false;
-
-      stopRecognitionEngine(true);
-
-      const recognition = createVoiceRecognition({
-        lang: 'en-IN',
-        continuous: false,
-        onTranscript: (text) => {
-          if (session !== voiceSessionRef.current) return;
-          if (voiceLockedRef.current) return;
-          const trimmed = normalizeVoiceTranscript(text);
-          if (!trimmed) return;
-
-          voiceTranscriptRef.current = trimmed;
-          setVoiceTranscript(trimmed);
-          setVoicePhase('listening');
-          setVoiceError(null);
-        },
-        onError: (code) => {
-          if (session !== voiceSessionRef.current) return;
-          if (code === 'aborted') return;
-
-          if (code === 'not-allowed') {
-            clearVoiceTimers();
-            stopRecognitionEngine(true);
-            setVoiceError('Microphone permission denied. Allow mic access in browser settings.');
-            setVoiceActive(false);
-            voiceActiveRef.current = false;
-            setVoicePhase('speak-now');
-            return;
-          }
-
-          if (code === 'no-speech') {
-            setVoiceError('No speech detected. Try speaking again.');
-            setVoicePhase('speak-now');
-          } else {
-            setVoiceError('Could not hear you. Please try again.');
-            setVoicePhase('speak-now');
-          }
-
-          if (voiceRestartCountRef.current >= MAX_VOICE_RESTARTS) return;
-          voiceRestartCountRef.current += 1;
-          window.setTimeout(() => {
-            if (session !== voiceSessionRef.current) return;
-            if (!voiceActiveRef.current) return;
-            if (voiceLockedRef.current) return;
-            launchRecognition(session);
-          }, 280);
-        },
-        onEnd: () => {
-          if (session !== voiceSessionRef.current) return;
-          if (voiceLockedRef.current) return;
-          if (!voiceActiveRef.current) return;
-
-          recognitionRef.current = null;
-
-          const q = normalizeVoiceTranscript(voiceTranscriptRef.current);
-          if (q.length >= 2) {
-            beginPreviewAndSearch(session);
-            return;
-          }
-
-          if (voiceRestartCountRef.current >= MAX_VOICE_RESTARTS) {
-            setVoiceError('No speech detected. Tap Cancel and try the mic again.');
-            setVoicePhase('speak-now');
-            return;
-          }
-
-          voiceRestartCountRef.current += 1;
-          window.setTimeout(() => {
-            if (session !== voiceSessionRef.current) return;
-            if (!voiceActiveRef.current) return;
-            if (voiceLockedRef.current) return;
-            launchRecognition(session);
-          }, 280);
-        },
-      });
-
-      if (!recognition) return false;
-
-      recognitionRef.current = recognition;
-      recognition.onstart = () => {
-        if (session !== voiceSessionRef.current) return;
-        setVoicePhase('speak-now');
-        setVoiceError(null);
-      };
-
-      try {
-        recognition.start();
-        return true;
-      } catch {
-        recognitionRef.current = null;
-        return false;
-      }
-    },
-    [beginPreviewAndSearch, clearVoiceTimers, stopRecognitionEngine]
-  );
-
-  const startVoiceSession = useCallback(() => {
-    if (!getSpeechRecognitionCtor()) {
-      alert('Voice search is not supported in your browser. Try Chrome or Edge.');
-      return;
-    }
-
-    resetVoiceEngine();
-    voiceSessionRef.current += 1;
-    const session = voiceSessionRef.current;
-
-    voiceLockedRef.current = false;
-    voiceTranscriptRef.current = '';
-    voiceSearchQueryRef.current = '';
-    voiceRestartCountRef.current = 0;
-    setManualQuery('');
-    manualQueryRef.current = '';
-    setVoiceTranscript('');
-    setVoiceError(null);
-    setVoicePhase('speak-now');
-    setVoiceActive(true);
-    voiceActiveRef.current = true;
-    voiceOpenedAtRef.current = Date.now();
-
-    window.setTimeout(() => {
-      if (session !== voiceSessionRef.current) return;
-      if (!launchRecognition(session)) {
-        setVoiceError('Unable to start microphone. Tap Cancel and try again.');
-        setVoicePhase('speak-now');
-      }
-    }, 80);
-  }, [launchRecognition, resetVoiceEngine]);
-
-  const toggleVoiceSearch = useCallback(() => {
-    if (voiceActiveRef.current) {
-      if (Date.now() - voiceOpenedAtRef.current < VOICE_CANCEL_GRACE_MS) {
-        return;
-      }
-      cancelVoiceSession();
-      return;
-    }
-    startVoiceSession();
-  }, [cancelVoiceSession, startVoiceSession]);
 
   const aiLoadStages = [
     { threshold: 15, label: 'Initializing assistant' },
@@ -477,7 +231,7 @@ export default function HomeClient({ initialData }: { initialData: any }) {
     const onAi = tab === 'ai' || tab === 'finderb-ai';
 
     if (prevTabFromUrlRef.current !== undefined && prevTabFromUrlRef.current !== tab) {
-      cancelVoiceSession();
+      closeVoiceSearchRef.current();
     }
     prevTabFromUrlRef.current = tab;
 
@@ -489,7 +243,7 @@ export default function HomeClient({ initialData }: { initialData: any }) {
     } else {
       setActiveMobileTab('Home');
     }
-  }, [activeTabFromUrl, cancelVoiceSession]);
+  }, [activeTabFromUrl]);
 
   useEffect(() => {
     const checkSession = async () => {
@@ -681,13 +435,14 @@ export default function HomeClient({ initialData }: { initialData: any }) {
                   <div className="flex items-center gap-2 pr-2">
                     <button 
                       type="button"
+                      disabled={voiceActive}
                       onPointerDown={(e) => e.preventDefault()}
                       onClick={(e) => {
                         e.stopPropagation();
-                        toggleVoiceSearch();
+                        openVoiceSearch();
                       }}
-                      aria-label={voiceActive ? 'Stop voice search' : 'Start voice search'}
-                      className={`touch-manipulation p-3 rounded-xl transition-all active:scale-95 ${voiceActive ? 'bg-red-500 text-white animate-pulse' : 'bg-slate-50 text-gray-400 hover:text-primary'}`}
+                      aria-label="Start voice search"
+                      className={`touch-manipulation p-3 rounded-xl transition-all active:scale-95 disabled:opacity-40 ${voiceActive ? 'bg-red-500 text-white animate-pulse' : 'bg-slate-50 text-gray-400 hover:text-primary'}`}
                     >
                       <Mic size={20} className={voiceActive ? 'animate-bounce' : ''} />
                     </button>
@@ -773,7 +528,7 @@ export default function HomeClient({ initialData }: { initialData: any }) {
             manualQuery={manualQuery}
             onQueryChange={handleQueryChange}
             onSearch={handleManualSearch}
-            onVoiceSearch={toggleVoiceSearch}
+            onVoiceSearch={openVoiceSearch}
             voiceActive={voiceActive}
             searchHint={searchHint}
           />
@@ -890,8 +645,7 @@ export default function HomeClient({ initialData }: { initialData: any }) {
                           href={`/business/${biz.id}`}
                           onClick={() => {
                             const q =
-                              manualQueryRef.current.trim() ||
-                              voiceSearchQueryRef.current.trim();
+                              manualQueryRef.current.trim() || voiceTranscript.trim();
                             if (q) setLastSearchQuery(q);
                           }}
                           className="group overflow-hidden rounded-xl border border-gray-200 bg-white transition-colors hover:border-gray-300"
@@ -1000,7 +754,7 @@ export default function HomeClient({ initialData }: { initialData: any }) {
             manualQuery={manualQuery}
             onQueryChange={handleQueryChange}
             onSearch={handleManualSearch}
-            onVoiceSearch={toggleVoiceSearch}
+            onVoiceSearch={openVoiceSearch}
             voiceActive={voiceActive}
             searchHint={searchHint}
             categories={sortedCategories}
@@ -1331,68 +1085,14 @@ export default function HomeClient({ initialData }: { initialData: any }) {
           </div>
         </div>
       )}
-      {/* Voice-only overlay (separate from manual text search) */}
-      {voiceActive && (
-        <div className="fixed inset-0 z-[10050] flex items-center justify-center bg-black/60 backdrop-blur-md">
-          <div className="bg-white rounded-3xl p-8 max-w-sm w-full mx-4 flex flex-col items-center space-y-6 shadow-2xl transform animate-in fade-in zoom-in duration-300">
-            <div className="relative">
-              <div
-                className={`absolute inset-0 rounded-full animate-ping scale-150 ${
-                  voicePhase === 'preview' || voicePhase === 'searching'
-                    ? 'bg-secondary/20'
-                    : 'bg-primary/20'
-                }`}
-              />
-              <div className="relative bg-primary text-white p-6 rounded-full shadow-lg">
-                <Mic
-                  size={40}
-                  className={
-                    voicePhase === 'speak-now' || voicePhase === 'listening'
-                      ? 'animate-bounce'
-                      : ''
-                  }
-                />
-              </div>
-            </div>
-            <div className="text-center space-y-3 min-h-[88px]">
-              <h3 className="text-xl font-bold text-gray-900">
-                {voicePhase === 'speak-now' && 'Speak now'}
-                {voicePhase === 'listening' && 'Listening to you..'}
-                {voicePhase === 'preview' && 'You said'}
-                {voicePhase === 'searching' && 'Searching...'}
-              </h3>
-              {voicePhase === 'listening' && voiceTranscript ? (
-                <p className="text-gray-600 text-sm font-medium leading-relaxed">
-                  &ldquo;{voiceTranscript}&rdquo;
-                </p>
-              ) : null}
-              {voicePhase === 'preview' || voicePhase === 'searching' ? (
-                <p className="text-primary text-base font-bold leading-relaxed">
-                  &ldquo;{voiceTranscript}&rdquo;
-                </p>
-              ) : null}
-              {voicePhase === 'preview' ? (
-                <p className="text-gray-400 text-xs font-medium">Searching in a moment...</p>
-              ) : null}
-              {voicePhase === 'speak-now' && !voiceError ? (
-                <p className="text-gray-400 text-sm">Say what you&apos;re looking for</p>
-              ) : null}
-              {voiceError ? (
-                <p className="text-xs font-medium text-red-500">{voiceError}</p>
-              ) : null}
-            </div>
-            {voicePhase !== 'searching' ? (
-              <button
-                type="button"
-                onClick={cancelVoiceSession}
-                className="w-full px-6 py-3 rounded-2xl bg-gray-100 text-gray-600 font-bold hover:bg-gray-200 transition-colors active:scale-95"
-              >
-                Cancel
-              </button>
-            ) : null}
-          </div>
-        </div>
-      )}
+      <VoiceSearchModal
+        open={voiceActive}
+        phase={voicePhase}
+        transcript={voiceTranscript}
+        error={voiceError}
+        onCancel={closeVoiceSearch}
+        onRetry={retryVoiceSearch}
+      />
     </div>
   );
 }

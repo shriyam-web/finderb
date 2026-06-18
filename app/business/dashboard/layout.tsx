@@ -4,7 +4,7 @@ export default function BusinessDashboardLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="merchant-dashboard min-h-screen font-sans antialiased">
+    <div className="merchant-dashboard merchant-dashboard-canvas min-h-screen font-sans antialiased">
       {children}
     </div>
   );

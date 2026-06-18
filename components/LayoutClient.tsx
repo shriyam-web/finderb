@@ -5,6 +5,35 @@ import { usePathname } from 'next/navigation';
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import Loader from "@/components/Loader";
+import BusinessWorkspaceLoader from "@/components/business/BusinessWorkspaceLoader";
+
+const MERCHANT_APP_PREFIXES = [
+  '/business/dashboard',
+  '/business/list',
+  '/business/payment/',
+  '/business/kyc/',
+];
+
+function isBusinessAuthPage(pathname: string | null) {
+  return pathname === '/business/login' || pathname === '/business/register';
+}
+
+function isPublicBusinessProfile(pathname: string | null) {
+  if (!pathname?.startsWith('/business/')) return false;
+  const slug = pathname.slice('/business/'.length);
+  if (!slug || slug.includes('/')) return false;
+  const reserved = new Set(['login', 'register', 'dashboard', 'list', 'payment', 'kyc']);
+  return !reserved.has(slug);
+}
+
+function isMerchantAppShell(pathname: string | null) {
+  if (!pathname?.startsWith('/business')) return false;
+  if (isPublicBusinessProfile(pathname)) return false;
+  if (isBusinessAuthPage(pathname)) return false;
+  return MERCHANT_APP_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(prefix)
+  );
+}
 import BottomNavbar from "@/components/BottomNavbar";
 import LocationPermissionPrompt from "@/components/LocationPermissionPrompt";
 import PWAInstallPrompt from "@/components/pwa/PWAInstallPrompt";
@@ -15,13 +44,15 @@ import { UserLocationProvider } from '@/hooks/useUserCoords';
 export default function LayoutClient({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const pathname = usePathname();
-  const isDashboard = pathname?.includes('/dashboard');
+  const isBusinessRoute = Boolean(pathname?.startsWith('/business'));
+  const businessAuthPage = isBusinessAuthPage(pathname);
+  const merchantAppShell = isMerchantAppShell(pathname);
   const isCategoriesBrowse =
     pathname === '/categories' ||
     (pathname?.startsWith('/categories/') && !pathname.startsWith('/categories/job'));
-  const hideTopNavFooter = isDashboard || isCategoriesBrowse;
-  const showBottomNav = !isDashboard;
-  const showLocationPrompt = !isDashboard;
+  const hideTopNavFooter = merchantAppShell || isCategoriesBrowse;
+  const showBottomNav = !merchantAppShell && !isCategoriesBrowse;
+  const showLocationPrompt = !merchantAppShell && !isCategoriesBrowse;
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -35,7 +66,11 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
     <UserLocationProvider>
       <PWAInstallPrompt appReady={!loading} />
       {loading ? (
-        <Loader />
+        isBusinessRoute && !businessAuthPage ? (
+          <BusinessWorkspaceLoader />
+        ) : (
+          <Loader />
+        )
       ) : (
         <div className={`flex flex-col min-h-screen ${showBottomNav ? 'pb-[6.75rem] lg:pb-0' : ''}`}>
           <Suspense fallback={null}>

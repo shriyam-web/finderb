@@ -10,8 +10,12 @@ import {
   HiOutlineXMark,
   HiOutlineTrash,
   HiOutlinePencilSquare,
+  HiOutlineChevronDown,
+  HiOutlineChevronUp,
+  HiOutlineSignal,
 } from 'react-icons/hi2';
 import { createJob, getJobsByBusiness, deleteJob, updateJob } from '@/app/actions/job';
+import { dashboard } from './dashboard-ui';
 
 interface Job {
   id: string;
@@ -32,12 +36,22 @@ interface JobPostingTabProps {
 const JOB_TYPES = ['Full-time', 'Part-time', 'Contract', 'Internship', 'Freelance'];
 const MAX_ACTIVE_JOBS = 3;
 
+function formatDate(date: Date) {
+  const d = new Date(date);
+  const diffDays = Math.floor(Math.abs(Date.now() - d.getTime()) / (1000 * 60 * 60 * 24));
+  if (diffDays === 0) return 'Posted today';
+  if (diffDays === 1) return 'Posted yesterday';
+  if (diffDays < 7) return `Posted ${diffDays}d ago`;
+  return `Posted ${d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`;
+}
+
 export default function JobPostingTab({ businessId }: JobPostingTabProps) {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingJob, setEditingJob] = useState<Job | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   const [formData, setFormData] = useState({
@@ -73,7 +87,9 @@ export default function JobPostingTab({ businessId }: JobPostingTabProps) {
   };
 
   const activeJobsCount = jobs.filter((j) => j.status === 'active').length;
+  const pausedCount = jobs.length - activeJobsCount;
   const isLimitReached = activeJobsCount >= MAX_ACTIVE_JOBS;
+  const slotPercent = Math.round((activeJobsCount / MAX_ACTIVE_JOBS) * 100);
 
   const handleOpenModal = (job: Job | null = null) => {
     if (job) {
@@ -157,21 +173,12 @@ export default function JobPostingTab({ businessId }: JobPostingTabProps) {
     try {
       const res = await updateJob(job.id, { status: newStatus });
       if (res.success) {
-        showToast('success', newStatus === 'active' ? 'Job is live' : 'Job paused');
+        showToast('success', newStatus === 'active' ? 'Job is live on FinderB' : 'Job paused');
         fetchJobs();
       }
     } catch {
       showToast('error', 'Could not update status');
     }
-  };
-
-  const formatDate = (date: Date) => {
-    const d = new Date(date);
-    const diffDays = Math.floor(Math.abs(Date.now() - d.getTime()) / (1000 * 60 * 60 * 24));
-    if (diffDays === 0) return 'Today';
-    if (diffDays === 1) return 'Yesterday';
-    if (diffDays < 7) return `${diffDays}d ago`;
-    return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
   };
 
   return (
@@ -188,135 +195,174 @@ export default function JobPostingTab({ businessId }: JobPostingTabProps) {
         </div>
       )}
 
-      {/* Header */}
-      <div className="flex flex-col gap-4 rounded-xl border border-slate-200/80 bg-white p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
-        <div>
-          <h2 className="text-lg font-semibold text-slate-900">Job openings</h2>
-          <p className="mt-0.5 text-sm text-slate-500">
-            Post roles on FinderB Jobs.{' '}
-            <span className="font-medium text-slate-700">
-              {activeJobsCount}/{MAX_ACTIVE_JOBS} slots in use
-            </span>
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={() => handleOpenModal()}
-          disabled={isLimitReached}
-          className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary-700 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-800 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          <HiOutlinePlus size={18} />
-          Post a job
-        </button>
-      </div>
-
-      {/* List */}
-      {loading ? (
-        <div className="space-y-3">
-          {[1, 2].map((i) => (
-            <div key={i} className="h-24 animate-pulse rounded-xl border border-slate-100 bg-white" />
-          ))}
-        </div>
-      ) : jobs.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-slate-200 bg-white px-6 py-16 text-center">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-slate-100 text-slate-400">
-            <HiOutlineBriefcase size={24} />
+      {/* Header + slots */}
+      <div className={`${dashboard.panel} p-4 sm:p-5`}>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <p className="text-xs font-bold uppercase tracking-wider text-[#215481]">Job postings</p>
+            <p className="mt-1 text-sm text-zinc-600">
+              Live roles appear on FinderB Jobs — applications flow into your Leads tab.
+            </p>
           </div>
-          <h3 className="mt-4 text-base font-semibold text-slate-900">No jobs posted yet</h3>
-          <p className="mx-auto mt-1 max-w-xs text-sm text-slate-500">
-            When you post a role, it shows up on FinderB Jobs and applications land in your Lead center.
-          </p>
           <button
             type="button"
             onClick={() => handleOpenModal()}
-            className="mt-5 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-50"
+            disabled={isLimitReached}
+            className={`${dashboard.btnPrimary} shrink-0 disabled:cursor-not-allowed disabled:opacity-50`}
           >
+            <HiOutlinePlus size={18} />
+            Post a job
+          </button>
+        </div>
+
+        <div className="mt-5 grid gap-4 sm:grid-cols-3">
+          <div className="rounded-lg border border-zinc-200 bg-zinc-50/80 px-4 py-3">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Live slots</p>
+            <p className="mt-1 text-2xl font-bold tabular-nums text-[#153551]">
+              {activeJobsCount}
+              <span className="text-base font-medium text-zinc-400"> / {MAX_ACTIVE_JOBS}</span>
+            </p>
+            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-zinc-200">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-[#215481] to-[#f9b864] transition-all duration-500"
+                style={{ width: `${slotPercent}%` }}
+              />
+            </div>
+          </div>
+          <div className="rounded-lg border border-emerald-200/80 bg-emerald-50/50 px-4 py-3">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-700/80">Live now</p>
+            <p className="mt-1 text-2xl font-bold text-emerald-800">{activeJobsCount}</p>
+          </div>
+          <div className="rounded-lg border border-zinc-200 bg-white px-4 py-3">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Paused</p>
+            <p className="mt-1 text-2xl font-bold text-zinc-700">{pausedCount}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Job list */}
+      {loading ? (
+        <div className="space-y-3">
+          {[1, 2].map((i) => (
+            <div key={i} className="h-32 animate-pulse rounded-lg border border-zinc-100 bg-white" />
+          ))}
+        </div>
+      ) : jobs.length === 0 ? (
+        <div className={`${dashboard.panel} ${dashboard.emptyState} py-14`}>
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-[#153551] to-[#215481] text-[#f9b864] shadow-lg">
+            <HiOutlineBriefcase size={30} />
+          </div>
+          <h3 className="mt-5 text-lg font-bold text-zinc-900">No jobs posted yet</h3>
+          <p className="mx-auto mt-2 max-w-sm text-sm text-zinc-500">
+            Post up to {MAX_ACTIVE_JOBS} live roles at a time. Candidates apply through FinderB and you manage
+            applications in Leads.
+          </p>
+          <button type="button" onClick={() => handleOpenModal()} className={`mt-6 ${dashboard.btnPrimary}`}>
+            <HiOutlinePlus size={16} />
             Post your first job
           </button>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-slate-200/80 bg-white">
-          <div className="hidden grid-cols-[1fr_auto_auto_auto] gap-4 border-b border-slate-100 bg-slate-50/80 px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-slate-400 sm:grid">
-            <span>Role</span>
-            <span className="w-24 text-center">Status</span>
-            <span className="w-28 text-center">Posted</span>
-            <span className="w-24 text-right">Actions</span>
-          </div>
-          <ul className="divide-y divide-slate-100">
-            {jobs.map((job) => (
-              <li
+        <div className="space-y-3">
+          {jobs.map((job) => {
+            const isLive = job.status === 'active';
+            const isExpanded = expandedId === job.id;
+
+            return (
+              <article
                 key={job.id}
-                className="flex flex-col gap-3 p-4 sm:grid sm:grid-cols-[1fr_auto_auto_auto] sm:items-center sm:gap-4"
+                className={`overflow-hidden rounded-lg border bg-white transition-shadow hover:shadow-sm ${
+                  isLive ? 'border-emerald-200/80 ring-1 ring-emerald-100' : 'border-zinc-200'
+                }`}
               >
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="font-semibold text-slate-900">{job.title}</h3>
-                    <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">
-                      {job.type}
-                    </span>
-                    {job.department && (
-                      <span className="rounded-md bg-primary-50 px-2 py-0.5 text-[11px] font-medium text-primary-700">
-                        {job.department}
+                <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-start sm:justify-between sm:p-5">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="text-base font-bold text-zinc-900">{job.title}</h3>
+                      <span className="rounded-md bg-zinc-100 px-2 py-0.5 text-[11px] font-semibold text-zinc-600">
+                        {job.type}
                       </span>
-                    )}
-                  </div>
-                  <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
-                    <span className="inline-flex items-center gap-1">
-                      <HiOutlineMapPin size={13} />
-                      {job.location}
-                    </span>
-                    {job.salary && (
+                      {job.department && (
+                        <span className="rounded-md bg-[#215481]/8 px-2 py-0.5 text-[11px] font-semibold text-[#215481]">
+                          {job.department}
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => toggleJobStatus(job)}
+                        className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold ${
+                          isLive
+                            ? 'bg-emerald-100 text-emerald-800 ring-1 ring-emerald-200'
+                            : 'bg-zinc-100 text-zinc-500 ring-1 ring-zinc-200'
+                        }`}
+                      >
+                        <HiOutlineSignal size={11} />
+                        {isLive ? 'Live' : 'Paused'}
+                      </button>
+                    </div>
+
+                    <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-500">
                       <span className="inline-flex items-center gap-1">
-                        <HiOutlineCurrencyRupee size={13} />
-                        {job.salary}
+                        <HiOutlineMapPin size={13} className="text-zinc-400" />
+                        {job.location}
                       </span>
+                      {job.salary && (
+                        <span className="inline-flex items-center gap-1">
+                          <HiOutlineCurrencyRupee size={13} className="text-zinc-400" />
+                          {job.salary}
+                        </span>
+                      )}
+                      <span className="inline-flex items-center gap-1">
+                        <HiOutlineClock size={13} className="text-zinc-400" />
+                        {formatDate(job.created_at)}
+                      </span>
+                    </div>
+
+                    <p className={`mt-3 text-sm leading-relaxed text-zinc-600 ${isExpanded ? '' : 'line-clamp-2'}`}>
+                      {job.description}
+                    </p>
+
+                    {job.description.length > 120 && (
+                      <button
+                        type="button"
+                        onClick={() => setExpandedId(isExpanded ? null : job.id)}
+                        className="mt-2 inline-flex items-center gap-0.5 text-xs font-semibold text-[#215481] hover:underline"
+                      >
+                        {isExpanded ? (
+                          <>
+                            Show less <HiOutlineChevronUp size={14} />
+                          </>
+                        ) : (
+                          <>
+                            Read full description <HiOutlineChevronDown size={14} />
+                          </>
+                        )}
+                      </button>
                     )}
-                    <span className="inline-flex items-center gap-1 sm:hidden">
-                      <HiOutlineClock size={13} />
-                      {formatDate(job.created_at)}
-                    </span>
+                  </div>
+
+                  <div className="flex shrink-0 gap-2 sm:flex-col sm:items-stretch">
+                    <button
+                      type="button"
+                      onClick={() => handleOpenModal(job)}
+                      className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-zinc-200 px-4 py-2 text-xs font-semibold text-zinc-700 hover:border-[#215481]/30 hover:bg-zinc-50 sm:flex-none"
+                    >
+                      <HiOutlinePencilSquare size={15} />
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteJob(job.id)}
+                      className="inline-flex items-center justify-center rounded-lg border border-zinc-200 px-3 py-2 text-zinc-400 hover:border-red-200 hover:bg-red-50 hover:text-red-600"
+                      aria-label="Delete job"
+                    >
+                      <HiOutlineTrash size={15} />
+                    </button>
                   </div>
                 </div>
-
-                <div className="sm:w-24 sm:text-center">
-                  <button
-                    type="button"
-                    onClick={() => toggleJobStatus(job)}
-                    className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-                      job.status === 'active'
-                        ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200'
-                        : 'bg-slate-100 text-slate-500 ring-1 ring-slate-200'
-                    }`}
-                  >
-                    {job.status === 'active' ? 'Live' : 'Paused'}
-                  </button>
-                </div>
-
-                <div className="hidden text-center text-xs text-slate-400 sm:block sm:w-28">
-                  {formatDate(job.created_at)}
-                </div>
-
-                <div className="flex gap-2 sm:w-24 sm:justify-end">
-                  <button
-                    type="button"
-                    onClick={() => handleOpenModal(job)}
-                    className="flex flex-1 items-center justify-center gap-1 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 sm:flex-none"
-                  >
-                    <HiOutlinePencilSquare size={15} />
-                    Edit
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteJob(job.id)}
-                    className="rounded-lg border border-slate-200 p-2 text-slate-400 hover:border-red-200 hover:bg-red-50 hover:text-red-600"
-                    aria-label="Delete job"
-                  >
-                    <HiOutlineTrash size={15} />
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
+              </article>
+            );
+          })}
         </div>
       )}
 
@@ -324,36 +370,38 @@ export default function JobPostingTab({ businessId }: JobPostingTabProps) {
       {isModalOpen && (
         <div className="fixed inset-0 z-[150] flex items-end justify-center p-0 sm:items-center sm:p-4">
           <div
-            className="absolute inset-0 bg-slate-900/40"
+            className="absolute inset-0 bg-zinc-900/40 backdrop-blur-[2px]"
             onClick={() => setIsModalOpen(false)}
             aria-hidden
           />
-          <div className="relative flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-t-2xl bg-white shadow-xl sm:rounded-xl">
-            <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
-              <div>
-                <h2 className="text-base font-semibold text-slate-900">
-                  {editingJob ? 'Edit job' : 'New job post'}
-                </h2>
-                <p className="text-xs text-slate-500">Visible on FinderB Jobs when status is Live</p>
+          <div className="relative flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-t-2xl bg-white shadow-2xl sm:rounded-xl">
+            <div className="border-b border-zinc-100 bg-gradient-to-r from-[#153551]/5 to-transparent px-5 py-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-base font-bold text-zinc-900">
+                    {editingJob ? 'Edit job posting' : 'New job posting'}
+                  </h2>
+                  <p className="mt-0.5 text-xs text-zinc-500">Visible on FinderB Jobs when status is Live</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="rounded-lg p-2 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700"
+                >
+                  <HiOutlineXMark size={20} />
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => setIsModalOpen(false)}
-                className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
-              >
-                <HiOutlineXMark size={20} />
-              </button>
             </div>
 
             <form onSubmit={handleSubmit} className="overflow-y-auto px-5 py-5">
               <div className="space-y-4">
                 <label className="block">
-                  <span className="text-xs font-medium text-slate-600">Job title</span>
+                  <span className="text-xs font-semibold text-zinc-600">Job title</span>
                   <input
                     required
                     type="text"
                     placeholder="e.g. Sales Executive"
-                    className="mt-1.5 w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-100"
+                    className="mt-1.5 w-full rounded-lg border border-zinc-200 px-3 py-2.5 text-sm outline-none focus:border-[#215481] focus:ring-2 focus:ring-[#215481]/10"
                     value={formData.title}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                   />
@@ -361,9 +409,9 @@ export default function JobPostingTab({ businessId }: JobPostingTabProps) {
 
                 <div className="grid grid-cols-2 gap-3">
                   <label className="block">
-                    <span className="text-xs font-medium text-slate-600">Type</span>
+                    <span className="text-xs font-semibold text-zinc-600">Type</span>
                     <select
-                      className="mt-1.5 w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-100"
+                      className="mt-1.5 w-full rounded-lg border border-zinc-200 px-3 py-2.5 text-sm outline-none focus:border-[#215481] focus:ring-2 focus:ring-[#215481]/10"
                       value={formData.type}
                       onChange={(e) => setFormData({ ...formData, type: e.target.value })}
                     >
@@ -375,11 +423,11 @@ export default function JobPostingTab({ businessId }: JobPostingTabProps) {
                     </select>
                   </label>
                   <label className="block">
-                    <span className="text-xs font-medium text-slate-600">Department</span>
+                    <span className="text-xs font-semibold text-zinc-600">Department</span>
                     <input
                       type="text"
                       placeholder="Optional"
-                      className="mt-1.5 w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-100"
+                      className="mt-1.5 w-full rounded-lg border border-zinc-200 px-3 py-2.5 text-sm outline-none focus:border-[#215481] focus:ring-2 focus:ring-[#215481]/10"
                       value={formData.department}
                       onChange={(e) => setFormData({ ...formData, department: e.target.value })}
                     />
@@ -387,53 +435,53 @@ export default function JobPostingTab({ businessId }: JobPostingTabProps) {
                 </div>
 
                 <label className="block">
-                  <span className="text-xs font-medium text-slate-600">Location</span>
+                  <span className="text-xs font-semibold text-zinc-600">Location</span>
                   <input
                     required
                     type="text"
                     placeholder="City or Remote"
-                    className="mt-1.5 w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-100"
+                    className="mt-1.5 w-full rounded-lg border border-zinc-200 px-3 py-2.5 text-sm outline-none focus:border-[#215481] focus:ring-2 focus:ring-[#215481]/10"
                     value={formData.location}
                     onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                   />
                 </label>
 
                 <label className="block">
-                  <span className="text-xs font-medium text-slate-600">Salary range</span>
+                  <span className="text-xs font-semibold text-zinc-600">Salary range</span>
                   <input
                     type="text"
                     placeholder="e.g. ₹3L – ₹5L per year"
-                    className="mt-1.5 w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-100"
+                    className="mt-1.5 w-full rounded-lg border border-zinc-200 px-3 py-2.5 text-sm outline-none focus:border-[#215481] focus:ring-2 focus:ring-[#215481]/10"
                     value={formData.salary}
                     onChange={(e) => setFormData({ ...formData, salary: e.target.value })}
                   />
                 </label>
 
                 <label className="block">
-                  <span className="text-xs font-medium text-slate-600">Description</span>
+                  <span className="text-xs font-semibold text-zinc-600">Description</span>
                   <textarea
                     required
                     rows={5}
                     placeholder="Role, requirements, how to apply…"
-                    className="mt-1.5 w-full resize-none rounded-lg border border-slate-200 px-3 py-2.5 text-sm leading-relaxed outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-100"
+                    className="mt-1.5 w-full resize-none rounded-lg border border-zinc-200 px-3 py-2.5 text-sm leading-relaxed outline-none focus:border-[#215481] focus:ring-2 focus:ring-[#215481]/10"
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   />
                 </label>
               </div>
 
-              <div className="mt-6 flex gap-3 border-t border-slate-100 pt-5">
+              <div className="mt-6 flex gap-3 border-t border-zinc-100 pt-5">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="flex-1 rounded-lg border border-slate-200 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+                  className="flex-1 rounded-lg border border-zinc-200 py-2.5 text-sm font-semibold text-zinc-600 hover:bg-zinc-50"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="flex-[2] rounded-lg bg-primary-700 py-2.5 text-sm font-semibold text-white hover:bg-primary-800 disabled:opacity-60"
+                  className={`flex-[2] ${dashboard.btnPrimary} disabled:opacity-60`}
                 >
                   {submitting ? 'Saving…' : editingJob ? 'Save changes' : 'Publish job'}
                 </button>
