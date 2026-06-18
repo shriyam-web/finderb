@@ -364,18 +364,20 @@ export default function HomeHero({
       <div
         className={`pointer-events-none absolute right-0 z-[1] ${
           isDesktop
-            ? 'top-24 bottom-32 w-[min(42%,460px)]'
+            ? 'top-28 bottom-0 w-[min(50%,540px)]'
             : 'top-[4.5rem] bottom-48 w-[min(44vw,188px)]'
         }`}
         aria-hidden
       >
-        <div className="relative h-full w-full pb-3">
+        <div
+          className={`relative h-full w-full ${isDesktop ? 'origin-bottom-right scale-[1.06]' : 'pb-3'}`}
+        >
           <Image
             src="/hero-new.png"
             alt=""
             fill
             className="object-contain object-right object-bottom"
-            sizes={isDesktop ? '(min-width: 1024px) 42vw, 44vw' : '44vw'}
+            sizes={isDesktop ? '(min-width: 1024px) 52vw, 44vw' : '44vw'}
             priority
           />
         </div>
