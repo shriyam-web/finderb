@@ -334,8 +334,10 @@ export default function HomeClient({ initialData }: { initialData: any }) {
             if (session !== voiceSessionRef.current) return;
             if (voiceLockedRef.current) return;
             if (!voiceActiveRef.current) return;
+            const activeRecognition = recognitionRef.current;
+            if (!activeRecognition) return;
             try {
-              recognition.start();
+              activeRecognition.start();
             } catch {
               /* ignore — onEnd or a later error will handle it */
             }
