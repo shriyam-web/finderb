@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import PricingFontRoot from '@/components/pricing/PricingFontRoot';
 
 export const metadata: Metadata = {
   title: 'Premium & Pricing',
@@ -8,5 +9,5 @@ export const metadata: Metadata = {
 };
 
 export default function PricingLayout({ children }: { children: React.ReactNode }) {
-  return children;
+  return <PricingFontRoot>{children}</PricingFontRoot>;
 }

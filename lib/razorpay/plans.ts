@@ -1,3 +1,10 @@
+import {
+  GROWTH_PRO_RETAIL_MONTHLY,
+  GROWTH_PRO_OFFER_MONTHLY,
+  GROWTH_PRO_RETAIL_ANNUAL,
+  GROWTH_PRO_OFFER_ANNUAL,
+} from '@/lib/pricing/growthPro';
+
 export type BillingCycle = 'monthly' | 'annual';
 export type MerchantPlan = 'pro';
 
@@ -7,8 +14,12 @@ export const MERCHANT_PLANS = {
     name: 'Growth Pro',
     description: 'Unlock lead contacts, verified badge, and premium visibility',
     prices: {
-      monthly: { amountInPaise: 29900, display: '₹299' },
-      annual: { amountInPaise: 299000, display: '₹2,990' },
+      monthly: { amountInPaise: GROWTH_PRO_OFFER_MONTHLY * 100, display: '₹499' },
+      annual: { amountInPaise: GROWTH_PRO_OFFER_ANNUAL * 100, display: '₹3,588' },
+    },
+    retailPrices: {
+      monthly: GROWTH_PRO_RETAIL_MONTHLY,
+      annual: GROWTH_PRO_RETAIL_ANNUAL,
     },
     features: [
       'Top ranking in search results',
