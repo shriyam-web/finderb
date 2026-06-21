@@ -38,9 +38,11 @@ export interface VoiceRecognitionInstance {
 
 export type VoiceRecognitionCtor = new () => VoiceRecognitionInstance;
 
+export type MicrophoneAccessFailureReason = 'unsupported' | 'not-allowed' | 'unavailable';
+
 export type MicrophoneAccessResult =
   | { ok: true }
-  | { ok: false; reason: 'unsupported' | 'not-allowed' | 'unavailable' };
+  | { ok: false; reason: MicrophoneAccessFailureReason };
 
 /** Prompt for mic access in the user-gesture handler before SpeechRecognition.start(). */
 export async function requestMicrophoneAccess(): Promise<MicrophoneAccessResult> {
@@ -64,7 +66,7 @@ export async function requestMicrophoneAccess(): Promise<MicrophoneAccessResult>
   }
 }
 
-export function microphoneErrorMessage(reason: MicrophoneAccessResult['reason']): string {
+export function microphoneErrorMessage(reason: MicrophoneAccessFailureReason): string {
   switch (reason) {
     case 'not-allowed':
       return 'Microphone blocked. Click the lock icon in your address bar and allow microphone access, then try again.';
