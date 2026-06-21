@@ -19,6 +19,8 @@ import {
 } from 'lucide-react';
 import { SearchableSelect, type SelectOption } from '@/components/SearchableSelect';
 import { MerchantAuthMain, MerchantAuthPage } from '@/components/business/MerchantAuthShell';
+import MerchantRechargeButton from '@/components/business/MerchantRechargeButton';
+import type { BillingCycle } from '@/lib/razorpay/plans';
 import {
   IndiaPhonePrefix,
   MerchantAuthField,
@@ -68,7 +70,19 @@ type BusinessRegisterWizardProps = {
   countryOptions: SelectOption[];
   stateOptions: SelectOption[];
   cityOptions: SelectOption[];
-  registeredBusiness: { registrationNumber: string } | null;
+  registeredBusiness: {
+    id: string;
+    registrationNumber: string;
+    businessName?: string;
+    fullName?: string;
+    email?: string;
+    mobile?: string;
+  } | null;
+  selectedPlan?: string;
+  billingCycle?: BillingCycle;
+  contactEmail?: string;
+  contactName?: string;
+  onPaymentSuccess?: () => void;
   onBack: () => void;
   onClose: () => void;
   onPrev: () => void;
@@ -146,6 +160,11 @@ export default function BusinessRegisterWizard({
   stateOptions,
   cityOptions,
   registeredBusiness,
+  selectedPlan = 'free',
+  billingCycle = 'monthly',
+  contactEmail = '',
+  contactName = '',
+  onPaymentSuccess,
   onBack,
   onClose,
   onPrev,
@@ -400,6 +419,29 @@ export default function BusinessRegisterWizard({
                 <p className="text-sm text-[#64748b]">
                   You can complete KYC verification anytime from your dashboard.
                 </p>
+                {selectedPlan === 'pro' && registeredBusiness?.id ? (
+                  <div className="mx-auto max-w-sm rounded-2xl border-2 border-[#dfe6ee] bg-[#f8fafc] px-5 py-5 text-left">
+                    <p className="text-sm font-semibold text-[#153551]">Activate Growth Pro</p>
+                    <p className="mt-1 text-xs leading-relaxed text-[#64748b]">
+                      Pay now to unlock leads, verified badge, and premium visibility on FinderB.
+                    </p>
+                    <MerchantRechargeButton
+                      businessId={registeredBusiness.id}
+                      businessName={registeredBusiness.businessName || formData.businessName}
+                      fullName={contactName || registeredBusiness.fullName || formData.fullName}
+                      email={contactEmail || registeredBusiness.email || formData.email}
+                      mobile={registeredBusiness.mobile || mobile}
+                      billingCycle={billingCycle}
+                      label="Pay with Razorpay"
+                      className="mt-4 w-full rounded-xl bg-[#153551] px-4 py-3 text-sm font-bold text-white hover:bg-[#215481] disabled:opacity-60"
+                      onSuccess={onPaymentSuccess}
+                      onError={(message) => alert(message)}
+                    />
+                    <p className="mt-3 text-center text-[11px] text-[#94a3b8]">
+                      You can also pay later from your dashboard.
+                    </p>
+                  </div>
+                ) : null}
               </div>
             )}
 

@@ -48,6 +48,10 @@ export default function PaymentPage({ params }: { params: Promise<{ id: string }
     setBusiness(result.business);
     setIsAuthorized(true);
     setRazorpayConfigured(result.razorpayConfigured);
+    const savedBilling = (result.business as { billingCycle?: string })?.billingCycle;
+    if (savedBilling === 'monthly' || savedBilling === 'annual') {
+      setBillingCycle(savedBilling);
+    }
     setLoading(false);
   }, [id]);
 

@@ -46,6 +46,15 @@ function RegisterFormContent() {
       setMobile(m);
       setShowForm(true);
     }
+
+    const plan = searchParams.get('plan');
+    const billing = searchParams.get('billing');
+    if (plan === 'pro') {
+      setSelectedPlan('pro');
+    }
+    if (billing === 'monthly' || billing === 'annual') {
+      setBillingCycle(billing);
+    }
   }, [searchParams]);
 
   const [step, setStep] = useState(1);
@@ -378,6 +387,14 @@ function RegisterFormContent() {
         stateOptions={stateOptions}
         cityOptions={cityOptions}
         registeredBusiness={registeredBusiness}
+        selectedPlan={selectedPlan}
+        billingCycle={billingCycle as 'monthly' | 'annual'}
+        contactEmail={formData.email}
+        contactName={formData.fullName}
+        onPaymentSuccess={() => {
+          markNewBusinessOnboarding();
+          window.location.href = '/business/dashboard?welcome=1&payment=success';
+        }}
         onBack={() => setShowForm(false)}
         onClose={() => setShowForm(false)}
         onPrev={prevStep}
