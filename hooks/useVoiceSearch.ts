@@ -5,7 +5,9 @@ import {
   createVoiceRecognition,
   detachVoiceRecognition,
   getSpeechRecognitionCtor,
+  microphoneErrorMessage,
   normalizeVoiceTranscript,
+  requestMicrophoneAccess,
   type VoiceRecognitionInstance,
 } from '@/lib/voiceSearch';
 
@@ -119,7 +121,9 @@ export function useVoiceSearch(onSearch: (query: string) => void) {
           if (code === 'aborted') return;
           stopEngine(true);
           if (code === 'not-allowed') {
-            setError('Microphone permission denied. Allow mic access in browser settings.');
+            setError(
+              'Microphone blocked. Click the lock icon in your address bar and allow microphone access, then try again.'
+            );
           } else if (code === 'no-speech') {
             setError('No speech detected. Tap "Try again" and speak clearly.');
           } else {
@@ -142,31 +146,42 @@ export function useVoiceSearch(onSearch: (query: string) => void) {
       }
 
       recognitionRef.current = recognition;
+
       recognition.onstart = () => {
         if (session !== sessionRef.current) return;
         setPhase('speak-now');
         setError(null);
       };
 
-      window.setTimeout(() => {
-        if (session !== sessionRef.current || !modalOpenRef.current) return;
-        try {
-          recognition.start();
-        } catch {
-          stopEngine(true);
-          setError('Unable to start microphone. Tap "Try again".');
-          setPhase('speak-now');
-        }
-      }, 120);
+      try {
+        recognition.start();
+      } catch {
+        stopEngine(true);
+        setError('Unable to start microphone. Tap "Try again".');
+        setPhase('speak-now');
+      }
     },
     [beginPreview, stopEngine]
   );
 
-  const openVoiceSearch = useCallback(() => {
+  const openVoiceSearch = useCallback(async () => {
     if (modalOpenRef.current) return;
 
     if (!getSpeechRecognitionCtor()) {
       alert('Voice search is not supported in your browser. Try Chrome or Edge.');
+      return;
+    }
+
+    const mic = await requestMicrophoneAccess();
+    if (!mic.ok) {
+      sessionRef.current += 1;
+      lockedRef.current = false;
+      transcriptRef.current = '';
+      setTranscript('');
+      setError(microphoneErrorMessage(mic.reason));
+      setPhase('speak-now');
+      modalOpenRef.current = true;
+      setModalOpen(true);
       return;
     }
 
@@ -184,8 +199,16 @@ export function useVoiceSearch(onSearch: (query: string) => void) {
     startListening(session);
   }, [startListening]);
 
-  const retryVoiceSearch = useCallback(() => {
+  const retryVoiceSearch = useCallback(async () => {
     if (!modalOpenRef.current) return;
+
+    const mic = await requestMicrophoneAccess();
+    if (!mic.ok) {
+      setError(microphoneErrorMessage(mic.reason));
+      setPhase('speak-now');
+      return;
+    }
+
     lockedRef.current = false;
     transcriptRef.current = '';
     setTranscript('');

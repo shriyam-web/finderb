@@ -38,6 +38,43 @@ export interface VoiceRecognitionInstance {
 
 export type VoiceRecognitionCtor = new () => VoiceRecognitionInstance;
 
+export type MicrophoneAccessResult =
+  | { ok: true }
+  | { ok: false; reason: 'unsupported' | 'not-allowed' | 'unavailable' };
+
+/** Prompt for mic access in the user-gesture handler before SpeechRecognition.start(). */
+export async function requestMicrophoneAccess(): Promise<MicrophoneAccessResult> {
+  if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
+    return { ok: false, reason: 'unsupported' };
+  }
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    stream.getTracks().forEach((track) => track.stop());
+    return { ok: true };
+  } catch (error) {
+    const name = error instanceof DOMException ? error.name : '';
+    if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
+      return { ok: false, reason: 'not-allowed' };
+    }
+    if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
+      return { ok: false, reason: 'unavailable' };
+    }
+    return { ok: false, reason: 'unavailable' };
+  }
+}
+
+export function microphoneErrorMessage(reason: MicrophoneAccessResult['reason']): string {
+  switch (reason) {
+    case 'not-allowed':
+      return 'Microphone blocked. Click the lock icon in your address bar and allow microphone access, then try again.';
+    case 'unavailable':
+      return 'No microphone found. Connect a mic or use a device with audio input.';
+    default:
+      return 'Microphone is not supported in this browser. Try Chrome or Edge on desktop/Android.';
+  }
+}
+
 export function getSpeechRecognitionCtor(): VoiceRecognitionCtor | null {
   if (typeof window === 'undefined') return null;
   const w = window as Window & {
