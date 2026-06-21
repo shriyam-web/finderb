@@ -12,11 +12,7 @@ import {
   MerchantAuthPhoneField,
 } from '@/components/business/MerchantAuthForm';
 
-const TRUST_AVATARS = [
-  '/testimonials/rahul-sharma.jpg',
-  '/testimonials/priya-patel.jpg',
-  '/testimonials/amit-kumar.jpg',
-] as const;
+const TRUST_AVATARS = ['/1.jpg', '/2.jpeg', '/3.jpeg'] as const;
 
 type Stat = { label: string; value: string };
 
