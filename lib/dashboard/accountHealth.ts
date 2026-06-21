@@ -36,10 +36,10 @@ export function getAccountHealth(input: {
   const paymentComplete = input.paymentStatus === 'completed';
   items.push({
     id: 'subscription',
-    label: 'Growth Pro subscription',
+    label: 'Lead access',
     detail: paymentComplete
-      ? 'Lead contacts and premium placement are active.'
-      : 'Customer phone numbers stay locked until payment is complete.',
+      ? 'You can view customer phone numbers and email on every enquiry.'
+      : 'Enquiries are coming in — activate Growth Pro to see who to call back.',
     status: paymentComplete ? 'complete' : 'attention',
     priority: paymentComplete ? 0 : 1,
   });

@@ -67,7 +67,7 @@ export default function DashboardActionCenter({
                 <div>
                   <h3 className="font-bold text-slate-900">Activate Growth Pro</h3>
                   <p className="mt-1 text-sm text-slate-700">
-                    Lead phone numbers unlock after recharge — start converting enquiries today.
+                    Enquiries are waiting — activate Growth Pro to see phone numbers and email.
                   </p>
                 </div>
                 {paymentError && (

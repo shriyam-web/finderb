@@ -163,7 +163,7 @@ export default function DashboardSidebar({
     isPaymentPending && businessId ? (
       <div className="mt-4 overflow-hidden rounded-lg border border-amber-200/80 bg-gradient-to-br from-amber-50/80 to-white p-3">
         <p className="text-xs font-semibold text-[#153551]">Growth Pro inactive</p>
-        <p className="mt-1 text-xs text-zinc-600">Recharge to unlock lead contact details.</p>
+        <p className="mt-1 text-xs text-zinc-600">Upgrade to see who enquired and follow up by phone.</p>
         <MerchantRechargeButton
           businessId={businessId}
           businessName={businessName}

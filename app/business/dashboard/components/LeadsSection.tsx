@@ -375,7 +375,7 @@ export default function LeadsSection({
         />
         <div className={`${dashboard.panel} ${dashboard.emptyState} py-12`}>
           <p className="text-5xl font-bold text-[#153551]">{leads.length}</p>
-          <p className="mt-2 text-sm text-zinc-600">leads waiting — contacts locked until activation</p>
+          <p className="mt-2 text-sm text-zinc-600">people enquired — upgrade to see their phone and email</p>
           <Link href={`/pricing?businessId=${businessId}`} className={`mt-5 ${dashboard.btnPrimary}`}>
             <HiOutlineRocketLaunch size={16} />
             Activate Growth Pro
@@ -394,10 +394,10 @@ export default function LeadsSection({
               <div className="flex items-start gap-3">
                 <HiOutlineSparkles size={20} className="mt-0.5 shrink-0 text-[#f69e32]" />
                 <div>
-                  <p className="text-sm font-bold text-[#153551]">Contacts are locked</p>
+                  <p className="text-sm font-bold text-[#153551]">You have enquiries waiting</p>
                   <p className="mt-0.5 text-xs text-zinc-600">
-                    You have {leads.length} lead{leads.length === 1 ? '' : 's'} — activate Growth Pro to see
-                    names, phone numbers, and email.
+                    Activate Growth Pro to see names, phone numbers, and email for {leads.length} lead
+                    {leads.length === 1 ? '' : 's'}.
                   </p>
                 </div>
               </div>
