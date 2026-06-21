@@ -13,6 +13,8 @@ import {
 } from '@/lib/siteSeo';
 import HomeStructuredData from '@/components/HomeStructuredData';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: HOME_PAGE_TITLE,
   description: HOME_PAGE_DESCRIPTION,

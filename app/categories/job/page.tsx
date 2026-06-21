@@ -1,6 +1,8 @@
 import { getAllJobs } from '@/app/actions/job';
 import JobPortalClient from './JobPortalClient';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata = {
   title: 'Jobs',
   description: 'Find jobs posted by verified local businesses on FinderB.',
