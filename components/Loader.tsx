@@ -20,11 +20,13 @@ export const MERCHANT_PROFILE_LOADER_MESSAGES = [
 type LoaderProps = {
   messages?: string[];
   tagline?: string;
+  subtitle?: string;
 };
 
 const Loader = ({
   messages = DEFAULT_STATUS_MESSAGES,
-  tagline = 'Discover Local',
+  tagline,
+  subtitle = 'Find trusted businesses and services in your city.',
 }: LoaderProps) => {
   const [messageIndex, setMessageIndex] = useState(0);
 
@@ -84,11 +86,17 @@ const Loader = ({
 
           <div className="finderb-splash-v2-accent-line" aria-hidden />
 
-          <p className="finderb-splash-v2-eyebrow mt-8 text-[11px] font-bold uppercase tracking-[0.38em] text-[#215481]">
-            {tagline}
-          </p>
-          <p className="finderb-splash-v2-sub mt-3 text-center text-[15px] font-medium tracking-wide text-zinc-500">
-            Your city. Verified. Local. Yours.
+          {tagline ? (
+            <p className="finderb-splash-v2-eyebrow mt-8 text-[11px] font-bold uppercase tracking-[0.38em] text-zinc-500">
+              {tagline}
+            </p>
+          ) : null}
+          <p
+            className={`finderb-splash-v2-sub text-center text-[15px] font-medium leading-relaxed tracking-wide text-zinc-500 ${
+              tagline ? 'mt-3' : 'mt-8'
+            }`}
+          >
+            {subtitle}
           </p>
         </div>
       </div>

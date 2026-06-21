@@ -1,5 +1,5 @@
 import BusinessWorkspaceLoader from '@/components/business/BusinessWorkspaceLoader';
 
-export default function BusinessRouteLoading() {
+export default function BusinessDashboardLoading() {
   return <BusinessWorkspaceLoader />;
 }

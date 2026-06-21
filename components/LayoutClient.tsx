@@ -14,6 +14,10 @@ const MERCHANT_APP_PREFIXES = [
   '/business/kyc/',
 ];
 
+function isBusinessDashboardRoute(pathname: string | null) {
+  return pathname === '/business/dashboard' || Boolean(pathname?.startsWith('/business/dashboard/'));
+}
+
 function isBusinessAuthPage(pathname: string | null) {
   return pathname === '/business/login' || pathname === '/business/register';
 }
@@ -44,8 +48,7 @@ import { UserLocationProvider } from '@/hooks/useUserCoords';
 export default function LayoutClient({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const pathname = usePathname();
-  const isBusinessRoute = Boolean(pathname?.startsWith('/business'));
-  const businessAuthPage = isBusinessAuthPage(pathname);
+  const businessDashboardRoute = isBusinessDashboardRoute(pathname);
   const merchantAppShell = isMerchantAppShell(pathname);
   const isCategoriesBrowse =
     pathname === '/categories' ||
@@ -66,7 +69,7 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
     <UserLocationProvider>
       <PWAInstallPrompt appReady={!loading} />
       {loading ? (
-        isBusinessRoute && !businessAuthPage ? (
+        businessDashboardRoute ? (
           <BusinessWorkspaceLoader />
         ) : (
           <Loader />
