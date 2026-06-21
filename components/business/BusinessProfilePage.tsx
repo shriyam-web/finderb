@@ -53,6 +53,10 @@ import { formatDistanceFromUser } from '@/lib/geo';
 import { useUserCoords } from '@/hooks/useUserCoords';
 import { resolveClientSearchQuery, setLastSearchQuery } from '@/lib/lastSearchQuery';
 import Loader, { MERCHANT_PROFILE_LOADER_MESSAGES } from '@/components/Loader';
+import {
+  getProfileViewSessionHash,
+  shouldRecordProfileViewToday,
+} from '@/lib/profileViews';
 
 const WEEKDAYS = [
   'Monday',
@@ -193,6 +197,18 @@ export default function BusinessProfilePage({ id }: { id: string }) {
     setReviewSuccess(null);
     setReviewContent('');
   }, [id]);
+
+  useEffect(() => {
+    if (isLoading || !business) return;
+    if (!shouldRecordProfileViewToday(id)) return;
+
+    const sessionHash = getProfileViewSessionHash();
+    void fetch(`/api/business/${id}/view`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionHash }),
+    }).catch(() => undefined);
+  }, [business, id, isLoading]);
 
   useEffect(() => {
     if (isLoading || !business) return;

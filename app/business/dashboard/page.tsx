@@ -29,6 +29,8 @@ import { consumeNewBusinessOnboarding } from '@/lib/businessOnboarding';
 import { getAccountHealth } from '@/lib/dashboard/accountHealth';
 import { getProfileCompletion, getAccountMissingFields } from '@/lib/dashboard/profileCompletion';
 import { getJobsByBusiness } from '@/app/actions/job';
+import { getBusinessProfileViewStats } from '@/app/actions/analytics';
+import { getBusinessPublicRatingStats } from '@/lib/businessReviews';
 import DashboardAtAGlance from './components/DashboardAtAGlance';
 import TrustBadgeCallout from './components/TrustBadgeCallout';
 import MyListingTab from './components/MyListingTab';
@@ -57,6 +59,7 @@ function DashboardContent() {
   const [copiedId, setCopiedId] = useState(false);
   const [leadCount, setLeadCount] = useState(0);
   const [newLeadCount, setNewLeadCount] = useState(0);
+  const [profileViews30d, setProfileViews30d] = useState(0);
   const [activeJobsCount, setActiveJobsCount] = useState(0);
   const [settingsFocusField, setSettingsFocusField] = useState<string | null>(null);
 
@@ -215,6 +218,15 @@ function DashboardContent() {
 
   useEffect(() => {
     if (!businessId) return;
+    getBusinessProfileViewStats(businessId).then((res) => {
+      if (res.success) {
+        setProfileViews30d(res.viewsLast30Days);
+      }
+    });
+  }, [businessId]);
+
+  useEffect(() => {
+    if (!businessId) return;
     getBusinessLeads(businessId).then((res) => {
       if (res.success) {
         setLeadCount(res.leads.length);
@@ -367,7 +379,8 @@ function DashboardContent() {
     kycStatus: business?.kycStatus,
     completionPercent,
   });
-  const kpis = buildDefaultKpis(leadCount, business?.rating ?? 4.5);
+  const ratingStats = getBusinessPublicRatingStats(business?.review);
+  const kpis = buildDefaultKpis(leadCount, profileViews30d, ratingStats);
 
   const openSettingsField = (fieldKey: string) => {
     setSettingsFocusField(fieldKey);

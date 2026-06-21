@@ -21,11 +21,20 @@ type DashboardKpiRowProps = {
   kpis: Kpi[];
 };
 
+export type DashboardRatingStats = {
+  rating: number | null;
+  reviewCount: number;
+};
+
 const kpiAccent: Record<string, string> = {
   views: 'from-[#153551] to-[#215481]',
   leads: 'from-[#c1621a] to-[#f9b864]',
   rating: 'from-violet-700 to-indigo-600',
 };
+
+function formatCount(value: number): string {
+  return value.toLocaleString('en-IN');
+}
 
 /** Performance metrics only — shown once on Overview. */
 export default function DashboardKpiRow({ kpis }: DashboardKpiRowProps) {
@@ -59,33 +68,42 @@ export default function DashboardKpiRow({ kpis }: DashboardKpiRowProps) {
   );
 }
 
-export function buildDefaultKpis(leadCount: number, rating: number) {
+export function buildDefaultKpis(
+  leadCount: number,
+  profileViews30d: number,
+  ratingStats: DashboardRatingStats
+) {
+  const hasReviews = ratingStats.reviewCount > 0 && ratingStats.rating != null;
+
   return [
     {
       id: 'views',
       label: 'Profile views',
-      value: '1,284',
-      delta: '+12.5%',
-      deltaUp: true,
-      context: 'Last 30 days',
+      value: formatCount(profileViews30d),
+      delta: profileViews30d > 0 ? 'Last 30 days' : '—',
+      deltaUp: profileViews30d > 0,
+      context:
+        profileViews30d > 0 ? 'Visits to your public listing' : 'No profile views in the last 30 days',
       icon: HiOutlineEye,
     },
     {
       id: 'leads',
       label: 'Total leads',
-      value: String(leadCount),
+      value: formatCount(leadCount),
       delta: leadCount > 0 ? 'Live' : '—',
       deltaUp: leadCount > 0,
-      context: 'All time on FinderB',
+      context: leadCount > 0 ? 'All time on FinderB' : 'No enquiries received yet',
       icon: HiOutlineUsers,
     },
     {
       id: 'rating',
       label: 'Average rating',
-      value: rating.toFixed(1),
-      delta: 'of 5.0',
-      deltaUp: true,
-      context: 'Customer reviews',
+      value: hasReviews ? ratingStats.rating!.toFixed(1) : '—',
+      delta: hasReviews ? 'of 5.0' : 'No rating yet',
+      deltaUp: hasReviews,
+      context: hasReviews
+        ? `${formatCount(ratingStats.reviewCount)} customer review${ratingStats.reviewCount === 1 ? '' : 's'}`
+        : 'No customer reviews yet',
       icon: HiOutlineArrowTrendingUp,
     },
   ];

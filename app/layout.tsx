@@ -15,6 +15,8 @@ const outfit = Outfit({
   variable: "--font-outfit",
 });
 
+const googleSiteVerification = process.env.GOOGLE_SITE_VERIFICATION?.trim();
+
 export const metadata: Metadata = {
   ...rootSiteMetadata,
   keywords: [
@@ -29,9 +31,13 @@ export const metadata: Metadata = {
     "verified businesses India",
     "service discovery engine",
   ],
-  verification: {
-    google: "google-site-verification-placeholder",
-  },
+  ...(googleSiteVerification
+    ? {
+        verification: {
+          google: googleSiteVerification,
+        },
+      }
+    : {}),
 };
 
 const jsonLd = getRootStructuredData();
