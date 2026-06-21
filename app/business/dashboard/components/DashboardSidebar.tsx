@@ -170,7 +170,7 @@ export default function DashboardSidebar({
           fullName={businessFullName}
           email={businessEmail}
           mobile={businessMobile}
-          label="Recharge now"
+          label="Choose plan"
           className="mt-3 w-full rounded-lg bg-[#153551] py-2 text-xs font-semibold text-white hover:bg-[#215481] disabled:opacity-60"
         />
       </div>

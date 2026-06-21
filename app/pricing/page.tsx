@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { ArrowRight } from 'lucide-react';
 import {
   CompareCell,
@@ -29,13 +30,24 @@ import {
   PRICING_PLANS,
 } from '@/lib/pricing/growthPro';
 
-export default function PricingPage() {
+function merchantPaymentUrl(businessId: string, billing: 'monthly' | 'annual') {
+  return `/business/payment/${encodeURIComponent(businessId)}?billing=${billing}&checkout=1`;
+}
+
+function PricingPageContent() {
+  const searchParams = useSearchParams();
+  const businessId = searchParams.get('businessId');
+  const isRechargeFlow = Boolean(businessId);
   const [loadingPlan, setLoadingPlan] = useState<'monthly' | 'annual' | null>(null);
 
   const handlePayment = (plan: 'monthly' | 'annual') => {
     setLoadingPlan(plan);
     setTimeout(() => {
       setLoadingPlan(null);
+      if (businessId) {
+        window.location.href = merchantPaymentUrl(businessId, plan);
+        return;
+      }
       window.location.href = `/business/register?plan=pro&billing=${plan}`;
     }, 1000);
   };
@@ -45,6 +57,16 @@ export default function PricingPage() {
       {loadingPlan && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#faf8f5]/95 backdrop-blur-sm">
           <div className="h-10 w-10 animate-spin rounded-full border-[3px] border-[#f9b864] border-t-[#153551]" />
+        </div>
+      )}
+
+      {isRechargeFlow && (
+        <div className="border-b border-[#e8dfd4]/80 bg-[#fff9ed]">
+          <MerchantAuthMain className="py-3">
+            <p className="text-center text-sm font-semibold text-[#153551]">
+              Choose a plan to activate Growth Pro and unlock lead contacts.
+            </p>
+          </MerchantAuthMain>
         </div>
       )}
 
@@ -257,5 +279,19 @@ export default function PricingPage() {
         </MerchantAuthMain>
       </section>
     </div>
+  );
+}
+
+export default function PricingPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-[#faf8f5]">
+          <div className="h-10 w-10 animate-spin rounded-full border-[3px] border-[#f9b864] border-t-[#153551]" />
+        </div>
+      }
+    >
+      <PricingPageContent />
+    </Suspense>
   );
 }

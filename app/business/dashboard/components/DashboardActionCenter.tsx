@@ -83,18 +83,10 @@ export default function DashboardActionCenter({
                       fullName={fullName}
                       email={email}
                       mobile={mobile}
-                      label="Recharge now"
+                      label="Choose plan"
                       onError={onPaymentError}
                       className="inline-flex items-center rounded-xl bg-gradient-to-r from-[#153551] to-[#215481] px-5 py-2.5 text-sm font-bold text-white shadow-md hover:brightness-110 disabled:opacity-60"
                     />
-                  )}
-                  {businessId && (
-                    <Link
-                      href={`/business/payment/${businessId}`}
-                      className="inline-flex items-center gap-1 text-sm font-bold text-[#215481] hover:text-[#153551]"
-                    >
-                      View plans <HiOutlineArrowRight size={14} />
-                    </Link>
                   )}
                 </div>
               </div>

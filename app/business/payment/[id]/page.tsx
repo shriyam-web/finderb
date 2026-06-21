@@ -1,8 +1,8 @@
 'use client';
 
-import { use, useState, useEffect, useCallback } from 'react';
+import { use, useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   CheckCircle2,
   ShieldCheck,
@@ -22,9 +22,12 @@ import { openRazorpayCheckout } from '@/lib/razorpay/client';
 
 type BillingCycle = 'monthly' | 'annual';
 
-export default function PaymentPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+function PaymentPageContent({ id }: { id: string }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const checkoutRequested = searchParams.get('checkout') === '1';
+  const billingFromUrl = searchParams.get('billing');
+  const checkoutStartedRef = useRef(false);
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(false);
   const [error, setError] = useState('');
@@ -49,104 +52,135 @@ export default function PaymentPage({ params }: { params: Promise<{ id: string }
     setIsAuthorized(true);
     setRazorpayConfigured(result.razorpayConfigured);
     const savedBilling = (result.business as { billingCycle?: string })?.billingCycle;
-    if (savedBilling === 'monthly' || savedBilling === 'annual') {
+    if (billingFromUrl === 'monthly' || billingFromUrl === 'annual') {
+      setBillingCycle(billingFromUrl);
+    } else if (savedBilling === 'monthly' || savedBilling === 'annual') {
       setBillingCycle(savedBilling);
     }
     setLoading(false);
-  }, [id]);
+  }, [billingFromUrl, id]);
 
   useEffect(() => {
     loadPage();
   }, [loadPage]);
 
-  const handleRazorpayPayment = async () => {
-    if (!isAuthorized) {
-      setError('Please sign in to your merchant account before paying.');
-      return;
-    }
+  const handleRazorpayPayment = useCallback(
+    async (cycleOverride?: BillingCycle) => {
+      const cycle = cycleOverride ?? billingCycle;
 
-    if (!razorpayConfigured) {
-      setError('Payment gateway is not configured yet. Add Razorpay API keys to your environment.');
-      return;
-    }
-
-    if (business?.paymentStatus === 'completed') {
-      router.push(`/business/dashboard?id=${id}`);
-      return;
-    }
-
-    setPaying(true);
-    setError('');
-
-    try {
-      const orderResult = await createMerchantPaymentOrder({
-        businessId: id,
-        plan: 'pro',
-        billingCycle,
-      });
-
-      if (!orderResult.success) {
-        setError(orderResult.error || 'Could not start payment');
-        setPaying(false);
+      if (!isAuthorized) {
+        setError('Please sign in to your merchant account before paying.');
         return;
       }
 
-      await openRazorpayCheckout(
-        {
-          key: orderResult.keyId,
-          amount: orderResult.order.amount,
-          currency: orderResult.order.currency,
-          name: 'FinderB Business',
-          description: `${plan.name} — ${billingCycle === 'monthly' ? 'Monthly' : 'Annual'}`,
-          order_id: orderResult.order.id,
-          prefill: {
-            name: orderResult.business.fullName || orderResult.business.businessName,
-            email: orderResult.business.email || undefined,
-            contact: orderResult.business.mobile || undefined,
-          },
-          notes: {
-            businessId: id,
-            plan: 'pro',
-            billingCycle,
-          },
-          theme: { color: '#215481' },
-          handler: async (response) => {
-            try {
-              const verifyResult = await completeMerchantPayment({
-                businessId: id,
-                plan: 'pro',
-                billingCycle,
-                razorpayOrderId: response.razorpay_order_id,
-                razorpayPaymentId: response.razorpay_payment_id,
-                razorpaySignature: response.razorpay_signature,
-              });
+      if (!razorpayConfigured) {
+        setError('Payment gateway is not configured yet. Add Razorpay API keys to your environment.');
+        return;
+      }
 
-              if (verifyResult.success) {
-                router.push(`/business/dashboard?id=${id}&payment=success`);
-              } else {
-                setError(verifyResult.error || 'Payment verification failed');
+      if (business?.paymentStatus === 'completed') {
+        router.push(`/business/dashboard?id=${id}`);
+        return;
+      }
+
+      setPaying(true);
+      setError('');
+
+      try {
+        const orderResult = await createMerchantPaymentOrder({
+          businessId: id,
+          plan: 'pro',
+          billingCycle: cycle,
+        });
+
+        if (!orderResult.success) {
+          setError(orderResult.error || 'Could not start payment');
+          setPaying(false);
+          return;
+        }
+
+        await openRazorpayCheckout(
+          {
+            key: orderResult.keyId,
+            amount: orderResult.order.amount,
+            currency: orderResult.order.currency,
+            name: 'FinderB Business',
+            description: `${plan.name} — ${cycle === 'monthly' ? 'Monthly' : 'Annual'}`,
+            order_id: orderResult.order.id,
+            prefill: {
+              name: orderResult.business.fullName || orderResult.business.businessName,
+              email: orderResult.business.email || undefined,
+              contact: orderResult.business.mobile || undefined,
+            },
+            notes: {
+              businessId: id,
+              plan: 'pro',
+              billingCycle: cycle,
+            },
+            theme: { color: '#215481' },
+            handler: async (response) => {
+              try {
+                const verifyResult = await completeMerchantPayment({
+                  businessId: id,
+                  plan: 'pro',
+                  billingCycle: cycle,
+                  razorpayOrderId: response.razorpay_order_id,
+                  razorpayPaymentId: response.razorpay_payment_id,
+                  razorpaySignature: response.razorpay_signature,
+                });
+
+                if (verifyResult.success) {
+                  router.push(`/business/dashboard?id=${id}&payment=success`);
+                } else {
+                  setError(verifyResult.error || 'Payment verification failed');
+                  setPaying(false);
+                }
+              } catch {
+                setError('Payment verification failed. Please contact support if amount was deducted.');
                 setPaying(false);
               }
-            } catch {
-              setError('Payment verification failed. Please contact support if amount was deducted.');
-              setPaying(false);
-            }
+            },
+            modal: {
+              ondismiss: () => setPaying(false),
+            },
           },
-          modal: {
-            ondismiss: () => setPaying(false),
-          },
-        },
-        (message) => {
-          setError(message);
-          setPaying(false);
-        }
-      );
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unable to open payment gateway';
-      setError(message);
-      setPaying(false);
+          (message) => {
+            setError(message);
+            setPaying(false);
+          }
+        );
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Unable to open payment gateway';
+        setError(message);
+        setPaying(false);
+      }
+    },
+    [billingCycle, business, id, isAuthorized, plan.name, razorpayConfigured, router]
+  );
+
+  useEffect(() => {
+    if (loading || paying || !business || !isAuthorized || !razorpayConfigured) return;
+    if (business.paymentStatus === 'completed') return;
+    if (!checkoutRequested || checkoutStartedRef.current) return;
+
+    checkoutStartedRef.current = true;
+    const cycle: BillingCycle =
+      billingFromUrl === 'annual' ? 'annual' : billingFromUrl === 'monthly' ? 'monthly' : billingCycle;
+    if (billingFromUrl === 'monthly' || billingFromUrl === 'annual') {
+      setBillingCycle(cycle);
     }
-  };
+    void handleRazorpayPayment(cycle);
+  }, [
+    billingCycle,
+    billingFromUrl,
+    business,
+    checkoutRequested,
+    handleRazorpayPayment,
+    isAuthorized,
+    loading,
+    paying,
+    razorpayConfigured,
+  ]);
 
   if (loading) {
     return (
@@ -208,11 +242,17 @@ export default function PaymentPage({ params }: { params: Promise<{ id: string }
 
           <button
             type="button"
-            onClick={() => router.back()}
+            onClick={() => {
+              if (checkoutRequested) {
+                router.push(`/pricing?businessId=${encodeURIComponent(id)}`);
+                return;
+              }
+              router.back();
+            }}
             className="relative z-10 mt-8 flex items-center gap-2 text-xs font-semibold text-white/70 transition-colors hover:text-white"
           >
             <ArrowLeft size={14} />
-            Back to dashboard
+            {checkoutRequested ? 'Back to plans' : 'Back to dashboard'}
           </button>
         </div>
 
@@ -333,7 +373,7 @@ export default function PaymentPage({ params }: { params: Promise<{ id: string }
                 <div className="space-y-3">
                   <button
                     type="button"
-                    onClick={handleRazorpayPayment}
+                    onClick={() => void handleRazorpayPayment()}
                     disabled={paying || !isAuthorized || !razorpayConfigured}
                     className="flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 py-4 text-sm font-bold text-white transition-all hover:bg-black disabled:cursor-not-allowed disabled:opacity-50"
                   >
@@ -352,5 +392,21 @@ export default function PaymentPage({ params }: { params: Promise<{ id: string }
         </div>
       </div>
     </main>
+  );
+}
+
+export default function PaymentPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
+
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-[#f4f7fb]">
+          <Loader2 className="h-8 w-8 animate-spin text-[#215481]" />
+        </div>
+      }
+    >
+      <PaymentPageContent id={id} />
+    </Suspense>
   );
 }

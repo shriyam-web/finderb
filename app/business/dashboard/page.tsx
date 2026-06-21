@@ -429,7 +429,7 @@ function DashboardContent() {
               onOpenLeads={() => setActiveTab('leads')}
               onOpenJobs={() => setActiveTab('jobs')}
               onOpenListing={() => setActiveTab('listings')}
-              onOpenBilling={businessId ? () => router.push(`/business/payment/${businessId}`) : undefined}
+              onOpenBilling={businessId ? () => router.push(`/pricing?businessId=${businessId}`) : undefined}
             />
 
             {isVerified && <TrustBadgeCallout isVerified />}
@@ -483,7 +483,7 @@ function DashboardContent() {
                           {
                             label: 'Growth Pro billing',
                             description: 'Subscription, invoices, and plan options.',
-                            href: `/business/payment/${businessId}`,
+                            href: `/pricing?businessId=${businessId}`,
                           },
                         ]
                       : []),

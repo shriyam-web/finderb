@@ -110,16 +110,10 @@ export default function AccountHealthPanel({
                     fullName={fullName}
                     email={email}
                     mobile={mobile}
-                    label="Recharge"
+                    label="Choose plan"
                     onError={onPaymentError}
                     className={dashboard.btnPrimary}
                   />
-                  <Link
-                    href={`/business/payment/${businessId}`}
-                    className="text-center text-xs text-zinc-500 hover:text-zinc-900 sm:text-right"
-                  >
-                    Compare plans
-                  </Link>
                 </div>
               ) : undefined
             }

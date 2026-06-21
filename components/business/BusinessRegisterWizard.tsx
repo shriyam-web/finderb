@@ -432,6 +432,7 @@ export default function BusinessRegisterWizard({
                       email={contactEmail || registeredBusiness.email || formData.email}
                       mobile={registeredBusiness.mobile || mobile}
                       billingCycle={billingCycle}
+                      directCheckout
                       label="Pay with Razorpay"
                       className="mt-4 w-full rounded-xl bg-[#153551] px-4 py-3 text-sm font-bold text-white hover:bg-[#215481] disabled:opacity-60"
                       onSuccess={onPaymentSuccess}

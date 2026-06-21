@@ -18,6 +18,8 @@ type MerchantRechargeButtonProps = {
   email?: string;
   mobile?: string;
   billingCycle?: BillingCycle;
+  /** When true, opens Razorpay directly (e.g. register flow with plan already chosen). */
+  directCheckout?: boolean;
   disabled?: boolean;
   label?: string;
   className?: string;
@@ -32,6 +34,7 @@ export default function MerchantRechargeButton({
   email = '',
   mobile = '',
   billingCycle = 'monthly',
+  directCheckout = false,
   disabled = false,
   label = 'Recharge Now',
   className = '',
@@ -43,13 +46,19 @@ export default function MerchantRechargeButton({
   const [razorpayConfigured, setRazorpayConfigured] = useState<boolean | null>(null);
 
   useEffect(() => {
+    if (!directCheckout) return;
     getRazorpayGatewayStatus().then((status) => {
       setRazorpayConfigured(status.configured);
     });
-  }, []);
+  }, [directCheckout]);
 
   const handleRecharge = useCallback(async () => {
     if (!businessId || paying) return;
+
+    if (!directCheckout) {
+      router.push(`/pricing?businessId=${encodeURIComponent(businessId)}`);
+      return;
+    }
 
     if (razorpayConfigured === false) {
       const message =
@@ -133,6 +142,7 @@ export default function MerchantRechargeButton({
     billingCycle,
     businessId,
     businessName,
+    directCheckout,
     email,
     fullName,
     mobile,
@@ -143,7 +153,8 @@ export default function MerchantRechargeButton({
     router,
   ]);
 
-  const isDisabled = disabled || paying || razorpayConfigured === false;
+  const isDisabled =
+    disabled || paying || (directCheckout && razorpayConfigured === false);
 
   return (
     <button
@@ -151,7 +162,11 @@ export default function MerchantRechargeButton({
       onClick={handleRecharge}
       disabled={isDisabled}
       className={className}
-      title={razorpayConfigured === false ? 'Razorpay keys missing in server environment' : undefined}
+      title={
+        directCheckout && razorpayConfigured === false
+          ? 'Razorpay keys missing in server environment'
+          : undefined
+      }
     >
       {paying ? (
         <>

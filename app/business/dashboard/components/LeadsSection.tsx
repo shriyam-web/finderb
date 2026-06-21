@@ -176,7 +176,7 @@ export default function LeadsSection({
     if (isPaymentPending) {
       return (
         <Link
-          href={`/business/payment/${businessId}`}
+          href={`/pricing?businessId=${businessId}`}
           className={`${btnBase} bg-[#f9b864] text-[#153551] hover:bg-[#ffcc70]`}
         >
           <HiOutlineRocketLaunch size={12} />
@@ -376,7 +376,7 @@ export default function LeadsSection({
         <div className={`${dashboard.panel} ${dashboard.emptyState} py-12`}>
           <p className="text-5xl font-bold text-[#153551]">{leads.length}</p>
           <p className="mt-2 text-sm text-zinc-600">leads waiting — contacts locked until activation</p>
-          <Link href={`/business/payment/${businessId}`} className={`mt-5 ${dashboard.btnPrimary}`}>
+          <Link href={`/pricing?businessId=${businessId}`} className={`mt-5 ${dashboard.btnPrimary}`}>
             <HiOutlineRocketLaunch size={16} />
             Activate Growth Pro
           </Link>
@@ -402,7 +402,7 @@ export default function LeadsSection({
                 </div>
               </div>
               <Link
-                href={`/business/payment/${businessId}`}
+                href={`/pricing?businessId=${businessId}`}
                 className={`shrink-0 ${dashboard.btnPrimary}`}
               >
                 <HiOutlineRocketLaunch size={14} />
