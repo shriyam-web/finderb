@@ -10,7 +10,6 @@ import BusinessWorkspaceLoader from "@/components/business/BusinessWorkspaceLoad
 const MERCHANT_APP_PREFIXES = [
   '/business/dashboard',
   '/business/list',
-  '/business/payment/',
   '/business/kyc/',
 ];
 
