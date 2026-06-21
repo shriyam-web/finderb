@@ -293,26 +293,26 @@ function RegisterFormContent() {
     {
       name: 'Mr. Ashim Kumar Mondal',
       business: 'Astrologer Sri Ashimanandaji Jyotish Mahamohopadhay',
-      role: 'Astrologers',
+      role: 'Spiritual Consultants',
       testimonial: 'I started with a small investment in one city, and today, FinderB has helped me expand across five states with a 35% to 40% increase in business growth.',
       duration: 'Customer since 1 year',
-      image: 'https://i.pravatar.cc/150?u=ashim'
+      image: '/1.jpg'
     },
     {
-      name: 'Rajesh Chhabria',
-      business: 'Chhabria and Sons',
+      name: 'Priya Chhabria',
+      business: 'Chhabria Tiles & Décor',
       role: 'Tile Dealers',
-      testimonial: 'From 1 showroom to 4 in 20 years, FinderB’s growing returns have helped us to dominate the market.',
+      testimonial: 'From 1 showroom to 4 in 20 years, FinderB’s growing returns have helped my business dominate the market.',
       duration: 'Customer since 14 years',
-      image: 'https://i.pravatar.cc/150?u=rajesh'
+      image: '/2.jpeg'
     },
     {
-      name: 'Varshini',
-      business: 'V2 Makeover',
-      role: 'Makeup Artists',
-      testimonial: 'Genuine leads from FinderB keep my business active and support me as a woman entrepreneur.',
+      name: 'Arjun Verma',
+      business: 'Verma Electrical Services',
+      role: 'Electricians',
+      testimonial: 'Genuine leads from FinderB keep my business active and help me win more service calls every week.',
       duration: 'Customer since 4 year',
-      image: 'https://i.pravatar.cc/150?u=varshini'
+      image: '/3.jpeg'
     }
   ];
 
