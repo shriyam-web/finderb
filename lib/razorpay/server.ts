@@ -109,3 +109,111 @@ export function verifyRazorpayPaymentSignature(params: {
     return false;
   }
 }
+
+export function getRazorpayWebhookSecret(): string | undefined {
+  return process.env.RAZORPAY_WEBHOOK_SECRET?.trim() || undefined;
+}
+
+export function isRazorpayWebhookConfigured(): boolean {
+  return Boolean(getRazorpayWebhookSecret() && isRazorpayConfigured());
+}
+
+export function verifyRazorpayWebhookSignature(rawBody: string, signature: string): boolean {
+  const secret = getRazorpayWebhookSecret();
+  if (!secret || !signature) return false;
+
+  const expected = crypto.createHmac('sha256', secret).update(rawBody).digest('hex');
+
+  try {
+    const expectedBuf = Buffer.from(expected, 'hex');
+    const signatureBuf = Buffer.from(signature, 'hex');
+    if (expectedBuf.length !== signatureBuf.length) return false;
+    return crypto.timingSafeEqual(expectedBuf, signatureBuf);
+  } catch {
+    return false;
+  }
+}
+
+function getRazorpayBasicAuth(): string | null {
+  const { keyId, keySecret } = getRazorpayCredentials();
+  if (!keyId || !keySecret) return null;
+  return Buffer.from(`${keyId}:${keySecret}`).toString('base64');
+}
+
+export type RazorpayPaymentEntity = {
+  id: string;
+  order_id: string;
+  status: string;
+  amount: number;
+  currency: string;
+  captured: boolean;
+  notes?: Record<string, string>;
+};
+
+export async function getRazorpayPayment(
+  paymentId: string
+): Promise<RazorpayPaymentEntity | null> {
+  const auth = getRazorpayBasicAuth();
+  if (!auth) return null;
+
+  const response = await fetch(`https://api.razorpay.com/v1/payments/${paymentId}`, {
+    headers: { Authorization: `Basic ${auth}` },
+    cache: 'no-store',
+  });
+
+  if (!response.ok) {
+    console.error('[razorpay] fetch payment failed:', paymentId, response.status);
+    return null;
+  }
+
+  return (await response.json()) as RazorpayPaymentEntity;
+}
+
+export async function captureRazorpayPayment(
+  paymentId: string,
+  amount: number
+): Promise<{ success: true; payment: RazorpayPaymentEntity } | { success: false }> {
+  const auth = getRazorpayBasicAuth();
+  if (!auth) return { success: false };
+
+  const response = await fetch(`https://api.razorpay.com/v1/payments/${paymentId}/capture`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Basic ${auth}`,
+    },
+    body: JSON.stringify({ amount, currency: 'INR' }),
+    cache: 'no-store',
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    console.error('[razorpay] capture payment failed:', paymentId, data);
+    return { success: false };
+  }
+
+  return { success: true, payment: data as RazorpayPaymentEntity };
+}
+
+export async function ensureRazorpayPaymentCaptured(
+  payment: RazorpayPaymentEntity
+): Promise<RazorpayPaymentEntity | null> {
+  if (payment.status === 'captured' && payment.captured) {
+    return payment;
+  }
+
+  const latest = await getRazorpayPayment(payment.id);
+  if (latest?.status === 'captured') {
+    return latest;
+  }
+
+  if (latest?.status === 'authorized' || payment.status === 'authorized') {
+    const captureResult = await captureRazorpayPayment(payment.id, payment.amount);
+    if (captureResult.success && captureResult.payment.status === 'captured') {
+      return captureResult.payment;
+    }
+  }
+
+  return null;
+}

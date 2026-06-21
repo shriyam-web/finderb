@@ -65,6 +65,10 @@ model Business {
   categories_categories_position_2_business_idToBusiness categories[] @relation("categories_position_2_business_idToBusiness")
   categories_categories_position_3_business_idToBusiness categories[] @relation("categories_position_3_business_idToBusiness")
   leads                                                  leads[]
+
+  @@index([status], map: "idx_business_status")
+  @@index([category], map: "idx_business_category")
+  @@index([city], map: "idx_business_city")
 }
 
 model jobs {
@@ -198,6 +202,8 @@ model leads {
 
   @@index([category])
   @@index([status])
+  @@index([business_id], map: "idx_leads_business_id")
+  @@index([created_at], map: "idx_leads_created_at")
 }
 
 model blogs {

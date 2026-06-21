@@ -65,21 +65,34 @@ More test cards: [Razorpay test cards](https://razorpay.com/docs/payments/paymen
 ## 5. Production checklist
 
 - [ ] Live API keys set on hosting (not in the repo)
+- [ ] **Webhook** configured (see section 6) with `RAZORPAY_WEBHOOK_SECRET` on hosting
+- [ ] `SUPABASE_SERVICE_ROLE_KEY` set (webhook activation writes to DB)
 - [ ] Website URL added in Razorpay dashboard
 - [ ] KYC completed
 - [ ] Test payment on staging with test keys
 - [ ] One live ₹1 test payment before announcing to merchants
 
-## 6. Optional: webhooks (recommended later)
+## 6. Webhooks (required for production)
 
-For extra reliability (e.g. user closes the tab after paying), add a webhook in Razorpay:
+If a merchant closes the browser after paying, the checkout callback may never run. Webhooks activate Growth Pro reliably from Razorpay server events.
 
-**Account & Settings → Webhooks → Add New Webhook**
+**Razorpay Dashboard → Account & Settings → Webhooks → Add New Webhook**
 
-- URL: `https://yourdomain.com/api/razorpay/webhook`
-- Events: `payment.captured`, `order.paid`
+| Field | Value |
+|-------|--------|
+| URL | `https://finderb.com/api/razorpay/webhook` |
+| Secret | Generate and copy — set as `RAZORPAY_WEBHOOK_SECRET` in Vercel |
+| Events | `payment.captured`, `payment.authorized` |
+| Alert email | Your ops email |
 
-Webhook handling is not required for the current checkout flow; payment is verified when the merchant returns from Razorpay.
+Also set in Vercel / `.env.local`:
+
+```env
+RAZORPAY_WEBHOOK_SECRET=your_webhook_secret_from_dashboard
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+```
+
+The webhook verifies Razorpay's signature, confirms payment status with Razorpay API, and idempotently marks the business as paid (same logic as checkout success).
 
 ## Troubleshooting
 

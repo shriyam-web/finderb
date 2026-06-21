@@ -1,10 +1,6 @@
 import HomeClient from '@/components/HomeClient';
-import { getFeaturedBusinesses } from '@/app/actions/business';
-import { getCategories, getFeaturedGroups } from '@/app/actions/category';
-import { getMovies } from '@/app/actions/movie';
-import { getTouristPlaces } from '@/app/actions/touristPlace';
-import { getBlogs } from '@/app/actions/blog';
 import type { Metadata } from 'next';
+import { getCachedHomePageData, HOME_PAGE_REVALIDATE_SECONDS } from '@/lib/homePageData';
 import {
   HOME_PAGE_DESCRIPTION,
   HOME_PAGE_TITLE,
@@ -13,7 +9,7 @@ import {
 } from '@/lib/siteSeo';
 import HomeStructuredData from '@/components/HomeStructuredData';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = HOME_PAGE_REVALIDATE_SECONDS;
 
 export const metadata: Metadata = {
   title: HOME_PAGE_TITLE,
@@ -33,23 +29,7 @@ export const metadata: Metadata = {
   },
 };
 export default async function Home() {
-  const [bizResult, catResult, movieResult, touristResult, blogResult, groupsResult] = await Promise.all([
-    getFeaturedBusinesses(),
-    getCategories(),
-    getMovies(),
-    getTouristPlaces(),
-    getBlogs(),
-    getFeaturedGroups(),
-  ]);
-
-  const initialData = {
-    businesses: bizResult.success ? bizResult.businesses : [],
-    categories: catResult.success ? catResult.categories : [],
-    movies: movieResult.success ? movieResult.movies : [],
-    touristPlaces: touristResult.success ? touristResult.touristPlaces : [],
-    blogs: blogResult.success ? blogResult.blogs : [],
-    featuredGroups: groupsResult.success ? groupsResult.groups ?? [] : [],
-  };
+  const initialData = await getCachedHomePageData();
 
   return (
     <>

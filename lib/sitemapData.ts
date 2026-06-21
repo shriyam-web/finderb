@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import type { MetadataRoute } from 'next';
 import { revalidatePath } from 'next/cache';
+import { revalidateHomePage } from '@/lib/homePageData';
 
 export const SITEMAP_BASE_URL = 'https://finderb.com';
 
@@ -256,4 +257,5 @@ export async function getSitemapSections(): Promise<SitemapSection[]> {
 export function revalidateSitemap() {
   revalidatePath('/sitemap.xml');
   revalidatePath('/sitemap');
+  revalidateHomePage();
 }

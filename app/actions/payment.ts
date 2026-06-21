@@ -2,7 +2,8 @@
 
 import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
-import { updateBusinessPayment, getOwnedBusiness } from '@/app/actions/business';
+import { createClient } from '@/utils/supabase/server';
+import { getOwnedBusiness } from '@/app/actions/business';
 import {
   type BillingCycle,
   type MerchantPlan,
@@ -13,8 +14,9 @@ import {
 import {
   createRazorpayOrder,
   isRazorpayConfigured,
-  verifyRazorpayPaymentSignature,
+  isRazorpayWebhookConfigured,
 } from '@/lib/razorpay/server';
+import { finalizeMerchantPayment } from '@/lib/razorpay/finalizeMerchantPayment';
 import { enforceRateLimit } from '@/lib/security/enforceRateLimit.server';
 
 async function assertBusinessSession(businessId: string) {
@@ -26,7 +28,10 @@ async function assertBusinessSession(businessId: string) {
 }
 
 export async function getRazorpayGatewayStatus() {
-  return { configured: isRazorpayConfigured() };
+  return {
+    configured: isRazorpayConfigured(),
+    webhookConfigured: isRazorpayWebhookConfigured(),
+  };
 }
 
 export async function getPaymentPageData(businessId: string) {
@@ -105,6 +110,22 @@ export async function createMerchantPaymentOrder(params: {
     return { success: false as const, error: 'Order amount mismatch. Please refresh and try again.' };
   }
 
+  const supabase = createClient(await cookies());
+  const { error: pendingOrderError } = await supabase
+    .from('Business')
+    .update({
+      orderId: orderResult.order.id,
+      selectedPlan: plan,
+      billingCycle,
+      updatedAt: new Date().toISOString(),
+    })
+    .eq('id', businessId);
+
+  if (pendingOrderError) {
+    console.error('[razorpay] failed to store pending order id:', pendingOrderError);
+    return { success: false as const, error: 'Could not start checkout. Please try again.' };
+  }
+
   return {
     success: true as const,
     order: orderResult.order,
@@ -151,43 +172,45 @@ export async function completeMerchantPayment(params: {
     return { success: false as const, error: session.error };
   }
 
-  const isValidSignature = verifyRazorpayPaymentSignature({
-    orderId: razorpayOrderId,
-    paymentId: razorpayPaymentId,
-    signature: razorpaySignature,
-  });
-
-  if (!isValidSignature) {
-    return { success: false as const, error: 'Payment verification failed. Please contact support if amount was deducted.' };
-  }
-
   const businessResult = await getOwnedBusiness(businessId);
   if (!businessResult.success || !businessResult.business) {
     return { success: false as const, error: 'Business not found' };
   }
 
   const business = businessResult.business as Record<string, unknown>;
-  if (business.paymentStatus === 'completed') {
-    if (business.paymentId === razorpayPaymentId) {
-      return { success: true as const, business: businessResult.business };
-    }
-    return { success: false as const, error: 'Payment is already completed for this business.' };
+  const pendingOrderId = business.orderId ? String(business.orderId) : null;
+
+  if (pendingOrderId && pendingOrderId !== razorpayOrderId) {
+    return {
+      success: false as const,
+      error: 'This payment does not match your active checkout session. Please start payment again.',
+    };
   }
 
-  const result = await updateBusinessPayment(businessId, {
-    paymentId: razorpayPaymentId,
+  const amountPaise = getPlanAmountInPaise(plan as MerchantPlan, billingCycle as BillingCycle);
+
+  const result = await finalizeMerchantPayment({
+    businessId,
     orderId: razorpayOrderId,
-    selectedPlan: plan as MerchantPlan,
-    billingCycle: billingCycle as BillingCycle,
+    paymentId: razorpayPaymentId,
+    plan,
+    billingCycle,
+    amountPaise,
     razorpaySignature,
+    source: 'checkout',
   });
 
   if (!result.success) {
-    return { success: false as const, error: result.error || 'Failed to update payment status' };
+    return { success: false as const, error: result.error };
+  }
+
+  const updatedBusiness = await getOwnedBusiness(businessId);
+  if (!updatedBusiness.success || !updatedBusiness.business) {
+    return { success: false as const, error: 'Payment recorded but business could not be reloaded' };
   }
 
   revalidatePath('/business/dashboard');
   revalidatePath(`/business/payment/${businessId}`);
 
-  return { success: true as const, business: result.business };
+  return { success: true as const, business: updatedBusiness.business, alreadyCompleted: result.alreadyCompleted };
 }
