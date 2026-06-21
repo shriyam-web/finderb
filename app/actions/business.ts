@@ -14,6 +14,10 @@ import {
   lookupEmailAccountTypes,
 } from '@/lib/emailAccountLookup';
 import { mapBusinessRecord } from '@/lib/businessMapping';
+import {
+  CATEGORY_LISTINGS_MAX_PAGE_SIZE,
+  CATEGORY_LISTINGS_PAGE_SIZE,
+} from '@/lib/categoryListings';
 import { parseCoordinate } from '@/lib/geo';
 import { revalidateSitemap } from '@/lib/sitemapData';
 import { escapeIlikePattern } from '@/lib/searchMatch';
@@ -495,28 +499,52 @@ export async function getFeaturedBusinesses() {
   }
 }
 
-export async function getBusinessesByCategory(categoryName: string) {
+export async function getBusinessesByCategory(
+  categoryName: string,
+  options?: { page?: number; pageSize?: number }
+) {
   try {
+    const page = Math.max(1, options?.page ?? 1);
+    const pageSize = Math.min(
+      Math.max(options?.pageSize ?? CATEGORY_LISTINGS_PAGE_SIZE, 1),
+      CATEGORY_LISTINGS_MAX_PAGE_SIZE
+    );
+    const from = (page - 1) * pageSize;
+    const to = from + pageSize - 1;
+
     const supabase = createClient(await cookies());
 
-    let query = supabase.from('Business').select('*');
-    
+    let query = supabase
+      .from('Business')
+      .select('*', { count: 'exact' })
+      .eq('status', 'Active')
+      .order('createdAt', { ascending: false });
+
     if (categoryName !== 'all') {
       const escapedCategory = escapeIlikePattern(categoryName.replace(/-/g, ' '));
       query = query.ilike('category', `%${escapedCategory}%`);
     }
 
-    const { data: businesses, error } = await query;
+    const { data: businesses, error, count } = await query.range(from, to);
 
     if (error) {
       throw error;
     }
 
-    const mappedBusinesses = businesses
+    const mappedBusinesses = (businesses ?? [])
       .map((b: Record<string, unknown>) => mapBusinessRecord(b))
       .filter((b) => b.id);
 
-    return { success: true, businesses: mappedBusinesses };
+    const total = count ?? mappedBusinesses.length;
+
+    return {
+      success: true,
+      businesses: mappedBusinesses,
+      total,
+      page,
+      pageSize,
+      hasMore: from + mappedBusinesses.length < total,
+    };
   } catch (error: any) {
     const errorMessage = handleError(error, 'Get Businesses By Category');
     return { success: false, error: errorMessage };

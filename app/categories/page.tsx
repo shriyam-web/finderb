@@ -20,6 +20,7 @@ import {
 } from '@/lib/searchMatch';
 import { setLastSearchQuery } from '@/lib/lastSearchQuery';
 import Image from 'next/image';
+import CategoryMerchantList from '@/components/category/CategoryMerchantList';
 
 interface SubCategory {
   id: string;
@@ -870,11 +871,13 @@ export default function CategoriesPage() {
                 </button>
               </div>
 
-              <div className="flex flex-col gap-2.5">
-                {filteredAndSortedBusinesses.filter(b => !searchQuery || textMatchesSearch(b.name, searchQuery)).map((biz) => (
-                  <div key={biz.id}>{renderGlobalBusinessCard(biz)}</div>
-                ))}
-              </div>
+              {selectedSubCategory ? (
+                <CategoryMerchantList
+                  key={selectedSubCategory.id}
+                  categorySlug={selectedSubCategory.slug || selectedSubCategory.name}
+                  searchQuery={searchQuery}
+                />
+              ) : null}
             </div>
           )}
         </main>

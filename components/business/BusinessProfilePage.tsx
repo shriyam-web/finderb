@@ -156,7 +156,10 @@ export default function BusinessProfilePage({ id }: { id: string }) {
         const categoryResult = await findCategoryForBreadcrumb(record.category);
         setCategoryBreadcrumb(categoryResult.category);
 
-        const relatedResult = await getBusinessesByCategory(record.category);
+        const relatedResult = await getBusinessesByCategory(record.category, {
+          page: 1,
+          pageSize: 5,
+        });
         if (relatedResult.success && relatedResult.businesses) {
           setRelated(
             relatedResult.businesses.filter((item) => item.id !== id).slice(0, 4) as Business[]

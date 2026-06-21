@@ -1,6 +1,6 @@
 import HomeClient from '@/components/HomeClient';
 import type { Metadata } from 'next';
-import { getCachedHomePageData, HOME_PAGE_REVALIDATE_SECONDS } from '@/lib/homePageData';
+import { getCachedHomePageData } from '@/lib/homePageData';
 import {
   HOME_PAGE_DESCRIPTION,
   HOME_PAGE_TITLE,
@@ -9,7 +9,7 @@ import {
 } from '@/lib/siteSeo';
 import HomeStructuredData from '@/components/HomeStructuredData';
 
-export const revalidate = HOME_PAGE_REVALIDATE_SECONDS;
+export const revalidate = 300;
 
 export const metadata: Metadata = {
   title: HOME_PAGE_TITLE,
