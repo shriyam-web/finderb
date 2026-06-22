@@ -165,8 +165,11 @@ model tourist_places {
   location    String
   category    String?
   image_url   String?
+  slug        String?   @unique
   created_at  DateTime? @default(now()) @db.Timestamptz(6)
   updated_at  DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@index([slug], map: "idx_tourist_places_slug")
 }
 
 model admins {

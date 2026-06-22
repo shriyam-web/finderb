@@ -26,7 +26,7 @@ const securityHeaders = [
       "img-src 'self' data: blob: https:",
       "font-src 'self' data: https://fonts.gstatic.com",
       "connect-src 'self' https: wss:",
-      "frame-src 'self' https://checkout.razorpay.com https://api.razorpay.com https://upload-widget.cloudinary.com",
+      "frame-src 'self' https://checkout.razorpay.com https://api.razorpay.com https://upload-widget.cloudinary.com https://maps.google.com https://www.google.com",
       "object-src 'none'",
       "base-uri 'self'",
       "form-action 'self'",

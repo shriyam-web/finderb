@@ -31,11 +31,13 @@ export function mapTouristPlaceRow(p: {
   description?: string | null;
   image_url?: string | null;
   image?: string | null;
+  slug?: string | null;
 }) {
   const imageSource = p.image_url ?? p.image ?? null;
 
   return {
     id: p.id,
+    slug: p.slug ?? null,
     name: p.name,
     location: p.location,
     description: p.description || null,

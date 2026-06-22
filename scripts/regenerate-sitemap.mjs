@@ -97,6 +97,23 @@ const STATIC_PATHS = [
   '/business/list',
 ];
 
+function resolveTouristPlaceSlug(place) {
+  const persisted = place.slug?.trim();
+  if (persisted) return persisted;
+  return buildTouristPlaceSlugCandidate(place.name, place.location);
+}
+
+function buildTouristPlaceSlugCandidate(name, location) {
+  const base = slugifyBusinessName(name);
+  if (!base) return 'place';
+  const locationLabel = String(location || '').split(',')[0]?.trim() || '';
+  const locationPart = locationLabel ? slugifyBusinessName(locationLabel) : '';
+  if (!locationPart || base.endsWith(locationPart) || base.includes(`-${locationPart}`)) {
+    return base.slice(0, 96);
+  }
+  return `${base}-${locationPart}`.slice(0, 96);
+}
+
 async function buildSitemapPaths(supabase) {
   const paths = [...STATIC_PATHS];
 
@@ -111,7 +128,7 @@ async function buildSitemapPaths(supabase) {
       .select('id, slug')
       .eq('status', 'published')
       .order('published_at', { ascending: false }),
-    supabase.from('tourist_places').select('id').order('updated_at', { ascending: false }),
+    supabase.from('tourist_places').select('id, slug, name, location').order('updated_at', { ascending: false }),
     supabase
       .from('Business')
       .select('id, slug, businessName, city, category')
@@ -147,7 +164,7 @@ async function buildSitemapPaths(supabase) {
   }
 
   for (const place of touristResult.data ?? []) {
-    paths.push(`/tourist-places/${place.id}`);
+    paths.push(`/tourist-places/${resolveTouristPlaceSlug(place)}`);
   }
 
   return {
@@ -205,12 +222,25 @@ async function main() {
     return isUuidLike(segment);
   });
 
+  const touristPaths = paths.filter((p) => p.startsWith('/tourist-places/') && p !== '/tourist-places');
+  const uuidTouristPaths = touristPaths.filter((p) => {
+    const segment = p.replace('/tourist-places/', '');
+    return isUuidLike(segment);
+  });
+
   const missingSlug = businesses.filter((b) => !b.slug?.trim());
 
   console.log(`Sitemap preview for ${siteUrl}`);
   console.log(`Total URLs: ${paths.length}`);
   console.log(`Business URLs: ${businessPaths.length}`);
+  console.log(`Tourist place URLs: ${touristPaths.length}`);
   console.log(`Category + city URLs: ${paths.filter((p) => p.match(/^\/categories\/[^/]+\/[^/]+$/)).length}`);
+
+  if (uuidTouristPaths.length) {
+    console.error('\nERROR: Sitemap still contains UUID tourist place URLs:');
+    for (const path of uuidTouristPaths) console.error(`  - ${path}`);
+    process.exit(1);
+  }
 
   if (uuidBusinessPaths.length) {
     console.error('\nERROR: Sitemap still contains UUID business URLs:');
@@ -231,6 +261,11 @@ async function main() {
     console.log(`  ${siteUrl}${path}`);
   }
 
+  console.log('\nSample tourist place URLs:');
+  for (const path of touristPaths.slice(0, 5)) {
+    console.log(`  ${siteUrl}${path}`);
+  }
+
   console.log('\nWarming sitemap cache...');
   const warmResults = await warmSitemapCache(siteUrl);
   for (const result of warmResults) {
@@ -241,7 +276,7 @@ async function main() {
     }
   }
 
-  console.log('\nDone. Sitemap uses slug-only business URLs.');
+  console.log('\nDone. Sitemap uses slug-only business and tourist place URLs.');
   console.log(`XML: ${siteUrl.replace(/\/$/, '')}/sitemap.xml`);
 }
 

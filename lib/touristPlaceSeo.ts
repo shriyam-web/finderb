@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { getTouristPlacePath } from '@/lib/touristPlaceSlug';
 import {
   buildBreadcrumbJsonLd,
   buildJsonLdGraph,
@@ -10,6 +11,7 @@ import {
 
 export type TouristPlaceSeoInput = {
   id: string;
+  slug?: string | null;
   name: string;
   location: string;
   description?: string | null;
@@ -17,8 +19,8 @@ export type TouristPlaceSeoInput = {
   rating?: number | null;
 };
 
-export function getTouristPlaceCanonicalPath(id: string): string {
-  return `/tourist-places/${id}`;
+export function getTouristPlaceCanonicalPath(place: TouristPlaceSeoInput): string {
+  return getTouristPlacePath(place);
 }
 
 export function buildTouristPlacesIndexMetadata(): Metadata {
@@ -41,7 +43,7 @@ export function buildTouristPlaceMetadata(place: TouristPlaceSeoInput | null): M
     });
   }
 
-  const canonicalPath = getTouristPlaceCanonicalPath(place.id);
+  const canonicalPath = getTouristPlaceCanonicalPath(place);
   const description = truncate(
     place.description ||
       `Visit ${place.name} in ${place.location}. Explore travel tips, directions, and nearby attractions on FinderB.`,
@@ -58,7 +60,7 @@ export function buildTouristPlaceMetadata(place: TouristPlaceSeoInput | null): M
 }
 
 export function buildTouristPlaceJsonLd(place: TouristPlaceSeoInput) {
-  const path = getTouristPlaceCanonicalPath(place.id);
+  const path = getTouristPlaceCanonicalPath(place);
   const url = resolveAbsoluteUrl(path);
   const image = place.image ? resolveAbsoluteUrl(place.image) : resolveAbsoluteUrl('/logo1.png');
 

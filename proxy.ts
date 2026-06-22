@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { redirectLegacyBusinessProfile } from '@/lib/businessProfileRedirect';
+import { redirectLegacyTouristPlaceProfile } from '@/lib/touristPlaceProfileRedirect';
 import {
   enforceRateLimitForKey,
   getRateLimitKey,
@@ -53,6 +54,9 @@ export async function proxy(request: NextRequest) {
   const legacyBusinessRedirect = await redirectLegacyBusinessProfile(request);
   if (legacyBusinessRedirect) return legacyBusinessRedirect;
 
+  const legacyTouristRedirect = await redirectLegacyTouristPlaceProfile(request);
+  if (legacyTouristRedirect) return legacyTouristRedirect;
+
   if (pathname.startsWith('/api/news')) {
     const blocked = rateLimitApi(request, 'expensiveApi');
     if (blocked) return blocked;
@@ -86,5 +90,6 @@ export const config = {
     '/business/kyc/:path*',
     '/business/payment/:path*',
     '/business/:segment',
+    '/tourist-places/:segment',
   ],
 };

@@ -5,6 +5,7 @@ import { revalidateHomePage } from '@/lib/homePageData';
 import { SITE_ORIGIN } from '@/lib/siteSeo';
 import { slugifyCity } from '@/lib/categoryCity';
 import { getBusinessProfilePath } from '@/lib/businessSlug';
+import { getTouristPlacePath } from '@/lib/touristPlaceSlug';
 
 export const SITEMAP_BASE_URL = SITE_ORIGIN;
 
@@ -167,7 +168,7 @@ async function fetchDynamicEntries(): Promise<SitemapEntry[]> {
       .order('published_at', { ascending: false }),
     supabase
       .from('tourist_places')
-      .select('id, updated_at')
+      .select('id, slug, name, location, updated_at')
       .order('updated_at', { ascending: false }),
     fetchActiveBusinesses(),
     fetchCategoryCityEntries(),
@@ -194,7 +195,7 @@ async function fetchDynamicEntries(): Promise<SitemapEntry[]> {
   );
 
   const touristEntries = (touristResult.data ?? []).map((place) =>
-    toEntry(`/tourist-places/${place.id}`, {
+    toEntry(getTouristPlacePath(place), {
       lastModified: parseDate(place.updated_at),
       changeFrequency: 'weekly',
       priority: 0.6,
@@ -259,7 +260,7 @@ export async function getSitemapSections(): Promise<SitemapSection[]> {
         .limit(100),
       supabase
         .from('tourist_places')
-        .select('name, id')
+        .select('name, id, slug, location')
         .order('name', { ascending: true }),
       supabase
         .from('Business')
@@ -306,7 +307,7 @@ export async function getSitemapSections(): Promise<SitemapSection[]> {
         title: 'Tourist places',
         links: touristResult.data.map((place) => ({
           label: place.name,
-          href: `/tourist-places/${place.id}`,
+          href: getTouristPlacePath(place),
         })),
       });
     }

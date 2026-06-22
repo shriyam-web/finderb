@@ -2,13 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import { touristPlaces } from '@/lib/mockData';
-import { getTouristPlace, getNearbyTouristPlaces } from '@/app/actions/touristPlace';
+import { getTouristPlaceBySlugOrId, getNearbyTouristPlaces } from '@/app/actions/touristPlace';
 import Link from 'next/link';
 import { ArrowLeft, MapPin, Star, ExternalLink } from 'lucide-react';
 import TouristPlaceImage from '@/components/TouristPlaceImage';
+import { getTouristPlacePath } from '@/lib/touristPlaceSlug';
 
 type Place = {
   id: string;
+  slug?: string | null;
   name: string;
   location: string;
   image: string;
@@ -18,13 +20,13 @@ type Place = {
 };
 
 type TouristPlaceDetailClientProps = {
-  placeId: string;
+  slugOrId: string;
   initialPlace?: Place | null;
   initialNearby?: Place[];
 };
 
 export default function TouristPlaceDetailClient({
-  placeId,
+  slugOrId,
   initialPlace = null,
   initialNearby = [],
 }: TouristPlaceDetailClientProps) {
@@ -43,29 +45,30 @@ export default function TouristPlaceDetailClient({
     async function fetchData() {
       setIsLoading(true);
 
-      const [placeResult, nearbyResult] = await Promise.all([
-        getTouristPlace(placeId),
-        getNearbyTouristPlaces(placeId, 3),
-      ]);
+      const placeResult = await getTouristPlaceBySlugOrId(slugOrId);
 
       if (placeResult.success && placeResult.touristPlace) {
         setPlace(placeResult.touristPlace);
+        const nearbyResult = await getNearbyTouristPlaces(
+          placeResult.touristPlace.id,
+          undefined,
+          undefined,
+          3
+        );
+        if (nearbyResult.success && nearbyResult.touristPlaces?.length) {
+          setNearby(nearbyResult.touristPlaces);
+        }
       } else {
-        const mock = touristPlaces.find((p) => p.id === placeId) || touristPlaces[0];
+        const mock = touristPlaces.find((p) => p.id === slugOrId) || touristPlaces[0];
         setPlace(mock);
-      }
-
-      if (nearbyResult.success && nearbyResult.touristPlaces?.length) {
-        setNearby(nearbyResult.touristPlaces);
-      } else {
-        setNearby(touristPlaces.filter((p) => p.id !== placeId).slice(0, 3));
+        setNearby(touristPlaces.filter((p) => p.id !== mock.id).slice(0, 3));
       }
 
       setIsLoading(false);
     }
 
     fetchData();
-  }, [placeId, initialPlace, initialNearby]);
+  }, [slugOrId, initialPlace, initialNearby]);
 
   if (isLoading || !place) {
     return (
@@ -175,7 +178,7 @@ export default function TouristPlaceDetailClient({
               {nearby.map((p) => (
                 <Link
                   key={p.id}
-                  href={`/tourist-places/${p.id}`}
+                  href={getTouristPlacePath(p)}
                   className="flex gap-3 overflow-hidden rounded-xl border border-gray-100 bg-white p-3 transition-colors hover:border-[#2563eb]/20"
                 >
                   <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-slate-100">

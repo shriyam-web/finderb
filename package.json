@@ -12,6 +12,9 @@
     "test:leads": "node scripts/test-broadcast-lead.mjs --anon-only",
     "backfill:slugs": "node scripts/backfill-business-slugs.mjs",
     "backfill:slugs:dry": "node scripts/backfill-business-slugs.mjs --dry-run",
+    "backfill:tourist-slugs": "node scripts/backfill-tourist-place-slugs.mjs",
+    "backfill:tourist-slugs:dry": "node scripts/backfill-tourist-place-slugs.mjs --dry-run",
+    "migrate:tourist-slugs": "node scripts/apply-tourist-place-slugs-sql.mjs",
     "regenerate:sitemap": "node scripts/regenerate-sitemap.mjs"
   },
   "dependencies": {

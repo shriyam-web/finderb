@@ -6,6 +6,8 @@ import { geocodePlaceQuery } from '@/app/actions/location';
 import { distanceKmFromUser, type TouristPlaceLike } from '@/lib/touristPlaceSort';
 import { formatDistanceFromUser } from '@/lib/geo';
 import { mapTouristPlaceRow } from '@/lib/touristPlaceImage';
+import { isLegacyTouristPlaceId } from '@/lib/touristPlaceSlug';
+import { ensureTouristPlaceSlug } from '@/lib/touristPlaceSlug.server';
 
 const geocodeCache = new Map<string, { lat: number; lng: number } | null>();
 
@@ -85,25 +87,51 @@ export async function sortTouristPlacesByUserCoords<T extends TouristPlaceLike>(
   }
 }
 
-export async function getTouristPlace(id: string) {
+export async function getTouristPlaceBySlugOrId(slugOrId: string) {
   try {
-    const supabase = createClient(await cookies());
-
-    const { data: place, error } = await supabase
-      .from('tourist_places')
-      .select('*')
-      .eq('id', id)
-      .single();
-
-    if (error) {
-      throw error;
+    if (!slugOrId?.trim()) {
+      return { success: false, error: 'Tourist place identifier is required' };
     }
 
-    return { success: true, touristPlace: mapTouristPlaceRow(place) };
+    const identifier = slugOrId.trim();
+    const supabase = createClient(await cookies());
+
+    const { data: bySlug, error: slugError } = await supabase
+      .from('tourist_places')
+      .select('*')
+      .eq('slug', identifier)
+      .maybeSingle();
+
+    if (slugError) throw slugError;
+
+    let place = bySlug;
+
+    if (!place && isLegacyTouristPlaceId(identifier)) {
+      const { data: byId, error: idError } = await supabase
+        .from('tourist_places')
+        .select('*')
+        .eq('id', identifier)
+        .maybeSingle();
+
+      if (idError) throw idError;
+      place = byId;
+    }
+
+    if (!place) {
+      return { success: false, error: 'Tourist place not found' };
+    }
+
+    const slug = await ensureTouristPlaceSlug(place);
+    return { success: true, touristPlace: mapTouristPlaceRow({ ...place, slug }) };
   } catch (error: any) {
     console.error('Get Tourist Place Error:', error);
     return { success: false, error: error.message || 'An unexpected error occurred' };
   }
+}
+
+/** @deprecated Use getTouristPlaceBySlugOrId */
+export async function getTouristPlace(id: string) {
+  return getTouristPlaceBySlugOrId(id);
 }
 
 export async function getNearbyTouristPlaces(

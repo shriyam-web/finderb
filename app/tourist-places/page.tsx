@@ -3,6 +3,7 @@ import { getTouristPlaces } from '@/app/actions/touristPlace';
 import JsonLd from '@/components/JsonLd';
 import TouristPlacesListingClient from '@/components/tourist/TouristPlacesListingClient';
 import { buildTouristPlacesIndexMetadata } from '@/lib/touristPlaceSeo';
+import { getTouristPlacePath } from '@/lib/touristPlaceSlug';
 import { buildBreadcrumbJsonLd, buildJsonLdGraph, resolveAbsoluteUrl } from '@/lib/seoUtils';
 
 export const metadata: Metadata = buildTouristPlacesIndexMetadata();
@@ -23,7 +24,7 @@ export default async function TouristPlacesListingPage() {
         itemListElement: places.map((place, index) => ({
           '@type': 'ListItem',
           position: index + 1,
-          url: resolveAbsoluteUrl(`/tourist-places/${place.id}`),
+          url: resolveAbsoluteUrl(getTouristPlacePath(place)),
           name: place.name,
         })),
       },

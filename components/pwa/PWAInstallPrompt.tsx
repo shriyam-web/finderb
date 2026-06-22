@@ -39,9 +39,10 @@ export default function PWAInstallPrompt({ appReady = true }: { appReady?: boole
   }, [appReady, isDashboard, pathname]);
 
   useEffect(() => {
-    if (isDashboard) return;
+    if (isDashboard || !shouldShowInstallPrompt()) return;
 
     const onBeforeInstall = (event: Event) => {
+      if (!shouldShowInstallPrompt()) return;
       event.preventDefault();
       setDeferredPrompt(event as BeforeInstallPromptEvent);
       setIsIosGuide(false);

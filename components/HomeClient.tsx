@@ -12,6 +12,7 @@ import SubcategoryScrollRow from '@/components/SubcategoryScrollRow';
 import NewsWidget from '@/components/NewsWidget';
 import { categoryHref } from '@/lib/categoryDisplay';
 import { getBusinessProfilePath } from '@/lib/businessSlug';
+import { getTouristPlacePath } from '@/lib/touristPlaceSlug';
 import {
   ArrowRight,
   Star,
@@ -803,7 +804,7 @@ export default function HomeClient({ initialData }: { initialData: any }) {
             {sortedTouristPlaces.slice(0, 6).map((place) => (
               <Link
                 key={place.id}
-                href={`/tourist-places/${place.id}`}
+                href={getTouristPlacePath(place)}
                 className="group flex w-[min(260px,calc(100vw-2rem))] shrink-0 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-[0_1px_4px_rgba(15,23,42,0.06)] transition-all hover:border-[#2563eb]/20 hover:shadow-md sm:w-auto sm:shrink"
               >
                 <div className="relative h-[88px] w-[88px] shrink-0 sm:h-24 sm:w-24">

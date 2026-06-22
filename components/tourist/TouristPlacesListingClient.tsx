@@ -8,8 +8,11 @@ import { getTouristPlaces } from '@/app/actions/touristPlace';
 import TouristPlaceImage from '@/components/TouristPlaceImage';
 import { useSortedTouristPlaces } from '@/hooks/useSortedTouristPlaces';
 
+import { getTouristPlacePath } from '@/lib/touristPlaceSlug';
+
 type Place = {
   id: string;
+  slug?: string | null;
   name: string;
   location: string;
   image: string;
@@ -88,7 +91,7 @@ export default function TouristPlacesListingClient({
             {sortedPlaces.map((place) => (
               <Link
                 key={place.id}
-                href={`/tourist-places/${place.id}`}
+                href={getTouristPlacePath(place)}
                 className="group flex overflow-hidden rounded-xl border border-gray-100 bg-white shadow-[0_1px_4px_rgba(15,23,42,0.06)] transition-all hover:border-[#2563eb]/20 hover:shadow-md"
               >
                 <div className="relative h-24 w-24 shrink-0 sm:h-28 sm:w-28">
