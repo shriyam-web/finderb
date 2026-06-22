@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import { redirectLegacyBusinessProfile } from '@/lib/businessProfileRedirect';
 import {
   enforceRateLimitForKey,
   getRateLimitKey,
@@ -46,8 +47,11 @@ function requireCookie(
   return NextResponse.redirect(loginUrl);
 }
 
-export function proxy(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  const legacyBusinessRedirect = await redirectLegacyBusinessProfile(request);
+  if (legacyBusinessRedirect) return legacyBusinessRedirect;
 
   if (pathname.startsWith('/api/news')) {
     const blocked = rateLimitApi(request, 'expensiveApi');
@@ -81,5 +85,6 @@ export const config = {
     '/business/dashboard/:path*',
     '/business/kyc/:path*',
     '/business/payment/:path*',
+    '/business/:segment',
   ],
 };

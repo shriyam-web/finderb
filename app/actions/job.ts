@@ -175,6 +175,7 @@ export async function getAllJobs() {
         *,
         business:business_id (
           id,
+          slug,
           businessName,
           city,
           profilePictureUrl,

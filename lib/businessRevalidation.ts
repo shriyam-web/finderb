@@ -6,6 +6,9 @@ import { getBusinessProfilePath } from '@/lib/businessSlug';
 export function revalidateBusinessProfilePaths(business: {
   id: string;
   slug?: string | null;
+  name?: string | null;
+  businessName?: string | null;
+  city?: string | null;
 }) {
   const canonicalPath = getBusinessProfilePath(business);
   revalidatePath(canonicalPath);

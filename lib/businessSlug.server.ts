@@ -1,11 +1,23 @@
 'use server';
 
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { revalidateBusinessProfilePaths } from '@/lib/businessRevalidation';
 import {
-  buildBusinessSlugCandidate,
-  withSlugSuffix,
-} from '@/lib/businessSlug';
+  buildCanonicalProfileQrLink,
+  shouldReplaceProfileQrLink,
+} from '@/lib/businessProfileLink';
+import { revalidateBusinessProfilePaths } from '@/lib/businessRevalidation';
+import { buildBusinessSlugCandidate, withSlugSuffix } from '@/lib/businessSlug';
+import { createServiceClient } from '@/lib/supabase/service';
+
+function getSlugDb(): SupabaseClient {
+  const service = createServiceClient();
+  if (!service) {
+    throw new Error(
+      'SUPABASE_SERVICE_ROLE_KEY is required to assign business slugs. Add it to your environment variables.'
+    );
+  }
+  return service;
+}
 
 async function slugExists(
   supabase: SupabaseClient,
@@ -22,11 +34,11 @@ async function slugExists(
 }
 
 export async function generateUniqueBusinessSlug(
-  supabase: SupabaseClient,
   businessName: string,
   city?: string | null,
   excludeId?: string
 ): Promise<string> {
+  const supabase = getSlugDb();
   const base = buildBusinessSlugCandidate(businessName, city);
   if (!(await slugExists(supabase, base, excludeId))) {
     return base;
@@ -43,29 +55,38 @@ export async function generateUniqueBusinessSlug(
   return fallback;
 }
 
-export async function ensureBusinessSlug(
-  supabase: SupabaseClient,
-  business: {
-    id: string;
-    businessName?: string | null;
-    displayName?: string | null;
-    city?: string | null;
-    slug?: string | null;
-  }
-): Promise<string> {
+export async function ensureBusinessSlug(business: {
+  id: string;
+  businessName?: string | null;
+  displayName?: string | null;
+  city?: string | null;
+  slug?: string | null;
+  profileQrLink?: string | null;
+}): Promise<string> {
+  const supabase = getSlugDb();
   const existing = business.slug?.trim();
-  if (existing) return existing;
-
   const name = business.businessName || business.displayName || 'business';
-  const slug = await generateUniqueBusinessSlug(supabase, name, business.city, business.id);
+  const slug = existing || (await generateUniqueBusinessSlug(name, business.city, business.id));
+  const profileQrLink = buildCanonicalProfileQrLink({ ...business, slug });
+  const needsSlug = !existing;
+  const needsQrLink = shouldReplaceProfileQrLink(business, business.profileQrLink);
 
-  const { error } = await supabase
-    .from('Business')
-    .update({ slug, updatedAt: new Date().toISOString() })
-    .eq('id', business.id);
+  if (needsSlug || needsQrLink) {
+    const { error } = await supabase
+      .from('Business')
+      .update({
+        ...(needsSlug ? { slug } : {}),
+        ...(needsQrLink ? { profileQrLink } : {}),
+        updatedAt: new Date().toISOString(),
+      })
+      .eq('id', business.id);
 
-  if (error) throw error;
+    if (error) {
+      console.error('[ensureBusinessSlug] update failed:', error.message);
+      throw error;
+    }
+  }
 
-  revalidateBusinessProfilePaths({ id: business.id, slug });
+  revalidateBusinessProfilePaths({ id: business.id, slug, businessName: name, city: business.city });
   return slug;
 }

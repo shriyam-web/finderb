@@ -14,6 +14,8 @@ type MerchantListing = {
   id: string;
   slug?: string | null;
   name: string;
+  businessName?: string;
+  city?: string | null;
   category?: string;
   location?: string;
   image?: string;

@@ -25,7 +25,7 @@ import Image from 'next/image';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { getSession, logoutUser } from '@/app/actions/user';
 import { getCategories } from '@/app/actions/category';
-import { getFeaturedBusinesses } from '@/app/actions/business';
+import { getFeaturedBusinesses, getBusinessSummariesByIds } from '@/app/actions/business';
 import { getLastSearchQuery } from '@/lib/lastSearchQuery';
 import CategoryIcon from '@/components/CategoryIcon';
 import { categoryHref } from '@/lib/categoryDisplay';
@@ -41,6 +41,7 @@ function DashboardContent() {
   const [user, setUser] = useState<any>(null);
   const [categories, setCategories] = useState<any[]>([]);
   const [businesses, setBusinesses] = useState<any[]>([]);
+  const [favoriteBusinesses, setFavoriteBusinesses] = useState<any[]>([]);
   const [lastSearch, setLastSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [loading, setLoading] = useState(true);
@@ -64,6 +65,15 @@ function DashboardContent() {
 
       if (session?.success) {
         setUser(session.user);
+        const favIds: string[] = Array.isArray(session.user?.favorites)
+          ? session.user.favorites
+          : [];
+        if (favIds.length > 0) {
+          const favRes = await getBusinessSummariesByIds(favIds);
+          if (favRes.success && favRes.businesses) {
+            setFavoriteBusinesses(favRes.businesses);
+          }
+        }
       } else {
         router.push('/login');
         return;
@@ -483,17 +493,20 @@ function DashboardContent() {
               <p className="mt-1 text-sm text-slate-500">Businesses and places you save appear here.</p>
               {favorites.length > 0 ? (
                 <ul className="mt-6 space-y-2">
-                  {favorites.map((id) => (
+                  {favorites.map((id) => {
+                    const biz = favoriteBusinesses.find((item) => item.id === id);
+                    return (
                     <li key={id}>
                       <Link
-                        href={`/business/${id}`}
+                        href={biz ? getBusinessProfilePath(biz) : '#'}
                         className="flex items-center justify-between rounded-xl border border-slate-200/80 bg-white px-4 py-3 text-sm hover:border-[#215481]/25"
                       >
-                        View saved item
+                        {biz?.name || biz?.businessName || 'View saved business'}
                         <ChevronRight size={16} className="text-slate-300" />
                       </Link>
                     </li>
-                  ))}
+                    );
+                  })}
                 </ul>
               ) : (
                 <div className="mt-6 rounded-2xl border border-slate-200/80 bg-white p-6">

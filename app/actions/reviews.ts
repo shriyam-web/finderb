@@ -2,7 +2,7 @@
 
 import { createClient } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';
-import { revalidatePath } from 'next/cache';
+import { revalidateBusinessProfilePaths } from '@/lib/businessRevalidation';
 import {
   averageReviewRating,
   parseBusinessReviews,
@@ -54,7 +54,7 @@ export async function submitBusinessReview(data: {
     const supabase = createClient(await cookies());
     const { data: business, error: fetchError } = await supabase
       .from('Business')
-      .select('review, rating')
+      .select('review, rating, slug, businessName, city')
       .eq('id', businessId)
       .single();
 
@@ -94,7 +94,12 @@ export async function submitBusinessReview(data: {
 
     if (updateError) throw updateError;
 
-    revalidatePath(`/business/${businessId}`);
+    revalidateBusinessProfilePaths({
+      id: businessId,
+      slug: business.slug,
+      businessName: business.businessName,
+      city: business.city,
+    });
     return {
       success: true as const,
       reviews: nextReviews,

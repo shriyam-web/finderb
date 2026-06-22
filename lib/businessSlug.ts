@@ -38,22 +38,49 @@ export function isLegacyBusinessId(value: string): boolean {
   return isUuidLike(value) || isCuidLike(value);
 }
 
-export function shouldRedirectLegacyBusinessUrl(
-  slugOrId: string,
-  businessSlug?: string | null
-): boolean {
-  return Boolean(
-    businessSlug &&
-      businessSlug !== slugOrId &&
-      isLegacyBusinessId(slugOrId)
+/** Canonical slug segment for a business — never returns a UUID. */
+export function resolveBusinessSlug(business: {
+  slug?: string | null;
+  name?: string | null;
+  businessName?: string | null;
+  city?: string | null;
+}): string {
+  const persisted = business.slug?.trim();
+  if (persisted) return persisted;
+
+  return buildBusinessSlugCandidate(
+    business.name || business.businessName || 'business',
+    business.city
   );
+}
+
+export function shouldRedirectToCanonicalBusinessSlug(
+  slugOrId: string,
+  business: {
+    slug?: string | null;
+    name?: string | null;
+    businessName?: string | null;
+    city?: string | null;
+  }
+): boolean {
+  const canonical = resolveBusinessSlug(business);
+  return slugOrId.trim() !== canonical;
 }
 
 export function getBusinessProfilePath(business: {
   id: string;
   slug?: string | null;
+  name?: string | null;
+  businessName?: string | null;
+  city?: string | null;
 }): string {
-  return `/business/${business.slug?.trim() || business.id}`;
+  return `/business/${resolveBusinessSlug(business)}`;
+}
+
+/** True when a public profile href still points at a legacy UUID/CUID segment. */
+export function isLegacyBusinessProfilePath(path: string): boolean {
+  const match = path.match(/^\/business\/([^/?#]+)/);
+  return Boolean(match && isLegacyBusinessId(match[1]));
 }
 
 export function withSlugSuffix(base: string, suffix: string): string {

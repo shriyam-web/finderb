@@ -232,7 +232,7 @@ export default function MyListingTab({
             </div>
             <span className="text-xs font-medium text-zinc-600">Complete</span>
           </div>
-          <Link href={businessProfilePath || `/business/${businessId}`} target="_blank" className={dashboard.btnSecondary}>
+          <Link href={businessProfilePath ?? '#'} target="_blank" className={dashboard.btnSecondary}>
             View live
             <HiOutlineArrowTopRightOnSquare size={14} />
           </Link>
@@ -251,7 +251,7 @@ export default function MyListingTab({
             <span className="h-2 w-2 rounded-full bg-amber-300" />
             <span className="h-2 w-2 rounded-full bg-emerald-300" />
             <span className="ml-2 truncate text-[11px] text-zinc-400">
-              finderb.com{businessProfilePath || `/business/${businessId}`}
+              finderb.com{businessProfilePath ?? ''}
             </span>
           </div>
 

@@ -149,7 +149,7 @@ export async function registerBusiness(formData: any) {
       throw error;
     }
 
-    const slug = await ensureBusinessSlug(supabase, business);
+    const slug = await ensureBusinessSlug(business);
     const businessWithSlug = { ...business, slug };
 
     console.log('[REGISTER] ✓ Success:', businessWithSlug.id);
@@ -340,7 +340,7 @@ export async function getBusinessBySlugOrId(slugOrId: string) {
       return { success: false, error: 'Business not found' };
     }
 
-    const slug = await ensureBusinessSlug(supabase, business);
+    const slug = await ensureBusinessSlug(business);
     const mapped = mapBusinessRecord({ ...business, slug });
     const publicBusiness = redactPublicBusinessFields(mapped);
     return { success: true, business: publicBusiness };
@@ -558,6 +558,29 @@ export async function getBusinessSession() {
   }
 }
 
+export async function getBusinessSummariesByIds(ids: string[]) {
+  try {
+    const uniqueIds = [...new Set(ids.filter(Boolean))];
+    if (!uniqueIds.length) {
+      return { success: true, businesses: [] as ReturnType<typeof mapBusinessRecord>[] };
+    }
+
+    const supabase = createClient(await cookies());
+    const { data, error } = await supabase
+      .from('Business')
+      .select('id, businessName, displayName, slug, city')
+      .in('id', uniqueIds);
+
+    if (error) throw error;
+
+    const businesses = (data ?? []).map((row) => mapBusinessRecord(row));
+    return { success: true, businesses };
+  } catch (error: any) {
+    const errorMessage = handleError(error, 'Get Business Summaries');
+    return { success: false, error: errorMessage };
+  }
+}
+
 export async function getFeaturedBusinesses() {
   try {
     const supabase = createClient(await cookies());
@@ -730,7 +753,6 @@ export async function updateBusinessProfile(id: string, profileData: any) {
         discountRange: profileData.discountRange,
         serviceCategory: profileData.serviceCategory,
         paymentModes: profileData.paymentModes,
-        profileQrLink: profileData.profileQrLink,
         updatedAt: new Date().toISOString(),
       })
       .eq('id', id)
@@ -742,6 +764,14 @@ export async function updateBusinessProfile(id: string, profileData: any) {
     }
 
     const mapped = mapBusinessRecord(business);
+    await ensureBusinessSlug({
+      id: mapped.id,
+      businessName: mapped.businessName,
+      displayName: mapped.name,
+      city: mapped.city,
+      slug: mapped.slug,
+      profileQrLink: mapped.profileQrLink,
+    });
     revalidateBusinessProfilePaths(mapped);
     return { success: true, business: mapped };
   } catch (error: any) {

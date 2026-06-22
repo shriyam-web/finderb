@@ -60,6 +60,20 @@ function withSlugSuffix(base, suffix) {
   return `${base}-${suffix}`.slice(0, 96).replace(/-+$/g, '');
 }
 
+function buildProfileQrLink(slug, siteUrl) {
+  return `${siteUrl.replace(/\/$/, '')}/business/${slug}`;
+}
+
+function shouldReplaceProfileQrLink(row, siteUrl) {
+  const link = row.profileQrLink?.trim();
+  if (!link) return true;
+  if (link.includes(row.id)) return true;
+  const uuid =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (uuid.test(link.split('/').pop() || '')) return true;
+  return false;
+}
+
 async function main() {
   loadEnvFiles();
 
@@ -68,6 +82,7 @@ async function main() {
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   const key = serviceKey || anonKey;
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://finderb.com';
 
   if (!url || !key) {
     console.error('Missing NEXT_PUBLIC_SUPABASE_URL and Supabase key in .env / .env.local');
@@ -144,7 +159,11 @@ async function main() {
 
       const { error: updateError } = await supabase
         .from('Business')
-        .update({ slug: candidate, updatedAt: new Date().toISOString() })
+        .update({
+          slug: candidate,
+          profileQrLink: buildProfileQrLink(candidate, siteUrl),
+          updatedAt: new Date().toISOString(),
+        })
         .eq('id', row.id);
 
       if (updateError) {
@@ -161,7 +180,65 @@ async function main() {
     from += pageSize;
   }
 
-  console.log(`Done. Updated: ${updated}, skipped (already had slug): ${skipped}${dryRun ? ' (dry-run)' : ''}`);
+  let qrUpdated = 0;
+  from = 0;
+  while (true) {
+    const { data, error } = await supabase
+      .from('Business')
+      .select('id, slug, profileQrLink')
+      .not('slug', 'is', null)
+      .neq('slug', '')
+      .order('createdAt', { ascending: true })
+      .range(from, from + pageSize - 1);
+
+    if (error) throw error;
+    if (!data?.length) break;
+
+    for (const row of data) {
+      if (!shouldReplaceProfileQrLink(row, siteUrl)) continue;
+      const profileQrLink = buildProfileQrLink(row.slug, siteUrl);
+      if (dryRun) {
+        console.log(`[dry-run] QR ${row.id} -> ${profileQrLink}`);
+        qrUpdated += 1;
+        continue;
+      }
+      const { error: updateError } = await supabase
+        .from('Business')
+        .update({ profileQrLink, updatedAt: new Date().toISOString() })
+        .eq('id', row.id);
+      if (updateError) {
+        console.error(`Failed QR ${row.id}:`, updateError.message);
+        continue;
+      }
+      console.log(`QR link ${row.id} -> ${profileQrLink}`);
+      qrUpdated += 1;
+    }
+
+    if (data.length < pageSize) break;
+    from += pageSize;
+  }
+
+  const { count: totalCount, error: totalCountError } = await supabase
+    .from('Business')
+    .select('*', { count: 'exact', head: true });
+  if (totalCountError) throw totalCountError;
+
+  const { count: slugCount, error: slugCountError } = await supabase
+    .from('Business')
+    .select('*', { count: 'exact', head: true })
+    .not('slug', 'is', null)
+    .neq('slug', '');
+  if (slugCountError) throw slugCountError;
+
+  console.log(
+    `Done. Slugs updated: ${updated}, skipped (already had slug): ${skipped}, QR links updated: ${qrUpdated}${dryRun ? ' (dry-run)' : ''}`
+  );
+  console.log(
+    `Database: ${totalCount ?? 0} businesses total, ${slugCount ?? 0} with slugs, ${Math.max(0, (totalCount ?? 0) - (slugCount ?? 0))} still missing.`
+  );
+  if (updated === 0 && skipped === 0 && (totalCount ?? 0) > 0 && slugCount === totalCount) {
+    console.log('All businesses already have slugs — nothing to backfill.');
+  }
 }
 
 main().catch((error) => {

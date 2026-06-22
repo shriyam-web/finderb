@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { revalidateHomePage } from '@/lib/homePageData';
 import { SITE_ORIGIN } from '@/lib/siteSeo';
 import { slugifyCity } from '@/lib/categoryCity';
+import { getBusinessProfilePath } from '@/lib/businessSlug';
 
 export const SITEMAP_BASE_URL = SITE_ORIGIN;
 
@@ -73,13 +74,19 @@ function getStaticEntries(): SitemapEntry[] {
 async function fetchActiveBusinesses() {
   const supabase = getSupabase();
   const pageSize = 1000;
-  const businesses: { id: string; slug: string | null; updatedAt: string | null }[] = [];
+  const businesses: {
+    id: string;
+    slug: string | null;
+    businessName: string | null;
+    city: string | null;
+    updatedAt: string | null;
+  }[] = [];
   let from = 0;
 
   while (true) {
     const { data, error } = await supabase
       .from('Business')
-      .select('id, slug, updatedAt')
+      .select('id, slug, businessName, city, updatedAt')
       .eq('status', 'Active')
       .order('updatedAt', { ascending: false })
       .range(from, from + pageSize - 1);
@@ -195,7 +202,7 @@ async function fetchDynamicEntries(): Promise<SitemapEntry[]> {
   );
 
   const businessEntries = businesses.map((business) =>
-    toEntry(`/business/${business.slug || business.id}`, {
+    toEntry(getBusinessProfilePath(business), {
       lastModified: parseDate(business.updatedAt),
       changeFrequency: 'daily',
       priority: 0.7,
@@ -256,7 +263,7 @@ export async function getSitemapSections(): Promise<SitemapSection[]> {
         .order('name', { ascending: true }),
       supabase
         .from('Business')
-        .select('id, slug, businessName')
+        .select('id, slug, businessName, city')
         .eq('status', 'Active')
         .order('updatedAt', { ascending: false })
         .limit(200),
@@ -279,7 +286,7 @@ export async function getSitemapSections(): Promise<SitemapSection[]> {
         title: 'Business listings',
         links: businesses.data.map((business) => ({
           label: business.businessName,
-          href: `/business/${business.slug || business.id}`,
+          href: getBusinessProfilePath(business),
         })),
       });
     }

@@ -216,9 +216,7 @@ function DashboardContent() {
   }, [business]);
 
   const businessId = business?.id;
-  const businessProfilePath = business
-    ? getBusinessProfilePath({ id: business.id, slug: business.slug })
-    : undefined;
+  const businessProfilePath = business ? getBusinessProfilePath(business) : undefined;
 
   useEffect(() => {
     if (!businessId) return;

@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import JobApplicationForm from './JobApplicationForm';
 import { cities } from '@/lib/mockData';
+import { getBusinessProfilePath } from '@/lib/businessSlug';
 
 interface Job {
   id: string;
@@ -29,6 +30,7 @@ interface Job {
   created_at: string;
   business: {
     id: string;
+    slug?: string | null;
     businessName: string;
     city: string | null;
     profilePictureUrl: string | null;
@@ -283,7 +285,7 @@ export default function JobPortalClient({ initialJobs }: { initialJobs: Job[] })
                         {job.title}
                       </h2>
                       <Link
-                        href={`/business/${job.business.id}`}
+                        href={getBusinessProfilePath(job.business)}
                         className="mt-0.5 inline-flex items-center gap-1 text-sm text-[#64748b] hover:text-[#2563eb] hover:underline"
                       >
                         {job.business.businessName}

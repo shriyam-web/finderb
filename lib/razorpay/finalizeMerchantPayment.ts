@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { revalidatePath } from 'next/cache';
+import { revalidateBusinessProfilePaths } from '@/lib/businessRevalidation';
 import { createServiceClient } from '@/lib/supabase/service';
 import {
   type BillingCycle,
@@ -26,10 +27,17 @@ export type FinalizeMerchantPaymentResult =
   | { success: true; alreadyCompleted?: boolean }
   | { success: false; error: string };
 
-function revalidateMerchantPaymentPaths(businessId: string) {
+async function revalidateMerchantPaymentPaths(businessId: string) {
   revalidatePath('/business/dashboard');
   revalidatePath(`/business/payment/${businessId}`);
-  revalidatePath(`/business/${businessId}`);
+  const supabase = createServiceClient();
+  if (!supabase) return;
+  const { data } = await supabase
+    .from('Business')
+    .select('id, slug, businessName, city')
+    .eq('id', businessId)
+    .maybeSingle();
+  if (data) revalidateBusinessProfilePaths(data);
 }
 
 export async function finalizeMerchantPayment(
@@ -145,6 +153,6 @@ export async function finalizeMerchantPayment(
     return { success: false, error: 'Failed to activate subscription' };
   }
 
-  revalidateMerchantPaymentPaths(businessId);
+  await revalidateMerchantPaymentPaths(businessId);
   return { success: true };
 }

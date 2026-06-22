@@ -12,7 +12,11 @@ import BusinessSeoContent from '@/components/business/BusinessSeoContent';
 import JsonLd from '@/components/JsonLd';
 import { buildBusinessJsonLd, buildBusinessMetadata } from '@/lib/businessSeo';
 import { categoryHref } from '@/lib/categoryDisplay';
-import { shouldRedirectLegacyBusinessUrl } from '@/lib/businessSlug';
+import {
+  getBusinessProfilePath,
+  resolveBusinessSlug,
+  shouldRedirectToCanonicalBusinessSlug,
+} from '@/lib/businessSlug';
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -31,9 +35,11 @@ export default async function BusinessDetailPage({ params }: PageProps) {
   const result = await getBusinessCached(slugOrId);
   const business = result.success && result.business ? result.business : null;
 
-  if (business && shouldRedirectLegacyBusinessUrl(slugOrId, business.slug)) {
-    permanentRedirect(`/business/${business.slug}`);
+  if (business && shouldRedirectToCanonicalBusinessSlug(slugOrId, business)) {
+    permanentRedirect(getBusinessProfilePath(business));
   }
+
+  const canonicalSlug = business ? resolveBusinessSlug(business) : slugOrId;
 
   const categoryResult =
     business?.category ? await findCategoryForBreadcrumb(business.category) : null;
@@ -60,7 +66,7 @@ export default async function BusinessDetailPage({ params }: PageProps) {
     <>
       {jsonLd ? <JsonLd data={jsonLd} /> : null}
       <BusinessProfilePage
-        slugOrId={slugOrId}
+        slugOrId={canonicalSlug}
         initialBusiness={business}
         initialCategoryBreadcrumb={categoryResult?.success ? categoryResult.category : null}
         initialRelatedCategory={relatedResult?.success ? relatedResult.sameCategory : []}

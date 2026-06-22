@@ -357,7 +357,7 @@ export default function LeadsSection({
             details ready to reach out.
           </p>
           <Link
-            href={businessProfilePath || `/business/${businessId}`}
+            href={businessProfilePath ?? '#'}
             target="_blank"
             className="mt-5 inline-flex items-center gap-1 text-sm font-semibold text-[#215481] hover:underline"
           >
