@@ -96,6 +96,16 @@ export function buildBusinessMetadata(business: BusinessMetaRecord | null): Meta
   const description = buildBusinessMetaDescription(business);
   const ogImage = getBusinessOgImage(business);
   const location = getBusinessLocationLabel(business);
+  const socialTitle = truncate(
+    `${business.name}${location ? ` — ${location}` : ''}`,
+    70
+  );
+  const socialDescription = truncate(
+    business.about?.trim() ||
+      business.description?.trim() ||
+      `View ${business.name} on FinderB — contact number, address, reviews, and services.`,
+    200
+  );
 
   const keywords = [
     business.name,
@@ -120,6 +130,8 @@ export function buildBusinessMetadata(business: BusinessMetaRecord | null): Meta
     ogImage,
     keywords,
     robots: indexDecision.index ? undefined : NO_INDEX_ROBOTS,
+    openGraphTitle: socialTitle,
+    openGraphDescription: socialDescription,
   });
 }
 

@@ -36,6 +36,9 @@ type PageMetadataInput = {
   ogImage?: string;
   keywords?: string[];
   robots?: Metadata['robots'];
+  /** Shorter copy for link previews (WhatsApp, Facebook, Twitter). */
+  openGraphTitle?: string;
+  openGraphDescription?: string;
 };
 
 export function buildPageMetadata({
@@ -45,9 +48,13 @@ export function buildPageMetadata({
   ogImage = '/logo1.png',
   keywords,
   robots = INDEX_ROBOTS,
+  openGraphTitle,
+  openGraphDescription,
 }: PageMetadataInput): Metadata {
   const canonicalUrl = resolveAbsoluteUrl(canonicalPath);
   const imageUrl = resolveAbsoluteUrl(ogImage);
+  const shareTitle = openGraphTitle || title;
+  const shareDescription = openGraphDescription || description;
 
   return {
     title,
@@ -57,19 +64,19 @@ export function buildPageMetadata({
     openGraph: {
       type: 'website',
       url: canonicalUrl,
-      title,
-      description,
+      title: shareTitle,
+      description: shareDescription,
       siteName: SITE_NAME,
       locale: 'en_IN',
-      images: [{ url: imageUrl, width: 1200, height: 630, alt: title }],
+      images: [{ url: imageUrl, width: 1200, height: 630, alt: shareTitle }],
     },
     twitter: {
       card: 'summary_large_image',
       site: '@finderb',
       creator: '@finderb',
-      title,
-      description,
-      images: { url: imageUrl, alt: title },
+      title: shareTitle,
+      description: shareDescription,
+      images: { url: imageUrl, alt: shareTitle },
     },
     robots,
   };
