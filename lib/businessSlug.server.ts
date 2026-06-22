@@ -1,22 +1,12 @@
 'use server';
 
 import type { SupabaseClient } from '@supabase/supabase-js';
-import {
-  buildCanonicalProfileQrLink,
-  shouldReplaceProfileQrLink,
-} from '@/lib/businessProfileLink';
 import { revalidateBusinessProfilePaths } from '@/lib/businessRevalidation';
 import { buildBusinessSlugCandidate, withSlugSuffix } from '@/lib/businessSlug';
 import { createServiceClient } from '@/lib/supabase/service';
 
-function getSlugDb(): SupabaseClient {
-  const service = createServiceClient();
-  if (!service) {
-    throw new Error(
-      'SUPABASE_SERVICE_ROLE_KEY is required to assign business slugs. Add it to your environment variables.'
-    );
-  }
-  return service;
+function getSlugDb(): SupabaseClient | null {
+  return createServiceClient();
 }
 
 async function slugExists(
@@ -39,6 +29,10 @@ export async function generateUniqueBusinessSlug(
   excludeId?: string
 ): Promise<string> {
   const supabase = getSlugDb();
+  if (!supabase) {
+    return buildBusinessSlugCandidate(businessName, city);
+  }
+
   const base = buildBusinessSlugCandidate(businessName, city);
   if (!(await slugExists(supabase, base, excludeId))) {
     return base;
@@ -51,40 +45,39 @@ export async function generateUniqueBusinessSlug(
     }
   }
 
-  const fallback = withSlugSuffix(base, excludeId?.slice(0, 8) || Date.now().toString(36));
-  return fallback;
+  return withSlugSuffix(base, excludeId?.slice(0, 8) || Date.now().toString(36));
 }
 
+/** Persist a slug when missing. Never revalidates on read — only after a write. */
 export async function ensureBusinessSlug(business: {
   id: string;
   businessName?: string | null;
   displayName?: string | null;
   city?: string | null;
   slug?: string | null;
-  profileQrLink?: string | null;
 }): Promise<string> {
-  const supabase = getSlugDb();
   const existing = business.slug?.trim();
+  if (existing) return existing;
+
+  const supabase = getSlugDb();
+  if (!supabase) {
+    return buildBusinessSlugCandidate(
+      business.businessName || business.displayName || 'business',
+      business.city
+    );
+  }
+
   const name = business.businessName || business.displayName || 'business';
-  const slug = existing || (await generateUniqueBusinessSlug(name, business.city, business.id));
-  const profileQrLink = buildCanonicalProfileQrLink({ ...business, slug });
-  const needsSlug = !existing;
-  const needsQrLink = shouldReplaceProfileQrLink(business, business.profileQrLink);
+  const slug = await generateUniqueBusinessSlug(name, business.city, business.id);
 
-  if (needsSlug || needsQrLink) {
-    const { error } = await supabase
-      .from('Business')
-      .update({
-        ...(needsSlug ? { slug } : {}),
-        ...(needsQrLink ? { profileQrLink } : {}),
-        updatedAt: new Date().toISOString(),
-      })
-      .eq('id', business.id);
+  const { error } = await supabase
+    .from('Business')
+    .update({ slug, updatedAt: new Date().toISOString() })
+    .eq('id', business.id);
 
-    if (error) {
-      console.error('[ensureBusinessSlug] update failed:', error.message);
-      throw error;
-    }
+  if (error) {
+    console.error('[ensureBusinessSlug] update failed:', error.message);
+    throw error;
   }
 
   revalidateBusinessProfilePaths({ id: business.id, slug, businessName: name, city: business.city });

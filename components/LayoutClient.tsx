@@ -23,10 +23,14 @@ function isBusinessAuthPage(pathname: string | null) {
 
 function isPublicBusinessProfile(pathname: string | null) {
   if (!pathname?.startsWith('/business/')) return false;
-  const slug = pathname.slice('/business/'.length);
+  const slug = pathname.slice('/business/'.length).split('?')[0];
   if (!slug || slug.includes('/')) return false;
   const reserved = new Set(['login', 'register', 'dashboard', 'list', 'payment', 'kyc']);
   return !reserved.has(slug);
+}
+
+function isBusinessProfileRoute(pathname: string | null) {
+  return isPublicBusinessProfile(pathname);
 }
 
 function isMerchantAppShell(pathname: string | null) {
@@ -48,6 +52,7 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
   const [loading, setLoading] = useState(true);
   const pathname = usePathname();
   const businessDashboardRoute = isBusinessDashboardRoute(pathname);
+  const businessProfileRoute = isBusinessProfileRoute(pathname);
   const merchantAppShell = isMerchantAppShell(pathname);
   const isCategoriesBrowse =
     pathname === '/categories' ||
@@ -57,12 +62,17 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
   const showLocationPrompt = !merchantAppShell && !isCategoriesBrowse;
 
   useEffect(() => {
+    if (businessProfileRoute) {
+      setLoading(false);
+      return;
+    }
+
     const timer = setTimeout(() => {
       setLoading(false);
     }, 3000);
 
     return () => clearTimeout(timer);
-  }, []);
+  }, [businessProfileRoute]);
 
   return (
     <UserLocationProvider>

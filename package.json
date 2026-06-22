@@ -15,7 +15,8 @@
     "backfill:tourist-slugs": "node scripts/backfill-tourist-place-slugs.mjs",
     "backfill:tourist-slugs:dry": "node scripts/backfill-tourist-place-slugs.mjs --dry-run",
     "migrate:tourist-slugs": "node scripts/apply-tourist-place-slugs-sql.mjs",
-    "regenerate:sitemap": "node scripts/regenerate-sitemap.mjs"
+    "regenerate:sitemap": "node scripts/regenerate-sitemap.mjs",
+    "test:profiles": "node scripts/test-profile-urls.mjs"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.6.0",

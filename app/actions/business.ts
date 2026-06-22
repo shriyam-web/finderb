@@ -16,7 +16,8 @@ import {
 import { mapBusinessRecord } from '@/lib/businessMapping';
 import { revalidateBusinessProfilePaths } from '@/lib/businessRevalidation';
 import { ensureBusinessSlug } from '@/lib/businessSlug.server';
-import { isLegacyBusinessId } from '@/lib/businessSlug';
+import { isLegacyBusinessId, resolveBusinessSlug } from '@/lib/businessSlug';
+import { createServiceClient } from '@/lib/supabase/service';
 import {
   CATEGORY_LISTINGS_MAX_PAGE_SIZE,
   CATEGORY_LISTINGS_PAGE_SIZE,
@@ -337,10 +338,46 @@ export async function getBusinessBySlugOrId(slugOrId: string) {
     }
 
     if (!business) {
+      const service = createServiceClient();
+      if (service) {
+        const { data: bySlugAdmin } = await service
+          .from('Business')
+          .select('*')
+          .eq('slug', identifier)
+          .maybeSingle();
+
+        business = bySlugAdmin;
+
+        if (!business && isLegacyBusinessId(identifier)) {
+          const { data: byIdAdmin } = await service
+            .from('Business')
+            .select('*')
+            .eq('id', identifier)
+            .maybeSingle();
+          business = byIdAdmin;
+        }
+      }
+    }
+
+    if (!business) {
       return { success: false, error: 'Business not found' };
     }
 
-    const slug = await ensureBusinessSlug(business);
+    let slug = business.slug?.trim() || '';
+    if (!slug) {
+      try {
+        slug = await ensureBusinessSlug(business);
+      } catch (slugError) {
+        console.error('[getBusinessBySlugOrId] slug ensure failed:', slugError);
+        slug = resolveBusinessSlug({
+          slug: business.slug,
+          name: business.displayName,
+          businessName: business.businessName,
+          city: business.city,
+        });
+      }
+    }
+
     const mapped = mapBusinessRecord({ ...business, slug });
     const publicBusiness = redactPublicBusinessFields(mapped);
     return { success: true, business: publicBusiness };
@@ -770,7 +807,6 @@ export async function updateBusinessProfile(id: string, profileData: any) {
       displayName: mapped.name,
       city: mapped.city,
       slug: mapped.slug,
-      profileQrLink: mapped.profileQrLink,
     });
     revalidateBusinessProfilePaths(mapped);
     return { success: true, business: mapped };
