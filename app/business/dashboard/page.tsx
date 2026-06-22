@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { getBusinessProfilePath } from '@/lib/businessSlug';
 import { 
   HiOutlineSquares2X2,
   HiOutlineQueueList,
@@ -215,6 +216,9 @@ function DashboardContent() {
   }, [business]);
 
   const businessId = business?.id;
+  const businessProfilePath = business
+    ? getBusinessProfilePath({ id: business.id, slug: business.slug })
+    : undefined;
 
   useEffect(() => {
     if (!businessId) return;
@@ -403,6 +407,7 @@ function DashboardContent() {
         businessName={businessName}
         businessCategory={business?.category || profileData.category}
         businessId={businessId}
+        businessProfilePath={businessProfilePath}
         businessEmail={business?.email || business?.workEmail}
         businessMobile={business?.mobile || business?.publicPhone}
         businessFullName={business?.fullName}
@@ -452,6 +457,7 @@ function DashboardContent() {
                 <AccountHealthPanel
                   health={accountHealth}
                   businessId={businessId}
+                  businessProfilePath={businessProfilePath}
                   businessName={businessName}
                   fullName={business?.fullName}
                   email={business?.email || business?.workEmail}
@@ -466,6 +472,7 @@ function DashboardContent() {
                 {businessId && (
                   <LeadsSection
                     businessId={businessId}
+                    businessProfilePath={businessProfilePath}
                     isPaymentPending={isPaymentPending}
                     variant="overview"
                     onCountChange={setLeadCount}
@@ -511,6 +518,7 @@ function DashboardContent() {
           <DashboardTabShell>
             <LeadsSection
               businessId={businessId}
+              businessProfilePath={businessProfilePath}
               isPaymentPending={isPaymentPending}
               variant="leads"
               onCountChange={setLeadCount}
@@ -522,6 +530,7 @@ function DashboardContent() {
           <DashboardTabShell>
             <MyListingTab
             businessId={businessId}
+            businessProfilePath={businessProfilePath}
             businessName={businessName}
             profileData={profileData}
             images={images}

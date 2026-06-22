@@ -2,13 +2,14 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Loader2 } from 'lucide-react';
-import { getBusinessesByCategory } from '@/app/actions/business';
+import { getBusinessesByCategory, getBusinessesByCategoryAndCity } from '@/app/actions/business';
 import BusinessCard from '@/components/BusinessCard';
 import { CATEGORY_LISTINGS_PAGE_SIZE } from '@/lib/categoryListings';
 import type { Business } from '@/lib/mockData';
 
 type CategoryBusinessListProps = {
   categorySlug: string;
+  citySlug?: string;
   initialBusinesses: Business[];
   initialTotal: number;
   pageSize?: number;
@@ -16,6 +17,7 @@ type CategoryBusinessListProps = {
 
 export default function CategoryBusinessList({
   categorySlug,
+  citySlug,
   initialBusinesses,
   initialTotal,
   pageSize = CATEGORY_LISTINGS_PAGE_SIZE,
@@ -32,7 +34,15 @@ export default function CategoryBusinessList({
     setBusinesses(initialBusinesses);
     setTotal(initialTotal);
     setPage(1);
-  }, [categorySlug, initialBusinesses, initialTotal]);
+  }, [categorySlug, citySlug, initialBusinesses, initialTotal]);
+
+  const fetchPage = useCallback(
+    (pageNum: number, size: number) =>
+      citySlug
+        ? getBusinessesByCategoryAndCity(categorySlug, citySlug, { page: pageNum, pageSize: size })
+        : getBusinessesByCategory(categorySlug, { page: pageNum, pageSize: size }),
+    [categorySlug, citySlug]
+  );
 
   const loadMore = useCallback(async () => {
     if (loading || !hasMore) return;
@@ -41,10 +51,7 @@ export default function CategoryBusinessList({
     const nextPage = page + 1;
 
     try {
-      const result = await getBusinessesByCategory(categorySlug, {
-        page: nextPage,
-        pageSize,
-      });
+      const result = await fetchPage(nextPage, pageSize);
 
       if (result.success && result.businesses) {
         setBusinesses((prev) => {
@@ -58,7 +65,7 @@ export default function CategoryBusinessList({
     } finally {
       setLoading(false);
     }
-  }, [categorySlug, hasMore, loading, page, pageSize, total]);
+  }, [fetchPage, hasMore, loading, page, pageSize, total]);
 
   useEffect(() => {
     const node = sentinelRef.current;

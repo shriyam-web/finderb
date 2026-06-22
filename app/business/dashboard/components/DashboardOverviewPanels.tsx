@@ -206,6 +206,7 @@ export function ProfileCompletionCard({
 type MerchantInfoPanelProps = {
   business: Record<string, unknown> | null;
   businessId?: string;
+  businessProfilePath?: string;
   open: boolean;
   onToggle: () => void;
   copiedId: boolean;
@@ -215,6 +216,7 @@ type MerchantInfoPanelProps = {
 export function MerchantInfoPanel({
   business,
   businessId,
+  businessProfilePath,
   open,
   onToggle,
   copiedId,
@@ -239,9 +241,9 @@ export function MerchantInfoPanel({
           <h3 className="text-base font-bold text-slate-900">Merchant credentials</h3>
         </div>
         <div className="flex items-center gap-3">
-          {businessId && (
+          {businessProfilePath && (
             <a
-              href={`/business/${businessId}`}
+              href={businessProfilePath}
               target="_blank"
               rel="noreferrer"
               onClick={(e) => e.stopPropagation()}

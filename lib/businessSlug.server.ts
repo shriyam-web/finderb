@@ -1,9 +1,9 @@
 'use server';
 
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { revalidateBusinessProfilePaths } from '@/lib/businessRevalidation';
 import {
   buildBusinessSlugCandidate,
-  isLegacyBusinessId,
   withSlugSuffix,
 } from '@/lib/businessSlug';
 
@@ -65,5 +65,7 @@ export async function ensureBusinessSlug(
     .eq('id', business.id);
 
   if (error) throw error;
+
+  revalidateBusinessProfilePaths({ id: business.id, slug });
   return slug;
 }

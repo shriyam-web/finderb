@@ -14,6 +14,7 @@ import {
   lookupEmailAccountTypes,
 } from '@/lib/emailAccountLookup';
 import { mapBusinessRecord } from '@/lib/businessMapping';
+import { revalidateBusinessProfilePaths } from '@/lib/businessRevalidation';
 import { ensureBusinessSlug } from '@/lib/businessSlug.server';
 import { isLegacyBusinessId } from '@/lib/businessSlug';
 import {
@@ -202,8 +203,9 @@ export async function updateBusinessKYC(id: string, kycData: any) {
       throw error;
     }
 
-    revalidatePath(`/business/${id}`);
-    return { success: true, business };
+    const mapped = mapBusinessRecord(business);
+    revalidateBusinessProfilePaths(mapped);
+    return { success: true, business: mapped };
   } catch (error: any) {
     const errorMessage = handleError(error, 'KYC Update');
     return { success: false, error: errorMessage };
@@ -581,6 +583,55 @@ export async function getFeaturedBusinesses() {
   }
 }
 
+export async function getBusinessesByCategoryAndCity(
+  categorySlug: string,
+  citySlug: string,
+  options?: { page?: number; pageSize?: number }
+) {
+  try {
+    const page = Math.max(1, options?.page ?? 1);
+    const pageSize = Math.min(
+      Math.max(options?.pageSize ?? CATEGORY_LISTINGS_PAGE_SIZE, 1),
+      CATEGORY_LISTINGS_MAX_PAGE_SIZE
+    );
+    const from = (page - 1) * pageSize;
+    const to = from + pageSize - 1;
+
+    const supabase = createClient(await cookies());
+    const escapedCategory = escapeIlikePattern(categorySlug.replace(/-/g, ' '));
+    const escapedCity = escapeIlikePattern(citySlug.replace(/-/g, ' '));
+
+    const { data: businesses, error, count } = await supabase
+      .from('Business')
+      .select('*', { count: 'exact' })
+      .eq('status', 'Active')
+      .ilike('category', `%${escapedCategory}%`)
+      .or(`city.ilike.%${escapedCity}%,location.ilike.%${escapedCity}%`)
+      .order('createdAt', { ascending: false })
+      .range(from, to);
+
+    if (error) throw error;
+
+    const mappedBusinesses = (businesses ?? [])
+      .map((b: Record<string, unknown>) => mapBusinessRecord(b))
+      .filter((b) => b.id);
+
+    const total = count ?? mappedBusinesses.length;
+
+    return {
+      success: true as const,
+      businesses: mappedBusinesses,
+      total,
+      page,
+      pageSize,
+      hasMore: from + mappedBusinesses.length < total,
+    };
+  } catch (error: any) {
+    const errorMessage = handleError(error, 'Get Businesses By Category And City');
+    return { success: false as const, error: errorMessage };
+  }
+}
+
 export async function getBusinessesByCategory(
   categoryName: string,
   options?: { page?: number; pageSize?: number }
@@ -690,10 +741,9 @@ export async function updateBusinessProfile(id: string, profileData: any) {
       throw error;
     }
 
-    revalidatePath(`/business/dashboard`);
-    revalidatePath(`/business/${id}`);
-    revalidateSitemap();
-    return { success: true, business: mapBusinessRecord(business) };
+    const mapped = mapBusinessRecord(business);
+    revalidateBusinessProfilePaths(mapped);
+    return { success: true, business: mapped };
   } catch (error: any) {
     const errorMessage = handleError(error, 'Profile Update');
     return { success: false, error: errorMessage };

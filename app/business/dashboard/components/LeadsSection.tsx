@@ -27,6 +27,7 @@ import { DashboardSectionHeader } from './DashboardShell';
 
 type LeadsSectionProps = {
   businessId: string;
+  businessProfilePath?: string;
   isPaymentPending: boolean;
   variant: 'overview' | 'leads';
   onCountChange?: (count: number) => void;
@@ -99,6 +100,7 @@ function LeadStatChip({
 
 export default function LeadsSection({
   businessId,
+  businessProfilePath,
   isPaymentPending,
   variant,
   onCountChange,
@@ -355,7 +357,7 @@ export default function LeadsSection({
             details ready to reach out.
           </p>
           <Link
-            href={`/business/${businessId}`}
+            href={businessProfilePath || `/business/${businessId}`}
             target="_blank"
             className="mt-5 inline-flex items-center gap-1 text-sm font-semibold text-[#215481] hover:underline"
           >

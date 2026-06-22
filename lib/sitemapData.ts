@@ -3,6 +3,7 @@ import type { MetadataRoute } from 'next';
 import { revalidatePath } from 'next/cache';
 import { revalidateHomePage } from '@/lib/homePageData';
 import { SITE_ORIGIN } from '@/lib/siteSeo';
+import { slugifyCity } from '@/lib/categoryCity';
 
 export const SITEMAP_BASE_URL = SITE_ORIGIN;
 
@@ -94,10 +95,59 @@ async function fetchActiveBusinesses() {
   return businesses;
 }
 
+function categorySlugFromName(name: string, slug?: string | null): string {
+  return categorySlug(name, slug);
+}
+
+async function fetchCategoryCityEntries(): Promise<SitemapEntry[]> {
+  const supabase = getSupabase();
+  const pageSize = 1000;
+  const pairs = new Map<string, Date | undefined>();
+  let from = 0;
+
+  while (true) {
+    const { data, error } = await supabase
+      .from('Business')
+      .select('category, city, updatedAt')
+      .eq('status', 'Active')
+      .not('city', 'is', null)
+      .order('updatedAt', { ascending: false })
+      .range(from, from + pageSize - 1);
+
+    if (error) throw error;
+    if (!data?.length) break;
+
+    for (const row of data) {
+      const category = row.category?.trim();
+      const city = row.city?.trim();
+      if (!category || !city) continue;
+
+      const path = `/categories/${categorySlugFromName(category)}/${slugifyCity(city)}`;
+      const updated = parseDate(row.updatedAt);
+      const existing = pairs.get(path);
+      if (!existing || (updated && updated > existing)) {
+        pairs.set(path, updated);
+      }
+    }
+
+    if (data.length < pageSize) break;
+    from += pageSize;
+  }
+
+  return [...pairs.entries()].map(([path, lastModified]) =>
+    toEntry(path, {
+      lastModified,
+      changeFrequency: 'daily',
+      priority: 0.75,
+    })
+  );
+}
+
 async function fetchDynamicEntries(): Promise<SitemapEntry[]> {
   const supabase = getSupabase();
 
-  const [categoriesResult, blogsResult, touristResult, businesses] = await Promise.all([
+  const [categoriesResult, blogsResult, touristResult, businesses, categoryCityEntries] =
+    await Promise.all([
     supabase
       .from('categories')
       .select('name, slug, updated_at')
@@ -113,6 +163,7 @@ async function fetchDynamicEntries(): Promise<SitemapEntry[]> {
       .select('id, updated_at')
       .order('updated_at', { ascending: false }),
     fetchActiveBusinesses(),
+    fetchCategoryCityEntries(),
   ]);
 
   if (categoriesResult.error) throw categoriesResult.error;
@@ -151,7 +202,13 @@ async function fetchDynamicEntries(): Promise<SitemapEntry[]> {
     })
   );
 
-  return [...categoryEntries, ...businessEntries, ...blogEntries, ...touristEntries];
+  return [
+    ...categoryEntries,
+    ...categoryCityEntries,
+    ...businessEntries,
+    ...blogEntries,
+    ...touristEntries,
+  ];
 }
 
 export async function buildSitemap(): Promise<MetadataRoute.Sitemap> {

@@ -9,7 +9,9 @@
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
-    "test:leads": "node scripts/test-broadcast-lead.mjs --anon-only"
+    "test:leads": "node scripts/test-broadcast-lead.mjs --anon-only",
+    "backfill:slugs": "node scripts/backfill-business-slugs.mjs",
+    "backfill:slugs:dry": "node scripts/backfill-business-slugs.mjs --dry-run"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.6.0",

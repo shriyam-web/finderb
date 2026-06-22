@@ -82,6 +82,7 @@ type ProfileData = {
 
 type MyListingTabProps = {
   businessId: string;
+  businessProfilePath?: string;
   businessName: string;
   profileData: ProfileData;
   images: string[];
@@ -100,6 +101,7 @@ function getGalleryImages(profilePictureUrl: string | null, images: string[]) {
 
 export default function MyListingTab({
   businessId,
+  businessProfilePath,
   businessName,
   profileData,
   images,
@@ -230,7 +232,7 @@ export default function MyListingTab({
             </div>
             <span className="text-xs font-medium text-zinc-600">Complete</span>
           </div>
-          <Link href={`/business/${businessId}`} target="_blank" className={dashboard.btnSecondary}>
+          <Link href={businessProfilePath || `/business/${businessId}`} target="_blank" className={dashboard.btnSecondary}>
             View live
             <HiOutlineArrowTopRightOnSquare size={14} />
           </Link>
@@ -249,7 +251,7 @@ export default function MyListingTab({
             <span className="h-2 w-2 rounded-full bg-amber-300" />
             <span className="h-2 w-2 rounded-full bg-emerald-300" />
             <span className="ml-2 truncate text-[11px] text-zinc-400">
-              finderb.com/business/{businessId.slice(0, 8)}…
+              finderb.com{businessProfilePath || `/business/${businessId}`}
             </span>
           </div>
 

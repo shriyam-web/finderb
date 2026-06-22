@@ -20,6 +20,7 @@ const dotClass: Record<AccountHealthItem['status'], string> = {
 type AccountHealthPanelProps = {
   health: AccountHealthSummary;
   businessId?: string;
+  businessProfilePath?: string;
   businessName: string;
   fullName?: string;
   email?: string;
@@ -59,6 +60,7 @@ function HealthRow({
 export default function AccountHealthPanel({
   health,
   businessId,
+  businessProfilePath,
   businessName,
   fullName,
   email,
@@ -159,10 +161,10 @@ export default function AccountHealthPanel({
         </div>
       )}
 
-      {businessId && (
+      {businessProfilePath && (
         <p className="mt-4 border-t border-zinc-100 pt-4">
           <Link
-            href={`/business/${businessId}`}
+            href={businessProfilePath}
             target="_blank"
             rel="noreferrer"
             className="text-sm font-medium text-[#215481] hover:underline"

@@ -1,5 +1,6 @@
 import { LEGAL_COMPANY } from '@/lib/legalContent';
 import { FINDERB_SOCIAL_URLS } from '@/lib/finderbSocial';
+import { categoryCityHref, slugifyCity } from '@/lib/categoryCity';
 
 export function footerSearchHref(query: string): string {
   return `/categories?search=${encodeURIComponent(query)}`;
@@ -14,7 +15,12 @@ export function footerCityHref(city: string): string {
 }
 
 export function footerLocalHref(service: string, city: string): string {
-  return footerSearchHref(`${service} in ${city}`);
+  const categorySlug = service
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  return categoryCityHref(categorySlug, slugifyCity(city));
 }
 
 export const FOOTER_SITE_URL = 'https://finderb.com';

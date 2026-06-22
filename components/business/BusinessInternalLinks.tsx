@@ -4,6 +4,7 @@ import { getBusinessLocationLabel } from '@/lib/businessBreadcrumb';
 import { buildCityCategorySearchPath } from '@/lib/businessSeo';
 import { getBusinessProfilePath } from '@/lib/businessSlug';
 import { categoryHref } from '@/lib/categoryDisplay';
+import { categoryCityHref, slugifyCity } from '@/lib/categoryCity';
 
 type BusinessInternalLinksProps = {
   business: Business;
@@ -52,7 +53,10 @@ export default function BusinessInternalLinks({
       : buildCityCategorySearchPath(business.category, business.city)
     : '/categories';
 
-  const categoryCityPath = buildCityCategorySearchPath(business.category, business.city);
+  const categoryCityPath =
+    business.category && categorySlug && business.city
+      ? categoryCityHref(categorySlug, slugifyCity(business.city))
+      : buildCityCategorySearchPath(business.category, business.city, categorySlug);
 
   return (
     <section className="border-t border-stone-200 py-10">

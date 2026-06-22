@@ -6,6 +6,7 @@ import { getPublicReviewRating, parseBusinessReviews } from '@/lib/businessRevie
 import { reviewsToSchemaReviews, timingsToOpeningHoursSchema } from '@/lib/businessHoursSchema';
 import { getBusinessIndexDecision } from '@/lib/businessIndexation';
 import { categoryHref } from '@/lib/categoryDisplay';
+import { categoryCityHref, slugifyCity } from '@/lib/categoryCity';
 import { getBusinessProfilePath } from '@/lib/businessSlug';
 import { footerSearchHref } from '@/lib/footerData';
 import {
@@ -122,9 +123,18 @@ export function buildBusinessMetadata(business: BusinessMetaRecord | null): Meta
   });
 }
 
-export function buildCityCategorySearchPath(category: string, city?: string | null): string {
+export function buildCityCategorySearchPath(
+  category: string,
+  city?: string | null,
+  categorySlug?: string | null
+): string {
   const cityLabel = city?.trim();
   if (!cityLabel) return footerSearchHref(category);
+
+  if (categorySlug) {
+    return categoryCityHref(categorySlug, slugifyCity(cityLabel));
+  }
+
   return footerSearchHref(`${category} in ${cityLabel}`);
 }
 
@@ -142,7 +152,7 @@ export function buildBusinessJsonLd(
   const categoryPath =
     business.category && categorySlug
       ? categoryHref(categorySlug, business.category)
-      : buildCityCategorySearchPath(business.category, business.city);
+      : buildCityCategorySearchPath(business.category, business.city, categorySlug);
 
   const localBusiness: Record<string, unknown> = {
     '@type': 'LocalBusiness',
@@ -203,7 +213,16 @@ export function buildBusinessJsonLd(
     { name: 'Categories', path: '/categories' },
     ...(business.category ? [{ name: business.category, path: categoryPath }] : []),
     ...(location
-      ? [{ name: location, path: buildCityCategorySearchPath(business.category, business.city) }]
+      ? [
+          {
+            name: location,
+            path: buildCityCategorySearchPath(
+              business.category,
+              business.city,
+              categorySlug
+            ),
+          },
+        ]
       : []),
     { name: business.name, path: canonicalPath },
   ]);

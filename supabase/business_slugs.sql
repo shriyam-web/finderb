@@ -12,3 +12,7 @@ CREATE INDEX IF NOT EXISTS idx_business_slug_lookup
   WHERE status = 'Active';
 
 COMMENT ON COLUMN "Business".slug IS 'SEO URL slug, e.g. radisson-blu-noida';
+
+-- After deploying app code, backfill all rows:
+--   npm run backfill:slugs:dry   (preview)
+--   npm run backfill:slugs       (apply; uses SUPABASE_SERVICE_ROLE_KEY)

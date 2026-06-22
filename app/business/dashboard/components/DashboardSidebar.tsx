@@ -31,6 +31,7 @@ type DashboardSidebarProps = {
   businessName: string;
   businessCategory?: string;
   businessId?: string;
+  businessProfilePath?: string;
   businessEmail?: string;
   businessMobile?: string;
   businessFullName?: string;
@@ -61,6 +62,7 @@ export default function DashboardSidebar({
   businessName,
   businessCategory,
   businessId,
+  businessProfilePath,
   businessEmail,
   businessMobile,
   businessFullName,
@@ -178,9 +180,9 @@ export default function DashboardSidebar({
 
   const footerLinks = (
     <div className="shrink-0 border-t border-zinc-200 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-      {businessId && (
+      {businessProfilePath && (
         <Link
-          href={`/business/${businessId}`}
+          href={businessProfilePath}
           target="_blank"
           onClick={onClose}
           className="flex items-center gap-2 rounded-md px-2 py-2 text-sm text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900"
