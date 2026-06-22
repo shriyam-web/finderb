@@ -28,6 +28,8 @@ import { getCategories } from '@/app/actions/category';
 import { getFeaturedBusinesses } from '@/app/actions/business';
 import { getLastSearchQuery } from '@/lib/lastSearchQuery';
 import CategoryIcon from '@/components/CategoryIcon';
+import { categoryHref } from '@/lib/categoryDisplay';
+import { getBusinessProfilePath } from '@/lib/businessSlug';
 
 type TabId = 'profile' | 'favorites' | 'messages' | 'history' | 'settings';
 
@@ -352,7 +354,7 @@ function DashboardContent() {
                     {categories.map((cat) => (
                       <Link
                         key={cat.id}
-                        href={`/categories?id=${cat.id}`}
+                        href={categoryHref(cat.slug, cat.name)}
                         className="flex flex-col items-center gap-2 rounded-xl border border-slate-100 bg-slate-50/80 p-4 text-center transition-colors hover:border-[#215481]/25 hover:bg-white"
                       >
                         <CategoryIcon
@@ -381,7 +383,7 @@ function DashboardContent() {
                     {businesses.map((biz) => (
                       <Link
                         key={biz.id}
-                        href={`/business/${biz.id}`}
+                        href={getBusinessProfilePath(biz)}
                         className="flex gap-3 rounded-xl border border-slate-200/80 p-3 transition-colors hover:border-[#215481]/25 hover:bg-slate-50/50"
                       >
                         <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-slate-100">
@@ -503,7 +505,7 @@ function DashboardContent() {
                       {businesses.slice(0, 4).map((biz) => (
                         <Link
                           key={biz.id}
-                          href={`/business/${biz.id}`}
+                          href={getBusinessProfilePath(biz)}
                           className="flex items-center gap-3 rounded-xl border border-slate-100 p-3 hover:border-[#215481]/25"
                         >
                           <Building2 size={18} className="shrink-0 text-[#215481]" />

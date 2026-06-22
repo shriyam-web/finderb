@@ -20,10 +20,12 @@ export function getBusinessLocationLabel(
   return location.length > 48 ? `${location.slice(0, 45)}…` : location;
 }
 
-export function buildCategoryBreadcrumbHref(categoryName: string, categoryId?: string | null): string {
+import { categoryHref } from '@/lib/categoryDisplay';
+
+export function buildCategoryBreadcrumbHref(categoryName: string, categorySlug?: string | null): string {
   const name = categoryName.trim();
   if (!name) return '/categories';
-  if (categoryId) return `/categories?id=${categoryId}`;
+  if (categorySlug) return categoryHref(categorySlug, name);
   return `/categories?search=${encodeURIComponent(name)}`;
 }
 

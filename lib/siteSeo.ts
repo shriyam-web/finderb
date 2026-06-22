@@ -10,9 +10,9 @@ export const SITE_HOME_URL = `${SITE_ORIGIN}/`;
 
 /** Homepage search snippet — short title + description (Sulekha-style). */
 export const HOME_PAGE_TITLE =
-  'FinderB - Connect with verified local businesses near you';
+  "FinderB - India's Local Business Directory & Discovery Platform";
 export const HOME_PAGE_DESCRIPTION =
-  'FinderB is India\'s leading local business directory. Search restaurants, doctors, plumbers, salons, and 500+ service categories across 300+ cities.';
+  'Discover verified local businesses, restaurants, hotels, doctors, tutors, salons, lawyers, contractors and more across India with FinderB.';
 
 /** Primary pages Google may show as sitelinks — linked from homepage + schema. */
 export const SITELINK_NAV_LINKS = [
@@ -22,9 +22,24 @@ export const SITELINK_NAV_LINKS = [
     description: 'Browse local business categories and services across India.',
   },
   {
-    name: 'Login',
-    path: '/login',
-    description: 'Sign in to your FinderB account to save listings and manage preferences.',
+    name: 'Tourist Places',
+    path: '/tourist-places',
+    description: 'Explore tourist destinations, landmarks, and attractions across India.',
+  },
+  {
+    name: 'Business Listings',
+    path: '/categories/restaurants',
+    description: 'Find verified local business listings with ratings, reviews, and contact details.',
+  },
+  {
+    name: 'Blog',
+    path: '/blog',
+    description: 'Local business guides, city insights, and discovery tips from FinderB.',
+  },
+  {
+    name: 'Premium & Pricing',
+    path: '/pricing',
+    description: 'FinderB premium plans, verified badges, and business listing upgrades.',
   },
   {
     name: 'Register Business',
@@ -35,21 +50,6 @@ export const SITELINK_NAV_LINKS = [
     name: 'About FinderB',
     path: '/about',
     description: 'Learn about FinderB, India\'s local discovery and business directory platform.',
-  },
-  {
-    name: 'Contact Us',
-    path: '/contact',
-    description: 'Contact FinderB for customer support, merchant help, and general enquiries.',
-  },
-  {
-    name: 'Job Listings',
-    path: '/categories/job',
-    description: 'Find local jobs and hiring opportunities posted by businesses on FinderB.',
-  },
-  {
-    name: 'Premium & Pricing',
-    path: '/pricing',
-    description: 'FinderB premium plans, verified badges, and business listing upgrades.',
   },
 ] as const;
 

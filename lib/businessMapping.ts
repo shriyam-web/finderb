@@ -28,6 +28,7 @@ export function mapBusinessRecord(business: Record<string, unknown>) {
   return {
     ...safeBusiness,
     id: safeBusiness.id as string,
+    slug: (safeBusiness.slug as string | null | undefined) ?? null,
     businessName: formattedBusinessName,
     name: displayName,
     location: (safeBusiness.location as string) || (safeBusiness.city as string) || '',

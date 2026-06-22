@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { getBusinessProfilePath } from '@/lib/businessSlug';
 import Image from 'next/image';
 import { useState, useEffect, Suspense } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
@@ -78,10 +79,10 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
 
   const menuItems = [
     { name: 'Home', href: '/', icon: Home },
-    { name: 'For Business', href: '/business/login', icon: Building2 },
-    { name: 'Jobs', href: '/categories/job', icon: Briefcase },
-    { name: 'News', href: '/news', icon: Newspaper },
+    { name: 'Categories', href: '/categories', icon: LayoutDashboard },
+    { name: 'Tourist Places', href: '/tourist-places', icon: Globe },
     { name: 'Blog', href: '/blog', icon: BookOpen },
+    { name: 'Pricing', href: '/pricing', icon: Briefcase },
   ];
 
   const languages = ['English', 'Hindi', 'Bengali', 'Tamil', 'Telugu'];
@@ -240,7 +241,7 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
                           Merchant dashboard
                         </Link>
                         <Link
-                          href={`/business/${business.id}`}
+                          href={getBusinessProfilePath(business)}
                           target="_blank"
                           onClick={() => setIsBusinessMenuOpen(false)}
                           className="flex items-center gap-2.5 px-4 py-2.5 text-xs font-medium text-gray-600 hover:bg-primary/5 hover:text-primary transition-all"

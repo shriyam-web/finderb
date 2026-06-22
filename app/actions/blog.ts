@@ -19,7 +19,7 @@ export async function getBlogs() {
       .select('*')
       .eq('status', 'published')
       .order('published_at', { ascending: false })
-      .limit(6);
+      .limit(24);
 
     if (error) {
       throw error;

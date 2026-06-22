@@ -49,6 +49,7 @@ import {
 import { formatTimingRange12h } from '@/lib/formatBusinessHours';
 import { buildLoginHref } from '@/lib/authRedirect';
 import { getBusinessShareUrl } from '@/lib/businessSeo';
+import { getBusinessProfilePath } from '@/lib/businessSlug';
 import { formatDistanceFromUser } from '@/lib/geo';
 import { useUserCoords } from '@/hooks/useUserCoords';
 import { resolveClientSearchQuery, setLastSearchQuery } from '@/lib/lastSearchQuery';
@@ -120,14 +121,30 @@ function StarPicker({
   );
 }
 
-export default function BusinessProfilePage({ id }: { id: string }) {
+export default function BusinessProfilePage({
+  slugOrId,
+  initialBusiness = null,
+  initialCategoryBreadcrumb = null,
+  initialRelatedCategory = [],
+  initialRelatedCity = [],
+}: {
+  slugOrId: string;
+  initialBusiness?: Business | null;
+  initialCategoryBreadcrumb?: CategoryBreadcrumb | null;
+  initialRelatedCategory?: Business[];
+  initialRelatedCity?: Business[];
+}) {
   const searchParams = useSearchParams();
-  const [business, setBusiness] = useState<Business | null>(null);
-  const [related, setRelated] = useState<Business[]>([]);
-  const [reviews, setReviews] = useState<BusinessReview[]>([]);
+  const [business, setBusiness] = useState<Business | null>(initialBusiness);
+  const [related, setRelated] = useState<Business[]>(
+    initialRelatedCategory.length > 0 ? initialRelatedCategory : initialRelatedCity
+  );
+  const [reviews, setReviews] = useState<BusinessReview[]>(
+    initialBusiness ? parseBusinessReviews(initialBusiness.review) : []
+  );
   const [sessionUser, setSessionUser] = useState<SessionUser | null>(null);
   const [notFound, setNotFound] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(!initialBusiness);
   const [connectModalOpen, setConnectModalOpen] = useState(false);
   const [clientSearchQuery, setClientSearchQuery] = useState('');
   const [activeImage, setActiveImage] = useState(0);
@@ -138,15 +155,29 @@ export default function BusinessProfilePage({ id }: { id: string }) {
   const [reviewSubmitting, setReviewSubmitting] = useState(false);
   const [reviewError, setReviewError] = useState<string | null>(null);
   const [reviewSuccess, setReviewSuccess] = useState<string | null>(null);
-  const [categoryBreadcrumb, setCategoryBreadcrumb] = useState<CategoryBreadcrumb | null>(null);
+  const [categoryBreadcrumb, setCategoryBreadcrumb] = useState<CategoryBreadcrumb | null>(
+    initialCategoryBreadcrumb
+  );
   const userCoords = useUserCoords();
+  const businessId = business?.id ?? slugOrId;
 
   useEffect(() => {
+    if (initialBusiness) {
+      setBusiness(initialBusiness);
+      setReviews(parseBusinessReviews(initialBusiness.review));
+      setCategoryBreadcrumb(initialCategoryBreadcrumb);
+      setRelated(
+        initialRelatedCategory.length > 0 ? initialRelatedCategory : initialRelatedCity
+      );
+      setIsLoading(false);
+      return;
+    }
+
     async function fetchData() {
       setIsLoading(true);
       setNotFound(false);
 
-      const [result, sessionResult] = await Promise.all([getBusiness(id), getSession()]);
+      const [result, sessionResult] = await Promise.all([getBusiness(slugOrId), getSession()]);
 
       if (result.success && result.business) {
         const record = result.business as Business;
@@ -162,7 +193,9 @@ export default function BusinessProfilePage({ id }: { id: string }) {
         });
         if (relatedResult.success && relatedResult.businesses) {
           setRelated(
-            relatedResult.businesses.filter((item) => item.id !== id).slice(0, 4) as Business[]
+            relatedResult.businesses
+              .filter((item) => item.id !== record.id)
+              .slice(0, 4) as Business[]
           );
         } else {
           setRelated([]);
@@ -185,7 +218,25 @@ export default function BusinessProfilePage({ id }: { id: string }) {
     }
 
     fetchData();
-  }, [id]);
+  }, [slugOrId, initialBusiness, initialCategoryBreadcrumb, initialRelatedCategory, initialRelatedCity]);
+
+  useEffect(() => {
+    if (!initialBusiness) return;
+
+    async function fetchSession() {
+      const sessionResult = await getSession();
+      if (sessionResult?.success && sessionResult.user) {
+        setSessionUser({
+          id: sessionResult.user.id,
+          fullName: sessionResult.user.fullName,
+        });
+      } else {
+        setSessionUser(null);
+      }
+    }
+
+    fetchSession();
+  }, [initialBusiness]);
 
   useEffect(() => {
     const q = resolveClientSearchQuery(searchParams.get('q') ?? searchParams.get('search'));
@@ -199,19 +250,19 @@ export default function BusinessProfilePage({ id }: { id: string }) {
     setReviewError(null);
     setReviewSuccess(null);
     setReviewContent('');
-  }, [id]);
+  }, [slugOrId]);
 
   useEffect(() => {
     if (isLoading || !business) return;
-    if (!shouldRecordProfileViewToday(id)) return;
+    if (!shouldRecordProfileViewToday(businessId)) return;
 
     const sessionHash = getProfileViewSessionHash();
-    void fetch(`/api/business/${id}/view`, {
+    void fetch(`/api/business/${businessId}/view`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ sessionHash }),
     }).catch(() => undefined);
-  }, [business, id, isLoading]);
+  }, [business, businessId, isLoading]);
 
   useEffect(() => {
     if (isLoading || !business) return;
@@ -257,7 +308,7 @@ export default function BusinessProfilePage({ id }: { id: string }) {
     if (!business || typeof window === 'undefined') return;
 
     try {
-      const url = getBusinessShareUrl(business.id, window.location.origin);
+      const url = getBusinessShareUrl(business, window.location.origin);
       const result = await shareBusinessPage(business.name, url);
 
       if (result === 'copied') setShareMessage('Link copied to clipboard');
@@ -643,7 +694,7 @@ export default function BusinessProfilePage({ id }: { id: string }) {
             {!sessionUser ? (
               <div className="mt-4 rounded-lg border border-[#f9b864]/30 bg-[#fff8ef] px-4 py-3 text-sm text-stone-600">
                 <Link
-                  href={buildLoginHref(`/business/${id}#reviews`)}
+                  href={buildLoginHref(`${getBusinessProfilePath(business)}#reviews`)}
                   className="font-medium text-[#215481] hover:underline"
                 >
                   Log in

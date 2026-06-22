@@ -10,6 +10,8 @@ import { VerifiedNameTick } from '@/components/business/VerifiedMark';
 import HomeHero from '@/components/HomeHero';
 import SubcategoryScrollRow from '@/components/SubcategoryScrollRow';
 import NewsWidget from '@/components/NewsWidget';
+import { categoryHref } from '@/lib/categoryDisplay';
+import { getBusinessProfilePath } from '@/lib/businessSlug';
 import {
   ArrowRight,
   Star,
@@ -552,7 +554,7 @@ export default function HomeClient({ initialData }: { initialData: any }) {
                       {desktopCategories.map((cat) => (
                         <Link
                           key={cat.id}
-                          href={`/categories?id=${cat.id}`}
+                          href={categoryHref(cat.slug, cat.name)}
                           className="flex w-[108px] shrink-0 flex-col items-center rounded-xl border border-gray-100 bg-white px-3 py-4 text-center shadow-[0_1px_3px_rgba(0,0,0,0.06)] transition-shadow hover:shadow-md"
                         >
                           <div className="mb-2.5 flex h-11 w-11 items-center justify-center">
@@ -642,7 +644,7 @@ export default function HomeClient({ initialData }: { initialData: any }) {
                         return (
                         <Link
                           key={biz.id}
-                          href={`/business/${biz.id}`}
+                          href={getBusinessProfilePath(biz)}
                           onClick={() => {
                             const q =
                               manualQueryRef.current.trim() || voiceTranscript.trim();

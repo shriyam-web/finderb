@@ -18,6 +18,8 @@ import MerchantListingRating from '@/components/business/MerchantListingRating';
 import { VerifiedNameTick } from '@/components/business/VerifiedMark';
 import HomeHero from '@/components/HomeHero';
 import { Business, Category } from '@/lib/mockData';
+import { categoryHref } from '@/lib/categoryDisplay';
+import { getBusinessProfilePath } from '@/lib/businessSlug';
 import { formatDistanceFromUser } from '@/lib/geo';
 import type { UserCoords } from '@/hooks/useUserCoords';
 
@@ -80,7 +82,7 @@ export default function MobileHome({
           {gridCategories.map((cat) => (
             <Link
               key={cat.id}
-              href={`/categories?id=${cat.id}`}
+              href={categoryHref(cat.slug, cat.name)}
               className="flex flex-col items-center rounded-xl border border-gray-100 bg-white px-1 py-3 shadow-[0_1px_4px_rgba(0,0,0,0.05)]"
             >
               <div className="mb-2 flex h-10 w-10 items-center justify-center">
@@ -185,7 +187,7 @@ export default function MobileHome({
                 return (
                 <Link
                   key={biz.id}
-                  href={`/business/${biz.id}`}
+                  href={getBusinessProfilePath(biz)}
                   onClick={() => {
                     if (manualQuery.trim()) setLastSearchQuery(manualQuery);
                   }}

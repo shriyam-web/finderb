@@ -1,11 +1,8 @@
 import type { Metadata } from 'next';
+import { buildCategoryIndexMetadata } from '@/lib/categorySeo';
 
-export const metadata: Metadata = {
-  title: 'All Categories',
-  description:
-    'Browse local business categories on FinderB — restaurants, doctors, plumbers, salons, education, real estate, and 500+ services across India.',
-  alternates: { canonical: '/categories' },
-};
+/** Index-only metadata — child `/categories/[slug]` pages set their own canonicals. */
+export const metadata: Metadata = buildCategoryIndexMetadata();
 
 export default function CategoriesLayout({ children }: { children: React.ReactNode }) {
   return children;

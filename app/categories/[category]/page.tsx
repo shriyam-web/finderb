@@ -1,10 +1,41 @@
+import type { Metadata } from 'next';
 import { getCategories } from '@/app/actions/category';
 import { getBusinessesByCategory } from '@/app/actions/business';
 import CategoryBusinessList from '@/components/category/CategoryBusinessList';
+import JsonLd from '@/components/JsonLd';
+import RelatedCategoryLinks from '@/components/seo/RelatedCategoryLinks';
 import { CATEGORY_LISTINGS_PAGE_SIZE } from '@/lib/categoryListings';
+import {
+  buildCategoryCollectionJsonLd,
+  buildCategorySlugMetadata,
+} from '@/lib/categorySeo';
+import { categoryHref } from '@/lib/categoryDisplay';
 import { Filter, Star, MapPin } from 'lucide-react';
 
-export default async function CategoryPage({ params }: { params: Promise<{ category: string }> }) {
+type PageProps = {
+  params: Promise<{ category: string }>;
+};
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const categorySlug = (await params).category;
+  const catResult = await getCategories(false);
+  const allCategories = catResult.success && catResult.categories ? catResult.categories : [];
+  const currentCategory = allCategories.find((c: { slug?: string }) => c.slug === categorySlug);
+
+  const name =
+    currentCategory?.name ||
+    (categorySlug === 'all' ? 'All Services' : categorySlug.replace(/-/g, ' '));
+
+  const bizResult = await getBusinessesByCategory(categorySlug, {
+    page: 1,
+    pageSize: 1,
+  });
+  const total = bizResult.success ? (bizResult.total ?? 0) : 0;
+
+  return buildCategorySlugMetadata(categorySlug, name, total);
+}
+
+export default async function CategoryPage({ params }: PageProps) {
   const categorySlug = (await params).category;
 
   const [catResult, bizResult] = await Promise.all([
@@ -13,15 +44,30 @@ export default async function CategoryPage({ params }: { params: Promise<{ categ
   ]);
 
   const allCategories = catResult.success && catResult.categories ? catResult.categories : [];
-  const currentCategory = allCategories.find((c: any) => c.slug === categorySlug) || {
-    name: categorySlug === 'all' ? 'All Services' : categorySlug,
+  const currentCategory = allCategories.find((c: { slug?: string; name?: string }) => c.slug === categorySlug) || {
+    name: categorySlug === 'all' ? 'All Services' : categorySlug.replace(/-/g, ' '),
+    slug: categorySlug,
   };
 
   const initialBusinesses = bizResult.success && bizResult.businesses ? bizResult.businesses : [];
   const total = bizResult.success ? (bizResult.total ?? initialBusinesses.length) : 0;
+  const jsonLd = buildCategoryCollectionJsonLd(
+    currentCategory.slug || categorySlug,
+    currentCategory.name,
+    total
+  );
+
+  const relatedCategories = allCategories
+    .filter((c: { slug?: string }) => c.slug && c.slug !== categorySlug)
+    .slice(0, 8)
+    .map((c: { name: string; slug?: string }) => ({
+      name: c.name,
+      href: categoryHref(c.slug, c.name),
+    }));
 
   return (
     <div className="bg-accent/30 min-h-screen pt-24 pb-12 lg:pt-32">
+      <JsonLd data={jsonLd} />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-12">
           <h1 className="text-3xl md:text-4xl lg:text-5xl font-black text-primary mb-4">
@@ -86,6 +132,10 @@ export default async function CategoryPage({ params }: { params: Promise<{ categ
                 </div>
               </div>
             </div>
+
+            {relatedCategories.length > 0 ? (
+              <RelatedCategoryLinks title="Related categories" links={relatedCategories} />
+            ) : null}
           </aside>
 
           <div className="flex-1">

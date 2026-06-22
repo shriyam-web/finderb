@@ -202,9 +202,7 @@ export async function findCategoryForBreadcrumb(categoryName: string) {
     }
 
     const slug = data.slug || data.name.toLowerCase().replace(/\s+/g, '-');
-    const href = data.parent_id
-      ? `/categories?search=${encodeURIComponent(data.name)}`
-      : `/categories?id=${data.id}`;
+    const href = categoryHref(slug, data.name);
 
     return {
       success: true as const,

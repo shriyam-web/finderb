@@ -14,6 +14,8 @@ import {
   lookupEmailAccountTypes,
 } from '@/lib/emailAccountLookup';
 import { mapBusinessRecord } from '@/lib/businessMapping';
+import { ensureBusinessSlug } from '@/lib/businessSlug.server';
+import { isLegacyBusinessId } from '@/lib/businessSlug';
 import {
   CATEGORY_LISTINGS_MAX_PAGE_SIZE,
   CATEGORY_LISTINGS_PAGE_SIZE,
@@ -146,14 +148,17 @@ export async function registerBusiness(formData: any) {
       throw error;
     }
 
-    console.log('[REGISTER] ✓ Success:', business.id);
+    const slug = await ensureBusinessSlug(supabase, business);
+    const businessWithSlug = { ...business, slug };
+
+    console.log('[REGISTER] ✓ Success:', businessWithSlug.id);
     
     // Set a cookie for the business ID to maintain session
-    await setBusinessSessionCookie(business.id);
+    await setBusinessSessionCookie(businessWithSlug.id);
 
     revalidatePath('/business');
     revalidateSitemap();
-    return { success: true, business };
+    return { success: true, business: businessWithSlug };
   } catch (error: any) {
     const duration = Date.now() - startTime;
     console.error(`[REGISTER] ✗ Failed after ${duration}ms:`, error);
@@ -299,32 +304,109 @@ export async function updateBusinessImages(id: string, images: string[], profile
   }
 }
 
-export async function getBusiness(id: string) {
+export async function getBusinessBySlugOrId(slugOrId: string) {
   try {
-    if (!id) {
-      return { success: false, error: 'Business ID is required' };
+    if (!slugOrId?.trim()) {
+      return { success: false, error: 'Business identifier is required' };
     }
 
+    const identifier = slugOrId.trim();
     const supabase = createClient(await cookies());
 
-    const { data: business, error } = await supabase
+    const { data: bySlug, error: slugError } = await supabase
       .from('Business')
       .select('*')
-      .eq('id', id)
-      .single();
+      .eq('slug', identifier)
+      .maybeSingle();
 
-    if (error) {
-      if (error.code === 'PGRST116') {
-        return { success: false, error: 'Business not found' };
-      }
-      throw error;
+    if (slugError) throw slugError;
+
+    let business = bySlug;
+
+    if (!business && isLegacyBusinessId(identifier)) {
+      const { data: byId, error: idError } = await supabase
+        .from('Business')
+        .select('*')
+        .eq('id', identifier)
+        .maybeSingle();
+
+      if (idError) throw idError;
+      business = byId;
     }
 
-    const publicBusiness = redactPublicBusinessFields(mapBusinessRecord(business));
+    if (!business) {
+      return { success: false, error: 'Business not found' };
+    }
+
+    const slug = await ensureBusinessSlug(supabase, business);
+    const mapped = mapBusinessRecord({ ...business, slug });
+    const publicBusiness = redactPublicBusinessFields(mapped);
     return { success: true, business: publicBusiness };
   } catch (error: any) {
     const errorMessage = handleError(error, 'Get Business');
     return { success: false, error: errorMessage };
+  }
+}
+
+/** @deprecated Use getBusinessBySlugOrId */
+export async function getBusiness(id: string) {
+  return getBusinessBySlugOrId(id);
+}
+
+export async function getRelatedBusinessesForProfile(
+  business: {
+    id: string;
+    category: string;
+    city?: string | null;
+  },
+  options?: { categoryLimit?: number; cityLimit?: number }
+) {
+  try {
+    const supabase = createClient(await cookies());
+    const categoryLimit = options?.categoryLimit ?? 4;
+    const cityLimit = options?.cityLimit ?? 4;
+
+    const categoryQuery = supabase
+      .from('Business')
+      .select('*')
+      .eq('status', 'Active')
+      .neq('id', business.id)
+      .ilike('category', `%${escapeIlikePattern(business.category)}%`)
+      .order('updatedAt', { ascending: false })
+      .limit(categoryLimit + 2);
+
+    let cityBusinesses: Record<string, unknown>[] = [];
+    if (business.city?.trim()) {
+      const { data } = await supabase
+        .from('Business')
+        .select('*')
+        .eq('status', 'Active')
+        .neq('id', business.id)
+        .ilike('city', `%${escapeIlikePattern(business.city.trim())}%`)
+        .order('updatedAt', { ascending: false })
+        .limit(cityLimit + 2);
+      cityBusinesses = data ?? [];
+    }
+
+    const { data: categoryRows, error } = await categoryQuery;
+    if (error) throw error;
+
+    const sameCategory = (categoryRows ?? [])
+      .map((row) => mapBusinessRecord(row))
+      .filter((row) => row.id !== business.id)
+      .slice(0, categoryLimit);
+
+    const sameCity = cityBusinesses
+      .map((row) => mapBusinessRecord(row))
+      .filter(
+        (row) => row.id !== business.id && !sameCategory.some((item) => item.id === row.id)
+      )
+      .slice(0, cityLimit);
+
+    return { success: true as const, sameCategory, sameCity };
+  } catch (error: any) {
+    const errorMessage = handleError(error, 'Get Related Businesses');
+    return { success: false as const, error: errorMessage };
   }
 }
 

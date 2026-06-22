@@ -1,31 +1,39 @@
 import type { Metadata } from 'next';
 import type { Business } from '@/lib/mockData';
+import { buildFaqJsonLd, buildBusinessSeoContent } from '@/lib/businessContent';
 import { getBusinessLocationLabel } from '@/lib/businessBreadcrumb';
 import { getPublicReviewRating, parseBusinessReviews } from '@/lib/businessReviews';
+import { reviewsToSchemaReviews, timingsToOpeningHoursSchema } from '@/lib/businessHoursSchema';
+import { getBusinessIndexDecision } from '@/lib/businessIndexation';
+import { categoryHref } from '@/lib/categoryDisplay';
+import { getBusinessProfilePath } from '@/lib/businessSlug';
+import { footerSearchHref } from '@/lib/footerData';
+import {
+  buildBreadcrumbJsonLd,
+  buildJsonLdGraph,
+  buildPageMetadata,
+  NO_INDEX_ROBOTS,
+  resolveAbsoluteUrl,
+  truncate,
+} from '@/lib/seoUtils';
 
 export const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || 'https://finderb.com';
 const SITE_NAME = 'FinderB';
 const DEFAULT_OG_IMAGE = '/logo1.png';
 
-function truncate(text: string, max: number): string {
-  const trimmed = text.trim();
-  if (trimmed.length <= max) return trimmed;
-  return `${trimmed.slice(0, max - 1).trim()}…`;
+export { resolveAbsoluteUrl };
+
+export function getBusinessCanonicalPath(business: { id: string; slug?: string | null }): string {
+  return getBusinessProfilePath(business);
 }
 
-export function resolveAbsoluteUrl(path: string): string {
-  if (path.startsWith('http://') || path.startsWith('https://')) return path;
-  return `${SITE_URL}${path.startsWith('/') ? path : `/${path}`}`;
-}
-
-export function getBusinessCanonicalPath(id: string): string {
-  return `/business/${id}`;
-}
-
-export function getBusinessShareUrl(id: string, origin?: string): string {
+export function getBusinessShareUrl(
+  business: { id: string; slug?: string | null },
+  origin?: string
+): string {
   const base = origin?.replace(/\/$/, '') || SITE_URL;
-  return `${base}${getBusinessCanonicalPath(id)}`;
+  return `${base}${getBusinessCanonicalPath(business)}`;
 }
 
 export function getBusinessOgImage(
@@ -39,122 +47,108 @@ export function getBusinessOgImage(
   return candidate ? resolveAbsoluteUrl(candidate) : resolveAbsoluteUrl(DEFAULT_OG_IMAGE);
 }
 
-export function buildBusinessDescription(business: Business): string {
+export function buildBusinessMetaTitle(business: Business): string {
   const location = getBusinessLocationLabel(business);
-  const reviews = parseBusinessReviews(business.review);
-  const rating = getPublicReviewRating(reviews);
-  const parts: string[] = [];
+  const locationPart = location ? ` ${location}` : '';
+  return `${business.name}${locationPart} | Reviews, Contact Number, Address`;
+}
 
-  parts.push(
-    `${business.name}${business.category ? ` — ${business.category}` : ''}${
-      location ? ` in ${location}` : ''
-    }.`
+export function buildBusinessMetaDescription(business: Business): string {
+  const location = getBusinessLocationLabel(business);
+  const locationPart = location ? ` ${location}` : '';
+  const services = business.services?.slice(0, 3).join(', ');
+  const servicePart = services ? `, ${services}` : ', services';
+
+  return truncate(
+    `Find ${business.name}${locationPart} reviews, photos, contact number, address${servicePart} and customer ratings on FinderB.`,
+    160
   );
+}
 
-  if (rating != null && reviews.length > 0) {
-    parts.push(`Rated ${rating}/5 from ${reviews.length} review${reviews.length === 1 ? '' : 's'}.`);
-  }
-
-  const blurb = business.description || business.about || '';
-  if (blurb) parts.push(truncate(blurb, 140));
-
-  parts.push('Contact details, hours, services and offers on FinderB.');
-
-  return truncate(parts.join(' '), 300);
+export function buildBusinessDescription(business: Business): string {
+  return buildBusinessMetaDescription(business);
 }
 
 export function buildBusinessPageTitle(business: Business): string {
-  const location = getBusinessLocationLabel(business);
-  const locationSuffix = location ? `, ${location}` : '';
-  const categorySuffix = business.category ? ` — ${business.category}` : '';
-  return `${business.name}${categorySuffix}${locationSuffix}`;
+  return buildBusinessMetaTitle(business);
 }
 
-export function buildBusinessMetadata(id: string, business: Business | null): Metadata {
-  const canonicalPath = getBusinessCanonicalPath(id);
-  const canonicalUrl = resolveAbsoluteUrl(canonicalPath);
+type BusinessMetaRecord = Business & {
+  status?: string | null;
+  paymentStatus?: string | null;
+  slug?: string | null;
+};
 
+export function buildBusinessMetadata(business: BusinessMetaRecord | null): Metadata {
   if (!business) {
-    return {
+    return buildPageMetadata({
       title: 'Business not found',
       description: 'This business listing could not be found on FinderB.',
-      robots: { index: false, follow: false },
-      alternates: { canonical: canonicalPath },
-    };
+      canonicalPath: '/categories',
+      robots: NO_INDEX_ROBOTS,
+    });
   }
 
-  const title = buildBusinessPageTitle(business);
-  const description = buildBusinessDescription(business);
+  const canonicalPath = getBusinessCanonicalPath(business);
+  const indexDecision = getBusinessIndexDecision(business);
+  const title = buildBusinessMetaTitle(business);
+  const description = buildBusinessMetaDescription(business);
   const ogImage = getBusinessOgImage(business);
+  const location = getBusinessLocationLabel(business);
+
   const keywords = [
     business.name,
+    `${business.name} ${location || ''}`.trim(),
+    `${business.name} ${business.category}`.trim(),
     business.category,
+    location ? `${business.category} in ${location}` : undefined,
     business.city,
     business.state,
+    business.contact,
     'local business',
-    'verified business',
+    'reviews',
     SITE_NAME,
     ...(business.keywords ?? []),
     ...(business.services ?? []).slice(0, 6),
   ].filter((value): value is string => Boolean(value && String(value).trim()));
 
-  return {
+  return buildPageMetadata({
     title,
     description,
+    canonicalPath,
+    ogImage,
     keywords,
-    alternates: { canonical: canonicalUrl },
-    openGraph: {
-      type: 'website',
-      url: canonicalUrl,
-      title,
-      description,
-      siteName: SITE_NAME,
-      locale: 'en_IN',
-      images: [
-        {
-          url: ogImage,
-          width: 1200,
-          height: 630,
-          alt: `${business.name} on FinderB`,
-        },
-      ],
-    },
-    twitter: {
-      card: 'summary_large_image',
-      site: '@finderb',
-      creator: '@finderb',
-      title,
-      description,
-      images: {
-        url: ogImage,
-        alt: `${business.name} on FinderB`,
-      },
-    },
-    robots: {
-      index: true,
-      follow: true,
-      googleBot: {
-        index: true,
-        follow: true,
-        'max-image-preview': 'large',
-        'max-snippet': -1,
-      },
-    },
-  };
+    robots: indexDecision.index ? undefined : NO_INDEX_ROBOTS,
+  });
 }
 
-export function buildBusinessJsonLd(id: string, business: Business) {
-  const url = resolveAbsoluteUrl(getBusinessCanonicalPath(id));
+export function buildCityCategorySearchPath(category: string, city?: string | null): string {
+  const cityLabel = city?.trim();
+  if (!cityLabel) return footerSearchHref(category);
+  return footerSearchHref(`${category} in ${cityLabel}`);
+}
+
+export function buildBusinessJsonLd(
+  business: BusinessMetaRecord,
+  categorySlug?: string | null
+) {
+  const canonicalPath = getBusinessCanonicalPath(business);
+  const url = resolveAbsoluteUrl(canonicalPath);
   const reviews = parseBusinessReviews(business.review);
   const rating = getPublicReviewRating(reviews);
   const image = getBusinessOgImage(business);
+  const location = getBusinessLocationLabel(business);
+  const seoContent = buildBusinessSeoContent(business);
+  const categoryPath =
+    business.category && categorySlug
+      ? categoryHref(categorySlug, business.category)
+      : buildCityCategorySearchPath(business.category, business.city);
 
-  const schema: Record<string, unknown> = {
-    '@context': 'https://schema.org',
+  const localBusiness: Record<string, unknown> = {
     '@type': 'LocalBusiness',
     '@id': url,
     name: business.name,
-    description: business.description || business.about || buildBusinessDescription(business),
+    description: business.about || business.description || seoContent.about,
     url,
     image: [image],
     telephone: business.contact || undefined,
@@ -163,7 +157,7 @@ export function buildBusinessJsonLd(id: string, business: Business) {
       ? {
           '@type': 'PostalAddress',
           streetAddress: business.businessAddress,
-          addressLocality: business.city || undefined,
+          addressLocality: business.city || location || undefined,
           addressRegion: business.state || undefined,
           addressCountry: 'IN',
         }
@@ -176,24 +170,47 @@ export function buildBusinessJsonLd(id: string, business: Business) {
             longitude: business.longitude,
           }
         : undefined,
-    sameAs: [business.website, business.instagramUrl, business.facebookUrl, business.youtubeUrl].filter(
-      Boolean
-    ),
+    sameAs: [
+      business.website,
+      business.instagramUrl,
+      business.facebookUrl,
+      business.youtubeUrl,
+    ].filter(Boolean),
   };
 
   if (business.category) {
-    schema.category = business.category;
+    localBusiness.category = business.category;
+  }
+
+  const openingHours = timingsToOpeningHoursSchema(business.timings);
+  if (openingHours.length) {
+    localBusiness.openingHoursSpecification = openingHours;
   }
 
   if (rating != null && reviews.length > 0) {
-    schema.aggregateRating = {
+    localBusiness.aggregateRating = {
       '@type': 'AggregateRating',
       ratingValue: rating,
       reviewCount: reviews.length,
       bestRating: 5,
       worstRating: 1,
     };
+    localBusiness.review = reviewsToSchemaReviews(reviews);
   }
 
-  return schema;
+  const breadcrumbs = buildBreadcrumbJsonLd([
+    { name: 'Home', path: '/' },
+    { name: 'Categories', path: '/categories' },
+    ...(business.category ? [{ name: business.category, path: categoryPath }] : []),
+    ...(location
+      ? [{ name: location, path: buildCityCategorySearchPath(business.category, business.city) }]
+      : []),
+    { name: business.name, path: canonicalPath },
+  ]);
+
+  const faqNode = buildFaqJsonLd(seoContent.faqs, url);
+  const graph = [localBusiness, breadcrumbs];
+  if (faqNode) graph.push(faqNode);
+
+  return buildJsonLdGraph(...graph);
 }

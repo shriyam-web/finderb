@@ -8,8 +8,11 @@ import { getBusinessesByCategory } from '@/app/actions/business';
 import { CATEGORY_LISTINGS_PAGE_SIZE } from '@/lib/categoryListings';
 import { setLastSearchQuery } from '@/lib/lastSearchQuery';
 
+import { getBusinessProfilePath } from '@/lib/businessSlug';
+
 type MerchantListing = {
   id: string;
+  slug?: string | null;
   name: string;
   category?: string;
   location?: string;
@@ -164,7 +167,7 @@ export default function CategoryMerchantList({
 
   const openBusiness = (biz: MerchantListing) => {
     if (searchQuery.trim()) setLastSearchQuery(searchQuery);
-    router.push(`/business/${biz.id}`);
+    router.push(getBusinessProfilePath(biz));
   };
 
   if (loading) {

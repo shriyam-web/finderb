@@ -38,6 +38,7 @@ model Business {
   state                                                  String?
   country                                                String?
   status                                                 String       @default("Active")
+  slug                                                   String?      @unique
   images                                                 String[]     @default([])
   profilePictureUrl                                      String?
   about                                                  String?
@@ -69,6 +70,7 @@ model Business {
   @@index([status], map: "idx_business_status")
   @@index([category], map: "idx_business_category")
   @@index([city], map: "idx_business_city")
+  @@index([slug], map: "idx_business_slug")
 }
 
 model jobs {

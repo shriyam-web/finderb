@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { Star, MapPin } from 'lucide-react';
 import { Business } from '@/lib/mockData';
 import { getBusinessOpenStatus } from '@/lib/businessHours';
+import { getBusinessProfilePath } from '@/lib/businessSlug';
 import { VerifiedNameTick } from '@/components/business/VerifiedMark';
 
 interface BusinessCardProps {
@@ -124,7 +125,7 @@ export default function BusinessCard({
 
             <div className="mt-auto border-t border-gray-100 pt-2">
               <Link
-                href={`/business/${business.id}`}
+                href={getBusinessProfilePath(business)}
                 className="flex w-full items-center justify-center rounded-lg bg-secondary py-2 text-[9px] font-bold uppercase text-white shadow-md transition-all hover:bg-primary active:scale-95 sm:text-[10px]"
               >
                 Details
@@ -183,7 +184,7 @@ export default function BusinessCard({
                 </div>
               )}
               <Link
-                href={`/business/${business.id}`}
+                href={getBusinessProfilePath(business)}
                 className={`rounded-xl bg-secondary font-bold uppercase text-white shadow-md transition-all hover:bg-primary hover:shadow-lg hover:shadow-secondary/30 active:scale-95 ${
                   compact
                     ? 'px-4 py-2 text-[9px]'

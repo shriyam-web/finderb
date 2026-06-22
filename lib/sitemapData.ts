@@ -2,8 +2,9 @@ import { createClient } from '@supabase/supabase-js';
 import type { MetadataRoute } from 'next';
 import { revalidatePath } from 'next/cache';
 import { revalidateHomePage } from '@/lib/homePageData';
+import { SITE_ORIGIN } from '@/lib/siteSeo';
 
-export const SITEMAP_BASE_URL = 'https://finderb.com';
+export const SITEMAP_BASE_URL = SITE_ORIGIN;
 
 type SitemapEntry = MetadataRoute.Sitemap[number];
 
@@ -57,9 +58,8 @@ const STATIC_PAGES: Array<{
   { path: '/shipping-delivery', changeFrequency: 'yearly', priority: 0.3 },
   { path: '/advertisements', changeFrequency: 'monthly', priority: 0.4 },
   { path: '/hirings', changeFrequency: 'weekly', priority: 0.4 },
-  { path: '/login', changeFrequency: 'monthly', priority: 0.7 },
-  { path: '/signup', changeFrequency: 'monthly', priority: 0.6 },
-  { path: '/business/login', changeFrequency: 'monthly', priority: 0.7 },
+  { path: '/policy', changeFrequency: 'yearly', priority: 0.3 },
+  { path: '/business/register', changeFrequency: 'monthly', priority: 0.7 },
   { path: '/business/list', changeFrequency: 'weekly', priority: 0.5 },
 ];
 
@@ -72,13 +72,13 @@ function getStaticEntries(): SitemapEntry[] {
 async function fetchActiveBusinesses() {
   const supabase = getSupabase();
   const pageSize = 1000;
-  const businesses: { id: string; updatedAt: string | null }[] = [];
+  const businesses: { id: string; slug: string | null; updatedAt: string | null }[] = [];
   let from = 0;
 
   while (true) {
     const { data, error } = await supabase
       .from('Business')
-      .select('id, updatedAt')
+      .select('id, slug, updatedAt')
       .eq('status', 'Active')
       .order('updatedAt', { ascending: false })
       .range(from, from + pageSize - 1);
@@ -144,7 +144,7 @@ async function fetchDynamicEntries(): Promise<SitemapEntry[]> {
   );
 
   const businessEntries = businesses.map((business) =>
-    toEntry(`/business/${business.id}`, {
+    toEntry(`/business/${business.slug || business.id}`, {
       lastModified: parseDate(business.updatedAt),
       changeFrequency: 'daily',
       priority: 0.7,
@@ -199,7 +199,7 @@ export async function getSitemapSections(): Promise<SitemapSection[]> {
         .order('name', { ascending: true }),
       supabase
         .from('Business')
-        .select('id, businessName')
+        .select('id, slug, businessName')
         .eq('status', 'Active')
         .order('updatedAt', { ascending: false })
         .limit(200),
@@ -222,7 +222,7 @@ export async function getSitemapSections(): Promise<SitemapSection[]> {
         title: 'Business listings',
         links: businesses.data.map((business) => ({
           label: business.businessName,
-          href: `/business/${business.id}`,
+          href: `/business/${business.slug || business.id}`,
         })),
       });
     }

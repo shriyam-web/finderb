@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import CategoryIcon from '@/components/CategoryIcon';
 import { Category } from '@/lib/mockData';
+import { categoryHref } from '@/lib/categoryDisplay';
 
 interface CategoryCardProps {
   category: Category;
@@ -11,7 +12,7 @@ export default function CategoryCard({ category }: CategoryCardProps) {
 
   return (
     <Link
-      href={`/categories?id=${category.id}`}
+      href={categoryHref(category.slug, category.name)}
       className="group relative flex flex-col items-center rounded-2xl border border-gray-100 bg-white px-1 py-2.5 text-center shadow-sm transition-all duration-300 hover:border-primary/20 hover:shadow-md sm:rounded-[2rem] sm:border-gray-50 sm:p-6 sm:shadow-none sm:hover:border-transparent sm:hover:shadow-lg"
     >
       {/* Mobile — icon + label only (no nested icon box) */}

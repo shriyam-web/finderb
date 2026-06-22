@@ -80,9 +80,9 @@
   --animate-splash-tag-float: splash-tag-float 7s ease-in-out infinite;
   --animate-splash-title-in: splash-title-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
   --animate-splash-perimeter-drift: splash-perimeter-drift 6s ease-in-out infinite;
-  --font-sans: 'Google Sans', var(--font-inter), 'Inter', system-ui, -apple-system, sans-serif;
-  --font-outfit: 'Google Sans', var(--font-outfit), 'Outfit', 'Inter', sans-serif;
-  --font-heading: 'Google Sans', var(--font-poppins), 'Poppins', 'Inter', sans-serif;
+  --font-sans: var(--font-inter), 'Inter', system-ui, -apple-system, sans-serif;
+  --font-outfit: var(--font-outfit), 'Outfit', 'Inter', sans-serif;
+  --font-heading: var(--font-outfit), 'Outfit', 'Inter', sans-serif;
 
   @keyframes float {
     0%, 100% { transform: translateY(0); }

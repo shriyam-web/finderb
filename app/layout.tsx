@@ -6,13 +6,15 @@ import ServiceWorkerRegister from "@/components/pwa/ServiceWorkerRegister";
 import { getRootStructuredData, rootSiteMetadata } from "@/lib/siteSeo";
 
 const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-inter",
+  subsets: ['latin'],
+  variable: '--font-inter',
+  display: 'swap',
 });
 
 const outfit = Outfit({
-  subsets: ["latin"],
-  variable: "--font-outfit",
+  subsets: ['latin'],
+  variable: '--font-outfit',
+  display: 'swap',
 });
 
 const googleSiteVerification = process.env.GOOGLE_SITE_VERIFICATION?.trim();
@@ -50,7 +52,6 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} ${outfit.variable} h-full antialiased`}>
       <head>
-        <link href="https://fonts.cdnfonts.com/css/google-sans" rel="stylesheet" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}

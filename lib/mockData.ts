@@ -1,5 +1,6 @@
 export interface Business {
   id: string;
+  slug?: string | null;
   name: string;
   category: string;
   rating: number | null;
