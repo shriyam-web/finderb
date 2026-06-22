@@ -5,6 +5,13 @@ import { FOOTER_SOCIAL_LINKS } from '@/lib/footerData';
 export const SITE_NAME = 'FinderB';
 export const SITE_ORIGIN =
   process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || 'https://finderb.com';
+
+/** Meta app ID for fb:app_id (Facebook Sharing Debugger / WhatsApp link previews). */
+export function getFacebookMetadata(): Metadata['facebook'] | undefined {
+  const appId = process.env.FACEBOOK_APP_ID?.trim();
+  if (!appId) return undefined;
+  return { appId };
+}
 /** Canonical home URL — trailing slash per Google site-name guidelines. */
 export const SITE_HOME_URL = `${SITE_ORIGIN}/`;
 
@@ -52,6 +59,8 @@ export const SITELINK_NAV_LINKS = [
     description: 'Learn about FinderB, India\'s local discovery and business directory platform.',
   },
 ] as const;
+
+const facebookMetadata = getFacebookMetadata();
 
 export const rootSiteMetadata: Metadata = {
   title: {
@@ -110,6 +119,7 @@ export const rootSiteMetadata: Metadata = {
     icon: '/icon-192.png',
     apple: '/icon-192.png',
   },
+  ...(facebookMetadata ? { facebook: facebookMetadata } : {}),
 };
 
 /** Single @graph block for Organization + WebSite (Google site-name guidelines). */

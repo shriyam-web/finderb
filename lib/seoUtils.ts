@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { SITE_NAME, SITE_ORIGIN } from '@/lib/siteSeo';
+import { SITE_NAME, SITE_ORIGIN, getFacebookMetadata } from '@/lib/siteSeo';
 
 export function truncate(text: string, max: number): string {
   const trimmed = text.trim();
@@ -55,6 +55,7 @@ export function buildPageMetadata({
   const imageUrl = resolveAbsoluteUrl(ogImage);
   const shareTitle = openGraphTitle || title;
   const shareDescription = openGraphDescription || description;
+  const facebookMetadata = getFacebookMetadata();
 
   return {
     title,
@@ -79,6 +80,7 @@ export function buildPageMetadata({
       images: { url: imageUrl, alt: shareTitle },
     },
     robots,
+    ...(facebookMetadata ? { facebook: facebookMetadata } : {}),
   };
 }
 
