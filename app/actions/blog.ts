@@ -1,7 +1,6 @@
 'use server';
 
-import { createClient } from '@/utils/supabase/server';
-import { cookies } from 'next/headers';
+import { getPublicSupabase } from '@/lib/supabase/public';
 import { stripHtml } from '@/lib/stripHtml';
 import { sanitizeRichHtml } from '@/lib/security/sanitizeHtml';
 
@@ -12,7 +11,7 @@ function plainExcerpt(excerpt: string | null | undefined, content: string | null
 
 export async function getBlogs() {
   try {
-    const supabase = createClient(await cookies());
+    const supabase = getPublicSupabase();
 
     const { data: blogs, error } = await supabase
       .from('blogs')
@@ -48,7 +47,7 @@ export async function getBlogBySlug(slugOrId: string) {
   const identifier = slugOrId.trim();
 
   try {
-    const supabase = createClient(await cookies());
+    const supabase = getPublicSupabase();
 
     // 1. Try finding by slug first (most common for detailed pages)
     let { data: blog } = await supabase

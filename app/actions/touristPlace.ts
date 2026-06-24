@@ -1,7 +1,6 @@
 'use server';
 
-import { createClient } from '@/utils/supabase/server';
-import { cookies } from 'next/headers';
+import { getPublicSupabase } from '@/lib/supabase/public';
 import { geocodePlaceQuery } from '@/app/actions/location';
 import { distanceKmFromUser, type TouristPlaceLike } from '@/lib/touristPlaceSort';
 import { formatDistanceFromUser } from '@/lib/geo';
@@ -26,7 +25,7 @@ async function coordsForLocation(location: string): Promise<{ lat: number; lng: 
 
 export async function getTouristPlaces() {
   try {
-    const supabase = createClient(await cookies());
+    const supabase = getPublicSupabase();
 
     const { data: places, error } = await supabase
       .from('tourist_places')
@@ -94,7 +93,7 @@ export async function getTouristPlaceBySlugOrId(slugOrId: string) {
     }
 
     const identifier = slugOrId.trim();
-    const supabase = createClient(await cookies());
+    const supabase = getPublicSupabase();
 
     const { data: bySlug, error: slugError } = await supabase
       .from('tourist_places')
@@ -141,7 +140,7 @@ export async function getNearbyTouristPlaces(
   limit = 3
 ) {
   try {
-    const supabase = createClient(await cookies());
+    const supabase = getPublicSupabase();
 
     const { data: places, error } = await supabase
       .from('tourist_places')
