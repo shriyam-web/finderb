@@ -7,6 +7,7 @@ import {
   getPlanAmountInPaise,
   getRazorpayPlanId,
   isMonthlyMandateBilling,
+  MANDATE_VALIDITY_YEARS,
 } from '@/lib/razorpay/plans';
 
 export type RazorpaySubscriptionEntity = {
@@ -105,10 +106,16 @@ async function razorpayRequest<T>(
   return { ok: true, data: data as T };
 }
 
-/** ~100 years of monthly billing — Razorpay maximum practical duration. */
-const MONTHLY_SUBSCRIPTION_TOTAL_COUNT = 1200;
+/** Mandate consent window at Razorpay checkout (not “until 2126”). Merchants can still cancel anytime. */
+export { MANDATE_VALIDITY_YEARS } from '@/lib/razorpay/plans';
 
 const AUTH_CHECKOUT_EXPIRY_SEC = 60 * 60 * 24 * 7;
+
+function mandateEndAtUnix(fromSec: number, years: number): number {
+  const end = new Date(fromSec * 1000);
+  end.setFullYear(end.getFullYear() + years);
+  return Math.floor(end.getTime() / 1000);
+}
 
 export async function createRazorpaySubscription(params: {
   businessId: string;
@@ -141,7 +148,7 @@ export async function createRazorpaySubscription(params: {
     method: 'POST',
     body: JSON.stringify({
       plan_id: planId,
-      total_count: MONTHLY_SUBSCRIPTION_TOTAL_COUNT,
+      end_at: mandateEndAtUnix(nowSec, MANDATE_VALIDITY_YEARS),
       quantity: 1,
       customer_notify: true,
       expire_by: nowSec + AUTH_CHECKOUT_EXPIRY_SEC,

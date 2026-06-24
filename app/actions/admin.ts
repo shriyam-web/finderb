@@ -14,8 +14,132 @@ import {
 import { formatAmountInr, getPlanDisplayName } from '@/lib/subscription/merchantSubscription';
 
 const PAYMENTS_PAGE_SIZE = 25;
+const ACTIVITY_FETCH_LIMIT = 8;
 
-export type AdminPaymentRecord = {
+export type AdminActivityEventType =
+  | 'user_joined'
+  | 'partner_joined'
+  | 'new_lead'
+  | 'payment_completed';
+
+export type AdminActivityEvent = {
+  id: string;
+  type: AdminActivityEventType;
+  title: string;
+  subtitle: string;
+  occurredAt: string;
+  iconLetter: string;
+};
+
+function activityIconLetter(value: string) {
+  const letter = value.trim().charAt(0).toUpperCase();
+  return letter || '?';
+}
+
+function mergeActivityEvents(events: AdminActivityEvent[], limit: number) {
+  return events
+    .sort((a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime())
+    .slice(0, limit);
+}
+
+export async function getAdminActivityEvents(limit = ACTIVITY_FETCH_LIMIT) {
+  const auth = await assertAdminSession();
+  if (!auth.ok) {
+    return { success: false as const, error: auth.error };
+  }
+
+  const supabase = createServiceClient();
+  if (!supabase) {
+    return { success: false as const, error: 'Admin service is not configured' };
+  }
+
+  const perSource = Math.max(limit, 5);
+
+  const [usersRes, businessesRes, leadsRes, paymentsRes] = await Promise.all([
+    supabase
+      .from('User')
+      .select('id, fullName, email, createdAt')
+      .order('createdAt', { ascending: false })
+      .limit(perSource),
+    supabase
+      .from('Business')
+      .select('id, businessName, email, workEmail, createdAt')
+      .order('createdAt', { ascending: false })
+      .limit(perSource),
+    supabase
+      .from('leads')
+      .select('id, name, email, category, created_at')
+      .order('created_at', { ascending: false })
+      .limit(perSource),
+    supabase
+      .from('merchant_payments')
+      .select('id, plan, amount_paise, status, created_at, Business:business_id (businessName)')
+      .eq('status', 'completed')
+      .order('created_at', { ascending: false })
+      .limit(perSource),
+  ]);
+
+  const events: AdminActivityEvent[] = [];
+
+  for (const user of usersRes.data ?? []) {
+    const name = String(user.fullName ?? 'User');
+    const email = String(user.email ?? '');
+    events.push({
+      id: `user-${user.id}`,
+      type: 'user_joined',
+      title: 'New User Joined',
+      subtitle: email ? `${name} (${email})` : name,
+      occurredAt: String(user.createdAt),
+      iconLetter: activityIconLetter(name),
+    });
+  }
+
+  for (const business of businessesRes.data ?? []) {
+    const name = String(business.businessName ?? 'Business');
+    const email = String(business.email || business.workEmail || '');
+    events.push({
+      id: `business-${business.id}`,
+      type: 'partner_joined',
+      title: 'New Partner Joined',
+      subtitle: email ? `${name} (${email})` : name,
+      occurredAt: String(business.createdAt),
+      iconLetter: activityIconLetter(name),
+    });
+  }
+
+  for (const lead of leadsRes.data ?? []) {
+    const name = String(lead.name ?? 'Lead');
+    const category = String(lead.category ?? 'General');
+    const email = lead.email ? String(lead.email) : '';
+    events.push({
+      id: `lead-${lead.id}`,
+      type: 'new_lead',
+      title: 'New Lead',
+      subtitle: email ? `${name} · ${category} (${email})` : `${name} · ${category}`,
+      occurredAt: String(lead.created_at),
+      iconLetter: activityIconLetter(name),
+    });
+  }
+
+  for (const payment of paymentsRes.data ?? []) {
+    const business = Array.isArray(payment.Business) ? payment.Business[0] : payment.Business;
+    const businessName = String((business as { businessName?: string } | null)?.businessName ?? 'Merchant');
+    events.push({
+      id: `payment-${payment.id}`,
+      type: 'payment_completed',
+      title: 'Plan Recharge Completed',
+      subtitle: `${businessName} · ${getPlanDisplayName(String(payment.plan))} (${formatAmountInr(Number(payment.amount_paise))})`,
+      occurredAt: String(payment.created_at),
+      iconLetter: activityIconLetter(businessName),
+    });
+  }
+
+  return {
+    success: true as const,
+    events: mergeActivityEvents(events, limit),
+  };
+}
+
   id: string;
   businessId: string;
   businessName: string;

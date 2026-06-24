@@ -27,7 +27,7 @@ export default function AdminLoginPage() {
 
     const result = await loginAdmin(email, password);
     if (result.success) {
-      router.push('/admin/payments');
+      router.push('/admin/dashboard');
       return;
     }
 

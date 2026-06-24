@@ -17,6 +17,7 @@ import {
   logoutAdmin,
   type AdminPaymentRecord,
 } from '@/app/actions/admin';
+import { formatDateTimeInr } from '@/lib/formatDateTime';
 
 const STATUS_OPTIONS = [
   { value: 'all', label: 'All statuses' },
@@ -39,14 +40,7 @@ function statusTone(status: string) {
 }
 
 function formatDateTime(value: string | null) {
-  if (!value) return '—';
-  return new Date(value).toLocaleString('en-IN', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  return formatDateTimeInr(value);
 }
 
 export default function AdminPaymentsPage() {
@@ -129,14 +123,22 @@ export default function AdminPaymentsPage() {
               <h1 className="text-lg font-bold text-zinc-900">Merchant recharges</h1>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="inline-flex items-center gap-2 rounded-lg border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
-          >
-            <HiOutlineArrowLeftOnRectangle size={16} />
-            Sign out
-          </button>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/admin/dashboard"
+              className="inline-flex items-center gap-2 rounded-lg border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
+            >
+              Dashboard
+            </Link>
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="inline-flex items-center gap-2 rounded-lg border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
+            >
+              <HiOutlineArrowLeftOnRectangle size={16} />
+              Sign out
+            </button>
+          </div>
         </div>
       </header>
 

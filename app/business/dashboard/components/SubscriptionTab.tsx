@@ -9,6 +9,7 @@ import {
   HiOutlineExclamationTriangle,
 } from 'react-icons/hi2';
 import MerchantRechargeButton from '@/components/business/MerchantRechargeButton';
+import { formatDateTimeInr } from '@/lib/formatDateTime';
 import {
   cancelMerchantAutoRenew,
   getMerchantSubscriptionDetails,
@@ -58,14 +59,7 @@ function historyStatusTone(status: string) {
 }
 
 function formatDateTime(value: string | null) {
-  if (!value) return '—';
-  return new Date(value).toLocaleString('en-IN', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  return formatDateTimeInr(value);
 }
 
 export default function SubscriptionTab({

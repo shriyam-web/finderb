@@ -17,7 +17,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { MerchantAuthMain } from '@/components/business/MerchantAuthShell';
-import { MERCHANT_PLANS, type BillingCycle } from '@/lib/razorpay/plans';
+import { MERCHANT_PLANS, type BillingCycle, MANDATE_VALIDITY_YEARS } from '@/lib/razorpay/plans';
 import {
   EARLY_BIRD_BADGE_LABEL,
   formatInr,
@@ -265,7 +265,7 @@ export default function MerchantPaymentCheckout({
               <p className="mt-4 max-w-xl text-sm leading-relaxed text-[#5c4a3d] sm:text-base">
                 {isAnnual
                   ? 'Unlock lead phone numbers, verified badge, and priority placement. Pay once for 12 months — no recurring mandate required.'
-                  : 'Unlock lead contacts and premium visibility. You will authorize a secure RBI-compliant e-mandate so Growth Pro renews automatically each month until you cancel.'}
+                  : 'Unlock lead contacts and premium visibility. Authorize a secure monthly e-mandate (up to 5 years). Cancel auto-debit anytime from Subscription settings.'}
               </p>
             </div>
 
@@ -441,8 +441,9 @@ export default function MerchantPaymentCheckout({
 
                 {!isAnnual && (
                   <p className="mt-3 text-center text-[11px] leading-relaxed text-white/60">
-                    By continuing you authorize FinderB to auto-debit ₹499/month via Razorpay until you
-                    cancel from your subscription settings. RBI-compliant e-mandate / UPI Autopay.
+                    By continuing you authorize ₹499/month via Razorpay until you cancel from Subscription
+                    settings. Mandate consent is limited to {MANDATE_VALIDITY_YEARS} years (RBI e-mandate
+                    norms); you can stop auto-debit anytime.
                   </p>
                 )}
 
