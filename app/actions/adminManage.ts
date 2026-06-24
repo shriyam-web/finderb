@@ -5,7 +5,6 @@ import { createServiceClient } from '@/lib/supabase/service';
 import { auditAdminMutation, requireAdminMutation } from '@/lib/admin/auditContext.server';
 import {
   getAdminResourceConfig,
-  isAdminResourceKey,
   ADMIN_RESOURCE_LIST,
   type AdminResourceKey,
 } from '@/lib/admin/resources';
@@ -242,14 +241,4 @@ export async function adminDeleteResourceBatch(resourceKey: string, ids: string[
   }
 
   return { success: true as const, deleted, total: uniqueIds.length };
-}
-
-export function getAdminResourceKeysForTabs(allowedTabs: string[] | null | undefined) {
-  if (!allowedTabs?.length) {
-    return ADMIN_RESOURCE_LIST.map((resource) => resource.key);
-  }
-
-  const normalized = new Set(allowedTabs.map((tab) => tab.toLowerCase().trim()));
-  const matched = ADMIN_RESOURCE_LIST.filter((resource) => normalized.has(resource.key));
-  return matched.length ? matched.map((resource) => resource.key) : ADMIN_RESOURCE_LIST.map((r) => r.key);
 }

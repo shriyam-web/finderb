@@ -169,3 +169,13 @@ export function isAdminResourceKey(value: string): value is AdminResourceKey {
 export function getAdminResourceConfig(key: string): AdminResourceConfig | null {
   return isAdminResourceKey(key) ? ADMIN_RESOURCES[key] : null;
 }
+
+export function getAdminResourceKeysForTabs(allowedTabs: string[] | null | undefined) {
+  if (!allowedTabs?.length) {
+    return ADMIN_RESOURCE_LIST.map((resource) => resource.key);
+  }
+
+  const normalized = new Set(allowedTabs.map((tab) => tab.toLowerCase().trim()));
+  const matched = ADMIN_RESOURCE_LIST.filter((resource) => normalized.has(resource.key));
+  return matched.length ? matched.map((resource) => resource.key) : ADMIN_RESOURCE_LIST.map((r) => r.key);
+}
