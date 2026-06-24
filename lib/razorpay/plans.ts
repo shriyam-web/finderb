@@ -47,3 +47,29 @@ export function isValidBillingCycle(value: string): value is BillingCycle {
 export function isValidMerchantPlan(value: string): value is MerchantPlan {
   return value === 'pro';
 }
+
+/** Monthly plans use Razorpay Subscriptions + e-mandate auto-debit. */
+export function isMonthlyMandateBilling(billingCycle: BillingCycle): boolean {
+  return billingCycle === 'monthly';
+}
+
+export function getRazorpayPlanId(plan: MerchantPlan, billingCycle: BillingCycle): string {
+  if (plan !== 'pro') {
+    throw new Error('Unsupported plan for Razorpay billing.');
+  }
+
+  if (billingCycle === 'monthly') {
+    const planId = process.env.RAZORPAY_PLAN_ID_PRO_MONTHLY?.trim();
+    if (!planId) {
+      throw new Error(
+        'RAZORPAY_PLAN_ID_PRO_MONTHLY is not configured. Create a monthly plan in Razorpay Dashboard and add the plan ID to your environment.'
+      );
+    }
+    return planId;
+  }
+
+  const annualPlanId = process.env.RAZORPAY_PLAN_ID_PRO_ANNUAL?.trim();
+  if (annualPlanId) return annualPlanId;
+
+  throw new Error('Annual billing uses one-time checkout; no subscription plan ID required.');
+}

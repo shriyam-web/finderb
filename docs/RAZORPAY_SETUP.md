@@ -1,104 +1,111 @@
 # Razorpay payment gateway setup (FinderB merchants)
 
-FinderB uses Razorpay Checkout for **Growth Pro** subscriptions. Merchants pay from the dashboard (**Recharge Now**) or `/business/payment/[id]`.
+FinderB uses **Razorpay** for Growth Pro billing:
+
+| Billing | Flow |
+|---------|------|
+| **Monthly** | Razorpay **Subscriptions** + e-mandate (UPI Autopay / card mandate). Auto-debits each month until the merchant cancels. |
+| **Annual** | Razorpay **one-time Checkout** order. Prepaid for 12 months — no recurring mandate. |
 
 ## 1. Extract API keys from the Razorpay Dashboard
 
-With your Razorpay dashboard open:
-
 1. Sign in at [https://dashboard.razorpay.com](https://dashboard.razorpay.com).
-2. In the left sidebar, open **Account & Settings** (gear icon).
-3. Click **API Keys** under **Website and app settings**.
-4. Choose the mode you need:
-   - **Test mode** (toggle at top-right) — use while developing; no real money moves.
-   - **Live mode** — use on production after KYC and website details are approved.
-5. Click **Generate Key** (first time) or **Regenerate Key** if you lost the secret.
-6. Copy both values from the popup:
-   - **Key Id** — starts with `rzp_test_` (test) or `rzp_live_` (live). Safe to expose in the browser.
-   - **Key Secret** — shown only once. Store it securely; never commit it to git.
+2. **Account & Settings** → **API Keys** → generate **Test** or **Live** keys.
+3. Copy **Key Id** → `NEXT_PUBLIC_RAZORPAY_KEY_ID`
+4. Copy **Key Secret** → `RAZORPAY_KEY_SECRET` (server only, never commit)
 
-### Keys used by FinderB
+## 2. Create the monthly subscription plan (mandate billing)
 
-| Dashboard field | Environment variable | Where it is used |
-|-----------------|----------------------|------------------|
-| Key Id | `NEXT_PUBLIC_RAZORPAY_KEY_ID` | Razorpay Checkout popup (browser) |
-| Key Secret | `RAZORPAY_KEY_SECRET` | Server only — create order + verify payment |
+Monthly auto-debit requires a Razorpay **Plan**:
 
-Optional fallback: `RAZORPAY_KEY_ID` (server) if you prefer not to prefix the public key.
+1. Dashboard → **Subscriptions** → **Plans** → **Create Plan**
+2. Name: `Growth Pro Monthly`
+3. Amount: **₹499** (49900 paise)
+4. Billing frequency: **Every 1 month**
+5. Copy the **Plan Id** (`plan_…`) → `RAZORPAY_PLAN_ID_PRO_MONTHLY`
 
-## 2. Configure environment variables
+Annual billing does **not** need a plan ID — it uses standard one-time orders.
 
-Create or edit `.env.local` in the project root:
+## 3. Configure environment variables
 
 ```env
-# Razorpay — use TEST keys while developing
 NEXT_PUBLIC_RAZORPAY_KEY_ID=rzp_test_xxxxxxxxxxxx
 RAZORPAY_KEY_SECRET=your_secret_here
+RAZORPAY_WEBHOOK_SECRET=your_webhook_secret
+RAZORPAY_PLAN_ID_PRO_MONTHLY=plan_xxxxxxxxxxxx
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 ```
 
-Restart the dev server after changing env vars (`npm run dev`).
+Restart the dev server after changing env vars.
 
-`.env.local` is gitignored. Never put the Key Secret in `NEXT_PUBLIC_*` variables.
+## 4. Webhooks (required for production)
 
-## 3. Activate your Razorpay account (live payments)
-
-Before switching to **Live** keys:
-
-1. Complete **KYC** under **Account & Settings → Business settings**.
-2. Add your website under **Account & Settings → Website and app settings → Websites** (e.g. `https://finderb.in`).
-3. Submit required documents if prompted.
-4. Generate **Live** API keys and replace the test values in production (Vercel/hosting env).
-
-## 4. Test a payment
-
-1. Use **Test mode** keys in `.env.local`.
-2. Log in as a merchant → open **Dashboard**.
-3. Click **Recharge Now** (or go to **Activate leads** / payment page).
-4. In Razorpay test checkout, use:
-   - Card: `4111 1111 1111 1111`
-   - Expiry: any future date
-   - CVV: any 3 digits
-   - OTP: `1234` (if asked)
-
-More test cards: [Razorpay test cards](https://razorpay.com/docs/payments/payments/test-card-details/).
-
-## 5. Production checklist
-
-- [ ] Live API keys set on hosting (not in the repo)
-- [ ] **Webhook** configured (see section 6) with `RAZORPAY_WEBHOOK_SECRET` on hosting
-- [ ] `SUPABASE_SERVICE_ROLE_KEY` set (webhook activation writes to DB)
-- [ ] Website URL added in Razorpay dashboard
-- [ ] KYC completed
-- [ ] Test payment on staging with test keys
-- [ ] One live ₹1 test payment before announcing to merchants
-
-## 6. Webhooks (required for production)
-
-If a merchant closes the browser after paying, the checkout callback may never run. Webhooks activate Growth Pro reliably from Razorpay server events.
-
-**Razorpay Dashboard → Account & Settings → Webhooks → Add New Webhook**
+**Dashboard → Account & Settings → Webhooks → Add New Webhook**
 
 | Field | Value |
 |-------|--------|
 | URL | `https://finderb.com/api/razorpay/webhook` |
-| Secret | Generate and copy — set as `RAZORPAY_WEBHOOK_SECRET` in Vercel |
-| Events | `payment.captured`, `payment.authorized` |
-| Alert email | Your ops email |
+| Secret | Set as `RAZORPAY_WEBHOOK_SECRET` |
+| Events | See list below |
 
-Also set in Vercel / `.env.local`:
+**Required webhook events:**
 
-```env
-RAZORPAY_WEBHOOK_SECRET=your_webhook_secret_from_dashboard
-SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
-```
+- `payment.captured`, `payment.authorized` — annual one-time payments
+- `subscription.authenticated`, `subscription.activated` — monthly mandate setup
+- `subscription.charged` — monthly auto-debit renewals
+- `subscription.cancelled` — merchant cancelled auto-debit
+- `subscription.halted` — failed renewal (notify merchant to update payment method)
 
-The webhook verifies Razorpay's signature, confirms payment status with Razorpay API, and idempotently marks the business as paid (same logic as checkout success).
+Webhooks verify HMAC signatures, confirm payment status with Razorpay API, and idempotently update the database (same logic as checkout success).
+
+## 5. Database migrations
+
+Run in Supabase SQL editor (in order):
+
+1. `supabase/merchant_subscriptions.sql`
+2. `supabase/razorpay_subscriptions.sql`
+
+## 6. Test a monthly mandate (test mode)
+
+1. Use test keys and a test monthly plan ID.
+2. Merchant dashboard → **Subscription** → choose **Monthly** → checkout.
+3. Razorpay opens **mandate authorization** (not a plain one-time pay).
+4. After success, dashboard shows **Auto-debit active** and plan expiry.
+5. Test cancellation: **Cancel auto-debit** in Subscription tab.
+
+[Test cards and UPI Autopay test flow](https://razorpay.com/docs/payments/payments/test-card-details/)
+
+## 7. Test annual (one-time)
+
+1. Choose **Annual** on checkout.
+2. Complete standard Razorpay payment (no mandate).
+3. Plan active for 12 months; merchant renews manually before expiry.
+
+## 8. Production checklist
+
+- [ ] Live API keys on hosting
+- [ ] Live monthly plan created; `RAZORPAY_PLAN_ID_PRO_MONTHLY` set
+- [ ] Webhook URL + all subscription events enabled
+- [ ] `RAZORPAY_WEBHOOK_SECRET` and `SUPABASE_SERVICE_ROLE_KEY` set
+- [ ] SQL migrations applied
+- [ ] Test monthly mandate + cancel flow on staging
+- [ ] Test annual one-time payment
+- [ ] Admin panel `/admin/payments` shows transaction records
+
+## Merchant-facing behaviour
+
+- **Monthly**: Must complete mandate setup; ₹499 auto-debits each billing cycle.
+- **Cancel auto-debit**: Subscription tab → **Cancel auto-debit**. Plan remains active until current period ends (Razorpay `cancel_at_cycle_end`).
+- **Annual**: Single upfront payment; no auto-debit.
+- **Expiry alerts**: Dashboard popup when plan is within 7 days of expiry.
+- **Payment history**: Subscription tab lists mandate setup, auto-debits, and one-time payments.
 
 ## Troubleshooting
 
 | Issue | Fix |
 |-------|-----|
-| “Payment gateway is not configured” | Add both env vars and restart the server |
-| Checkout does not open | Check browser console; CSP already allows `checkout.razorpay.com` |
-| “Payment verification failed” | Key Secret must match the Key Id mode (test vs live) |
-| Order creation 401 | Regenerate keys; copy Key Secret again |
+| “Monthly auto-debit is not configured” | Set `RAZORPAY_PLAN_ID_PRO_MONTHLY` |
+| Mandate checkout does not open | Ensure Subscriptions product enabled on Razorpay account |
+| Renewal not recorded | Add `subscription.charged` to webhook events |
+| Cancel did not sync | Add `subscription.cancelled` to webhook events |
+| “Payment verification failed” | Key Secret must match Key Id mode (test vs live) |

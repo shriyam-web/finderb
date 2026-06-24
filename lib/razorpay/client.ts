@@ -4,13 +4,10 @@ export type RazorpaySuccessResponse = {
   razorpay_signature: string;
 };
 
-type RazorpayCheckoutOptions = {
+type RazorpayBaseCheckoutOptions = {
   key: string;
-  amount: number;
-  currency: string;
   name: string;
   description: string;
-  order_id: string;
   prefill?: {
     name?: string;
     email?: string;
@@ -18,11 +15,30 @@ type RazorpayCheckoutOptions = {
   };
   notes?: Record<string, string>;
   theme?: { color?: string };
-  handler: (response: RazorpaySuccessResponse) => void;
   modal?: {
     ondismiss?: () => void;
   };
 };
+
+export type RazorpayOrderCheckoutOptions = RazorpayBaseCheckoutOptions & {
+  amount: number;
+  currency: string;
+  order_id: string;
+  handler: (response: RazorpaySuccessResponse) => void;
+};
+
+export type RazorpaySubscriptionCheckoutOptions = RazorpayBaseCheckoutOptions & {
+  subscription_id: string;
+  handler: (response: RazorpaySubscriptionSuccessResponse) => void;
+};
+
+export type RazorpaySubscriptionSuccessResponse = {
+  razorpay_payment_id: string;
+  razorpay_subscription_id: string;
+  razorpay_signature: string;
+};
+
+type RazorpayCheckoutOptions = RazorpayOrderCheckoutOptions | RazorpaySubscriptionCheckoutOptions;
 
 type RazorpayInstance = {
   open: () => void;
@@ -43,7 +59,9 @@ export function loadRazorpayScript(): Promise<boolean> {
 
   if (!scriptPromise) {
     scriptPromise = new Promise((resolve) => {
-      const existing = document.querySelector<HTMLScriptElement>('script[src="https://checkout.razorpay.com/v1/checkout.js"]');
+      const existing = document.querySelector<HTMLScriptElement>(
+        'script[src="https://checkout.razorpay.com/v1/checkout.js"]'
+      );
       if (existing) {
         existing.addEventListener('load', () => resolve(Boolean(window.Razorpay)));
         existing.addEventListener('error', () => resolve(false));
@@ -63,7 +81,7 @@ export function loadRazorpayScript(): Promise<boolean> {
 }
 
 export async function openRazorpayCheckout(
-  options: RazorpayCheckoutOptions,
+  options: RazorpayOrderCheckoutOptions,
   onFailure?: (message: string) => void
 ): Promise<void> {
   const loaded = await loadRazorpayScript();
@@ -74,6 +92,22 @@ export async function openRazorpayCheckout(
   const checkout = new window.Razorpay(options);
   checkout.on('payment.failed', (response) => {
     onFailure?.(response.error.description || 'Payment failed. Please try again.');
+  });
+  checkout.open();
+}
+
+export async function openRazorpaySubscriptionCheckout(
+  options: RazorpaySubscriptionCheckoutOptions,
+  onFailure?: (message: string) => void
+): Promise<void> {
+  const loaded = await loadRazorpayScript();
+  if (!loaded || !window.Razorpay) {
+    throw new Error('Unable to load Razorpay checkout. Please check your connection and try again.');
+  }
+
+  const checkout = new window.Razorpay(options);
+  checkout.on('payment.failed', (response) => {
+    onFailure?.(response.error.description || 'Mandate setup failed. Please try again.');
   });
   checkout.open();
 }

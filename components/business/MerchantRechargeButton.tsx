@@ -8,7 +8,10 @@ import {
   createMerchantPaymentOrder,
   getRazorpayGatewayStatus,
 } from '@/app/actions/payment';
-import { openRazorpayCheckout } from '@/lib/razorpay/client';
+import {
+  openRazorpayCheckout,
+  openRazorpaySubscriptionCheckout,
+} from '@/lib/razorpay/client';
 import type { BillingCycle } from '@/lib/razorpay/plans';
 
 type MerchantRechargeButtonProps = {
@@ -43,14 +46,17 @@ export default function MerchantRechargeButton({
 }: MerchantRechargeButtonProps) {
   const router = useRouter();
   const [paying, setPaying] = useState(false);
-  const [razorpayConfigured, setRazorpayConfigured] = useState<boolean | null>(null);
+  const [gatewayReady, setGatewayReady] = useState<boolean | null>(null);
 
   useEffect(() => {
     if (!directCheckout) return;
     getRazorpayGatewayStatus().then((status) => {
-      setRazorpayConfigured(status.configured);
+      const ready =
+        status.configured &&
+        (billingCycle === 'annual' || status.subscriptionsConfigured);
+      setGatewayReady(ready);
     });
-  }, [directCheckout]);
+  }, [billingCycle, directCheckout]);
 
   const handleRecharge = useCallback(async () => {
     if (!businessId || paying) return;
@@ -60,9 +66,11 @@ export default function MerchantRechargeButton({
       return;
     }
 
-    if (razorpayConfigured === false) {
+    if (gatewayReady === false) {
       const message =
-        'Razorpay is not configured. Add NEXT_PUBLIC_RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET to .env.local.';
+        billingCycle === 'monthly'
+          ? 'Monthly auto-debit is not configured. Add Razorpay keys and RAZORPAY_PLAN_ID_PRO_MONTHLY.'
+          : 'Razorpay is not configured. Add NEXT_PUBLIC_RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET.';
       onError?.(message);
       return;
     }
@@ -70,37 +78,88 @@ export default function MerchantRechargeButton({
     setPaying(true);
 
     try {
-      const orderResult = await createMerchantPaymentOrder({
+      const checkoutResult = await createMerchantPaymentOrder({
         businessId,
         plan: 'pro',
         billingCycle,
       });
 
-      if (!orderResult.success) {
-        onError?.(orderResult.error || 'Could not start payment');
+      if (!checkoutResult.success) {
+        onError?.(checkoutResult.error || 'Could not start payment');
         setPaying(false);
+        return;
+      }
+
+      const prefill = {
+        name: fullName || businessName || checkoutResult.business.fullName,
+        email: email || checkoutResult.business.email || undefined,
+        contact: mobile || checkoutResult.business.mobile || undefined,
+      };
+
+      const notes = {
+        businessId,
+        plan: 'pro',
+        billingCycle,
+      };
+
+      const theme = { color: '#215481' };
+
+      if (checkoutResult.checkoutMode === 'subscription') {
+        await openRazorpaySubscriptionCheckout(
+          {
+            key: checkoutResult.keyId,
+            subscription_id: checkoutResult.subscription.id,
+            name: 'FinderB Business',
+            description: 'Growth Pro — Monthly auto-debit mandate',
+            prefill,
+            notes,
+            theme,
+            handler: async (response) => {
+              try {
+                const verifyResult = await completeMerchantPayment({
+                  businessId,
+                  plan: 'pro',
+                  billingCycle,
+                  razorpaySubscriptionId: response.razorpay_subscription_id,
+                  razorpayPaymentId: response.razorpay_payment_id,
+                  razorpaySignature: response.razorpay_signature,
+                });
+
+                if (verifyResult.success) {
+                  onSuccess?.();
+                  router.push(`/business/dashboard?id=${businessId}&payment=success&tab=subscription`);
+                } else {
+                  onError?.(verifyResult.error || 'Mandate verification failed');
+                  setPaying(false);
+                }
+              } catch {
+                onError?.('Mandate verification failed. Contact support if amount was deducted.');
+                setPaying(false);
+              }
+            },
+            modal: {
+              ondismiss: () => setPaying(false),
+            },
+          },
+          (message) => {
+            onError?.(message);
+            setPaying(false);
+          }
+        );
         return;
       }
 
       await openRazorpayCheckout(
         {
-          key: orderResult.keyId,
-          amount: orderResult.order.amount,
-          currency: orderResult.order.currency,
+          key: checkoutResult.keyId,
+          amount: checkoutResult.order.amount,
+          currency: checkoutResult.order.currency,
           name: 'FinderB Business',
-          description: `Growth Pro — ${billingCycle === 'monthly' ? 'Monthly' : 'Annual'}`,
-          order_id: orderResult.order.id,
-          prefill: {
-            name: fullName || businessName || orderResult.business.fullName,
-            email: email || orderResult.business.email || undefined,
-            contact: mobile || orderResult.business.mobile || undefined,
-          },
-          notes: {
-            businessId,
-            plan: 'pro',
-            billingCycle,
-          },
-          theme: { color: '#215481' },
+          description: `Growth Pro — Annual (one-time)`,
+          order_id: checkoutResult.order.id,
+          prefill,
+          notes,
+          theme,
           handler: async (response) => {
             try {
               const verifyResult = await completeMerchantPayment({
@@ -114,7 +173,7 @@ export default function MerchantRechargeButton({
 
               if (verifyResult.success) {
                 onSuccess?.();
-                router.push(`/business/dashboard?id=${businessId}&payment=success`);
+                router.push(`/business/dashboard?id=${businessId}&payment=success&tab=subscription`);
               } else {
                 onError?.(verifyResult.error || 'Payment verification failed');
                 setPaying(false);
@@ -145,16 +204,15 @@ export default function MerchantRechargeButton({
     directCheckout,
     email,
     fullName,
+    gatewayReady,
     mobile,
     onError,
     onSuccess,
     paying,
-    razorpayConfigured,
     router,
   ]);
 
-  const isDisabled =
-    disabled || paying || (directCheckout && razorpayConfigured === false);
+  const isDisabled = disabled || paying || (directCheckout && gatewayReady === false);
 
   return (
     <button
@@ -163,15 +221,15 @@ export default function MerchantRechargeButton({
       disabled={isDisabled}
       className={className}
       title={
-        directCheckout && razorpayConfigured === false
-          ? 'Razorpay keys missing in server environment'
+        directCheckout && gatewayReady === false
+          ? 'Razorpay subscription billing is not fully configured'
           : undefined
       }
     >
       {paying ? (
         <>
           <Loader2 className="inline h-4 w-4 animate-spin" />
-          <span>Opening Razorpay…</span>
+          <span>{billingCycle === 'monthly' ? 'Opening mandate setup…' : 'Opening Razorpay…'}</span>
         </>
       ) : (
         label

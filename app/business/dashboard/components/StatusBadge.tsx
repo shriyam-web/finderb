@@ -89,19 +89,35 @@ export function StatusBadge({
 
 export function PaymentStatusBadge({
   status,
+  daysRemaining,
   size = 'md',
   className = '',
 }: {
   status?: string;
+  daysRemaining?: number | null;
   size?: 'sm' | 'md' | 'lg';
   className?: string;
 }) {
-  const isActive = status === 'completed';
+  const isActive = status === 'completed' && (daysRemaining === undefined || daysRemaining === null || daysRemaining > 0);
+  const isExpired = status === 'completed' && daysRemaining !== undefined && daysRemaining !== null && daysRemaining <= 0;
+
+  let label = 'Payment due';
+  let tone: BadgeTone = 'warning';
+
+  if (isActive) {
+    label = daysRemaining !== undefined && daysRemaining !== null && daysRemaining <= 7
+      ? `${daysRemaining}d left`
+      : 'Plan active';
+    tone = daysRemaining !== undefined && daysRemaining !== null && daysRemaining <= 7 ? 'warning' : 'success';
+  } else if (isExpired) {
+    label = 'Plan expired';
+    tone = 'danger';
+  }
 
   return (
     <StatusBadge
-      label={isActive ? 'Plan active' : 'Payment due'}
-      tone={isActive ? 'success' : 'warning'}
+      label={label}
+      tone={tone}
       icon={isActive ? <HiOutlineSparkles size={12} /> : <HiOutlineCreditCard size={12} />}
       size={size}
       pulse={!isActive}

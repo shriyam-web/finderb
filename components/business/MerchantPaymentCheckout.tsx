@@ -263,8 +263,9 @@ export default function MerchantPaymentCheckout({
                 </span>
               </h1>
               <p className="mt-4 max-w-xl text-sm leading-relaxed text-[#5c4a3d] sm:text-base">
-                Unlock lead phone numbers, verified badge, and priority placement. Pay once — start
-                converting enquiries immediately.
+                {isAnnual
+                  ? 'Unlock lead phone numbers, verified badge, and priority placement. Pay once for 12 months — no recurring mandate required.'
+                  : 'Unlock lead contacts and premium visibility. You will authorize a secure RBI-compliant e-mandate so Growth Pro renews automatically each month until you cancel.'}
               </p>
             </div>
 
@@ -434,9 +435,16 @@ export default function MerchantPaymentCheckout({
                   className="register-hero-cta-btn mt-6 flex w-full items-center justify-center gap-2 py-4 text-sm font-bold text-[#153551] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <CreditCard size={18} />
-                  Pay with Razorpay
+                  {isAnnual ? 'Pay once with Razorpay' : 'Set up mandate & pay'}
                   <ArrowRight size={16} strokeWidth={2.5} />
                 </button>
+
+                {!isAnnual && (
+                  <p className="mt-3 text-center text-[11px] leading-relaxed text-white/60">
+                    By continuing you authorize FinderB to auto-debit ₹499/month via Razorpay until you
+                    cancel from your subscription settings. RBI-compliant e-mandate / UPI Autopay.
+                  </p>
+                )}
 
                 <div className="mt-5 space-y-2.5 border-t border-white/10 pt-5">
                   {TRUST_ITEMS.map(({ icon: Icon, label }) => (

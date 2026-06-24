@@ -11,6 +11,7 @@ import {
   isValidMerchantPlan,
 } from '@/lib/razorpay/plans';
 import { getRazorpayPayment, verifyRazorpayPaymentSignature } from '@/lib/razorpay/server';
+import { computeRenewalDates } from '@/lib/subscription/merchantSubscription';
 
 export type FinalizeMerchantPaymentInput = {
   businessId: string;
@@ -30,6 +31,7 @@ export type FinalizeMerchantPaymentResult =
 async function revalidateMerchantPaymentPaths(businessId: string) {
   revalidatePath('/business/dashboard');
   revalidatePath(`/business/payment/${businessId}`);
+  revalidatePath('/admin/payments');
   const supabase = createServiceClient();
   if (!supabase) return;
   const { data } = await supabase
@@ -104,9 +106,30 @@ export async function finalizeMerchantPayment(
     return { success: false, error: 'Payment service is not configured' };
   }
 
+  const { data: existingPayment } = await supabase
+    .from('merchant_payments')
+    .select('id, status, business_id')
+    .eq('payment_id', paymentId)
+    .maybeSingle();
+
+  if (existingPayment?.status === 'completed' && existingPayment.business_id === businessId) {
+    return { success: true, alreadyCompleted: true };
+  }
+
+  const { data: duplicatePayment } = await supabase
+    .from('merchant_payments')
+    .select('id')
+    .eq('payment_id', paymentId)
+    .neq('business_id', businessId)
+    .maybeSingle();
+
+  if (duplicatePayment) {
+    return { success: false, error: 'This payment has already been used' };
+  }
+
   const { data: current, error: currentError } = await supabase
     .from('Business')
-    .select('id, paymentStatus, paymentId, orderId')
+    .select('id, paymentStatus, paymentId, orderId, planExpiresAt')
     .eq('id', businessId)
     .single();
 
@@ -114,29 +137,21 @@ export async function finalizeMerchantPayment(
     return { success: false, error: 'Business not found' };
   }
 
-  if (current.paymentStatus === 'completed') {
-    if (current.paymentId === paymentId) {
-      return { success: true, alreadyCompleted: true };
-    }
-    return { success: false, error: 'Payment is already completed for this business' };
+  if (current.paymentId === paymentId && current.paymentStatus === 'completed') {
+    return { success: true, alreadyCompleted: true };
   }
 
-  if (current.orderId && current.orderId !== orderId) {
-    return { success: false, error: 'Order does not match the pending checkout session' };
-  }
+  const currentExpiresAt = current.planExpiresAt ? new Date(current.planExpiresAt) : null;
+  const { planStartedAt, planExpiresAt } = computeRenewalDates({
+    currentExpiresAt,
+    billingCycle: billingCycle as BillingCycle,
+  });
 
-  const { data: duplicatePayment } = await supabase
-    .from('Business')
-    .select('id')
-    .eq('paymentId', paymentId)
-    .neq('id', businessId)
-    .maybeSingle();
+  const nowIso = new Date().toISOString();
+  const subscriptionStartIso =
+    currentExpiresAt && currentExpiresAt > new Date() ? currentExpiresAt.toISOString() : nowIso;
 
-  if (duplicatePayment) {
-    return { success: false, error: 'This payment has already been used' };
-  }
-
-  const { error: updateError } = await supabase
+  const { error: businessUpdateError } = await supabase
     .from('Business')
     .update({
       paymentStatus: 'completed',
@@ -144,13 +159,70 @@ export async function finalizeMerchantPayment(
       orderId,
       selectedPlan: plan,
       billingCycle,
-      updatedAt: new Date().toISOString(),
+      planStartedAt: subscriptionStartIso,
+      planExpiresAt: planExpiresAt.toISOString(),
+      updatedAt: nowIso,
     })
     .eq('id', businessId);
 
-  if (updateError) {
-    console.error('[razorpay] finalize payment failed:', updateError);
+  if (businessUpdateError) {
+    console.error('[razorpay] finalize payment failed:', businessUpdateError);
     return { success: false, error: 'Failed to activate subscription' };
+  }
+
+  const paymentPayload = {
+    business_id: businessId,
+    plan,
+    billing_cycle: billingCycle,
+    amount_paise: amountPaise,
+    currency: 'INR',
+    status: 'completed',
+    order_id: orderId,
+    payment_id: paymentId,
+    payment_type: 'one_time',
+    source,
+    plan_started_at: planStartedAt.toISOString(),
+    plan_expires_at: planExpiresAt.toISOString(),
+    updated_at: nowIso,
+  };
+
+  if (existingPayment?.id) {
+    const { error: paymentUpdateError } = await supabase
+      .from('merchant_payments')
+      .update(paymentPayload)
+      .eq('id', existingPayment.id);
+
+    if (paymentUpdateError) {
+      console.error('[razorpay] payment record update failed:', paymentUpdateError);
+    }
+  } else {
+    const { data: pendingByOrder } = await supabase
+      .from('merchant_payments')
+      .select('id')
+      .eq('business_id', businessId)
+      .eq('order_id', orderId)
+      .eq('status', 'pending')
+      .maybeSingle();
+
+    if (pendingByOrder?.id) {
+      const { error: paymentUpdateError } = await supabase
+        .from('merchant_payments')
+        .update(paymentPayload)
+        .eq('id', pendingByOrder.id);
+
+      if (paymentUpdateError) {
+        console.error('[razorpay] pending payment update failed:', paymentUpdateError);
+      }
+    } else {
+      const { error: paymentInsertError } = await supabase.from('merchant_payments').insert({
+        ...paymentPayload,
+        created_at: nowIso,
+      });
+
+      if (paymentInsertError) {
+        console.error('[razorpay] payment record insert failed:', paymentInsertError);
+      }
+    }
   }
 
   await revalidateMerchantPaymentPaths(businessId);

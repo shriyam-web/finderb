@@ -136,7 +136,7 @@ export async function loginUser(email: string, password: string) {
 
     const { data: user, error } = await supabase
       .from('User')
-      .select('id, password')
+      .select('id, password, authProvider')
       .eq('email', normalizedEmail)
       .single();
 
@@ -161,6 +161,16 @@ export async function loginUser(email: string, password: string) {
 
     const verification = await verifyPassword(password, user.password);
     if (!verification.valid) {
+      if (user.authProvider) {
+        const providerLabel =
+          user.authProvider === 'google'
+            ? 'Google'
+            : user.authProvider.charAt(0).toUpperCase() + user.authProvider.slice(1);
+        return {
+          success: false,
+          error: `This account uses ${providerLabel} sign-in. Please continue with ${providerLabel} above.`,
+        };
+      }
       return { success: false, error: 'Incorrect password.' };
     }
 

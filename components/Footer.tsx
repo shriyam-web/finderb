@@ -384,8 +384,9 @@ export default function Footer() {
               <div className="space-y-1">
                 <p className="text-base font-medium text-neutral-900">List your business on FinderB</p>
                 <p className="max-w-xl text-sm leading-relaxed text-neutral-600">
-                  Free registration, local visibility, and customer reviews — reach people searching in
-                  your city.
+                  Get found in local and category search, build trust with a complete profile and
+                  reviews, and receive enquiries from customers already looking for businesses like
+                  yours.
                 </p>
               </div>
             </div>
@@ -394,7 +395,7 @@ export default function Footer() {
                 href="/business/register"
                 className="inline-flex items-center justify-center rounded-md bg-neutral-900 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-neutral-800"
               >
-                Get started free
+                Get Started
               </Link>
               <Link
                 href="/pricing"

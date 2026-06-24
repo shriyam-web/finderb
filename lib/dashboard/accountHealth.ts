@@ -1,3 +1,5 @@
+import type { MerchantSubscriptionStatus } from '@/lib/subscription/merchantSubscription';
+
 export type HealthItemStatus = 'complete' | 'attention' | 'review' | 'blocked';
 
 export type AccountHealthItem = {
@@ -30,18 +32,38 @@ export function getAccountHealth(input: {
   paymentStatus?: string;
   kycStatus?: string;
   completionPercent: number;
+  subscription?: Pick<
+    MerchantSubscriptionStatus,
+    'isActive' | 'isExpired' | 'daysRemaining' | 'expiresAt' | 'planName' | 'alertLevel'
+  >;
 }): AccountHealthSummary {
   const items: AccountHealthItem[] = [];
 
-  const paymentComplete = input.paymentStatus === 'completed';
+  const subscription = input.subscription;
+  const paymentComplete = subscription?.isActive ?? input.paymentStatus === 'completed';
+  const isExpired = subscription?.isExpired ?? false;
+  const daysRemaining = subscription?.daysRemaining ?? null;
+
+  let subscriptionDetail = 'Enquiries are coming in — activate Growth Pro to see who to call back.';
+  if (paymentComplete) {
+    subscriptionDetail = 'You can view customer phone numbers and email on every enquiry.';
+    if (daysRemaining !== null) {
+      subscriptionDetail += ` Plan valid until ${subscription?.expiresAt?.toLocaleDateString('en-IN', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      })} (${daysRemaining} day${daysRemaining === 1 ? '' : 's'} left).`;
+    }
+  } else if (isExpired) {
+    subscriptionDetail = 'Your plan has expired — recharge to unlock lead contact details again.';
+  }
+
   items.push({
     id: 'subscription',
     label: 'Lead access',
-    detail: paymentComplete
-      ? 'You can view customer phone numbers and email on every enquiry.'
-      : 'Enquiries are coming in — activate Growth Pro to see who to call back.',
-    status: paymentComplete ? 'complete' : 'attention',
-    priority: paymentComplete ? 0 : 1,
+    detail: subscriptionDetail,
+    status: paymentComplete ? 'complete' : isExpired ? 'blocked' : 'attention',
+    priority: paymentComplete ? 0 : isExpired ? 2 : 1,
   });
 
   const kyc = (input.kycStatus || 'pending').toLowerCase();

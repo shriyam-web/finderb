@@ -8,6 +8,7 @@ import {
   type BillingCycle,
   type MerchantPlan,
   getPlanAmountInPaise,
+  isMonthlyMandateBilling,
   isValidBillingCycle,
   isValidMerchantPlan,
 } from '@/lib/razorpay/plans';
@@ -17,6 +18,12 @@ import {
   isRazorpayWebhookConfigured,
 } from '@/lib/razorpay/server';
 import { finalizeMerchantPayment } from '@/lib/razorpay/finalizeMerchantPayment';
+import { finalizeSubscriptionAuthorization } from '@/lib/razorpay/finalizeMerchantSubscription';
+import {
+  ACTIVE_RAZORPAY_SUBSCRIPTION_STATUSES,
+  createRazorpaySubscription,
+  isRazorpaySubscriptionsConfigured,
+} from '@/lib/razorpay/subscriptions';
 import { enforceRateLimit } from '@/lib/security/enforceRateLimit.server';
 
 async function assertBusinessSession(businessId: string) {
@@ -27,10 +34,52 @@ async function assertBusinessSession(businessId: string) {
   return { ok: true as const };
 }
 
+function checkoutBusinessSummary(business: Record<string, unknown>) {
+  return {
+    businessName: String(business.businessName || business.name || ''),
+    fullName: String(business.fullName || business.businessName || ''),
+    email: String(business.email || business.workEmail || ''),
+    mobile: String(business.mobile || ''),
+  };
+}
+
+async function assertNoConflictingSubscription(
+  business: Record<string, unknown>,
+  billingCycle: BillingCycle
+) {
+  if (!isMonthlyMandateBilling(billingCycle)) return null;
+
+  const subscriptionId = business.razorpaySubscriptionId
+    ? String(business.razorpaySubscriptionId)
+    : null;
+  const subscriptionStatus = business.subscriptionStatus
+    ? String(business.subscriptionStatus)
+    : null;
+  const autoRenew = Boolean(business.autoRenewEnabled);
+  const mandateStatus = business.mandateStatus ? String(business.mandateStatus) : 'none';
+
+  if (
+    subscriptionId &&
+    autoRenew &&
+    mandateStatus === 'active' &&
+    subscriptionStatus &&
+    ACTIVE_RAZORPAY_SUBSCRIPTION_STATUSES.has(subscriptionStatus)
+  ) {
+    return {
+      success: false as const,
+      error:
+        'You already have an active monthly auto-debit mandate. Cancel auto-renewal first if you want to change payment method.',
+    };
+  }
+
+  return null;
+}
+
 export async function getRazorpayGatewayStatus() {
   return {
     configured: isRazorpayConfigured(),
     webhookConfigured: isRazorpayWebhookConfigured(),
+    subscriptionsConfigured: isRazorpaySubscriptionsConfigured(),
   };
 }
 
@@ -54,6 +103,7 @@ export async function getPaymentPageData(businessId: string) {
     business: businessResult.business,
     isAuthorized: true,
     razorpayConfigured: isRazorpayConfigured(),
+    subscriptionsConfigured: isRazorpaySubscriptionsConfigured(),
   };
 }
 
@@ -90,9 +140,76 @@ export async function createMerchantPaymentOrder(params: {
   }
 
   const business = businessResult.business as Record<string, unknown>;
+  const conflict = await assertNoConflictingSubscription(business, billingCycle);
+  if (conflict) return conflict;
 
-  if (business.paymentStatus === 'completed') {
-    return { success: false as const, error: 'Payment is already completed for this business.' };
+  if (isMonthlyMandateBilling(billingCycle)) {
+    if (!isRazorpaySubscriptionsConfigured()) {
+      return {
+        success: false as const,
+        error:
+          'Monthly auto-debit is not configured. Add RAZORPAY_PLAN_ID_PRO_MONTHLY to your server environment.',
+      };
+    }
+
+    const subscriptionResult = await createRazorpaySubscription({
+      businessId,
+      plan,
+      billingCycle,
+    });
+
+    if (!subscriptionResult.success) {
+      return { success: false as const, error: subscriptionResult.error };
+    }
+
+    const expectedAmount = getPlanAmountInPaise(plan, billingCycle);
+    const supabase = createClient(await cookies());
+    const nowIso = new Date().toISOString();
+
+    const { error: businessUpdateError } = await supabase
+      .from('Business')
+      .update({
+        selectedPlan: plan,
+        billingCycle,
+        razorpaySubscriptionId: subscriptionResult.subscription.id,
+        subscriptionStatus: subscriptionResult.subscription.status,
+        mandateStatus: 'pending',
+        autoRenewEnabled: false,
+        updatedAt: nowIso,
+      })
+      .eq('id', businessId);
+
+    if (businessUpdateError) {
+      console.error('[razorpay] failed to store pending subscription:', businessUpdateError);
+      return { success: false as const, error: 'Could not start mandate setup. Please try again.' };
+    }
+
+    const { error: paymentRecordError } = await supabase.from('merchant_payments').insert({
+      business_id: businessId,
+      plan,
+      billing_cycle: billingCycle,
+      amount_paise: expectedAmount,
+      currency: 'INR',
+      status: 'pending',
+      razorpay_subscription_id: subscriptionResult.subscription.id,
+      payment_type: 'subscription_auth',
+      created_at: nowIso,
+      updated_at: nowIso,
+    });
+
+    if (paymentRecordError) {
+      console.error('[razorpay] failed to create pending subscription record:', paymentRecordError);
+    }
+
+    return {
+      success: true as const,
+      checkoutMode: 'subscription' as const,
+      subscription: {
+        id: subscriptionResult.subscription.id,
+      },
+      keyId: subscriptionResult.keyId,
+      business: checkoutBusinessSummary(business),
+    };
   }
 
   const orderResult = await createRazorpayOrder({
@@ -126,16 +243,30 @@ export async function createMerchantPaymentOrder(params: {
     return { success: false as const, error: 'Could not start checkout. Please try again.' };
   }
 
+  const nowIso = new Date().toISOString();
+  const { error: paymentRecordError } = await supabase.from('merchant_payments').insert({
+    business_id: businessId,
+    plan,
+    billing_cycle: billingCycle,
+    amount_paise: expectedAmount,
+    currency: 'INR',
+    status: 'pending',
+    order_id: orderResult.order.id,
+    payment_type: 'one_time',
+    created_at: nowIso,
+    updated_at: nowIso,
+  });
+
+  if (paymentRecordError) {
+    console.error('[razorpay] failed to create pending payment record:', paymentRecordError);
+  }
+
   return {
     success: true as const,
+    checkoutMode: 'order' as const,
     order: orderResult.order,
     keyId: orderResult.keyId,
-    business: {
-      businessName: String(business.businessName || business.name || ''),
-      fullName: String(business.fullName || business.businessName || ''),
-      email: String(business.email || business.workEmail || ''),
-      mobile: String(business.mobile || ''),
-    },
+    business: checkoutBusinessSummary(business),
   };
 }
 
@@ -143,7 +274,8 @@ export async function completeMerchantPayment(params: {
   businessId: string;
   plan: string;
   billingCycle: string;
-  razorpayOrderId: string;
+  razorpayOrderId?: string;
+  razorpaySubscriptionId?: string;
   razorpayPaymentId: string;
   razorpaySignature: string;
 }) {
@@ -152,11 +284,12 @@ export async function completeMerchantPayment(params: {
     plan,
     billingCycle,
     razorpayOrderId,
+    razorpaySubscriptionId,
     razorpayPaymentId,
     razorpaySignature,
   } = params;
 
-  if (!businessId || !razorpayOrderId || !razorpayPaymentId || !razorpaySignature) {
+  if (!businessId || !razorpayPaymentId || !razorpaySignature) {
     return { success: false as const, error: 'Incomplete payment details received' };
   }
 
@@ -178,6 +311,56 @@ export async function completeMerchantPayment(params: {
   }
 
   const business = businessResult.business as Record<string, unknown>;
+
+  if (isMonthlyMandateBilling(billingCycle as BillingCycle)) {
+    if (!razorpaySubscriptionId) {
+      return { success: false as const, error: 'Missing subscription reference for mandate setup' };
+    }
+
+    const pendingSubscriptionId = business.razorpaySubscriptionId
+      ? String(business.razorpaySubscriptionId)
+      : null;
+
+    if (pendingSubscriptionId && pendingSubscriptionId !== razorpaySubscriptionId) {
+      return {
+        success: false as const,
+        error: 'This mandate setup does not match your active checkout session. Please try again.',
+      };
+    }
+
+    const result = await finalizeSubscriptionAuthorization({
+      businessId,
+      subscriptionId: razorpaySubscriptionId,
+      paymentId: razorpayPaymentId,
+      plan,
+      billingCycle,
+      razorpaySignature,
+      source: 'checkout',
+    });
+
+    if (!result.success) {
+      return { success: false as const, error: result.error };
+    }
+
+    const updatedBusiness = await getOwnedBusiness(businessId);
+    if (!updatedBusiness.success || !updatedBusiness.business) {
+      return { success: false as const, error: 'Mandate recorded but business could not be reloaded' };
+    }
+
+    revalidatePath('/business/dashboard');
+    revalidatePath(`/business/payment/${businessId}`);
+
+    return {
+      success: true as const,
+      business: updatedBusiness.business,
+      alreadyCompleted: result.alreadyCompleted,
+    };
+  }
+
+  if (!razorpayOrderId) {
+    return { success: false as const, error: 'Missing order reference for payment' };
+  }
+
   const pendingOrderId = business.orderId ? String(business.orderId) : null;
 
   if (pendingOrderId && pendingOrderId !== razorpayOrderId) {

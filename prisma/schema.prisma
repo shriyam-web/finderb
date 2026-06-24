@@ -30,6 +30,13 @@ model Business {
   paymentStatus                                          String       @default("pending")
   paymentId                                              String?
   orderId                                                String?
+  planStartedAt                                          DateTime?
+  planExpiresAt                                          DateTime?
+  razorpaySubscriptionId                                 String?
+  subscriptionStatus                                     String?
+  autoRenewEnabled                                       Boolean      @default(false)
+  mandateStatus                                          String?      @default("none")
+  subscriptionCancelledAt                                DateTime?
   createdAt                                              DateTime     @default(now())
   updatedAt                                              DateTime     @updatedAt
   city                                                   String?
@@ -66,8 +73,12 @@ model Business {
   categories_categories_position_2_business_idToBusiness categories[] @relation("categories_position_2_business_idToBusiness")
   categories_categories_position_3_business_idToBusiness categories[] @relation("categories_position_3_business_idToBusiness")
   leads                                                  leads[]
+  merchant_payments                                      merchant_payments[]
 
   @@index([status], map: "idx_business_status")
+  @@index([planExpiresAt], map: "idx_business_plan_expires_at")
+  @@index([razorpaySubscriptionId], map: "idx_business_razorpay_subscription_id")
+  @@index([subscriptionStatus], map: "idx_business_subscription_status")
   @@index([category], map: "idx_business_category")
   @@index([city], map: "idx_business_city")
   @@index([slug], map: "idx_business_slug")
@@ -127,6 +138,9 @@ model User {
   fullName      String
   email         String   @unique
   password      String
+  authProvider  String?
+  avatarUrl     String?
+  supabaseAuthId String? @unique
   favorites     String[] @default([])
   searchHistory String[] @default([])
   createdAt     DateTime @default(now())
@@ -209,6 +223,32 @@ model leads {
   @@index([status])
   @@index([business_id], map: "idx_leads_business_id")
   @@index([created_at], map: "idx_leads_created_at")
+}
+
+model merchant_payments {
+  id              String    @id @default(cuid())
+  business_id     String
+  plan            String
+  billing_cycle   String
+  amount_paise    Int
+  currency        String    @default("INR")
+  status          String    @default("pending")
+  order_id        String?
+  payment_id              String?   @unique
+  razorpay_subscription_id String?
+  payment_type            String    @default("one_time")
+  source                  String?
+  plan_started_at DateTime?
+  plan_expires_at DateTime?
+  created_at      DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime  @updatedAt @db.Timestamptz(6)
+  Business        Business  @relation(fields: [business_id], references: [id], onDelete: Cascade)
+
+  @@index([business_id], map: "idx_merchant_payments_business_id")
+  @@index([status], map: "idx_merchant_payments_status")
+  @@index([created_at], map: "idx_merchant_payments_created_at")
+  @@index([order_id], map: "idx_merchant_payments_order_id")
+  @@index([razorpay_subscription_id], map: "idx_merchant_payments_subscription_id")
 }
 
 model blogs {

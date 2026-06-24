@@ -8,7 +8,8 @@ import {
   getPaymentPageData,
 } from '@/app/actions/payment';
 import { MERCHANT_PLANS } from '@/lib/razorpay/plans';
-import { openRazorpayCheckout } from '@/lib/razorpay/client';
+import { openRazorpayCheckout, openRazorpaySubscriptionCheckout } from '@/lib/razorpay/client';
+import { getMerchantSubscriptionStatus } from '@/lib/subscription/merchantSubscription';
 import MerchantPaymentCheckout, {
   MerchantPaymentError,
   MerchantPaymentLoading,
@@ -72,8 +73,22 @@ function PaymentPageContent({ id }: { id: string }) {
         return;
       }
 
-      if (business?.paymentStatus === 'completed') {
-        router.push(`/business/dashboard?id=${id}`);
+      const subscription = getMerchantSubscriptionStatus({
+        paymentStatus: business?.paymentStatus,
+        selectedPlan: business?.selectedPlan,
+        billingCycle: business?.billingCycle,
+        planStartedAt: business?.planStartedAt,
+        planExpiresAt: business?.planExpiresAt,
+        updatedAt: business?.updatedAt,
+        createdAt: business?.createdAt,
+        autoRenewEnabled: business?.autoRenewEnabled,
+        mandateStatus: business?.mandateStatus,
+        subscriptionStatus: business?.subscriptionStatus,
+        razorpaySubscriptionId: business?.razorpaySubscriptionId,
+      });
+
+      if (subscription.isActive && !checkoutRequested) {
+        router.push(`/business/dashboard?id=${id}&tab=subscription`);
         return;
       }
 
@@ -93,25 +108,67 @@ function PaymentPageContent({ id }: { id: string }) {
           return;
         }
 
+        const prefill = {
+          name: orderResult.business.fullName || orderResult.business.businessName,
+          email: orderResult.business.email || undefined,
+          contact: orderResult.business.mobile || undefined,
+        };
+        const notes = { businessId: id, plan: 'pro', billingCycle: cycle };
+        const theme = { color: '#215481' };
+
+        if (orderResult.checkoutMode === 'subscription') {
+          await openRazorpaySubscriptionCheckout(
+            {
+              key: orderResult.keyId,
+              subscription_id: orderResult.subscription.id,
+              name: 'FinderB Business',
+              description: `${plan.name} — Monthly mandate & auto-debit`,
+              prefill,
+              notes,
+              theme,
+              handler: async (response) => {
+                try {
+                  const verifyResult = await completeMerchantPayment({
+                    businessId: id,
+                    plan: 'pro',
+                    billingCycle: cycle,
+                    razorpaySubscriptionId: response.razorpay_subscription_id,
+                    razorpayPaymentId: response.razorpay_payment_id,
+                    razorpaySignature: response.razorpay_signature,
+                  });
+
+                  if (verifyResult.success) {
+                    router.push(`/business/dashboard?id=${id}&payment=success&tab=subscription`);
+                  } else {
+                    setError(verifyResult.error || 'Mandate verification failed');
+                    setPaying(false);
+                  }
+                } catch {
+                  setError('Mandate verification failed. Contact support if amount was deducted.');
+                  setPaying(false);
+                }
+              },
+              modal: { ondismiss: () => setPaying(false) },
+            },
+            (message) => {
+              setError(message);
+              setPaying(false);
+            }
+          );
+          return;
+        }
+
         await openRazorpayCheckout(
           {
             key: orderResult.keyId,
             amount: orderResult.order.amount,
             currency: orderResult.order.currency,
             name: 'FinderB Business',
-            description: `${plan.name} — ${cycle === 'monthly' ? 'Monthly' : 'Annual'}`,
+            description: `${plan.name} — Annual (one-time)`,
             order_id: orderResult.order.id,
-            prefill: {
-              name: orderResult.business.fullName || orderResult.business.businessName,
-              email: orderResult.business.email || undefined,
-              contact: orderResult.business.mobile || undefined,
-            },
-            notes: {
-              businessId: id,
-              plan: 'pro',
-              billingCycle: cycle,
-            },
-            theme: { color: '#215481' },
+            prefill,
+            notes,
+            theme,
             handler: async (response) => {
               try {
                 const verifyResult = await completeMerchantPayment({
@@ -124,7 +181,7 @@ function PaymentPageContent({ id }: { id: string }) {
                 });
 
                 if (verifyResult.success) {
-                  router.push(`/business/dashboard?id=${id}&payment=success`);
+                  router.push(`/business/dashboard?id=${id}&payment=success&tab=subscription`);
                 } else {
                   setError(verifyResult.error || 'Payment verification failed');
                   setPaying(false);
@@ -149,7 +206,7 @@ function PaymentPageContent({ id }: { id: string }) {
         setPaying(false);
       }
     },
-    [billingCycle, business, id, isAuthorized, plan.name, razorpayConfigured, router]
+    [billingCycle, business, checkoutRequested, id, isAuthorized, plan.name, razorpayConfigured, router]
   );
 
   useEffect(() => {
@@ -192,7 +249,21 @@ function PaymentPageContent({ id }: { id: string }) {
     return <MerchantPaymentError message={error || 'Business not found'} />;
   }
 
-  if (business.paymentStatus === 'completed') {
+  const subscription = getMerchantSubscriptionStatus({
+    paymentStatus: business.paymentStatus,
+    selectedPlan: business.selectedPlan,
+    billingCycle: business.billingCycle,
+    planStartedAt: business.planStartedAt,
+    planExpiresAt: business.planExpiresAt,
+    updatedAt: business.updatedAt,
+    createdAt: business.createdAt,
+    autoRenewEnabled: business.autoRenewEnabled,
+    mandateStatus: business.mandateStatus,
+    subscriptionStatus: business.subscriptionStatus,
+    razorpaySubscriptionId: business.razorpaySubscriptionId,
+  });
+
+  if (subscription.isActive && !checkoutRequested) {
     return (
       <MerchantPaymentSuccess businessId={id} businessName={business.businessName} />
     );

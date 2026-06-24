@@ -3,13 +3,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { getBusinessProfilePath } from '@/lib/businessSlug';
-import { 
-  HiOutlineSquares2X2,
+import { HiOutlineSquares2X2,
   HiOutlineQueueList,
   HiOutlineChatBubbleLeftRight,
   HiOutlineCog8Tooth,
   HiOutlineBriefcase,
   HiOutlineCursorArrowRays,
+  HiOutlineCreditCard,
 } from 'react-icons/hi2';
 import { RiDashboardFill, RiListCheck, RiMessage3Line, RiSettings4Line } from 'react-icons/ri';
 import { getBusinessSession, updateBusinessImages, logoutBusiness, updateBusinessProfile } from '@/app/actions/business';
@@ -35,6 +35,9 @@ import { getBusinessPublicRatingStats } from '@/lib/businessReviews';
 import DashboardAtAGlance from './components/DashboardAtAGlance';
 import TrustBadgeCallout from './components/TrustBadgeCallout';
 import MyListingTab from './components/MyListingTab';
+import SubscriptionTab from './components/SubscriptionTab';
+import SubscriptionExpiryAlert from './components/SubscriptionExpiryAlert';
+import { getMerchantSubscriptionStatus } from '@/lib/subscription/merchantSubscription';
 import { CldUploadWidget } from 'next-cloudinary';
 import { createClient } from '@/utils/supabase/client';
 import { buildGoogleMapsUrl } from '@/lib/googleMapsLocation';
@@ -185,9 +188,17 @@ function DashboardContent() {
   }, [router]);
 
   useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab && ['overview', 'listings', 'leads', 'jobs', 'subscription', 'messages', 'settings'].includes(tab)) {
+      setActiveTab(tab);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
     if (searchParams.get('payment') === 'success') {
       setSuccessMessage('Payment successful! Your Growth Pro plan is now active.');
-      router.replace('/business/dashboard');
+      setActiveTab('subscription');
+      router.replace('/business/dashboard?tab=subscription');
     }
   }, [searchParams, router]);
 
@@ -357,6 +368,7 @@ function DashboardContent() {
     { id: 'listings', label: 'Listing', icon: HiOutlineQueueList, activeIcon: RiListCheck },
     { id: 'leads', label: 'Leads', icon: HiOutlineCursorArrowRays, activeIcon: HiOutlineCursorArrowRays, badge: leadCount },
     { id: 'jobs', label: 'Jobs', icon: HiOutlineBriefcase, activeIcon: HiOutlineBriefcase },
+    { id: 'subscription', label: 'Subscription', icon: HiOutlineCreditCard, activeIcon: HiOutlineCreditCard },
     { id: 'messages', label: 'Messages', icon: HiOutlineChatBubbleLeftRight, activeIcon: RiMessage3Line },
     { id: 'settings', label: 'Settings', icon: HiOutlineCog8Tooth, activeIcon: RiSettings4Line },
   ];
@@ -370,7 +382,21 @@ function DashboardContent() {
   }
 
   const businessName = business?.businessName || 'Your Business';
-  const isPaymentPending = business?.paymentStatus === 'pending';
+  const subscriptionStatus = getMerchantSubscriptionStatus({
+    paymentStatus: business?.paymentStatus,
+    selectedPlan: business?.selectedPlan,
+    billingCycle: business?.billingCycle,
+    planStartedAt: business?.planStartedAt,
+    planExpiresAt: business?.planExpiresAt,
+    updatedAt: business?.updatedAt,
+    createdAt: business?.createdAt,
+    autoRenewEnabled: business?.autoRenewEnabled,
+    mandateStatus: business?.mandateStatus,
+    subscriptionStatus: business?.subscriptionStatus,
+    razorpaySubscriptionId: business?.razorpaySubscriptionId,
+  });
+  const isPlanActive = subscriptionStatus.isActive;
+  const isPaymentPending = !isPlanActive;
   const isVerified = Boolean(business?.isFinderBVerified || business?.isVerified);
 
   const { percentage: completionPercent, missingFields: profileMissingFields } =
@@ -380,6 +406,7 @@ function DashboardContent() {
     paymentStatus: business?.paymentStatus,
     kycStatus: business?.kycStatus,
     completionPercent,
+    subscription: subscriptionStatus,
   });
   const ratingStats = getBusinessPublicRatingStats(business?.review);
   const kpis = buildDefaultKpis(leadCount, profileViews30d, ratingStats);
@@ -413,11 +440,24 @@ function DashboardContent() {
         copiedId={copiedId}
         onCopyMerchantId={handleCopyId}
         isPaymentPending={isPaymentPending}
+        showRenewalCta={subscriptionStatus.canRenew && isPlanActive}
         profileImageUrl={profilePictureUrl}
         onLogout={handleLogout}
       />
 
       <main className="min-h-screen px-4 pb-[calc(5rem+env(safe-area-inset-bottom))] pt-4 md:px-8 md:pt-6 lg:ml-72 lg:max-w-[1200px] lg:px-10 lg:pb-8 lg:pt-8 xl:max-w-[1280px]">
+        {businessId && subscriptionStatus.alertLevel !== 'none' && (
+          <SubscriptionExpiryAlert
+            businessId={businessId}
+            businessName={businessName}
+            fullName={business?.fullName}
+            email={business?.email || business?.workEmail}
+            mobile={business?.mobile || business?.publicPhone}
+            subscription={subscriptionStatus}
+            onOpenSubscription={() => setActiveTab('subscription')}
+          />
+        )}
+
         <DashboardTopBar
           activeTab={activeTab}
           unreadCount={unreadCount}
@@ -439,13 +479,13 @@ function DashboardContent() {
             <DashboardKpiRow kpis={kpis} />
 
             <DashboardAtAGlance
-              isPaymentActive={!isPaymentPending}
+              isPaymentActive={isPlanActive}
               newLeadCount={newLeadCount}
               activeJobsCount={activeJobsCount}
               onOpenLeads={() => setActiveTab('leads')}
               onOpenJobs={() => setActiveTab('jobs')}
               onOpenListing={() => setActiveTab('listings')}
-              onOpenBilling={businessId ? () => router.push(`/pricing?businessId=${businessId}`) : undefined}
+              onOpenBilling={() => setActiveTab('subscription')}
             />
 
             {isVerified && <TrustBadgeCallout isVerified />}
@@ -499,9 +539,9 @@ function DashboardContent() {
                     ...(businessId
                       ? [
                           {
-                            label: 'Growth Pro billing',
-                            description: 'Subscription, invoices, and plan options.',
-                            href: `/pricing?businessId=${businessId}`,
+                            label: 'Subscription & billing',
+                            description: 'Plan status, renewal dates, and payment history.',
+                            onClick: () => setActiveTab('subscription'),
                           },
                         ]
                       : []),
@@ -545,6 +585,19 @@ function DashboardContent() {
         {activeTab === 'jobs' && businessId && (
           <DashboardTabShell>
             <JobPostingTab businessId={businessId} />
+          </DashboardTabShell>
+        )}
+
+        {activeTab === 'subscription' && businessId && (
+          <DashboardTabShell>
+            <SubscriptionTab
+              businessId={businessId}
+              businessName={businessName}
+              fullName={business?.fullName}
+              email={business?.email || business?.workEmail}
+              mobile={business?.mobile || business?.publicPhone}
+              onPaymentError={setPaymentError}
+            />
           </DashboardTabShell>
         )}
 

@@ -39,6 +39,7 @@ type DashboardSidebarProps = {
   copiedId?: boolean;
   onCopyMerchantId?: (id: string) => void;
   isPaymentPending: boolean;
+  showRenewalCta?: boolean;
   profileImageUrl?: string | null;
   onLogout: () => void;
 };
@@ -70,6 +71,7 @@ export default function DashboardSidebar({
   copiedId,
   onCopyMerchantId,
   isPaymentPending,
+  showRenewalCta = false,
   profileImageUrl,
   onLogout,
 }: DashboardSidebarProps) {
@@ -162,17 +164,23 @@ export default function DashboardSidebar({
   );
 
   const paymentCta =
-    isPaymentPending && businessId ? (
+    (isPaymentPending || showRenewalCta) && businessId ? (
       <div className="mt-4 overflow-hidden rounded-lg border border-amber-200/80 bg-gradient-to-br from-amber-50/80 to-white p-3">
-        <p className="text-xs font-semibold text-[#153551]">Growth Pro inactive</p>
-        <p className="mt-1 text-xs text-zinc-600">Upgrade to see who enquired and follow up by phone.</p>
+        <p className="text-xs font-semibold text-[#153551]">
+          {isPaymentPending ? 'Growth Pro inactive' : 'Plan renewal due soon'}
+        </p>
+        <p className="mt-1 text-xs text-zinc-600">
+          {isPaymentPending
+            ? 'Upgrade to see who enquired and follow up by phone.'
+            : 'Renew now to keep lead access without interruption.'}
+        </p>
         <MerchantRechargeButton
           businessId={businessId}
           businessName={businessName}
           fullName={businessFullName}
           email={businessEmail}
           mobile={businessMobile}
-          label="Choose plan"
+          label={isPaymentPending ? 'Choose plan' : 'Renew plan'}
           className="mt-3 w-full rounded-lg bg-[#153551] py-2 text-xs font-semibold text-white hover:bg-[#215481] disabled:opacity-60"
         />
       </div>
