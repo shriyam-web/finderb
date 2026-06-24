@@ -1,9 +1,9 @@
 export const FINDERB_TIMEZONE = 'Asia/Kolkata';
+const IST_OFFSET_MS = (5 * 60 + 30) * 60 * 1000;
 
 /**
- * Supabase/Postgres often returns `timestamptz` / `timestamp` values without a
- * timezone suffix, e.g. `2026-06-24T06:03:51.885`. Those values are UTC wall
- * clock and must not be parsed as the viewer's local timezone.
+ * DB timestamps arrive without timezone, e.g. `2026-06-24T18:03:51.885`.
+ * They are UTC — add +5:30 for IST display.
  */
 export function parseFinderbTimestamp(value: string | Date | null | undefined): Date | null {
   if (!value) return null;
@@ -14,15 +14,34 @@ export function parseFinderbTimestamp(value: string | Date | null | undefined): 
   const trimmed = value.trim();
   if (!trimmed) return null;
 
-  const hasTimezone = /[zZ]$|[+-]\d{2}:?\d{2}$/.test(trimmed);
-  const normalized = trimmed.includes('T') ? trimmed : trimmed.replace(' ', 'T');
-  const iso = hasTimezone ? normalized : `${normalized}Z`;
+  if (/[zZ]$|[+-]\d{2}:?\d{2}$/.test(trimmed)) {
+    const date = new Date(trimmed);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
 
-  const date = new Date(iso);
+  const match = trimmed.match(
+    /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2}):(\d{2})(?:\.(\d+))?/
+  );
+  if (match) {
+    const [, year, month, day, hour, minute, second, ms = '0'] = match;
+    const utcMs = Date.UTC(
+      Number(year),
+      Number(month) - 1,
+      Number(day),
+      Number(hour),
+      Number(minute),
+      Number(second),
+      Number(ms.padEnd(3, '0').slice(0, 3))
+    );
+    return new Date(utcMs);
+  }
+
+  const normalized = trimmed.includes('T') ? trimmed : trimmed.replace(' ', 'T');
+  const date = new Date(`${normalized}Z`);
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
-/** Normalize to ISO UTC for passing through server actions / JSON. */
+/** Normalize to ISO UTC for JSON / server actions. */
 export function normalizeFinderbTimestamp(value: string | Date | null | undefined): string {
   const date = parseFinderbTimestamp(value);
   return date ? date.toISOString() : '';
@@ -62,7 +81,7 @@ export function formatActivityDate(value: string | Date | null | undefined): str
   });
 }
 
-/** Activity feed time line, e.g. "11:33 pm IST". */
+/** Activity feed time line in IST (+5:30). */
 export function formatActivityTime(value: string | Date | null | undefined): string {
   const date = toDate(value);
   if (!date) return '—';
@@ -77,7 +96,7 @@ export function formatActivityTime(value: string | Date | null | undefined): str
   return `${formatted} IST`;
 }
 
-/** Pre-formatted activity labels (use on server; avoids client timezone bugs). */
+/** Pre-formatted activity labels (server-side). */
 export function formatActivityLabels(value: string | Date | null | undefined) {
   return {
     occurredAt: normalizeFinderbTimestamp(value),
@@ -85,3 +104,5 @@ export function formatActivityLabels(value: string | Date | null | undefined) {
     occurredTimeLabel: formatActivityTime(value),
   };
 }
+
+export { IST_OFFSET_MS };
