@@ -5,7 +5,6 @@ import { createServiceClient } from '@/lib/supabase/service';
 import { auditAdminMutation, requireAdminMutation } from '@/lib/admin/auditContext.server';
 import {
   getAdminResourceConfig,
-  ADMIN_RESOURCE_LIST,
   type AdminResourceKey,
 } from '@/lib/admin/resources';
 import { assertAdminSession } from '@/lib/security/session';
