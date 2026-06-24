@@ -12,9 +12,40 @@ import {
   setAdminSessionCookie,
 } from '@/lib/security/session';
 import { formatAmountInr, getPlanDisplayName } from '@/lib/subscription/merchantSubscription';
+import { canViewAllAdminLoginLogs, canViewAdminAuditLogs } from '@/lib/admin/roles';
+import { recordAdminLoginLog } from '@/lib/admin/loginLogs.server';
+import type { AdminAuditAction } from '@/lib/admin/auditLog.server';
 
 const PAYMENTS_PAGE_SIZE = 25;
 const ACTIVITY_FETCH_LIMIT = 8;
+const LOGIN_LOGS_PAGE_SIZE = 50;
+const AUDIT_LOGS_PAGE_SIZE = 50;
+
+export type AdminAuditLogRecord = {
+  id: string;
+  adminId: string;
+  adminEmail: string;
+  adminRole: string;
+  action: AdminAuditAction;
+  resourceType: string;
+  resourceId: string | null;
+  summary: string;
+  metadata: Record<string, unknown> | null;
+  ipAddress: string | null;
+  userAgent: string | null;
+  createdAt: string;
+};
+
+export type AdminLoginLogRecord = {
+  id: string;
+  adminId: string;
+  email: string;
+  adminEmail: string | null;
+  success: boolean;
+  ipAddress: string | null;
+  userAgent: string | null;
+  createdAt: string;
+};
 
 export type AdminActivityEventType =
   | 'user_joined'
@@ -140,6 +171,7 @@ export async function getAdminActivityEvents(limit = ACTIVITY_FETCH_LIMIT) {
   };
 }
 
+export type AdminPaymentRecord = {
   id: string;
   businessId: string;
   businessName: string;
@@ -208,6 +240,11 @@ export async function loginAdmin(email: string, password: string) {
 
     const verification = await verifyPassword(password, admin.password);
     if (!verification.valid) {
+      await recordAdminLoginLog({
+        adminId: admin.id,
+        email: normalizedEmail,
+        success: false,
+      });
       return { success: false as const, error: 'Incorrect password.' };
     }
 
@@ -217,6 +254,11 @@ export async function loginAdmin(email: string, password: string) {
     }
 
     await setAdminSessionCookie(admin.id);
+    await recordAdminLoginLog({
+      adminId: admin.id,
+      email: normalizedEmail,
+      success: true,
+    });
     return { success: true as const, adminId: admin.id };
   } catch (error) {
     console.error('[admin] login failed:', error);
@@ -247,6 +289,161 @@ export async function getAdminSession() {
 
   if (error || !data) return null;
   return data;
+}
+
+export async function getAdminLoginLogs(filters: { page?: number } = {}) {
+  const auth = await assertAdminSession();
+  if (!auth.ok) {
+    return { success: false as const, error: auth.error };
+  }
+
+  const session = await getAdminSession();
+  if (!session) {
+    return { success: false as const, error: 'Unauthorized' };
+  }
+
+  const supabase = createServiceClient();
+  if (!supabase) {
+    return { success: false as const, error: 'Admin service is not configured' };
+  }
+
+  const page = Math.max(1, filters.page ?? 1);
+  const pageSize = LOGIN_LOGS_PAGE_SIZE;
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+  const viewAll = canViewAllAdminLoginLogs(session.role);
+
+  let query = supabase
+    .from('admin_login_logs')
+    .select(
+      `
+      id,
+      admin_id,
+      email,
+      success,
+      ip_address,
+      user_agent,
+      created_at,
+      admins:admin_id (email)
+    `,
+      { count: 'exact' }
+    )
+    .order('created_at', { ascending: false })
+    .range(from, to);
+
+  if (!viewAll) {
+    query = query.eq('admin_id', auth.adminId);
+  }
+
+  const { data, error, count } = await query;
+
+  if (error) {
+    console.error('[admin] login logs fetch failed:', error);
+    return { success: false as const, error: 'Could not load login logs' };
+  }
+
+  const logs: AdminLoginLogRecord[] = (data ?? []).map((row) => {
+    const adminRow = Array.isArray(row.admins) ? row.admins[0] : row.admins;
+    return {
+      id: String(row.id),
+      adminId: String(row.admin_id),
+      email: String(row.email),
+      adminEmail: adminRow?.email ? String(adminRow.email) : null,
+      success: Boolean(row.success),
+      ipAddress: row.ip_address ? String(row.ip_address) : null,
+      userAgent: row.user_agent ? String(row.user_agent) : null,
+      createdAt: String(row.created_at),
+    };
+  });
+
+  const total = count ?? 0;
+  return {
+    success: true as const,
+    logs,
+    page,
+    pageSize,
+    total,
+    totalPages: Math.max(1, Math.ceil(total / pageSize)),
+    viewAll,
+  };
+}
+
+export async function getAdminAuditLogs(filters: { page?: number } = {}) {
+  const auth = await assertAdminSession();
+  if (!auth.ok) {
+    return { success: false as const, error: auth.error };
+  }
+
+  const session = await getAdminSession();
+  if (!session) {
+    return { success: false as const, error: 'Unauthorized' };
+  }
+
+  if (!canViewAdminAuditLogs(session.role)) {
+    return { success: false as const, error: 'Only controller admins can view panel audit logs.' };
+  }
+
+  const supabase = createServiceClient();
+  if (!supabase) {
+    return { success: false as const, error: 'Admin service is not configured' };
+  }
+
+  const page = Math.max(1, filters.page ?? 1);
+  const pageSize = AUDIT_LOGS_PAGE_SIZE;
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+
+  const { data, error, count } = await supabase
+    .from('admin_audit_logs')
+    .select(
+      `
+      id,
+      admin_id,
+      admin_email,
+      admin_role,
+      action,
+      resource_type,
+      resource_id,
+      summary,
+      metadata,
+      ip_address,
+      user_agent,
+      created_at
+    `,
+      { count: 'exact' }
+    )
+    .order('created_at', { ascending: false })
+    .range(from, to);
+
+  if (error) {
+    console.error('[admin] audit logs fetch failed:', error);
+    return { success: false as const, error: 'Could not load audit logs' };
+  }
+
+  const logs: AdminAuditLogRecord[] = (data ?? []).map((row) => ({
+    id: String(row.id),
+    adminId: String(row.admin_id),
+    adminEmail: String(row.admin_email),
+    adminRole: String(row.admin_role),
+    action: row.action as AdminAuditAction,
+    resourceType: String(row.resource_type),
+    resourceId: row.resource_id ? String(row.resource_id) : null,
+    summary: String(row.summary),
+    metadata: (row.metadata as Record<string, unknown> | null) ?? null,
+    ipAddress: row.ip_address ? String(row.ip_address) : null,
+    userAgent: row.user_agent ? String(row.user_agent) : null,
+    createdAt: String(row.created_at),
+  }));
+
+  const total = count ?? 0;
+  return {
+    success: true as const,
+    logs,
+    page,
+    pageSize,
+    total,
+    totalPages: Math.max(1, Math.ceil(total / pageSize)),
+  };
 }
 
 export async function getAdminPayments(filters: AdminPaymentsFilters = {}) {

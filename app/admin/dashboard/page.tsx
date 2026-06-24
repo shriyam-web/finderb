@@ -25,6 +25,7 @@ export default function AdminDashboardPage() {
     totalRevenueDisplay: '₹0',
   });
   const [error, setError] = useState('');
+  const [isController, setIsController] = useState(false);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -35,6 +36,9 @@ export default function AdminDashboardPage() {
       router.replace('/admin/login');
       return;
     }
+
+    const role = String(session.role ?? '').toLowerCase();
+    setIsController(role === 'controller' || role === 'controller_admin');
 
     const [activityResult, statsResult] = await Promise.all([
       getAdminActivityEvents(8),
@@ -144,6 +148,20 @@ export default function AdminDashboardPage() {
               >
                 Full activity log
               </Link>
+              <Link
+                href="/admin/login-logs"
+                className="block rounded-lg border border-zinc-200 px-3 py-2.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
+              >
+                Login logs
+              </Link>
+              {isController && (
+                <Link
+                  href="/admin/audit-logs"
+                  className="block rounded-lg border border-zinc-200 px-3 py-2.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
+                >
+                  Panel audit log
+                </Link>
+              )}
             </div>
           </aside>
         </div>

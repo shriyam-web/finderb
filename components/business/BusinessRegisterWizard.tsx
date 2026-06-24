@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import Link from 'next/link';
 import {
   Briefcase,
@@ -170,6 +171,10 @@ export default function BusinessRegisterWizard({
   onPrev,
   onNext,
 }: BusinessRegisterWizardProps) {
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+  }, [step]);
+
   return (
     <MerchantAuthPage>
       <section className="register-hero relative overflow-hidden pb-16 sm:pb-20">
