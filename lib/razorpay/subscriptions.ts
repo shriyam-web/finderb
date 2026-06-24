@@ -7,7 +7,7 @@ import {
   getPlanAmountInPaise,
   getRazorpayPlanId,
   isMonthlyMandateBilling,
-  MANDATE_VALIDITY_YEARS,
+  MANDATE_TOTAL_MONTHLY_CYCLES,
 } from '@/lib/razorpay/plans';
 
 export type RazorpaySubscriptionEntity = {
@@ -111,12 +111,6 @@ export { MANDATE_VALIDITY_YEARS } from '@/lib/razorpay/plans';
 
 const AUTH_CHECKOUT_EXPIRY_SEC = 60 * 60 * 24 * 7;
 
-function mandateEndAtUnix(fromSec: number, years: number): number {
-  const end = new Date(fromSec * 1000);
-  end.setFullYear(end.getFullYear() + years);
-  return Math.floor(end.getTime() / 1000);
-}
-
 export async function createRazorpaySubscription(params: {
   businessId: string;
   plan: MerchantPlan;
@@ -148,7 +142,7 @@ export async function createRazorpaySubscription(params: {
     method: 'POST',
     body: JSON.stringify({
       plan_id: planId,
-      end_at: mandateEndAtUnix(nowSec, MANDATE_VALIDITY_YEARS),
+      total_count: MANDATE_TOTAL_MONTHLY_CYCLES,
       quantity: 1,
       customer_notify: true,
       expire_by: nowSec + AUTH_CHECKOUT_EXPIRY_SEC,

@@ -56,6 +56,9 @@ export function isMonthlyMandateBilling(billingCycle: BillingCycle): boolean {
 /** Shown on Razorpay mandate consent — avoids the default 100-year Razorpay max. */
 export const MANDATE_VALIDITY_YEARS = 5;
 
+/** Monthly billing cycles for mandate window (use total_count, not end_at). */
+export const MANDATE_TOTAL_MONTHLY_CYCLES = MANDATE_VALIDITY_YEARS * 12;
+
 export function getRazorpayPlanId(plan: MerchantPlan, billingCycle: BillingCycle): string {
   if (plan !== 'pro') {
     throw new Error('Unsupported plan for Razorpay billing.');
