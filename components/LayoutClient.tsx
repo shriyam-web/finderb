@@ -41,6 +41,10 @@ function isMerchantAppShell(pathname: string | null) {
     (prefix) => pathname === prefix || pathname.startsWith(prefix)
   );
 }
+
+function isUserDashboardRoute(pathname: string | null) {
+  return pathname === '/dashboard' || Boolean(pathname?.startsWith('/dashboard/'));
+}
 import BottomNavbar from "@/components/BottomNavbar";
 import LocationPermissionPrompt from "@/components/LocationPermissionPrompt";
 import PWAInstallPrompt from "@/components/pwa/PWAInstallPrompt";
@@ -57,12 +61,13 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
   const isCategoriesBrowse =
     pathname === '/categories' ||
     (pathname?.startsWith('/categories/') && !pathname.startsWith('/categories/job'));
-  const hideTopNavFooter = merchantAppShell || isCategoriesBrowse;
-  const showBottomNav = !merchantAppShell && !isCategoriesBrowse;
-  const showLocationPrompt = !merchantAppShell && !isCategoriesBrowse;
+  const userDashboardRoute = isUserDashboardRoute(pathname);
+  const hideTopNavFooter = merchantAppShell || isCategoriesBrowse || userDashboardRoute;
+  const showBottomNav = !merchantAppShell && !isCategoriesBrowse && !userDashboardRoute;
+  const showLocationPrompt = !merchantAppShell && !isCategoriesBrowse && !userDashboardRoute;
 
   useEffect(() => {
-    if (businessProfileRoute) {
+    if (businessProfileRoute || userDashboardRoute) {
       setLoading(false);
       return;
     }
@@ -72,7 +77,7 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
     }, 3000);
 
     return () => clearTimeout(timer);
-  }, [businessProfileRoute]);
+  }, [businessProfileRoute, userDashboardRoute]);
 
   return (
     <UserLocationProvider>

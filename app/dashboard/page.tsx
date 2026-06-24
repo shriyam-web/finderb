@@ -161,7 +161,7 @@ function DashboardContent() {
       {/* Mobile top bar */}
       <header className="fixed inset-x-0 top-0 z-[60] flex h-14 items-center justify-between border-b border-slate-200/80 bg-white px-4 lg:hidden">
         <Link href="/" className="shrink-0">
-          <Image src="/logo1.png" alt="FinderB" width={96} height={32} className="h-6 w-auto" />
+          <Image src="/logo1.png" alt="FinderB" width={96} height={32} className="h-6 w-auto" priority />
         </Link>
         <button
           type="button"
@@ -184,13 +184,13 @@ function DashboardContent() {
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-[58] flex w-[272px] flex-col border-r border-slate-200/80 bg-white transition-transform duration-300 lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-[58] flex h-screen w-[272px] flex-col border-r border-slate-200/80 bg-white transition-transform duration-300 lg:translate-x-0 ${
           isSidebarOpen ? 'translate-x-0 shadow-xl' : '-translate-x-full'
         }`}
       >
-        <div className="flex h-14 items-center justify-between border-b border-slate-100 px-5 lg:h-auto lg:border-0 lg:px-6 lg:pt-6 lg:pb-2">
+        <div className="flex h-14 shrink-0 items-center justify-between border-b border-slate-100 px-5 lg:h-16 lg:px-6">
           <Link href="/" onClick={() => setIsSidebarOpen(false)}>
-            <Image src="/logo1.png" alt="FinderB" width={110} height={36} className="h-7 w-auto" />
+            <Image src="/logo1.png" alt="FinderB" width={110} height={36} className="h-7 w-auto" priority />
           </Link>
           <button
             type="button"
@@ -202,7 +202,7 @@ function DashboardContent() {
           </button>
         </div>
 
-        <div className="border-b border-slate-100 px-5 py-4">
+        <div className="shrink-0 border-b border-slate-100 px-5 py-4 lg:px-6">
           <div className="flex items-center gap-3">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#215481] text-sm font-semibold text-white">
               {userInitials}
@@ -217,7 +217,7 @@ function DashboardContent() {
           )}
         </div>
 
-        <nav className="flex-1 overflow-y-auto px-3 py-4">
+        <nav className="min-h-0 flex-1 overflow-y-auto px-3 py-4 lg:px-4">
           <p className="mb-2 px-3 text-[11px] font-medium uppercase tracking-wider text-slate-400">
             Menu
           </p>
@@ -249,7 +249,7 @@ function DashboardContent() {
           </ul>
         </nav>
 
-        <div className="space-y-1 border-t border-slate-100 p-3">
+        <div className="shrink-0 space-y-1 border-t border-slate-100 p-3 lg:p-4">
           <Link
             href="/"
             className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-600 transition-colors hover:bg-slate-50"
@@ -271,7 +271,7 @@ function DashboardContent() {
 
       {/* Main */}
       <div className="lg:pl-[272px]">
-        <main className="min-h-screen px-4 pb-8 pt-[4.5rem] lg:px-8 lg:pt-8">
+        <main className="min-h-screen px-4 pb-10 pt-[4.25rem] sm:px-6 lg:px-10 lg:pb-12 lg:pt-10">
           {/* Overview */}
           {activeTab === 'profile' && (
             <div className="mx-auto max-w-5xl space-y-6">
