@@ -62,7 +62,7 @@ export function formatActivityDate(value: string | Date | null | undefined): str
   });
 }
 
-/** Activity feed time line, e.g. "11:33 am". */
+/** Activity feed time line, e.g. "11:33 pm IST". */
 export function formatActivityTime(value: string | Date | null | undefined): string {
   const date = toDate(value);
   if (!date) return '—';
@@ -75,4 +75,13 @@ export function formatActivityTime(value: string | Date | null | undefined): str
   });
 
   return `${formatted} IST`;
+}
+
+/** Pre-formatted activity labels (use on server; avoids client timezone bugs). */
+export function formatActivityLabels(value: string | Date | null | undefined) {
+  return {
+    occurredAt: normalizeFinderbTimestamp(value),
+    occurredDateLabel: formatActivityDate(value),
+    occurredTimeLabel: formatActivityTime(value),
+  };
 }

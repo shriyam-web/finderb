@@ -15,7 +15,7 @@ import { formatAmountInr, getPlanDisplayName } from '@/lib/subscription/merchant
 import { canViewAllAdminLoginLogs, canViewAllAdminAuditLogs } from '@/lib/admin/roles';
 import { recordAdminLoginLog } from '@/lib/admin/loginLogs.server';
 import type { AdminAuditAction } from '@/lib/admin/auditLog.server';
-import { normalizeFinderbTimestamp, parseFinderbTimestamp } from '@/lib/formatDateTime';
+import { formatActivityLabels, parseFinderbTimestamp } from '@/lib/formatDateTime';
 
 const PAYMENTS_PAGE_SIZE = 25;
 const ACTIVITY_FETCH_LIMIT = 8;
@@ -60,8 +60,25 @@ export type AdminActivityEvent = {
   title: string;
   subtitle: string;
   occurredAt: string;
+  occurredDateLabel: string;
+  occurredTimeLabel: string;
   iconLetter: string;
 };
+
+function buildActivityEvent(
+  event: Omit<AdminActivityEvent, 'occurredAt' | 'occurredDateLabel' | 'occurredTimeLabel'> & {
+    occurredAtRaw: string | Date | null | undefined;
+  }
+): AdminActivityEvent {
+  const labels = formatActivityLabels(event.occurredAtRaw);
+  const { occurredAtRaw, ...rest } = event;
+  return {
+    ...rest,
+    occurredAt: labels.occurredAt,
+    occurredDateLabel: labels.occurredDateLabel,
+    occurredTimeLabel: labels.occurredTimeLabel,
+  };
+}
 
 function activityIconLetter(value: string) {
   const letter = value.trim().charAt(0).toUpperCase();
@@ -120,54 +137,62 @@ export async function getAdminActivityEvents(limit = ACTIVITY_FETCH_LIMIT) {
   for (const user of usersRes.data ?? []) {
     const name = String(user.fullName ?? 'User');
     const email = String(user.email ?? '');
-    events.push({
-      id: `user-${user.id}`,
-      type: 'user_joined',
-      title: 'New User Joined',
-      subtitle: email ? `${name} (${email})` : name,
-      occurredAt: normalizeFinderbTimestamp(user.createdAt),
-      iconLetter: activityIconLetter(name),
-    });
+    events.push(
+      buildActivityEvent({
+        id: `user-${user.id}`,
+        type: 'user_joined',
+        title: 'New User Joined',
+        subtitle: email ? `${name} (${email})` : name,
+        occurredAtRaw: user.createdAt,
+        iconLetter: activityIconLetter(name),
+      })
+    );
   }
 
   for (const business of businessesRes.data ?? []) {
     const name = String(business.businessName ?? 'Business');
     const email = String(business.email || business.workEmail || '');
-    events.push({
-      id: `business-${business.id}`,
-      type: 'partner_joined',
-      title: 'New Partner Joined',
-      subtitle: email ? `${name} (${email})` : name,
-      occurredAt: normalizeFinderbTimestamp(business.createdAt),
-      iconLetter: activityIconLetter(name),
-    });
+    events.push(
+      buildActivityEvent({
+        id: `business-${business.id}`,
+        type: 'partner_joined',
+        title: 'New Partner Joined',
+        subtitle: email ? `${name} (${email})` : name,
+        occurredAtRaw: business.createdAt,
+        iconLetter: activityIconLetter(name),
+      })
+    );
   }
 
   for (const lead of leadsRes.data ?? []) {
     const name = String(lead.name ?? 'Lead');
     const category = String(lead.category ?? 'General');
     const email = lead.email ? String(lead.email) : '';
-    events.push({
-      id: `lead-${lead.id}`,
-      type: 'new_lead',
-      title: 'New Lead',
-      subtitle: email ? `${name} · ${category} (${email})` : `${name} · ${category}`,
-      occurredAt: normalizeFinderbTimestamp(lead.created_at),
-      iconLetter: activityIconLetter(name),
-    });
+    events.push(
+      buildActivityEvent({
+        id: `lead-${lead.id}`,
+        type: 'new_lead',
+        title: 'New Lead',
+        subtitle: email ? `${name} · ${category} (${email})` : `${name} · ${category}`,
+        occurredAtRaw: lead.created_at,
+        iconLetter: activityIconLetter(name),
+      })
+    );
   }
 
   for (const payment of paymentsRes.data ?? []) {
     const business = Array.isArray(payment.Business) ? payment.Business[0] : payment.Business;
     const businessName = String((business as { businessName?: string } | null)?.businessName ?? 'Merchant');
-    events.push({
-      id: `payment-${payment.id}`,
-      type: 'payment_completed',
-      title: 'Plan Recharge Completed',
-      subtitle: `${businessName} · ${getPlanDisplayName(String(payment.plan))} (${formatAmountInr(Number(payment.amount_paise))})`,
-      occurredAt: normalizeFinderbTimestamp(payment.created_at),
-      iconLetter: activityIconLetter(businessName),
-    });
+    events.push(
+      buildActivityEvent({
+        id: `payment-${payment.id}`,
+        type: 'payment_completed',
+        title: 'Plan Recharge Completed',
+        subtitle: `${businessName} · ${getPlanDisplayName(String(payment.plan))} (${formatAmountInr(Number(payment.amount_paise))})`,
+        occurredAtRaw: payment.created_at,
+        iconLetter: activityIconLetter(businessName),
+      })
+    );
   }
 
   return {

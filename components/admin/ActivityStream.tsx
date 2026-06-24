@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import { formatActivityDate, formatActivityTime } from '@/lib/formatDateTime';
 import type { AdminActivityEvent } from '@/app/actions/admin';
 
 const ICON_TONES: Record<AdminActivityEvent['type'], string> = {
@@ -57,8 +56,8 @@ export default function ActivityStream({
                 <p className="mt-0.5 truncate text-sm text-zinc-600">{event.subtitle}</p>
               </div>
               <div className="shrink-0 text-right text-xs text-zinc-500">
-                <p className="font-medium text-zinc-700">{formatActivityDate(event.occurredAt)}</p>
-                <p className="mt-1 tabular-nums">{formatActivityTime(event.occurredAt)}</p>
+                <p className="font-medium text-zinc-700">{event.occurredDateLabel}</p>
+                <p className="mt-1 tabular-nums">{event.occurredTimeLabel}</p>
               </div>
             </li>
           ))}
