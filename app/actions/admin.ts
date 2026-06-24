@@ -12,7 +12,7 @@ import {
   setAdminSessionCookie,
 } from '@/lib/security/session';
 import { formatAmountInr, getPlanDisplayName } from '@/lib/subscription/merchantSubscription';
-import { canViewAllAdminLoginLogs, canViewAdminAuditLogs } from '@/lib/admin/roles';
+import { canViewAllAdminLoginLogs, canViewAllAdminAuditLogs } from '@/lib/admin/roles';
 import { recordAdminLoginLog } from '@/lib/admin/loginLogs.server';
 import type { AdminAuditAction } from '@/lib/admin/auditLog.server';
 
@@ -311,7 +311,7 @@ export async function getAdminLoginLogs(filters: { page?: number } = {}) {
   const pageSize = LOGIN_LOGS_PAGE_SIZE;
   const from = (page - 1) * pageSize;
   const to = from + pageSize - 1;
-  const viewAll = canViewAllAdminLoginLogs(session.role);
+  const viewAll = canViewAllAdminLoginLogs(session.role, session.email);
 
   let query = supabase
     .from('admin_login_logs')
@@ -379,9 +379,7 @@ export async function getAdminAuditLogs(filters: { page?: number } = {}) {
     return { success: false as const, error: 'Unauthorized' };
   }
 
-  if (!canViewAdminAuditLogs(session.role)) {
-    return { success: false as const, error: 'Only controller admins can view panel audit logs.' };
-  }
+  const viewAll = canViewAllAdminAuditLogs(session.role, session.email);
 
   const supabase = createServiceClient();
   if (!supabase) {
@@ -393,7 +391,7 @@ export async function getAdminAuditLogs(filters: { page?: number } = {}) {
   const from = (page - 1) * pageSize;
   const to = from + pageSize - 1;
 
-  const { data, error, count } = await supabase
+  let query = supabase
     .from('admin_audit_logs')
     .select(
       `
@@ -414,6 +412,12 @@ export async function getAdminAuditLogs(filters: { page?: number } = {}) {
     )
     .order('created_at', { ascending: false })
     .range(from, to);
+
+  if (!viewAll) {
+    query = query.eq('admin_id', auth.adminId);
+  }
+
+  const { data, error, count } = await query;
 
   if (error) {
     console.error('[admin] audit logs fetch failed:', error);
@@ -443,6 +447,7 @@ export async function getAdminAuditLogs(filters: { page?: number } = {}) {
     pageSize,
     total,
     totalPages: Math.max(1, Math.ceil(total / pageSize)),
+    viewAll,
   };
 }
 

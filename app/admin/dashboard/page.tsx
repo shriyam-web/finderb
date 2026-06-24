@@ -12,6 +12,7 @@ import {
   logoutAdmin,
   type AdminActivityEvent,
 } from '@/app/actions/admin';
+import { getAdminPermissions } from '@/app/actions/adminManage';
 import ActivityStream from '@/components/admin/ActivityStream';
 
 export default function AdminDashboardPage() {
@@ -37,8 +38,10 @@ export default function AdminDashboardPage() {
       return;
     }
 
-    const role = String(session.role ?? '').toLowerCase();
-    setIsController(role === 'controller' || role === 'controller_admin');
+    const permissions = await getAdminPermissions();
+    if (permissions.success) {
+      setIsController(permissions.isController);
+    }
 
     const [activityResult, statsResult] = await Promise.all([
       getAdminActivityEvents(8),
@@ -149,18 +152,27 @@ export default function AdminDashboardPage() {
                 Full activity log
               </Link>
               <Link
+                href="/admin/manage"
+                className="block rounded-lg border border-zinc-200 px-3 py-2.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
+              >
+                Content management
+              </Link>
+              <Link
                 href="/admin/login-logs"
                 className="block rounded-lg border border-zinc-200 px-3 py-2.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
               >
                 Login logs
               </Link>
+              <Link
+                href="/admin/audit-logs"
+                className="block rounded-lg border border-zinc-200 px-3 py-2.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
+              >
+                Panel audit log
+              </Link>
               {isController && (
-                <Link
-                  href="/admin/audit-logs"
-                  className="block rounded-lg border border-zinc-200 px-3 py-2.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
-                >
-                  Panel audit log
-                </Link>
+                <p className="px-1 pt-1 text-xs text-[#215481]">
+                  Controller access — you can view all admin login and audit logs.
+                </p>
               )}
             </div>
           </aside>

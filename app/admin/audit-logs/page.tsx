@@ -40,6 +40,7 @@ export default function AdminAuditLogsPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
+  const [viewAll, setViewAll] = useState(false);
   const [error, setError] = useState('');
 
   const loadData = useCallback(async () => {
@@ -54,10 +55,6 @@ export default function AdminAuditLogsPage() {
 
     const result = await getAdminAuditLogs({ page });
     if (!result.success) {
-      if (result.error?.includes('controller')) {
-        router.replace('/admin/dashboard');
-        return;
-      }
       setError(result.error || 'Failed to load audit logs');
       setLoading(false);
       return;
@@ -66,6 +63,7 @@ export default function AdminAuditLogsPage() {
     setLogs(result.logs);
     setTotal(result.total);
     setTotalPages(result.totalPages);
+    setViewAll(result.viewAll);
     setLoading(false);
   }, [page, router]);
 
@@ -119,9 +117,13 @@ export default function AdminAuditLogsPage() {
       <main className="mx-auto max-w-7xl px-4 py-6 md:px-8">
         <div className="mb-4">
           <p className="text-sm text-zinc-600">
-            Who changed what in the admin panel — create, update, and delete actions with timestamps.
+            {viewAll
+              ? 'All admin panel changes across accounts (controller access).'
+              : 'Your panel changes only — create, update, and delete actions with timestamps.'}
           </p>
-          <p className="mt-0.5 text-xs text-zinc-400">{total} records · controller access only</p>
+          <p className="mt-0.5 text-xs text-zinc-400">
+            {total} records · times shown in IST (UTC+5:30)
+          </p>
         </div>
 
         <section className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">

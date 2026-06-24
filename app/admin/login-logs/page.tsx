@@ -91,14 +91,12 @@ export default function AdminLoginLogsPage() {
               <HiOutlineCreditCard size={16} />
               Payments
             </Link>
-            {viewAll && (
-              <Link
-                href="/admin/audit-logs"
-                className="inline-flex items-center gap-2 rounded-lg border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
-              >
-                Audit log
-              </Link>
-            )}
+            <Link
+              href="/admin/audit-logs"
+              className="inline-flex items-center gap-2 rounded-lg border border-zinc-200 px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50"
+            >
+              Audit log
+            </Link>
             <button
               type="button"
               onClick={handleLogout}
@@ -119,7 +117,9 @@ export default function AdminLoginLogsPage() {
                 ? 'All admin sign-in attempts (controller access).'
                 : 'Your sign-in history only.'}
             </p>
-            <p className="mt-0.5 text-xs text-zinc-400">{total} records</p>
+            <p className="mt-0.5 text-xs text-zinc-400">
+              {total} records · times shown in IST (UTC+5:30)
+            </p>
           </div>
           {viewAll && (
             <span className="inline-flex items-center gap-1.5 rounded-full bg-[#215481]/10 px-3 py-1 text-xs font-semibold text-[#215481]">

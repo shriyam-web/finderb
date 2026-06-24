@@ -11,7 +11,7 @@ export function formatDateTimeInr(value: string | Date | null | undefined): stri
   const date = toDate(value);
   if (!date) return '—';
 
-  return date.toLocaleString('en-IN', {
+  const formatted = date.toLocaleString('en-IN', {
     timeZone: FINDERB_TIMEZONE,
     day: 'numeric',
     month: 'short',
@@ -20,6 +20,8 @@ export function formatDateTimeInr(value: string | Date | null | undefined): stri
     minute: '2-digit',
     hour12: true,
   });
+
+  return `${formatted} IST`;
 }
 
 /** Activity feed date line, e.g. "Jun 24". */
@@ -39,10 +41,12 @@ export function formatActivityTime(value: string | Date | null | undefined): str
   const date = toDate(value);
   if (!date) return '—';
 
-  return date.toLocaleTimeString('en-IN', {
+  const formatted = date.toLocaleTimeString('en-IN', {
     timeZone: FINDERB_TIMEZONE,
     hour: '2-digit',
     minute: '2-digit',
     hour12: true,
   });
+
+  return `${formatted} IST`;
 }
