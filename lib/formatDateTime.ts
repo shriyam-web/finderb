@@ -1,9 +1,35 @@
 export const FINDERB_TIMEZONE = 'Asia/Kolkata';
 
-function toDate(value: string | Date | null | undefined): Date | null {
+/**
+ * Supabase/Postgres often returns `timestamptz` / `timestamp` values without a
+ * timezone suffix, e.g. `2026-06-24T06:03:51.885`. Those values are UTC wall
+ * clock and must not be parsed as the viewer's local timezone.
+ */
+export function parseFinderbTimestamp(value: string | Date | null | undefined): Date | null {
   if (!value) return null;
-  const date = value instanceof Date ? value : new Date(value);
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : value;
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+
+  const hasTimezone = /[zZ]$|[+-]\d{2}:?\d{2}$/.test(trimmed);
+  const normalized = trimmed.includes('T') ? trimmed : trimmed.replace(' ', 'T');
+  const iso = hasTimezone ? normalized : `${normalized}Z`;
+
+  const date = new Date(iso);
   return Number.isNaN(date.getTime()) ? null : date;
+}
+
+/** Normalize to ISO UTC for passing through server actions / JSON. */
+export function normalizeFinderbTimestamp(value: string | Date | null | undefined): string {
+  const date = parseFinderbTimestamp(value);
+  return date ? date.toISOString() : '';
+}
+
+function toDate(value: string | Date | null | undefined): Date | null {
+  return parseFinderbTimestamp(value);
 }
 
 /** Full date + time in IST (India). */
@@ -36,7 +62,7 @@ export function formatActivityDate(value: string | Date | null | undefined): str
   });
 }
 
-/** Activity feed time line, e.g. "02:29 PM". */
+/** Activity feed time line, e.g. "11:33 am". */
 export function formatActivityTime(value: string | Date | null | undefined): string {
   const date = toDate(value);
   if (!date) return '—';

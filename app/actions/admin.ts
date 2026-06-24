@@ -15,6 +15,7 @@ import { formatAmountInr, getPlanDisplayName } from '@/lib/subscription/merchant
 import { canViewAllAdminLoginLogs, canViewAllAdminAuditLogs } from '@/lib/admin/roles';
 import { recordAdminLoginLog } from '@/lib/admin/loginLogs.server';
 import type { AdminAuditAction } from '@/lib/admin/auditLog.server';
+import { normalizeFinderbTimestamp, parseFinderbTimestamp } from '@/lib/formatDateTime';
 
 const PAYMENTS_PAGE_SIZE = 25;
 const ACTIVITY_FETCH_LIMIT = 8;
@@ -69,7 +70,11 @@ function activityIconLetter(value: string) {
 
 function mergeActivityEvents(events: AdminActivityEvent[], limit: number) {
   return events
-    .sort((a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime())
+    .sort((a, b) => {
+      const aTime = parseFinderbTimestamp(a.occurredAt)?.getTime() ?? 0;
+      const bTime = parseFinderbTimestamp(b.occurredAt)?.getTime() ?? 0;
+      return bTime - aTime;
+    })
     .slice(0, limit);
 }
 
@@ -120,7 +125,7 @@ export async function getAdminActivityEvents(limit = ACTIVITY_FETCH_LIMIT) {
       type: 'user_joined',
       title: 'New User Joined',
       subtitle: email ? `${name} (${email})` : name,
-      occurredAt: String(user.createdAt),
+      occurredAt: normalizeFinderbTimestamp(user.createdAt),
       iconLetter: activityIconLetter(name),
     });
   }
@@ -133,7 +138,7 @@ export async function getAdminActivityEvents(limit = ACTIVITY_FETCH_LIMIT) {
       type: 'partner_joined',
       title: 'New Partner Joined',
       subtitle: email ? `${name} (${email})` : name,
-      occurredAt: String(business.createdAt),
+      occurredAt: normalizeFinderbTimestamp(business.createdAt),
       iconLetter: activityIconLetter(name),
     });
   }
@@ -147,7 +152,7 @@ export async function getAdminActivityEvents(limit = ACTIVITY_FETCH_LIMIT) {
       type: 'new_lead',
       title: 'New Lead',
       subtitle: email ? `${name} · ${category} (${email})` : `${name} · ${category}`,
-      occurredAt: String(lead.created_at),
+      occurredAt: normalizeFinderbTimestamp(lead.created_at),
       iconLetter: activityIconLetter(name),
     });
   }
@@ -160,7 +165,7 @@ export async function getAdminActivityEvents(limit = ACTIVITY_FETCH_LIMIT) {
       type: 'payment_completed',
       title: 'Plan Recharge Completed',
       subtitle: `${businessName} · ${getPlanDisplayName(String(payment.plan))} (${formatAmountInr(Number(payment.amount_paise))})`,
-      occurredAt: String(payment.created_at),
+      occurredAt: normalizeFinderbTimestamp(payment.created_at),
       iconLetter: activityIconLetter(businessName),
     });
   }
