@@ -134,7 +134,7 @@ export function verifyRazorpayWebhookSignature(rawBody: string, signature: strin
   }
 }
 
-function getRazorpayBasicAuth(): string | null {
+export function getRazorpayBasicAuth(): string | null {
   const { keyId, keySecret } = getRazorpayCredentials();
   if (!keyId || !keySecret) return null;
   return Buffer.from(`${keyId}:${keySecret}`).toString('base64');

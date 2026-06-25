@@ -38,6 +38,12 @@ import {
 import { enforceRateLimit } from '@/lib/security/enforceRateLimit.server';
 import { redactPublicBusinessFields } from '@/lib/security/businessFields';
 import { finalizeMerchantPayment } from '@/lib/razorpay/finalizeMerchantPayment';
+import {
+  createRazorpayContact,
+  createRazorpayBankFundAccount,
+  createRazorpayVpaFundAccount,
+} from '@/lib/razorpay/verify';
+import { isRazorpayConfigured } from '@/lib/razorpay/server';
 
 // Safe error handler wrapper
 function handleError(error: any, context: string): string {
@@ -184,18 +190,110 @@ export async function updateBusinessKYC(id: string, kycData: any) {
 
     const supabase = createClient(await cookies());
 
+    const businessFetch = await supabase
+      .from('Business')
+      .select('id, businessName, email, workEmail, mobile, isFinderBVerified, razorpayContactId, razorpayFundAccountId, bankName')
+      .eq('id', id)
+      .single();
+
+    if (businessFetch.error) {
+      throw businessFetch.error;
+    }
+
+    const businessRecord = businessFetch.data;
+    const shouldUseRazorpay = isRazorpayConfigured();
+    let isVerified = Boolean(businessRecord?.isFinderBVerified || businessRecord?.razorpayContactId);
+    let razorpayContactId: string | null = businessRecord?.razorpayContactId ?? null;
+    let razorpayFundAccountId: string | null = businessRecord?.razorpayFundAccountId ?? null;
+
+    if (shouldUseRazorpay) {
+      try {
+        const contactResult = await createRazorpayContact({
+          name: businessRecord.businessName || `Merchant ${id}`,
+          contact: businessRecord.mobile || String(businessRecord.email || businessRecord.workEmail || ''),
+          email: (businessRecord.email || businessRecord.workEmail) ?? undefined,
+          type: 'vendor',
+          referenceId: id,
+          notes: {
+            ...(kycData.panNumber ? { panNumber: kycData.panNumber } : {}),
+            ...(kycData.aadharNumber ? { aadharNumber: kycData.aadharNumber } : {}),
+            ...(kycData.cinNumber ? { cinNumber: kycData.cinNumber } : {}),
+            ...(kycData.msmeGstUrl ? { msmeGstUrl: kycData.msmeGstUrl } : {}),
+            ...(kycData.bankIfsc ? { bankIfsc: kycData.bankIfsc } : {}),
+            ...(kycData.bankAccountNumber ? { bankAccountNumber: kycData.bankAccountNumber } : {}),
+            ...(kycData.upiId ? { upiId: kycData.upiId } : {}),
+          },
+        });
+
+        if (contactResult.success) {
+          razorpayContactId = contactResult.contact.id;
+          isVerified = true;
+        }
+
+        if (isVerified && !razorpayFundAccountId && razorpayContactId) {
+          if (kycData.bankIfsc && kycData.bankAccountNumber) {
+            const bankResult = await createRazorpayBankFundAccount({
+              contactId: razorpayContactId,
+              name: businessRecord.businessName || `Merchant ${id}`,
+              ifsc: kycData.bankIfsc,
+              accountNumber: kycData.bankAccountNumber,
+              bankName: kycData.bankName,
+              notes: {
+                ...(kycData.panNumber ? { panNumber: kycData.panNumber } : {}),
+                ...(kycData.aadharNumber ? { aadharNumber: kycData.aadharNumber } : {}),
+              },
+            });
+
+            if (bankResult.success) {
+              razorpayFundAccountId = bankResult.fundAccount.id;
+            }
+          } else if (kycData.upiId) {
+            const vpaResult = await createRazorpayVpaFundAccount({
+              contactId: razorpayContactId,
+              vpaAddress: kycData.upiId,
+              notes: {
+                ...(kycData.panNumber ? { panNumber: kycData.panNumber } : {}),
+                ...(kycData.aadharNumber ? { aadharNumber: kycData.aadharNumber } : {}),
+              },
+            });
+
+            if (vpaResult.success) {
+              razorpayFundAccountId = vpaResult.fundAccount.id;
+            }
+          }
+        }
+      } catch (razorpayError) {
+        console.error('[KYC] Razorpay verification error:', razorpayError);
+      }
+    }
+
+    const updatePayload: Record<string, unknown> = {
+      panNumber: kycData.panNumber,
+      aadharNumber: kycData.aadharNumber,
+      panUrl: kycData.panUrl,
+      aadharUrl: kycData.aadharUrl,
+      msmeGstUrl: kycData.msmeGstUrl,
+      cinNumber: kycData.cinNumber,
+      bankIfsc: kycData.bankIfsc,
+      bankAccountNumber: kycData.bankAccountNumber,
+      bankName: kycData.bankName,
+      upiId: kycData.upiId,
+      kycStatus: isVerified ? 'verified' : 'submitted',
+      hasVerifiedBadge: !!kycData.msmeGstUrl || isVerified,
+      isFinderBVerified: isVerified,
+      updatedAt: new Date().toISOString(),
+    };
+
+    if (razorpayContactId) {
+      updatePayload.razorpayContactId = razorpayContactId;
+    }
+    if (razorpayFundAccountId) {
+      updatePayload.razorpayFundAccountId = razorpayFundAccountId;
+    }
+
     const { data: business, error } = await supabase
       .from('Business')
-      .update({
-        panNumber: kycData.panNumber,
-        aadharNumber: kycData.aadharNumber,
-        panUrl: kycData.panUrl,
-        aadharUrl: kycData.aadharUrl,
-        msmeGstUrl: kycData.msmeGstUrl,
-        kycStatus: 'submitted',
-        hasVerifiedBadge: !!kycData.msmeGstUrl,
-        updatedAt: new Date().toISOString(),
-      })
+      .update(updatePayload)
       .eq('id', id)
       .select()
       .single();

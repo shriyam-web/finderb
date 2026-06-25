@@ -25,6 +25,13 @@ model Business {
   panUrl                                                 String?
   aadharUrl                                              String?
   msmeGstUrl                                             String?
+  cinNumber                                              String?
+  bankIfsc                                               String?
+  bankAccountNumber                                       String?
+  upiId                                                  String?
+  razorpayContactId                                       String?
+  razorpayFundAccountId                                   String?
+  bankName                                               String?
   kycStatus                                              String       @default("pending")
   hasVerifiedBadge                                       Boolean      @default(false)
   paymentStatus                                          String       @default("pending")

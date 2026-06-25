@@ -23,7 +23,12 @@ export default function KYCPage({ params }: { params: Promise<{ id: string }> })
     aadharNumber: '',
     panUrl: '',
     aadharUrl: '',
-    msmeGstUrl: ''
+    msmeGstUrl: '',
+    cinNumber: '',
+    bankIfsc: '',
+    bankAccountNumber: '',
+    upiId: '',
+    bankName: '',
   });
 
   useEffect(() => {
@@ -31,6 +36,20 @@ export default function KYCPage({ params }: { params: Promise<{ id: string }> })
       const res = await getOwnedBusiness(id);
       if (res.success && res.business) {
         setBusiness(res.business);
+        const rawBusiness = res.business as any;
+        setKycData((prev) => ({
+          ...prev,
+          panNumber: rawBusiness.panNumber || '',
+          aadharNumber: rawBusiness.aadharNumber || '',
+          panUrl: rawBusiness.panUrl || '',
+          aadharUrl: rawBusiness.aadharUrl || '',
+          msmeGstUrl: rawBusiness.msmeGstUrl || '',
+          cinNumber: rawBusiness.cinNumber || '',
+          bankIfsc: rawBusiness.bankIfsc || '',
+          bankAccountNumber: rawBusiness.bankAccountNumber || '',
+          upiId: rawBusiness.upiId || '',
+          bankName: rawBusiness.bankName || '',
+        }));
       } else {
         router.push('/business/login');
       }
@@ -193,6 +212,63 @@ export default function KYCPage({ params }: { params: Promise<{ id: string }> })
                   />
                   <Upload className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-hover/upload:text-blue-600" size={16} />
                 </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="group space-y-1.5">
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.15em] ml-1">CIN Number (Optional)</label>
+                  <input
+                    name="cinNumber"
+                    value={kycData.cinNumber}
+                    onChange={handleKycChange}
+                    className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:bg-white focus:border-blue-600 outline-none font-semibold text-gray-900 transition-all placeholder:text-gray-300 text-sm"
+                    placeholder="Corporate Identification Number"
+                  />
+                </div>
+                <div className="group space-y-1.5">
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.15em] ml-1">UPI ID (Optional)</label>
+                  <input
+                    name="upiId"
+                    value={kycData.upiId}
+                    onChange={handleKycChange}
+                    className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:bg-white focus:border-blue-600 outline-none font-semibold text-gray-900 transition-all placeholder:text-gray-300 text-sm"
+                    placeholder="example@bank"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="group space-y-1.5">
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.15em] ml-1">Bank IFSC (Optional)</label>
+                  <input
+                    name="bankIfsc"
+                    value={kycData.bankIfsc}
+                    onChange={handleKycChange}
+                    className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:bg-white focus:border-blue-600 outline-none font-semibold text-gray-900 transition-all placeholder:text-gray-300 text-sm"
+                    placeholder="HDFC0000123"
+                  />
+                </div>
+                <div className="group space-y-1.5">
+                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.15em] ml-1">Bank Account Number (Optional)</label>
+                  <input
+                    name="bankAccountNumber"
+                    value={kycData.bankAccountNumber}
+                    onChange={handleKycChange}
+                    className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:bg-white focus:border-blue-600 outline-none font-semibold text-gray-900 transition-all placeholder:text-gray-300 text-sm"
+                    placeholder="123456789012"
+                  />
+                </div>
+              </div>
+
+              <div className="group space-y-1.5">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.15em] ml-1">Bank Name (Optional)</label>
+                <input
+                  name="bankName"
+                  value={kycData.bankName}
+                  onChange={handleKycChange}
+                  className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:bg-white focus:border-blue-600 outline-none font-semibold text-gray-900 transition-all placeholder:text-gray-300 text-sm"
+                  placeholder="HDFC Bank"
+                />
               </div>
 
               <div className="p-5 bg-blue-50/80 rounded-2xl border border-blue-100 flex items-start gap-3">
