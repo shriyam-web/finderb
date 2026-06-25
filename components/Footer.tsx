@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import type { ReactNode } from 'react';
-import { Mail, Phone, MapPin, Smartphone, Store, ShieldCheck } from 'lucide-react';
+import React, { useState, type ReactNode } from 'react';
+import { Mail, Phone, MapPin, Smartphone, Store, ShieldCheck, ChevronDown } from 'lucide-react';
 import AppStoreIcon from '@/components/icons/AppStoreIcon';
 import IndianFlagIcon from '@/components/icons/IndianFlagIcon';
 import {
@@ -93,10 +93,48 @@ function LinkGrid({
 
 function SectionHeader({ title, description }: { title: string; description: string }) {
   return (
-    <div className="mb-5 max-w-3xl space-y-1">
+    <div className="mb-3 max-w-3xl space-y-1">
       <h2 className="text-sm font-medium text-neutral-900">{title}</h2>
       <p className="text-xs leading-relaxed text-neutral-500">{description}</p>
     </div>
+  );
+}
+
+function CollapsibleSection({
+  id,
+  title,
+  description,
+  children,
+}: {
+  id?: string;
+  title: string;
+  description: string;
+  children: ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <section aria-labelledby={id} className="">
+      <div className="flex items-start justify-between">
+        <div className="mb-1 max-w-3xl">
+          <h2 id={id} className="text-sm font-medium text-neutral-900">{title}</h2>
+          <p className="text-xs leading-relaxed text-neutral-500">{description}</p>
+        </div>
+
+        <button
+          onClick={() => setOpen((s) => !s)}
+          aria-expanded={open}
+          aria-controls={`${id}-content`}
+          className="ml-4 -mr-2 rounded p-2 text-neutral-600 hover:text-neutral-900"
+        >
+          <ChevronDown className={`h-4 w-4 transition-transform ${open ? 'rotate-180' : 'rotate-0'}`} />
+        </button>
+      </div>
+
+      <div id={`${id}-content`} className={`${open ? 'mt-3 block' : 'hidden'}`}>
+        {children}
+      </div>
+    </section>
   );
 }
 
@@ -159,11 +197,33 @@ function MadeInIndiaBadge() {
 function SecureSiteBadge() {
   return (
     <span
-      className="inline-flex items-center gap-1.5 rounded border border-emerald-200 bg-emerald-50 px-2 py-0.5 font-medium text-emerald-800"
+      className="relative inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-emerald-50 to-emerald-100 px-3 py-0.5 text-emerald-800 font-semibold shadow-sm ring-1 ring-emerald-200 border border-emerald-100 overflow-visible"
       title="HTTPS encryption, secure sessions, and protected payments on FinderB"
     >
-      <ShieldCheck size={12} strokeWidth={2.25} className="shrink-0 text-emerald-600" aria-hidden />
-      Secure site
+      {/* splash animation (SVG) positioned top-right */}
+      <svg
+        className="pointer-events-none absolute -top-1 -right-2 h-4 w-4"
+        viewBox="0 0 16 16"
+        xmlns="http://www.w3.org/2000/svg"
+        aria-hidden
+      >
+        <circle cx="12" cy="4" r="1.2" fill="#10B981" opacity="0.9">
+          <animate attributeName="r" from="1.2" to="6" dur="900ms" repeatCount="indefinite" />
+          <animate attributeName="opacity" from="0.9" to="0" dur="900ms" repeatCount="indefinite" />
+        </circle>
+        <circle cx="12" cy="4" r="0.8" fill="#34D399" opacity="0.95">
+          <animate attributeName="r" from="0.8" to="4.2" dur="900ms" begin="300ms" repeatCount="indefinite" />
+          <animate attributeName="opacity" from="0.95" to="0" dur="900ms" begin="300ms" repeatCount="indefinite" />
+        </circle>
+        <g transform="translate(12 4)">
+          <path d="M0-2 L0 2 M-2 0 L2 0" stroke="#065F46" strokeWidth="0.8" strokeLinecap="round" opacity="0.9">
+            <animate attributeName="opacity" values="0.9;0;0.9" dur="1400ms" repeatCount="indefinite" />
+          </path>
+        </g>
+      </svg>
+
+      <ShieldCheck size={12} strokeWidth={2.25} className="shrink-0 text-emerald-700" aria-hidden />
+      <span className="text-[11px]">Secure site</span>
     </span>
   );
 }
@@ -264,7 +324,7 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="my-12">
+        <div className="my-8">
           <Divider />
         </div>
 
@@ -274,42 +334,39 @@ export default function Footer() {
           ))}
         </div>
 
-        <div className="my-12">
+        <div className="my-8">
           <Divider />
         </div>
 
-        <section aria-labelledby="footer-services">
-          <SectionHeader title="Services" description={FOOTER_SECTION_INTROS.services} />
+        <CollapsibleSection id="footer-services" title="Services" description={FOOTER_SECTION_INTROS.services}>
           <LinkGrid links={serviceLinks} />
-        </section>
+        </CollapsibleSection>
 
-        <div className="my-12">
+        <div className="my-8">
           <Divider />
         </div>
 
-        <section aria-labelledby="footer-professional">
-          <SectionHeader
-            title="Professional services"
-            description={FOOTER_SECTION_INTROS.professional}
-          />
+        <CollapsibleSection
+          id="footer-professional"
+          title="Professional services"
+          description={FOOTER_SECTION_INTROS.professional}
+        >
           <LinkGrid links={professionalLinks} />
-        </section>
+        </CollapsibleSection>
 
-        <div className="my-12">
+        <div className="my-8">
           <Divider />
         </div>
 
-        <section aria-labelledby="footer-b2b">
-          <SectionHeader title="B2B & suppliers" description={FOOTER_SECTION_INTROS.b2b} />
+        <CollapsibleSection id="footer-b2b" title="B2B & suppliers" description={FOOTER_SECTION_INTROS.b2b}>
           <LinkGrid links={b2bLinks} />
-        </section>
+        </CollapsibleSection>
 
-        <div className="my-12">
+        <div className="my-8">
           <Divider />
         </div>
 
-        <section aria-labelledby="footer-cities">
-          <SectionHeader title="Cities" description={FOOTER_SECTION_INTROS.cities} />
+        <CollapsibleSection id="footer-cities" title="Cities" description={FOOTER_SECTION_INTROS.cities}>
           <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             {FOOTER_CITY_GROUPS.map((group) => (
               <div key={group.label}>
@@ -326,23 +383,21 @@ export default function Footer() {
               </div>
             ))}
           </div>
-        </section>
+        </CollapsibleSection>
 
-        <div className="my-12">
+        <div className="my-8">
           <Divider />
         </div>
 
-        <section aria-labelledby="footer-searches">
-          <SectionHeader title="Popular searches" description={FOOTER_SECTION_INTROS.searches} />
+        <CollapsibleSection id="footer-searches" title="Popular searches" description={FOOTER_SECTION_INTROS.searches}>
           <LinkGrid links={searchLinks} />
-        </section>
+        </CollapsibleSection>
 
         <div className="my-12">
           <Divider />
         </div>
 
-        <section aria-labelledby="footer-local">
-          <SectionHeader title="Browse by city" description={FOOTER_SECTION_INTROS.local} />
+        <CollapsibleSection id="footer-local" title="Browse by city" description={FOOTER_SECTION_INTROS.local}>
           <div className="grid gap-8 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
             {FOOTER_LOCAL_LISTINGS.cities.map((city) => (
               <div key={city}>
@@ -363,7 +418,7 @@ export default function Footer() {
               </div>
             ))}
           </div>
-        </section>
+        </CollapsibleSection>
 
         <div className="my-12">
           <Divider />
@@ -392,49 +447,56 @@ export default function Footer() {
             </div>
             <div className="flex shrink-0 flex-wrap items-center gap-3 sm:justify-end">
               <Link
-                href="/business/register"
+                href="/pricing"
                 className="inline-flex items-center justify-center rounded-md bg-neutral-900 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-neutral-800"
               >
                 Get Started
-              </Link>
-              <Link
-                href="/pricing"
-                className="inline-flex items-center justify-center rounded-md border border-neutral-300 bg-white px-5 py-2.5 text-sm font-medium text-neutral-700 transition-colors hover:border-neutral-400 hover:text-neutral-900"
-              >
-                View plans
               </Link>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="border-t border-neutral-200 bg-white text-[11px] leading-snug text-neutral-500">
-        <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-              <p>
-                © {new Date().getFullYear()} {LEGAL_COMPANY.name}. {LEGAL_COMPANY.brand} is a brand
-                of {LEGAL_COMPANY.name}.
-              </p>
-              <MadeInIndiaBadge />
-              <SecureSiteBadge />
+      <div className="border-t border-neutral-200 bg-white text-xs leading-snug text-neutral-600">
+        <div className="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-3 sm:px-6 lg:px-8">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:gap-3">
+              <div>
+                <p className="text-xs text-neutral-600">© {new Date().getFullYear()} {LEGAL_COMPANY.name}. {LEGAL_COMPANY.brand} is a brand of {LEGAL_COMPANY.name}.</p>
+
+                <div className="flex items-center gap-2 mt-2">
+                  <span className="sr-only">Badges</span>
+                  <div className="transform scale-90">
+                    <MadeInIndiaBadge />
+                  </div>
+                  <div className="transform scale-90">
+                    <SecureSiteBadge />
+                  </div>
+                </div>
+              </div>
             </div>
-            <nav className="flex flex-wrap gap-x-4 gap-y-1" aria-label="Legal">
+
+            <nav className="flex flex-wrap items-center gap-2 text-xs text-neutral-600" aria-label="Legal">
               <Link href="/privacy" className="hover:text-neutral-900 hover:underline underline-offset-2">
                 Privacy Policy
               </Link>
+              <span className="hidden sm:inline-block text-neutral-300">·</span>
               <Link href="/terms" className="hover:text-neutral-900 hover:underline underline-offset-2">
                 Terms & Conditions
               </Link>
+              <span className="hidden sm:inline-block text-neutral-300">·</span>
               <Link href="/cancellation-refund" className="hover:text-neutral-900 hover:underline underline-offset-2">
                 Cancellation & Refund
               </Link>
+              <span className="hidden sm:inline-block text-neutral-300">·</span>
               <Link href="/contact" className="hover:text-neutral-900 hover:underline underline-offset-2">
                 Contact Us
               </Link>
+              <span className="hidden sm:inline-block text-neutral-300">·</span>
               <Link href="/shipping-delivery" className="hover:text-neutral-900 hover:underline underline-offset-2">
                 Shipping & Delivery
               </Link>
+              <span className="hidden sm:inline-block text-neutral-300">·</span>
               <Link href="/sitemap" className="hover:text-neutral-900 hover:underline underline-offset-2">
                 Sitemap
               </Link>
