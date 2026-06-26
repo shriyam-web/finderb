@@ -3,9 +3,9 @@
 import Link from 'next/link';
 import { getBusinessProfilePath } from '@/lib/businessSlug';
 import Image from 'next/image';
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { Menu, X, User, Briefcase, Globe, ChevronDown, Home, ArrowRight, Settings, LogOut, LayoutDashboard, Building2, Newspaper, BookOpen } from 'lucide-react';
+import { Menu, X, User, Briefcase, Globe, ChevronDown, Home, ArrowRight, Settings, LogIn, LogOut, LayoutDashboard, Building2, Newspaper, BookOpen } from 'lucide-react';
 import { getSession, logoutUser } from '@/app/actions/user';
 import { getBusinessSession, logoutBusiness } from '@/app/actions/business';
 import { useRouter } from 'next/navigation';
@@ -25,33 +25,61 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
   const searchParams = useSearchParams();
   const router = useRouter();
   const isAiTab = searchParams.get('tab') === 'ai';
+  const isOnLoginPage = pathname === '/login';
+  const loginHref = isOnLoginPage ? '/business/login' : '/login';
+  const loginLabel = isOnLoginPage ? 'Business Login' : 'Login / Sign Up';
 
   const whiteText = initialWhiteText || isAiTab;
 
+  const checkSession = useCallback(async () => {
+    const userResult = await getSession();
+    if (userResult && userResult.success) {
+      setIsLoggedIn(true);
+      setUser(userResult.user);
+    } else {
+      setIsLoggedIn(false);
+      setUser(null);
+    }
+
+    const businessResult = await getBusinessSession();
+    if (businessResult && businessResult.success) {
+      setIsBusinessLoggedIn(true);
+      setBusiness(businessResult.business);
+    } else {
+      setIsBusinessLoggedIn(false);
+      setBusiness(null);
+    }
+  }, []);
+
   useEffect(() => {
-    const checkSession = async () => {
-      // Check user session
-      const userResult = await getSession();
-      if (userResult && userResult.success) {
+    checkSession();
+  }, [pathname, checkSession]); // Check on every navigation
+
+  useEffect(() => {
+    const handleSessionChange = (event: Event) => {
+      const customEvent = event as CustomEvent<{ type: 'user' | 'business' | 'none' }>;
+      if (customEvent.detail?.type === 'user') {
         setIsLoggedIn(true);
-        setUser(userResult.user);
-      } else {
+        setIsBusinessLoggedIn(false);
+        setUser(null);
+        setBusiness(null);
+      } else if (customEvent.detail?.type === 'business') {
+        setIsBusinessLoggedIn(true);
+        setIsLoggedIn(false);
+        setBusiness(null);
+        setUser(null);
+      } else if (customEvent.detail?.type === 'none') {
         setIsLoggedIn(false);
         setUser(null);
-      }
-
-      // Check business session
-      const businessResult = await getBusinessSession();
-      if (businessResult && businessResult.success) {
-        setIsBusinessLoggedIn(true);
-        setBusiness(businessResult.business);
-      } else {
         setIsBusinessLoggedIn(false);
         setBusiness(null);
       }
+      checkSession();
     };
-    checkSession();
-  }, [pathname]); // Check on every navigation
+
+    window.addEventListener('finderb-session-change', handleSessionChange);
+    return () => window.removeEventListener('finderb-session-change', handleSessionChange);
+  }, [checkSession]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -266,7 +294,7 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
                   href="/login"
                   className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-[11px] font-semibold text-slate-700 transition-all hover:border-primary/30 hover:text-primary"
                 >
-                  <User size={16} />
+                  <LogIn size={16} />
                   <span>Login / Sign Up</span>
                 </Link>
               )}
@@ -291,16 +319,18 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
               </Link>
             ) : (
               <Link
-                href="/login"
-                className={`rounded-lg px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider transition-all ${
-                  scrolled
-                    ? 'text-primary'
-                    : 'text-primary border border-primary/15 bg-white/90 shadow-sm backdrop-blur-sm'
-                }`}
-              >
-                Login
-              </Link>
+                  href={loginHref}
+                  className={`inline-flex items-center gap-2 rounded-2xl px-3 py-2 text-[10px] font-bold uppercase tracking-wider transition-all ${
+                    scrolled
+                      ? 'border border-primary/10 bg-white text-primary'
+                      : 'border border-primary/15 bg-white/90 text-primary backdrop-blur-sm'
+                  }`}
+                >
+                  <LogIn size={14} />
+                  {loginLabel}
+                </Link>
             )}
+
 
             {!isOpen && (
               <button
@@ -478,7 +508,7 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
                   onClick={() => setIsOpen(false)}
                   className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl bg-primary text-white font-bold text-xs shadow-xl shadow-primary/20 active:scale-95 transition-all"
                 >
-                  <User size={18} />
+                  <LogIn size={18} />
                   Login to Account
                 </Link>
                 <Link

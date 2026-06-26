@@ -11,7 +11,7 @@ export type MerchantPlan = 'pro';
 export const MERCHANT_PLANS = {
   pro: {
     id: 'pro' as const,
-    name: 'Growth Pro',
+    name: 'Pro',
     description: 'Unlock lead contacts, verified badge, and premium visibility',
     prices: {
       monthly: { amountInPaise: GROWTH_PRO_OFFER_MONTHLY * 100, display: '₹499' },

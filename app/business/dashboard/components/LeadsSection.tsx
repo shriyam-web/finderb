@@ -373,14 +373,14 @@ export default function LeadsSection({
       <div>
         <DashboardSectionHeader
           title="Latest enquiries"
-          description="Activate Growth Pro to view contact details."
+          description="Activate Pro to view contact details."
         />
         <div className={`${dashboard.panel} ${dashboard.emptyState} py-12`}>
           <p className="text-5xl font-bold text-[#153551]">{leads.length}</p>
           <p className="mt-2 text-sm text-zinc-600">people enquired — upgrade to see their phone and email</p>
           <Link href={`/pricing?businessId=${businessId}`} className={`mt-5 ${dashboard.btnPrimary}`}>
             <HiOutlineRocketLaunch size={16} />
-            Activate Growth Pro
+            Activate Pro
           </Link>
         </div>
       </div>
@@ -398,7 +398,7 @@ export default function LeadsSection({
                 <div>
                   <p className="text-sm font-bold text-[#153551]">You have enquiries waiting</p>
                   <p className="mt-0.5 text-xs text-zinc-600">
-                    Activate Growth Pro to see names, phone numbers, and email for {leads.length} lead
+                    Activate Pro to see names, phone numbers, and email for {leads.length} lead
                     {leads.length === 1 ? '' : 's'}.
                   </p>
                 </div>

@@ -44,6 +44,9 @@ export default function BusinessLoginPage() {
       const result = await loginBusiness(email, password);
 
       if (result.success) {
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('finderb-session-change', { detail: { type: 'business' } }));
+        }
         router.push('/business/dashboard');
       } else {
         setError(result.error || 'Login failed');

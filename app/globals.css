@@ -583,27 +583,30 @@ h1, h2, h3, h4, h5, h6 {
   color: #0a1520;
 }
 
-.pricing-popular-pill {
+.pricing-popular-ribbon {
+  position: absolute;
+  top: 0.95rem;
+  left: 0.95rem;
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  border-radius: 9999px;
-  padding: 0.45rem 0.9rem;
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.1em;
+  gap: 0.35rem;
+  padding: 0.32rem 0.9rem;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  color: #ffffff !important;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  box-shadow: 0 6px 20px -8px rgba(16, 185, 129, 0.55);
+  color: #ffffff;
+  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+  box-shadow: 0 8px 20px -12px rgba(5, 150, 105, 0.6);
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  z-index: 20;
 }
 
-.pricing-plan-card-annual .pricing-popular-pill {
-  background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
-  color: #ffffff !important;
-  border-color: rgba(255, 255, 255, 0.35);
-  box-shadow: 0 8px 24px -8px rgba(16, 185, 129, 0.6);
+.pricing-plan-card-annual .pricing-popular-ribbon {
+  background: linear-gradient(135deg, #0f766e 0%, #10b981 100%);
+  border-color: rgba(255, 255, 255, 0.3);
 }
 
 .pricing-price-row {

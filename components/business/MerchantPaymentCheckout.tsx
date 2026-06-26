@@ -177,7 +177,7 @@ export function MerchantPaymentSuccess({
             Payment successful
           </p>
           <h1 className="mt-3 text-3xl font-bold tracking-tight text-[#0a1520] sm:text-4xl">
-            Growth Pro is active
+            Pro is active
           </h1>
           <p className="mx-auto mt-3 max-w-md text-sm text-[#5c4a3d] sm:text-base">
             {businessName ? (
@@ -259,7 +259,7 @@ export default function MerchantPaymentCheckout({
               <h1 className="pricing-hero-title mt-4 text-[2rem] font-bold leading-[1.12] tracking-[-0.03em] text-[#0a1520] sm:text-4xl lg:text-[2.75rem]">
                 Activate{' '}
                 <span className="bg-gradient-to-r from-[#153551] to-[#c1621a] bg-clip-text text-transparent">
-                  Growth Pro
+                  Pro
                 </span>
               </h1>
               <p className="mt-4 max-w-xl text-sm leading-relaxed text-[#5c4a3d] sm:text-base">

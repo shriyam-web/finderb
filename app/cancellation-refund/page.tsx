@@ -22,7 +22,7 @@ export default function CancellationRefundPage() {
       <LegalSection title="1. Scope">
         <p>
           This Cancellation and Refund Policy applies to subscription payments made on{' '}
-          {LEGAL_COMPANY.website} for merchant plans such as Growth Pro, processed through our
+          {LEGAL_COMPANY.website} for merchant plans such as Pro, processed through our
           payment partner Razorpay. FinderB primarily offers digital platform services — not physical
           goods.
         </p>

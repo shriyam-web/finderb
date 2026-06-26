@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowRight, BadgeCheck, ChevronDown, Shield, TrendingUp, Users } from 'lucide-react';
+import { ArrowRight, ChevronDown, Shield, TrendingUp, Users } from 'lucide-react';
 import { MerchantAuthMain } from '@/components/business/MerchantAuthShell';
 import {
   formatInr,
@@ -15,13 +15,12 @@ import {
 
 const HERO_POINTS = [
   { icon: Shield, label: 'No hidden fees' },
-  { icon: BadgeCheck, label: 'Cancel anytime' },
   { icon: TrendingUp, label: 'Upgrade when you need leads' },
 ] as const;
 
 const HERO_STATS = [
-  { value: '6.2 Lakh+', label: 'Business partners' },
-  { value: '18.4 Cr+', label: 'Monthly buyers' },
+  { value: '500+', label: 'Local listings' },
+  { value: '1K+', label: 'Monthly searches' },
   { value: `${GROWTH_PRO_ANNUAL_DISCOUNT_PERCENT}%`, label: 'Max savings' },
 ] as const;
 
@@ -51,9 +50,9 @@ export default function PricingHero() {
               <span className="register-hero-headline-accent">grow locally</span>
             </h1>
             <p className="mt-5 max-w-lg text-[1.05rem] leading-[1.65] text-[#4a5568] sm:text-lg">
-              You&apos;re on <strong className="font-semibold text-[#0a1520]">Local Starter</strong>{' '}
-              by default. Move to Growth Accelerator or Partner Annual when you need leads, a verified
-              badge, and priority placement in search.
+              You&apos;re on <strong className="font-semibold text-[#0a1520]">Starter</strong>{' '}
+              by default. Move to Growth or Pro when you need leads, a verified badge, and priority
+              placement in search.
             </p>
 
             <ul className="mt-7 flex flex-wrap gap-2.5">
@@ -89,8 +88,8 @@ export default function PricingHero() {
             <div className="mt-10 flex items-center gap-3 text-sm text-[#64748b]">
               <Users size={16} className="shrink-0 text-[#153551]" strokeWidth={2} />
               <span>
-                Join <strong className="font-semibold text-[#0a1520]">6.2 Lakh+</strong> businesses
-                already on FinderB
+                Join <strong className="font-semibold text-[#0a1520]">500+</strong> local businesses
+                already using FinderB
               </span>
             </div>
           </div>

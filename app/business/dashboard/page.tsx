@@ -196,7 +196,7 @@ function DashboardContent() {
 
   useEffect(() => {
     if (searchParams.get('payment') === 'success') {
-      setSuccessMessage('Payment successful! Your Growth Pro plan is now active.');
+      setSuccessMessage('Payment successful! Your Pro plan is now active.');
       setActiveTab('subscription');
       router.replace('/business/dashboard?tab=subscription');
     }

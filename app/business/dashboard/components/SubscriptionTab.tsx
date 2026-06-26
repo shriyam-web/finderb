@@ -151,7 +151,7 @@ export default function SubscriptionTab({
     <div className="space-y-6">
       <DashboardSectionHeader
         title="Subscription & billing"
-        description="Track your Growth Pro plan, renewal dates, and payment history."
+        description="Track your Pro plan, renewal dates, and payment history."
       />
 
       {subscription.isExpired && (
@@ -167,7 +167,7 @@ export default function SubscriptionTab({
       {!subscription.isActive && subscription.isPendingPayment && (
         <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
           <HiOutlineCreditCard className="mt-0.5 shrink-0" size={18} />
-          <p>Complete your first recharge to activate Growth Pro and unlock lead contact details.</p>
+          <p>Complete your first recharge to activate Pro and unlock lead contact details.</p>
         </div>
       )}
 
@@ -183,7 +183,7 @@ export default function SubscriptionTab({
           <h3 className="text-sm font-semibold text-zinc-900">Monthly auto-debit mandate</h3>
           <p className="mt-1 text-sm text-zinc-600">
             {subscription.autoRenewEnabled
-              ? 'Your Growth Pro plan renews automatically each month via Razorpay e-mandate (UPI Autopay / card mandate).'
+              ? 'Your Pro plan renews automatically each month via Razorpay e-mandate (UPI Autopay / card mandate).'
               : subscription.mandateStatus === 'cancelled'
                 ? 'Auto-debit is cancelled. Recharge manually before expiry to keep lead access.'
                 : 'Complete mandate setup to enable automatic monthly billing.'}

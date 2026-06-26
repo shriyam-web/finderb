@@ -426,7 +426,7 @@ export default function BusinessRegisterWizard({
                 </p>
                 {selectedPlan === 'pro' && registeredBusiness?.id ? (
                   <div className="mx-auto max-w-sm rounded-2xl border-2 border-[#dfe6ee] bg-[#f8fafc] px-5 py-5 text-left">
-                    <p className="text-sm font-semibold text-[#153551]">Activate Growth Pro</p>
+                    <p className="text-sm font-semibold text-[#153551]">Activate Pro</p>
                     <p className="mt-1 text-xs leading-relaxed text-[#64748b]">
                       Pay now to unlock leads, verified badge, and premium visibility on FinderB.
                     </p>

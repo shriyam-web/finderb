@@ -60,7 +60,7 @@ export default function SubscriptionExpiryAlert({
   const isUrgent = subscription.alertLevel === 'urgent';
 
   const title = isExpired
-    ? 'Your Growth Pro plan has expired'
+    ? 'Your Pro plan has expired'
     : isUrgent
       ? `Only ${subscription.daysRemaining} day${subscription.daysRemaining === 1 ? '' : 's'} left on your plan`
       : `Your plan expires in ${subscription.daysRemaining} days`;

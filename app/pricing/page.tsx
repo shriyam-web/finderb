@@ -64,7 +64,7 @@ function PricingPageContent() {
         <div className="border-b border-[#e8dfd4]/80 bg-[#fff9ed]">
           <MerchantAuthMain className="py-3">
             <p className="text-center text-sm font-semibold text-[#153551]">
-              Choose a plan to activate Growth Pro and unlock lead contacts.
+              Choose a plan to activate Pro and unlock lead contacts.
             </p>
           </MerchantAuthMain>
         </div>
@@ -192,7 +192,64 @@ function PricingPageContent() {
           <h2 className="pricing-section-title text-2xl font-bold tracking-[-0.02em] text-[#0a1520]">Compare plans</h2>
           <p className="mt-1.5 text-sm font-medium text-[#5c4a3d]">What you get at each tier</p>
 
-          <div className="pricing-compare-wrap mt-8 overflow-x-auto rounded-2xl">
+          <div className="mt-8 block sm:hidden">
+            <div className="overflow-x-auto rounded-2xl border border-[#e8dfd4] bg-white shadow-[0_16px_48px_-28px_rgba(21,53,81,0.15)]">
+              <table className="w-full min-w-[360px] border-collapse text-left">
+                <thead>
+                  <tr className="pricing-compare-head">
+                    <th className="px-3 py-3 text-left text-[11px] font-bold uppercase tracking-[0.16em] text-white/80">
+                      Feature
+                    </th>
+                    <th className="px-2 py-3 text-center">
+                      <p className="text-[11px] font-extrabold text-white">{PRICING_PLANS.free.compareLabel}</p>
+                      <p className="mt-0.5 text-[10px] font-medium text-white/55">{formatInr(0)}</p>
+                    </th>
+                    <th className="px-2 py-3 text-center">
+                      <p className="text-[11px] font-extrabold text-white">{PRICING_PLANS.monthly.compareLabel}</p>
+                      <p className="mt-0.5 text-[10px] font-medium text-white/55">
+                        {formatInr(GROWTH_PRO_OFFER_MONTHLY)}/mo
+                      </p>
+                    </th>
+                    <th className="pricing-compare-annual-col px-2 py-3 text-center">
+                      <p className="pricing-compare-annual-label text-[11px] font-extrabold text-white">
+                        {PRICING_PLANS.annual.compareLabel}
+                      </p>
+                      <p className="mt-0.5 text-[10px] font-bold text-[#c1621a]">
+                        {formatInr(GROWTH_PRO_EFFECTIVE_MONTHLY_ANNUAL)}/mo*
+                      </p>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {PLAN_COMPARE_ROWS.map((row, i) => (
+                    <tr key={row.label} className={i % 2 === 0 ? 'bg-[#fffdf9]' : 'bg-white'}>
+                      <td className="px-3 py-2.5 text-[12px] font-semibold leading-5 text-[#0a1520]">
+                        {row.label}
+                      </td>
+                      <td className="px-2 py-2.5 text-center">
+                        <div className="flex justify-center">
+                          <CompareCell value={row.free} />
+                        </div>
+                      </td>
+                      <td className="px-2 py-2.5 text-center">
+                        <div className="flex justify-center">
+                          <CompareCell value={row.monthly} />
+                        </div>
+                      </td>
+                      <td className="pricing-compare-annual-col px-2 py-2.5 text-center">
+                        <div className="flex justify-center">
+                          <CompareCell value={row.annual} highlight />
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="mt-2 text-[11px] font-medium text-[#a89888]">Swipe to compare plans</p>
+          </div>
+
+          <div className="pricing-compare-wrap mt-8 hidden overflow-x-auto rounded-2xl sm:block">
             <table className="w-full min-w-[640px] border-collapse text-left">
               <thead>
                 <tr className="pricing-compare-head">

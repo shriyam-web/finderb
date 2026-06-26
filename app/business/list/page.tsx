@@ -24,9 +24,9 @@ export default function BusinessListLandingPage() {
   const [mobile, setMobile] = useState('');
 
   const stats = [
-    { label: 'Buyers*', value: '18.4 Crore+' },
-    { label: 'Happy Customers', value: '6.2 Lakh+' },
-    { label: 'Businesses Listed', value: '5.2 Crore+' },
+    { label: 'Buyers*', value: '1K+ monthly searches' },
+    { label: 'Happy Customers', value: '500+ early adopters' },
+    { label: 'Businesses Listed', value: '500+ local listings' },
   ];
 
   const successStories = [
@@ -35,7 +35,7 @@ export default function BusinessListLandingPage() {
       business: 'Astrologer Sri Ashimanandaji Jyotish Mahamohopadhay',
       role: 'Astrologers',
       testimonial: 'I started with a small investment in one city, and today, FinderB has helped me expand across five states with a 35% to 40% increase in business growth.',
-      duration: 'Customer since 1 year',
+      duration: 'Doing business since 2022',
       image: 'https://i.pravatar.cc/150?u=ashim'
     },
     {
@@ -43,7 +43,7 @@ export default function BusinessListLandingPage() {
       business: 'Chhabria and Sons',
       role: 'Tile Dealers',
       testimonial: 'From 1 showroom to 4 in 20 years, FinderB’s growing returns have helped us to dominate the market.',
-      duration: 'Customer since 14 years',
+      duration: 'Doing business since 2010',
       image: 'https://i.pravatar.cc/150?u=rajesh'
     },
     {
@@ -51,7 +51,7 @@ export default function BusinessListLandingPage() {
       business: 'V2 Makeover',
       role: 'Makeup Artists',
       testimonial: 'Genuine leads from FinderB keep my business active and support me as a woman entrepreneur.',
-      duration: 'Customer since 4 year',
+      duration: 'Doing business since 2019',
       image: 'https://i.pravatar.cc/150?u=varshini'
     }
   ];

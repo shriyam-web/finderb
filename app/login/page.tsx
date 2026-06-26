@@ -61,6 +61,9 @@ function LoginContent() {
     try {
       const result = await loginUser(email, password);
       if (result.success) {
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('finderb-session-change', { detail: { type: 'user' } }));
+        }
         router.push(redirectTo);
       } else {
         setError(result.error || 'Login failed');

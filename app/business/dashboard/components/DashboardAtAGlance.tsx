@@ -28,7 +28,7 @@ export default function DashboardAtAGlance({
 }: DashboardAtAGlanceProps) {
   const items = [
     {
-      label: 'Growth Pro',
+      label: 'Pro',
       value: isPaymentActive ? 'Active' : 'Inactive',
       onClick: onOpenBilling ?? onOpenListing,
       icon: HiOutlineCreditCard,

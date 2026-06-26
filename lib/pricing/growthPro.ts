@@ -5,24 +5,24 @@ export const EARLY_BIRD_BADGE_LABEL = 'Early Bird Discount Applied';
 export const PRICING_PLANS = {
   free: {
     id: 'starter',
-    name: 'Local Starter',
+    name: 'Starter',
     tagline: 'List your business and get discovered',
     compareLabel: 'Starter',
     cta: 'Start free',
   },
   monthly: {
-    id: 'accelerator',
-    name: 'Growth Accelerator',
+    id: 'growth',
+    name: 'Growth',
     tagline: 'Full power, pay as you grow',
-    compareLabel: 'Accelerator',
-    cta: 'Get Accelerator',
+    compareLabel: 'Growth',
+    cta: 'Get Growth',
   },
   annual: {
-    id: 'partner-annual',
-    name: 'Partner Annual',
+    id: 'pro',
+    name: 'Pro',
     tagline: 'Our best rate — built for serious growth',
-    compareLabel: 'Partner Annual',
-    cta: 'Become a Partner',
+    compareLabel: 'Pro',
+    cta: 'Go Pro',
   },
 } as const;
 

@@ -44,7 +44,7 @@ export function getAccountHealth(input: {
   const isExpired = subscription?.isExpired ?? false;
   const daysRemaining = subscription?.daysRemaining ?? null;
 
-  let subscriptionDetail = 'Enquiries are coming in — activate Growth Pro to see who to call back.';
+  let subscriptionDetail = 'Enquiries are coming in — activate Pro to see who to call back.';
   if (paymentComplete) {
     subscriptionDetail = 'You can view customer phone numbers and email on every enquiry.';
     if (daysRemaining !== null) {

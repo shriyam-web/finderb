@@ -56,7 +56,7 @@ export default function RegisterHero({ mobile, onMobileChange, onStart, stats }:
 
             <ul className="mt-6 flex flex-wrap gap-2.5 sm:mt-8 sm:gap-3">
               {[
-                { icon: Zap, text: 'Free forever plan' },
+                { icon: Zap, text: 'Starter, Growth, and Pro plans' },
                 { icon: MessageSquare, text: 'Direct enquiries' },
                 { icon: BadgeCheck, text: 'Verified growth tools' },
               ].map(({ icon: Icon, text }) => (
@@ -121,7 +121,7 @@ export default function RegisterHero({ mobile, onMobileChange, onStart, stats }:
                 ))}
               </div>
               <p className="text-sm font-medium text-[#3d4f63]">
-                <span className="font-bold text-[#153551]">5.2 Crore+</span> businesses trust FinderB
+                <span className="font-bold text-[#153551]">500+</span> local businesses are already using FinderB
               </p>
             </div>
           </div>

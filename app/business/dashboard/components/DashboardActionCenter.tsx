@@ -65,9 +65,9 @@ export default function DashboardActionCenter({
               </div>
               <div className="min-w-0 flex-1 space-y-3">
                 <div>
-                  <h3 className="font-bold text-slate-900">Activate Growth Pro</h3>
+                  <h3 className="font-bold text-slate-900">Activate Pro</h3>
                   <p className="mt-1 text-sm text-slate-700">
-                    Enquiries are waiting — activate Growth Pro to see phone numbers and email.
+                    Enquiries are waiting — activate Pro to see phone numbers and email.
                   </p>
                 </div>
                 {paymentError && (

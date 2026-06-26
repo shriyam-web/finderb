@@ -31,7 +31,7 @@ export default function TermsPage() {
         <p>
           FinderB provides a local business discovery platform that allows users to search for
           businesses and services, and allows merchants to create listings, receive enquiries, and
-          optionally subscribe to paid plans such as Growth Pro for enhanced visibility and lead
+          optionally subscribe to paid plans such as Pro for enhanced visibility and lead
           access.
         </p>
         <p>

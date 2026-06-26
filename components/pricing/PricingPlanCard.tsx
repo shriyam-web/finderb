@@ -58,7 +58,7 @@ export function CurrentPlanBadge() {
   return (
     <span className="pricing-current-plan-badge inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-[#047857]">
       <span className="pricing-live-dot" aria-hidden />
-      Active plan
+      Current Plan
     </span>
   );
 }
@@ -90,15 +90,15 @@ export function PricingPlanCard({
       <div className="pricing-card-grid pointer-events-none absolute inset-0" aria-hidden />
       <div className="pricing-card-shine pointer-events-none absolute inset-0" aria-hidden />
       {isAnnual ? <div className="pricing-card-aurora pointer-events-none absolute inset-0" aria-hidden /> : null}
+      {highlighted ? (
+        <span className="pricing-popular-ribbon pointer-events-none absolute left-0 top-0 z-[2]">
+          <Zap size={10} strokeWidth={2.5} />
+          Most picked
+        </span>
+      ) : null}
 
       <div className="relative z-[1] flex flex-1 flex-col">
         <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
-          {highlighted ? (
-            <span className="pricing-popular-pill">
-              <Zap size={12} strokeWidth={2.5} />
-              Most picked
-            </span>
-          ) : null}
           {badge ? <div className="ml-auto shrink-0">{badge}</div> : null}
         </div>
 

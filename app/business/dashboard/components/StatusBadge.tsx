@@ -193,7 +193,7 @@ export function VerifiedBadge({
 }
 
 export function PlanBadge({
-  plan = 'Growth Pro',
+  plan = 'Pro',
   size = 'sm',
   className = '',
 }: {
