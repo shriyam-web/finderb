@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { setLastSearchQuery } from '@/lib/lastSearchQuery';
 import Image from 'next/image';
+import { useEffect, useState } from 'react';
 import {
   MapPin,
   ChevronRight,
@@ -58,6 +59,10 @@ export default function MobileHome({
   const gridCategories = categories.slice(0, 7);
   const featured = businesses.slice(0, 6);
 
+  const banners=[{src:'/business-register.png',href:'/?tab=ai',alt:'Register your business on FinderB'},{src:'/meet-ai.png',href:'/?tab=ai',alt:'Meet AI'}];
+  const [currentBanner,setCurrentBanner]=useState(0);
+  useEffect(()=>{const i=setInterval(()=>setCurrentBanner(p=>(p+1)%banners.length),3500);return ()=>clearInterval(i);},[]);
+
   return (
     <div className="lg:hidden bg-white">
       <HomeHero
@@ -111,18 +116,17 @@ export default function MobileHome({
         </div>
       </section>
 
-      {/* Meet FinderB AI banner */}
+      {/* Auto Scrolling Banner */}
       <section className="mt-1 px-4 pb-1">
-        <Link href="/?tab=ai" className="block">
-          <Image
-            src="/meet-ai.png"
-            alt="Meet FinderB AI — Your smart assistant to find the best businesses near you"
-            width={1200}
-            height={320}
-            className="h-auto w-full"
-            sizes="(max-width: 1024px) 100vw, 400px"
-          />
-        </Link>
+        <div className="relative overflow-hidden rounded-xl">
+          <div className="flex transition-transform duration-700 ease-in-out" style={{transform:`translateX(-${currentBanner*100}%)`}}>
+            {banners.map((banner)=>(
+              <Link key={banner.src} href={banner.href} className="min-w-full">
+                <Image src={banner.src} alt={banner.alt} width={1200} height={320} className="h-auto w-full" sizes="(max-width: 1024px) 100vw, 400px"/>
+              </Link>
+            ))}
+          </div>
+        </div>
       </section>
 
       {/* Trending */}

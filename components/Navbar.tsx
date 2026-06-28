@@ -291,11 +291,11 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
                 </div>
               ) : (
                 <Link
-                  href="/login"
+                  href={loginHref}
                   className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-[11px] font-semibold text-slate-700 transition-all hover:border-primary/30 hover:text-primary"
                 >
                   <LogIn size={16} />
-                  <span>Login / Sign Up</span>
+                  <span>{loginLabel}</span>
                 </Link>
               )}
             </div>
@@ -319,16 +319,16 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
               </Link>
             ) : (
               <Link
-                  href={loginHref}
-                  className={`inline-flex items-center gap-2 rounded-2xl px-3 py-2 text-[10px] font-bold uppercase tracking-wider transition-all ${
-                    scrolled
-                      ? 'border border-primary/10 bg-white text-primary'
-                      : 'border border-primary/15 bg-white/90 text-primary backdrop-blur-sm'
-                  }`}
-                >
-                  <LogIn size={14} />
-                  {loginLabel}
-                </Link>
+                href={loginHref}
+                className={`inline-flex items-center gap-2 rounded-2xl px-3 py-2 text-[10px] font-bold uppercase tracking-wider transition-all ${
+                  scrolled
+                    ? 'border border-primary/10 bg-white text-primary'
+                    : 'border border-primary/15 bg-white/90 text-primary backdrop-blur-sm'
+                }`}
+              >
+                <LogIn size={14} />
+                {loginLabel}
+              </Link>
             )}
 
 

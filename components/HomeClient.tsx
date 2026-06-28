@@ -694,8 +694,8 @@ export default function HomeClient({ initialData }: { initialData: any }) {
                 <div className="mb-6 flex justify-center">
                   <Link href="/?tab=ai" className="block w-full max-w-3xl">
                     <Image
-                      src="/meet-ai.png"
-                      alt="Meet FinderB AI — Your smart assistant to find the best businesses near you"
+                      src="/business-register.png"
+                      alt="Register your business on FinderB"
                       width={1200}
                       height={320}
                       className="h-auto w-full"
