@@ -59,10 +59,28 @@ export default function MobileHome({
   const gridCategories = categories.slice(0, 7);
   const featured = businesses.slice(0, 6);
 
-  const banners=[{src:'/business-register.png',href:'/?tab=ai',alt:'Register your business on FinderB'},{src:'/meet-ai.png',href:'/?tab=ai',alt:'Meet AI'}];
-  const [currentBanner,setCurrentBanner]=useState(0);
-  useEffect(()=>{const i=setInterval(()=>setCurrentBanner(p=>(p+1)%banners.length),3500);return ()=>clearInterval(i);},[]);
+  const banners = [
+  {
+    src: '/business-register.png',
+    href: '/business/register',
+    alt: 'Register your business on FinderB',
+  },
+  {
+    src: '/meet-ai.png',
+    href: '/?tab=ai',
+    alt: 'Meet FinderB AI',
+  },
+];
 
+const [currentBanner, setCurrentBanner] = useState(0);
+
+useEffect(() => {
+  const interval = setInterval(() => {
+    setCurrentBanner((prev) => (prev + 1) % banners.length);
+  }, 3500);
+
+  return () => clearInterval(interval);
+}, []);
   return (
     <div className="lg:hidden bg-white">
       <HomeHero
