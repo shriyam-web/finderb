@@ -16,6 +16,8 @@ import { getSafeRedirectPath } from '@/lib/authRedirect';
 import { useRouter, useSearchParams } from 'next/navigation';
 import UserAuthShell, { UserAuthDivider, UserAuthTrustRow } from '@/components/auth/UserAuthShell';
 import OAuthButtonGroup from '@/components/auth/OAuthButtonGroup';
+import AuthRedirectScreen from '@/components/auth/AuthRedirectScreen';
+import { useAlreadyLoggedInRedirect } from '@/hooks/useAlreadyLoggedInRedirect';
 
 function LoginContent() {
   const [email, setEmail] = useState('');
@@ -28,6 +30,10 @@ function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = getSafeRedirectPath(searchParams.get('redirect'));
+  const authRedirect = useAlreadyLoggedInRedirect({
+    kind: 'user',
+    redirectTo,
+  });
 
   useEffect(() => {
     if (searchParams.get('signup') === 'success') {
@@ -76,6 +82,14 @@ function LoginContent() {
       setLoading(false);
     }
   };
+
+  if (authRedirect.status === 'checking') {
+    return <LoginFallback />;
+  }
+
+  if (authRedirect.status === 'redirecting') {
+    return <AuthRedirectScreen message={authRedirect.message} />;
+  }
 
   return (
     <UserAuthShell

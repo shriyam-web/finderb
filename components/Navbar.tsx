@@ -1,11 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { getBusinessProfilePath } from '@/lib/businessSlug';
 import Image from 'next/image';
 import { useState, useEffect, useCallback, Suspense } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { Menu, X, User, Briefcase, Globe, ChevronDown, Home, ArrowRight, Settings, LogIn, LogOut, LayoutDashboard, Building2, Newspaper, BookOpen } from 'lucide-react';
+import { Menu, X, User, Briefcase, Globe, ChevronDown, Home, ArrowRight, Settings, LogIn, LogOut, LayoutDashboard, Newspaper, BookOpen, ClipboardList } from 'lucide-react';
 import { getSession, logoutUser } from '@/app/actions/user';
 import { getBusinessSession, logoutBusiness } from '@/app/actions/business';
 import { useRouter } from 'next/navigation';
@@ -15,7 +14,6 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
   const [currentLang, setCurrentLang] = useState('English');
   const [isLangOpen, setIsLangOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-  const [isBusinessMenuOpen, setIsBusinessMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState<any>(null);
@@ -101,7 +99,6 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
     await logoutBusiness();
     setIsBusinessLoggedIn(false);
     setBusiness(null);
-    setIsBusinessMenuOpen(false);
     router.push('/business/login');
   };
 
@@ -110,6 +107,8 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
     { name: 'Categories', href: '/categories', icon: LayoutDashboard },
     { name: 'Tourist Places', href: '/tourist-places', icon: Globe },
     { name: 'Blog', href: '/blog', icon: BookOpen },
+    { name: 'FinderB News', href: '/news', icon: Newspaper },
+    { name: 'FinderB Job', href: '/categories/job', icon: ClipboardList },
     { name: 'Pricing', href: '/pricing', icon: Briefcase },
   ];
 
@@ -232,63 +231,18 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
                   )}
                 </div>
               ) : isBusinessLoggedIn ? (
-                <div className="relative">
-                  <button
-                    onClick={() => setIsBusinessMenuOpen(!isBusinessMenuOpen)}
-                    className={`flex items-center gap-2 px-4 py-2 border rounded-xl transition-all duration-300 font-medium text-xs shadow-sm hover:shadow-md ${isLight
-                      ? 'bg-white/10 backdrop-blur-md text-white border-white/20 hover:bg-white/20'
-                      : 'bg-white/50 backdrop-blur-md text-gray-700 border-gray-200 hover:bg-white hover:border-gray-300'
-                      }`}
-                  >
-                    <div className="w-5 h-5 bg-primary rounded-full flex items-center justify-center text-[10px] text-white font-bold shadow-sm">
-                      <Briefcase size={12} />
-                    </div>
-                    <span>My Account</span>
-                    <ChevronDown size={14} className={`transition-transform duration-300 ${isBusinessMenuOpen ? 'rotate-180' : ''}`} />
-                  </button>
-
-                  {isBusinessMenuOpen && (
-                    <>
-                      <div
-                        className="fixed inset-0 z-40"
-                        onClick={() => setIsBusinessMenuOpen(false)}
-                      />
-                      <div className="absolute top-full right-0 mt-2 w-52 bg-white border border-gray-100 rounded-2xl shadow-xl py-2 z-50 animate-in fade-in zoom-in-95 duration-200">
-                        <div className="px-4 py-2 mb-1 border-b border-gray-50">
-                          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">My Account</p>
-                          {business?.businessName && (
-                            <p className="mt-0.5 truncate text-xs font-medium text-gray-700">{business.businessName}</p>
-                          )}
-                        </div>
-                        <Link
-                          href={`/business/dashboard?id=${business.id}`}
-                          onClick={() => setIsBusinessMenuOpen(false)}
-                          className="flex items-center gap-2.5 px-4 py-2.5 text-xs font-medium text-gray-600 hover:bg-primary/5 hover:text-primary transition-all"
-                        >
-                          <LayoutDashboard size={16} className="text-gray-400" />
-                          Merchant dashboard
-                        </Link>
-                        <Link
-                          href={getBusinessProfilePath(business)}
-                          target="_blank"
-                          onClick={() => setIsBusinessMenuOpen(false)}
-                          className="flex items-center gap-2.5 px-4 py-2.5 text-xs font-medium text-gray-600 hover:bg-primary/5 hover:text-primary transition-all"
-                        >
-                          <Building2 size={16} className="text-gray-400" />
-                          Public listing
-                        </Link>
-                        <div className="my-1 border-t border-gray-50" />
-                        <button
-                          onClick={handleBusinessLogout}
-                          className="w-full flex items-center gap-2.5 px-4 py-2.5 text-xs font-medium text-red-500 hover:bg-red-50 transition-all"
-                        >
-                          <LogOut size={16} />
-                          Log Out
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </div>
+                <Link
+                  href={`/business/dashboard?id=${business?.id ?? ''}`}
+                  className={`flex items-center gap-2 px-4 py-2 border rounded-xl transition-all duration-300 font-medium text-xs shadow-sm hover:shadow-md ${isLight
+                    ? 'bg-white/10 backdrop-blur-md text-white border-white/20 hover:bg-white/20'
+                    : 'bg-white/50 backdrop-blur-md text-gray-700 border-gray-200 hover:bg-white hover:border-gray-300'
+                    }`}
+                >
+                  <div className="w-5 h-5 bg-primary rounded-full flex items-center justify-center text-[10px] text-white font-bold shadow-sm">
+                    <Briefcase size={12} />
+                  </div>
+                  <span>My Business</span>
+                </Link>
               ) : (
                 <Link
                   href={loginHref}
@@ -315,7 +269,7 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
                     : 'text-primary border border-primary/15 bg-white/90 shadow-sm backdrop-blur-sm'
                 }`}
               >
-                My Account
+                {isLoggedIn ? 'My Account' : 'My Business'}
               </Link>
             ) : (
               <Link
@@ -459,7 +413,7 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
                     <div className="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-50 text-slate-400">
                       <Briefcase size={18} />
                     </div>
-                    <span className="text-base text-slate-800 tracking-tight">My Account</span>
+                    <span className="text-base text-slate-800 tracking-tight">My Business</span>
                   </div>
                   <ArrowRight size={16} className="text-slate-300" />
                 </Link>

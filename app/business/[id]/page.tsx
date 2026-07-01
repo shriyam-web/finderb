@@ -1,6 +1,6 @@
 import { cache } from 'react';
 import type { Metadata } from 'next';
-import { permanentRedirect } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
 import {
   getBusinessBySlugOrId,
   getRelatedBusinessesForProfile,
@@ -35,27 +35,30 @@ export default async function BusinessDetailPage({ params }: PageProps) {
   const result = await getBusinessCached(slugOrId);
   const business = result.success && result.business ? result.business : null;
 
-  if (business && shouldRedirectToCanonicalBusinessSlug(slugOrId, business)) {
+  if (!business) {
+    notFound();
+  }
+
+  if (shouldRedirectToCanonicalBusinessSlug(slugOrId, business)) {
     permanentRedirect(getBusinessProfilePath(business));
   }
 
-  const canonicalSlug = business ? resolveBusinessSlug(business) : slugOrId;
+  const canonicalSlug = resolveBusinessSlug(business);
 
-  const categoryResult =
-    business?.category ? await findCategoryForBreadcrumb(business.category) : null;
-  const categorySlug = categoryResult?.success ? categoryResult.category?.slug : null;
-  const jsonLd = business ? buildBusinessJsonLd(business, categorySlug) : null;
-
-  const relatedResult = business
-    ? await getRelatedBusinessesForProfile(business)
+  const categoryResult = business.category
+    ? await findCategoryForBreadcrumb(business.category)
     : null;
+  const categorySlug = categoryResult?.success ? categoryResult.category?.slug : null;
+  const jsonLd = buildBusinessJsonLd(business, categorySlug);
+
+  const relatedResult = await getRelatedBusinessesForProfile(business);
 
   const categoriesResult = await getCategories(true);
   const relatedCategories = (categoriesResult.success && categoriesResult.categories
     ? categoriesResult.categories
     : []
   )
-    .filter((cat: { name?: string }) => cat.name !== business?.category)
+    .filter((cat: { name?: string }) => cat.name !== business.category)
     .slice(0, 6)
     .map((cat: { name: string; slug?: string }) => ({
       name: cat.name,
@@ -72,20 +75,14 @@ export default async function BusinessDetailPage({ params }: PageProps) {
         initialRelatedCategory={relatedResult?.success ? relatedResult.sameCategory : []}
         initialRelatedCity={relatedResult?.success ? relatedResult.sameCity : []}
       />
-      {business ? (
-        <>
-          <BusinessSeoContent business={business} />
-          <BusinessInternalLinks
-            business={business}
-            categorySlug={categorySlug}
-            relatedCategories={relatedCategories}
-            sameCategoryBusinesses={
-              relatedResult?.success ? relatedResult.sameCategory : []
-            }
-            sameCityBusinesses={relatedResult?.success ? relatedResult.sameCity : []}
-          />
-        </>
-      ) : null}
+      <BusinessSeoContent business={business} />
+      <BusinessInternalLinks
+        business={business}
+        categorySlug={categorySlug}
+        relatedCategories={relatedCategories}
+        sameCategoryBusinesses={relatedResult?.success ? relatedResult.sameCategory : []}
+        sameCityBusinesses={relatedResult?.success ? relatedResult.sameCity : []}
+      />
     </>
   );
 }

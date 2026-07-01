@@ -17,6 +17,29 @@ import {
   Scissors,
 } from 'lucide-react';
 
+export const HERO_SEARCH_TYPEWRITER_EXAMPLES = [
+  'dentist near me',
+  'CA firm near me',
+  'gym near me',
+  'salon near me',
+  'plumber near me',
+  'restaurant near me',
+  'lawyer near me',
+  'electrician near me',
+  'wedding photographer near me',
+  'real estate agent near me',
+  'interior designer near me',
+  'packers and movers near me',
+  'coaching classes near me',
+  'hospitals near me',
+  'car service near me',
+  'café near me',
+  'makeup artist near me',
+  'PG accommodation near me',
+  'pathology lab near me',
+  'pest control near me',
+] as const;
+
 export const POPULAR_SEARCHES = [
   { term: 'Real Estate', icon: Building2, iconColor: 'text-blue-600' },
   { term: 'B2B', icon: Handshake, iconColor: 'text-indigo-600' },

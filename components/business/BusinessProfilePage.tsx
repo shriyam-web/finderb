@@ -26,8 +26,11 @@ import StackedPhotoGallery from '@/components/business/StackedPhotoGallery';
 import BusinessProfileBackdrop from '@/components/business/BusinessProfileBackdrop';
 import BusinessProfileBreadcrumb from '@/components/business/BusinessProfileBreadcrumb';
 import BusinessProfileHeroBadges from '@/components/business/BusinessProfileHeroBadges';
+import { VerifiedNameTick } from '@/components/business/VerifiedMark';
 import BusinessProfileContactAside from '@/components/business/BusinessProfileContactAside';
 import BusinessProfileOfferBanner from '@/components/business/BusinessProfileOfferBanner';
+import BusinessLocationMap from '@/components/business/BusinessLocationMap';
+import BusinessProfileAboutSection from '@/components/business/BusinessProfileAboutSection';
 import BusinessProfileReviewCard from '@/components/business/BusinessProfileReviewCard';
 import DistanceBadge from '@/components/business/DistanceBadge';
 import { getBusinessLocationLabel } from '@/lib/businessBreadcrumb';
@@ -70,10 +73,10 @@ const WEEKDAYS = [
 ] as const;
 
 const SECTIONS = [
-  { id: 'about', label: 'About' },
   { id: 'services', label: 'Services' },
   { id: 'location', label: 'Location' },
   { id: 'contact', label: 'Contact' },
+  { id: 'about', label: 'About' },
   { id: 'reviews', label: 'Reviews' },
 ] as const;
 
@@ -148,7 +151,7 @@ export default function BusinessProfilePage({
   const [connectModalOpen, setConnectModalOpen] = useState(false);
   const [clientSearchQuery, setClientSearchQuery] = useState('');
   const [activeImage, setActiveImage] = useState(0);
-  const [activeSection, setActiveSection] = useState<SectionId>('about');
+  const [activeSection, setActiveSection] = useState<SectionId>('services');
   const [shareMessage, setShareMessage] = useState<string | null>(null);
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewContent, setReviewContent] = useState('');
@@ -374,6 +377,7 @@ export default function BusinessProfilePage({
   }
 
   const isVerified = Boolean(business.isFinderBVerified || business.hasVerifiedBadge);
+  const locationLabel = getBusinessLocationLabel(business);
   const phoneLink = phoneHref(business.contact);
   const whatsappLink = whatsAppHref(business.whatsappNumber || business.contact, business.name);
   const directionsLink = directionsHref({
@@ -402,7 +406,7 @@ export default function BusinessProfilePage({
   ].filter((item) => Boolean(item.href));
 
   return (
-    <div className="relative min-h-screen pb-36 lg:pb-10 pt-[4.25rem] sm:pt-24">
+    <div className="relative min-h-screen bg-white pb-36 lg:pb-10 pt-[4.25rem] sm:pt-24">
       <BusinessProfileBackdrop />
 
       <header className="sticky top-[4.25rem] z-40 border-b border-stone-200/80 bg-white/90 backdrop-blur-md sm:top-24">
@@ -443,17 +447,21 @@ export default function BusinessProfilePage({
               onSelect={setActiveImage}
             />
 
-            <div className="mt-5 flex flex-col gap-2.5 md:mt-0 md:border-l md:border-stone-200/70 md:pl-10 lg:gap-3 lg:pl-12">
-            <h1 className="text-[1.65rem] font-semibold leading-snug text-[#153551] sm:text-[1.85rem] lg:text-[2rem]">
-              {business.name}
+            <div className="mt-5 flex flex-col gap-1.5 md:mt-0 md:border-l md:border-stone-200/70 md:pl-10 lg:gap-2 lg:pl-12">
+            <h1 className="flex items-start gap-2 text-[1.65rem] font-semibold leading-tight text-[#153551] sm:text-[1.85rem] lg:text-[2rem]">
+              <span className="min-w-0">{business.name}</span>
+              {isVerified ? <VerifiedNameTick size={22} className="mt-0.5 shrink-0 sm:mt-1" /> : null}
             </h1>
 
             {business.category && (
-              <p className="text-sm font-medium text-[#215481]">{business.category}</p>
+              <p className="text-sm font-medium leading-tight text-[#215481]">{business.category}</p>
             )}
 
-            {getBusinessLocationLabel(business) && (
-              <p className="text-sm text-stone-600">{getBusinessLocationLabel(business)}</p>
+            {locationLabel && (
+              <p className="flex items-start gap-1.5 text-sm leading-tight text-stone-600">
+                <MapPin size={14} className="mt-px shrink-0 text-stone-400" aria-hidden />
+                <span>{locationLabel}</span>
+              </p>
             )}
 
             {distanceLabel && directionsLink && (
@@ -461,15 +469,15 @@ export default function BusinessProfilePage({
             )}
 
             {business.yearsInBusiness != null && (
-              <p className="text-sm text-stone-600">
+              <p className="text-sm leading-tight text-stone-600">
                 {business.yearsInBusiness} years in business
               </p>
             )}
 
-            <BusinessProfileHeroBadges category={business.category} isVerified={isVerified} />
+            <BusinessProfileHeroBadges category={business.category} />
 
             {openStatus && (
-              <p className={`flex items-center gap-1.5 text-sm ${openStatus.colorClass}`}>
+              <p className={`flex items-center gap-1.5 text-sm leading-tight ${openStatus.colorClass}`}>
                 <span className={`h-1.5 w-1.5 rounded-full ${openStatus.dotClass}`} />
                 {openStatus.label}
               </p>
@@ -538,27 +546,11 @@ export default function BusinessProfilePage({
           ))}
         </nav>
 
-        <div className="grid gap-10 py-8 lg:grid-cols-[1fr_300px] lg:items-start lg:gap-12 xl:grid-cols-[1fr_340px]">
-          <div className="min-w-0 space-y-10 lg:col-start-1 lg:row-start-1">
-            <section id="about" className="scroll-mt-40">
-              <h2 className="text-base font-semibold text-[#153551]">About</h2>
-              {business.description ? (
-                <p className="mt-3 text-[15px] leading-7 text-stone-600">{business.description}</p>
-              ) : (
-                <p className="mt-3 text-sm text-stone-400">No description added.</p>
-              )}
-              {business.keywords && business.keywords.length > 0 && (
-                <p className="mt-4 text-sm text-stone-600">
-                  <span className="font-medium text-stone-800">Known for:</span>{' '}
-                  {business.keywords.join(', ')}
-                </p>
-              )}
-            </section>
-
-            <section id="services" className="scroll-mt-40 border-t border-stone-200/60 pt-8">
+        <div className="flex flex-col gap-10 py-8 lg:grid lg:grid-cols-[1fr_300px] lg:items-start lg:gap-12 xl:grid-cols-[1fr_340px]">
+            <section id="services" className="scroll-mt-40 order-1 lg:col-start-1 lg:row-start-1">
               <h2 className="text-base font-semibold text-[#153551]">Services</h2>
               {business.services && business.services.length > 0 ? (
-                <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3">
                   {business.services.map((service) => (
                     <div
                       key={service}
@@ -576,7 +568,7 @@ export default function BusinessProfilePage({
               )}
             </section>
 
-            <section id="location" className="scroll-mt-40 border-t border-stone-200/60 pt-8">
+            <section id="location" className="scroll-mt-40 order-2 border-t border-stone-200/60 pt-8 lg:col-start-1 lg:row-start-2">
               <h2 className="text-base font-semibold text-[#153551]">Location & hours</h2>
 
               {(business.businessAddress || business.location) && (
@@ -606,16 +598,14 @@ export default function BusinessProfilePage({
                 </div>
               )}
 
-              {embedSrc && (
-                <div className="mt-4 overflow-hidden rounded-lg border border-stone-200/80">
-                  <iframe
-                    title={`Map for ${business.name}`}
-                    src={embedSrc}
-                    className="h-52 w-full sm:h-60 lg:h-72"
-                    loading="lazy"
-                    referrerPolicy="no-referrer-when-downgrade"
-                  />
-                </div>
+              {(embedSrc || directionsLink) && (
+                <BusinessLocationMap
+                  businessName={business.name}
+                  embedSrc={embedSrc}
+                  directionsHref={directionsLink}
+                  address={business.businessAddress || business.location}
+                  className="mt-4"
+                />
               )}
 
               {business.timings ? (
@@ -661,11 +651,10 @@ export default function BusinessProfilePage({
                 <p className="mt-3 text-sm text-stone-400">Hours not listed.</p>
               )}
             </section>
-          </div>
 
           <section
             id="contact"
-            className="scroll-mt-40 border-t border-stone-200/60 pt-8 lg:col-start-2 lg:row-start-1 lg:sticky lg:top-32 lg:self-start lg:border-t-0 lg:pt-0"
+            className="scroll-mt-40 order-3 border-t border-stone-200/60 pt-8 lg:col-start-2 lg:row-start-1 lg:sticky lg:top-32 lg:self-start lg:border-t-0 lg:pt-0"
           >
             <BusinessProfileContactAside
               phoneLink={phoneLink}
@@ -678,7 +667,14 @@ export default function BusinessProfilePage({
             />
           </section>
 
-          <section id="reviews" className="scroll-mt-40 border-t border-stone-200/60 pt-8 lg:col-start-1 lg:row-start-2">
+          <div className="order-4 lg:col-start-2 lg:row-start-2">
+            <BusinessProfileAboutSection
+              description={business.description}
+              keywords={business.keywords}
+            />
+          </div>
+
+          <section id="reviews" className="scroll-mt-40 order-5 border-t border-stone-200/60 pt-8 lg:col-start-1 lg:row-start-3">
             <div className="flex items-baseline justify-between gap-3">
               <h2 className="text-base font-semibold text-[#153551]">Reviews</h2>
               {displayRating != null ? (

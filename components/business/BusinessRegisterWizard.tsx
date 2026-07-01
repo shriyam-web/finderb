@@ -218,8 +218,7 @@ export default function BusinessRegisterWizard({
               </div>
             )}
 
-            {step === 1 && (
-              <div className="space-y-6">
+            <div className={step === 1 ? 'space-y-6' : 'hidden'} aria-hidden={step !== 1}>
                 <MerchantAuthFormHeader
                   title="Account details"
                   subtitle="Set up your partner account to manage your listing."
@@ -282,11 +281,9 @@ export default function BusinessRegisterWizard({
                     </div>
                   </div>
                 </div>
-              </div>
-            )}
+            </div>
 
-            {step === 2 && (
-              <div className="space-y-6">
+            <div className={step === 2 ? 'space-y-6' : 'hidden'} aria-hidden={step !== 2}>
                 <MerchantAuthFormHeader
                   title="Business details"
                   subtitle="Help customers find and contact your business."
@@ -388,8 +385,7 @@ export default function BusinessRegisterWizard({
                     />
                   </div>
                 </div>
-              </div>
-            )}
+            </div>
 
             {step === 3 && registeredBusiness && (
               <div className="space-y-8 py-4 text-center">
@@ -465,7 +461,7 @@ export default function BusinessRegisterWizard({
                 <ChevronLeft size={16} />
                 Back
               </button>
-              <MerchantAuthSubmitButton type="button" onClick={onNext}>
+              <MerchantAuthSubmitButton type="button" onClick={onNext} disabled={loading} loading={loading}>
                 {step === 3 ? 'Go to dashboard' : step === 2 ? 'Submit listing' : 'Continue'}
               </MerchantAuthSubmitButton>
             </div>

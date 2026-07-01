@@ -7,6 +7,8 @@ import { categoryHref, dbBanner, dbSymbol } from '@/lib/categoryDisplay';
 import { stripHtml } from '@/lib/stripHtml';
 import { mapTouristPlaceRow } from '@/lib/touristPlaceImage';
 import { getPublicSupabase } from '@/lib/supabase/public';
+import { SHOW_HOME_LATEST_MOVIES_SECTION } from '@/lib/featureFlags';
+import { fetchFinderBTutorials, type FinderBTutorialVideo } from '@/lib/finderbYoutube';
 
 export const HOME_PAGE_REVALIDATE_SECONDS = 300;
 export const HOME_PAGE_CACHE_TAG = 'homepage';
@@ -56,6 +58,7 @@ export type HomePageData = {
       href: string;
     }>;
   }>;
+  tutorials: FinderBTutorialVideo[];
 };
 
 function plainBlogExcerpt(
@@ -246,13 +249,15 @@ async function fetchFeaturedGroups(supabase: SupabaseClient) {
 async function fetchHomePageData(): Promise<HomePageData> {
   const supabase = getPublicSupabase();
 
-  const [businesses, categories, movies, touristPlaces, blogs, featuredGroups] = await Promise.all([
+  const [businesses, categories, movies, touristPlaces, blogs, featuredGroups, tutorials] =
+    await Promise.all([
     fetchFeaturedBusinesses(supabase),
     fetchCategories(supabase),
-    fetchMovies(supabase),
+    SHOW_HOME_LATEST_MOVIES_SECTION ? fetchMovies(supabase) : Promise.resolve([]),
     fetchTouristPlaces(supabase),
     fetchBlogs(supabase),
     fetchFeaturedGroups(supabase),
+    fetchFinderBTutorials(6),
   ]);
 
   return {
@@ -262,6 +267,7 @@ async function fetchHomePageData(): Promise<HomePageData> {
     touristPlaces,
     blogs,
     featuredGroups,
+    tutorials,
   };
 }
 

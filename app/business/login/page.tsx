@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { Mail, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { loginBusiness } from '@/app/actions/business';
 import { useRouter } from 'next/navigation';
+import AuthRedirectScreen from '@/components/auth/AuthRedirectScreen';
+import { useAlreadyLoggedInRedirect } from '@/hooks/useAlreadyLoggedInRedirect';
 import { MerchantAuthMain, MerchantAuthPage } from '@/components/business/MerchantAuthShell';
 import {
   MerchantAuthField,
@@ -23,6 +25,7 @@ export default function BusinessLoginPage() {
   const [error, setError] = useState('');
   const [suggestedLoginPath, setSuggestedLoginPath] = useState('');
   const router = useRouter();
+  const authRedirect = useAlreadyLoggedInRedirect({ kind: 'business' });
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,6 +62,18 @@ export default function BusinessLoginPage() {
       setLoading(false);
     }
   };
+
+  if (authRedirect.status === 'checking') {
+    return (
+      <div className="flex min-h-[calc(100dvh-5rem)] items-center justify-center bg-[#eef3f9] pt-24">
+        <div className="h-9 w-9 animate-spin rounded-full border-2 border-[#215481] border-t-transparent" />
+      </div>
+    );
+  }
+
+  if (authRedirect.status === 'redirecting') {
+    return <AuthRedirectScreen message={authRedirect.message} />;
+  }
 
   return (
     <MerchantAuthPage>

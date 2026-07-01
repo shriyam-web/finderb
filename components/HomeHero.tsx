@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type RefObject } from 'react';
 import { createPortal } from 'react-dom';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -15,12 +15,14 @@ import {
 } from 'lucide-react';
 import {
   HERO_TRUST_BADGES,
+  HERO_SEARCH_TYPEWRITER_EXAMPLES,
   POPULAR_SEARCHES,
   HERO_CITIES_BY_STATE,
   isHeroCitySelected,
   filterCitiesByState,
 } from '@/lib/homeHeroConstants';
 import { useUserLocationState } from '@/hooks/useUserCoords';
+import { useTypewriterCycle } from '@/hooks/useTypewriterCycle';
 import { SITE_NAME } from '@/lib/siteSeo';
 
 type HomeHeroProps = {
@@ -52,6 +54,51 @@ function SearchInputHint() {
           className="absolute left-[21px] top-full block border-x-[6px] border-t-[6px] border-x-transparent border-t-amber-50"
         />
       </div>
+    </div>
+  );
+}
+
+function HeroSearchQueryInput({
+  inputRef,
+  value,
+  onChange,
+  onEnter,
+  disabled,
+  compact,
+}: {
+  inputRef: RefObject<HTMLInputElement | null>;
+  value: string;
+  onChange: (value: string) => void;
+  onEnter: () => void;
+  disabled?: boolean;
+  compact?: boolean;
+}) {
+  const displayText = useTypewriterCycle(HERO_SEARCH_TYPEWRITER_EXAMPLES);
+  const showTypewriter = !value && !disabled;
+  const textSize = compact ? 'text-[12px]' : 'text-[13px]';
+
+  return (
+    <div className="relative min-w-0 flex-1">
+      <input
+        ref={inputRef}
+        type="text"
+        value={value}
+        disabled={disabled}
+        onChange={(e) => onChange(e.target.value)}
+        onKeyDown={(e) => e.key === 'Enter' && !disabled && onEnter()}
+        placeholder=""
+        aria-label="Search for local businesses and services"
+        className={`min-w-0 w-full border-none bg-transparent ${textSize} text-[#334155] focus:ring-0 disabled:opacity-50`}
+      />
+      {showTypewriter ? (
+        <span
+          className={`pointer-events-none absolute inset-y-0 left-0 flex max-w-full items-center truncate ${textSize} text-[#94a3b8]`}
+          aria-hidden
+        >
+          {displayText}
+          <span className="ml-px inline-block h-4 w-px shrink-0 animate-pulse bg-[#94a3b8]/70" />
+        </span>
+      ) : null}
     </div>
   );
 }
@@ -454,15 +501,12 @@ export default function HomeHero({
               >
                 {searchHint ? <SearchInputHint /> : null}
                 <Search size={18} className="shrink-0 text-[#94a3b8]" strokeWidth={2} />
-                <input
-                  ref={searchInputRef}
-                  type="text"
+                <HeroSearchQueryInput
+                  inputRef={searchInputRef}
                   value={manualQuery}
                   disabled={voiceActive}
-                  onChange={(e) => onQueryChange(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && !voiceActive && onSearch()}
-                  placeholder="Search anything... (e.g. Dentist, CA, Gym, Salon)"
-                  className="min-w-0 flex-1 border-none bg-transparent text-[13px] text-[#334155] placeholder:text-[13px] placeholder:text-[#94a3b8] focus:ring-0 disabled:opacity-50"
+                  onChange={onQueryChange}
+                  onEnter={() => onSearch()}
                 />
                 <HeroAiSearchBadge />
                 <button
@@ -504,15 +548,13 @@ export default function HomeHero({
               >
                 {searchHint ? <SearchInputHint /> : null}
                 <Search size={18} className="shrink-0 text-[#94a3b8]" strokeWidth={2} />
-                <input
-                  ref={searchInputRef}
-                  type="text"
+                <HeroSearchQueryInput
+                  inputRef={searchInputRef}
                   value={manualQuery}
                   disabled={voiceActive}
-                  onChange={(e) => onQueryChange(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && !voiceActive && onSearch()}
-                  placeholder="Search anything... (e.g. Dentist, CA, Gym, Salon)"
-                  className="min-w-0 flex-1 border-none bg-transparent text-[12px] text-[#334155] placeholder:text-[12px] placeholder:text-[#94a3b8] focus:ring-0 disabled:opacity-50"
+                  onChange={onQueryChange}
+                  onEnter={() => onSearch()}
+                  compact
                 />
                 <HeroAiSearchBadge compact />
                 <button

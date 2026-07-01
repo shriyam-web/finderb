@@ -35,6 +35,7 @@ Google Maps Platform requires billing (you still get monthly free credit).
 2. Search and enable:
    - **Geocoding API**
    - **Geolocation API**
+   - **Maps Embed API** (business profile map iframes)
 
 ---
 
@@ -63,7 +64,7 @@ Used only when browser GPS fails or is denied.
      - `http://localhost:3000/*`
      - `https://YOUR_DOMAIN.com/*`
      - `https://*.YOUR_DOMAIN.com/*`
-   - **API restrictions** → **Geolocation API** only.
+   - **API restrictions** → **Geolocation API** and **Maps Embed API**
 
 > For local dev you can use one key with loose restrictions; use two restricted keys in production.
 
@@ -99,6 +100,7 @@ NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=AIza...browser...
 | City shows “Near you” forever | Check `GOOGLE_MAPS_API_KEY`, Geocoding API enabled, billing on |
 | `REQUEST_DENIED` in console | Key restrictions too tight; referrer/IP mismatch |
 | Geolocation fallback never runs | Set `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`; enable Geolocation API |
+| Business profile map is blank | Enable **Maps Embed API**; add it to browser key restrictions; restart dev server |
 | Wrong city with GPS allowed | Geocoding issue — not Geolocation API; check server key |
 | Works on localhost, not production | Add production domain to HTTP referrer restrictions |
 

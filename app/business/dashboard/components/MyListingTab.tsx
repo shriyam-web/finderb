@@ -19,6 +19,7 @@ import { Navigation, Tag } from 'lucide-react';
 import StackedPhotoGallery from '@/components/business/StackedPhotoGallery';
 import BusinessProfileOfferBanner from '@/components/business/BusinessProfileOfferBanner';
 import { getBusinessLocationLabel } from '@/lib/businessBreadcrumb';
+import BusinessLocationMap from '@/components/business/BusinessLocationMap';
 import { directionsHref, mapEmbedSrc, phoneHref } from '@/lib/businessContact';
 import { getBusinessOpenStatus } from '@/lib/businessHours';
 import {
@@ -432,17 +433,17 @@ export default function MyListingTab({
                 </button>
               )}
 
-              {embedSrc ? (
-                <div className="mt-4 overflow-hidden rounded-lg border border-zinc-200/80">
-                  <iframe
-                    title={`Map for ${businessName}`}
-                    src={embedSrc}
-                    className="h-52 w-full sm:h-60"
-                    loading="lazy"
-                    referrerPolicy="no-referrer-when-downgrade"
-                  />
-                </div>
-              ) : (
+              {(embedSrc || directionsLink) && (
+                <BusinessLocationMap
+                  businessName={businessName}
+                  embedSrc={embedSrc}
+                  directionsHref={directionsLink}
+                  address={fullAddress}
+                  className="mt-4"
+                />
+              )}
+
+              {!embedSrc && !directionsLink && (
                 <div className="mt-4 flex h-40 items-center justify-center rounded-lg border border-dashed border-zinc-200 bg-zinc-50 text-xs text-zinc-400">
                   Map appears when address or coordinates are set
                 </div>

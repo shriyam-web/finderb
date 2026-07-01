@@ -1,3 +1,5 @@
+import { getGoogleMapsPublicKey } from '@/lib/googleMapsKeys';
+
 export function digitsOnly(value: string) {
   return value.replace(/\D/g, '');
 }
@@ -17,19 +19,43 @@ export function whatsAppHref(number: string, businessName: string) {
   return `https://wa.me/${withCountry}?text=${text}`;
 }
 
+function resolveMapQuery(options: {
+  latitude?: number | null;
+  longitude?: number | null;
+  address?: string | null;
+  location?: string | null;
+}): string | undefined {
+  if (options.latitude != null && options.longitude != null) {
+    return `${options.latitude},${options.longitude}`;
+  }
+
+  const query = (options.address || options.location || '').trim();
+  return query || undefined;
+}
+
 export function directionsHref(options: {
   latitude?: number | null;
   longitude?: number | null;
   address?: string | null;
   location?: string | null;
 }) {
-  const query =
-    options.latitude != null && options.longitude != null
-      ? `${options.latitude},${options.longitude}`
-      : (options.address || options.location || '').trim();
+  const query = resolveMapQuery(options);
 
   if (!query) return undefined;
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+}
+
+function buildOpenStreetMapEmbedUrl(latitude: number, longitude: number): string {
+  const latDelta = 0.012;
+  const lngDelta = 0.018;
+  const bbox = [
+    longitude - lngDelta,
+    latitude - latDelta,
+    longitude + lngDelta,
+    latitude + latDelta,
+  ].join(',');
+
+  return `https://www.openstreetmap.org/export/embed.html?bbox=${encodeURIComponent(bbox)}&layer=mapnik&marker=${encodeURIComponent(`${latitude},${longitude}`)}`;
 }
 
 export function mapEmbedSrc(options: {
@@ -38,13 +64,17 @@ export function mapEmbedSrc(options: {
   address?: string | null;
   location?: string | null;
 }) {
-  const query =
-    options.latitude != null && options.longitude != null
-      ? `${options.latitude},${options.longitude}`
-      : (options.address || options.location || '').trim();
+  if (options.latitude != null && options.longitude != null) {
+    return buildOpenStreetMapEmbedUrl(options.latitude, options.longitude);
+  }
 
+  const query = resolveMapQuery(options);
   if (!query) return undefined;
-  return `https://maps.google.com/maps?q=${encodeURIComponent(query)}&z=15&output=embed`;
+
+  const key = getGoogleMapsPublicKey();
+  if (!key) return undefined;
+
+  return `https://www.google.com/maps/embed/v1/place?key=${encodeURIComponent(key)}&q=${encodeURIComponent(query)}&zoom=15`;
 }
 
 export type ShareBusinessResult = 'shared' | 'copied' | 'cancelled' | 'unsupported';

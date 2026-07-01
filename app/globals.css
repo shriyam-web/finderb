@@ -37,6 +37,7 @@
   --animate-ai-fab-glow: ai-fab-glow 2.5s ease-in-out infinite;
   --animate-ai-search-badge-shine: ai-search-badge-shine 2.4s ease-in-out infinite;
   --animate-fire-flicker: fire-flicker 1.15s ease-in-out infinite;
+  --animate-finderb-marquee-pulse: finderb-marquee-pulse 2.4s ease-in-out infinite;
   --animate-app-phone-left: app-phone-left 5s ease-in-out infinite;
   --animate-app-phone-right: app-phone-right 5.5s ease-in-out infinite;
   --animate-app-aurora: app-aurora 8s ease-in-out infinite;
@@ -125,6 +126,11 @@
     25% { transform: scale(1.15) rotate(-8deg); opacity: 0.85; }
     50% { transform: scale(0.92) rotate(5deg); opacity: 1; }
     75% { transform: scale(1.08) rotate(-4deg); opacity: 0.9; }
+  }
+
+  @keyframes finderb-marquee-pulse {
+    0%, 100% { opacity: 0.35; transform: scale(0.92); }
+    50% { opacity: 1; transform: scale(1); }
   }
 
   @keyframes app-phone-left {

@@ -60,6 +60,8 @@ import VoiceSearchModal from '@/components/VoiceSearchModal';
 import { normalizeVoiceTranscript } from '@/lib/voiceSearch';
 import { setLastSearchQuery } from '@/lib/lastSearchQuery';
 import { stripHtml } from '@/lib/stripHtml';
+import { SHOW_HOME_LATEST_MOVIES_SECTION } from '@/lib/featureFlags';
+import FinderBTutorialsSection from '@/components/home/FinderBTutorialsSection';
 
 const WORDS = [
   "verified professionals",
@@ -107,6 +109,7 @@ export default function HomeClient({ initialData }: { initialData: any }) {
   const sortedTouristPlaces = useSortedTouristPlaces(realTouristPlaces);
   const [realBlogs, setRealBlogs] = useState<any[]>(initialData.blogs);
   const [featuredGroups, setFeaturedGroups] = useState<any[]>(initialData.featuredGroups ?? []);
+  const [tutorials] = useState(initialData.tutorials ?? []);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [aiLoadProgress, setAiLoadProgress] = useState(0);
@@ -194,7 +197,7 @@ export default function HomeClient({ initialData }: { initialData: any }) {
       const [bizResult, catResult, movieResult, touristResult, blogResult, groupsResult] = await Promise.all([
         getFeaturedBusinesses(),
         getCategories(),
-        getMovies(),
+        SHOW_HOME_LATEST_MOVIES_SECTION ? getMovies() : Promise.resolve({ success: true, movies: [] }),
         getTouristPlaces(),
         getBlogs(),
         getFeaturedGroups(),
@@ -208,7 +211,7 @@ export default function HomeClient({ initialData }: { initialData: any }) {
         setRealCategories(catResult.categories);
       }
 
-      if (movieResult.success && movieResult.movies && movieResult.movies.length > 0) {
+      if (SHOW_HOME_LATEST_MOVIES_SECTION && movieResult.success && movieResult.movies && movieResult.movies.length > 0) {
         setRealMovies(movieResult.movies);
       }
 
@@ -785,6 +788,8 @@ export default function HomeClient({ initialData }: { initialData: any }) {
         </section>
       )}
 
+      {tutorials.length > 0 ? <FinderBTutorialsSection tutorials={tutorials} /> : null}
+
       {/* Tourist Places Section */}
       <section className="bg-slate-50 py-6 lg:py-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -930,7 +935,7 @@ export default function HomeClient({ initialData }: { initialData: any }) {
         </section>
       )}
 
-      {/* Movies Section */}
+      {SHOW_HOME_LATEST_MOVIES_SECTION && (
       <section className="bg-white py-6 lg:py-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center mb-5">
@@ -967,6 +972,7 @@ export default function HomeClient({ initialData }: { initialData: any }) {
           </div>
         </div>
       </section>
+      )}
 
       <NativeAppsComingSoon />
 

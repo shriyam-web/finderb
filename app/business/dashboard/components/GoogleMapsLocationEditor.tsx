@@ -7,6 +7,7 @@ import {
   HiOutlineMapPin,
 } from 'react-icons/hi2';
 import { lookupPlaceNameFromCoordinates, resolveGoogleMapsLocation } from '@/app/actions/location';
+import { mapEmbedSrc } from '@/lib/businessContact';
 import { buildGoogleMapsUrl } from '@/lib/googleMapsLocation';
 
 type GoogleMapsLocationEditorProps = {
@@ -126,7 +127,7 @@ export default function GoogleMapsLocationEditor({
     : null;
 
   const embedUrl = resolvedCoords
-    ? `https://maps.google.com/maps?q=${resolvedCoords.lat},${resolvedCoords.lng}&z=16&output=embed`
+    ? mapEmbedSrc({ latitude: resolvedCoords.lat, longitude: resolvedCoords.lng })
     : null;
 
   const showResult = (status === 'valid' && resolvedCoords) || (status === 'error' && error);
@@ -197,13 +198,21 @@ export default function GoogleMapsLocationEditor({
                 </div>
               </div>
               <div className="overflow-hidden rounded-lg border border-emerald-200/80 bg-white">
-                <iframe
-                  title="Map preview"
-                  src={embedUrl}
-                  className="aspect-video w-full min-h-[160px]"
-                  loading="lazy"
-                  referrerPolicy="no-referrer-when-downgrade"
-                />
+                {embedUrl ? (
+                  <iframe
+                    title="Map preview"
+                    src={embedUrl}
+                    className="aspect-video w-full min-h-[160px] border-0"
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-cross-origin"
+                    allowFullScreen
+                  />
+                ) : (
+                  <div className="flex aspect-video min-h-[160px] items-center justify-center bg-slate-50 px-4 text-center text-xs text-slate-500">
+                    Add <code className="mx-1 rounded bg-slate-100 px-1">NEXT_PUBLIC_GOOGLE_MAPS_API_KEY</code>{' '}
+                    with Maps Embed API enabled to preview the map here.
+                  </div>
+                )}
               </div>
               <a
                 href={previewUrl}

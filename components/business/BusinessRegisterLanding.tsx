@@ -16,6 +16,8 @@ import {
 } from '@/components/business/MerchantAuthShell';
 import { IndiaPhonePrefix } from '@/components/business/MerchantAuthForm';
 import RegisterHero from '@/components/business/RegisterHero';
+import PricingFontRoot from '@/components/pricing/PricingFontRoot';
+import PricingPlansSection from '@/components/pricing/PricingPlansSection';
 
 type Stat = { label: string; value: string };
 type Story = {
@@ -80,6 +82,7 @@ type BusinessRegisterLandingProps = {
   mobile: string;
   onMobileChange: (value: string) => void;
   onStart: () => void;
+  onPlanSelect: (plan: 'free' | 'pro', billing?: 'monthly' | 'annual') => void;
   stats: Stat[];
   successStories: Story[];
   steps: Step[];
@@ -90,6 +93,7 @@ export default function BusinessRegisterLanding({
   mobile,
   onMobileChange,
   onStart,
+  onPlanSelect,
   stats,
   successStories,
   steps,
@@ -108,6 +112,17 @@ export default function BusinessRegisterLanding({
         onStart={onStart}
         stats={stats}
       />
+
+      <PricingFontRoot>
+        <div className="pricing-page">
+          <PricingPlansSection
+            mode="register"
+            sectionId="register-pricing"
+            onChooseFree={() => onPlanSelect('free')}
+            onChoosePro={(billing) => onPlanSelect('pro', billing)}
+          />
+        </div>
+      </PricingFontRoot>
 
       {/* Stories */}
       <section className="border-y border-zinc-200/70 bg-white py-16 sm:py-20">

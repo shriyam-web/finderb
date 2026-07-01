@@ -13,7 +13,7 @@ type BusinessProfileBreadcrumbProps = {
 };
 
 function CrumbSeparator() {
-  return <ChevronRight size={10} className="mx-1 inline shrink-0 text-[#d6d3d1]" aria-hidden />;
+  return <ChevronRight size={8} className="mx-0.5 inline shrink-0 text-[#d6d3d1]" aria-hidden />;
 }
 
 export default function BusinessProfileBreadcrumb({
@@ -31,8 +31,8 @@ export default function BusinessProfileBreadcrumb({
         : null;
 
   return (
-    <nav aria-label="Breadcrumb" className="pt-4">
-      <ol className="flex flex-wrap items-center text-xs text-[#a8a29e]">
+    <nav aria-label="Breadcrumb" className="pt-2">
+      <ol className="flex flex-wrap items-center text-[10px] leading-tight text-[#b8b2aa]">
         <li className="inline-flex items-center">
           <Link href="/" className="hover:text-[#215481]">
             Home
@@ -59,7 +59,7 @@ export default function BusinessProfileBreadcrumb({
 
         <li className="inline-flex max-w-full items-center">
           <CrumbSeparator />
-          <span className="truncate font-medium text-[#57534e]" aria-current="page">
+          <span className="truncate text-[#78716c]" aria-current="page">
             {business.name}
           </span>
         </li>

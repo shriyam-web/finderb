@@ -10,7 +10,7 @@ export default function BusinessProfileReviewCard({
   reviewCount,
 }: BusinessProfileReviewCardProps) {
   return (
-    <div className="rounded-lg border border-stone-200/80 bg-white px-3.5 py-3">
+    <div className="rounded-lg border border-stone-200/80 bg-white px-3.5 py-2">
       {displayRating != null ? (
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1">

@@ -19,11 +19,71 @@ import { MerchantAuthPage } from '@/components/business/MerchantAuthShell';
 import { registerBusiness } from '@/app/actions/business';
 import { countryFlagEmoji } from '@/lib/countryFlag';
 import { markNewBusinessOnboarding } from '@/lib/businessOnboarding';
+import AuthRedirectScreen from '@/components/auth/AuthRedirectScreen';
+import { useAlreadyLoggedInRedirect } from '@/hooks/useAlreadyLoggedInRedirect';
 
 type LiveCategory = { id: string; name: string; icon?: string | null };
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function validateStep1(
+  data: {
+    fullName: string;
+    email: string;
+    password: string;
+  },
+  mobileNum: string,
+): string | null {
+  if (!data.fullName.trim()) return 'Please enter your full name';
+  if (!data.email.trim()) return 'Please enter your email address';
+  if (!EMAIL_REGEX.test(data.email.trim())) return 'Please enter a valid email address';
+  if (!data.password) return 'Please enter a password';
+  if (data.password.length < 6) return 'Password must be at least 6 characters long';
+  if (!mobileNum || mobileNum.replace(/\D/g, '').length < 10) {
+    return 'Valid mobile number is required';
+  }
+  return null;
+}
+
+function validateStep2(
+  data: {
+    businessName: string;
+    categoryId: string;
+    subcategoryId: string;
+    city: string;
+    state: string;
+    publicPhone: string;
+    businessAddress: string;
+  },
+  subs: LiveCategory[],
+): string | null {
+  if (!data.businessName.trim()) return 'Please enter your business name';
+  if (!data.categoryId) return 'Please select a business category';
+  if (subs.length > 0 && !data.subcategoryId) return 'Please select a subcategory';
+  if (!data.city.trim()) return 'Please select your city';
+  if (!data.state.trim()) return 'Please select your state';
+  if (data.publicPhone.replace(/\D/g, '').length < 10) {
+    return 'Please enter a valid 10-digit business phone number';
+  }
+  if (!data.businessAddress.trim()) return 'Please enter your business address';
+  return null;
+}
+
+function isStep1RegistrationError(error: string): boolean {
+  const lower = error.toLowerCase();
+  return (
+    lower.includes('email') ||
+    lower.includes('mobile') ||
+    lower.includes('password') ||
+    lower.includes('full name') ||
+    lower.includes('account') ||
+    lower.includes('sign in')
+  );
+}
+
 function RegisterFormContent() {
   const searchParams = useSearchParams();
+  const authRedirect = useAlreadyLoggedInRedirect({ kind: 'business' });
   const [mobile, setMobile] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [liveCategories, setLiveCategories] = useState<LiveCategory[]>(mockCategories);
@@ -159,26 +219,26 @@ function RegisterFormContent() {
 
   const nextStep = async () => {
     if (step === 1) {
-      if (!formData.fullName || !formData.email || !formData.password) {
-        alert('Please fill all required details');
+      const step1Error = validateStep1(formData, mobile);
+      if (step1Error) {
+        alert(step1Error);
         return;
       }
-
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(formData.email)) {
-        alert('Please enter a valid email address');
-        return;
-      }
-
-      if (formData.password.length < 6) {
-        alert('Password must be at least 6 characters long');
-        return;
-      }
-
       setStep(2);
-    } else if (step === 2) {
-      handleRegistration();
-    } else if (step === 3) {
+      return;
+    }
+
+    if (step === 2) {
+      const step2Error = validateStep2(formData, subCategories);
+      if (step2Error) {
+        alert(step2Error);
+        return;
+      }
+      await handleRegistration();
+      return;
+    }
+
+    if (step === 3) {
       markNewBusinessOnboarding();
       window.location.href = '/business/dashboard?welcome=1';
     }
@@ -187,54 +247,16 @@ function RegisterFormContent() {
   const prevStep = () => setStep((s) => Math.max(s - 1, 1));
 
   const handleRegistration = async () => {
-    // Validate all required fields
-    if (!formData.fullName) {
-      alert('Please enter your full name');
+    const step1Error = validateStep1(formData, mobile);
+    if (step1Error) {
+      alert(step1Error);
+      setStep(1);
       return;
     }
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!formData.email || !emailRegex.test(formData.email)) {
-      alert('Please enter a valid email address');
-      return;
-    }
-
-    if (!formData.password || formData.password.length < 6) {
-      alert('Password must be at least 6 characters long');
-      return;
-    }
-
-    if (!mobile || mobile.length < 10) {
-      alert('Valid mobile number is required');
-      return;
-    }
-
-    if (!formData.businessName) {
-      alert('Please enter your business name');
-      return;
-    }
-    if (!formData.categoryId) {
-      alert('Please select a business category');
-      return;
-    }
-    if (subCategories.length > 0 && !formData.subcategoryId) {
-      alert('Please select a subcategory');
-      return;
-    }
-    if (!formData.city) {
-      alert('Please enter your city');
-      return;
-    }
-    if (!formData.state) {
-      alert('Please enter your state');
-      return;
-    }
-    if (!formData.publicPhone || formData.publicPhone.length < 10) {
-      alert('Please enter a valid 10-digit business phone number');
-      return;
-    }
-    if (!formData.businessAddress) {
-      alert('Please enter your business address');
+    const step2Error = validateStep2(formData, subCategories);
+    if (step2Error) {
+      alert(step2Error);
       return;
     }
 
@@ -274,7 +296,11 @@ function RegisterFormContent() {
         setStep(3);
       } else {
         console.error('Registration failed:', result.error);
-        alert(result.error || 'Registration failed. Please try again.');
+        const message = result.error || 'Registration failed. Please try again.';
+        if (isStep1RegistrationError(message)) {
+          setStep(1);
+        }
+        alert(message);
       }
     } catch (error: any) {
       console.error('Registration error:', error);
@@ -290,6 +316,25 @@ function RegisterFormContent() {
     } else {
       alert('Please enter a valid mobile number');
     }
+  };
+
+  const scrollToRegisterHero = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.setTimeout(() => {
+      document.getElementById('mobile-input')?.focus();
+    }, 400);
+  };
+
+  const handlePlanSelect = (plan: 'free' | 'pro', billing?: 'monthly' | 'annual') => {
+    if (plan === 'pro') {
+      setSelectedPlan('pro');
+      if (billing === 'monthly' || billing === 'annual') {
+        setBillingCycle(billing);
+      }
+    } else {
+      setSelectedPlan('free');
+    }
+    scrollToRegisterHero();
   };
 
   const stats = [
@@ -365,6 +410,18 @@ function RegisterFormContent() {
     }
   ];
 
+  if (authRedirect.status === 'checking') {
+    return (
+      <div className="flex min-h-[calc(100dvh-5rem)] items-center justify-center bg-[#eef3f9] pt-24">
+        <div className="h-9 w-9 animate-spin rounded-full border-2 border-[#215481] border-t-transparent" />
+      </div>
+    );
+  }
+
+  if (authRedirect.status === 'redirecting') {
+    return <AuthRedirectScreen message={authRedirect.message} />;
+  }
+
   if (showForm) {
     return (
       <BusinessRegisterWizard
@@ -409,6 +466,7 @@ function RegisterFormContent() {
         mobile={mobile}
         onMobileChange={setMobile}
         onStart={handleStartNow}
+        onPlanSelect={handlePlanSelect}
         stats={stats}
         successStories={successStories}
         steps={steps}

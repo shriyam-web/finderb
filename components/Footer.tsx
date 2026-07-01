@@ -1,7 +1,16 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import React, { useState, type ReactNode } from 'react';
-import { Mail, Phone, MapPin, Smartphone, Store, ShieldCheck, ChevronDown } from 'lucide-react';
+import {
+  Mail,
+  Phone,
+  MapPin,
+  Smartphone,
+  ChevronDown,
+  ArrowRight,
+  Search,
+  ShieldCheck,
+} from 'lucide-react';
 import AppStoreIcon from '@/components/icons/AppStoreIcon';
 import IndianFlagIcon from '@/components/icons/IndianFlagIcon';
 import {
@@ -34,6 +43,8 @@ import {
   footerSearchHref,
 } from '@/lib/footerData';
 import { LEGAL_COMPANY } from '@/lib/legalContent';
+import { HERO_SEARCH_TYPEWRITER_EXAMPLES } from '@/lib/homeHeroConstants';
+import { useTypewriterCycle } from '@/hooks/useTypewriterCycle';
 
 const linkClass =
   'text-sm text-neutral-600 transition-colors hover:text-neutral-900 hover:underline underline-offset-2';
@@ -185,51 +196,115 @@ function SocialButton({ label, href, icon, brandClass }: (typeof FOOTER_SOCIAL_L
   );
 }
 
-function MadeInIndiaBadge() {
+function SecureSiteBadge() {
   return (
-    <span className="inline-flex items-center gap-1 rounded border border-neutral-300 bg-white px-2 py-0.5 font-medium text-inherit">
-      <IndianFlagIcon className="h-2.5 w-[15px] shrink-0 rounded-[2px] ring-1 ring-black/5" />
-      Made in India
+    <span
+      className="inline-flex items-center gap-1 rounded border border-emerald-200 bg-emerald-50 px-2 py-0.5 font-medium text-emerald-800"
+      title="HTTPS encryption, secure sessions, and protected payments on FinderB"
+    >
+      <ShieldCheck size={12} strokeWidth={2.25} className="shrink-0 text-emerald-600" aria-hidden />
+      Secure site
     </span>
   );
 }
 
-function SecureSiteBadge() {
+function MadeInIndiaBadge() {
   return (
-    <span
-      className="relative inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-emerald-50 to-emerald-100 px-3 py-0.5 text-emerald-800 font-semibold shadow-sm ring-1 ring-emerald-200 border border-emerald-100 overflow-visible"
-      title="HTTPS encryption, secure sessions, and protected payments on FinderB"
-    >
-      {/* splash animation (SVG) positioned top-right */}
-      <svg
-        className="pointer-events-none absolute -top-1 -right-2 h-4 w-4"
-        viewBox="0 0 16 16"
-        xmlns="http://www.w3.org/2000/svg"
-        aria-hidden
+    <span className="group relative inline-flex">
+      <span
+        className="inline-flex cursor-default items-center gap-1 rounded border border-neutral-300 bg-white px-2 py-0.5 font-medium text-inherit transition-colors hover:border-[#153551]/25 hover:bg-[#fafaf9]"
+        tabIndex={0}
+        title="Designed and developed by Shriyam Parashar"
+        aria-describedby="footer-made-in-india-tooltip"
       >
-        <circle cx="12" cy="4" r="1.2" fill="#10B981" opacity="0.9">
-          <animate attributeName="r" from="1.2" to="6" dur="900ms" repeatCount="indefinite" />
-          <animate attributeName="opacity" from="0.9" to="0" dur="900ms" repeatCount="indefinite" />
-        </circle>
-        <circle cx="12" cy="4" r="0.8" fill="#34D399" opacity="0.95">
-          <animate attributeName="r" from="0.8" to="4.2" dur="900ms" begin="300ms" repeatCount="indefinite" />
-          <animate attributeName="opacity" from="0.95" to="0" dur="900ms" begin="300ms" repeatCount="indefinite" />
-        </circle>
-        <g transform="translate(12 4)">
-          <path d="M0-2 L0 2 M-2 0 L2 0" stroke="#065F46" strokeWidth="0.8" strokeLinecap="round" opacity="0.9">
-            <animate attributeName="opacity" values="0.9;0;0.9" dur="1400ms" repeatCount="indefinite" />
-          </path>
-        </g>
-      </svg>
-
-      <ShieldCheck size={12} strokeWidth={2.25} className="shrink-0 text-emerald-700" aria-hidden />
-      <span className="text-[11px]">Secure site</span>
+        <IndianFlagIcon className="h-2.5 w-[15px] shrink-0 rounded-[2px] ring-1 ring-black/5" />
+        Made in India
+      </span>
+      <span
+        id="footer-made-in-india-tooltip"
+        role="tooltip"
+        className="pointer-events-none absolute bottom-[calc(100%+0.4rem)] left-1/2 z-20 -translate-x-1/2 whitespace-nowrap rounded-md border border-neutral-200 bg-neutral-900 px-2.5 py-1.5 text-[10px] font-medium leading-snug text-white opacity-0 shadow-md transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100"
+      >
+        Designed and developed by Shriyam Parashar
+        <span
+          className="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-neutral-900"
+          aria-hidden
+        />
+      </span>
     </span>
   );
 }
 
 function Divider() {
   return <div className="border-t border-neutral-200" />;
+}
+
+const FOOTER_SEARCH_EXAMPLES = HERO_SEARCH_TYPEWRITER_EXAMPLES;
+
+function RotatingSearchPreview() {
+  const displayText = useTypewriterCycle(FOOTER_SEARCH_EXAMPLES);
+
+  return (
+    <div
+      className="mb-4 flex w-fit max-w-full items-center gap-2 rounded-full border border-[#dfe6ee] bg-white/90 px-3 py-1.5 shadow-[0_2px_10px_-4px_rgba(21,53,81,0.12)] backdrop-blur-sm"
+      aria-hidden
+    >
+      <Search size={13} strokeWidth={2.25} className="shrink-0 text-[#153551]/55" />
+      <span className="inline-flex min-w-[11.5rem] items-center text-[11px] font-medium text-neutral-500 sm:min-w-[12.75rem]">
+        <span className="truncate">{displayText}</span>
+        <span className="ml-px inline-block h-3.5 w-px shrink-0 animate-pulse bg-[#153551]/45" />
+      </span>
+    </div>
+  );
+}
+
+function ListYourBusinessCard() {
+  return (
+    <div className="relative max-w-xl overflow-hidden rounded-2xl border border-[#e4ddd3] bg-[#fdfcfa]">
+      <div
+        className="pointer-events-none absolute -right-6 -top-6 h-28 w-28 rounded-full bg-[#f9b864]/15 blur-2xl"
+        aria-hidden
+      />
+      <div
+        className="pointer-events-none absolute inset-0 opacity-[0.22]"
+        style={{
+          backgroundImage: 'radial-gradient(circle at 1px 1px, #153551 0.6px, transparent 0)',
+          backgroundSize: '18px 18px',
+        }}
+        aria-hidden
+      />
+
+      <div className="relative p-5 sm:p-6">
+        <RotatingSearchPreview />
+
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
+          <div className="min-w-0">
+            <h3 className="text-[1.2rem] font-extrabold leading-[1.2] tracking-tight text-[#0f273b] sm:text-[1.35rem]">
+              Show up when{' '}
+              <span className="register-hero-headline-accent">locals search.</span>
+            </h3>
+            <p className="mt-2 max-w-md text-sm leading-relaxed text-neutral-600">
+              List on FinderB — appear in category and city results, collect reviews, and get
+              enquiries from people already looking for your business.
+            </p>
+          </div>
+
+          <Link
+            href="/business/register"
+            className="group inline-flex shrink-0 items-center justify-center gap-2 self-start rounded-xl bg-[#153551] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_6px_18px_-8px_rgba(21,53,81,0.55)] transition-all hover:bg-[#215481] hover:shadow-[0_8px_22px_-8px_rgba(21,53,81,0.6)] active:scale-[0.98] sm:self-auto"
+          >
+            Get Started
+            <ArrowRight
+              size={15}
+              strokeWidth={2.5}
+              className="transition-transform group-hover:translate-x-0.5"
+              aria-hidden
+            />
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function Footer() {
@@ -280,6 +355,7 @@ export default function Footer() {
               <p>{FOOTER_ABOUT}</p>
               <p>{FOOTER_ABOUT_SECONDARY}</p>
             </div>
+            <ListYourBusinessCard />
           </div>
 
           <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-1">
@@ -431,30 +507,6 @@ export default function Footer() {
             </p>
           ))}
         </div>
-
-        <div className="mt-8 rounded-lg border border-neutral-200 bg-white">
-          <div className="flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
-            <div className="flex gap-3">
-              <Store size={20} strokeWidth={1.75} className="mt-0.5 shrink-0 text-neutral-700" />
-              <div className="space-y-1">
-                <p className="text-base font-medium text-neutral-900">List your business on FinderB</p>
-                <p className="max-w-xl text-sm leading-relaxed text-neutral-600">
-                  Get found in local and category search, build trust with a complete profile and
-                  reviews, and receive enquiries from customers already looking for businesses like
-                  yours.
-                </p>
-              </div>
-            </div>
-            <div className="flex shrink-0 flex-wrap items-center gap-3 sm:justify-end">
-              <Link
-                href="/pricing"
-                className="inline-flex items-center justify-center rounded-md bg-neutral-900 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-neutral-800"
-              >
-                Get Started
-              </Link>
-            </div>
-          </div>
-        </div>
       </div>
 
       <div className="border-t border-neutral-200 bg-white text-xs leading-snug text-neutral-600">
@@ -464,14 +516,9 @@ export default function Footer() {
               <div>
                 <p className="text-xs text-neutral-600">© {new Date().getFullYear()} {LEGAL_COMPANY.name}. {LEGAL_COMPANY.brand} is a brand of {LEGAL_COMPANY.name}.</p>
 
-                <div className="flex items-center gap-2 mt-2">
-                  <span className="sr-only">Badges</span>
-                  <div className="transform scale-90">
-                    <MadeInIndiaBadge />
-                  </div>
-                  <div className="transform scale-90">
-                    <SecureSiteBadge />
-                  </div>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <SecureSiteBadge />
+                  <MadeInIndiaBadge />
                 </div>
               </div>
             </div>
