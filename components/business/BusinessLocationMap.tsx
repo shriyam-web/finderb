@@ -29,7 +29,7 @@ export default function BusinessLocationMap({
           src={embedSrc}
           className="block h-52 w-full border-0 sm:h-60 lg:h-72"
           loading="lazy"
-          referrerPolicy="no-referrer-when-cross-origin"
+          referrerPolicy="origin-when-cross-origin"
           allowFullScreen
         />
         {isOpenStreetMap ? (

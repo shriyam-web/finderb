@@ -204,7 +204,7 @@ export default function GoogleMapsLocationEditor({
                     src={embedUrl}
                     className="aspect-video w-full min-h-[160px] border-0"
                     loading="lazy"
-                    referrerPolicy="no-referrer-when-cross-origin"
+                    referrerPolicy="origin-when-cross-origin"
                     allowFullScreen
                   />
                 ) : (
