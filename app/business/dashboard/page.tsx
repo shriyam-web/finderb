@@ -29,6 +29,7 @@ import BusinessOnboardingLoader from '@/components/business/BusinessOnboardingLo
 import { consumeNewBusinessOnboarding } from '@/lib/businessOnboarding';
 import { getAccountHealth } from '@/lib/dashboard/accountHealth';
 import { getProfileCompletion, getAccountMissingFields } from '@/lib/dashboard/profileCompletion';
+import { hasPublicTrustBadge, isListingLive, KYC_OUTSOURCED_MESSAGE } from '@/lib/businessVerification';
 import { getJobsByBusiness } from '@/app/actions/job';
 import { getBusinessProfileViewStats } from '@/app/actions/analytics';
 import { getBusinessPublicRatingStats } from '@/lib/businessReviews';
@@ -95,6 +96,8 @@ function DashboardContent() {
     yearsInBusiness: business?.yearsInBusiness || 0,
     displayName: business?.displayName || '',
     businessName: business?.businessName || '',
+    ownerName: business?.ownerName || '',
+    ownerMobile: business?.ownerMobile || '',
     category: business?.category || '',
     publicPhone: business?.publicPhone || '',
     businessAddress: business?.businessAddress || '',
@@ -150,6 +153,8 @@ function DashboardContent() {
           yearsInBusiness: resBusiness.yearsInBusiness || 0,
           displayName: resBusiness.displayName || '',
           businessName: resBusiness.businessName || '',
+          ownerName: resBusiness.ownerName || '',
+          ownerMobile: resBusiness.ownerMobile || '',
           category: resBusiness.category || '',
           publicPhone: resBusiness.publicPhone || '',
           businessAddress: resBusiness.businessAddress || '',
@@ -196,7 +201,7 @@ function DashboardContent() {
 
   useEffect(() => {
     if (searchParams.get('payment') === 'success') {
-      setSuccessMessage('Payment successful! Your Pro plan is now active.');
+      setSuccessMessage('Payment successful! Your plan is now active.');
       setActiveTab('subscription');
       router.replace('/business/dashboard?tab=subscription');
     }
@@ -368,7 +373,7 @@ function DashboardContent() {
     { id: 'listings', label: 'Listing', icon: HiOutlineQueueList, activeIcon: RiListCheck },
     { id: 'leads', label: 'Leads', icon: HiOutlineCursorArrowRays, activeIcon: HiOutlineCursorArrowRays, badge: leadCount },
     { id: 'jobs', label: 'Jobs', icon: HiOutlineBriefcase, activeIcon: HiOutlineBriefcase },
-    { id: 'subscription', label: 'Subscription', icon: HiOutlineCreditCard, activeIcon: HiOutlineCreditCard },
+    { id: 'subscription', label: 'My Subscription', icon: HiOutlineCreditCard, activeIcon: HiOutlineCreditCard },
     { id: 'messages', label: 'Messages', icon: HiOutlineChatBubbleLeftRight, activeIcon: RiMessage3Line },
     { id: 'settings', label: 'Settings', icon: HiOutlineCog8Tooth, activeIcon: RiSettings4Line },
   ];
@@ -381,7 +386,8 @@ function DashboardContent() {
     return <BusinessWorkspaceLoader />;
   }
 
-  const businessName = business?.businessName || 'Your Business';
+  const businessName =
+    business?.displayName || business?.name || business?.businessName || 'Your Business';
   const subscriptionStatus = getMerchantSubscriptionStatus({
     paymentStatus: business?.paymentStatus,
     selectedPlan: business?.selectedPlan,
@@ -397,7 +403,12 @@ function DashboardContent() {
   });
   const isPlanActive = subscriptionStatus.isActive;
   const isPaymentPending = !isPlanActive;
-  const isVerified = Boolean(business?.isFinderBVerified || business?.isVerified);
+  const hasTrustBadge = hasPublicTrustBadge({
+    isFinderBVerified: business?.isFinderBVerified,
+    hasVerifiedBadge: business?.hasVerifiedBadge,
+  });
+  const listingStatus = String(business?.status || 'Pending');
+  const isListingLiveOnPlatform = isListingLive(listingStatus);
 
   const { percentage: completionPercent, missingFields: profileMissingFields } =
     getProfileCompletion(business);
@@ -416,8 +427,12 @@ function DashboardContent() {
     setActiveTab('settings');
   };
 
-  const openKycPortal = () => {
-    if (businessId) router.push(`/business/kyc/${businessId}`);
+  const openKycInfo = () => {
+    if (businessId) {
+      router.push(`/business/kyc/${businessId}`);
+      return;
+    }
+    alert(KYC_OUTSOURCED_MESSAGE);
   };
 
   return (
@@ -441,6 +456,7 @@ function DashboardContent() {
         onCopyMerchantId={handleCopyId}
         isPaymentPending={isPaymentPending}
         showRenewalCta={subscriptionStatus.canRenew && isPlanActive}
+        planName={subscriptionStatus.planName}
         profileImageUrl={profilePictureUrl}
         onLogout={handleLogout}
       />
@@ -480,6 +496,7 @@ function DashboardContent() {
 
             <DashboardAtAGlance
               isPaymentActive={isPlanActive}
+              planName={subscriptionStatus.planName}
               newLeadCount={newLeadCount}
               activeJobsCount={activeJobsCount}
               onOpenLeads={() => setActiveTab('leads')}
@@ -488,7 +505,18 @@ function DashboardContent() {
               onOpenBilling={() => setActiveTab('subscription')}
             />
 
-            {isVerified && <TrustBadgeCallout isVerified />}
+            {!isListingLiveOnPlatform && (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+                <p className="font-semibold">Your listing is not public yet</p>
+                <p className="mt-1 leading-relaxed text-amber-900/90">
+                  FinderB admin approval is required before your business appears in search and on public
+                  profile URLs. Complete your profile while you wait — this is separate from identity
+                  verification (KYC).
+                </p>
+              </div>
+            )}
+
+            {hasTrustBadge && <TrustBadgeCallout isVerified />}
 
             <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
               <div className="space-y-6 xl:col-span-8">
@@ -504,7 +532,7 @@ function DashboardContent() {
                   paymentError={paymentError}
                   onPaymentError={setPaymentError}
                   onOpenSettingsField={openSettingsField}
-                  onOpenKyc={openKycPortal}
+                  onOpenKyc={openKycInfo}
                 />
 
                 {businessId && (
@@ -539,7 +567,7 @@ function DashboardContent() {
                     ...(businessId
                       ? [
                           {
-                            label: 'Subscription & billing',
+                            label: 'My Subscription',
                             description: 'Plan status, renewal dates, and payment history.',
                             onClick: () => setActiveTab('subscription'),
                           },
@@ -577,7 +605,7 @@ function DashboardContent() {
             missingFields={listingMissingFields}
             onEditProfile={() => setActiveTab('settings')}
             onOpenSettingsField={openSettingsField}
-            onOpenKyc={openKycPortal}
+            onOpenKyc={openKycInfo}
           />
           </DashboardTabShell>
         )}
@@ -626,6 +654,10 @@ function DashboardContent() {
             handleDeleteImage={handleDeleteImage}
             focusField={settingsFocusField}
             onFocusHandled={handleSettingsFocusHandled}
+            onNotifySuccess={(message) => {
+              setSuccessMessage(message);
+              setTimeout(() => setSuccessMessage(null), 3000);
+            }}
           />
           </DashboardTabShell>
         )}

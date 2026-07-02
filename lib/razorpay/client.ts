@@ -86,7 +86,7 @@ export async function openRazorpayCheckout(
 ): Promise<void> {
   const loaded = await loadRazorpayScript();
   if (!loaded || !window.Razorpay) {
-    throw new Error('Unable to load Razorpay checkout. Please check your connection and try again.');
+    throw new Error('Unable to load the payment window. Check your connection and try again.');
   }
 
   const checkout = new window.Razorpay(options);
@@ -102,7 +102,7 @@ export async function openRazorpaySubscriptionCheckout(
 ): Promise<void> {
   const loaded = await loadRazorpayScript();
   if (!loaded || !window.Razorpay) {
-    throw new Error('Unable to load Razorpay checkout. Please check your connection and try again.');
+    throw new Error('Unable to load the payment window. Check your connection and try again.');
   }
 
   const checkout = new window.Razorpay(options);

@@ -1,7 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -20,6 +20,7 @@ import { findCategoryForBreadcrumb, type CategoryBreadcrumb } from '@/app/action
 import { getBusiness, getBusinessesByCategory } from '@/app/actions/business';
 import { submitBusinessReview } from '@/app/actions/reviews';
 import { getSession } from '@/app/actions/user';
+import { recordDirectLead } from '@/app/actions/leads';
 import ConnectMerchantModal from '@/components/ConnectMerchantModal';
 import BusinessCard from '@/components/BusinessCard';
 import StackedPhotoGallery from '@/components/business/StackedPhotoGallery';
@@ -49,8 +50,14 @@ import {
   shareBusinessPage,
   whatsAppHref,
 } from '@/lib/businessContact';
+import { formatEstablishmentYearsLabel } from '@/lib/establishmentYear';
 import { formatTimingRange12h } from '@/lib/formatBusinessHours';
 import { buildLoginHref } from '@/lib/authRedirect';
+import {
+  buildProfileIntentPath,
+  isContactIntent,
+  type ContactIntent,
+} from '@/lib/directLead';
 import { getBusinessShareUrl } from '@/lib/businessSeo';
 import { getBusinessProfilePath } from '@/lib/businessSlug';
 import { formatDistanceFromUser } from '@/lib/geo';
@@ -85,6 +92,7 @@ type SectionId = (typeof SECTIONS)[number]['id'];
 type SessionUser = {
   id: string;
   fullName: string;
+  email: string;
 };
 
 function getGalleryImages(business: Business): string[] {
@@ -138,6 +146,9 @@ export default function BusinessProfilePage({
   initialRelatedCity?: Business[];
 }) {
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+  const intentHandledRef = useRef(false);
   const [business, setBusiness] = useState<Business | null>(initialBusiness);
   const [related, setRelated] = useState<Business[]>(
     initialRelatedCategory.length > 0 ? initialRelatedCategory : initialRelatedCity
@@ -149,6 +160,7 @@ export default function BusinessProfilePage({
   const [notFound, setNotFound] = useState(false);
   const [isLoading, setIsLoading] = useState(!initialBusiness);
   const [connectModalOpen, setConnectModalOpen] = useState(false);
+  const [connectModalInitialStep, setConnectModalInitialStep] = useState<'options' | 'form'>('options');
   const [clientSearchQuery, setClientSearchQuery] = useState('');
   const [activeImage, setActiveImage] = useState(0);
   const [activeSection, setActiveSection] = useState<SectionId>('services');
@@ -212,6 +224,7 @@ export default function BusinessProfilePage({
         setSessionUser({
           id: sessionResult.user.id,
           fullName: sessionResult.user.fullName,
+          email: sessionResult.user.email,
         });
       } else {
         setSessionUser(null);
@@ -232,6 +245,7 @@ export default function BusinessProfilePage({
         setSessionUser({
           id: sessionResult.user.id,
           fullName: sessionResult.user.fullName,
+          email: sessionResult.user.email,
         });
       } else {
         setSessionUser(null);
@@ -249,6 +263,8 @@ export default function BusinessProfilePage({
 
   useEffect(() => {
     setConnectModalOpen(false);
+    setConnectModalInitialStep('options');
+    intentHandledRef.current = false;
     setActiveImage(0);
     setReviewError(null);
     setReviewSuccess(null);
@@ -306,6 +322,90 @@ export default function BusinessProfilePage({
     () => Boolean(sessionUser && reviews.some((review) => review.userId === sessionUser.id)),
     [reviews, sessionUser]
   );
+
+  const phoneLink = useMemo(
+    () => (business?.contact ? phoneHref(business.contact) : null),
+    [business?.contact],
+  );
+  const whatsappLink = useMemo(
+    () =>
+      business
+        ? whatsAppHref(business.whatsappNumber || business.contact, business.name)
+        : null,
+    [business],
+  );
+  const profileRedirectPath = useMemo(
+    () => (business ? getBusinessProfilePath(business) : ''),
+    [business],
+  );
+  const contactRevealed = Boolean(sessionUser);
+
+  const handleRequestContact = useCallback(
+    (intent: ContactIntent) => {
+      if (!business) return;
+      router.push(buildLoginHref(buildProfileIntentPath(getBusinessProfilePath(business), intent)));
+    },
+    [business, router],
+  );
+
+  const handleContactAction = useCallback(
+    async (intent: ContactIntent) => {
+      if (!business) return;
+      if (!sessionUser) {
+        handleRequestContact(intent);
+        return;
+      }
+
+      await recordDirectLead({ businessId: business.id, channel: intent });
+
+      if (intent === 'call' && phoneLink) {
+        window.location.href = phoneLink;
+        return;
+      }
+      if (intent === 'whatsapp' && whatsappLink) {
+        window.open(whatsappLink, '_blank', 'noopener,noreferrer');
+        return;
+      }
+      if (intent === 'enquire') {
+        setConnectModalInitialStep('form');
+        setConnectModalOpen(true);
+      }
+    },
+    [business, sessionUser, phoneLink, whatsappLink, handleRequestContact],
+  );
+
+  useEffect(() => {
+    const intent = searchParams.get('intent');
+    if (!business || !sessionUser || !isContactIntent(intent) || intentHandledRef.current) return;
+
+    intentHandledRef.current = true;
+
+    void (async () => {
+      await recordDirectLead({ businessId: business.id, channel: intent });
+
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete('intent');
+      const qs = params.toString();
+      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+
+      if (intent === 'call' && phoneLink) {
+        window.location.href = phoneLink;
+      } else if (intent === 'whatsapp' && whatsappLink) {
+        window.open(whatsappLink, '_blank', 'noopener,noreferrer');
+      } else if (intent === 'enquire') {
+        setConnectModalInitialStep('form');
+        setConnectModalOpen(true);
+      }
+    })();
+  }, [
+    business,
+    sessionUser,
+    searchParams,
+    pathname,
+    router,
+    phoneLink,
+    whatsappLink,
+  ]);
 
   const handleShare = async () => {
     if (!business || typeof window === 'undefined') return;
@@ -378,8 +478,6 @@ export default function BusinessProfilePage({
 
   const isVerified = Boolean(business.isFinderBVerified || business.hasVerifiedBadge);
   const locationLabel = getBusinessLocationLabel(business);
-  const phoneLink = phoneHref(business.contact);
-  const whatsappLink = whatsAppHref(business.whatsappNumber || business.contact, business.name);
   const directionsLink = directionsHref({
     latitude: business.latitude,
     longitude: business.longitude,
@@ -468,11 +566,12 @@ export default function BusinessProfilePage({
               <DistanceBadge label={distanceLabel} mapsHref={directionsLink} />
             )}
 
-            {business.yearsInBusiness != null && (
-              <p className="text-sm leading-tight text-stone-600">
-                {business.yearsInBusiness} years in business
-              </p>
-            )}
+            {(() => {
+              const label = formatEstablishmentYearsLabel(business.yearsInBusiness);
+              return label ? (
+                <p className="text-sm leading-tight text-stone-600">{label}</p>
+              ) : null;
+            })()}
 
             <BusinessProfileHeroBadges category={business.category} />
 
@@ -498,32 +597,41 @@ export default function BusinessProfilePage({
 
             <div className="mt-2 hidden gap-2 md:grid md:grid-cols-2">
               {phoneLink && (
-                <a
-                  href={phoneLink}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (contactRevealed) void handleContactAction('call');
+                    else handleRequestContact('call');
+                  }}
                   className="flex items-center justify-center gap-2 rounded-lg bg-[#215481] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#1a4367]"
                 >
                   <Phone size={15} />
-                  Call
-                </a>
+                  {contactRevealed ? 'Call' : 'Sign in to call'}
+                </button>
               )}
               {whatsappLink && (
-                <a
-                  href={whatsappLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (contactRevealed) void handleContactAction('whatsapp');
+                    else handleRequestContact('whatsapp');
+                  }}
                   className="flex items-center justify-center gap-2 rounded-lg bg-[#25D366] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#1fa855]"
                 >
                   <MessageCircle size={15} />
-                  WhatsApp
-                </a>
+                  {contactRevealed ? 'WhatsApp' : 'Sign in to chat'}
+                </button>
               )}
             </div>
             <button
               type="button"
-              onClick={() => setConnectModalOpen(true)}
+              onClick={() => {
+                if (contactRevealed) void handleContactAction('enquire');
+                else handleRequestContact('enquire');
+              }}
               className="hidden w-full rounded-lg border border-stone-200 bg-white px-4 py-2.5 text-sm font-semibold text-[#215481] hover:bg-[#fffdf8] md:block"
             >
-              Send enquiry
+              {contactRevealed ? 'Send enquiry' : 'Sign in to send enquiry'}
             </button>
             </div>
           </div>
@@ -657,13 +765,19 @@ export default function BusinessProfilePage({
             className="scroll-mt-40 order-3 border-t border-stone-200/60 pt-8 lg:col-start-2 lg:row-start-1 lg:sticky lg:top-32 lg:self-start lg:border-t-0 lg:pt-0"
           >
             <BusinessProfileContactAside
+              contactRevealed={contactRevealed}
+              profileRedirectPath={profileRedirectPath}
               phoneLink={phoneLink}
               phone={business.contact}
               email={business.email}
               website={business.website}
               paymentModes={business.paymentModes ?? []}
               socialLinks={socialLinks}
-              onEnquire={() => setConnectModalOpen(true)}
+              onCall={() => void handleContactAction('call')}
+              onEnquire={() => {
+                if (contactRevealed) void handleContactAction('enquire');
+                else handleRequestContact('enquire');
+              }}
             />
           </section>
 
@@ -786,24 +900,30 @@ export default function BusinessProfilePage({
       <div className="fixed inset-x-0 bottom-[5.75rem] z-[9990] border-t border-stone-200 bg-white px-4 py-2 md:hidden">
         <div className="mx-auto flex max-w-lg gap-2">
           {phoneLink && (
-            <a
-              href={phoneLink}
+            <button
+              type="button"
+              onClick={() => {
+                if (contactRevealed) void handleContactAction('call');
+                else handleRequestContact('call');
+              }}
               className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-[#215481] py-2.5 text-sm font-semibold text-white"
             >
               <Phone size={15} />
-              Call
-            </a>
+              {contactRevealed ? 'Call' : 'Sign in'}
+            </button>
           )}
           {whatsappLink && (
-            <a
-              href={whatsappLink}
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              type="button"
+              onClick={() => {
+                if (contactRevealed) void handleContactAction('whatsapp');
+                else handleRequestContact('whatsapp');
+              }}
               className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-[#25D366] py-2.5 text-sm font-semibold text-white"
             >
               <MessageCircle size={15} />
-              Chat
-            </a>
+              {contactRevealed ? 'Chat' : 'Sign in'}
+            </button>
           )}
         </div>
       </div>
@@ -819,8 +939,17 @@ export default function BusinessProfilePage({
           location: business.location,
         }}
         isOpen={connectModalOpen}
-        onClose={() => setConnectModalOpen(false)}
+        onClose={() => {
+          setConnectModalOpen(false);
+          setConnectModalInitialStep('options');
+        }}
         initialLookingFor={clientSearchQuery}
+        contactRevealed={contactRevealed}
+        profileRedirectPath={profileRedirectPath}
+        userName={sessionUser?.fullName ?? ''}
+        userEmail={sessionUser?.email ?? ''}
+        onContactAction={handleContactAction}
+        initialStep={connectModalInitialStep}
       />
     </div>
   );

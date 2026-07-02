@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { MerchantAuthMain } from '@/components/business/MerchantAuthShell';
 import { MERCHANT_PLANS, type BillingCycle, MANDATE_VALIDITY_YEARS } from '@/lib/razorpay/plans';
+import { getPlanDisplayName } from '@/lib/subscription/merchantSubscription';
 import {
   EARLY_BIRD_BADGE_LABEL,
   formatInr,
@@ -53,7 +54,7 @@ type MerchantPaymentCheckoutProps = {
 
 const TRUST_ITEMS = [
   { icon: ShieldCheck, label: '256-bit secure checkout' },
-  { icon: Lock, label: 'Powered by Razorpay' },
+  { icon: Lock, label: 'PCI-compliant payments' },
   { icon: BadgeCheck, label: 'Cancel anytime' },
 ] as const;
 
@@ -160,9 +161,11 @@ export function MerchantPaymentError({
 export function MerchantPaymentSuccess({
   businessId,
   businessName,
+  planName = 'Growth',
 }: {
   businessId: string;
   businessName?: string;
+  planName?: string;
 }) {
   return (
     <div className="pricing-page min-h-screen">
@@ -177,7 +180,7 @@ export function MerchantPaymentSuccess({
             Payment successful
           </p>
           <h1 className="mt-3 text-3xl font-bold tracking-tight text-[#0a1520] sm:text-4xl">
-            Pro is active
+            {planName} is active
           </h1>
           <p className="mx-auto mt-3 max-w-md text-sm text-[#5c4a3d] sm:text-base">
             {businessName ? (
@@ -216,6 +219,7 @@ export default function MerchantPaymentCheckout({
 }: MerchantPaymentCheckoutProps) {
   const plan = MERCHANT_PLANS.pro;
   const isAnnual = billingCycle === 'annual';
+  const planLabel = getPlanDisplayName('pro', billingCycle);
 
   return (
     <div className="pricing-page min-h-screen">
@@ -259,7 +263,7 @@ export default function MerchantPaymentCheckout({
               <h1 className="pricing-hero-title mt-4 text-[2rem] font-bold leading-[1.12] tracking-[-0.03em] text-[#0a1520] sm:text-4xl lg:text-[2.75rem]">
                 Activate{' '}
                 <span className="bg-gradient-to-r from-[#153551] to-[#c1621a] bg-clip-text text-transparent">
-                  Pro
+                  {planLabel}
                 </span>
               </h1>
               <p className="mt-4 max-w-xl text-sm leading-relaxed text-[#5c4a3d] sm:text-base">
@@ -368,7 +372,7 @@ export default function MerchantPaymentCheckout({
                   <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-[#153551]/90 backdrop-blur-sm">
                     <Loader2 className="h-9 w-9 animate-spin text-[#f9b864]" />
                     <p className="mt-3 text-xs font-bold uppercase tracking-[0.2em] text-white/80">
-                      Opening Razorpay…
+                      Opening secure checkout…
                     </p>
                   </div>
                 )}
@@ -435,15 +439,15 @@ export default function MerchantPaymentCheckout({
                   className="register-hero-cta-btn mt-6 flex w-full items-center justify-center gap-2 py-4 text-sm font-bold text-[#153551] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <CreditCard size={18} />
-                  {isAnnual ? 'Pay once with Razorpay' : 'Set up mandate & pay'}
+                  {isAnnual ? 'Pay now' : 'Set up auto-debit & pay'}
                   <ArrowRight size={16} strokeWidth={2.5} />
                 </button>
 
                 {!isAnnual && (
                   <p className="mt-3 text-center text-[11px] leading-relaxed text-white/60">
-                    By continuing you authorize ₹499/month via Razorpay until you cancel from Subscription
-                    settings. Mandate consent is limited to {MANDATE_VALIDITY_YEARS} years (RBI e-mandate
-                    norms); you can stop auto-debit anytime.
+                    By continuing you authorize ₹499/month until you cancel from My Subscription.
+                    Mandate consent is limited to {MANDATE_VALIDITY_YEARS} years (RBI norms); you can stop
+                    auto-debit anytime.
                   </p>
                 )}
 

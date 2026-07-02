@@ -3,21 +3,25 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
-  HiOutlineCalendarDays,
   HiOutlineCheckCircle,
-  HiOutlineClock,
   HiOutlineCreditCard,
   HiOutlineExclamationTriangle,
 } from 'react-icons/hi2';
+import {
+  GROWTH_PRO_OFFER_ANNUAL,
+  GROWTH_PRO_OFFER_MONTHLY,
+  PRICING_PLANS,
+  formatInr,
+} from '@/lib/pricing/growthPro';
+import { getPaidPlansLabel } from '@/lib/subscription/merchantSubscription';
 import { formatDateTimeInr } from '@/lib/formatDateTime';
 import {
   cancelMerchantAutoRenew,
   getMerchantSubscriptionDetails,
   type MerchantPaymentHistoryItem,
 } from '@/app/actions/subscription';
+import SubscriptionInsightsPanel from './SubscriptionInsightsPanel';
 import { dashboard } from './dashboard-ui';
-import { DashboardSectionHeader } from './DashboardShell';
-import { PlanBadge, StatusBadge } from './StatusBadge';
 
 type SubscriptionTabProps = {
   businessId: string;
@@ -43,31 +47,66 @@ type SubscriptionView = {
   subscriptionStatus: string | null;
   canCancelAutoRenew: boolean;
   isMonthlyMandate: boolean;
+  startedAt: string | null;
+  expiresAt: string | null;
 };
 
 function paymentTypeLabel(type: string) {
-  if (type === 'subscription_auth') return 'Mandate setup';
-  if (type === 'subscription_renewal') return 'Auto-debit';
+  if (type === 'subscription_auth') return 'Monthly auto-debit';
+  if (type === 'subscription_renewal') return 'Monthly renewal';
   return 'One-time';
-}
-
-function historyStatusTone(status: string) {
-  if (status === 'completed') return 'success' as const;
-  if (status === 'pending') return 'warning' as const;
-  if (status === 'failed') return 'danger' as const;
-  return 'neutral' as const;
 }
 
 function formatDateTime(value: string | null) {
   return formatDateTimeInr(value);
 }
 
+function planPriceShort(planName: string, billingCycle: string | null): string {
+  if (planName === PRICING_PLANS.free.name) return 'Free';
+  if (billingCycle === 'annual' || planName === PRICING_PLANS.annual.name) {
+    return `${formatInr(GROWTH_PRO_OFFER_ANNUAL)} / year`;
+  }
+  return `${formatInr(GROWTH_PRO_OFFER_MONTHLY)} / month`;
+}
+
+function statusTextClass(status: string) {
+  if (status === 'completed') return 'text-emerald-700';
+  if (status === 'pending') return 'text-amber-700';
+  if (status === 'failed') return 'text-rose-700';
+  return 'text-zinc-600';
+}
+
+function PaymentReferencesCell({ item }: { item: MerchantPaymentHistoryItem }) {
+  const refs: { label: string; value: string }[] = [];
+  if (item.paymentId) refs.push({ label: 'Txn', value: item.paymentId });
+  if (item.orderId) refs.push({ label: 'Order', value: item.orderId });
+  if (item.subscriptionId) refs.push({ label: 'Recurring', value: item.subscriptionId });
+
+  if (refs.length === 0) return <span className="text-zinc-400">—</span>;
+
+  return (
+    <div className="space-y-1 text-xs text-zinc-700">
+      {refs.map((ref) => (
+        <div key={ref.label} className="break-all">
+          <span className="text-zinc-500">{ref.label}: </span>
+          <span className="font-mono">{ref.value}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function DetailRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="grid grid-cols-[7.5rem_1fr] gap-x-4 gap-y-1 border-b border-zinc-100 py-3 text-sm last:border-0 sm:grid-cols-[9rem_1fr]">
+      <dt className="text-zinc-500">{label}</dt>
+      <dd className="text-zinc-900">{children}</dd>
+    </div>
+  );
+}
+
 export default function SubscriptionTab({
   businessId,
-  businessName,
-  fullName,
-  email,
-  mobile,
   onPaymentError,
 }: SubscriptionTabProps) {
   const [loading, setLoading] = useState(true);
@@ -77,63 +116,100 @@ export default function SubscriptionTab({
   const [cancelMessage, setCancelMessage] = useState<string | null>(null);
   const [cancelling, setCancelling] = useState(false);
 
+  const toIso = (value: unknown): string | null => {
+    if (!value) return null;
+    if (typeof value === 'string') return value;
+    if (value instanceof Date) return value.toISOString();
+    return null;
+  };
+
+  const mapSubscription = (raw: Record<string, unknown>): SubscriptionView => ({
+    isActive: Boolean(raw.isActive),
+    isExpired: Boolean(raw.isExpired),
+    isPendingPayment: Boolean(raw.isPendingPayment),
+    canRenew: Boolean(raw.canRenew),
+    planName: String(raw.planName),
+    billingCycle: raw.billingCycle ? String(raw.billingCycle) : null,
+    daysRemaining: typeof raw.daysRemaining === 'number' ? raw.daysRemaining : null,
+    startedAtDisplay: String(raw.startedAtDisplay),
+    expiresAtDisplay: String(raw.expiresAtDisplay),
+    autoRenewEnabled: Boolean(raw.autoRenewEnabled),
+    mandateStatus: String(raw.mandateStatus),
+    subscriptionStatus: raw.subscriptionStatus ? String(raw.subscriptionStatus) : null,
+    canCancelAutoRenew: Boolean(raw.canCancelAutoRenew),
+    isMonthlyMandate: Boolean(raw.isMonthlyMandate),
+    startedAt: toIso(raw.startedAt),
+    expiresAt: toIso(raw.expiresAt),
+  });
+
   const reload = async () => {
     const result = await getMerchantSubscriptionDetails(businessId);
     if (result.success) {
-      setSubscription(result.subscription);
+      setSubscription(mapSubscription(result.subscription as Record<string, unknown>));
       setHistory(result.history);
     }
   };
 
   useEffect(() => {
     let cancelled = false;
-
     (async () => {
       setLoading(true);
       setError('');
       const result = await getMerchantSubscriptionDetails(businessId);
       if (cancelled) return;
-
       if (!result.success) {
         setError(result.error || 'Could not load subscription');
         setLoading(false);
         return;
       }
-
-      setSubscription(result.subscription);
+      setSubscription(mapSubscription(result.subscription as Record<string, unknown>));
       setHistory(result.history);
       setLoading(false);
     })();
-
     return () => {
       cancelled = true;
     };
   }, [businessId]);
 
   if (loading) {
-    return (
-      <div className={`${dashboard.panel} p-8 text-center text-sm text-zinc-500`}>
-        Loading subscription details…
-      </div>
-    );
+    return <div className={`${dashboard.panel} p-8 text-center text-sm text-zinc-500`}>Loading…</div>;
   }
 
   if (error || !subscription) {
     return (
       <div className={`${dashboard.panel} p-8 text-center text-sm text-rose-700`}>
-        {error || 'Subscription details unavailable'}
+        {error || 'Could not load your subscription'}
       </div>
     );
   }
 
   const showRenewCta = !subscription.isActive || subscription.canRenew;
+  const statusLabel = subscription.isActive
+    ? 'Active'
+    : subscription.isExpired
+      ? 'Expired'
+      : 'Payment due';
+  const statusClass = subscription.isActive
+    ? 'text-emerald-700'
+    : subscription.isExpired
+      ? 'text-rose-700'
+      : 'text-amber-700';
+  const daysLow =
+    subscription.daysRemaining !== null && subscription.daysRemaining <= 7 && subscription.isActive;
+
+  const autoDebitLabel = subscription.autoRenewEnabled
+    ? 'On'
+    : subscription.mandateStatus === 'cancelled'
+      ? 'Cancelled'
+      : subscription.mandateStatus === 'pending'
+        ? 'Pending setup'
+        : 'Off';
 
   const handleCancelAutoRenew = async () => {
     const confirmed = window.confirm(
       'Cancel auto-debit? Your plan stays active until the current period ends. You will not be charged again unless you set up a new mandate.'
     );
     if (!confirmed) return;
-
     setCancelling(true);
     setCancelMessage(null);
     const result = await cancelMerchantAutoRenew(businessId);
@@ -148,246 +224,176 @@ export default function SubscriptionTab({
   };
 
   return (
-    <div className="space-y-6">
-      <DashboardSectionHeader
-        title="Subscription & billing"
-        description="Track your Pro plan, renewal dates, and payment history."
-      />
-
+    <div className="space-y-8">
       {subscription.isExpired && (
-        <div className="flex items-start gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900">
+        <div className="flex gap-3 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900">
           <HiOutlineExclamationTriangle className="mt-0.5 shrink-0" size={18} />
           <p>
-            Your plan expired on <strong>{subscription.expiresAtDisplay}</strong>. Recharge to unlock lead
-            contacts and premium visibility again.
+            Plan expired on {subscription.expiresAtDisplay}. Pay again to restore lead contacts.
           </p>
         </div>
       )}
 
       {!subscription.isActive && subscription.isPendingPayment && (
-        <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+        <div className="flex gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
           <HiOutlineCreditCard className="mt-0.5 shrink-0" size={18} />
-          <p>Complete your first recharge to activate Pro and unlock lead contact details.</p>
+          <p>Upgrade to {getPaidPlansLabel()} to view enquiry contact details.</p>
         </div>
       )}
 
       {cancelMessage && (
-        <div className="flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+        <div className="flex gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
           <HiOutlineCheckCircle className="mt-0.5 shrink-0" size={18} />
           <p>{cancelMessage}</p>
         </div>
       )}
 
-      {subscription.isMonthlyMandate && (
-        <div className={`${dashboard.panel} p-5`}>
-          <h3 className="text-sm font-semibold text-zinc-900">Monthly auto-debit mandate</h3>
-          <p className="mt-1 text-sm text-zinc-600">
-            {subscription.autoRenewEnabled
-              ? 'Your Pro plan renews automatically each month via Razorpay e-mandate (UPI Autopay / card mandate).'
-              : subscription.mandateStatus === 'cancelled'
-                ? 'Auto-debit is cancelled. Recharge manually before expiry to keep lead access.'
-                : 'Complete mandate setup to enable automatic monthly billing.'}
-          </p>
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            <StatusBadge
-              label={
-                subscription.autoRenewEnabled
-                  ? 'Auto-debit active'
-                  : subscription.mandateStatus === 'cancelled'
-                    ? 'Auto-debit cancelled'
-                    : subscription.mandateStatus === 'pending'
-                      ? 'Mandate pending'
-                      : 'Auto-debit off'
-              }
-              tone={
-                subscription.autoRenewEnabled
-                  ? 'success'
-                  : subscription.mandateStatus === 'failed'
-                    ? 'danger'
-                    : 'warning'
-              }
-              size="sm"
-            />
-            {subscription.subscriptionStatus && (
-              <span className="text-xs capitalize text-zinc-500">
-                Razorpay: {subscription.subscriptionStatus.replace(/_/g, ' ')}
-              </span>
+      <section>
+        <h2 className="text-sm font-semibold text-zinc-900">Plan details</h2>
+        <div className={`${dashboard.panel} mt-3 px-5 py-1 md:px-6`}>
+          <dl>
+            <DetailRow label="Plan">{subscription.planName}</DetailRow>
+            <DetailRow label="Status">
+              <span className={statusClass}>{statusLabel}</span>
+            </DetailRow>
+            <DetailRow label="Price">
+              {planPriceShort(subscription.planName, subscription.billingCycle)}
+            </DetailRow>
+            {subscription.billingCycle && (
+              <DetailRow label="Billing">
+                {subscription.billingCycle === 'annual' ? 'Annual' : 'Monthly'}
+              </DetailRow>
             )}
-          </div>
-          {subscription.canCancelAutoRenew && (
-            <button
-              type="button"
-              onClick={() => void handleCancelAutoRenew()}
-              disabled={cancelling}
-              className="mt-4 rounded-lg border border-rose-200 bg-white px-4 py-2 text-sm font-semibold text-rose-800 hover:bg-rose-50 disabled:opacity-60"
-            >
-              {cancelling ? 'Cancelling…' : 'Cancel auto-debit'}
-            </button>
-          )}
-        </div>
-      )}
-
-      <div className="grid gap-4 lg:grid-cols-3">
-        <div className={`${dashboard.panel} p-5 lg:col-span-2`}>
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">Current plan</p>
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                <h2 className="text-xl font-bold text-zinc-900">{subscription.planName}</h2>
-                <PlanBadge plan={subscription.planName} />
-                {subscription.billingCycle && (
-                  <StatusBadge
-                    label={subscription.billingCycle === 'annual' ? 'Annual billing' : 'Monthly billing'}
-                    tone="info"
-                    size="sm"
-                  />
-                )}
-              </div>
-            </div>
-            <StatusBadge
-              label={
-                subscription.isActive
-                  ? 'Active'
-                  : subscription.isExpired
-                    ? 'Expired'
-                    : 'Payment due'
-              }
-              tone={
-                subscription.isActive ? 'success' : subscription.isExpired ? 'danger' : 'warning'
-              }
-              icon={
-                subscription.isActive ? (
-                  <HiOutlineCheckCircle size={12} />
-                ) : (
-                  <HiOutlineClock size={12} />
-                )
-              }
-              pulse={!subscription.isActive}
-            />
-          </div>
-
-          <div className="mt-6 grid gap-4 sm:grid-cols-3">
-            <div className="rounded-lg border border-zinc-100 bg-zinc-50 p-4">
-              <p className="flex items-center gap-1.5 text-xs font-medium text-zinc-500">
-                <HiOutlineCalendarDays size={14} />
-                Started
-              </p>
-              <p className="mt-1 text-sm font-semibold text-zinc-900">{subscription.startedAtDisplay}</p>
-            </div>
-            <div className="rounded-lg border border-zinc-100 bg-zinc-50 p-4">
-              <p className="flex items-center gap-1.5 text-xs font-medium text-zinc-500">
-                <HiOutlineClock size={14} />
-                Expires
-              </p>
-              <p className="mt-1 text-sm font-semibold text-zinc-900">{subscription.expiresAtDisplay}</p>
-            </div>
-            <div className="rounded-lg border border-zinc-100 bg-zinc-50 p-4">
-              <p className="text-xs font-medium text-zinc-500">Days remaining</p>
-              <p
-                className={`mt-1 text-2xl font-bold tabular-nums ${
-                  subscription.daysRemaining !== null && subscription.daysRemaining <= 7
-                    ? 'text-amber-700'
-                    : 'text-[#153551]'
-                }`}
-              >
-                {subscription.daysRemaining !== null ? subscription.daysRemaining : '—'}
-              </p>
-            </div>
-          </div>
+            <DetailRow label="Started">{subscription.startedAtDisplay}</DetailRow>
+            <DetailRow label="Valid until">{subscription.expiresAtDisplay}</DetailRow>
+            {subscription.isActive && subscription.daysRemaining !== null && (
+              <DetailRow label="Days left">
+                <span className={daysLow ? 'text-amber-800' : undefined}>
+                  {subscription.daysRemaining}
+                </span>
+              </DetailRow>
+            )}
+            {subscription.isMonthlyMandate && (
+              <DetailRow label="Auto-debit">
+                <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                  <span>{autoDebitLabel}</span>
+                  {subscription.canCancelAutoRenew && (
+                    <button
+                      type="button"
+                      onClick={() => void handleCancelAutoRenew()}
+                      disabled={cancelling}
+                      className="text-rose-700 hover:underline disabled:opacity-60"
+                    >
+                      {cancelling ? 'Cancelling…' : 'Cancel'}
+                    </button>
+                  )}
+                </span>
+              </DetailRow>
+            )}
+          </dl>
 
           {showRenewCta && (
-            <div className="mt-6 flex flex-col gap-3 border-t border-zinc-100 pt-5">
-              <div className="flex flex-wrap gap-2">
-                <Link
-                  href={`/business/payment/${businessId}?checkout=1&billing=monthly`}
-                  className={dashboard.btnPrimary}
-                >
-                  Pay ₹499 / month
-                </Link>
-                <Link
-                  href={`/business/payment/${businessId}?checkout=1&billing=annual`}
-                  className="inline-flex items-center justify-center rounded-lg border border-[#153551]/20 bg-white px-4 py-2.5 text-sm font-semibold text-[#153551] hover:bg-[#153551]/5"
-                >
-                  Pay ₹3,588 / year
-                </Link>
-              </div>
-              <p className="text-sm text-zinc-500">
-                {subscription.isActive
-                  ? 'Early renewal extends your plan from the current expiry date.'
-                  : 'Monthly uses Razorpay auto-debit. Annual is a one-time payment for 12 months.'}
-              </p>
+            <div className="flex flex-wrap gap-2 border-t border-zinc-100 py-4">
+              <Link href={`/business/payment/${businessId}?checkout=1&billing=monthly`} className={dashboard.btnPrimary}>
+                Growth — {formatInr(GROWTH_PRO_OFFER_MONTHLY)}/mo
+              </Link>
+              <Link
+                href={`/business/payment/${businessId}?checkout=1&billing=annual`}
+                className={dashboard.btnSecondary}
+              >
+                Pro — {formatInr(GROWTH_PRO_OFFER_ANNUAL)}/yr
+              </Link>
             </div>
           )}
         </div>
+      </section>
 
-        <div className={`${dashboard.panel} p-5`}>
-          <h3 className="text-sm font-semibold text-zinc-900">Plan benefits</h3>
-          <ul className="mt-3 space-y-2 text-sm text-zinc-600">
-            <li>• View lead phone, email & WhatsApp</li>
-            <li>• Verified partner badge on profile</li>
-            <li>• Premium listing visibility</li>
-            <li>• Lead center & analytics</li>
-          </ul>
-        </div>
-      </div>
+      <SubscriptionInsightsPanel
+        history={history}
+        startedAt={subscription.startedAt}
+        expiresAt={subscription.expiresAt}
+        daysRemaining={subscription.daysRemaining}
+        isActive={subscription.isActive}
+        planName={subscription.planName}
+      />
 
-      <div className={`${dashboard.panel} overflow-hidden`}>
-        <div className="border-b border-zinc-100 px-5 py-4">
-          <h3 className="text-sm font-semibold text-zinc-900">Payment history</h3>
-          <p className="mt-0.5 text-sm text-zinc-500">All recharge attempts and completed transactions.</p>
-        </div>
+      <section>
+        <h2 className="text-sm font-semibold text-zinc-900">Payment history</h2>
 
-        {history.length === 0 ? (
-          <p className="px-5 py-8 text-center text-sm text-zinc-500">No payments recorded yet.</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-left text-sm">
-              <thead className="bg-zinc-50 text-xs uppercase tracking-wide text-zinc-500">
-                <tr>
-                  <th className="px-5 py-3 font-semibold">Type</th>
-                  <th className="px-5 py-3 font-semibold">Date</th>
-                  <th className="px-5 py-3 font-semibold">Plan</th>
-                  <th className="px-5 py-3 font-semibold">Amount</th>
-                  <th className="px-5 py-3 font-semibold">Status</th>
-                  <th className="px-5 py-3 font-semibold">Transaction</th>
-                  <th className="px-5 py-3 font-semibold">Valid until</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-100">
-                {history.map((item) => (
-                  <tr key={item.id} className="hover:bg-zinc-50/60">
-                    <td className="px-5 py-3">
-                      <StatusBadge label={paymentTypeLabel(item.paymentType)} tone="info" size="sm" />
-                    </td>
-                    <td className="whitespace-nowrap px-5 py-3 text-zinc-600">{formatDateTime(item.createdAt)}</td>
-                    <td className="px-5 py-3">
-                      <p className="font-medium text-zinc-800">{item.planName}</p>
-                      <p className="text-xs capitalize text-zinc-500">{item.billingCycle}</p>
-                    </td>
-                    <td className="px-5 py-3 font-semibold tabular-nums">{item.amountDisplay}</td>
-                    <td className="px-5 py-3">
-                      <StatusBadge
-                        label={item.status}
-                        tone={historyStatusTone(item.status)}
-                        size="sm"
-                        className="capitalize"
-                      />
-                    </td>
-                    <td className="px-5 py-3">
-                      <p className="max-w-[160px] truncate font-mono text-xs text-zinc-600" title={item.paymentId ?? undefined}>
-                        {item.paymentId || item.orderId || '—'}
-                      </p>
-                    </td>
-                    <td className="whitespace-nowrap px-5 py-3 text-zinc-600">
-                      {item.planExpiresAt ? formatDateTime(item.planExpiresAt) : '—'}
-                    </td>
+        <div className={`${dashboard.surface} mt-3`}>
+          {history.length === 0 ? (
+            <div className="px-5 py-12 text-center text-sm text-zinc-500 md:px-6">
+              No payments on record.
+              {showRenewCta && (
+                <div className="mt-4">
+                  <Link href={`/pricing?businessId=${businessId}`} className={dashboard.btnPrimary}>
+                    View plans
+                  </Link>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-[820px] w-full text-left text-sm">
+                <thead className="border-b border-zinc-200 bg-zinc-50 text-zinc-600">
+                  <tr>
+                    <th className="px-5 py-2.5 font-medium md:px-6">Date</th>
+                    <th className="px-5 py-2.5 font-medium md:px-6">Plan</th>
+                    <th className="px-5 py-2.5 font-medium md:px-6">Amount</th>
+                    <th className="px-5 py-2.5 font-medium md:px-6">Type</th>
+                    <th className="px-5 py-2.5 font-medium md:px-6">Status</th>
+                    <th className="px-5 py-2.5 font-medium md:px-6">From</th>
+                    <th className="px-5 py-2.5 font-medium md:px-6">Until</th>
+                    <th className="px-5 py-2.5 font-medium md:px-6">References</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+                </thead>
+                <tbody className="divide-y divide-zinc-100">
+                  {history.map((item) => (
+                    <tr key={item.id}>
+                      <td className="whitespace-nowrap px-5 py-3 text-zinc-700 md:px-6">
+                        {formatDateTime(item.createdAt)}
+                      </td>
+                      <td className="px-5 py-3 text-zinc-900 md:px-6">
+                        {item.planName}
+                        <span className="text-zinc-500"> ({item.billingCycle})</span>
+                      </td>
+                      <td className="whitespace-nowrap px-5 py-3 tabular-nums text-zinc-900 md:px-6">
+                        {item.amountDisplay}
+                      </td>
+                      <td className="px-5 py-3 text-zinc-700 md:px-6">
+                        {paymentTypeLabel(item.paymentType)}
+                      </td>
+                      <td className={`px-5 py-3 font-medium md:px-6 ${statusTextClass(item.status)}`}>
+                        {item.status === 'completed' ? 'Paid' : item.status === 'pending' ? 'Pending' : item.status}
+                      </td>
+                      <td className="whitespace-nowrap px-5 py-3 text-zinc-600 md:px-6">
+                        {item.planStartedAt ? formatDateTime(item.planStartedAt) : '—'}
+                      </td>
+                      <td className="whitespace-nowrap px-5 py-3 text-zinc-600 md:px-6">
+                        {item.planExpiresAt ? formatDateTime(item.planExpiresAt) : '—'}
+                      </td>
+                      <td className="min-w-[150px] px-5 py-3 md:px-6">
+                        <PaymentReferencesCell item={item} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </section>
+
+      <p className="text-sm text-zinc-500">
+        Billing help:{' '}
+        <a href="mailto:support@finderb.com" className="text-[#215481] hover:underline">
+          support@finderb.com
+        </a>
+        {' · '}
+        <Link href="/pricing" className="text-[#215481] hover:underline">
+          Pricing
+        </Link>
+      </p>
     </div>
   );
 }

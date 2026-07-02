@@ -40,6 +40,7 @@ type DashboardSidebarProps = {
   onCopyMerchantId?: (id: string) => void;
   isPaymentPending: boolean;
   showRenewalCta?: boolean;
+  planName?: string;
   profileImageUrl?: string | null;
   onLogout: () => void;
 };
@@ -72,6 +73,7 @@ export default function DashboardSidebar({
   onCopyMerchantId,
   isPaymentPending,
   showRenewalCta = false,
+  planName = 'Starter',
   profileImageUrl,
   onLogout,
 }: DashboardSidebarProps) {
@@ -167,7 +169,7 @@ export default function DashboardSidebar({
     (isPaymentPending || showRenewalCta) && businessId ? (
       <div className="mt-4 overflow-hidden rounded-lg border border-amber-200/80 bg-gradient-to-br from-amber-50/80 to-white p-3">
         <p className="text-xs font-semibold text-[#153551]">
-          {isPaymentPending ? 'Pro inactive' : 'Plan renewal due soon'}
+          {isPaymentPending ? `${planName} — upgrade to unlock leads` : 'Plan renewal due soon'}
         </p>
         <p className="mt-1 text-xs text-zinc-600">
           {isPaymentPending

@@ -29,6 +29,10 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
 
   const whiteText = initialWhiteText || isAiTab;
 
+  const businessDashboardHref = business?.id
+    ? `/business/dashboard?id=${business.id}`
+    : '/business/dashboard';
+
   const checkSession = useCallback(async () => {
     const userResult = await getSession();
     if (userResult && userResult.success) {
@@ -56,23 +60,13 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
   useEffect(() => {
     const handleSessionChange = (event: Event) => {
       const customEvent = event as CustomEvent<{ type: 'user' | 'business' | 'none' }>;
-      if (customEvent.detail?.type === 'user') {
-        setIsLoggedIn(true);
-        setIsBusinessLoggedIn(false);
-        setUser(null);
-        setBusiness(null);
-      } else if (customEvent.detail?.type === 'business') {
-        setIsBusinessLoggedIn(true);
-        setIsLoggedIn(false);
-        setBusiness(null);
-        setUser(null);
-      } else if (customEvent.detail?.type === 'none') {
+      if (customEvent.detail?.type === 'none') {
         setIsLoggedIn(false);
         setUser(null);
         setIsBusinessLoggedIn(false);
         setBusiness(null);
       }
-      checkSession();
+      void checkSession();
     };
 
     window.addEventListener('finderb-session-change', handleSessionChange);
@@ -230,9 +224,9 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
                     </>
                   )}
                 </div>
-              ) : isBusinessLoggedIn ? (
+              ) : isBusinessLoggedIn && business ? (
                 <Link
-                  href={`/business/dashboard?id=${business?.id ?? ''}`}
+                  href={businessDashboardHref}
                   className={`flex items-center gap-2 px-4 py-2 border rounded-xl transition-all duration-300 font-medium text-xs shadow-sm hover:shadow-md ${isLight
                     ? 'bg-white/10 backdrop-blur-md text-white border-white/20 hover:bg-white/20'
                     : 'bg-white/50 backdrop-blur-md text-gray-700 border-gray-200 hover:bg-white hover:border-gray-300'
@@ -256,21 +250,38 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
           </div>
 
           <div className="flex lg:hidden items-center gap-2">
-            {isLoggedIn || isBusinessLoggedIn ? (
+            {isLoggedIn ? (
               <Link
-                href={
-                  isLoggedIn
-                    ? '/dashboard'
-                    : `/business/dashboard?id=${business?.id ?? ''}`
-                }
+                href="/dashboard"
                 className={`rounded-lg px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider transition-all ${
                   scrolled
                     ? 'text-primary border border-primary/10 bg-white'
                     : 'text-primary border border-primary/15 bg-white/90 shadow-sm backdrop-blur-sm'
                 }`}
               >
-                {isLoggedIn ? 'My Account' : 'My Business'}
+                My Account
               </Link>
+            ) : isBusinessLoggedIn && business ? (
+              <Link
+                href={businessDashboardHref}
+                className={`rounded-lg px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider transition-all ${
+                  scrolled
+                    ? 'text-primary border border-primary/10 bg-white'
+                    : 'text-primary border border-primary/15 bg-white/90 shadow-sm backdrop-blur-sm'
+                }`}
+              >
+                My Business
+              </Link>
+            ) : isBusinessLoggedIn ? (
+              <span
+                className={`rounded-lg px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider ${
+                  scrolled
+                    ? 'text-primary border border-primary/10 bg-white'
+                    : 'text-primary border border-primary/15 bg-white/90 shadow-sm backdrop-blur-sm'
+                }`}
+              >
+                My Business
+              </span>
             ) : (
               <Link
                 href={loginHref}
@@ -403,9 +414,9 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
                   <ArrowRight size={16} className="text-slate-300" />
                 </Link>
               )}
-              {isBusinessLoggedIn && !isLoggedIn && (
+              {isBusinessLoggedIn && !isLoggedIn && business && (
                 <Link
-                  href={`/business/dashboard?id=${business?.id ?? ''}`}
+                  href={businessDashboardHref}
                   onClick={() => setIsOpen(false)}
                   className="flex items-center justify-between py-3 px-2 rounded-2xl active:bg-slate-50 transition-all"
                 >
@@ -423,10 +434,10 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
 
           {/* Footer Action */}
           <div className="p-8 pb-12 relative z-10 border-t border-slate-50">
-            {isBusinessLoggedIn ? (
+            {isBusinessLoggedIn && business ? (
               <div className="space-y-3">
                 <Link
-                  href={`/business/dashboard?id=${business.id}`}
+                  href={businessDashboardHref}
                   onClick={() => setIsOpen(false)}
                   className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl bg-indigo-600 text-white font-bold text-xs shadow-xl shadow-indigo-200 active:scale-95 transition-all"
                 >
@@ -444,6 +455,17 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
                   Sign Out Business
                 </button>
               </div>
+            ) : isBusinessLoggedIn ? (
+              <button
+                onClick={() => {
+                  handleBusinessLogout();
+                  setIsOpen(false);
+                }}
+                className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl bg-slate-50 text-red-500 font-bold text-xs border border-red-50 active:scale-95 transition-all"
+              >
+                <LogOut size={18} />
+                Sign Out Business
+              </button>
             ) : isLoggedIn ? (
               <button
                 onClick={() => {

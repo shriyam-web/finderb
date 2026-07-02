@@ -1,5 +1,12 @@
 'use server';
 
+import {
+  formatResolvedAddressLabel,
+  hasResolvedMapAddress,
+  mapPinMatchesManualAddress,
+  type ManualAddress,
+  type ResolvedMapAddress,
+} from '@/lib/locationMatch';
 import { getGoogleMapsServerKeyOrFallback } from '@/lib/googleMapsKeys';
 import { enforceRateLimit } from '@/lib/security/enforceRateLimit.server';
 import {
@@ -234,7 +241,18 @@ type ResolvedUserLocation = {
   label: string;
   city: string | null;
   state: string | null;
+  country: string | null;
 };
+
+function extractCountryFromGoogleResults(
+  results: Array<{ address_components?: Array<{ long_name: string; short_name: string; types: string[] }> }>,
+): string | null {
+  for (const result of results) {
+    const match = result.address_components?.find((component) => component.types.includes('country'));
+    if (match?.long_name) return match.long_name;
+  }
+  return null;
+}
 
 async function reverseGeocodeCity(latitude: number, longitude: number): Promise<ResolvedUserLocation | null> {
   const googleKey = getGoogleMapsServerKeyOrFallback();
@@ -250,8 +268,9 @@ async function reverseGeocodeCity(latitude: number, longitude: number): Promise<
       const results = data?.results;
       if (Array.isArray(results) && results.length > 0) {
         const { area, city, state } = extractAreaAndCityFromGoogleResults(results);
+        const country = extractCountryFromGoogleResults(results);
         const label = formatLocationLabel(area, city);
-        if (label) return { label, city, state };
+        if (label) return { label, city, state, country };
       }
     } catch (error) {
       console.error('Google city reverse geocoding failed:', error);
@@ -274,8 +293,9 @@ async function reverseGeocodeCity(latitude: number, longitude: number): Promise<
     const address = data?.address;
     if (address) {
       const { area, city, state } = extractAreaAndCityFromNominatimAddress(address);
+      const country = normalizeLocationPart(address.country);
       const label = formatLocationLabel(area, city);
-      if (label) return { label, city, state };
+      if (label) return { label, city, state, country };
     }
   } catch (error) {
     console.error('Nominatim city reverse geocoding failed:', error);
@@ -401,6 +421,76 @@ export async function resolveCityFromCoordinates(latitude: number, longitude: nu
     success: true as const,
     city: resolved?.label ?? null,
     state: resolved?.state ?? null,
+    country: resolved?.country ?? null,
     cityName: resolved?.city ?? null,
   };
+}
+
+export type MapPinAddressValidation =
+  | {
+      ok: true;
+      resolved: ResolvedMapAddress;
+      resolvedLabel: string;
+    }
+  | {
+      ok: false;
+      error: string;
+      resolved: ResolvedMapAddress;
+      resolvedLabel: string;
+    };
+
+export async function validateMapPinAgainstAddress(
+  latitude: number,
+  longitude: number,
+  manual: ManualAddress,
+): Promise<MapPinAddressValidation> {
+  const geocodeLimit = await enforceRateLimit('geocode', 'validate-map-address');
+  if (!geocodeLimit.ok) {
+    return {
+      ok: false,
+      error: geocodeLimit.error,
+      resolved: { city: null, state: null, country: null, label: null },
+      resolvedLabel: '',
+    };
+  }
+
+  if (latitude == null || longitude == null || (latitude === 0 && longitude === 0)) {
+    return {
+      ok: false,
+      error: 'Map location is not set.',
+      resolved: { city: null, state: null, country: null, label: null },
+      resolvedLabel: '',
+    };
+  }
+
+  const resolved = await reverseGeocodeCity(latitude, longitude);
+  const resolvedAddress: ResolvedMapAddress = {
+    city: resolved?.city ?? null,
+    state: resolved?.state ?? null,
+    country: resolved?.country ?? null,
+    label: resolved?.label ?? null,
+  };
+  const resolvedLabel = formatResolvedAddressLabel(resolvedAddress);
+
+  if (!hasResolvedMapAddress(resolvedAddress)) {
+    return {
+      ok: false,
+      error:
+        'We could not read city/state from this map pin. Check the link or confirm your Google Maps API key is configured.',
+      resolved: resolvedAddress,
+      resolvedLabel,
+    };
+  }
+
+  const match = mapPinMatchesManualAddress(resolvedAddress, manual);
+  if (!match.ok) {
+    return {
+      ok: false,
+      error: match.error,
+      resolved: resolvedAddress,
+      resolvedLabel,
+    };
+  }
+
+  return { ok: true, resolved: resolvedAddress, resolvedLabel };
 }

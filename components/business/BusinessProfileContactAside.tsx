@@ -1,6 +1,8 @@
+import Link from 'next/link';
 import { ExternalLink } from 'lucide-react';
 import { FaFacebook, FaInstagram, FaYoutube } from 'react-icons/fa6';
 import type { IconType } from 'react-icons';
+import { buildLoginHref, buildSignupHref } from '@/lib/authRedirect';
 
 type SocialLink = {
   label: string;
@@ -14,12 +16,15 @@ const SOCIAL_BRAND: Record<string, { Icon: IconType; colorClass: string }> = {
 };
 
 type BusinessProfileContactAsideProps = {
+  contactRevealed: boolean;
+  profileRedirectPath: string;
   phoneLink: string | null | undefined;
   phone: string;
   email?: string;
   website?: string;
   paymentModes: string[];
   socialLinks: SocialLink[];
+  onCall: () => void;
   onEnquire: () => void;
 };
 
@@ -28,11 +33,13 @@ function ContactRow({
   href,
   children,
   external = false,
+  onClick,
 }: {
   label: string;
   href: string;
   children: React.ReactNode;
   external?: boolean;
+  onClick?: (event: React.MouseEvent<HTMLAnchorElement>) => void;
 }) {
   return (
     <div>
@@ -40,6 +47,7 @@ function ContactRow({
       <dd className="mt-0.5">
         <a
           href={href}
+          onClick={onClick}
           target={external ? '_blank' : undefined}
           rel={external ? 'noopener noreferrer' : undefined}
           className="text-sm font-medium text-[#153551] hover:underline"
@@ -52,31 +60,75 @@ function ContactRow({
 }
 
 export default function BusinessProfileContactAside({
+  contactRevealed,
+  profileRedirectPath,
   phoneLink,
   phone,
   email,
   website,
   paymentModes,
   socialLinks,
+  onCall,
   onEnquire,
 }: BusinessProfileContactAsideProps) {
   const hasContact = phoneLink || email || website;
+  const loginHref = buildLoginHref(profileRedirectPath);
+  const signupHref = buildSignupHref(profileRedirectPath);
 
   return (
     <aside className="border border-stone-200 bg-[#fffdf8] p-5 lg:sticky lg:top-32 lg:self-start">
       <h3 className="text-sm font-semibold text-[#153551]">Contact</h3>
 
+      {!contactRevealed && (
+        <div className="mt-4 rounded-lg border border-[#f9b864]/30 bg-[#fff8ef] px-3 py-3 text-sm text-stone-700">
+          <p>Sign in to view phone and send an enquiry. Call and WhatsApp clicks are saved as direct leads for the merchant.</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Link
+              href={loginHref}
+              className="inline-flex rounded-md bg-[#215481] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#1a4367]"
+            >
+              Sign in
+            </Link>
+            <Link
+              href={signupHref}
+              className="inline-flex rounded-md border border-stone-300 bg-white px-3 py-1.5 text-xs font-semibold text-[#215481] hover:bg-stone-50"
+            >
+              Create account
+            </Link>
+          </div>
+        </div>
+      )}
+
       {hasContact ? (
-        <dl className="mt-4 space-y-3.5">
-          {phoneLink && (
-            <ContactRow label="Phone" href={phoneLink}>
+        <dl className={`space-y-3.5 ${contactRevealed ? 'mt-4' : 'mt-3'}`}>
+          {phoneLink && contactRevealed && (
+            <ContactRow
+              label="Phone"
+              href={phoneLink}
+              onClick={(event) => {
+                event.preventDefault();
+                onCall();
+              }}
+            >
               {phone}
             </ContactRow>
           )}
-          {email && (
+          {phoneLink && !contactRevealed && (
+            <div>
+              <dt className="text-xs text-stone-500">Phone</dt>
+              <dd className="mt-0.5 text-sm text-stone-400">Hidden until you sign in</dd>
+            </div>
+          )}
+          {email && contactRevealed && (
             <ContactRow label="Email" href={`mailto:${email}`}>
               {email}
             </ContactRow>
+          )}
+          {email && !contactRevealed && (
+            <div>
+              <dt className="text-xs text-stone-500">Email</dt>
+              <dd className="mt-0.5 text-sm text-stone-400">Hidden until you sign in</dd>
+            </div>
           )}
           {website && (
             <ContactRow label="Website" href={website} external>
@@ -127,9 +179,10 @@ export default function BusinessProfileContactAside({
       <button
         type="button"
         onClick={onEnquire}
-        className="mt-5 w-full border border-[#215481] bg-[#215481] py-2.5 text-sm font-semibold text-white hover:bg-[#1a4367]"
+        className="mt-5 w-full border border-[#215481] bg-[#215481] py-2.5 text-sm font-semibold text-white hover:bg-[#1a4367] disabled:cursor-not-allowed disabled:opacity-50"
+        disabled={!contactRevealed}
       >
-        Send enquiry
+        {contactRevealed ? 'Send enquiry' : 'Sign in to send enquiry'}
       </button>
     </aside>
   );

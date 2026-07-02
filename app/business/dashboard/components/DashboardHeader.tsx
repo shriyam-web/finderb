@@ -1,14 +1,15 @@
 'use client';
 
 import { HiOutlineBell, HiOutlineCalendarDays } from 'react-icons/hi2';
-import { KycStatusBadge, PaymentStatusBadge, VerifiedBadge } from './StatusBadge';
+import { KycStatusBadge, ListingStatusBadge, PaymentStatusBadge, VerifiedBadge } from './StatusBadge';
 
 type DashboardHeaderProps = {
   activeTab: string;
   businessName: string;
   paymentStatus?: string;
   kycStatus?: string;
-  isVerified?: boolean;
+  listingStatus?: string;
+  hasTrustBadge?: boolean;
   unreadCount: number;
   isNotificationsOpen: boolean;
   onNotificationsToggle: () => void;
@@ -37,7 +38,8 @@ export default function DashboardHeader({
   businessName,
   paymentStatus,
   kycStatus,
-  isVerified,
+  listingStatus,
+  hasTrustBadge,
   unreadCount,
   isNotificationsOpen,
   onNotificationsToggle,
@@ -129,8 +131,9 @@ export default function DashboardHeader({
 
       <div className="flex flex-wrap items-center gap-2 border-t border-amber-100/80 bg-gradient-to-r from-[#fff9f0] via-white to-[#f0f7ff] px-5 py-3 md:px-7">
         <PaymentStatusBadge status={paymentStatus} size="sm" />
+        <ListingStatusBadge status={listingStatus} size="sm" />
         <KycStatusBadge status={kycStatus} size="sm" />
-        {isVerified && <VerifiedBadge size="sm" />}
+        {hasTrustBadge && <VerifiedBadge size="sm" />}
       </div>
     </header>
   );

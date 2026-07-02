@@ -126,9 +126,9 @@ export default function AccountHealthPanel({
           <HealthRow
             item={kyc}
             action={
-              kyc.status === 'attention' ? (
+              kyc.status === 'attention' || kyc.status === 'blocked' ? (
                 <button type="button" onClick={onOpenKyc} className={dashboard.btnPrimary}>
-                  Open KYC portal
+                  About KYC
                 </button>
               ) : undefined
             }

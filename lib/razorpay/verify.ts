@@ -55,7 +55,7 @@ async function razorpayVerificationRequest<T>(
 ): Promise<{ ok: true; data: T } | { ok: false; error: string }> {
   const auth = getRazorpayBasicAuth();
   if (!auth) {
-    return { ok: false, error: 'Razorpay is not configured.' };
+    return { ok: false, error: 'Payment verification is not available right now.' };
   }
 
   const response = await fetch(`https://api.razorpay.com/v1${path}`, {
@@ -73,7 +73,7 @@ async function razorpayVerificationRequest<T>(
     console.error('[razorpay verify] request failed:', path, data);
     return {
       ok: false,
-      error: data?.error?.description || 'Razorpay verification request failed.',
+      error: data?.error?.description || 'Payment verification failed. Please try again.',
     };
   }
 

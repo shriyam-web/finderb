@@ -20,3 +20,7 @@ export function getSafeRedirectPath(
 export function buildLoginHref(redirectPath: string): string {
   return `/login?redirect=${encodeURIComponent(redirectPath)}`;
 }
+
+export function buildSignupHref(redirectPath: string): string {
+  return `/signup?redirect=${encodeURIComponent(redirectPath)}`;
+}

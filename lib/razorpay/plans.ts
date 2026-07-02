@@ -67,9 +67,7 @@ export function getRazorpayPlanId(plan: MerchantPlan, billingCycle: BillingCycle
   if (billingCycle === 'monthly') {
     const planId = process.env.RAZORPAY_PLAN_ID_PRO_MONTHLY?.trim();
     if (!planId) {
-      throw new Error(
-        'RAZORPAY_PLAN_ID_PRO_MONTHLY is not configured. Create a monthly plan in Razorpay Dashboard and add the plan ID to your environment.'
-      );
+      throw new Error('Monthly auto-debit is not available right now. Please contact support.');
     }
     return planId;
   }

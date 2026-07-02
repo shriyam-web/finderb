@@ -1,11 +1,11 @@
 'use client';
 
-import Link from 'next/link';
 import {
   HiOutlineArrowRight,
   HiOutlineCreditCard,
   HiOutlineShieldCheck,
 } from 'react-icons/hi2';
+import { getPaidPlansLabel } from '@/lib/subscription/merchantSubscription';
 import MerchantRechargeButton from '@/components/business/MerchantRechargeButton';
 import { KycStatusBadge, PaymentStatusBadge } from './StatusBadge';
 
@@ -19,7 +19,7 @@ type DashboardActionCenterProps = {
   kycStatus?: string;
   paymentError?: string | null;
   onPaymentError: (msg: string) => void;
-  onOpenSettings: () => void;
+  onOpenKyc: () => void;
 };
 
 export default function DashboardActionCenter({
@@ -32,7 +32,7 @@ export default function DashboardActionCenter({
   kycStatus,
   paymentError,
   onPaymentError,
-  onOpenSettings,
+  onOpenKyc,
 }: DashboardActionCenterProps) {
   const isPaymentDue = paymentStatus !== 'completed';
   const kycNormalized = (kycStatus || 'pending').toLowerCase();
@@ -65,9 +65,9 @@ export default function DashboardActionCenter({
               </div>
               <div className="min-w-0 flex-1 space-y-3">
                 <div>
-                  <h3 className="font-bold text-slate-900">Activate Pro</h3>
+                  <h3 className="font-bold text-slate-900">Upgrade your plan</h3>
                   <p className="mt-1 text-sm text-slate-700">
-                    Enquiries are waiting — activate Pro to see phone numbers and email.
+                    Enquiries are waiting — activate {getPaidPlansLabel()} to see phone numbers and email.
                   </p>
                 </div>
                 {paymentError && (
@@ -103,29 +103,20 @@ export default function DashboardActionCenter({
               </div>
               <div className="min-w-0 flex-1 space-y-3">
                 <div>
-                  <h3 className="font-bold text-slate-900">Complete KYC</h3>
+                  <h3 className="font-bold text-slate-900">Identity verification (KYC)</h3>
                   <p className="mt-1 text-sm text-slate-700">
-                    Verified merchants rank higher and earn the trust badge on their public profile.
+                    KYC is handled by FinderB&apos;s verification partner — not in this dashboard.
+                    Listing approval and KYC are separate; approving your listing does not complete KYC.
                   </p>
                 </div>
-                <div className="flex flex-wrap items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={onOpenSettings}
-                    className="inline-flex items-center gap-1 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 px-5 py-2.5 text-sm font-bold text-white shadow-md hover:brightness-110"
-                  >
-                    Submit documents
-                    <HiOutlineArrowRight size={14} />
-                  </button>
-                  {businessId && (
-                    <Link
-                      href={`/business/kyc/${businessId}`}
-                      className="text-sm font-bold text-violet-800 hover:text-violet-950"
-                    >
-                      KYC portal
-                    </Link>
-                  )}
-                </div>
+                <button
+                  type="button"
+                  onClick={onOpenKyc}
+                  className="inline-flex items-center gap-1 rounded-xl border border-violet-200 bg-white px-5 py-2.5 text-sm font-bold text-violet-900 hover:bg-violet-50"
+                >
+                  Learn more
+                  <HiOutlineArrowRight size={14} />
+                </button>
               </div>
             </div>
           </div>

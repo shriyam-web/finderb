@@ -3,32 +3,14 @@
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import type { FormEvent, ReactNode } from 'react';
+import IndianPhoneInput from '@/components/IndianPhoneInput';
+import {
+  extractIndianMobileDigits,
+  isValidIndianMobileDigits,
+} from '@/lib/indianPhone';
 
-function IndiaFlag({ className = '' }: { className?: string }) {
-  return (
-    <span
-      className={`inline-flex shrink-0 overflow-hidden rounded-[4px] shadow-[0_1px_2px_rgba(0,0,0,0.12)] ring-1 ring-black/[0.08] ${className}`}
-      aria-hidden
-    >
-      <svg viewBox="0 0 21 14" className="h-[15px] w-[22px]" role="img" aria-label="India">
-        <rect width="21" height="4.67" fill="#FF9933" />
-        <rect y="4.67" width="21" height="4.66" fill="#FFFFFF" />
-        <rect y="9.33" width="21" height="4.67" fill="#138808" />
-        <circle cx="10.5" cy="7" r="1.75" fill="none" stroke="#000080" strokeWidth="0.45" />
-        <circle cx="10.5" cy="7" r="0.35" fill="#000080" />
-      </svg>
-    </span>
-  );
-}
-
-export function IndiaPhonePrefix() {
-  return (
-    <span className="merchant-auth-phone-prefix flex shrink-0 items-center gap-2.5 border-r-2 border-[#dfe6ee] bg-gradient-to-b from-white to-[#f3f6f9] px-3.5 py-3.5 sm:px-4 sm:py-4">
-      <IndiaFlag />
-      <span className="text-[15px] font-bold tracking-tight text-[#153551]">+91</span>
-    </span>
-  );
-}
+export { formatIndianMobileDisplay as formatIndianMobile } from '@/lib/indianPhone';
+export { IndiaPhonePrefix } from '@/components/IndiaPhonePrefix';
 
 /** Flat form shell — no card, border, or shadow */
 export function MerchantAuthFormCard({
@@ -136,14 +118,6 @@ export function MerchantAuthSubmitButton({
   );
 }
 
-function formatIndianMobile(digits: string) {
-  const d = digits.replace(/\D/g, '').slice(0, 10);
-  if (d.length <= 5) return d;
-  return `${d.slice(0, 5)} ${d.slice(5)}`;
-}
-
-export { formatIndianMobile };
-
 export function MerchantAuthPhoneField({
   id = 'mobile-input',
   value,
@@ -155,8 +129,8 @@ export function MerchantAuthPhoneField({
   onChange: (value: string) => void;
   onSubmit: () => void;
 }) {
-  const digits = value.replace(/\D/g, '').slice(0, 10);
-  const isComplete = digits.length === 10;
+  const digits = extractIndianMobileDigits(value);
+  const isComplete = isValidIndianMobileDigits(digits);
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -169,25 +143,12 @@ export function MerchantAuthPhoneField({
         <label htmlFor={id} className="merchant-auth-label">
           Mobile number
         </label>
-        <div
-          className={`merchant-auth-phone-field merchant-auth-input-wrap relative flex items-stretch overflow-hidden rounded-[14px] border-2 bg-white transition-[border-color,box-shadow] ${
-            isComplete
-              ? 'border-emerald-500/80 shadow-[0_0_0_3px_rgba(16,185,129,0.12)]'
-              : 'border-[#d4dde8] focus-within:border-[#153551] focus-within:shadow-[0_0_0_3px_rgba(21,53,81,0.1)]'
-          }`}
-        >
-          <IndiaPhonePrefix />
-          <input
-            id={id}
-            type="tel"
-            inputMode="numeric"
-            autoComplete="tel-national"
-            value={formatIndianMobile(digits)}
-            onChange={(e) => onChange(e.target.value.replace(/\D/g, '').slice(0, 10))}
-            placeholder="98765 43210"
-            className="min-w-0 flex-1 bg-white px-3.5 py-3.5 text-[16px] font-semibold tabular-nums tracking-wide text-[#0f273b] outline-none placeholder:font-normal placeholder:text-[#94a3b8] sm:px-4 sm:py-4"
-          />
-        </div>
+        <IndianPhoneInput
+          id={id}
+          value={value}
+          onChange={onChange}
+          variant="merchant"
+        />
       </div>
 
       <MerchantAuthSubmitButton type="submit" disabled={!isComplete}>

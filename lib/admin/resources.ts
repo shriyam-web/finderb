@@ -47,7 +47,8 @@ export const ADMIN_RESOURCES: Record<AdminResourceKey, AdminResourceConfig> = {
     listColumns: [
       { key: 'businessName', label: 'Business' },
       { key: 'email', label: 'Email' },
-      { key: 'status', label: 'Status' },
+      { key: 'status', label: 'Listing' },
+      { key: 'kycStatus', label: 'KYC' },
       { key: 'createdAt', label: 'Joined' },
     ],
   },

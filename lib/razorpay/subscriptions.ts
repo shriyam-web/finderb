@@ -99,7 +99,7 @@ async function razorpayRequest<T>(
     console.error('[razorpay subscriptions] request failed:', path, data);
     return {
       ok: false,
-      error: data?.error?.description || 'Razorpay subscription request failed.',
+      error: data?.error?.description || 'Could not set up auto-debit. Please try again.',
     };
   }
 
@@ -132,7 +132,7 @@ export async function createRazorpaySubscription(params: {
   try {
     planId = getRazorpayPlanId(params.plan, params.billingCycle);
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Razorpay plan is not configured.';
+    const message = error instanceof Error ? error.message : 'Monthly billing is not available right now.';
     return { success: false, error: message };
   }
 

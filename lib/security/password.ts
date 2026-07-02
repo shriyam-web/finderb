@@ -1,37 +1,26 @@
+import 'server-only';
+
 import { scrypt, randomBytes, timingSafeEqual } from 'crypto';
 import { promisify } from 'util';
+import {
+  PASSWORD_MAX_LENGTH,
+  PASSWORD_MIN_LENGTH_MERCHANT,
+  PASSWORD_MIN_LENGTH_USER,
+  validatePasswordLength,
+} from '@/lib/security/passwordPolicy';
 
 const scryptAsync = promisify(scrypt);
 
-export const PASSWORD_MIN_LENGTH_USER = 8;
-export const PASSWORD_MIN_LENGTH_MERCHANT = 6;
-export const PASSWORD_MAX_LENGTH = 128;
+export {
+  PASSWORD_MAX_LENGTH,
+  PASSWORD_MIN_LENGTH_MERCHANT,
+  PASSWORD_MIN_LENGTH_USER,
+  validatePasswordLength,
+};
 
 const HASH_PREFIX = 'scrypt:';
 const SALT_BYTES = 16;
 const KEY_BYTES = 64;
-
-export function validatePasswordLength(
-  password: string,
-  minLength: number
-): { ok: true } | { ok: false; error: string } {
-  if (!password || typeof password !== 'string') {
-    return { ok: false, error: 'Password is required' };
-  }
-
-  if (password.length < minLength) {
-    return { ok: false, error: `Password must be at least ${minLength} characters` };
-  }
-
-  if (password.length > PASSWORD_MAX_LENGTH) {
-    return {
-      ok: false,
-      error: `Password must be at most ${PASSWORD_MAX_LENGTH} characters`,
-    };
-  }
-
-  return { ok: true };
-}
 
 export async function hashPassword(password: string): Promise<string> {
   const salt = randomBytes(SALT_BYTES);

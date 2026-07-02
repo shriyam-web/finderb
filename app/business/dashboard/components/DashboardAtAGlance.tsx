@@ -9,6 +9,7 @@ import {
 
 type DashboardAtAGlanceProps = {
   isPaymentActive: boolean;
+  planName?: string;
   newLeadCount?: number;
   activeJobsCount?: number;
   onOpenLeads: () => void;
@@ -19,6 +20,7 @@ type DashboardAtAGlanceProps = {
 
 export default function DashboardAtAGlance({
   isPaymentActive,
+  planName = 'Starter',
   newLeadCount = 0,
   activeJobsCount = 0,
   onOpenLeads,
@@ -28,7 +30,7 @@ export default function DashboardAtAGlance({
 }: DashboardAtAGlanceProps) {
   const items = [
     {
-      label: 'Pro',
+      label: planName,
       value: isPaymentActive ? 'Active' : 'Inactive',
       onClick: onOpenBilling ?? onOpenListing,
       icon: HiOutlineCreditCard,

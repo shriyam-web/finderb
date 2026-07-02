@@ -28,6 +28,7 @@ import {
   parseBusinessReviews,
 } from '@/lib/businessReviews';
 import { getDiscountOfferDisplay } from '@/lib/discountOffer';
+import { formatEstablishmentYearsLabel } from '@/lib/establishmentYear';
 import { formatTimingRange12h } from '@/lib/formatBusinessHours';
 import { parseBusinessServices } from '@/lib/parseBusinessServices';
 import type { MissingProfileField } from '@/lib/dashboard/profileCompletion';
@@ -195,6 +196,14 @@ export default function MyListingTab({
     document.getElementById(`listing-preview-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
+  const openReviewReplySettings = () => {
+    if (onOpenSettingsField) {
+      onOpenSettingsField('reviewReply');
+      return;
+    }
+    onEditProfile();
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -275,9 +284,10 @@ export default function MyListingTab({
 
                 {locationLabel && <p className="text-sm text-zinc-600">{locationLabel}</p>}
 
-                {profileData.yearsInBusiness != null && profileData.yearsInBusiness > 0 && (
-                  <p className="text-sm text-zinc-600">{profileData.yearsInBusiness} years in business</p>
-                )}
+                {(() => {
+                  const label = formatEstablishmentYearsLabel(profileData.yearsInBusiness);
+                  return label ? <p className="text-sm text-zinc-600">{label}</p> : null;
+                })()}
 
                 <div className="flex flex-wrap items-center gap-2 pt-1">
                   {profileData.isFinderBVerified && (
@@ -638,18 +648,28 @@ export default function MyListingTab({
               )}
 
               {ownerReply ? (
-                <div className="mt-4 rounded-lg border-l-[3px] border-[#215481] bg-[#215481]/5 px-4 py-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-[#215481]">Your default reply</p>
+                <button
+                  type="button"
+                  onClick={openReviewReplySettings}
+                  className="mt-4 w-full rounded-lg border-l-[3px] border-[#215481] bg-[#215481]/5 px-4 py-3 text-left hover:bg-[#215481]/10"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-[#215481]">
+                      Your default reply
+                    </p>
+                    <HiOutlinePencilSquare size={14} className="shrink-0 text-[#215481]/70" />
+                  </div>
                   <p className="mt-2 text-sm leading-relaxed text-zinc-700">&ldquo;{ownerReply.content}&rdquo;</p>
-                </div>
+                  <p className="mt-2 text-[11px] text-zinc-500">Tap to edit in Settings</p>
+                </button>
               ) : (
                 <button
                   type="button"
-                  onClick={onEditProfile}
+                  onClick={openReviewReplySettings}
                   className="mt-4 w-full rounded-lg border border-dashed border-zinc-200 px-4 py-3 text-left text-xs text-zinc-500 hover:border-[#215481]/30 hover:bg-zinc-50"
                 >
                   <span className="font-semibold text-zinc-700">Add a default review reply</span>
-                  <span className="mt-0.5 block">Respond faster when customers leave feedback</span>
+                  <span className="mt-0.5 block">Opens Settings — add a thank-you message shown on your public profile</span>
                 </button>
               )}
             </section>

@@ -84,7 +84,7 @@ export async function finalizeMerchantPayment(
   } else {
     const remotePayment = await getRazorpayPayment(paymentId);
     if (!remotePayment) {
-      return { success: false, error: 'Unable to verify payment with Razorpay' };
+      return { success: false, error: 'Unable to verify payment. Please contact support if amount was deducted.' };
     }
     if (remotePayment.status !== 'captured') {
       return { success: false, error: `Payment is not captured (status: ${remotePayment.status})` };

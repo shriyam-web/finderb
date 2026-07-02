@@ -19,9 +19,10 @@ import {
   updateLeadStatus,
   type BusinessLead,
 } from '@/app/actions/leads';
-import { leadBadgeClassName } from '@/lib/leadBadges';
+import { DIRECT_LEAD_BADGE, leadBadgeClassName } from '@/lib/leadBadges';
 import { formatRelativeTime, phoneDigits, whatsappLink } from '@/lib/formatRelativeTime';
 import { parseJobLeadDisplay } from '@/lib/jobLeadMessage';
+import { getPaidPlansLabel } from '@/lib/subscription/merchantSubscription';
 import { dashboard } from './dashboard-ui';
 import { DashboardSectionHeader } from './DashboardShell';
 
@@ -48,11 +49,26 @@ function isJobLead(lead: BusinessLead) {
   return lead.category === 'Job Application';
 }
 
+function isDirectLead(lead: BusinessLead) {
+  return lead.status === DIRECT_LEAD_BADGE;
+}
+
 function isNewLead(lead: BusinessLead) {
-  return lead.status === 'New' || lead.status === 'New Lead';
+  return (
+    lead.status === 'New' ||
+    lead.status === 'New Lead' ||
+    lead.status === DIRECT_LEAD_BADGE
+  );
 }
 
 function getLeadEnquiryDisplay(lead: BusinessLead) {
+  if (isDirectLead(lead)) {
+    return {
+      primary: lead.message || 'Direct contact from profile',
+      secondary: 'Customer signed in and clicked contact on your listing',
+    };
+  }
+
   if (isJobLead(lead)) {
     const { jobTitle, candidateMessage } = parseJobLeadDisplay(lead.message);
     if (jobTitle) {
@@ -136,6 +152,10 @@ export default function LeadsSection({
 
   const businessLeads = useMemo(() => leads.filter((lead) => !isJobLead(lead)), [leads]);
   const jobLeads = useMemo(() => leads.filter(isJobLead), [leads]);
+  const directLeadCount = useMemo(
+    () => businessLeads.filter(isDirectLead).length,
+    [businessLeads],
+  );
   const newBusinessCount = businessLeads.filter(isNewLead).length;
   const newJobCount = jobLeads.filter(isNewLead).length;
   const totalNew = newBusinessCount + newJobCount;
@@ -160,6 +180,10 @@ export default function LeadsSection({
   };
 
   const contactMessage = (lead: BusinessLead) => {
+    if (isDirectLead(lead)) {
+      return `Hi ${lead.name}, thanks for reaching out via our FinderB listing.`;
+    }
+
     if (isJobLead(lead)) {
       const { jobTitle, candidateMessage } = parseJobLeadDisplay(lead.message);
       if (jobTitle) {
@@ -353,7 +377,7 @@ export default function LeadsSection({
           <HiOutlineCursorArrowRays size={36} className="text-[#f9b864]" />
           <h4 className="mt-4 text-base font-bold text-zinc-900">No leads yet</h4>
           <p className="mx-auto mt-2 max-w-md text-sm text-zinc-500">
-            When customers enquire on your profile or apply to your jobs, they show up here with contact
+            When customers enquire on your profile, click Call or WhatsApp, or apply to your jobs, they show up here with contact
             details ready to reach out.
           </p>
           <Link
@@ -373,14 +397,14 @@ export default function LeadsSection({
       <div>
         <DashboardSectionHeader
           title="Latest enquiries"
-          description="Activate Pro to view contact details."
+          description={`Upgrade to ${getPaidPlansLabel()} to view contact details.`}
         />
         <div className={`${dashboard.panel} ${dashboard.emptyState} py-12`}>
           <p className="text-5xl font-bold text-[#153551]">{leads.length}</p>
           <p className="mt-2 text-sm text-zinc-600">people enquired — upgrade to see their phone and email</p>
           <Link href={`/pricing?businessId=${businessId}`} className={`mt-5 ${dashboard.btnPrimary}`}>
             <HiOutlineRocketLaunch size={16} />
-            Activate Pro
+            Choose plan
           </Link>
         </div>
       </div>
@@ -398,7 +422,7 @@ export default function LeadsSection({
                 <div>
                   <p className="text-sm font-bold text-[#153551]">You have enquiries waiting</p>
                   <p className="mt-0.5 text-xs text-zinc-600">
-                    Activate Pro to see names, phone numbers, and email for {leads.length} lead
+                    Upgrade to {getPaidPlansLabel()} to see names, phone numbers, and email for {leads.length} lead
                     {leads.length === 1 ? '' : 's'}.
                   </p>
                 </div>
@@ -416,7 +440,7 @@ export default function LeadsSection({
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <LeadStatChip label="Total leads" value={leads.length} accent="navy" />
             <LeadStatChip label="New" value={totalNew} accent={totalNew > 0 ? 'gold' : undefined} />
-            <LeadStatChip label="Business" value={businessLeads.length} />
+            <LeadStatChip label="Direct" value={directLeadCount} />
             <LeadStatChip label="Job apps" value={jobLeads.length} />
           </div>
 

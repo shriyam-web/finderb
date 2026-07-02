@@ -10,11 +10,9 @@ import {
   Copy,
   Eye,
   EyeOff,
-  Globe,
   Lock,
   Mail,
   MapPin,
-  Phone,
   User,
   X,
 } from 'lucide-react';
@@ -22,12 +20,13 @@ import { SearchableSelect, type SelectOption } from '@/components/SearchableSele
 import { MerchantAuthMain, MerchantAuthPage } from '@/components/business/MerchantAuthShell';
 import MerchantRechargeButton from '@/components/business/MerchantRechargeButton';
 import type { BillingCycle } from '@/lib/razorpay/plans';
+import IndianPhoneInput, { INDIAN_PHONE_FIELD_HINT } from '@/components/IndianPhoneInput';
+import { IndiaPhonePrefix } from '@/components/IndiaPhonePrefix';
+import { formatIndianMobileDisplay } from '@/lib/indianPhone';
 import {
-  IndiaPhonePrefix,
   MerchantAuthField,
   MerchantAuthFormHeader,
   MerchantAuthSubmitButton,
-  formatIndianMobile,
   merchantAuthFieldClass,
 } from '@/components/business/MerchantAuthForm';
 
@@ -37,6 +36,7 @@ type FormData = {
   workEmail: string;
   password: string;
   businessName: string;
+  displayName: string;
   category: string;
   categoryId: string;
   subcategory: string;
@@ -49,7 +49,8 @@ type FormData = {
   country: string;
   countryCode: string;
   publicPhone: string;
-  businessAddress: string;
+  addressLine1: string;
+  addressLine2: string;
 };
 
 type BusinessRegisterWizardProps = {
@@ -226,10 +227,10 @@ export default function BusinessRegisterWizard({
                 <div className="space-y-4">
                   <MerchantAuthField
                     id="fullName"
-                    label="Full name"
+                    label="Owner full name"
                     value={formData.fullName}
                     onChange={(v) => onFormPatch({ fullName: v })}
-                    placeholder="Your legal name"
+                    placeholder="Your full name (for account & owner records)"
                     icon={User}
                     autoComplete="name"
                   />
@@ -266,11 +267,11 @@ export default function BusinessRegisterWizard({
                   <div>
                     <label className="merchant-auth-label">Verified mobile</label>
                     <div className="merchant-auth-phone-field relative flex items-stretch overflow-hidden rounded-2xl border-2 border-emerald-500/80 bg-white shadow-[0_0_0_3px_rgba(16,185,129,0.1)]">
-                      <IndiaPhonePrefix />
+                      <IndiaPhonePrefix variant="merchant" />
                       <input
                         readOnly
                         disabled
-                        value={formatIndianMobile(mobile)}
+                        value={formatIndianMobileDisplay(mobile)}
                         className="min-w-0 flex-1 bg-white px-3.5 py-3.5 text-[16px] font-semibold tabular-nums text-[#0f273b] sm:px-4 sm:py-4"
                       />
                       <CheckCircle2
@@ -291,12 +292,26 @@ export default function BusinessRegisterWizard({
                 <div className="space-y-4">
                   <MerchantAuthField
                     id="businessName"
-                    label="Business name"
+                    label="Legal business name"
                     value={formData.businessName}
                     onChange={(v) => onFormPatch({ businessName: v })}
-                    placeholder="Official business name"
+                    placeholder="As on registration / GST certificate"
                     icon={Building2}
                   />
+                  <p className="-mt-2 text-xs leading-relaxed text-[#64748b]">
+                    Registered legal name. Changes later require admin approval in Settings.
+                  </p>
+                  <MerchantAuthField
+                    id="displayName"
+                    label="Business display name"
+                    value={formData.displayName}
+                    onChange={(v) => onFormPatch({ displayName: v })}
+                    placeholder="Name shown on your public profile"
+                    icon={Building2}
+                  />
+                  <p className="-mt-2 text-xs leading-relaxed text-[#64748b]">
+                    This is what customers see on FinderB. Leave blank to use your legal name.
+                  </p>
                   <SearchableSelect
                     tone="merchant"
                     label="Category"
@@ -319,6 +334,22 @@ export default function BusinessRegisterWizard({
                       loading={loadingSubcategories}
                     />
                   )}
+                  <MerchantAuthField
+                    id="addressLine1"
+                    label="Address line 1"
+                    value={formData.addressLine1}
+                    onChange={(v) => onFormPatch({ addressLine1: v })}
+                    placeholder="Building, street, area"
+                    icon={MapPin}
+                  />
+                  <MerchantAuthField
+                    id="addressLine2"
+                    label="Address line 2"
+                    value={formData.addressLine2}
+                    onChange={(v) => onFormPatch({ addressLine2: v })}
+                    placeholder="Landmark, floor, suite (optional)"
+                    icon={MapPin}
+                  />
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <SearchableSelect
                       tone="merchant"
@@ -336,7 +367,6 @@ export default function BusinessRegisterWizard({
                         });
                       }}
                       placeholder="Select country"
-                      icon={<Globe size={17} />}
                     />
                     <SearchableSelect
                       tone="merchant"
@@ -362,27 +392,18 @@ export default function BusinessRegisterWizard({
                       disabled={!formData.stateCode}
                     />
                   </div>
-                  <MerchantAuthField
-                    id="publicPhone"
-                    label="Customer phone"
-                    value={formData.publicPhone}
-                    onChange={(v) => onFormPatch({ publicPhone: v })}
-                    placeholder="Number shown to customers"
-                    icon={Phone}
-                  />
-                  <div className="merchant-auth-input-wrap">
-                    <label htmlFor="businessAddress" className="merchant-auth-label">
-                      Business address
+                  <div>
+                    <label htmlFor="publicPhone" className="merchant-auth-label">
+                      Display phone number
                     </label>
-                    <textarea
-                      id="businessAddress"
-                      name="businessAddress"
-                      value={formData.businessAddress}
-                      onChange={onFormChange}
-                      className={`${merchantAuthFieldClass} min-h-[100px] resize-y py-3`}
-                      rows={3}
-                      placeholder="Street, area, landmark"
+                    <IndianPhoneInput
+                      id="publicPhone"
+                      value={formData.publicPhone}
+                      onChange={(digits) => onFormPatch({ publicPhone: digits })}
+                      variant="merchant"
+                      placeholder="98765 43210"
                     />
+                    <p className="mt-2 text-xs leading-relaxed text-[#64748b]">{INDIAN_PHONE_FIELD_HINT}</p>
                   </div>
                 </div>
             </div>
@@ -418,7 +439,7 @@ export default function BusinessRegisterWizard({
                   </div>
                 </div>
                 <p className="text-sm text-[#64748b]">
-                  You can complete KYC verification anytime from your dashboard.
+                  You can complete identity verification (KYC) later — handled by FinderB&apos;s verification partner, not in this form.
                 </p>
                 {selectedPlan === 'pro' && registeredBusiness?.id ? (
                   <div className="mx-auto max-w-sm rounded-2xl border-2 border-[#dfe6ee] bg-[#f8fafc] px-5 py-5 text-left">
@@ -434,7 +455,7 @@ export default function BusinessRegisterWizard({
                       mobile={registeredBusiness.mobile || mobile}
                       billingCycle={billingCycle}
                       directCheckout
-                      label="Pay with Razorpay"
+                      label="Pay now"
                       className="mt-4 w-full rounded-xl bg-[#153551] px-4 py-3 text-sm font-bold text-white hover:bg-[#215481] disabled:opacity-60"
                       onSuccess={onPaymentSuccess}
                       onError={(message) => alert(message)}

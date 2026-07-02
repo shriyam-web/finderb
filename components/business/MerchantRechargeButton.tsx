@@ -13,6 +13,7 @@ import {
   openRazorpaySubscriptionCheckout,
 } from '@/lib/razorpay/client';
 import type { BillingCycle } from '@/lib/razorpay/plans';
+import { getPlanDisplayName } from '@/lib/subscription/merchantSubscription';
 
 type MerchantRechargeButtonProps = {
   businessId: string;
@@ -69,8 +70,8 @@ export default function MerchantRechargeButton({
     if (gatewayReady === false) {
       const message =
         billingCycle === 'monthly'
-          ? 'Monthly auto-debit is not configured. Add Razorpay keys and RAZORPAY_PLAN_ID_PRO_MONTHLY.'
-          : 'Razorpay is not configured. Add NEXT_PUBLIC_RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET.';
+          ? 'Monthly auto-debit is not available right now. Please contact support.'
+          : 'Online payment is not available right now. Please contact support.';
       onError?.(message);
       return;
     }
@@ -110,7 +111,7 @@ export default function MerchantRechargeButton({
             key: checkoutResult.keyId,
             subscription_id: checkoutResult.subscription.id,
             name: 'FinderB Business',
-            description: 'Pro — Monthly auto-debit mandate',
+            description: `${getPlanDisplayName('pro', billingCycle)} — Monthly auto-debit mandate`,
             prefill,
             notes,
             theme,
@@ -155,7 +156,7 @@ export default function MerchantRechargeButton({
           amount: checkoutResult.order.amount,
           currency: checkoutResult.order.currency,
           name: 'FinderB Business',
-          description: `Pro — Annual (one-time)`,
+          description: `${getPlanDisplayName('pro', billingCycle)} — Annual (one-time)`,
           order_id: checkoutResult.order.id,
           prefill,
           notes,
@@ -222,14 +223,14 @@ export default function MerchantRechargeButton({
       className={className}
       title={
         directCheckout && gatewayReady === false
-          ? 'Razorpay subscription billing is not fully configured'
+          ? 'Monthly billing is not available right now'
           : undefined
       }
     >
       {paying ? (
         <>
           <Loader2 className="inline h-4 w-4 animate-spin" />
-          <span>{billingCycle === 'monthly' ? 'Opening mandate setup…' : 'Opening Razorpay…'}</span>
+          <span>{billingCycle === 'monthly' ? 'Opening mandate setup…' : 'Opening checkout…'}</span>
         </>
       ) : (
         label

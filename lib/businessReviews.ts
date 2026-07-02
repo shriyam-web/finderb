@@ -12,6 +12,31 @@ export type BusinessReviewReply = {
   date?: string;
 };
 
+export const REVIEW_REPLY_MIN_LENGTH = 10;
+export const REVIEW_REPLY_MAX_LENGTH = 500;
+
+export function getReviewReplyDraft(reviewReply: unknown): string {
+  return parseBusinessReviewReply(reviewReply)?.content ?? '';
+}
+
+export function validateReviewReplyContent(content: string): string | null {
+  const trimmed = content.trim();
+  if (!trimmed) return null;
+  if (trimmed.length < REVIEW_REPLY_MIN_LENGTH) {
+    return `Default reply must be at least ${REVIEW_REPLY_MIN_LENGTH} characters.`;
+  }
+  if (trimmed.length > REVIEW_REPLY_MAX_LENGTH) {
+    return `Default reply must be ${REVIEW_REPLY_MAX_LENGTH} characters or fewer.`;
+  }
+  return null;
+}
+
+export function normalizeReviewReplyForStorage(content: string): BusinessReviewReply | null {
+  const trimmed = content.trim();
+  if (!trimmed) return null;
+  return { content: trimmed, date: new Date().toISOString() };
+}
+
 function normalizeReviewEntry(raw: unknown, index: number): BusinessReview | null {
   if (!raw) return null;
 

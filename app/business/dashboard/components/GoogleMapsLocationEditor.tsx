@@ -6,18 +6,25 @@ import {
   HiOutlineExclamationCircle,
   HiOutlineMapPin,
 } from 'react-icons/hi2';
-import { lookupPlaceNameFromCoordinates, resolveGoogleMapsLocation } from '@/app/actions/location';
+import { lookupPlaceNameFromCoordinates, resolveGoogleMapsLocation, validateMapPinAgainstAddress } from '@/app/actions/location';
 import { mapEmbedSrc } from '@/lib/businessContact';
 import { buildGoogleMapsUrl } from '@/lib/googleMapsLocation';
+import type { ManualAddress } from '@/lib/locationMatch';
+import { locationTokensMatch } from '@/lib/locationMatch';
 
 type GoogleMapsLocationEditorProps = {
   googleMapsUrl: string;
   latitude?: number | null;
   longitude?: number | null;
+  addressContext?: ManualAddress;
   onResolved: (values: {
     googleMapsUrl: string;
     latitude: number;
     longitude: number;
+    city: string;
+    state: string;
+    country: string;
+    addressCorrected: boolean;
   }) => void;
 };
 
@@ -31,12 +38,14 @@ export default function GoogleMapsLocationEditor({
   googleMapsUrl,
   latitude,
   longitude,
+  addressContext,
   onResolved,
 }: GoogleMapsLocationEditorProps) {
   const [input, setInput] = useState(googleMapsUrl);
   const [status, setStatus] = useState<'idle' | 'loading' | 'valid' | 'error'>('idle');
   const [error, setError] = useState('');
   const [placeName, setPlaceName] = useState<string | null>(null);
+  const [addressCorrectionNote, setAddressCorrectionNote] = useState('');
   const [lastVerifiedInput, setLastVerifiedInput] = useState('');
   const [resolvedCoords, setResolvedCoords] = useState<{ lat: number; lng: number } | null>(
     latitude != null && longitude != null && (latitude !== 0 || longitude !== 0)
@@ -103,16 +112,57 @@ export default function GoogleMapsLocationEditor({
       return;
     }
 
+    const addressMatch = await validateMapPinAgainstAddress(
+      result.latitude,
+      result.longitude,
+      addressContext ?? {},
+    );
+
+    const resolved = addressMatch.resolved;
+    if (!resolved.city && !resolved.state && !resolved.country) {
+      setStatus('error');
+      setError(addressMatch.ok === false ? addressMatch.error : 'Could not read city/state from this pin.');
+      setResolvedCoords(null);
+      setPlaceName(null);
+      setAddressCorrectionNote('');
+      pendingScrollRef.current = true;
+      return;
+    }
+
+    const nextCity = resolved.city ?? '';
+    const nextState = resolved.state ?? '';
+    const nextCountry = resolved.country ?? '';
+    const manualCity = addressContext?.city?.trim() ?? '';
+    const manualState = addressContext?.state?.trim() ?? '';
+    const manualCountry = addressContext?.country?.trim() ?? '';
+    const addressCorrected = Boolean(
+      !addressMatch.ok ||
+        (manualCity && nextCity && !locationTokensMatch(manualCity, nextCity)) ||
+        (manualState && nextState && !locationTokensMatch(manualState, nextState)) ||
+        (manualCountry && nextCountry && !locationTokensMatch(manualCountry, nextCountry)),
+    );
+
     const verifiedInput = result.normalizedUrl;
     setStatus('valid');
     setResolvedCoords({ lat: result.latitude, lng: result.longitude });
     setPlaceName(result.placeName);
     setInput(verifiedInput);
     setLastVerifiedInput(verifiedInput.trim());
+    setAddressCorrectionNote(
+      addressCorrected
+        ? `City, state, and country were set from your map pin: ${[nextCity, nextState, nextCountry].filter(Boolean).join(', ')}.`
+        : nextCity || nextState || nextCountry
+          ? `City, state, and country will be saved as ${[nextCity, nextState, nextCountry].filter(Boolean).join(', ')}.`
+          : '',
+    );
     onResolved({
       googleMapsUrl: verifiedInput,
       latitude: result.latitude,
       longitude: result.longitude,
+      city: nextCity,
+      state: nextState,
+      country: nextCountry,
+      addressCorrected,
     });
     pendingScrollRef.current = true;
   };
@@ -144,6 +194,20 @@ export default function GoogleMapsLocationEditor({
           </li>
         ))}
       </ol>
+      {addressContext?.city?.trim() && (
+        <p className="text-xs leading-relaxed text-slate-500">
+          Your written address says{' '}
+          <span className="font-medium text-slate-700">
+            {[addressContext.city, addressContext.state, addressContext.country].filter(Boolean).join(', ')}
+          </span>
+          . If it differs from the pin, we&apos;ll update city/state/country to match the map.
+        </p>
+      )}
+      {!addressContext?.city?.trim() && (
+        <p className="text-xs leading-relaxed text-slate-500">
+          After you verify, we&apos;ll auto-fill City, State, and Country from your map pin.
+        </p>
+      )}
 
       <div className="space-y-3">
         <label htmlFor="google-maps-link" className="block text-sm font-semibold text-slate-900">
@@ -156,6 +220,7 @@ export default function GoogleMapsLocationEditor({
             const nextValue = e.target.value;
             setInput(nextValue);
             setError('');
+            setAddressCorrectionNote('');
 
             if (nextValue.trim() !== lastVerifiedInput) {
               setStatus('idle');
@@ -195,6 +260,9 @@ export default function GoogleMapsLocationEditor({
                   <p className="mt-0.5 text-xs text-emerald-700">
                     Looks good — click <strong>Save location</strong> below to keep it.
                   </p>
+                  {addressCorrectionNote && (
+                    <p className="mt-2 text-xs leading-relaxed text-emerald-800">{addressCorrectionNote}</p>
+                  )}
                 </div>
               </div>
               <div className="overflow-hidden rounded-lg border border-emerald-200/80 bg-white">

@@ -87,6 +87,28 @@ async function assertPaymentNotReused(
   return null;
 }
 
+async function completePendingAuthPaymentRecord(
+  supabase: NonNullable<ReturnType<typeof createServiceClient>>,
+  input: {
+    businessId: string;
+    subscriptionId: string;
+    paymentId: string;
+    paymentPayload: Record<string, unknown>;
+  },
+) {
+  await supabase
+    .from('merchant_payments')
+    .update({
+      ...input.paymentPayload,
+      status: 'completed',
+      payment_id: input.paymentId,
+    })
+    .eq('business_id', input.businessId)
+    .eq('razorpay_subscription_id', input.subscriptionId)
+    .eq('payment_type', 'subscription_auth')
+    .eq('status', 'pending');
+}
+
 const CHECKOUT_SUBSCRIPTION_STATUSES = new Set([
   ...ACTIVE_RAZORPAY_SUBSCRIPTION_STATUSES,
   'created',
@@ -169,7 +191,7 @@ export async function finalizeSubscriptionAuthorization(
       ? await getRazorpaySubscriptionForCheckout(subscriptionId)
       : await getRazorpaySubscription(subscriptionId);
   if (!remoteSubscription) {
-    return { success: false, error: 'Unable to verify subscription with Razorpay' };
+    return { success: false, error: 'Unable to verify auto-debit setup. Please contact support if amount was deducted.' };
   }
 
   const subscriptionStatusOk =
@@ -194,6 +216,7 @@ export async function finalizeSubscriptionAuthorization(
     return { success: false, error: paymentResult.error };
   }
   const remotePayment = paymentResult.payment;
+  const orderIdFromPayment = remotePayment.order_id?.trim() || null;
 
   const expectedAmount = getPlanAmountInPaise(plan as MerchantPlan, billingCycle as BillingCycle);
   if (remotePayment.amount !== expectedAmount) {
@@ -206,7 +229,8 @@ export async function finalizeSubscriptionAuthorization(
   }
 
   const reuse = await assertPaymentNotReused(supabase, paymentId, businessId);
-  if (reuse) return reuse;
+  if (reuse && !reuse.success) return reuse;
+  const alreadyCompleted = Boolean(reuse?.alreadyCompleted);
 
   const { data: business, error: businessError } = await supabase
     .from('Business')
@@ -231,28 +255,30 @@ export async function finalizeSubscriptionAuthorization(
   );
   const nowIso = new Date().toISOString();
 
-  const { error: businessUpdateError } = await supabase
-    .from('Business')
-    .update({
-      paymentStatus: 'completed',
-      paymentId,
-      orderId: null,
-      selectedPlan: plan,
-      billingCycle,
-      planStartedAt: planStartedAt.toISOString(),
-      planExpiresAt: planExpiresAt.toISOString(),
-      razorpaySubscriptionId: subscriptionId,
-      subscriptionStatus: remoteSubscription.status,
-      autoRenewEnabled: true,
-      mandateStatus: 'active',
-      subscriptionCancelledAt: null,
-      updatedAt: nowIso,
-    })
-    .eq('id', businessId);
+  if (!alreadyCompleted) {
+    const { error: businessUpdateError } = await supabase
+      .from('Business')
+      .update({
+        paymentStatus: 'completed',
+        paymentId,
+        orderId: orderIdFromPayment,
+        selectedPlan: plan,
+        billingCycle,
+        planStartedAt: planStartedAt.toISOString(),
+        planExpiresAt: planExpiresAt.toISOString(),
+        razorpaySubscriptionId: subscriptionId,
+        subscriptionStatus: remoteSubscription.status,
+        autoRenewEnabled: true,
+        mandateStatus: 'active',
+        subscriptionCancelledAt: null,
+        updatedAt: nowIso,
+      })
+      .eq('id', businessId);
 
-  if (businessUpdateError) {
-    console.error('[razorpay] subscription auth finalize failed:', businessUpdateError);
-    return { success: false, error: 'Failed to activate subscription' };
+    if (businessUpdateError) {
+      console.error('[razorpay] subscription auth finalize failed:', businessUpdateError);
+      return { success: false, error: 'Failed to activate subscription' };
+    }
   }
 
   const paymentPayload = {
@@ -263,6 +289,7 @@ export async function finalizeSubscriptionAuthorization(
     currency: 'INR',
     status: 'completed',
     payment_id: paymentId,
+    order_id: orderIdFromPayment,
     razorpay_subscription_id: subscriptionId,
     payment_type: 'subscription_auth',
     source,
@@ -281,12 +308,19 @@ export async function finalizeSubscriptionAuthorization(
 
   if (pending?.id) {
     await supabase.from('merchant_payments').update(paymentPayload).eq('id', pending.id);
-  } else {
+  } else if (!alreadyCompleted) {
     await supabase.from('merchant_payments').insert({ ...paymentPayload, created_at: nowIso });
+  } else {
+    await completePendingAuthPaymentRecord(supabase, {
+      businessId,
+      subscriptionId,
+      paymentId,
+      paymentPayload,
+    });
   }
 
   await revalidateMerchantPaths(businessId);
-  return { success: true };
+  return { success: true, alreadyCompleted };
 }
 
 export async function finalizeSubscriptionRenewal(
@@ -372,6 +406,7 @@ export async function finalizeSubscriptionRenewal(
     currency: 'INR',
     status: 'completed',
     payment_id: paymentId,
+    order_id: remotePayment.order_id?.trim() || null,
     razorpay_subscription_id: subscriptionId,
     payment_type: 'subscription_renewal',
     source,

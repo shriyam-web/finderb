@@ -75,7 +75,7 @@ async function fetchFeaturedBusinesses(supabase: SupabaseClient) {
     .from('Business')
     .select('*')
     .eq('status', 'Active')
-    .or('isVerified.eq.true,isFinderBVerified.eq.true')
+    .or('isFinderBVerified.eq.true,hasVerifiedBadge.eq.true')
     .limit(60);
 
   if (error) {

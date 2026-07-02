@@ -1,4 +1,5 @@
 import type { Business } from '@/lib/mockData';
+import { isValidEstablishmentYear } from '@/lib/establishmentYear';
 
 function hasText(value?: string | null, minLength = 2): boolean {
   const text = value?.trim();
@@ -55,7 +56,7 @@ export function getBusinessProfileCompletenessScore(business: Business): number 
   if (hasText(business.youtubeUrl)) score += 3;
 
   if (hasTimings(business.timings)) score += 8;
-  if (business.yearsInBusiness != null && business.yearsInBusiness > 0) score += 3;
+  if (isValidEstablishmentYear(business.yearsInBusiness)) score += 3;
 
   const serviceCount = business.services?.length ?? 0;
   if (serviceCount >= 3) score += 8;

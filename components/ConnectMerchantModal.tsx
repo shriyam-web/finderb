@@ -1,7 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { submitBroadcastEnquiry } from '@/app/actions/leads';
+import type { ContactIntent } from '@/lib/directLead';
+import { buildLoginHref, buildSignupHref } from '@/lib/authRedirect';
 
 export type ConnectMerchantBusiness = {
   id: string;
@@ -13,33 +16,34 @@ export type ConnectMerchantBusiness = {
   location?: string;
 };
 
-function digitsOnly(value: string) {
-  return value.replace(/\D/g, '');
-}
-
-function whatsAppUrl(number: string, businessName: string) {
-  const digits = digitsOnly(number);
-  const withCountry = digits.length === 10 ? `91${digits}` : digits;
-  const text = encodeURIComponent(
-    `Hi, I found ${businessName} on FinderB and would like to know more.`
-  );
-  return `https://wa.me/${withCountry}?text=${text}`;
-}
-
 type ModalStep = 'options' | 'form' | 'done';
+
+type ConnectMerchantModalProps = {
+  business: ConnectMerchantBusiness;
+  isOpen: boolean;
+  onClose: () => void;
+  initialLookingFor?: string;
+  contactRevealed: boolean;
+  profileRedirectPath: string;
+  userName?: string;
+  userEmail?: string;
+  onContactAction: (intent: ContactIntent) => void | Promise<void>;
+  initialStep?: ModalStep;
+};
 
 export default function ConnectMerchantModal({
   business,
   isOpen,
   onClose,
   initialLookingFor = '',
-}: {
-  business: ConnectMerchantBusiness;
-  isOpen: boolean;
-  onClose: () => void;
-  initialLookingFor?: string;
-}) {
-  const [step, setStep] = useState<ModalStep>('options');
+  contactRevealed,
+  profileRedirectPath,
+  userName = '',
+  userEmail = '',
+  onContactAction,
+  initialStep = 'options',
+}: ConnectMerchantModalProps) {
+  const [step, setStep] = useState<ModalStep>(initialStep);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [merchantCount, setMerchantCount] = useState(0);
@@ -48,13 +52,16 @@ export default function ConnectMerchantModal({
   const area = (business.city || business.location || '').trim();
   const areaUnavailable =
     !area || /not specified|unknown/i.test(area) || (!business.city && !business.location);
-  const whatsapp = business.whatsappNumber || business.contact;
+  const loginHref = buildLoginHref(profileRedirectPath);
+  const signupHref = buildSignupHref(profileRedirectPath);
 
   useEffect(() => {
     if (isOpen) {
       setLookingFor(initialLookingFor);
+      setStep(initialStep);
+      setError(null);
     }
-  }, [isOpen, initialLookingFor]);
+  }, [isOpen, initialLookingFor, initialStep]);
 
   const handleClose = () => {
     setStep('options');
@@ -63,8 +70,18 @@ export default function ConnectMerchantModal({
     onClose();
   };
 
+  const handleContactClick = async (intent: ContactIntent) => {
+    if (!contactRevealed) return;
+    await onContactAction(intent);
+    if (intent !== 'enquire') {
+      handleClose();
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!contactRevealed) return;
+
     setLoading(true);
     setError(null);
 
@@ -108,7 +125,11 @@ export default function ConnectMerchantModal({
               {step === 'form' ? 'Send enquiry' : step === 'done' ? 'Enquiry sent' : `Contact ${business.name}`}
             </h2>
             {step === 'options' && (
-              <p className="text-sm text-gray-600 mt-0.5">Choose how you want to reach them.</p>
+              <p className="text-sm text-gray-600 mt-0.5">
+                {contactRevealed
+                  ? 'Choose how you want to reach them.'
+                  : 'Sign in to view contact options.'}
+              </p>
             )}
           </div>
           <button
@@ -122,33 +143,57 @@ export default function ConnectMerchantModal({
         </div>
 
         <div className="px-4 py-4 overflow-y-auto flex-1">
+          {!contactRevealed && step !== 'done' && (
+            <div className="mb-4 rounded-lg border border-[#f9b864]/30 bg-[#fff8ef] px-3 py-3 text-sm text-stone-700">
+              <p>Sign in to call, WhatsApp, or send an enquiry. We&apos;ll bring you back here and count you as a lead for the merchant.</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Link
+                  href={loginHref}
+                  className="inline-flex rounded-md bg-[#215481] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#1a4367]"
+                >
+                  Sign in
+                </Link>
+                <Link
+                  href={signupHref}
+                  className="inline-flex rounded-md border border-stone-300 bg-white px-3 py-1.5 text-xs font-semibold text-[#215481] hover:bg-stone-50"
+                >
+                  Create account
+                </Link>
+              </div>
+            </div>
+          )}
+
           {step === 'options' && (
             <ul className="space-y-2 text-sm">
               <li>
-                <a
-                  href={whatsAppUrl(whatsapp, business.name)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={handleClose}
-                  className="block w-full border border-gray-300 px-3 py-2.5 text-gray-900 hover:bg-gray-50"
+                <button
+                  type="button"
+                  disabled={!contactRevealed}
+                  onClick={() => void handleContactClick('whatsapp')}
+                  className="block w-full border border-gray-300 px-3 py-2.5 text-left text-gray-900 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   WhatsApp
-                </a>
-              </li>
-              <li>
-                <a
-                  href={`tel:${business.contact}`}
-                  onClick={handleClose}
-                  className="block w-full border border-gray-300 px-3 py-2.5 text-gray-900 hover:bg-gray-50"
-                >
-                  Phone — {business.contact}
-                </a>
+                </button>
               </li>
               <li>
                 <button
                   type="button"
-                  onClick={() => setStep('form')}
-                  className="block w-full border border-gray-300 px-3 py-2.5 text-left text-gray-900 hover:bg-gray-50"
+                  disabled={!contactRevealed}
+                  onClick={() => void handleContactClick('call')}
+                  className="block w-full border border-gray-300 px-3 py-2.5 text-left text-gray-900 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {contactRevealed ? `Phone — ${business.contact}` : 'Phone — sign in to view'}
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  disabled={!contactRevealed || areaUnavailable}
+                  onClick={async () => {
+                    await onContactAction('enquire');
+                    setStep('form');
+                  }}
+                  className="block w-full border border-gray-300 px-3 py-2.5 text-left text-gray-900 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Send enquiry to merchants in {business.category}
                   {area ? ` (${area})` : ''}
@@ -180,6 +225,7 @@ export default function ConnectMerchantModal({
                     name="name"
                     type="text"
                     required
+                    defaultValue={userName}
                     autoComplete="name"
                     className="w-full border border-gray-300 px-3 py-2 text-sm text-gray-900 rounded-sm focus:outline-none focus:border-gray-500"
                   />
@@ -194,8 +240,10 @@ export default function ConnectMerchantModal({
                     name="email"
                     type="email"
                     required
+                    defaultValue={userEmail}
                     autoComplete="email"
-                    className="w-full border border-gray-300 px-3 py-2 text-sm text-gray-900 rounded-sm focus:outline-none focus:border-gray-500"
+                    readOnly={Boolean(userEmail)}
+                    className="w-full border border-gray-300 px-3 py-2 text-sm text-gray-900 rounded-sm focus:outline-none focus:border-gray-500 read-only:bg-gray-50"
                   />
                 </div>
 
@@ -221,52 +269,45 @@ export default function ConnectMerchantModal({
                     id="enquiry-looking-for"
                     name="lookingFor"
                     required
-                    rows={4}
+                    rows={3}
                     value={lookingFor}
                     onChange={(e) => setLookingFor(e.target.value)}
-                    className="w-full border border-gray-300 px-3 py-2 text-sm text-gray-900 rounded-sm resize-y min-h-[88px] focus:outline-none focus:border-gray-500"
+                    className="w-full border border-gray-300 px-3 py-2 text-sm text-gray-900 rounded-sm focus:outline-none focus:border-gray-500"
                   />
                 </div>
 
-                <div className="flex flex-col-reverse sm:flex-row gap-2 pt-1">
+                <div className="flex gap-2 pt-1">
                   <button
                     type="button"
-                    onClick={() => {
-                      setStep('options');
-                      setError(null);
-                    }}
-                    className="w-full sm:w-auto border border-gray-300 px-4 py-2 text-sm text-gray-800 hover:bg-gray-50"
+                    onClick={() => setStep('options')}
+                    className="flex-1 border border-gray-300 px-3 py-2 text-sm text-gray-800 hover:bg-gray-50"
                   >
                     Back
                   </button>
                   <button
                     type="submit"
-                    disabled={loading || areaUnavailable}
-                    className="w-full sm:flex-1 bg-[#1a56db] text-white px-4 py-2 text-sm hover:bg-[#1648b8] disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={loading || !contactRevealed}
+                    className="flex-[2] bg-[#215481] px-3 py-2 text-sm font-semibold text-white hover:bg-[#1a4367] disabled:opacity-50"
                   >
-                    {loading ? 'Sending…' : 'Submit enquiry'}
+                    {loading ? 'Sending…' : 'Send enquiry'}
                   </button>
                 </div>
-
-                {areaUnavailable && (
-                  <p className="text-sm text-amber-800">
-                    Area is not set for this listing. Use WhatsApp or phone instead.
-                  </p>
-                )}
               </form>
             </>
           )}
 
           {step === 'done' && (
-            <div className="text-sm text-gray-700 space-y-3">
-              <p>
-                Your enquiry was sent to <strong>{merchantCount}</strong> merchant
-                {merchantCount === 1 ? '' : 's'}.
+            <div className="text-sm text-gray-700">
+              <p className="font-medium text-gray-900">Your enquiry was sent.</p>
+              <p className="mt-2">
+                {merchantCount > 0
+                  ? `${merchantCount} merchant${merchantCount === 1 ? '' : 's'} in your area received it.`
+                  : 'Merchants in your area will be notified.'}
               </p>
               <button
                 type="button"
                 onClick={handleClose}
-                className="w-full border border-gray-300 px-4 py-2 text-gray-900 hover:bg-gray-50"
+                className="mt-4 w-full border border-gray-300 px-3 py-2 text-sm font-medium text-gray-800 hover:bg-gray-50"
               >
                 Close
               </button>

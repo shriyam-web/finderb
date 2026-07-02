@@ -88,12 +88,12 @@ export function SearchableSelect({
         <div
           className={
             isMerchant
-              ? `merchant-auth-select-trigger flex min-h-[54px] w-full items-center py-3.5 pl-11 pr-11 text-[15px] font-semibold text-[#0f273b] ${
-                  isOpen ? 'merchant-auth-select-trigger-open' : ''
-                }`
-              : `flex min-h-[56px] w-full items-center rounded-2xl border border-gray-100 bg-gray-50 py-4 pl-11 pr-10 text-sm font-semibold text-gray-900 ${
-                  isOpen ? 'border-blue-600 bg-white ring-2 ring-blue-50' : ''
-                }`
+              ? `merchant-auth-select-trigger flex min-h-[54px] w-full items-center py-3.5 pr-11 text-[15px] font-semibold text-[#0f273b] ${
+                  icon ? 'pl-11' : 'pl-4'
+                } ${isOpen ? 'merchant-auth-select-trigger-open' : ''}`
+              : `flex min-h-[56px] w-full items-center rounded-2xl border border-gray-100 bg-gray-50 py-4 pr-10 text-sm font-semibold text-gray-900 ${
+                  icon ? 'pl-11' : 'pl-4'
+                } ${isOpen ? 'border-blue-600 bg-white ring-2 ring-blue-50' : ''}`
           }
         >
           {loading ? (

@@ -51,3 +51,47 @@ export function getDiscountOfferDisplay(
     detail: `Mention this listing when you contact ${businessName}.`,
   };
 }
+
+export type DiscountVisibilityTier = 'none' | 'light' | 'medium' | 'high';
+
+export function getDiscountVisibilityImpact(discountRange: string | null | undefined): {
+  tier: DiscountVisibilityTier;
+  title: string;
+  message: string;
+} {
+  const label = discountRange?.trim() || 'No Discount';
+
+  if (!label || label === 'No Discount') {
+    return {
+      tier: 'none',
+      title: 'Standard visibility',
+      message:
+        'Without an active offer, your listing won’t show a discount badge. Merchants with visible deals tend to get more clicks in search and category results.',
+    };
+  }
+
+  if (label === '5% - 10% OFF') {
+    return {
+      tier: 'light',
+      title: 'Offer badge on your listing',
+      message:
+        'A discount badge appears on your profile. Even a modest offer can help you stand out next to listings with no deal.',
+    };
+  }
+
+  if (label === '10% - 20% OFF' || label === 'Seasonal Offer') {
+    return {
+      tier: 'medium',
+      title: 'Better discoverability',
+      message:
+        'Mid-range offers are highlighted to customers browsing for deals and add to your profile strength score.',
+    };
+  }
+
+  return {
+    tier: 'high',
+    title: 'Maximum offer visibility',
+    message:
+      'Stronger discounts are prioritised in offer-led discovery and attract more enquiries from customers actively looking for savings.',
+  };
+}

@@ -152,7 +152,7 @@ export function KycStatusBadge({
   if (normalized === 'submitted') {
     return (
       <StatusBadge
-        label="Under review"
+        label="KYC in review"
         tone="info"
         icon={<HiOutlineClock size={12} />}
         size={size}
@@ -162,11 +162,69 @@ export function KycStatusBadge({
     );
   }
 
+  if (normalized === 'rejected') {
+    return (
+      <StatusBadge
+        label="KYC rejected"
+        tone="danger"
+        icon={<HiOutlineExclamationTriangle size={12} />}
+        size={size}
+        className={className}
+      />
+    );
+  }
+
   return (
     <StatusBadge
-      label="KYC incomplete"
-      tone="danger"
+      label="KYC pending"
+      tone="warning"
       icon={<HiOutlineExclamationTriangle size={12} />}
+      size={size}
+      className={className}
+    />
+  );
+}
+
+export function ListingStatusBadge({
+  status,
+  size = 'md',
+  className = '',
+}: {
+  status?: string;
+  size?: 'sm' | 'md' | 'lg';
+  className?: string;
+}) {
+  const normalized = (status || 'Pending').toLowerCase();
+
+  if (normalized === 'active') {
+    return (
+      <StatusBadge
+        label="Listing live"
+        tone="success"
+        icon={<HiOutlineCheckBadge size={12} />}
+        size={size}
+        className={className}
+      />
+    );
+  }
+
+  if (normalized === 'rejected') {
+    return (
+      <StatusBadge
+        label="Listing rejected"
+        tone="danger"
+        icon={<HiOutlineExclamationTriangle size={12} />}
+        size={size}
+        className={className}
+      />
+    );
+  }
+
+  return (
+    <StatusBadge
+      label="Awaiting listing approval"
+      tone="warning"
+      icon={<HiOutlineClock size={12} />}
       size={size}
       pulse
       className={className}
@@ -193,7 +251,7 @@ export function VerifiedBadge({
 }
 
 export function PlanBadge({
-  plan = 'Pro',
+  plan = 'Starter',
   size = 'sm',
   className = '',
 }: {

@@ -10,11 +10,11 @@ import {
   Users,
   type LucideIcon,
 } from 'lucide-react';
+import IndianPhoneInput from '@/components/IndianPhoneInput';
 import {
   MerchantAuthMain,
   merchantAuthBtnPrimary,
 } from '@/components/business/MerchantAuthShell';
-import { IndiaPhonePrefix } from '@/components/business/MerchantAuthForm';
 import RegisterHero from '@/components/business/RegisterHero';
 import PricingFontRoot from '@/components/pricing/PricingFontRoot';
 import PricingPlansSection from '@/components/pricing/PricingPlansSection';
@@ -42,17 +42,14 @@ function MobileRegisterInput({
 }) {
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch">
-      <div className="merchant-auth-phone-field flex min-w-0 flex-1 items-stretch overflow-hidden rounded-2xl border-2 border-[#cfd8e3] bg-white focus-within:border-[#153551] focus-within:shadow-[0_0_0_3px_rgba(21,53,81,0.1)]">
-        <IndiaPhonePrefix />
-        <input
-          type="tel"
-          inputMode="numeric"
-          value={mobile}
-          onChange={(e) => onChange(e.target.value.replace(/\D/g, '').slice(0, 10))}
-          placeholder="10-digit mobile number"
-          className="min-w-0 flex-1 bg-transparent px-3 py-3.5 text-sm text-zinc-900 outline-none placeholder:text-zinc-400"
-        />
-      </div>
+      <IndianPhoneInput
+        id="register-mobile"
+        value={mobile}
+        onChange={onChange}
+        variant="merchant"
+        placeholder="10-digit mobile number"
+        className="min-w-0 flex-1"
+      />
       <button
         type="button"
         onClick={onSubmit}

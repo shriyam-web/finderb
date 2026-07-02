@@ -131,6 +131,28 @@ export async function adminCreateResource(resourceKey: string, payload: Record<s
   return { success: true as const, row };
 }
 
+function sanitizeMerchantAdminPayload(payload: Record<string, unknown>): Record<string, unknown> {
+  const next = { ...payload };
+  const touchesListingApproval = 'status' in next || 'isVerified' in next;
+  const explicitKycUpdate =
+    'kycStatus' in next || 'isFinderBVerified' in next || 'hasVerifiedBadge' in next;
+
+  if (touchesListingApproval && !explicitKycUpdate) {
+    delete next.kycStatus;
+    delete next.isFinderBVerified;
+    delete next.hasVerifiedBadge;
+  }
+
+  if (next.isVerified === true && next.status == null) {
+    next.status = 'Active';
+  }
+  if (next.isVerified === false && next.status == null) {
+    next.status = 'Pending';
+  }
+
+  return next;
+}
+
 export async function adminUpdateResource(
   resourceKey: string,
   id: string,
@@ -146,6 +168,9 @@ export async function adminUpdateResource(
     return { success: false as const, error: 'Unknown resource or missing id' };
   }
 
+  const updatePayload =
+    config.key === 'merchants' ? sanitizeMerchantAdminPayload(payload) : payload;
+
   const supabase = createServiceClient();
   if (!supabase) {
     return { success: false as const, error: 'Admin service is not configured' };
@@ -155,7 +180,7 @@ export async function adminUpdateResource(
 
   const { data, error } = await supabase
     .from(config.table)
-    .update(payload)
+    .update(updatePayload)
     .eq('id', id)
     .select('*')
     .single();
@@ -173,7 +198,7 @@ export async function adminUpdateResource(
     resourceType: config.resourceType,
     resourceId: id,
     summary: `Updated ${config.label.toLowerCase().slice(0, -1)}: ${label}`,
-    metadata: { changedFields: Object.keys(payload), previous: before ?? null },
+    metadata: { changedFields: Object.keys(updatePayload), previous: before ?? null },
   });
 
   revalidateAdminResource(config.key);

@@ -17,57 +17,18 @@ import BusinessRegisterWizard from '@/components/business/BusinessRegisterWizard
 import CategoryIcon from '@/components/CategoryIcon';
 import { MerchantAuthPage } from '@/components/business/MerchantAuthShell';
 import { registerBusiness } from '@/app/actions/business';
-import { countryFlagEmoji } from '@/lib/countryFlag';
+import {
+  validateRegistrationMobile,
+  validateRegistrationStep1,
+  validateRegistrationStep2,
+} from '@/lib/merchantRegistrationValidation';
+import CountryFlagPrefix from '@/components/CountryFlagPrefix';
+import { combineBusinessAddress } from '@/lib/businessAddress';
 import { markNewBusinessOnboarding } from '@/lib/businessOnboarding';
 import AuthRedirectScreen from '@/components/auth/AuthRedirectScreen';
 import { useAlreadyLoggedInRedirect } from '@/hooks/useAlreadyLoggedInRedirect';
 
 type LiveCategory = { id: string; name: string; icon?: string | null };
-
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-function validateStep1(
-  data: {
-    fullName: string;
-    email: string;
-    password: string;
-  },
-  mobileNum: string,
-): string | null {
-  if (!data.fullName.trim()) return 'Please enter your full name';
-  if (!data.email.trim()) return 'Please enter your email address';
-  if (!EMAIL_REGEX.test(data.email.trim())) return 'Please enter a valid email address';
-  if (!data.password) return 'Please enter a password';
-  if (data.password.length < 6) return 'Password must be at least 6 characters long';
-  if (!mobileNum || mobileNum.replace(/\D/g, '').length < 10) {
-    return 'Valid mobile number is required';
-  }
-  return null;
-}
-
-function validateStep2(
-  data: {
-    businessName: string;
-    categoryId: string;
-    subcategoryId: string;
-    city: string;
-    state: string;
-    publicPhone: string;
-    businessAddress: string;
-  },
-  subs: LiveCategory[],
-): string | null {
-  if (!data.businessName.trim()) return 'Please enter your business name';
-  if (!data.categoryId) return 'Please select a business category';
-  if (subs.length > 0 && !data.subcategoryId) return 'Please select a subcategory';
-  if (!data.city.trim()) return 'Please select your city';
-  if (!data.state.trim()) return 'Please select your state';
-  if (data.publicPhone.replace(/\D/g, '').length < 10) {
-    return 'Please enter a valid 10-digit business phone number';
-  }
-  if (!data.businessAddress.trim()) return 'Please enter your business address';
-  return null;
-}
 
 function isStep1RegistrationError(error: string): boolean {
   const lower = error.toLowerCase();
@@ -129,6 +90,7 @@ function RegisterFormContent() {
     workEmail: '',
     password: '',
     businessName: '',
+    displayName: '',
     category: '',
     categoryId: '',
     subcategory: '',
@@ -141,13 +103,14 @@ function RegisterFormContent() {
     country: 'India',
     countryCode: 'IN',
     publicPhone: '',
-    businessAddress: ''
+    addressLine1: '',
+    addressLine2: '',
   });
 
   const countryOptions = Country.getAllCountries().map((c) => ({
     label: c.name,
     value: c.isoCode,
-    prefix: countryFlagEmoji(c.isoCode),
+    prefix: <CountryFlagPrefix isoCode={c.isoCode} />,
   }));
 
   const stateOptions = formData.countryCode 
@@ -219,17 +182,40 @@ function RegisterFormContent() {
 
   const nextStep = async () => {
     if (step === 1) {
-      const step1Error = validateStep1(formData, mobile);
+      const step1Error = validateRegistrationStep1({
+        fullName: formData.fullName,
+        email: formData.email,
+        password: formData.password,
+        mobile,
+      });
       if (step1Error) {
         alert(step1Error);
         return;
       }
+      setFormData((prev) => ({
+        ...prev,
+        publicPhone: prev.publicPhone || mobile,
+      }));
       setStep(2);
       return;
     }
 
     if (step === 2) {
-      const step2Error = validateStep2(formData, subCategories);
+      const step2Error = validateRegistrationStep2({
+        businessName: formData.businessName,
+        displayName: formData.displayName,
+        categoryId: formData.categoryId,
+        subcategoryId: formData.subcategoryId,
+        city: formData.city,
+        state: formData.state,
+        country: formData.country,
+        countryCode: formData.countryCode,
+        stateCode: formData.stateCode,
+        publicPhone: formData.publicPhone,
+        addressLine1: formData.addressLine1,
+        addressLine2: formData.addressLine2,
+        hasSubcategories: subCategories.length > 0,
+      });
       if (step2Error) {
         alert(step2Error);
         return;
@@ -247,14 +233,33 @@ function RegisterFormContent() {
   const prevStep = () => setStep((s) => Math.max(s - 1, 1));
 
   const handleRegistration = async () => {
-    const step1Error = validateStep1(formData, mobile);
+    const step1Error = validateRegistrationStep1({
+      fullName: formData.fullName,
+      email: formData.email,
+      password: formData.password,
+      mobile,
+    });
     if (step1Error) {
       alert(step1Error);
       setStep(1);
       return;
     }
 
-    const step2Error = validateStep2(formData, subCategories);
+    const step2Error = validateRegistrationStep2({
+      businessName: formData.businessName,
+      displayName: formData.displayName,
+      categoryId: formData.categoryId,
+      subcategoryId: formData.subcategoryId,
+      city: formData.city,
+      state: formData.state,
+      country: formData.country,
+      countryCode: formData.countryCode,
+      stateCode: formData.stateCode,
+      publicPhone: formData.publicPhone,
+      addressLine1: formData.addressLine1,
+      addressLine2: formData.addressLine2,
+      hasSubcategories: subCategories.length > 0,
+    });
     if (step2Error) {
       alert(step2Error);
       return;
@@ -271,6 +276,10 @@ function RegisterFormContent() {
         ...formData,
         category: categoryLabel,
         mobile,
+        publicPhone: formData.publicPhone,
+        addressLine1: formData.addressLine1,
+        addressLine2: formData.addressLine2,
+        businessAddress: combineBusinessAddress(formData.addressLine1, formData.addressLine2),
         selectedPlan,
         billingCycle,
       };
@@ -284,7 +293,8 @@ function RegisterFormContent() {
         city: registrationData.city,
         state: registrationData.state,
         publicPhone: registrationData.publicPhone,
-        businessAddress: registrationData.businessAddress,
+        addressLine1: registrationData.addressLine1,
+        addressLine2: registrationData.addressLine2,
         selectedPlan: registrationData.selectedPlan,
         billingCycle: registrationData.billingCycle,
       });
@@ -311,11 +321,12 @@ function RegisterFormContent() {
   };
 
   const handleStartNow = () => {
-    if (mobile.length >= 10) {
-      setShowForm(true);
-    } else {
-      alert('Please enter a valid mobile number');
+    const error = validateRegistrationMobile(mobile);
+    if (error) {
+      alert(error);
+      return;
     }
+    setShowForm(true);
   };
 
   const scrollToRegisterHero = () => {

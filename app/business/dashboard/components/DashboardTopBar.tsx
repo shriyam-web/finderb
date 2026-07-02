@@ -27,6 +27,10 @@ const tabMeta: Record<string, { title: string; description: string }> = {
     title: 'Settings',
     description: 'Profile, documents, and account preferences.',
   },
+  subscription: {
+    title: 'My Subscription',
+    description: '',
+  },
 };
 
 type DashboardTopBarProps = {

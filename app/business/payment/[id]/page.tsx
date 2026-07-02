@@ -71,13 +71,13 @@ function PaymentPageContent({ id }: { id: string }) {
       }
 
       if (!razorpayConfigured) {
-        setError('Payment gateway is not configured yet. Add Razorpay API keys to your environment.');
+        setError('Online payment is not available right now. Please try again later or contact support.');
         return;
       }
 
       if (cycle === 'monthly' && !subscriptionsConfigured) {
         setError(
-          'Monthly auto-debit is not configured. Add RAZORPAY_PLAN_ID_PRO_MONTHLY to your server environment.',
+          'Monthly auto-debit is not available right now. Please try again later or contact support.',
         );
         return;
       }
@@ -293,7 +293,11 @@ function PaymentPageContent({ id }: { id: string }) {
 
   if (subscription.isActive && !checkoutRequested) {
     return (
-      <MerchantPaymentSuccess businessId={id} businessName={business.businessName} />
+      <MerchantPaymentSuccess
+        businessId={id}
+        businessName={business.businessName}
+        planName={subscription.planName}
+      />
     );
   }
 

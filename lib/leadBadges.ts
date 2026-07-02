@@ -1,7 +1,11 @@
 export const PROFILE_LEAD_BADGE = 'Generated on your profile';
 export const CATEGORY_LEAD_BADGE = 'In your category';
+export const DIRECT_LEAD_BADGE = 'Direct Lead';
 
 export function leadBadgeClassName(status: string): string {
+  if (status === DIRECT_LEAD_BADGE) {
+    return 'bg-violet-50 text-violet-900 border-violet-200';
+  }
   if (status === PROFILE_LEAD_BADGE) {
     return 'bg-[#215481]/10 text-[#153551] border-[#215481]/20';
   }

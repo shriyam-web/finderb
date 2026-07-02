@@ -3,14 +3,16 @@
 import { createClient } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';
 
-import { CATEGORY_LEAD_BADGE, PROFILE_LEAD_BADGE } from '@/lib/leadBadges';
+import { DIRECT_LEAD_MESSAGES, type ContactIntent } from '@/lib/directLead';
+import { CATEGORY_LEAD_BADGE, DIRECT_LEAD_BADGE, PROFILE_LEAD_BADGE } from '@/lib/leadBadges';
 import {
   enrichLegacyJobLeadMessage,
   extractLegacyJobId,
 } from '@/lib/jobLeadMessage';
 import { escapeIlikePattern } from '@/lib/searchMatch';
-import { assertBusinessSession } from '@/lib/security/session';
+import { assertBusinessSession, getSessionUserId } from '@/lib/security/session';
 import { enforceRateLimit } from '@/lib/security/enforceRateLimit.server';
+import { getUser } from '@/app/actions/user';
 
 export type BusinessLead = {
   id: string;
@@ -132,6 +134,74 @@ export async function updateLeadStatus(leadId: string, status: string) {
   }
 }
 
+export async function recordDirectLead(params: {
+  businessId: string;
+  channel: ContactIntent;
+}) {
+  try {
+    const writeLimit = await enforceRateLimit('write', `direct-lead:${params.businessId}`);
+    if (!writeLimit.ok) return { success: false as const, error: writeLimit.error };
+
+    const userId = await getSessionUserId();
+    if (!userId) {
+      return { success: false as const, error: 'Sign in to contact this business.' };
+    }
+
+    const userResult = await getUser(userId);
+    if (!userResult.success || !userResult.user) {
+      return { success: false as const, error: 'Could not load your account.' };
+    }
+
+    const supabase = createClient(await cookies());
+    const { data: business, error: businessError } = await supabase
+      .from('Business')
+      .select('category')
+      .eq('id', params.businessId)
+      .maybeSingle();
+
+    if (businessError || !business) {
+      return { success: false as const, error: 'Business not found.' };
+    }
+
+    const message = DIRECT_LEAD_MESSAGES[params.channel];
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { data: existing } = await supabase
+      .from('leads')
+      .select('id')
+      .eq('business_id', params.businessId)
+      .eq('email', userResult.user.email)
+      .eq('status', DIRECT_LEAD_BADGE)
+      .eq('message', message)
+      .gte('created_at', since)
+      .maybeSingle();
+
+    if (existing) {
+      return { success: true as const, duplicate: true as const };
+    }
+
+    const now = new Date().toISOString();
+    const { error: insertError } = await supabase.from('leads').insert({
+      name: userResult.user.fullName,
+      email: userResult.user.email,
+      phone: null,
+      category: String(business.category || 'General'),
+      business_id: params.businessId,
+      message,
+      status: DIRECT_LEAD_BADGE,
+      created_at: now,
+      updated_at: now,
+    });
+
+    if (insertError) throw insertError;
+
+    return { success: true as const, duplicate: false as const };
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : 'Could not record lead';
+    console.error('Record Direct Lead Error:', error);
+    return { success: false as const, error: msg };
+  }
+}
+
 export async function submitBroadcastEnquiry(data: {
   sourceBusinessId: string;
   category: string;
@@ -144,6 +214,11 @@ export async function submitBroadcastEnquiry(data: {
   try {
     const writeLimit = await enforceRateLimit('write', 'broadcast-enquiry');
     if (!writeLimit.ok) return { success: false, error: writeLimit.error };
+
+    const userId = await getSessionUserId();
+    if (!userId) {
+      return { success: false, error: 'Sign in to send an enquiry.' };
+    }
 
     const { sourceBusinessId, category, area, name, email, phone, lookingFor } = data;
 

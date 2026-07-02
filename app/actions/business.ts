@@ -13,7 +13,7 @@ import {
   LOGIN_PATHS,
   lookupEmailAccountTypes,
 } from '@/lib/emailAccountLookup';
-import { mapBusinessRecord } from '@/lib/businessMapping';
+import { mapBusinessRecord, mapOwnedBusinessRecord } from '@/lib/businessMapping';
 import { revalidateBusinessProfilePaths } from '@/lib/businessRevalidation';
 import { ensureBusinessSlug } from '@/lib/businessSlug.server';
 import { isLegacyBusinessId, resolveBusinessSlug } from '@/lib/businessSlug';
@@ -22,9 +22,35 @@ import {
   CATEGORY_LISTINGS_MAX_PAGE_SIZE,
   CATEGORY_LISTINGS_PAGE_SIZE,
 } from '@/lib/categoryListings';
+import { validateMapPinAgainstAddress } from '@/app/actions/location';
+import {
+  applyResolvedAddressToManual,
+  hasResolvedMapAddress,
+  mapPinMatchesManualAddress,
+} from '@/lib/locationMatch';
+import { validateAndNormalizeRegistrationPayload } from '@/lib/merchantRegistrationValidation';
+import {
+  getReviewReplyDraft,
+  normalizeReviewReplyForStorage,
+  validateReviewReplyContent,
+} from '@/lib/businessReviews';
+import {
+  indianMobileValidationError,
+  normalizeIndianPhoneForStorage,
+} from '@/lib/indianPhone';
+import { normalizeSearchKeywords } from '@/lib/businessKeywords';
+import {
+  ABOUT_BUSINESS_MAX_WORDS,
+  isAboutWithinWordLimit,
+  trimAboutToWordLimit,
+} from '@/lib/businessAbout';
 import { parseCoordinate } from '@/lib/geo';
 import { revalidateSitemap } from '@/lib/sitemapData';
 import { escapeIlikePattern } from '@/lib/searchMatch';
+import {
+  PASSWORD_MIN_LENGTH_USER,
+  validateChangePasswordFields,
+} from '@/lib/security/passwordPolicy';
 import {
   hashPassword,
   PASSWORD_MIN_LENGTH_MERCHANT,
@@ -38,12 +64,6 @@ import {
 import { enforceRateLimit } from '@/lib/security/enforceRateLimit.server';
 import { redactPublicBusinessFields } from '@/lib/security/businessFields';
 import { finalizeMerchantPayment } from '@/lib/razorpay/finalizeMerchantPayment';
-import {
-  createRazorpayContact,
-  createRazorpayBankFundAccount,
-  createRazorpayVpaFundAccount,
-} from '@/lib/razorpay/verify';
-import { isRazorpayConfigured } from '@/lib/razorpay/server';
 
 // Safe error handler wrapper
 function handleError(error: any, context: string): string {
@@ -81,17 +101,12 @@ export async function registerBusiness(formData: any) {
   const startTime = Date.now();
 
   try {
-    // Validate required fields first
-    if (!formData.fullName || !formData.email || !formData.mobile || !formData.businessName || !formData.category || !formData.publicPhone || !formData.businessAddress) {
-      return { success: false, error: 'All required fields must be filled' };
+    const validated = validateAndNormalizeRegistrationPayload(formData);
+    if (!validated.ok) {
+      return { success: false, error: validated.error };
     }
 
-    if (formData.password) {
-      const passwordCheck = validatePasswordLength(formData.password, PASSWORD_MIN_LENGTH_MERCHANT);
-      if (!passwordCheck.ok) {
-        return { success: false, error: passwordCheck.error };
-      }
-    }
+    const normalized = validated.data;
 
     console.log('✓ [REGISTER] Validation passed');
     console.log('[REGISTER] Attempting database operation...');
@@ -99,7 +114,7 @@ export async function registerBusiness(formData: any) {
     // Generate a unique registration number
     const regNo = `FINDERB-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
 
-    const normalizedEmail = formData.email.toLowerCase().trim();
+    const normalizedEmail = normalized.email;
 
     const ipLimit = await enforceRateLimit('register');
     if (!ipLimit.ok) return { success: false, error: ipLimit.error };
@@ -122,28 +137,33 @@ export async function registerBusiness(formData: any) {
     console.log('[REGISTER] Creating business record...');
 
     const now = new Date().toISOString();
-    const passwordValue = formData.password
-      ? await hashPassword(formData.password)
+    const passwordValue = normalized.password
+      ? await hashPassword(normalized.password)
       : null;
 
     const { data: business, error } = await supabase
       .from('Business')
       .insert({
         id: crypto.randomUUID(),
-        fullName: formData.fullName,
+        fullName: normalized.fullName,
         workEmail: normalizedEmail,
         email: normalizedEmail,
-        mobile: formData.mobile.trim(),
-        businessName: formData.businessName,
-        category: formData.category,
-        location: formData.location || `${formData.city}, ${formData.state}`,
-        city: formData.city,
-        state: formData.state,
-        country: formData.country,
-        publicPhone: formData.publicPhone.trim(),
-        businessAddress: formData.businessAddress,
-        selectedPlan: formData.selectedPlan || 'free',
-        billingCycle: formData.billingCycle || 'monthly',
+        mobile: normalized.mobile,
+        businessName: normalized.businessName,
+        displayName: normalized.displayName,
+        owner_name: normalized.fullName,
+        owner_mobile: normalized.mobile,
+        category: normalized.category,
+        location: normalized.location,
+        city: normalized.city,
+        state: normalized.state,
+        country: normalized.country,
+        publicPhone: normalized.publicPhone,
+        businessAddress: normalized.businessAddress,
+        selectedPlan: normalized.selectedPlan || 'free',
+        billingCycle: normalized.billingCycle || 'monthly',
+        status: 'Pending',
+        kycStatus: 'pending',
         registrationNumber: regNo,
         ...(passwordValue ? { password: passwordValue } : {}),
         createdAt: now,
@@ -175,7 +195,7 @@ export async function registerBusiness(formData: any) {
   }
 }
 
-export async function updateBusinessKYC(id: string, kycData: any) {
+export async function updateBusinessKYC(id: string, _kycData: unknown) {
   try {
     if (!id) {
       return { success: false, error: 'Business ID is required' };
@@ -186,126 +206,12 @@ export async function updateBusinessKYC(id: string, kycData: any) {
       return { success: false, error: auth.error };
     }
 
-    console.log('Updating KYC for business:', id);
-
-    const supabase = createClient(await cookies());
-
-    const businessFetch = await supabase
-      .from('Business')
-      .select('id, businessName, email, workEmail, mobile, isFinderBVerified, razorpayContactId, razorpayFundAccountId, bankName')
-      .eq('id', id)
-      .single();
-
-    if (businessFetch.error) {
-      throw businessFetch.error;
-    }
-
-    const businessRecord = businessFetch.data;
-    const shouldUseRazorpay = isRazorpayConfigured();
-    let isVerified = Boolean(businessRecord?.isFinderBVerified || businessRecord?.razorpayContactId);
-    let razorpayContactId: string | null = businessRecord?.razorpayContactId ?? null;
-    let razorpayFundAccountId: string | null = businessRecord?.razorpayFundAccountId ?? null;
-
-    if (shouldUseRazorpay) {
-      try {
-        const contactResult = await createRazorpayContact({
-          name: businessRecord.businessName || `Merchant ${id}`,
-          contact: businessRecord.mobile || String(businessRecord.email || businessRecord.workEmail || ''),
-          email: (businessRecord.email || businessRecord.workEmail) ?? undefined,
-          type: 'vendor',
-          referenceId: id,
-          notes: {
-            ...(kycData.panNumber ? { panNumber: kycData.panNumber } : {}),
-            ...(kycData.aadharNumber ? { aadharNumber: kycData.aadharNumber } : {}),
-            ...(kycData.cinNumber ? { cinNumber: kycData.cinNumber } : {}),
-            ...(kycData.msmeGstUrl ? { msmeGstUrl: kycData.msmeGstUrl } : {}),
-            ...(kycData.bankIfsc ? { bankIfsc: kycData.bankIfsc } : {}),
-            ...(kycData.bankAccountNumber ? { bankAccountNumber: kycData.bankAccountNumber } : {}),
-            ...(kycData.upiId ? { upiId: kycData.upiId } : {}),
-          },
-        });
-
-        if (contactResult.success) {
-          razorpayContactId = contactResult.contact.id;
-          isVerified = true;
-        }
-
-        if (isVerified && !razorpayFundAccountId && razorpayContactId) {
-          if (kycData.bankIfsc && kycData.bankAccountNumber) {
-            const bankResult = await createRazorpayBankFundAccount({
-              contactId: razorpayContactId,
-              name: businessRecord.businessName || `Merchant ${id}`,
-              ifsc: kycData.bankIfsc,
-              accountNumber: kycData.bankAccountNumber,
-              bankName: kycData.bankName,
-              notes: {
-                ...(kycData.panNumber ? { panNumber: kycData.panNumber } : {}),
-                ...(kycData.aadharNumber ? { aadharNumber: kycData.aadharNumber } : {}),
-              },
-            });
-
-            if (bankResult.success) {
-              razorpayFundAccountId = bankResult.fundAccount.id;
-            }
-          } else if (kycData.upiId) {
-            const vpaResult = await createRazorpayVpaFundAccount({
-              contactId: razorpayContactId,
-              vpaAddress: kycData.upiId,
-              notes: {
-                ...(kycData.panNumber ? { panNumber: kycData.panNumber } : {}),
-                ...(kycData.aadharNumber ? { aadharNumber: kycData.aadharNumber } : {}),
-              },
-            });
-
-            if (vpaResult.success) {
-              razorpayFundAccountId = vpaResult.fundAccount.id;
-            }
-          }
-        }
-      } catch (razorpayError) {
-        console.error('[KYC] Razorpay verification error:', razorpayError);
-      }
-    }
-
-    const updatePayload: Record<string, unknown> = {
-      panNumber: kycData.panNumber,
-      aadharNumber: kycData.aadharNumber,
-      panUrl: kycData.panUrl,
-      aadharUrl: kycData.aadharUrl,
-      msmeGstUrl: kycData.msmeGstUrl,
-      cinNumber: kycData.cinNumber,
-      bankIfsc: kycData.bankIfsc,
-      bankAccountNumber: kycData.bankAccountNumber,
-      bankName: kycData.bankName,
-      upiId: kycData.upiId,
-      kycStatus: isVerified ? 'verified' : 'submitted',
-      hasVerifiedBadge: !!kycData.msmeGstUrl || isVerified,
-      isFinderBVerified: isVerified,
-      updatedAt: new Date().toISOString(),
+    return {
+      success: false,
+      error:
+        'In-dashboard KYC uploads are no longer accepted. FinderB verifies businesses through a separate verification partner — our team will contact you when documents are needed.',
     };
-
-    if (razorpayContactId) {
-      updatePayload.razorpayContactId = razorpayContactId;
-    }
-    if (razorpayFundAccountId) {
-      updatePayload.razorpayFundAccountId = razorpayFundAccountId;
-    }
-
-    const { data: business, error } = await supabase
-      .from('Business')
-      .update(updatePayload)
-      .eq('id', id)
-      .select()
-      .single();
-
-    if (error) {
-      throw error;
-    }
-
-    const mapped = mapBusinessRecord(business);
-    revalidateBusinessProfilePaths(mapped);
-    return { success: true, business: mapped };
-  } catch (error: any) {
+  } catch (error: unknown) {
     const errorMessage = handleError(error, 'KYC Update');
     return { success: false, error: errorMessage };
   }
@@ -461,6 +367,11 @@ export async function getBusinessBySlugOrId(slugOrId: string) {
       return { success: false, error: 'Business not found' };
     }
 
+    const listingStatus = String(business.status || 'Pending');
+    if (listingStatus.toLowerCase() !== 'active') {
+      return { success: false, error: 'Business not found' };
+    }
+
     let slug = business.slug?.trim() || '';
     if (!slug) {
       try {
@@ -574,7 +485,7 @@ export async function getOwnedBusiness(id: string) {
       throw error;
     }
 
-    return { success: true, business: mapBusinessRecord(business) };
+    return { success: true, business: mapOwnedBusinessRecord(business) };
   } catch (error: any) {
     const errorMessage = handleError(error, 'Get Owned Business');
     return { success: false, error: errorMessage };
@@ -682,6 +593,132 @@ export async function logoutBusiness() {
   }
 }
 
+export async function verifyBusinessCurrentPassword(businessId: string, currentPassword: string) {
+  try {
+    if (!businessId) {
+      return { success: false, error: 'Business ID is required' };
+    }
+
+    const auth = await assertBusinessSession(businessId);
+    if (!auth.ok) {
+      return { success: false, error: auth.error };
+    }
+
+    const trimmed = currentPassword?.trim() ?? '';
+    if (!trimmed) {
+      return { success: false, error: 'Enter your current password.' };
+    }
+
+    const supabase = createClient(await cookies());
+    const { data: business, error } = await supabase
+      .from('Business')
+      .select('id, password')
+      .eq('id', businessId)
+      .single();
+
+    if (error || !business?.password) {
+      return { success: false, error: 'Could not verify your current password.' };
+    }
+
+    const verification = await verifyPassword(trimmed, business.password);
+    if (!verification.valid) {
+      return { success: false, error: 'Current password is incorrect.' };
+    }
+
+    return { success: true };
+  } catch (error: unknown) {
+    const errorMessage = handleError(error, 'Verify Password');
+    return { success: false, error: errorMessage };
+  }
+}
+
+export async function changeBusinessPassword(
+  businessId: string,
+  input: {
+    currentPassword: string;
+    newPassword: string;
+    confirmPassword: string;
+  }
+) {
+  try {
+    if (!businessId) {
+      return { success: false, error: 'Business ID is required' };
+    }
+
+    const auth = await assertBusinessSession(businessId);
+    if (!auth.ok) {
+      return { success: false, error: auth.error };
+    }
+
+    const currentPassword = input.currentPassword?.trim() ?? '';
+    if (!currentPassword) {
+      return { success: false, error: 'Enter your current password.' };
+    }
+
+    const changeError = validateChangePasswordFields({
+      newPassword: input.newPassword ?? '',
+      confirmPassword: input.confirmPassword ?? '',
+      minLength: PASSWORD_MIN_LENGTH_USER,
+    });
+    if (changeError) {
+      return { success: false, error: changeError };
+    }
+
+    if (currentPassword === input.newPassword) {
+      return {
+        success: false,
+        error: 'New password must be different from your current password.',
+      };
+    }
+
+    const ipLimit = await enforceRateLimit('auth');
+    if (!ipLimit.ok) return { success: false, error: ipLimit.error };
+
+    const supabase = createClient(await cookies());
+
+    const { data: business, error: fetchError } = await supabase
+      .from('Business')
+      .select('id, password')
+      .eq('id', businessId)
+      .single();
+
+    if (fetchError || !business) {
+      return { success: false, error: 'Business not found' };
+    }
+
+    if (!business.password) {
+      return {
+        success: false,
+        error: 'No password is set on this account. Please contact support.',
+      };
+    }
+
+    const verification = await verifyPassword(currentPassword, business.password);
+    if (!verification.valid) {
+      return { success: false, error: 'Current password is incorrect.' };
+    }
+
+    const hashedPassword = await hashPassword(input.newPassword);
+
+    const { error: updateError } = await supabase
+      .from('Business')
+      .update({
+        password: hashedPassword,
+        updatedAt: new Date().toISOString(),
+      })
+      .eq('id', businessId);
+
+    if (updateError) {
+      throw updateError;
+    }
+
+    return { success: true };
+  } catch (error: unknown) {
+    const errorMessage = handleError(error, 'Change Password');
+    return { success: false, error: errorMessage };
+  }
+}
+
 export async function getBusinessSession() {
   try {
     const businessId = (await cookies()).get('business_id')?.value;
@@ -724,7 +761,7 @@ export async function getFeaturedBusinesses() {
       .from('Business')
       .select('*')
       .eq('status', 'Active')
-      .or('isVerified.eq.true,isFinderBVerified.eq.true')
+      .or('isFinderBVerified.eq.true,hasVerifiedBadge.eq.true')
       .limit(60);
 
     if (error) {
@@ -861,12 +898,88 @@ export async function updateBusinessProfile(id: string, profileData: any) {
     const lng = parseCoordinate(profileData.longitude);
     const hasValidMapPin = lat != null && lng != null && !(lat === 0 && lng === 0);
 
+    if (hasValidMapPin) {
+      const mapMatch = await validateMapPinAgainstAddress(lat, lng, {
+        city: profileData.city,
+        state: profileData.state,
+        country: profileData.country,
+      });
+
+      if (!hasResolvedMapAddress(mapMatch.resolved)) {
+        return {
+          success: false,
+          error:
+            mapMatch.ok === false
+              ? mapMatch.error
+              : 'Could not read city/state from your map pin. Check the link or API key.',
+        };
+      }
+
+      const mergedAddress = applyResolvedAddressToManual(
+        {
+          city: profileData.city,
+          state: profileData.state,
+          country: profileData.country,
+        },
+        mapMatch.resolved,
+      );
+
+      profileData.city = mergedAddress.city;
+      profileData.state = mergedAddress.state;
+      profileData.country = mergedAddress.country;
+
+      const finalMatch = mapPinMatchesManualAddress(mapMatch.resolved, mergedAddress);
+      if (!finalMatch.ok) {
+        return { success: false, error: finalMatch.error };
+      }
+    }
+
+    const aboutText = typeof profileData.about === 'string' ? profileData.about : '';
+    if (!isAboutWithinWordLimit(aboutText)) {
+      return {
+        success: false,
+        error: `About Business must be ${ABOUT_BUSINESS_MAX_WORDS} words or fewer.`,
+      };
+    }
+
+    profileData.publicPhone = normalizeIndianPhoneForStorage(profileData.publicPhone ?? '');
+    const publicPhoneError = indianMobileValidationError(profileData.publicPhone);
+    if (publicPhoneError) {
+      return { success: false, error: publicPhoneError };
+    }
+
+    const normalizedWhatsapp = normalizeIndianPhoneForStorage(profileData.whatsappNumber ?? '');
+    if (normalizedWhatsapp) {
+      const whatsappError = indianMobileValidationError(normalizedWhatsapp);
+      if (whatsappError) {
+        return { success: false, error: whatsappError };
+      }
+    }
+    profileData.whatsappNumber = normalizedWhatsapp;
+    profileData.keywords = normalizeSearchKeywords(profileData.keywords);
+
+    const normalizedOwnerMobile = normalizeIndianPhoneForStorage(profileData.ownerMobile ?? '');
+    if (normalizedOwnerMobile) {
+      const ownerMobileError = indianMobileValidationError(normalizedOwnerMobile);
+      if (ownerMobileError) {
+        return { success: false, error: ownerMobileError };
+      }
+    }
+    profileData.ownerMobile = normalizedOwnerMobile;
+
+    const reviewReplyDraft = getReviewReplyDraft(profileData.reviewReply);
+    const reviewReplyError = validateReviewReplyContent(reviewReplyDraft);
+    if (reviewReplyError) {
+      return { success: false, error: reviewReplyError };
+    }
+    const reviewReplyValue = normalizeReviewReplyForStorage(reviewReplyDraft);
+
     const { data: business, error } = await supabase
       .from('Business')
       .update({
-        businessName: profileData.businessName,
-        displayName: profileData.displayName,
-        category: profileData.category,
+        displayName: profileData.displayName?.trim() || null,
+        owner_name: profileData.ownerName?.trim() || null,
+        owner_mobile: profileData.ownerMobile || null,
         email: profileData.email,
         workEmail: profileData.email,
         publicPhone: profileData.publicPhone,
@@ -882,12 +995,13 @@ export async function updateBusinessProfile(id: string, profileData: any) {
         facebookUrl: profileData.facebookUrl,
         whatsappNumber: profileData.whatsappNumber,
         youtubeUrl: profileData.youtubeUrl,
-        about: profileData.about,
+        about: trimAboutToWordLimit(aboutText),
         keywords: profileData.keywords,
         timings: profileData.timings,
         discountRange: profileData.discountRange,
         serviceCategory: profileData.serviceCategory,
         paymentModes: profileData.paymentModes,
+        reviewReply: reviewReplyValue,
         updatedAt: new Date().toISOString(),
       })
       .eq('id', id)
@@ -898,7 +1012,7 @@ export async function updateBusinessProfile(id: string, profileData: any) {
       throw error;
     }
 
-    const mapped = mapBusinessRecord(business);
+    const mapped = mapOwnedBusinessRecord(business);
     await ensureBusinessSlug({
       id: mapped.id,
       businessName: mapped.businessName,

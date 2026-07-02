@@ -1,5 +1,5 @@
 import type { BillingCycle } from '@/lib/razorpay/plans';
-import { MERCHANT_PLANS } from '@/lib/razorpay/plans';
+import { PRICING_PLANS } from '@/lib/pricing/growthPro';
 
 export const EXPIRY_WARNING_DAYS = 7;
 export const EXPIRY_URGENT_DAYS = 3;
@@ -84,10 +84,34 @@ export function getSubscriptionAlertLevel(daysRemaining: number | null): Subscri
   return 'none';
 }
 
-export function getPlanDisplayName(planId?: string | null): string {
-  if (planId === 'pro') return MERCHANT_PLANS.pro.name;
-  if (!planId || planId === 'free') return 'Free';
-  return planId;
+export function getPlanDisplayName(
+  planId?: string | null,
+  billingCycle?: string | null,
+): string {
+  const normalized = String(planId || 'free').toLowerCase();
+  const cycle = billingCycle?.toLowerCase();
+
+  if (normalized === 'free' || normalized === 'starter') {
+    return PRICING_PLANS.free.name;
+  }
+
+  if (normalized === 'growth') {
+    return PRICING_PLANS.monthly.name;
+  }
+
+  if (normalized === 'pro') {
+    if (cycle === 'monthly') return PRICING_PLANS.monthly.name;
+    return PRICING_PLANS.annual.name;
+  }
+
+  if (cycle === 'monthly') return PRICING_PLANS.monthly.name;
+  if (cycle === 'annual') return PRICING_PLANS.annual.name;
+
+  return PRICING_PLANS.free.name;
+}
+
+export function getPaidPlansLabel(): string {
+  return `${PRICING_PLANS.monthly.name} or ${PRICING_PLANS.annual.name}`;
 }
 
 export function getMerchantSubscriptionStatus(
@@ -115,11 +139,13 @@ export function getMerchantSubscriptionStatus(
   const razorpaySubscriptionId = input.razorpaySubscriptionId
     ? String(input.razorpaySubscriptionId)
     : null;
+  const effectiveMandateStatus =
+    paidCompleted && autoRenewEnabled && mandateStatus === 'pending' ? 'active' : mandateStatus;
 
   const canCancelAutoRenew =
     billingCycleMonthly &&
     autoRenewEnabled &&
-    mandateStatus === 'active' &&
+    effectiveMandateStatus === 'active' &&
     subscriptionStatus !== 'cancelled' &&
     Boolean(razorpaySubscriptionId);
 
@@ -127,11 +153,15 @@ export function getMerchantSubscriptionStatus(
     !isActive ||
     isExpired ||
     (daysRemaining !== null && daysRemaining <= EXPIRY_WARNING_DAYS) ||
-    (billingCycleMonthly && !autoRenewEnabled && mandateStatus === 'cancelled');
+    (billingCycleMonthly && !autoRenewEnabled && effectiveMandateStatus === 'cancelled');
+
+  const planName = paidCompleted
+    ? getPlanDisplayName(planId, billingCycle)
+    : getPlanDisplayName('free');
 
   return {
     isActive,
-    planName: getPlanDisplayName(planId),
+    planName,
     planId,
     billingCycle,
     startedAt,
@@ -142,7 +172,7 @@ export function getMerchantSubscriptionStatus(
     isExpired,
     isPendingPayment: isPendingPayment && !paidCompleted,
     autoRenewEnabled,
-    mandateStatus,
+    mandateStatus: effectiveMandateStatus,
     subscriptionStatus,
     razorpaySubscriptionId,
     canCancelAutoRenew,

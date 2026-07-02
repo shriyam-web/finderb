@@ -79,6 +79,28 @@ async function resolveBusinessIdForSubscription(subscription: RazorpaySubscripti
   return data?.id ?? null;
 }
 
+async function isFirstSubscriptionCharge(subscriptionId: string, paymentId: string): Promise<boolean> {
+  const supabase = createServiceClient();
+  if (!supabase) return true;
+
+  const { data: paymentRow } = await supabase
+    .from('merchant_payments')
+    .select('id')
+    .eq('payment_id', paymentId)
+    .eq('status', 'completed')
+    .maybeSingle();
+
+  if (paymentRow) return false;
+
+  const { count } = await supabase
+    .from('merchant_payments')
+    .select('id', { count: 'exact', head: true })
+    .eq('razorpay_subscription_id', subscriptionId)
+    .eq('status', 'completed');
+
+  return (count ?? 0) === 0;
+}
+
 async function handleOneTimePayment(event: string, payment: RazorpayPaymentEntity) {
   const meta = extractPaymentMeta(payment);
   if (!meta) {
@@ -173,6 +195,25 @@ async function handleSubscriptionEvent(event: string, body: RazorpayWebhookPaylo
     const captured = await ensureRazorpayPaymentCaptured(payment);
     if (!captured || captured.status !== 'captured') {
       return NextResponse.json({ ok: true, pending: 'awaiting_capture' });
+    }
+
+    const firstCharge = await isFirstSubscriptionCharge(subscription.id, captured.id);
+
+    if (firstCharge) {
+      const result = await finalizeSubscriptionAuthorization({
+        businessId,
+        subscriptionId: subscription.id,
+        paymentId: captured.id,
+        plan,
+        billingCycle,
+        source: 'webhook',
+      });
+
+      if (!result.success) {
+        return NextResponse.json({ error: result.error }, { status: 422 });
+      }
+
+      return NextResponse.json({ ok: true, event, alreadyCompleted: result.alreadyCompleted ?? false });
     }
 
     const result = await finalizeSubscriptionRenewal({

@@ -1,3 +1,6 @@
+import { isValidIndianMobileDigits } from '@/lib/indianPhone';
+import { isKycInReview, isKycVerified } from '@/lib/businessVerification';
+
 export type MissingProfileField = {
   key: string;
   label: string;
@@ -24,9 +27,11 @@ export const KYC_DOCUMENT_FIELD_KEYS = [
 ] as const;
 
 const COMPLETION_FIELDS: CompletionField[] = [
-  { key: 'businessName', label: 'Business Name', settingsKey: 'businessName', action: 'settings' },
+  { key: 'businessName', label: 'Legal Business Name', settingsKey: 'businessName', action: 'settings' },
+  { key: 'displayName', label: 'Business Display Name', settingsKey: 'displayName', action: 'settings' },
   { key: 'category', label: 'Business Category', settingsKey: 'category', action: 'settings' },
   { key: 'publicPhone', label: 'Public Phone', settingsKey: 'publicPhone', action: 'settings' },
+  { key: 'ownerInfo', label: 'Owner Information', settingsKey: 'ownerInfo', action: 'settings' },
   { key: 'businessAddress', label: 'Address', settingsKey: 'businessAddress', action: 'settings' },
   { key: 'city', label: 'City', settingsKey: 'city', action: 'settings' },
   { key: 'state', label: 'State', settingsKey: 'state', action: 'settings' },
@@ -34,7 +39,7 @@ const COMPLETION_FIELDS: CompletionField[] = [
   { key: 'about', label: 'About Business', settingsKey: 'about', action: 'settings' },
   { key: 'profilePictureUrl', label: 'Profile Picture', settingsKey: 'media', action: 'settings' },
   { key: 'timings', label: 'Business Timings', settingsKey: 'timings', action: 'settings' },
-  { key: 'yearsInBusiness', label: 'Years in Business', settingsKey: 'yearsInBusiness', action: 'settings' },
+  { key: 'yearsInBusiness', label: 'Year of Establishment', settingsKey: 'yearsInBusiness', action: 'settings' },
   { key: 'serviceCategory', label: 'Service Category', settingsKey: 'serviceCategory', action: 'settings' },
   { key: 'website', label: 'Website', settingsKey: 'website', action: 'settings' },
   { key: 'facebookUrl', label: 'Facebook URL', settingsKey: 'facebookUrl', action: 'settings' },
@@ -44,29 +49,31 @@ const COMPLETION_FIELDS: CompletionField[] = [
   { key: 'mapLocation', label: 'Google Maps Location', settingsKey: 'mapLocation', action: 'settings' },
 ];
 
-export function isKycVerified(kycStatus?: string | null): boolean {
-  const status = (kycStatus || 'pending').toLowerCase();
-  return status === 'approved' || status === 'verified';
-}
+export { isKycVerified, isKycInReview } from '@/lib/businessVerification';
 
-export function isKycInReview(kycStatus?: string | null): boolean {
-  return (kycStatus || '').toLowerCase() === 'submitted';
-}
-
-/** Single grouped missing item when identity verification is not complete */
 export function getKycMissingField(kycStatus?: string | null): MissingProfileField | null {
   if (isKycVerified(kycStatus)) return null;
   if (isKycInReview(kycStatus)) return null;
 
   return {
     key: 'kyc',
-    label: 'KYC pending',
+    label: 'Identity verification (KYC)',
     settingsKey: null,
     action: 'kyc',
   };
 }
 
+function isOwnerInfoComplete(business: Record<string, unknown>): boolean {
+  const name = String(business.ownerName || '').trim();
+  const mobile = String(business.ownerMobile || '');
+  return Boolean(name) && isValidIndianMobileDigits(mobile);
+}
+
 function isFieldComplete(business: Record<string, unknown>, field: CompletionField): boolean {
+  if (field.key === 'ownerInfo') {
+    return isOwnerInfoComplete(business);
+  }
+
   if (field.key === 'mapLocation') {
     const lat = business.latitude as number | undefined;
     const lng = business.longitude as number | undefined;
@@ -148,6 +155,7 @@ export function settingsKeyFromCompletionKey(key: string): string | null {
   if (key === 'kyc') return null;
   if (key === 'images' || key === 'profilePictureUrl') return 'media';
   if (key === 'paymentModes') return 'paymentModes';
+  if (key === 'ownerInfo') return 'ownerInfo';
   const field = COMPLETION_FIELDS.find((f) => f.key === key);
   return field?.settingsKey ?? null;
 }

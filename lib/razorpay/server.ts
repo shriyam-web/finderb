@@ -38,7 +38,7 @@ export async function createRazorpayOrder(params: {
   if (!keyId || !keySecret) {
     return {
       success: false,
-      error: 'Payment gateway is not configured. Please add Razorpay keys to your environment.',
+      error: 'Online payment is not available right now. Please try again later or contact support.',
     };
   }
 

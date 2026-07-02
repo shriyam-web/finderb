@@ -126,7 +126,7 @@ export async function getAdminActivityEvents(limit = ACTIVITY_FETCH_LIMIT) {
       .limit(perSource),
     supabase
       .from('merchant_payments')
-      .select('id, plan, amount_paise, status, created_at, Business:business_id (businessName)')
+      .select('id, plan, billing_cycle, amount_paise, status, created_at, Business:business_id (businessName)')
       .eq('status', 'completed')
       .order('created_at', { ascending: false })
       .limit(perSource),
@@ -188,7 +188,7 @@ export async function getAdminActivityEvents(limit = ACTIVITY_FETCH_LIMIT) {
         id: `payment-${payment.id}`,
         type: 'payment_completed',
         title: 'Plan Recharge Completed',
-        subtitle: `${businessName} · ${getPlanDisplayName(String(payment.plan))} (${formatAmountInr(Number(payment.amount_paise))})`,
+        subtitle: `${businessName} · ${getPlanDisplayName(String(payment.plan), String(payment.billing_cycle))} (${formatAmountInr(Number(payment.amount_paise))})`,
         occurredAtRaw: payment.created_at,
         iconLetter: activityIconLetter(businessName),
       })
@@ -587,7 +587,7 @@ export async function getAdminPayments(filters: AdminPaymentsFilters = {}) {
         ? String(businessRecord.registrationNumber)
         : null,
       plan: String(row.plan),
-      planName: getPlanDisplayName(String(row.plan)),
+      planName: getPlanDisplayName(String(row.plan), String(row.billing_cycle)),
       billingCycle: String(row.billing_cycle),
       amountPaise: Number(row.amount_paise),
       amountDisplay: formatAmountInr(Number(row.amount_paise)),

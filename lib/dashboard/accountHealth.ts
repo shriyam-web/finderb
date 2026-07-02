@@ -1,4 +1,5 @@
 import type { MerchantSubscriptionStatus } from '@/lib/subscription/merchantSubscription';
+import { getPaidPlansLabel } from '@/lib/subscription/merchantSubscription';
 
 export type HealthItemStatus = 'complete' | 'attention' | 'review' | 'blocked';
 
@@ -44,7 +45,7 @@ export function getAccountHealth(input: {
   const isExpired = subscription?.isExpired ?? false;
   const daysRemaining = subscription?.daysRemaining ?? null;
 
-  let subscriptionDetail = 'Enquiries are coming in — activate Pro to see who to call back.';
+  let subscriptionDetail = `Enquiries are coming in — upgrade to ${getPaidPlansLabel()} to see who to call back.`;
   if (paymentComplete) {
     subscriptionDetail = 'You can view customer phone numbers and email on every enquiry.';
     if (daysRemaining !== null) {
@@ -68,14 +69,18 @@ export function getAccountHealth(input: {
 
   const kyc = (input.kycStatus || 'pending').toLowerCase();
   let kycStatus: HealthItemStatus = 'attention';
-  let kycDetail = 'Complete business identity verification (KYC) to unlock full partner status.';
+  let kycDetail =
+    'Identity verification is handled by FinderB’s verification partner. Listing approval and KYC are separate steps.';
 
   if (kyc === 'approved' || kyc === 'verified') {
     kycStatus = 'complete';
-    kycDetail = 'Your business identity is verified on FinderB.';
+    kycDetail = 'Your business identity (KYC) is verified on FinderB.';
   } else if (kyc === 'submitted') {
     kycStatus = 'review';
-    kycDetail = 'KYC submitted — verification is in progress.';
+    kycDetail = 'KYC documents are with our verification partner — we will update you when complete.';
+  } else if (kyc === 'rejected') {
+    kycStatus = 'blocked';
+    kycDetail = 'KYC could not be verified. Our team will contact you with next steps.';
   }
 
   items.push({

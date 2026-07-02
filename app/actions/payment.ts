@@ -159,7 +159,7 @@ export async function createMerchantPaymentOrder(params: {
       return {
         success: false as const,
         error:
-          'Monthly auto-debit is not configured. Add RAZORPAY_PLAN_ID_PRO_MONTHLY to your server environment.',
+          'Monthly auto-debit is not available right now. Please try again later or contact support.',
       };
     }
 
