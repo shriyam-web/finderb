@@ -23,6 +23,12 @@ export const LEGAL_COMPANY = {
   },
 } as const;
 
+/** Hide company phone on footer, contact, legal pages, and structured data until re-enabled. */
+export const SHOW_COMPANY_PHONE = false;
+
+/** Hide company office address on contact, legal pages, and policy until re-enabled. */
+export const SHOW_COMPANY_ADDRESS = false;
+
 export const LEGAL_LAST_UPDATED = 'June 17, 2025';
 
 export const LEGAL_FOOTER_LINKS = [

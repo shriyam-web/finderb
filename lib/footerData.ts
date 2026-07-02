@@ -1,4 +1,4 @@
-import { LEGAL_COMPANY } from '@/lib/legalContent';
+import { LEGAL_COMPANY, SHOW_COMPANY_PHONE } from '@/lib/legalContent';
 import { FINDERB_SOCIAL_URLS } from '@/lib/finderbSocial';
 import { categoryCityHref, slugifyCity } from '@/lib/categoryCity';
 
@@ -41,8 +41,8 @@ export const FOOTER_SEO_NOTES = [
 
 export const FOOTER_CONTACT = {
   email: LEGAL_COMPANY.email,
-  phone: LEGAL_COMPANY.phoneDisplay,
-  phoneHref: `tel:${LEGAL_COMPANY.phone}`,
+  phone: SHOW_COMPANY_PHONE ? LEGAL_COMPANY.phoneDisplay : null,
+  phoneHref: SHOW_COMPANY_PHONE ? `tel:${LEGAL_COMPANY.phone}` : null,
   coverage: '500+ cities across India',
 } as const;
 

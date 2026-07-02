@@ -365,9 +365,11 @@ export default function Footer() {
                 <ContactRow icon={Mail} href={`mailto:${FOOTER_CONTACT.email}`}>
                   {FOOTER_CONTACT.email}
                 </ContactRow>
-                <ContactRow icon={Phone} href={FOOTER_CONTACT.phoneHref}>
-                  {FOOTER_CONTACT.phone}
-                </ContactRow>
+                {FOOTER_CONTACT.phone && FOOTER_CONTACT.phoneHref ? (
+                  <ContactRow icon={Phone} href={FOOTER_CONTACT.phoneHref}>
+                    {FOOTER_CONTACT.phone}
+                  </ContactRow>
+                ) : null}
                 <ContactRow icon={MapPin}>{FOOTER_CONTACT.coverage}</ContactRow>
               </div>
             </div>

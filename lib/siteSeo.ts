@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { LEGAL_COMPANY } from '@/lib/legalContent';
+import { LEGAL_COMPANY, SHOW_COMPANY_PHONE } from '@/lib/legalContent';
 import { FOOTER_SOCIAL_LINKS } from '@/lib/footerData';
 
 export const SITE_NAME = 'FinderB';
@@ -142,7 +142,8 @@ export function getRootStructuredData() {
         sameAs: FOOTER_SOCIAL_LINKS.map((item) => item.href),
         contactPoint: {
           '@type': 'ContactPoint',
-          telephone: LEGAL_COMPANY.phone,
+          ...(SHOW_COMPANY_PHONE ? { telephone: LEGAL_COMPANY.phone } : {}),
+          email: LEGAL_COMPANY.email,
           contactType: 'customer service',
           areaServed: 'IN',
           availableLanguage: ['en', 'hi'],

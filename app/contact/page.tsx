@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { LEGAL_COMPANY, LEGAL_FOOTER_LINKS, LEGAL_LAST_UPDATED } from '@/lib/legalContent';
+import { LEGAL_COMPANY, LEGAL_FOOTER_LINKS, LEGAL_LAST_UPDATED, SHOW_COMPANY_ADDRESS, SHOW_COMPANY_PHONE } from '@/lib/legalContent';
 
 export default function ContactPage() {
   return (
@@ -23,7 +23,7 @@ export default function ContactPage() {
             <div>
               <p className="font-medium text-neutral-900">{LEGAL_COMPANY.name}</p>
               <p className="mt-1 text-neutral-600">
-                {LEGAL_COMPANY.brand} is operated by {LEGAL_COMPANY.name}, based in Noida.
+                {LEGAL_COMPANY.brand} is operated by {LEGAL_COMPANY.name}.
               </p>
             </div>
 
@@ -39,27 +39,31 @@ export default function ContactPage() {
                   </a>
                 </dd>
               </div>
-              <div>
-                <dt className="text-sm font-medium text-neutral-900">Phone</dt>
-                <dd className="mt-0.5">
-                  <a
-                    href={`tel:${LEGAL_COMPANY.phone}`}
-                    className="text-neutral-700 underline underline-offset-2 hover:text-neutral-900"
-                  >
-                    {LEGAL_COMPANY.phoneDisplay}
-                  </a>
-                  <span className="block text-sm text-neutral-500">Mon–Fri, 9 AM – 6 PM IST</span>
-                </dd>
-              </div>
-              <div>
-                <dt className="text-sm font-medium text-neutral-900">Office</dt>
-                <dd className="mt-0.5">
-                  {LEGAL_COMPANY.address.line1}
-                  <br />
-                  {LEGAL_COMPANY.address.line2}, {LEGAL_COMPANY.address.country}{' '}
-                  {LEGAL_COMPANY.address.pincode}
-                </dd>
-              </div>
+              {SHOW_COMPANY_PHONE ? (
+                <div>
+                  <dt className="text-sm font-medium text-neutral-900">Phone</dt>
+                  <dd className="mt-0.5">
+                    <a
+                      href={`tel:${LEGAL_COMPANY.phone}`}
+                      className="text-neutral-700 underline underline-offset-2 hover:text-neutral-900"
+                    >
+                      {LEGAL_COMPANY.phoneDisplay}
+                    </a>
+                    <span className="block text-sm text-neutral-500">Mon–Fri, 9 AM – 6 PM IST</span>
+                  </dd>
+                </div>
+              ) : null}
+              {SHOW_COMPANY_ADDRESS ? (
+                <div>
+                  <dt className="text-sm font-medium text-neutral-900">Office</dt>
+                  <dd className="mt-0.5">
+                    {LEGAL_COMPANY.address.line1}
+                    <br />
+                    {LEGAL_COMPANY.address.line2}, {LEGAL_COMPANY.address.country}{' '}
+                    {LEGAL_COMPANY.address.pincode}
+                  </dd>
+                </div>
+              ) : null}
               <div>
                 <dt className="text-sm font-medium text-neutral-900">Hours</dt>
                 <dd className="mt-0.5 space-y-0.5">

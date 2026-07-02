@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { LEGAL_COMPANY, LEGAL_FOOTER_LINKS, LEGAL_LAST_UPDATED } from '@/lib/legalContent';
+import { LEGAL_COMPANY, LEGAL_FOOTER_LINKS, LEGAL_LAST_UPDATED, SHOW_COMPANY_ADDRESS, SHOW_COMPANY_PHONE } from '@/lib/legalContent';
 
 type LegalPageLayoutProps = {
   title: string;
@@ -76,7 +76,7 @@ export function LegalList({ items }: { items: string[] }) {
 
 export function LegalContactBox({
   email,
-  phone = LEGAL_COMPANY.phoneDisplay,
+  phone = SHOW_COMPANY_PHONE ? LEGAL_COMPANY.phoneDisplay : undefined,
   note,
 }: {
   email?: string;
@@ -104,10 +104,12 @@ export function LegalContactBox({
           </a>
         </p>
       )}
-      <p className="mt-1">
-        {LEGAL_COMPANY.address.line1}, {LEGAL_COMPANY.address.line2},{' '}
-        {LEGAL_COMPANY.address.country} {LEGAL_COMPANY.address.pincode}
-      </p>
+      {SHOW_COMPANY_ADDRESS ? (
+        <p className="mt-1">
+          {LEGAL_COMPANY.address.line1}, {LEGAL_COMPANY.address.line2},{' '}
+          {LEGAL_COMPANY.address.country} {LEGAL_COMPANY.address.pincode}
+        </p>
+      ) : null}
       {note && <p className="mt-2 text-sm text-neutral-500">{note}</p>}
     </div>
   );

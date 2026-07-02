@@ -1,6 +1,6 @@
 'use client';
 
-import { LEGAL_COMPANY } from '@/lib/legalContent';
+import { LEGAL_COMPANY, SHOW_COMPANY_ADDRESS, SHOW_COMPANY_PHONE } from '@/lib/legalContent';
 
 export default function PolicyPage() {
     return (
@@ -81,8 +81,12 @@ export default function PolicyPage() {
                                     <div className="bg-gray-50 rounded-xl p-6">
                                         <p><strong>Copyright Agent</strong></p>
                                         <p><strong>Email:</strong> copyright@finderb.com</p>
-                                        <p><strong>Address:</strong> 123 Business Street, Tech City, Karnataka, India - 560001</p>
-                                        <p><strong>Phone:</strong> {LEGAL_COMPANY.phoneDisplay}</p>
+                                        {SHOW_COMPANY_ADDRESS ? (
+                                          <p><strong>Address:</strong> 123 Business Street, Tech City, Karnataka, India - 560001</p>
+                                        ) : null}
+                                        {SHOW_COMPANY_PHONE ? (
+                                          <p><strong>Phone:</strong> {LEGAL_COMPANY.phoneDisplay}</p>
+                                        ) : null}
                                     </div>
                                 </div>
                             </div>
