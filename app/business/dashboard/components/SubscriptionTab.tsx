@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import {
   HiOutlineCalendarDays,
   HiOutlineCheckCircle,
@@ -8,7 +9,6 @@ import {
   HiOutlineCreditCard,
   HiOutlineExclamationTriangle,
 } from 'react-icons/hi2';
-import MerchantRechargeButton from '@/components/business/MerchantRechargeButton';
 import { formatDateTimeInr } from '@/lib/formatDateTime';
 import {
   cancelMerchantAutoRenew,
@@ -296,21 +296,25 @@ export default function SubscriptionTab({
           </div>
 
           {showRenewCta && (
-            <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-zinc-100 pt-5">
-              <MerchantRechargeButton
-                businessId={businessId}
-                businessName={businessName}
-                fullName={fullName}
-                email={email}
-                mobile={mobile}
-                label={subscription.isActive ? 'Renew early' : 'Recharge now'}
-                onError={onPaymentError}
-                className={dashboard.btnPrimary}
-              />
+            <div className="mt-6 flex flex-col gap-3 border-t border-zinc-100 pt-5">
+              <div className="flex flex-wrap gap-2">
+                <Link
+                  href={`/business/payment/${businessId}?checkout=1&billing=monthly`}
+                  className={dashboard.btnPrimary}
+                >
+                  Pay ₹499 / month
+                </Link>
+                <Link
+                  href={`/business/payment/${businessId}?checkout=1&billing=annual`}
+                  className="inline-flex items-center justify-center rounded-lg border border-[#153551]/20 bg-white px-4 py-2.5 text-sm font-semibold text-[#153551] hover:bg-[#153551]/5"
+                >
+                  Pay ₹3,588 / year
+                </Link>
+              </div>
               <p className="text-sm text-zinc-500">
                 {subscription.isActive
                   ? 'Early renewal extends your plan from the current expiry date.'
-                  : 'Choose monthly or annual billing on the pricing page.'}
+                  : 'Monthly uses Razorpay auto-debit. Annual is a one-time payment for 12 months.'}
               </p>
             </div>
           )}

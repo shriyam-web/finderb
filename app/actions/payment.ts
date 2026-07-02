@@ -2,8 +2,8 @@
 
 import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
-import { createClient } from '@/utils/supabase/server';
 import { getOwnedBusiness } from '@/app/actions/business';
+import { createServiceClient } from '@/lib/supabase/service';
 import {
   type BillingCycle,
   type MerchantPlan,
@@ -25,6 +25,17 @@ import {
   isRazorpaySubscriptionsConfigured,
 } from '@/lib/razorpay/subscriptions';
 import { enforceRateLimit } from '@/lib/security/enforceRateLimit.server';
+
+function getPaymentDbClient() {
+  const supabase = createServiceClient();
+  if (!supabase) {
+    return {
+      ok: false as const,
+      error: 'Payment service is not configured. Please contact support.',
+    };
+  }
+  return { ok: true as const, supabase };
+}
 
 async function assertBusinessSession(businessId: string) {
   const sessionBusinessId = (await cookies()).get('business_id')?.value;
@@ -163,7 +174,11 @@ export async function createMerchantPaymentOrder(params: {
     }
 
     const expectedAmount = getPlanAmountInPaise(plan, billingCycle);
-    const supabase = createClient(await cookies());
+    const db = getPaymentDbClient();
+    if (!db.ok) {
+      return { success: false as const, error: db.error };
+    }
+    const supabase = db.supabase;
     const nowIso = new Date().toISOString();
 
     const { error: businessUpdateError } = await supabase
@@ -227,7 +242,11 @@ export async function createMerchantPaymentOrder(params: {
     return { success: false as const, error: 'Order amount mismatch. Please refresh and try again.' };
   }
 
-  const supabase = createClient(await cookies());
+  const db = getPaymentDbClient();
+  if (!db.ok) {
+    return { success: false as const, error: db.error };
+  }
+  const supabase = db.supabase;
   const { error: pendingOrderError } = await supabase
     .from('Business')
     .update({

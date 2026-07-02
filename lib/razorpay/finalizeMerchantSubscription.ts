@@ -10,13 +10,14 @@ import {
   isValidBillingCycle,
   isValidMerchantPlan,
 } from '@/lib/razorpay/plans';
+import type { RazorpaySubscriptionEntity } from '@/lib/razorpay/subscriptions';
 import {
   ACTIVE_RAZORPAY_SUBSCRIPTION_STATUSES,
   getRazorpaySubscription,
   subscriptionPeriodFromEntity,
   verifyRazorpaySubscriptionSignature,
 } from '@/lib/razorpay/subscriptions';
-import { getRazorpayPayment, verifyRazorpayPaymentSignature } from '@/lib/razorpay/server';
+import { getRazorpayPayment, ensureRazorpayPaymentCaptured, verifyRazorpayPaymentSignature } from '@/lib/razorpay/server';
 import { addBillingCycle } from '@/lib/subscription/merchantSubscription';
 
 export type FinalizeSubscriptionAuthInput = {
@@ -86,6 +87,55 @@ async function assertPaymentNotReused(
   return null;
 }
 
+const CHECKOUT_SUBSCRIPTION_STATUSES = new Set([
+  ...ACTIVE_RAZORPAY_SUBSCRIPTION_STATUSES,
+  'created',
+]);
+
+async function getRazorpaySubscriptionForCheckout(
+  subscriptionId: string,
+): Promise<RazorpaySubscriptionEntity | null> {
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const subscription = await getRazorpaySubscription(subscriptionId);
+    if (
+      subscription &&
+      (ACTIVE_RAZORPAY_SUBSCRIPTION_STATUSES.has(subscription.status) ||
+        subscription.status === 'created')
+    ) {
+      return subscription;
+    }
+    if (attempt < 4) {
+      await new Promise((resolve) => setTimeout(resolve, 600));
+    }
+  }
+
+  return getRazorpaySubscription(subscriptionId);
+}
+
+async function getCapturedAuthorizationPayment(
+  paymentId: string,
+): Promise<{ ok: true; payment: NonNullable<Awaited<ReturnType<typeof getRazorpayPayment>>> } | { ok: false; error: string }> {
+  const remotePayment = await getRazorpayPayment(paymentId);
+  if (!remotePayment) {
+    return { ok: false, error: 'Unable to verify authorization payment' };
+  }
+
+  const captured =
+    remotePayment.status === 'captured'
+      ? remotePayment
+      : await ensureRazorpayPaymentCaptured(remotePayment);
+
+  if (!captured || captured.status !== 'captured') {
+    return {
+      ok: false,
+      error:
+        'Authorization payment is not captured yet. If money was deducted, wait a minute and refresh your dashboard, or contact support.',
+    };
+  }
+
+  return { ok: true, payment: captured };
+}
+
 export async function finalizeSubscriptionAuthorization(
   input: FinalizeSubscriptionAuthInput
 ): Promise<FinalizeResult> {
@@ -114,12 +164,20 @@ export async function finalizeSubscriptionAuthorization(
     }
   }
 
-  const remoteSubscription = await getRazorpaySubscription(subscriptionId);
+  const remoteSubscription =
+    source === 'checkout'
+      ? await getRazorpaySubscriptionForCheckout(subscriptionId)
+      : await getRazorpaySubscription(subscriptionId);
   if (!remoteSubscription) {
     return { success: false, error: 'Unable to verify subscription with Razorpay' };
   }
 
-  if (!ACTIVE_RAZORPAY_SUBSCRIPTION_STATUSES.has(remoteSubscription.status)) {
+  const subscriptionStatusOk =
+    source === 'checkout'
+      ? CHECKOUT_SUBSCRIPTION_STATUSES.has(remoteSubscription.status)
+      : ACTIVE_RAZORPAY_SUBSCRIPTION_STATUSES.has(remoteSubscription.status);
+
+  if (!subscriptionStatusOk) {
     return {
       success: false,
       error: `Subscription is not active (status: ${remoteSubscription.status})`,
@@ -131,10 +189,11 @@ export async function finalizeSubscriptionAuthorization(
     return { success: false, error: 'Subscription business mismatch' };
   }
 
-  const remotePayment = await getRazorpayPayment(paymentId);
-  if (!remotePayment || remotePayment.status !== 'captured') {
-    return { success: false, error: 'Authorization payment is not captured' };
+  const paymentResult = await getCapturedAuthorizationPayment(paymentId);
+  if (!paymentResult.ok) {
+    return { success: false, error: paymentResult.error };
   }
+  const remotePayment = paymentResult.payment;
 
   const expectedAmount = getPlanAmountInPaise(plan as MerchantPlan, billingCycle as BillingCycle);
   if (remotePayment.amount !== expectedAmount) {

@@ -30,6 +30,7 @@ function PaymentPageContent({ id }: { id: string }) {
   const [business, setBusiness] = useState<any>(null);
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [razorpayConfigured, setRazorpayConfigured] = useState(false);
+  const [subscriptionsConfigured, setSubscriptionsConfigured] = useState(false);
   const [billingCycle, setBillingCycle] = useState<BillingCycle>('monthly');
 
   const plan = MERCHANT_PLANS.pro;
@@ -46,6 +47,7 @@ function PaymentPageContent({ id }: { id: string }) {
     setBusiness(result.business);
     setIsAuthorized(true);
     setRazorpayConfigured(result.razorpayConfigured);
+    setSubscriptionsConfigured(result.subscriptionsConfigured);
     const savedBilling = (result.business as { billingCycle?: string })?.billingCycle;
     if (billingFromUrl === 'monthly' || billingFromUrl === 'annual') {
       setBillingCycle(billingFromUrl);
@@ -70,6 +72,13 @@ function PaymentPageContent({ id }: { id: string }) {
 
       if (!razorpayConfigured) {
         setError('Payment gateway is not configured yet. Add Razorpay API keys to your environment.');
+        return;
+      }
+
+      if (cycle === 'monthly' && !subscriptionsConfigured) {
+        setError(
+          'Monthly auto-debit is not configured. Add RAZORPAY_PLAN_ID_PRO_MONTHLY to your server environment.',
+        );
         return;
       }
 
@@ -206,17 +215,35 @@ function PaymentPageContent({ id }: { id: string }) {
         setPaying(false);
       }
     },
-    [billingCycle, business, checkoutRequested, id, isAuthorized, plan.name, razorpayConfigured, router]
+    [billingCycle, business, checkoutRequested, id, isAuthorized, plan.name, razorpayConfigured, router, subscriptionsConfigured]
   );
 
   useEffect(() => {
     if (loading || paying || !business || !isAuthorized || !razorpayConfigured) return;
-    if (business.paymentStatus === 'completed') return;
     if (!checkoutRequested || checkoutStartedRef.current) return;
 
-    checkoutStartedRef.current = true;
     const cycle: BillingCycle =
       billingFromUrl === 'annual' ? 'annual' : billingFromUrl === 'monthly' ? 'monthly' : billingCycle;
+
+    if (cycle === 'monthly' && !subscriptionsConfigured) return;
+
+    const subscription = getMerchantSubscriptionStatus({
+      paymentStatus: business?.paymentStatus,
+      selectedPlan: business?.selectedPlan,
+      billingCycle: business?.billingCycle,
+      planStartedAt: business?.planStartedAt,
+      planExpiresAt: business?.planExpiresAt,
+      updatedAt: business?.updatedAt,
+      createdAt: business?.createdAt,
+      autoRenewEnabled: business?.autoRenewEnabled,
+      mandateStatus: business?.mandateStatus,
+      subscriptionStatus: business?.subscriptionStatus,
+      razorpaySubscriptionId: business?.razorpaySubscriptionId,
+    });
+
+    if (subscription.isActive && !checkoutRequested) return;
+
+    checkoutStartedRef.current = true;
     if (billingFromUrl === 'monthly' || billingFromUrl === 'annual') {
       setBillingCycle(cycle);
     }
@@ -231,6 +258,7 @@ function PaymentPageContent({ id }: { id: string }) {
     loading,
     paying,
     razorpayConfigured,
+    subscriptionsConfigured,
   ]);
 
   const handleBack = () => {
