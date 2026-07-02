@@ -37,33 +37,37 @@ export function useAlreadyLoggedInRedirect(
     let timer: ReturnType<typeof setTimeout> | undefined;
 
     async function check() {
-      if (kind === 'user') {
-        const result = await getSession();
-        if (cancelled) return;
+      try {
+        if (kind === 'user') {
+          const result = await getSession();
+          if (cancelled) return;
 
-        if (result?.success) {
-          const path = redirectTo ?? '/dashboard';
-          setState({
-            status: 'redirecting',
-            message: message ?? "You're already logged in. Redirecting to your dashboard…",
-          });
-          timer = setTimeout(() => router.replace(getSafeRedirectPath(path)), delayMs);
-          return;
-        }
-      } else {
-        const result = await getBusinessSession();
-        if (cancelled) return;
+          if (result?.success) {
+            const path = redirectTo ?? '/dashboard';
+            setState({
+              status: 'redirecting',
+              message: message ?? "You're already logged in. Redirecting to your dashboard…",
+            });
+            timer = setTimeout(() => router.replace(getSafeRedirectPath(path)), delayMs);
+            return;
+          }
+        } else {
+          const result = await getBusinessSession();
+          if (cancelled) return;
 
-        if (result?.success && result.business?.id) {
-          const path = redirectTo ?? `/business/dashboard?id=${result.business.id}`;
-          setState({
-            status: 'redirecting',
-            message:
-              message ?? "You're currently logged in. Redirecting to your merchant dashboard…",
-          });
-          timer = setTimeout(() => router.replace(path), delayMs);
-          return;
+          if (result?.success && result.business?.id) {
+            const path = redirectTo ?? `/business/dashboard?id=${result.business.id}`;
+            setState({
+              status: 'redirecting',
+              message:
+                message ?? "You're currently logged in. Redirecting to your merchant dashboard…",
+            });
+            timer = setTimeout(() => router.replace(path), delayMs);
+            return;
+          }
         }
+      } catch {
+        // Dev server restart / port mismatch — allow the page to render normally.
       }
 
       setState({ status: 'idle' });

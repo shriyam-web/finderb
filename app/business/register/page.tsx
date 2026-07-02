@@ -56,12 +56,16 @@ function RegisterFormContent() {
 
   useEffect(() => {
     async function fetchCats() {
-      const res = await getCategories(true);
-      if (res.success && res.categories) {
-        setLiveCategories(res.categories);
+      try {
+        const res = await getCategories(true);
+        if (res.success && res.categories) {
+          setLiveCategories(res.categories);
+        }
+      } catch {
+        // Keep mock categories if the server action cannot be reached.
       }
     }
-    fetchCats();
+    void fetchCats();
   }, []);
 
   useEffect(() => {
@@ -354,9 +358,16 @@ function RegisterFormContent() {
         setFieldErrors(mappedErrors);
         scrollToFirstRegistrationError(mappedErrors);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Registration error:', error);
-      const message = error.message || 'An unexpected error occurred. Please try again.';
+      const isNetworkError =
+        error instanceof TypeError &&
+        (error.message === 'Failed to fetch' || error.message.includes('NetworkError'));
+      const message = isNetworkError
+        ? 'Could not reach the server. Refresh the page and try again — if you recently restarted dev, make sure you are on the correct localhost port.'
+        : error instanceof Error
+          ? error.message
+          : 'An unexpected error occurred. Please try again.';
       setFieldErrors({ _form: message });
     } finally {
       setLoading(false);
