@@ -365,6 +365,7 @@ export default function Footer() {
                 <ContactRow icon={Mail} href={`mailto:${FOOTER_CONTACT.email}`}>
                   {FOOTER_CONTACT.email}
                 </ContactRow>
+                {/* Company phone row hidden until SHOW_COMPANY_PHONE is true in lib/legalContent.ts */}
                 {FOOTER_CONTACT.phone && FOOTER_CONTACT.phoneHref ? (
                   <ContactRow icon={Phone} href={FOOTER_CONTACT.phoneHref}>
                     {FOOTER_CONTACT.phone}

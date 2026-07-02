@@ -41,6 +41,7 @@ export const FOOTER_SEO_NOTES = [
 
 export const FOOTER_CONTACT = {
   email: LEGAL_COMPANY.email,
+  // Company phone hidden in footer while SHOW_COMPANY_PHONE is false (see lib/legalContent.ts).
   phone: SHOW_COMPANY_PHONE ? LEGAL_COMPANY.phoneDisplay : null,
   phoneHref: SHOW_COMPANY_PHONE ? `tel:${LEGAL_COMPANY.phone}` : null,
   coverage: '500+ cities across India',
