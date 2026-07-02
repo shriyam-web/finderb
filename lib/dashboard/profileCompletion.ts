@@ -120,7 +120,7 @@ export function getProfileCompletion(business: Record<string, unknown> | null | 
     missingFields.push({
       key: 'paymentModes',
       label: 'Payment Modes',
-      settingsKey: 'serviceCategory',
+      settingsKey: 'paymentModes',
       action: 'settings',
     });
   }
@@ -147,6 +147,7 @@ export function getAccountMissingFields(
 export function settingsKeyFromCompletionKey(key: string): string | null {
   if (key === 'kyc') return null;
   if (key === 'images' || key === 'profilePictureUrl') return 'media';
+  if (key === 'paymentModes') return 'paymentModes';
   const field = COMPLETION_FIELDS.find((f) => f.key === key);
   return field?.settingsKey ?? null;
 }

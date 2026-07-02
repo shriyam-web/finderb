@@ -20,6 +20,7 @@ import {
   HiOutlineHashtag,
   HiOutlineXMark,
   HiOutlineQueueList,
+  HiOutlineCreditCard,
 } from 'react-icons/hi2';
 import { FaInstagram, FaFacebook, FaYoutube, FaWhatsapp } from 'react-icons/fa';
 import { useState, useEffect } from 'react';
@@ -39,6 +40,16 @@ const discountOptions = [
   'Special Festive Discount',
   'Seasonal Offer',
 ];
+
+const PAYMENT_MODE_OPTIONS = [
+  'Cash',
+  'UPI',
+  'Credit Card',
+  'Debit Card',
+  'Net Banking',
+  'Wallet',
+  'Cheque',
+] as const;
 
 type FieldDef = {
   key: string;
@@ -69,6 +80,7 @@ const SETTINGS_FIELDS: FieldDef[] = [
   { key: 'country', label: 'Country', icon: HiOutlineGlobeAlt, type: 'text' },
   { key: 'mapLocation', label: 'Google Maps Location', icon: HiOutlineMap, type: 'googleMaps' },
   { key: 'serviceCategory', label: 'Service Category', icon: HiOutlineQueueList, type: 'text' },
+  { key: 'paymentModes', label: 'Payment Modes', icon: HiOutlineCreditCard, type: 'paymentModes' },
   { key: 'yearsInBusiness', label: 'Years Active', icon: HiOutlineCalendar, type: 'number' },
   { key: 'discountRange', label: 'Discount Offer', icon: HiOutlineTag, type: 'select', options: discountOptions },
   { key: 'timings', label: 'Business Hours', icon: HiOutlineClock, type: 'timings' },
@@ -79,7 +91,7 @@ const FIELD_SECTIONS = [
   { id: 'contact', title: 'Contact', keys: ['email', 'publicPhone', 'whatsappNumber', 'website'] },
   { id: 'location', title: 'Location', keys: ['businessAddress', 'city', 'state', 'country', 'mapLocation'] },
   { id: 'social', title: 'Social media', keys: ['instagramUrl', 'facebookUrl', 'youtubeUrl'] },
-  { id: 'operations', title: 'Operations', keys: ['serviceCategory', 'yearsInBusiness', 'discountRange', 'timings'] },
+  { id: 'operations', title: 'Operations', keys: ['serviceCategory', 'paymentModes', 'yearsInBusiness', 'discountRange', 'timings'] },
 ];
 
 interface SettingsTabProps {
@@ -134,6 +146,9 @@ export default function SettingsTab({
 
   const checkIsMissing = (field: FieldDef) => {
     if (field.key === 'media') return images.length === 0 || !profilePictureUrl;
+    if (field.key === 'paymentModes') {
+      return !profileData.paymentModes || profileData.paymentModes.length === 0;
+    }
     if (field.key === 'timings') return !profileData.timings || Object.keys(profileData.timings).length === 0;
     if (field.key === 'keywords') return !profileData.keywords || profileData.keywords.length === 0;
     if (field.key === 'mapLocation') {
@@ -153,6 +168,11 @@ export default function SettingsTab({
         ? profileData.keywords.join(', ')
         : 'Not set';
     }
+    if (field.key === 'paymentModes') {
+      return profileData.paymentModes?.length
+        ? profileData.paymentModes.join(', ')
+        : 'Not set';
+    }
     if (field.key === 'mapLocation') {
       const lat = profileData.latitude;
       const lng = profileData.longitude;
@@ -167,6 +187,20 @@ export default function SettingsTab({
   const missingFields = SETTINGS_FIELDS.filter(checkIsMissing);
   const activeField = SETTINGS_FIELDS.find((f) => f.key === activeModal);
   const ActiveIcon = activeField?.icon;
+  const selectedPaymentModes: string[] = Array.isArray(profileData.paymentModes)
+    ? profileData.paymentModes
+    : [];
+
+  const togglePaymentMode = (mode: string) => {
+    if (selectedPaymentModes.includes(mode)) {
+      updateField(
+        'paymentModes',
+        selectedPaymentModes.filter((item) => item !== mode),
+      );
+      return;
+    }
+    updateField('paymentModes', [...selectedPaymentModes, mode]);
+  };
 
   const modal =
     mounted && activeModal && activeField
@@ -360,6 +394,35 @@ export default function SettingsTab({
                         )
                       )}
                     </div>
+                  ) : activeModal === 'paymentModes' ? (
+                    <div className="space-y-3">
+                      <p className="text-sm text-zinc-600">
+                        Select every payment method customers can use at your business.
+                      </p>
+                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                        {PAYMENT_MODE_OPTIONS.map((mode) => {
+                          const checked = selectedPaymentModes.includes(mode);
+                          return (
+                            <label
+                              key={mode}
+                              className={`flex cursor-pointer items-center gap-2.5 rounded-lg border px-3 py-2.5 text-sm transition-colors ${
+                                checked
+                                  ? 'border-[#215481] bg-[#215481]/5 text-[#153551]'
+                                  : 'border-zinc-200 bg-white text-zinc-700 hover:border-zinc-300'
+                              }`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={() => togglePaymentMode(mode)}
+                                className="h-4 w-4 rounded border-zinc-300 text-[#215481] focus:ring-[#215481]/20"
+                              />
+                              {mode}
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
                   ) : (
                     <input
                       type={activeField.type === 'number' ? 'number' : 'text'}
@@ -390,7 +453,8 @@ export default function SettingsTab({
                     disabled={
                       updating ||
                       (activeModal === 'mapLocation' &&
-                        checkIsMissing(SETTINGS_FIELDS.find((f) => f.key === 'mapLocation')!))
+                        checkIsMissing(SETTINGS_FIELDS.find((f) => f.key === 'mapLocation')!)) ||
+                      (activeModal === 'paymentModes' && selectedPaymentModes.length === 0)
                     }
                     className={`flex-[2] ${dashboard.btnPrimary} disabled:opacity-50`}
                   >
