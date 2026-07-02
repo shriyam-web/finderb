@@ -1,5 +1,3 @@
-import { countryFlagEmoji } from '@/lib/countryFlag';
-
 export default function CountryFlagPrefix({
   isoCode,
   className = '',
@@ -7,15 +5,21 @@ export default function CountryFlagPrefix({
   isoCode: string;
   className?: string;
 }) {
-  const flag = countryFlagEmoji(isoCode);
-  if (!flag) return null;
+  const code = isoCode?.trim().toLowerCase();
+  if (!code || code.length !== 2) return null;
 
   return (
-    <span
-      className={`inline-flex h-5 w-7 shrink-0 items-center justify-center overflow-hidden rounded-[3px] border border-black/10 bg-white text-[17px] leading-none shadow-sm ${className}`}
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={`https://flagcdn.com/w40/${code}.png`}
+      srcSet={`https://flagcdn.com/w80/${code}.png 2x`}
+      width={28}
+      height={20}
+      alt=""
       aria-hidden
-    >
-      {flag}
-    </span>
+      loading="lazy"
+      decoding="async"
+      className={`h-5 w-7 shrink-0 rounded-[3px] border border-black/10 object-cover shadow-sm ${className}`}
+    />
   );
 }

@@ -1094,6 +1094,38 @@ h1, h2, h3, h4, h5, h6 {
   outline: none;
 }
 
+.merchant-auth-field-invalid,
+.merchant-auth-select-trigger.merchant-auth-field-invalid {
+  border-color: #f43f5e !important;
+  background: #fffafb;
+  box-shadow: 0 0 0 3px rgba(244, 63, 94, 0.12), inset 0 1px 2px rgba(15, 39, 59, 0.02);
+}
+
+.merchant-auth-input-wrap-invalid .merchant-auth-field:focus,
+.merchant-auth-input-wrap-invalid .merchant-auth-select-trigger-open {
+  border-color: #f43f5e !important;
+  box-shadow: 0 0 0 3px rgba(244, 63, 94, 0.12), inset 0 1px 2px rgba(15, 39, 59, 0.02);
+}
+
+.merchant-auth-field-error {
+  animation: merchant-auth-error-in 0.18s ease-out;
+}
+
+.merchant-auth-form-banner {
+  animation: merchant-auth-error-in 0.2s ease-out;
+}
+
+@keyframes merchant-auth-error-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .merchant-auth-select-trigger-open {
   border-color: #153551;
   background: #ffffff;

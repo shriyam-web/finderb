@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { ChevronDown, Search } from 'lucide-react';
+import { MerchantFieldError } from '@/components/business/MerchantFieldError';
 
 export interface SelectOption {
   label: string;
@@ -19,6 +20,8 @@ interface SearchableSelectProps {
   disabled?: boolean;
   tone?: 'default' | 'merchant';
   loading?: boolean;
+  error?: string;
+  id?: string;
 }
 
 function OptionLabel({ option }: { option: SelectOption }) {
@@ -42,6 +45,8 @@ export function SearchableSelect({
   disabled,
   tone = 'default',
   loading = false,
+  error,
+  id,
 }: SearchableSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -66,12 +71,12 @@ export function SearchableSelect({
   }, []);
 
   return (
-    <div className="group relative space-y-2" ref={containerRef}>
+    <div className="group relative space-y-2" ref={containerRef} id={id ? `field-${id}` : undefined}>
       <label className={isMerchant ? 'merchant-auth-label' : 'ml-1 text-[10px] font-bold uppercase tracking-[0.15em] text-gray-400'}>
         {label}
       </label>
       <div
-        className={`relative ${isDisabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
+        className={`relative ${isDisabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'} ${error ? 'merchant-auth-input-wrap-invalid' : ''}`}
         onClick={() => !isDisabled && setIsOpen(!isOpen)}
       >
         {icon ? (
@@ -90,7 +95,7 @@ export function SearchableSelect({
             isMerchant
               ? `merchant-auth-select-trigger flex min-h-[54px] w-full items-center py-3.5 pr-11 text-[15px] font-semibold text-[#0f273b] ${
                   icon ? 'pl-11' : 'pl-4'
-                } ${isOpen ? 'merchant-auth-select-trigger-open' : ''}`
+                } ${isOpen ? 'merchant-auth-select-trigger-open' : ''} ${error ? 'merchant-auth-field-invalid' : ''}`
               : `flex min-h-[56px] w-full items-center rounded-2xl border border-gray-100 bg-gray-50 py-4 pr-10 text-sm font-semibold text-gray-900 ${
                   icon ? 'pl-11' : 'pl-4'
                 } ${isOpen ? 'border-blue-600 bg-white ring-2 ring-blue-50' : ''}`
@@ -182,6 +187,11 @@ export function SearchableSelect({
           </div>
         </div>
       )}
+      {isMerchant ? (
+        <MerchantFieldError id={error && id ? `${id}-error` : undefined} message={error} />
+      ) : error ? (
+        <p className="text-xs font-medium text-rose-600">{error}</p>
+      ) : null}
     </div>
   );
 }

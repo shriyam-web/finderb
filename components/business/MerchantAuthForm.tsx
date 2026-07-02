@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import type { FormEvent, ReactNode } from 'react';
 import IndianPhoneInput from '@/components/IndianPhoneInput';
+import { MerchantFieldError } from '@/components/business/MerchantFieldError';
 import {
   extractIndianMobileDigits,
   isValidIndianMobileDigits,
@@ -123,11 +124,13 @@ export function MerchantAuthPhoneField({
   value,
   onChange,
   onSubmit,
+  error,
 }: {
   id?: string;
   value: string;
   onChange: (value: string) => void;
   onSubmit: () => void;
+  error?: string;
 }) {
   const digits = extractIndianMobileDigits(value);
   const isComplete = isValidIndianMobileDigits(digits);
@@ -148,6 +151,7 @@ export function MerchantAuthPhoneField({
           value={value}
           onChange={onChange}
           variant="merchant"
+          error={error}
         />
       </div>
 
@@ -172,6 +176,7 @@ export function MerchantAuthField({
   trailing,
   autoComplete,
   hideLabel,
+  error,
 }: {
   id: string;
   label: string;
@@ -183,15 +188,18 @@ export function MerchantAuthField({
   trailing?: ReactNode;
   autoComplete?: string;
   hideLabel?: boolean;
+  error?: string;
 }) {
   return (
-    <div>
+    <div id={`field-${id}`}>
       {!hideLabel && (
         <label htmlFor={id} className="merchant-auth-label">
           {label}
         </label>
       )}
-      <div className="group relative merchant-auth-input-wrap">
+      <div
+        className={`group relative merchant-auth-input-wrap ${error ? 'merchant-auth-input-wrap-invalid' : ''}`}
+      >
         <Icon
           size={17}
           strokeWidth={2}
@@ -204,10 +212,13 @@ export function MerchantAuthField({
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
           autoComplete={autoComplete}
-          className={`${merchantAuthFieldClass} ${trailing ? 'pr-11' : ''}`}
+          aria-invalid={Boolean(error)}
+          aria-describedby={error ? `${id}-error` : undefined}
+          className={`${merchantAuthFieldClass} ${trailing ? 'pr-11' : ''} ${error ? 'merchant-auth-field-invalid' : ''}`}
         />
         {trailing}
       </div>
+      <MerchantFieldError id={error ? `${id}-error` : undefined} message={error} />
     </div>
   );
 }

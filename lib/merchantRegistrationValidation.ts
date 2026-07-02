@@ -4,12 +4,77 @@ import {
   validateRegistrationAddressLines,
 } from '@/lib/businessAddress';
 import {
-  PASSWORD_MAX_LENGTH,
-  PASSWORD_MIN_LENGTH_MERCHANT,
-  validatePasswordLength,
-} from '@/lib/security/passwordPolicy';
+  validateRegistrationPassword,
+} from '@/lib/security/passwordStrength';
 
 export const REGISTRATION_EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+export type RegistrationStep1Field = 'fullName' | 'email' | 'password' | 'mobile';
+export type RegistrationStep2Field =
+  | 'businessName'
+  | 'displayName'
+  | 'categoryId'
+  | 'subcategoryId'
+  | 'addressLine1'
+  | 'addressLine2'
+  | 'country'
+  | 'state'
+  | 'city'
+  | 'publicPhone';
+export type RegistrationFieldKey = RegistrationStep1Field | RegistrationStep2Field | '_form';
+export type RegistrationFieldErrors = Partial<Record<RegistrationFieldKey, string>>;
+
+export function firstRegistrationFieldError(errors: RegistrationFieldErrors): string | null {
+  const values = Object.values(errors).filter(Boolean);
+  return values[0] ?? null;
+}
+
+export function mapRegistrationServerError(error: string): RegistrationFieldErrors {
+  const lower = error.toLowerCase();
+  if (lower.includes('email')) return { email: error };
+  if (lower.includes('mobile') || lower.includes('phone')) return { mobile: error };
+  if (lower.includes('password')) return { password: error };
+  if (lower.includes('full name') || lower.includes('owner')) return { fullName: error };
+  if (lower.includes('business name') || lower.includes('legal name')) return { businessName: error };
+  if (lower.includes('category')) return { categoryId: error };
+  if (lower.includes('subcategory')) return { subcategoryId: error };
+  if (lower.includes('address')) return { addressLine1: error };
+  if (lower.includes('country')) return { country: error };
+  if (lower.includes('state')) return { state: error };
+  if (lower.includes('city')) return { city: error };
+  return { _form: error };
+}
+
+const REGISTRATION_FIELD_SCROLL_ORDER: RegistrationFieldKey[] = [
+  'fullName',
+  'email',
+  'password',
+  'mobile',
+  'businessName',
+  'displayName',
+  'categoryId',
+  'subcategoryId',
+  'addressLine1',
+  'addressLine2',
+  'country',
+  'state',
+  'city',
+  'publicPhone',
+];
+
+export function scrollToFirstRegistrationError(errors: RegistrationFieldErrors) {
+  if (typeof document === 'undefined') return;
+
+  const firstKey = REGISTRATION_FIELD_SCROLL_ORDER.find((key) => errors[key]);
+  if (!firstKey) return;
+
+  requestAnimationFrame(() => {
+    const el = document.getElementById(`field-${firstKey}`);
+    el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const focusable = el?.querySelector<HTMLElement>('input:not([disabled]),button,[tabindex="0"]');
+    focusable?.focus({ preventScroll: true });
+  });
+}
 
 export const MIN_PERSON_NAME_LENGTH = 2;
 export const MIN_BUSINESS_NAME_LENGTH = 2;
@@ -96,12 +161,7 @@ function validateEmail(value: string): string | null {
 }
 
 function validatePassword(value: string): string | null {
-  const result = validatePasswordLength(value, PASSWORD_MIN_LENGTH_MERCHANT);
-  if (!result.ok) return result.error;
-  if (value.length > PASSWORD_MAX_LENGTH) {
-    return `Password must be at most ${PASSWORD_MAX_LENGTH} characters.`;
-  }
-  return null;
+  return validateRegistrationPassword(value);
 }
 
 function validateMobile(value: string, fieldLabel = 'mobile number'): string | null {
@@ -117,13 +177,28 @@ export function validateRegistrationMobile(mobile: string): string | null {
   return validateMobile(mobile, 'mobile number');
 }
 
+export function validateRegistrationStep1Fields(
+  input: RegistrationStep1Input,
+): RegistrationFieldErrors {
+  const errors: RegistrationFieldErrors = {};
+
+  const fullNameError = validatePersonName(input.fullName, 'your full name');
+  if (fullNameError) errors.fullName = fullNameError;
+
+  const emailError = validateEmail(input.email);
+  if (emailError) errors.email = emailError;
+
+  const passwordError = validatePassword(input.password);
+  if (passwordError) errors.password = passwordError;
+
+  const mobileError = validateMobile(input.mobile, 'mobile number');
+  if (mobileError) errors.mobile = mobileError;
+
+  return errors;
+}
+
 export function validateRegistrationStep1(input: RegistrationStep1Input): string | null {
-  return (
-    validatePersonName(input.fullName, 'your full name') ??
-    validateEmail(input.email) ??
-    validatePassword(input.password) ??
-    validateMobile(input.mobile, 'mobile number')
-  );
+  return firstRegistrationFieldError(validateRegistrationStep1Fields(input));
 }
 
 export function validateRegistrationBusinessFields(data: {
@@ -151,23 +226,40 @@ export function validateRegistrationBusinessFields(data: {
   );
 }
 
-export function validateRegistrationStep2(input: RegistrationStep2Input): string | null {
-  if (!input.categoryId) return 'Please select a business category.';
-  if (input.hasSubcategories && !input.subcategoryId) {
-    return 'Please select a subcategory.';
+export function validateRegistrationStep2Fields(
+  input: RegistrationStep2Input,
+): RegistrationFieldErrors {
+  const errors: RegistrationFieldErrors = {};
+
+  if (!input.categoryId) {
+    errors.categoryId = 'Please select a business category.';
   }
 
-  return validateRegistrationBusinessFields({
-    businessName: input.businessName,
-    displayName: input.displayName,
-    category: 'selected',
-    city: input.city,
-    state: input.state,
-    country: input.country,
-    publicPhone: input.publicPhone,
-    addressLine1: input.addressLine1,
-    addressLine2: input.addressLine2,
-  });
+  if (input.hasSubcategories && !input.subcategoryId) {
+    errors.subcategoryId = 'Please select a subcategory.';
+  }
+
+  const businessNameError = validateBusinessName(input.businessName);
+  if (businessNameError) errors.businessName = businessNameError;
+
+  const displayNameError = validateDisplayName(input.displayName, input.businessName);
+  if (displayNameError) errors.displayName = displayNameError;
+
+  const addressError = validateRegistrationAddressLines(input.addressLine1, input.addressLine2);
+  if (addressError) errors.addressLine1 = addressError;
+
+  if (!input.country.trim()) errors.country = 'Please select your country.';
+  if (!input.state.trim()) errors.state = 'Please select your state.';
+  if (!input.city.trim()) errors.city = 'Please select your city.';
+
+  const publicPhoneError = validateMobile(input.publicPhone, 'display phone number');
+  if (publicPhoneError) errors.publicPhone = publicPhoneError;
+
+  return errors;
+}
+
+export function validateRegistrationStep2(input: RegistrationStep2Input): string | null {
+  return firstRegistrationFieldError(validateRegistrationStep2Fields(input));
 }
 
 export function normalizeRegistrationStep1(input: RegistrationStep1Input) {

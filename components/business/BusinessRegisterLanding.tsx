@@ -35,10 +35,12 @@ function MobileRegisterInput({
   mobile,
   onChange,
   onSubmit,
+  error,
 }: {
   mobile: string;
   onChange: (value: string) => void;
   onSubmit: () => void;
+  error?: string;
 }) {
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch">
@@ -49,6 +51,7 @@ function MobileRegisterInput({
         variant="merchant"
         placeholder="10-digit mobile number"
         className="min-w-0 flex-1"
+        error={error}
       />
       <button
         type="button"
@@ -78,6 +81,7 @@ function PartnerLoginCard({ className = '' }: { className?: string }) {
 type BusinessRegisterLandingProps = {
   mobile: string;
   onMobileChange: (value: string) => void;
+  mobileError?: string;
   onStart: () => void;
   onPlanSelect: (plan: 'free' | 'pro', billing?: 'monthly' | 'annual') => void;
   stats: Stat[];
@@ -89,6 +93,7 @@ type BusinessRegisterLandingProps = {
 export default function BusinessRegisterLanding({
   mobile,
   onMobileChange,
+  mobileError,
   onStart,
   onPlanSelect,
   stats,
@@ -107,6 +112,7 @@ export default function BusinessRegisterLanding({
         mobile={mobile}
         onMobileChange={onMobileChange}
         onStart={onStart}
+        mobileError={mobileError}
         stats={stats}
       />
 
@@ -263,7 +269,12 @@ export default function BusinessRegisterLanding({
               </div>
 
               <div className="mt-10 max-w-md">
-                <MobileRegisterInput mobile={mobile} onChange={onMobileChange} onSubmit={onStart} />
+                <MobileRegisterInput
+                  mobile={mobile}
+                  onChange={onMobileChange}
+                  onSubmit={onStart}
+                  error={mobileError}
+                />
               </div>
             </div>
 

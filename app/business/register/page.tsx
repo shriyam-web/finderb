@@ -8,7 +8,6 @@ import {
   Building2,
   Smartphone,
 } from 'lucide-react';
-import { Globe } from 'lucide-react';
 import { categories as mockCategories } from '@/lib/mockData';
 import { getCategories, getSubCategories } from '@/app/actions/category';
 import { Country, State, City } from 'country-state-city';
@@ -19,8 +18,12 @@ import { MerchantAuthPage } from '@/components/business/MerchantAuthShell';
 import { registerBusiness } from '@/app/actions/business';
 import {
   validateRegistrationMobile,
-  validateRegistrationStep1,
-  validateRegistrationStep2,
+  validateRegistrationStep1Fields,
+  validateRegistrationStep2Fields,
+  mapRegistrationServerError,
+  scrollToFirstRegistrationError,
+  type RegistrationFieldErrors,
+  type RegistrationFieldKey,
 } from '@/lib/merchantRegistrationValidation';
 import CountryFlagPrefix from '@/components/CountryFlagPrefix';
 import { combineBusinessAddress } from '@/lib/businessAddress';
@@ -82,7 +85,8 @@ function RegisterFormContent() {
   const [selectedPlan, setSelectedPlan] = useState('free');
   const [billingCycle, setBillingCycle] = useState('monthly');
   const [loading, setLoading] = useState(false);
-  const [passwordVisible, setPasswordVisible] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<RegistrationFieldErrors>({});
+  const [landingMobileError, setLandingMobileError] = useState('');
   const [registeredBusiness, setRegisteredBusiness] = useState<any>(null);
   const [formData, setFormData] = useState({
     fullName: '',
@@ -139,15 +143,44 @@ function RegisterFormContent() {
     prefix: <CategoryIcon icon={c.icon} name={c.name} size={20} className="h-5 w-5" />,
   }));
 
+  const clearFieldErrors = (...keys: RegistrationFieldKey[]) => {
+    setFieldErrors((prev) => {
+      if (keys.length === 0) return prev;
+      const next = { ...prev };
+      for (const key of keys) {
+        delete next[key];
+      }
+      return next;
+    });
+  };
+
+  const patchFormData = (patch: Partial<typeof formData>) => {
+    setFormData((prev) => ({ ...prev, ...patch }));
+    const keys = new Set<RegistrationFieldKey>(Object.keys(patch) as RegistrationFieldKey[]);
+    if ('countryCode' in patch) {
+      keys.add('country');
+      keys.add('state');
+      keys.add('city');
+    }
+    if ('stateCode' in patch) {
+      keys.add('state');
+      keys.add('city');
+    }
+    if ('categoryId' in patch) {
+      keys.add('categoryId');
+      keys.add('subcategoryId');
+    }
+    clearFieldErrors(...keys);
+  };
+
   const handleCategoryChange = async (categoryId: string) => {
     const parent = liveCategories.find((c) => c.id === categoryId);
-    setFormData((prev) => ({
-      ...prev,
+    patchFormData({
       categoryId,
       category: parent?.name || '',
       subcategoryId: '',
       subcategory: '',
-    }));
+    });
     setSubCategories([]);
 
     if (!categoryId) return;
@@ -166,32 +199,34 @@ function RegisterFormContent() {
   const handleSubcategoryChange = (subcategoryId: string) => {
     const sub = subCategories.find((c) => c.id === subcategoryId);
     const parent = liveCategories.find((c) => c.id === formData.categoryId);
-    setFormData((prev) => ({
-      ...prev,
+    patchFormData({
       subcategoryId,
       subcategory: sub?.name || '',
-      category: sub && parent ? `${parent.name} › ${sub.name}` : prev.category,
-    }));
+      category: sub && parent ? `${parent.name} › ${sub.name}` : formData.category,
+    });
   };
   const stepLabels = ['Basic Details', 'Business Info', 'Success'];
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    clearFieldErrors(name as RegistrationFieldKey);
   };
 
   const nextStep = async () => {
     if (step === 1) {
-      const step1Error = validateRegistrationStep1({
+      const errors = validateRegistrationStep1Fields({
         fullName: formData.fullName,
         email: formData.email,
         password: formData.password,
         mobile,
       });
-      if (step1Error) {
-        alert(step1Error);
+      if (Object.keys(errors).length > 0) {
+        setFieldErrors(errors);
+        scrollToFirstRegistrationError(errors);
         return;
       }
+      setFieldErrors({});
       setFormData((prev) => ({
         ...prev,
         publicPhone: prev.publicPhone || mobile,
@@ -201,7 +236,7 @@ function RegisterFormContent() {
     }
 
     if (step === 2) {
-      const step2Error = validateRegistrationStep2({
+      const errors = validateRegistrationStep2Fields({
         businessName: formData.businessName,
         displayName: formData.displayName,
         categoryId: formData.categoryId,
@@ -216,8 +251,9 @@ function RegisterFormContent() {
         addressLine2: formData.addressLine2,
         hasSubcategories: subCategories.length > 0,
       });
-      if (step2Error) {
-        alert(step2Error);
+      if (Object.keys(errors).length > 0) {
+        setFieldErrors(errors);
+        scrollToFirstRegistrationError(errors);
         return;
       }
       await handleRegistration();
@@ -233,19 +269,20 @@ function RegisterFormContent() {
   const prevStep = () => setStep((s) => Math.max(s - 1, 1));
 
   const handleRegistration = async () => {
-    const step1Error = validateRegistrationStep1({
+    const step1Errors = validateRegistrationStep1Fields({
       fullName: formData.fullName,
       email: formData.email,
       password: formData.password,
       mobile,
     });
-    if (step1Error) {
-      alert(step1Error);
+    if (Object.keys(step1Errors).length > 0) {
+      setFieldErrors(step1Errors);
       setStep(1);
+      scrollToFirstRegistrationError(step1Errors);
       return;
     }
 
-    const step2Error = validateRegistrationStep2({
+    const step2Errors = validateRegistrationStep2Fields({
       businessName: formData.businessName,
       displayName: formData.displayName,
       categoryId: formData.categoryId,
@@ -260,11 +297,13 @@ function RegisterFormContent() {
       addressLine2: formData.addressLine2,
       hasSubcategories: subCategories.length > 0,
     });
-    if (step2Error) {
-      alert(step2Error);
+    if (Object.keys(step2Errors).length > 0) {
+      setFieldErrors(step2Errors);
+      scrollToFirstRegistrationError(step2Errors);
       return;
     }
 
+    setFieldErrors({});
     setLoading(true);
     try {
       const parent = liveCategories.find((c) => c.id === formData.categoryId);
@@ -303,18 +342,22 @@ function RegisterFormContent() {
 
       if (result.success) {
         setRegisteredBusiness(result.business);
+        setFieldErrors({});
         setStep(3);
       } else {
         console.error('Registration failed:', result.error);
         const message = result.error || 'Registration failed. Please try again.';
+        const mappedErrors = mapRegistrationServerError(message);
         if (isStep1RegistrationError(message)) {
           setStep(1);
         }
-        alert(message);
+        setFieldErrors(mappedErrors);
+        scrollToFirstRegistrationError(mappedErrors);
       }
     } catch (error: any) {
       console.error('Registration error:', error);
-      alert('An unexpected error occurred: ' + (error.message || 'Unknown error'));
+      const message = error.message || 'An unexpected error occurred. Please try again.';
+      setFieldErrors({ _form: message });
     } finally {
       setLoading(false);
     }
@@ -323,9 +366,12 @@ function RegisterFormContent() {
   const handleStartNow = () => {
     const error = validateRegistrationMobile(mobile);
     if (error) {
-      alert(error);
+      setLandingMobileError(error);
+      document.getElementById('field-mobile-input')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      document.getElementById('mobile-input')?.focus();
       return;
     }
+    setLandingMobileError('');
     setShowForm(true);
   };
 
@@ -441,10 +487,9 @@ function RegisterFormContent() {
         loading={loading}
         mobile={mobile}
         formData={formData}
-        passwordVisible={passwordVisible}
-        onPasswordVisibleChange={setPasswordVisible}
+        fieldErrors={fieldErrors}
         onFormChange={handleChange}
-        onFormPatch={(patch) => setFormData((prev) => ({ ...prev, ...patch }))}
+        onFormPatch={patchFormData}
         categoryOptions={categoryOptions}
         subcategoryOptions={subcategoryOptions}
         loadingSubcategories={loadingSubcategories}
@@ -475,7 +520,11 @@ function RegisterFormContent() {
     <MerchantAuthPage>
       <BusinessRegisterLanding
         mobile={mobile}
-        onMobileChange={setMobile}
+        onMobileChange={(value) => {
+          setMobile(value);
+          if (landingMobileError) setLandingMobileError('');
+        }}
+        mobileError={landingMobileError}
         onStart={handleStartNow}
         onPlanSelect={handlePlanSelect}
         stats={stats}

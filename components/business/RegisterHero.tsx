@@ -20,10 +20,17 @@ type RegisterHeroProps = {
   mobile: string;
   onMobileChange: (value: string) => void;
   onStart: () => void;
+  mobileError?: string;
   stats: Stat[];
 };
 
-export default function RegisterHero({ mobile, onMobileChange, onStart, stats }: RegisterHeroProps) {
+export default function RegisterHero({
+  mobile,
+  onMobileChange,
+  onStart,
+  mobileError,
+  stats,
+}: RegisterHeroProps) {
   return (
     <section className="register-hero relative overflow-hidden pb-14 sm:pb-20 lg:pb-24">
       <div className="register-hero-bg pointer-events-none absolute inset-0" aria-hidden />
@@ -83,6 +90,7 @@ export default function RegisterHero({ mobile, onMobileChange, onStart, stats }:
                   value={mobile}
                   onChange={onMobileChange}
                   onSubmit={onStart}
+                  error={mobileError}
                 />
 
                 <MerchantAuthFormLegal />

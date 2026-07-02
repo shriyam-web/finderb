@@ -8,9 +8,6 @@ import {
   CheckCircle2,
   ChevronLeft,
   Copy,
-  Eye,
-  EyeOff,
-  Lock,
   Mail,
   MapPin,
   User,
@@ -27,8 +24,10 @@ import {
   MerchantAuthField,
   MerchantAuthFormHeader,
   MerchantAuthSubmitButton,
-  merchantAuthFieldClass,
 } from '@/components/business/MerchantAuthForm';
+import MerchantPasswordField from '@/components/business/MerchantPasswordField';
+import { MerchantFieldError, MerchantFormBanner } from '@/components/business/MerchantFieldError';
+import type { RegistrationFieldErrors } from '@/lib/merchantRegistrationValidation';
 
 type FormData = {
   fullName: string;
@@ -59,8 +58,7 @@ type BusinessRegisterWizardProps = {
   loading: boolean;
   mobile: string;
   formData: FormData;
-  passwordVisible: boolean;
-  onPasswordVisibleChange: (visible: boolean) => void;
+  fieldErrors: RegistrationFieldErrors;
   onFormChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => void;
   onFormPatch: (patch: Partial<FormData>) => void;
   categoryOptions: SelectOption[];
@@ -148,8 +146,7 @@ export default function BusinessRegisterWizard({
   loading,
   mobile,
   formData,
-  passwordVisible,
-  onPasswordVisibleChange,
+  fieldErrors,
   onFormChange,
   onFormPatch,
   categoryOptions,
@@ -224,6 +221,7 @@ export default function BusinessRegisterWizard({
                   title="Account details"
                   subtitle="Set up your partner account to manage your listing."
                 />
+                <MerchantFormBanner message={fieldErrors._form} />
                 <div className="space-y-4">
                   <MerchantAuthField
                     id="fullName"
@@ -233,6 +231,7 @@ export default function BusinessRegisterWizard({
                     placeholder="Your full name (for account & owner records)"
                     icon={User}
                     autoComplete="name"
+                    error={fieldErrors.fullName}
                   />
                   <MerchantAuthField
                     id="email"
@@ -243,28 +242,16 @@ export default function BusinessRegisterWizard({
                     placeholder="you@business.com"
                     icon={Mail}
                     autoComplete="email"
+                    error={fieldErrors.email}
                   />
-                  <MerchantAuthField
+                  <MerchantPasswordField
                     id="password"
                     label="Password"
-                    type={passwordVisible ? 'text' : 'password'}
                     value={formData.password}
                     onChange={(v) => onFormPatch({ password: v })}
-                    placeholder="At least 6 characters"
-                    icon={Lock}
-                    autoComplete="new-password"
-                    trailing={
-                      <button
-                        type="button"
-                        onClick={() => onPasswordVisibleChange(!passwordVisible)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1 text-[#94a3b8] transition-colors hover:text-[#153551]"
-                        aria-label={passwordVisible ? 'Hide password' : 'Show password'}
-                      >
-                        {passwordVisible ? <EyeOff size={17} /> : <Eye size={17} />}
-                      </button>
-                    }
+                    error={fieldErrors.password}
                   />
-                  <div>
+                  <div id="field-mobile">
                     <label className="merchant-auth-label">Verified mobile</label>
                     <div className="merchant-auth-phone-field relative flex items-stretch overflow-hidden rounded-2xl border-2 border-emerald-500/80 bg-white shadow-[0_0_0_3px_rgba(16,185,129,0.1)]">
                       <IndiaPhonePrefix variant="merchant" />
@@ -280,6 +267,7 @@ export default function BusinessRegisterWizard({
                         strokeWidth={2.5}
                       />
                     </div>
+                    <MerchantFieldError message={fieldErrors.mobile} />
                   </div>
                 </div>
             </div>
@@ -289,6 +277,7 @@ export default function BusinessRegisterWizard({
                   title="Business details"
                   subtitle="Help customers find and contact your business."
                 />
+                <MerchantFormBanner message={fieldErrors._form} />
                 <div className="space-y-4">
                   <MerchantAuthField
                     id="businessName"
@@ -297,6 +286,7 @@ export default function BusinessRegisterWizard({
                     onChange={(v) => onFormPatch({ businessName: v })}
                     placeholder="As on registration / GST certificate"
                     icon={Building2}
+                    error={fieldErrors.businessName}
                   />
                   <p className="-mt-2 text-xs leading-relaxed text-[#64748b]">
                     Registered legal name. Changes later require admin approval in Settings.
@@ -308,22 +298,26 @@ export default function BusinessRegisterWizard({
                     onChange={(v) => onFormPatch({ displayName: v })}
                     placeholder="Name shown on your public profile"
                     icon={Building2}
+                    error={fieldErrors.displayName}
                   />
                   <p className="-mt-2 text-xs leading-relaxed text-[#64748b]">
                     This is what customers see on FinderB. Leave blank to use your legal name.
                   </p>
                   <SearchableSelect
                     tone="merchant"
+                    id="categoryId"
                     label="Category"
                     options={categoryOptions}
                     value={formData.categoryId}
                     onChange={onCategoryChange}
                     placeholder="Select category"
                     icon={<Briefcase size={17} />}
+                    error={fieldErrors.categoryId}
                   />
                   {showSubcategory && (
                     <SearchableSelect
                       tone="merchant"
+                      id="subcategoryId"
                       label="Subcategory"
                       options={subcategoryOptions}
                       value={formData.subcategoryId}
@@ -332,6 +326,7 @@ export default function BusinessRegisterWizard({
                       icon={<Briefcase size={17} />}
                       disabled={!formData.categoryId || loadingSubcategories}
                       loading={loadingSubcategories}
+                      error={fieldErrors.subcategoryId}
                     />
                   )}
                   <MerchantAuthField
@@ -341,6 +336,7 @@ export default function BusinessRegisterWizard({
                     onChange={(v) => onFormPatch({ addressLine1: v })}
                     placeholder="Building, street, area"
                     icon={MapPin}
+                    error={fieldErrors.addressLine1}
                   />
                   <MerchantAuthField
                     id="addressLine2"
@@ -349,10 +345,12 @@ export default function BusinessRegisterWizard({
                     onChange={(v) => onFormPatch({ addressLine2: v })}
                     placeholder="Landmark, floor, suite (optional)"
                     icon={MapPin}
+                    error={fieldErrors.addressLine2}
                   />
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <SearchableSelect
                       tone="merchant"
+                      id="country"
                       label="Country"
                       options={countryOptions}
                       value={formData.countryCode}
@@ -367,9 +365,11 @@ export default function BusinessRegisterWizard({
                         });
                       }}
                       placeholder="Select country"
+                      error={fieldErrors.country}
                     />
                     <SearchableSelect
                       tone="merchant"
+                      id="state"
                       label="State"
                       options={stateOptions}
                       value={formData.stateCode}
@@ -380,9 +380,11 @@ export default function BusinessRegisterWizard({
                       placeholder="Select state"
                       icon={<MapPin size={17} />}
                       disabled={!formData.countryCode}
+                      error={fieldErrors.state}
                     />
                     <SearchableSelect
                       tone="merchant"
+                      id="city"
                       label="City"
                       options={cityOptions}
                       value={formData.city}
@@ -390,6 +392,7 @@ export default function BusinessRegisterWizard({
                       placeholder="Select city"
                       icon={<Building2 size={17} />}
                       disabled={!formData.stateCode}
+                      error={fieldErrors.city}
                     />
                   </div>
                   <div>
@@ -402,6 +405,7 @@ export default function BusinessRegisterWizard({
                       onChange={(digits) => onFormPatch({ publicPhone: digits })}
                       variant="merchant"
                       placeholder="98765 43210"
+                      error={fieldErrors.publicPhone}
                     />
                     <p className="mt-2 text-xs leading-relaxed text-[#64748b]">{INDIAN_PHONE_FIELD_HINT}</p>
                   </div>
