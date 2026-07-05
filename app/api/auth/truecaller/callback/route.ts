@@ -3,7 +3,9 @@ import {
   fetchTruecallerProfile,
   parseTruecallerProfile,
 } from '@/lib/auth/truecallerProfile';
+import { parseTruecallerCallbackBody } from '@/lib/auth/parseTruecallerCallback';
 import {
+  createTruecallerAuthRequest,
   getTruecallerAuthRequest,
   updateTruecallerAuthRequest,
 } from '@/lib/auth/truecallerPendingStore.server';
@@ -11,30 +13,44 @@ import { syncTruecallerUserToAppSession } from '@/lib/auth/syncTruecallerUser.se
 import { isValidTruecallerRequestId } from '@/lib/auth/truecallerConfig';
 
 export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
-type CallbackBody = {
-  requestId?: string;
-  accessToken?: string;
-  endpoint?: string;
-  status?: string;
-};
+function callbackErrorMessage(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error);
+
+  if (message.includes('SUPABASE_SERVICE_ROLE_KEY')) {
+    return 'Server misconfigured: add SUPABASE_SERVICE_ROLE_KEY in Vercel env vars.';
+  }
+  if (message.includes('profile fetch failed')) {
+    return 'Could not read your Truecaller profile. Please try again.';
+  }
+  if (message.includes('truecaller_auth_requests') || message.includes('schema cache')) {
+    return 'Database not ready: run supabase/truecaller_auth.sql in Supabase SQL Editor.';
+  }
+
+  return 'Truecaller verification failed. Please try again.';
+}
 
 export async function POST(request: Request) {
-  let body: CallbackBody;
-
-  try {
-    body = (await request.json()) as CallbackBody;
-  } catch {
+  const body = await parseTruecallerCallbackBody(request);
+  if (!body) {
     return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
   }
 
-  const requestId = body.requestId?.trim() ?? '';
+  const requestId = body.requestId.trim();
   if (!isValidTruecallerRequestId(requestId)) {
+    console.error('[truecaller callback] invalid requestId:', requestId);
     return NextResponse.json({ error: 'Invalid requestId' }, { status: 400 });
   }
 
   try {
-    const existing = await getTruecallerAuthRequest(requestId);
+    let existing = await getTruecallerAuthRequest(requestId);
+    if (!existing) {
+      // Truecaller may callback before the browser init request lands (mobile networks).
+      await createTruecallerAuthRequest(requestId, '/dashboard');
+      existing = await getTruecallerAuthRequest(requestId);
+    }
+
     if (!existing) {
       return NextResponse.json({ error: 'Unknown request' }, { status: 404 });
     }
@@ -55,6 +71,12 @@ export async function POST(request: Request) {
     const accessToken = body.accessToken?.trim();
     const endpoint = body.endpoint?.trim();
     if (!accessToken || !endpoint) {
+      console.error('[truecaller callback] missing token/endpoint', {
+        requestId,
+        status: body.status,
+        hasToken: Boolean(accessToken),
+        hasEndpoint: Boolean(endpoint),
+      });
       return NextResponse.json({ error: 'Missing access token or endpoint' }, { status: 400 });
     }
 
@@ -66,14 +88,18 @@ export async function POST(request: Request) {
     const identity = parseTruecallerProfile(profile);
 
     if (!identity) {
+      console.error('[truecaller callback] invalid phone in profile', {
+        requestId,
+        phoneNumbers: profile.phoneNumbers,
+      });
       await updateTruecallerAuthRequest(requestId, {
         status: 'error',
-        errorMessage: 'Truecaller did not share a valid phone number.',
+        errorMessage: 'Truecaller did not share a valid Indian mobile number.',
       });
       return NextResponse.json({ ok: true });
     }
 
-    const syncResult = await syncTruecallerUserToAppSession(identity);
+    const syncResult = await syncTruecallerUserToAppSession(identity, { useServiceRole: true });
 
     if (!syncResult.success) {
       await updateTruecallerAuthRequest(requestId, {
@@ -94,15 +120,17 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ ok: true });
   } catch (error) {
-    console.error('[truecaller callback]', error);
+    console.error('[truecaller callback]', requestId, error);
+
+    const errorMessage = callbackErrorMessage(error);
 
     try {
       await updateTruecallerAuthRequest(requestId, {
         status: 'error',
-        errorMessage: 'Truecaller verification failed. Please try again.',
+        errorMessage,
       });
-    } catch {
-      // ignore secondary failure
+    } catch (updateError) {
+      console.error('[truecaller callback] could not persist error', updateError);
     }
 
     return NextResponse.json({ ok: true });

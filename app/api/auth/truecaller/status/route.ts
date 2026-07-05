@@ -6,6 +6,7 @@ import { getTruecallerAuthRequest } from '@/lib/auth/truecallerPendingStore.serv
 import { setUserSessionCookie } from '@/lib/security/session';
 
 export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 export async function GET(request: Request) {
   const ipLimit = await enforceRateLimit('auth');

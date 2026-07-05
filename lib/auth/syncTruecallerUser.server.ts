@@ -28,19 +28,29 @@ async function lookupMerchantByPhone(db: SupabaseDb, phone: string): Promise<boo
 
 export async function syncTruecallerUserToAppSession(
   identity: ParsedTruecallerIdentity,
-  options: { setSession?: boolean } = {}
+  options: { setSession?: boolean; useServiceRole?: boolean } = {}
 ): Promise<TruecallerSyncResult> {
-  const { setSession = false } = options;
-  const supabase = createClient(await cookies());
+  const { setSession = false, useServiceRole = false } = options;
   const service = createServiceClient();
-  const db = service ?? supabase;
+
+  if (useServiceRole && !service) {
+    return {
+      success: false,
+      error:
+        'Server is missing SUPABASE_SERVICE_ROLE_KEY. Add it in Vercel environment variables.',
+    };
+  }
+
+  const cookieClient = useServiceRole ? null : createClient(await cookies());
+  const db = useServiceRole ? service! : service ?? cookieClient!;
+  const lookupClient = useServiceRole ? service! : cookieClient!;
 
   const email = identity.email.toLowerCase().trim();
   const phone = identity.phone;
 
   const merchantExists = await lookupMerchantByPhone(db, phone);
   if (merchantExists) {
-    const accountTypes = await lookupEmailAccountTypes(supabase, email);
+    const accountTypes = await lookupEmailAccountTypes(lookupClient, email);
     const hasUserAccount = accountTypes.includes('user');
     if (!hasUserAccount) {
       return {
@@ -51,7 +61,7 @@ export async function syncTruecallerUserToAppSession(
     }
   }
 
-  const accountTypes = await lookupEmailAccountTypes(supabase, email);
+  const accountTypes = await lookupEmailAccountTypes(lookupClient, email);
   const hasUserAccount = accountTypes.includes('user');
   const alternateType = accountTypes.find((type) => type !== 'user');
 

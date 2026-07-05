@@ -34,7 +34,19 @@ function isValidEmail(value: string): boolean {
 }
 
 export function parseTruecallerProfile(profile: TruecallerProfile): ParsedTruecallerIdentity | null {
-  const rawPhone = profile.phoneNumbers?.[0] ?? '';
+  const rawRecord = profile as TruecallerProfile & {
+    phoneNumber?: string | number;
+    phone?: string | number;
+  };
+
+  const rawPhone =
+    profile.phoneNumbers?.[0] ??
+    (rawRecord.phoneNumber != null
+      ? String(rawRecord.phoneNumber)
+      : rawRecord.phone != null
+        ? String(rawRecord.phone)
+        : '');
+
   const phone = extractIndianMobileDigits(rawPhone);
   if (!isValidIndianMobileDigits(phone)) {
     return null;
@@ -80,12 +92,16 @@ export async function fetchTruecallerProfile(
     headers: {
       Authorization: `Bearer ${accessToken}`,
       'Cache-Control': 'no-cache',
+      Accept: 'application/json',
     },
     cache: 'no-store',
   });
 
   if (!response.ok) {
-    throw new Error(`Truecaller profile fetch failed (${response.status})`);
+    const detail = await response.text().catch(() => '');
+    throw new Error(
+      `Truecaller profile fetch failed (${response.status})${detail ? `: ${detail.slice(0, 120)}` : ''}`
+    );
   }
 
   return (await response.json()) as TruecallerProfile;

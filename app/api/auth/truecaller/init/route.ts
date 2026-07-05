@@ -5,6 +5,7 @@ import { isValidTruecallerRequestId } from '@/lib/auth/truecallerConfig';
 import { createTruecallerAuthRequest } from '@/lib/auth/truecallerPendingStore.server';
 
 export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 type InitBody = {
   requestId?: string;

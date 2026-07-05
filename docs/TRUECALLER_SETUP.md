@@ -106,10 +106,14 @@ SUPABASE_SERVICE_ROLE_KEY=eyJ...
 |-------|-----|
 | Truecaller button hidden | Set `NEXT_PUBLIC_TRUECALLER_ENABLED=true` and `NEXT_PUBLIC_TRUECALLER_PARTNER_KEY` |
 | Callback never fires | Callback URL must be HTTPS and match the portal exactly |
+| “Truecaller verification failed” | Add **`SUPABASE_SERVICE_ROLE_KEY`** on Vercel Production, run `truecaller_auth.sql`, redeploy |
+| “Could not read your Truecaller profile” | Token expired — approve in Truecaller again right away |
+| “Server misconfigured: SUPABASE_SERVICE_ROLE_KEY” | Supabase → Settings → API → service_role → paste into Vercel env vars |
+| “Database not ready” | Run `supabase/truecaller_auth.sql` in Supabase SQL Editor |
 | “Could not start verification” | Run `truecaller_auth.sql`; set `SUPABASE_SERVICE_ROLE_KEY` |
-| Verification times out | Confirm callback URL is reachable from the public internet |
+| Verification times out | Test on **https://finderb.com** (Truecaller always calls your registered production callback, not localhost) |
 | “Truecaller app not detected” | Install Truecaller on Android or use Google/email |
-| User row not created | Check server logs for `[truecaller callback]` errors |
+| User row not created | Check Vercel logs for `[truecaller callback]` errors |
 
 ---
 
