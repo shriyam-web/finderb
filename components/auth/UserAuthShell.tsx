@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import type { ReactNode } from 'react';
-import { MapPin, ShieldCheck, Sparkles, Star } from 'lucide-react';
+import { MapPin, ShieldCheck, Sparkles } from 'lucide-react';
 
 const STATS = [
   { value: '300+', label: 'Cities' },
@@ -111,11 +111,7 @@ export default function UserAuthShell({ mode, children, footer }: UserAuthShellP
               />
             </Link>
             <div className="mt-14 max-w-sm">
-              <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.22em] text-[#f9b864]">
-                <Star size={13} className="fill-[#f9b864] text-[#f9b864]" />
-                {isLogin ? 'Welcome back' : 'Join FinderB'}
-              </p>
-              <h1 className="mt-4 text-[1.85rem] font-bold leading-snug tracking-tight !text-white xl:text-[2.1rem]">
+              <h1 className="text-[1.85rem] font-bold leading-snug tracking-tight !text-white xl:text-[2.1rem]">
                 {isLogin ? 'Your city, saved and ready' : 'Discover what\u2019s around you'}
               </h1>
               <p className="mt-3 text-sm leading-relaxed text-white/72">
