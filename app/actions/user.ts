@@ -165,7 +165,9 @@ export async function loginUser(email: string, password: string) {
         const providerLabel =
           user.authProvider === 'google'
             ? 'Google'
-            : user.authProvider.charAt(0).toUpperCase() + user.authProvider.slice(1);
+            : user.authProvider === 'truecaller'
+              ? 'Truecaller'
+              : user.authProvider.charAt(0).toUpperCase() + user.authProvider.slice(1);
         return {
           success: false,
           error: `This account uses ${providerLabel} sign-in. Please continue with ${providerLabel} above.`,

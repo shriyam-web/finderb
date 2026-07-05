@@ -16,6 +16,7 @@ import { getSafeRedirectPath } from '@/lib/authRedirect';
 import { useRouter, useSearchParams } from 'next/navigation';
 import UserAuthShell, { UserAuthDivider, UserAuthTrustRow } from '@/components/auth/UserAuthShell';
 import OAuthButtonGroup from '@/components/auth/OAuthButtonGroup';
+import TruecallerButton from '@/components/auth/TruecallerButton';
 import AuthRedirectScreen from '@/components/auth/AuthRedirectScreen';
 import { useAlreadyLoggedInRedirect } from '@/hooks/useAlreadyLoggedInRedirect';
 
@@ -112,7 +113,7 @@ function LoginContent() {
       <div className="mb-7">
         <h2 className="text-2xl font-bold tracking-tight text-[#0f273b]">Sign in</h2>
         <p className="mt-1.5 text-sm text-slate-500">
-          The fastest way in — use Google or your email.
+          The fastest way in — use Truecaller, Google, or your email.
         </p>
       </div>
 
@@ -139,6 +140,8 @@ function LoginContent() {
           <span>{success}</span>
         </div>
       )}
+
+      <TruecallerButton mode="login" redirectPath={redirectTo} onError={setError} />
 
       <OAuthButtonGroup mode="login" redirectPath={redirectTo} onError={setError} />
 

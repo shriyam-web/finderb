@@ -141,17 +141,19 @@ model categories {
 }
 
 model User {
-  id            String   @id @default(cuid())
-  fullName      String
-  email         String   @unique
-  password      String
-  authProvider  String?
-  avatarUrl     String?
-  supabaseAuthId String? @unique
-  favorites     String[] @default([])
-  searchHistory String[] @default([])
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id               String   @id @default(cuid())
+  fullName         String
+  email            String   @unique
+  password         String
+  authProvider     String?
+  avatarUrl        String?
+  supabaseAuthId   String?  @unique
+  phone            String?  @unique
+  truecallerUserId String?  @unique
+  favorites        String[] @default([])
+  searchHistory    String[] @default([])
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.

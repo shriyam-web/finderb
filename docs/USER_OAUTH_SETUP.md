@@ -9,6 +9,8 @@ FinderB user accounts (`/login`, `/signup`) support **Google**, **Apple**, and *
 3. `/auth/callback` exchanges the code, creates or links a row in `User`, sets the `user_id` cookie, and redirects to the dashboard.
 4. Email/password sign-in continues to work for users who registered that way.
 
+**Truecaller** (Android mobile web, one-tap phone verification) is configured separately — see [TRUECALLER_SETUP.md](./TRUECALLER_SETUP.md).
+
 ---
 
 ## Step 1 — Run the database migration

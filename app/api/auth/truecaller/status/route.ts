@@ -1,0 +1,66 @@
+import { NextResponse } from 'next/server';
+import { enforceRateLimit } from '@/lib/security/enforceRateLimit.server';
+import { getSafeRedirectPath } from '@/lib/authRedirect';
+import { isValidTruecallerRequestId } from '@/lib/auth/truecallerConfig';
+import { getTruecallerAuthRequest } from '@/lib/auth/truecallerPendingStore.server';
+import { setUserSessionCookie } from '@/lib/security/session';
+
+export const dynamic = 'force-dynamic';
+
+export async function GET(request: Request) {
+  const ipLimit = await enforceRateLimit('auth');
+  if (!ipLimit.ok) {
+    return NextResponse.json({ error: ipLimit.error }, { status: 429 });
+  }
+
+  const { searchParams } = new URL(request.url);
+  const requestId = searchParams.get('requestId')?.trim() ?? '';
+
+  if (!isValidTruecallerRequestId(requestId)) {
+    return NextResponse.json({ error: 'Invalid request.' }, { status: 400 });
+  }
+
+  try {
+    const record = await getTruecallerAuthRequest(requestId);
+    if (!record) {
+      return NextResponse.json({ status: 'pending' });
+    }
+
+    if (record.status === 'completed' && record.userId) {
+      await setUserSessionCookie(record.userId);
+      const redirectPath = getSafeRedirectPath(record.redirectPath);
+      const redirectUrl = new URL(redirectPath, request.url);
+      if (record.isNewUser) {
+        redirectUrl.searchParams.set('welcome', '1');
+      }
+      return NextResponse.json({
+        status: 'completed',
+        redirectUrl: `${redirectUrl.pathname}${redirectUrl.search}`,
+        isNewUser: Boolean(record.isNewUser),
+      });
+    }
+
+    if (record.status === 'user_rejected') {
+      return NextResponse.json({
+        status: 'user_rejected',
+        error: record.errorMessage || 'Verification was cancelled.',
+      });
+    }
+
+    if (record.status === 'error') {
+      return NextResponse.json({
+        status: 'error',
+        error: record.errorMessage || 'Truecaller verification failed.',
+        suggestedLoginPath: record.suggestedLoginPath,
+      });
+    }
+
+    return NextResponse.json({ status: record.status });
+  } catch (error) {
+    console.error('[truecaller status]', error);
+    return NextResponse.json(
+      { status: 'error', error: 'Could not check verification status.' },
+      { status: 500 }
+    );
+  }
+}

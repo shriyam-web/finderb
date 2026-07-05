@@ -16,6 +16,7 @@ import { getSafeRedirectPath } from '@/lib/authRedirect';
 import { useRouter, useSearchParams } from 'next/navigation';
 import UserAuthShell, { UserAuthDivider, UserAuthTrustRow } from '@/components/auth/UserAuthShell';
 import OAuthButtonGroup from '@/components/auth/OAuthButtonGroup';
+import TruecallerButton from '@/components/auth/TruecallerButton';
 import AuthRedirectScreen from '@/components/auth/AuthRedirectScreen';
 import { useAlreadyLoggedInRedirect } from '@/hooks/useAlreadyLoggedInRedirect';
 
@@ -107,7 +108,7 @@ function SignupContent() {
       <div className="mb-7">
         <h2 className="text-2xl font-bold tracking-tight text-[#0f273b]">Create account</h2>
         <p className="mt-1.5 text-sm text-slate-500">
-          Join in seconds with Google — or use your email below.
+          Join in seconds with Truecaller or Google — or use your email below.
         </p>
       </div>
 
@@ -127,6 +128,8 @@ function SignupContent() {
           </div>
         </div>
       )}
+
+      <TruecallerButton mode="signup" redirectPath={redirectTo} onError={setError} />
 
       <OAuthButtonGroup mode="signup" redirectPath={redirectTo} onError={setError} />
 
