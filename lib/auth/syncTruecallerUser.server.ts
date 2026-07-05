@@ -19,10 +19,9 @@ export type TruecallerSyncResult =
   | { success: true; userId: string; isNewUser: boolean }
   | { success: false; error: string; suggestedLoginPath?: string };
 
-async function lookupMerchantByPhone(
-  db: ReturnType<typeof createServiceClient> | ReturnType<typeof createClient>,
-  phone: string
-): Promise<boolean> {
+type SupabaseDb = ReturnType<typeof createClient>;
+
+async function lookupMerchantByPhone(db: SupabaseDb, phone: string): Promise<boolean> {
   const { data } = await db.from('Business').select('id').eq('mobile', phone).maybeSingle();
   return Boolean(data);
 }
