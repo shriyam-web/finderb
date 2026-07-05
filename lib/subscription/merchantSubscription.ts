@@ -37,6 +37,7 @@ export type MerchantSubscriptionStatus = {
   subscriptionStatus: string | null;
   razorpaySubscriptionId: string | null;
   canCancelAutoRenew: boolean;
+  mandateRevokePending: boolean;
   isMonthlyMandate: boolean;
 };
 
@@ -142,12 +143,22 @@ export function getMerchantSubscriptionStatus(
   const effectiveMandateStatus =
     paidCompleted && autoRenewEnabled && mandateStatus === 'pending' ? 'active' : mandateStatus;
 
-  const canCancelAutoRenew =
+  const mandateRevokePending =
     billingCycleMonthly &&
-    autoRenewEnabled &&
-    effectiveMandateStatus === 'active' &&
+    !autoRenewEnabled &&
+    effectiveMandateStatus === 'cancelled' &&
     subscriptionStatus !== 'cancelled' &&
+    subscriptionStatus !== 'completed' &&
+    subscriptionStatus !== 'expired' &&
     Boolean(razorpaySubscriptionId);
+
+  const canCancelAutoRenew =
+    (billingCycleMonthly &&
+      autoRenewEnabled &&
+      effectiveMandateStatus === 'active' &&
+      subscriptionStatus !== 'cancelled' &&
+      Boolean(razorpaySubscriptionId)) ||
+    mandateRevokePending;
 
   const needsManualRenew =
     !isActive ||
@@ -176,6 +187,7 @@ export function getMerchantSubscriptionStatus(
     subscriptionStatus,
     razorpaySubscriptionId,
     canCancelAutoRenew,
+    mandateRevokePending,
     isMonthlyMandate: billingCycleMonthly,
   };
 }

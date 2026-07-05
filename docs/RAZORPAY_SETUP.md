@@ -96,7 +96,7 @@ Run in Supabase SQL editor (in order):
 
 - **Monthly**: Must complete mandate setup; ₹499 auto-debits each billing cycle.
 - **Mandate duration**: Razorpay checkout shows a **5-year** authorisation window (not 100 years). Merchants can **cancel auto-debit anytime** from the Subscription tab.
-- **Cancel auto-debit**: Subscription tab → **Cancel auto-debit**. Plan remains active until current period ends (Razorpay `cancel_at_cycle_end`).
+- **Cancel auto-debit**: Subscription tab → **Cancel auto-debit**. Cancels the Razorpay subscription immediately so the UPI mandate is revoked (merchant gets a confirmation in their payment app). Growth Pro access remains until `planExpiresAt`.
 - **Annual**: Single upfront payment; no auto-debit.
 - **Expiry alerts**: Dashboard popup when plan is within 7 days of expiry.
 - **Payment history**: Subscription tab lists mandate setup, auto-debits, and one-time payments.

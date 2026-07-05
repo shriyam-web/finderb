@@ -75,9 +75,15 @@ export function useAlreadyLoggedInRedirect(
 
     void check();
 
+    const handleSessionChange = () => {
+      void check();
+    };
+    window.addEventListener('finderb-session-change', handleSessionChange);
+
     return () => {
       cancelled = true;
       if (timer) clearTimeout(timer);
+      window.removeEventListener('finderb-session-change', handleSessionChange);
     };
   }, [kind, redirectTo, message, delayMs, router]);
 

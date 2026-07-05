@@ -5,7 +5,7 @@ import { createServiceClient } from '@/lib/supabase/service';
 import { assertBusinessSession } from '@/lib/security/session';
 import { getOwnedBusiness } from '@/app/actions/business';
 import { enforceRateLimit } from '@/lib/security/enforceRateLimit.server';
-import { cancelRazorpaySubscription } from '@/lib/razorpay/subscriptions';
+import { cancelRazorpaySubscription, getRazorpaySubscription, TERMINAL_RAZORPAY_SUBSCRIPTION_STATUSES } from '@/lib/razorpay/subscriptions';
 import { applySubscriptionCancellation } from '@/lib/razorpay/finalizeMerchantSubscription';
 import { getPlanAmountInPaise, isValidBillingCycle, isValidMerchantPlan } from '@/lib/razorpay/plans';
 import { getRazorpayPayment } from '@/lib/razorpay/server';
@@ -332,12 +332,33 @@ export async function cancelMerchantAutoRenew(businessId: string) {
     return { success: false as const, error: 'No active auto-debit mandate found for this account.' };
   }
 
-  if (!business.autoRenewEnabled) {
+  const liveSubscription = await getRazorpaySubscription(subscriptionId);
+  if (!liveSubscription) {
+    return {
+      success: false as const,
+      error: 'Could not verify your auto-debit with the payment provider. Please try again.',
+    };
+  }
+
+  if (TERMINAL_RAZORPAY_SUBSCRIPTION_STATUSES.has(liveSubscription.status)) {
     return { success: false as const, error: 'Auto-debit is already turned off.' };
   }
 
+  if (!business.autoRenewEnabled && business.mandateStatus === 'cancelled') {
+    // Local DB was updated earlier (e.g. scheduled cancel) but Razorpay mandate may still be live.
+    console.warn('[subscription] revoking live Razorpay mandate after local cancel flag', {
+      businessId,
+      subscriptionId,
+      razorpayStatus: liveSubscription.status,
+    });
+  } else if (!business.autoRenewEnabled) {
+    return { success: false as const, error: 'Auto-debit is already turned off.' };
+  }
+
+  // Cancel immediately so Razorpay revokes the UPI mandate (user gets a notification in their
+  // payment app). Plan access in FinderB stays until planExpiresAt — we do not shorten it.
   const cancelResult = await cancelRazorpaySubscription(subscriptionId, {
-    cancelAtCycleEnd: true,
+    cancelAtCycleEnd: false,
   });
 
   if (!cancelResult.success) {
@@ -348,7 +369,7 @@ export async function cancelMerchantAutoRenew(businessId: string) {
     businessId,
     subscriptionId,
     status: cancelResult.subscription.status,
-    cancelAtCycleEnd: true,
+    cancelAtCycleEnd: false,
   });
 
   if (!syncResult.success) {
@@ -364,6 +385,6 @@ export async function cancelMerchantAutoRenew(businessId: string) {
   return {
     success: true as const,
     message:
-      'Auto-debit cancelled. Your current plan stays active until the end of this billing period; you will not be charged again unless you set up a new mandate.',
+      'Auto-debit cancelled. Your UPI/payment app should confirm the mandate revocation shortly. Your Growth Pro plan stays active until the end of this billing period.',
   };
 }

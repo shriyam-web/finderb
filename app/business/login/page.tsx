@@ -47,10 +47,18 @@ export default function BusinessLoginPage() {
       const result = await loginBusiness(email, password);
 
       if (result.success) {
+        const destination = result.businessId
+          ? `/business/dashboard?id=${result.businessId}`
+          : '/business/dashboard';
+
         if (typeof window !== 'undefined') {
-          window.dispatchEvent(new CustomEvent('finderb-session-change', { detail: { type: 'business' } }));
+          window.dispatchEvent(
+            new CustomEvent('finderb-session-change', { detail: { type: 'business' } })
+          );
         }
-        router.push('/business/dashboard');
+
+        router.refresh();
+        router.replace(destination);
       } else {
         setError(result.error || 'Login failed');
         setSuggestedLoginPath(result.suggestedLoginPath || '');

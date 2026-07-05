@@ -46,6 +46,7 @@ type SubscriptionView = {
   mandateStatus: string;
   subscriptionStatus: string | null;
   canCancelAutoRenew: boolean;
+  mandateRevokePending: boolean;
   isMonthlyMandate: boolean;
   startedAt: string | null;
   expiresAt: string | null;
@@ -137,6 +138,7 @@ export default function SubscriptionTab({
     mandateStatus: String(raw.mandateStatus),
     subscriptionStatus: raw.subscriptionStatus ? String(raw.subscriptionStatus) : null,
     canCancelAutoRenew: Boolean(raw.canCancelAutoRenew),
+    mandateRevokePending: Boolean(raw.mandateRevokePending),
     isMonthlyMandate: Boolean(raw.isMonthlyMandate),
     startedAt: toIso(raw.startedAt),
     expiresAt: toIso(raw.expiresAt),
@@ -199,15 +201,19 @@ export default function SubscriptionTab({
 
   const autoDebitLabel = subscription.autoRenewEnabled
     ? 'On'
-    : subscription.mandateStatus === 'cancelled'
-      ? 'Cancelled'
-      : subscription.mandateStatus === 'pending'
-        ? 'Pending setup'
-        : 'Off';
+    : subscription.mandateRevokePending
+      ? 'Cancel pending in payment app'
+      : subscription.mandateStatus === 'cancelled'
+        ? 'Cancelled'
+        : subscription.mandateStatus === 'pending'
+          ? 'Pending setup'
+          : 'Off';
 
   const handleCancelAutoRenew = async () => {
     const confirmed = window.confirm(
-      'Cancel auto-debit? Your plan stays active until the current period ends. You will not be charged again unless you set up a new mandate.'
+      subscription.mandateRevokePending
+        ? 'Your auto-debit was marked cancelled earlier but the UPI mandate may still be active. Revoke it now? Your Growth Pro plan stays active until the current period ends.'
+        : 'Cancel auto-debit? This revokes the UPI mandate in your payment app (you may get a confirmation there). Your Growth Pro plan stays active until the current period ends.'
     );
     if (!confirmed) return;
     setCancelling(true);
@@ -284,7 +290,11 @@ export default function SubscriptionTab({
                       disabled={cancelling}
                       className="text-rose-700 hover:underline disabled:opacity-60"
                     >
-                      {cancelling ? 'Cancelling…' : 'Cancel'}
+                      {cancelling
+                        ? 'Cancelling…'
+                        : subscription.mandateRevokePending
+                          ? 'Revoke mandate'
+                          : 'Cancel'}
                     </button>
                   )}
                 </span>

@@ -191,7 +191,8 @@ export async function cancelRazorpaySubscription(
     {
       method: 'POST',
       body: JSON.stringify({
-        cancel_at_cycle_end: options.cancelAtCycleEnd ? 1 : 0,
+        // Razorpay requires a boolean — `1`/`0` is rejected or treated as invalid.
+        cancel_at_cycle_end: options.cancelAtCycleEnd,
       }),
     }
   );
@@ -200,7 +201,19 @@ export async function cancelRazorpaySubscription(
     return { success: false, error: result.error };
   }
 
-  return { success: true, subscription: result.data };
+  const subscription = result.data;
+  if (!options.cancelAtCycleEnd && subscription.status !== 'cancelled') {
+    console.error('[razorpay] subscription cancel did not reach cancelled status', {
+      subscriptionId,
+      status: subscription.status,
+    });
+    return {
+      success: false,
+      error: 'Auto-debit could not be cancelled with your payment provider. Please try again or cancel from your UPI app.',
+    };
+  }
+
+  return { success: true, subscription };
 }
 
 export function subscriptionPeriodFromEntity(
