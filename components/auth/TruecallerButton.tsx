@@ -12,15 +12,15 @@ import {
 /** White handset mark cropped from the official Truecaller logo asset. */
 function TruecallerIcon() {
   return (
-    <span className="relative flex h-[18px] w-[18px] shrink-0 items-start justify-center overflow-hidden">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src="/brands/truecaller-logo.png"
-        alt=""
-        className="h-[30px] w-auto max-w-none brightness-0 invert"
-        aria-hidden
-      />
-    </span>
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src="/brands/truecaller-handset.png"
+      alt=""
+      width={18}
+      height={18}
+      className="h-[18px] w-[18px] shrink-0 object-contain"
+      aria-hidden
+    />
   );
 }
 

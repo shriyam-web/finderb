@@ -15,7 +15,7 @@ export default function SocialAuthButtons({
   onError,
 }: SocialAuthButtonsProps) {
   return (
-    <div className="space-y-2.5">
+    <div className="space-y-3">
       <TruecallerButton mode={mode} redirectPath={redirectPath} onError={onError} />
       <OAuthButtonGroup mode={mode} redirectPath={redirectPath} onError={onError} />
     </div>
