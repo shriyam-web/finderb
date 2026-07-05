@@ -1,9 +1,12 @@
 export const INDIAN_MOBILE_LENGTH = 10;
 
-export function extractIndianMobileDigits(value: string): string {
-  if (!value) return '';
+export function extractIndianMobileDigits(value: unknown): string {
+  if (value == null) return '';
 
-  let digits = value.replace(/\D/g, '');
+  const text = typeof value === 'string' ? value : String(value);
+  if (!text) return '';
+
+  let digits = text.replace(/\D/g, '');
 
   if (digits.startsWith('91') && digits.length > INDIAN_MOBILE_LENGTH) {
     digits = digits.slice(2);

@@ -33,45 +33,47 @@ function isValidEmail(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
 
+function asString(value: unknown): string {
+  if (value == null) return '';
+  return typeof value === 'string' ? value.trim() : String(value).trim();
+}
+
 export function parseTruecallerProfile(profile: TruecallerProfile): ParsedTruecallerIdentity | null {
   const rawRecord = profile as TruecallerProfile & {
-    phoneNumber?: string | number;
-    phone?: string | number;
+    phoneNumber?: unknown;
+    phone?: unknown;
+    phoneNumbers?: unknown[];
   };
 
   const rawPhone =
-    profile.phoneNumbers?.[0] ??
-    (rawRecord.phoneNumber != null
-      ? String(rawRecord.phoneNumber)
-      : rawRecord.phone != null
-        ? String(rawRecord.phone)
-        : '');
+    rawRecord.phoneNumbers?.[0] != null
+      ? asString(rawRecord.phoneNumbers[0])
+      : rawRecord.phoneNumber != null
+        ? asString(rawRecord.phoneNumber)
+        : rawRecord.phone != null
+          ? asString(rawRecord.phone)
+          : '';
 
   const phone = extractIndianMobileDigits(rawPhone);
   if (!isValidIndianMobileDigits(phone)) {
     return null;
   }
 
-  const tcEmail = profile.onlineIdentities?.email?.toLowerCase().trim() ?? '';
+  const tcEmail = asString(profile.onlineIdentities?.email).toLowerCase();
   const hasRealEmail = Boolean(tcEmail && isValidEmail(tcEmail));
   const email = hasRealEmail ? tcEmail : `${phone}@${TRUECALLER_PHONE_EMAIL_DOMAIN}`;
 
-  const first = profile.name?.first?.trim() ?? '';
-  const last = profile.name?.last?.trim() ?? '';
+  const first = asString(profile.name?.first);
+  const last = asString(profile.name?.last);
   const combined = `${first} ${last}`.trim();
   const fullName = combined.length >= 2 ? combined : 'FinderB User';
 
+  const avatarUrlRaw = asString(profile.avatarUrl);
   const avatarUrl =
-    typeof profile.avatarUrl === 'string' && profile.avatarUrl.startsWith('http')
-      ? profile.avatarUrl
-      : null;
+    avatarUrlRaw.startsWith('http') ? avatarUrlRaw : null;
 
-  const truecallerUserId =
-    typeof profile.userId === 'string' && profile.userId.trim()
-      ? profile.userId.trim()
-      : typeof profile.id === 'string' && profile.id.trim()
-        ? profile.id.trim()
-        : null;
+  const truecallerUserIdRaw = asString(profile.userId) || asString(profile.id);
+  const truecallerUserId = truecallerUserIdRaw || null;
 
   return {
     fullName,
