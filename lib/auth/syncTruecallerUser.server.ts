@@ -84,7 +84,7 @@ export async function syncTruecallerUserToAppSession(
       .maybeSingle();
 
     if (existingByTcId?.id) {
-      await db
+      const { error } = await db
         .from('User')
         .update({
           fullName: identity.fullName,
@@ -95,6 +95,11 @@ export async function syncTruecallerUserToAppSession(
           updatedAt: now,
         })
         .eq('id', existingByTcId.id);
+
+      if (error) {
+        console.error('[truecaller] user update by tc id failed:', error);
+        return { success: false, error: 'Could not link your Truecaller account. Please try again.' };
+      }
 
       if (setSession) await setUserSessionCookie(existingByTcId.id);
       return { success: true, userId: existingByTcId.id, isNewUser: false };
@@ -108,7 +113,7 @@ export async function syncTruecallerUserToAppSession(
     .maybeSingle();
 
   if (existingByPhone?.id) {
-    await db
+    const { error } = await db
       .from('User')
       .update({
         fullName: identity.fullName,
@@ -119,6 +124,11 @@ export async function syncTruecallerUserToAppSession(
         updatedAt: now,
       })
       .eq('id', existingByPhone.id);
+
+    if (error) {
+      console.error('[truecaller] user update by phone failed:', error);
+      return { success: false, error: 'Could not link your Truecaller account. Please try again.' };
+    }
 
     if (setSession) await setUserSessionCookie(existingByPhone.id);
     return { success: true, userId: existingByPhone.id, isNewUser: false };
@@ -131,7 +141,7 @@ export async function syncTruecallerUserToAppSession(
     .maybeSingle();
 
   if (existingByEmail?.id) {
-    await db
+    const { error } = await db
       .from('User')
       .update({
         fullName: identity.fullName,
@@ -142,6 +152,11 @@ export async function syncTruecallerUserToAppSession(
         updatedAt: now,
       })
       .eq('id', existingByEmail.id);
+
+    if (error) {
+      console.error('[truecaller] user update by email failed:', error);
+      return { success: false, error: 'Could not link your Truecaller account. Please try again.' };
+    }
 
     if (setSession) await setUserSessionCookie(existingByEmail.id);
     return { success: true, userId: existingByEmail.id, isNewUser: false };
