@@ -9,16 +9,18 @@ import {
   isTruecallerEnabled,
 } from '@/lib/auth/truecallerConfig';
 
-function TruecallerIcon({ className }: { className?: string }) {
+/** White handset mark cropped from the official Truecaller logo asset. */
+function TruecallerIcon() {
   return (
-    <svg
-      viewBox="0 0 24 24"
-      aria-hidden
-      className={className}
-      fill="currentColor"
-    >
-      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3.2c1.66 0 3.2.56 4.43 1.5L8.7 14.43A6.16 6.16 0 0 1 12 5.2zm-6.8 6.8c0-1.66.56-3.2 1.5-4.43l7.73 7.73A6.16 6.16 0 0 1 5.2 12zm6.8 6.8a6.16 6.16 0 0 1-4.43-1.5l7.73-7.73A6.16 6.16 0 0 1 18.8 12a6.16 6.16 0 0 1-6.8 6.8z" />
-    </svg>
+    <span className="relative flex h-[18px] w-[18px] shrink-0 items-start justify-center overflow-hidden">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/brands/truecaller-logo.png"
+        alt=""
+        className="h-[30px] w-auto max-w-none brightness-0 invert"
+        aria-hidden
+      />
+    </span>
   );
 }
 
@@ -156,11 +158,7 @@ export default function TruecallerButton({
       className="group relative flex w-full items-center justify-center gap-3 overflow-hidden rounded-xl border border-[#0087FF]/25 bg-[#0087FF] px-4 py-3 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:bg-[#0076e0] hover:shadow-md active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
     >
       <span className="pointer-events-none absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 opacity-0 transition-opacity group-hover:opacity-100" />
-      {loading ? (
-        <Loader2 size={18} className="animate-spin" />
-      ) : (
-        <TruecallerIcon className="h-[18px] w-[18px] shrink-0 text-white" />
-      )}
+      {loading ? <Loader2 size={18} className="animate-spin" /> : <TruecallerIcon />}
       <span>{loading ? 'Waiting for Truecaller…' : label}</span>
     </button>
   );

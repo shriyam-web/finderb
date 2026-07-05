@@ -15,8 +15,7 @@ import { loginUser } from '@/app/actions/user';
 import { getSafeRedirectPath } from '@/lib/authRedirect';
 import { useRouter, useSearchParams } from 'next/navigation';
 import UserAuthShell, { UserAuthDivider, UserAuthTrustRow } from '@/components/auth/UserAuthShell';
-import OAuthButtonGroup from '@/components/auth/OAuthButtonGroup';
-import TruecallerButton from '@/components/auth/TruecallerButton';
+import SocialAuthButtons from '@/components/auth/SocialAuthButtons';
 import AuthRedirectScreen from '@/components/auth/AuthRedirectScreen';
 import { useAlreadyLoggedInRedirect } from '@/hooks/useAlreadyLoggedInRedirect';
 
@@ -141,9 +140,7 @@ function LoginContent() {
         </div>
       )}
 
-      <TruecallerButton mode="login" redirectPath={redirectTo} onError={setError} />
-
-      <OAuthButtonGroup mode="login" redirectPath={redirectTo} onError={setError} />
+      <SocialAuthButtons mode="login" redirectPath={redirectTo} onError={setError} />
 
       <UserAuthDivider />
 

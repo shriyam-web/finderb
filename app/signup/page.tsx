@@ -15,8 +15,7 @@ import { registerUser } from '@/app/actions/user';
 import { getSafeRedirectPath } from '@/lib/authRedirect';
 import { useRouter, useSearchParams } from 'next/navigation';
 import UserAuthShell, { UserAuthDivider, UserAuthTrustRow } from '@/components/auth/UserAuthShell';
-import OAuthButtonGroup from '@/components/auth/OAuthButtonGroup';
-import TruecallerButton from '@/components/auth/TruecallerButton';
+import SocialAuthButtons from '@/components/auth/SocialAuthButtons';
 import AuthRedirectScreen from '@/components/auth/AuthRedirectScreen';
 import { useAlreadyLoggedInRedirect } from '@/hooks/useAlreadyLoggedInRedirect';
 
@@ -129,9 +128,7 @@ function SignupContent() {
         </div>
       )}
 
-      <TruecallerButton mode="signup" redirectPath={redirectTo} onError={setError} />
-
-      <OAuthButtonGroup mode="signup" redirectPath={redirectTo} onError={setError} />
+      <SocialAuthButtons mode="signup" redirectPath={redirectTo} onError={setError} />
 
       <UserAuthDivider label="or sign up with email" />
 
