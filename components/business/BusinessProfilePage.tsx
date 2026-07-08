@@ -9,12 +9,12 @@ import {
   Clock,
   MapPin,
   Tag,
-  MessageCircle,
   Navigation,
   Phone,
   Share2,
   Star,
 } from 'lucide-react';
+import { FaWhatsapp } from 'react-icons/fa';
 import type { Business } from '@/lib/mockData';
 import { findCategoryForBreadcrumb, type CategoryBreadcrumb } from '@/app/actions/category';
 import { getBusiness, getBusinessesByCategory } from '@/app/actions/business';
@@ -476,8 +476,8 @@ export default function BusinessProfilePage({
     );
   }
 
-  const isVerified = Boolean(business.isFinderBVerified || business.hasVerifiedBadge);
   const locationLabel = getBusinessLocationLabel(business);
+  const isVerified = Boolean(business.isFinderBVerified || business.hasVerifiedBadge);
   const directionsLink = directionsHref({
     latitude: business.latitude,
     longitude: business.longitude,
@@ -604,7 +604,7 @@ export default function BusinessProfilePage({
                   className="flex items-center justify-center gap-2 rounded-lg bg-[#215481] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#1a4367]"
                 >
                   <Phone size={15} />
-                  {contactRevealed ? 'Call' : 'Sign in to call'}
+                  Call
                 </button>
               )}
               {whatsappLink && (
@@ -616,8 +616,8 @@ export default function BusinessProfilePage({
                   }}
                   className="flex items-center justify-center gap-2 rounded-lg bg-[#25D366] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#1fa855]"
                 >
-                  <MessageCircle size={15} />
-                  {contactRevealed ? 'WhatsApp' : 'Sign in to chat'}
+                  <FaWhatsapp size={16} className="shrink-0" aria-hidden />
+                  WhatsApp
                 </button>
               )}
             </div>
@@ -912,7 +912,7 @@ export default function BusinessProfilePage({
               className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-[#215481] py-2.5 text-sm font-semibold text-white"
             >
               <Phone size={15} />
-              {contactRevealed ? 'Call' : 'Sign in'}
+              Call
             </button>
           )}
           {whatsappLink && (
@@ -924,8 +924,8 @@ export default function BusinessProfilePage({
               }}
               className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-[#25D366] py-2.5 text-sm font-semibold text-white"
             >
-              <MessageCircle size={15} />
-              {contactRevealed ? 'Chat' : 'Sign in'}
+              <FaWhatsapp size={16} className="shrink-0" aria-hidden />
+              WhatsApp
             </button>
           )}
         </div>

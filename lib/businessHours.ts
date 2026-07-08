@@ -1,3 +1,5 @@
+import { formatTime12h } from '@/lib/formatBusinessHours';
+
 const WEEKDAYS = [
   'Sunday',
   'Monday',
@@ -7,6 +9,12 @@ const WEEKDAYS = [
   'Friday',
   'Saturday',
 ] as const;
+
+type DaySlot = {
+  open: string;
+  close: string;
+  isClosed: boolean;
+};
 
 export type BusinessOpenState = {
   status: 'Open' | 'Closed';
@@ -29,10 +37,29 @@ function parseTimeToMinutes(time: string): number | null {
   return hours * 60 + minutes;
 }
 
-import { formatTime12h } from '@/lib/formatBusinessHours';
+function normalizeDayTiming(raw: unknown): DaySlot | null {
+  if (!raw) return null;
 
-function formatCloseTime(close: string): string {
-  return formatTime12h(close);
+  if (typeof raw === 'string') {
+    if (raw === 'Closed' || !raw.includes('-')) {
+      return { open: '', close: '', isClosed: true };
+    }
+    const [open, close] = raw.split('-').map((part) => part.trim());
+    if (!open || !close) return null;
+    return { open, close, isClosed: false };
+  }
+
+  if (typeof raw === 'object' && raw !== null) {
+    const slot = raw as { open?: string; close?: string; isClosed?: boolean };
+    if (slot.isClosed) {
+      return { open: '', close: '', isClosed: true };
+    }
+    if (slot.open && slot.close) {
+      return { open: slot.open, close: slot.close, isClosed: false };
+    }
+  }
+
+  return null;
 }
 
 function closedState(message = 'Closed now'): BusinessOpenState {
@@ -47,7 +74,7 @@ function closedState(message = 'Closed now'): BusinessOpenState {
 function openState(closeTime: string): BusinessOpenState {
   return {
     status: 'Open',
-    label: `Open till ${formatCloseTime(closeTime)}`,
+    label: `Open Now. Open till ${formatTime12h(closeTime)}`,
     colorClass: 'text-emerald-600',
     dotClass: 'bg-emerald-500',
   };
@@ -66,6 +93,51 @@ function isOpenNow(open: string, close: string, currentMinutes: number): boolean
   return currentMinutes >= openMinutes || currentMinutes < closeMinutes;
 }
 
+function buildClosedLabel(timings: Record<string, unknown>, now: Date): string {
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  const todayName = WEEKDAYS[now.getDay()];
+  const todaySlot = normalizeDayTiming(timings[todayName]);
+
+  if (todaySlot && !todaySlot.isClosed && todaySlot.open) {
+    const openMinutes = parseTimeToMinutes(todaySlot.open);
+    if (openMinutes !== null && currentMinutes < openMinutes) {
+      return `Closed now, opens ${formatTime12h(todaySlot.open)}`;
+    }
+  }
+
+  for (let offset = 1; offset <= 7; offset++) {
+    const nextDate = new Date(now);
+    nextDate.setDate(nextDate.getDate() + offset);
+    const dayName = WEEKDAYS[nextDate.getDay()];
+    const slot = normalizeDayTiming(timings[dayName]);
+
+    if (!slot || slot.isClosed || !slot.open) continue;
+
+    const openLabel = formatTime12h(slot.open);
+    if (offset === 1) {
+      return `Closed now, opens ${openLabel} tomorrow`;
+    }
+    return `Closed now, opens ${openLabel} ${dayName}`;
+  }
+
+  return 'Closed now';
+}
+
+function getStatusForSlot(
+  timings: Record<string, unknown>,
+  slot: DaySlot,
+  now: Date,
+  currentMinutes: number
+): BusinessOpenState {
+  if (slot.isClosed || !slot.open || !slot.close) {
+    return closedState(buildClosedLabel(timings, now));
+  }
+
+  return isOpenNow(slot.open, slot.close, currentMinutes)
+    ? openState(slot.close)
+    : closedState(buildClosedLabel(timings, now));
+}
+
 export function getBusinessOpenStatus(timings: unknown): BusinessOpenState {
   if (!timings || typeof timings !== 'object') {
     return {
@@ -76,36 +148,15 @@ export function getBusinessOpenStatus(timings: unknown): BusinessOpenState {
     };
   }
 
+  const record = timings as Record<string, unknown>;
   const now = new Date();
   const day = WEEKDAYS[now.getDay()];
   const currentMinutes = now.getHours() * 60 + now.getMinutes();
-  const today = (timings as Record<string, unknown>)[day];
+  const todaySlot = normalizeDayTiming(record[day]);
 
-  if (!today) {
-    return closedState('Closed today');
+  if (!todaySlot) {
+    return closedState(buildClosedLabel(record, now));
   }
 
-  if (typeof today === 'string') {
-    if (today === 'Closed' || !today.includes('-')) {
-      return closedState('Closed today');
-    }
-    const [open, close] = today.split('-').map((s) => s.trim());
-    return isOpenNow(open, close, currentMinutes)
-      ? openState(close)
-      : closedState('Closed now');
-  }
-
-  if (typeof today === 'object' && today !== null) {
-    const slot = today as { open?: string; close?: string; isClosed?: boolean };
-    if (slot.isClosed) {
-      return closedState('Closed today');
-    }
-    if (slot.open && slot.close) {
-      return isOpenNow(slot.open, slot.close, currentMinutes)
-        ? openState(slot.close)
-        : closedState('Closed now');
-    }
-  }
-
-  return closedState('Closed today');
+  return getStatusForSlot(record, todaySlot, now, currentMinutes);
 }

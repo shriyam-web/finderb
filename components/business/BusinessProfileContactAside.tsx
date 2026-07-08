@@ -28,6 +28,33 @@ type BusinessProfileContactAsideProps = {
   onEnquire: () => void;
 };
 
+function getMaskedPhoneNumber(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) return 'Hidden until you sign in';
+
+  const digits = trimmed.replace(/\D/g, '');
+  if (digits.length < 6) return 'Hidden until you sign in';
+
+  const visibleStart = digits.slice(0, 2);
+  const visibleEnd = digits.slice(-2);
+  const hidden = '•'.repeat(Math.max(2, digits.length - 4));
+
+  return `${visibleStart}${hidden}${visibleEnd}`;
+}
+
+function getMaskedEmail(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed || !trimmed.includes('@')) return 'Hidden until you sign in';
+
+  const [localPart, domainPart] = trimmed.split('@');
+  if (!localPart || !domainPart) return 'Hidden until you sign in';
+
+  const visibleStart = localPart.slice(0, 2);
+  const hidden = '•'.repeat(Math.max(2, localPart.length - 2));
+
+  return `${visibleStart}${hidden}@${domainPart}`;
+}
+
 function ContactRow({
   label,
   href,
@@ -81,7 +108,7 @@ export default function BusinessProfileContactAside({
 
       {!contactRevealed && (
         <div className="mt-4 rounded-lg border border-[#f9b864]/30 bg-[#fff8ef] px-3 py-3 text-sm text-stone-700">
-          <p>Sign in to view phone and send an enquiry. Call and WhatsApp clicks are saved as direct leads for the merchant.</p>
+          <p>Sign in or Create Account to continue.</p>
           <div className="mt-3 flex flex-wrap gap-2">
             <Link
               href={loginHref}
@@ -116,7 +143,11 @@ export default function BusinessProfileContactAside({
           {phoneLink && !contactRevealed && (
             <div>
               <dt className="text-xs text-stone-500">Phone</dt>
-              <dd className="mt-0.5 text-sm text-stone-400">Hidden until you sign in</dd>
+              <dd className="mt-0.5 text-sm">
+                <Link href={loginHref} className="text-stone-400 hover:underline">
+                  {getMaskedPhoneNumber(phone)}
+                </Link>
+              </dd>
             </div>
           )}
           {email && contactRevealed && (
@@ -127,7 +158,11 @@ export default function BusinessProfileContactAside({
           {email && !contactRevealed && (
             <div>
               <dt className="text-xs text-stone-500">Email</dt>
-              <dd className="mt-0.5 text-sm text-stone-400">Hidden until you sign in</dd>
+              <dd className="mt-0.5 text-sm">
+                <Link href={loginHref} className="text-stone-400 hover:underline">
+                  {getMaskedEmail(email)}
+                </Link>
+              </dd>
             </div>
           )}
           {website && (

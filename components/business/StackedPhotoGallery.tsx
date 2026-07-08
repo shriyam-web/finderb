@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import Image from 'next/image';
 import { Building2, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { createPortal } from 'react-dom';
 
 const GALLERY_HEIGHT_CLASS =
   'h-[190px] sm:h-[210px] md:h-[265px] lg:h-[300px]';
@@ -30,6 +31,7 @@ function PhotoLightbox({
   onIndexChange?: (index: number) => void;
 }) {
   const [index, setIndex] = useState(startIndex);
+  const [mounted, setMounted] = useState(false);
 
   const setGalleryIndex = useCallback(
     (nextIndex: number) => {
@@ -42,6 +44,10 @@ function PhotoLightbox({
   useEffect(() => {
     setIndex(startIndex);
   }, [startIndex]);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
@@ -69,49 +75,58 @@ function PhotoLightbox({
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [goNext, goPrev, onClose]);
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4"
+      className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/90 p-4"
       role="dialog"
       aria-modal="true"
       aria-label="Photo gallery"
       onClick={onClose}
     >
-      <button
-        type="button"
-        onClick={onClose}
-        className="absolute right-4 top-4 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
-        aria-label="Close gallery"
-      >
-        <X size={20} />
-      </button>
-
-      {images.length > 1 && (
-        <>
+      <div className="absolute left-4 right-4 top-4 z-20 flex items-center justify-between">
+        {images.length > 1 ? (
           <button
             type="button"
             onClick={(e) => {
               e.stopPropagation();
               goPrev();
             }}
-            className="absolute left-3 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20 sm:left-5"
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
             aria-label="Previous photo"
           >
             <ChevronLeft size={22} />
           </button>
+        ) : (
+          <span />
+        )}
+
+        <button
+          type="button"
+          onClick={onClose}
+          className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
+          aria-label="Close gallery"
+        >
+          <X size={20} />
+        </button>
+
+        {images.length > 1 ? (
           <button
             type="button"
             onClick={(e) => {
               e.stopPropagation();
               goNext();
             }}
-            className="absolute right-3 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20 sm:right-5"
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
             aria-label="Next photo"
           >
             <ChevronRight size={22} />
           </button>
-        </>
-      )}
+        ) : (
+          <span />
+        )}
+      </div>
 
       <div
         className="relative flex h-full max-h-[min(82vh,720px)] w-full max-w-5xl flex-col items-center justify-center"
@@ -127,30 +142,10 @@ function PhotoLightbox({
             priority
           />
         </div>
-        <p className="mt-3 text-sm font-medium text-white/80">
-          {index + 1} / {images.length}
-        </p>
-
-        {images.length > 1 && (
-          <div className="mt-3 flex max-w-full gap-2 overflow-x-auto px-1 pb-1">
-            {images.map((src, thumbIndex) => (
-              <button
-                key={`${src}-lightbox-${thumbIndex}`}
-                type="button"
-                onClick={() => setGalleryIndex(thumbIndex)}
-                className={`relative h-14 w-14 shrink-0 overflow-hidden rounded-md border-2 transition-colors ${
-                  thumbIndex === index ? 'border-white' : 'border-white/25 hover:border-white/60'
-                }`}
-                aria-label={`View photo ${thumbIndex + 1}`}
-              >
-                <Image src={src} alt="" fill className="object-cover" sizes="56px" />
-              </button>
-            ))}
-          </div>
-        )}
+        
       </div>
     </div>
-  );
+  , document.body);
 }
 
 export default function StackedPhotoGallery({

@@ -1704,6 +1704,27 @@ h1, h2, h3, h4, h5, h6 {
   }
 }
 
+.profile-offer-card__stub::before,
+.profile-offer-card__stub::after {
+  content: '';
+  position: absolute;
+  right: -5px;
+  z-index: 1;
+  width: 8px;
+  height: 8px;
+  border: 1px solid #bbf7d0;
+  border-radius: 50%;
+  background: #fff;
+}
+
+.profile-offer-card__stub::before {
+  top: -5px;
+}
+
+.profile-offer-card__stub::after {
+  bottom: -5px;
+}
+
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
