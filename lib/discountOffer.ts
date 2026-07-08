@@ -52,6 +52,33 @@ export function getDiscountOfferDisplay(
   };
 }
 
+/** Short badge label — exact % range when available (e.g. `5% - 10% OFF`). */
+export function getDiscountOfferBadgeLabel(
+  discountRange: string | null | undefined
+): string | null {
+  const label = discountRange?.trim();
+  if (!label || label === 'No Discount') return null;
+  if (label.includes('%')) return label;
+  if (label === 'Special Festive Discount') return 'Festive Discount';
+  return label;
+}
+
+/** Compact label for narrow listing cards. */
+export function getDiscountOfferCardLabel(
+  discountRange: string | null | undefined
+): string | null {
+  const label = getDiscountOfferBadgeLabel(discountRange);
+  if (!label) return null;
+  if (label.includes('%')) {
+    return label
+      .replace(/\s*-\s*/g, '–')
+      .replace(/\s*OFF$/i, ' off');
+  }
+  if (label === 'Seasonal Offer') return 'Seasonal deal';
+  if (label === 'Festive Discount') return 'Festive deal';
+  return label;
+}
+
 export type DiscountVisibilityTier = 'none' | 'light' | 'medium' | 'high';
 
 export function getDiscountVisibilityImpact(discountRange: string | null | undefined): {

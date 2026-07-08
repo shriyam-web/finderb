@@ -76,6 +76,21 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https' as const,
+        hostname: 'i1.ytimg.com',
+        pathname: '/vi/**',
+      },
+      {
+        protocol: 'https' as const,
+        hostname: 'i2.ytimg.com',
+        pathname: '/vi/**',
+      },
+      {
+        protocol: 'https' as const,
+        hostname: 'i3.ytimg.com',
+        pathname: '/vi/**',
+      },
+      {
+        protocol: 'https' as const,
         hostname: 'i4.ytimg.com',
         pathname: '/vi/**',
       },

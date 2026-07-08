@@ -1503,6 +1503,211 @@ h1, h2, h3, h4, h5, h6 {
   }
 }
 
+.merchant-offer-ticket-card {
+  --ticket-bg: #ecfdf5;
+  --ticket-bg-deep: #d1fae5;
+  --ticket-rail: #bbf7d0;
+  --ticket-ink: #047857;
+  --ticket-glow: rgba(4, 120, 87, 0.18);
+  position: relative;
+  display: inline-flex;
+  max-width: 100%;
+  min-width: 0;
+  min-height: 1.5rem;
+  align-items: stretch;
+  color: var(--ticket-ink);
+  filter: drop-shadow(0 1px 3px var(--ticket-glow));
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.merchant-offer-ticket-card[data-tier='light'] {
+  --ticket-bg: #f0fdf4;
+  --ticket-bg-deep: #dcfce7;
+  --ticket-rail: #d9f99d;
+  --ticket-ink: #15803d;
+  --ticket-glow: rgba(21, 128, 61, 0.15);
+}
+
+.merchant-offer-ticket-card[data-tier='medium'] {
+  --ticket-bg: #ecfdf5;
+  --ticket-bg-deep: #d1fae5;
+  --ticket-rail: #bbf7d0;
+  --ticket-ink: #047857;
+  --ticket-glow: rgba(4, 120, 87, 0.18);
+}
+
+.merchant-offer-ticket-card[data-tier='high'] {
+  --ticket-bg: #d1fae5;
+  --ticket-bg-deep: #a7f3d0;
+  --ticket-rail: #86efac;
+  --ticket-ink: #065f46;
+  --ticket-glow: rgba(6, 95, 70, 0.22);
+}
+
+.merchant-offer-ticket-card__rail {
+  width: 0.46rem;
+  flex-shrink: 0;
+  align-self: stretch;
+  height: 100%;
+}
+
+.merchant-offer-ticket-card__rail--left {
+  margin-right: -1px;
+}
+
+.merchant-offer-ticket-card__rail--right {
+  margin-left: -1px;
+}
+
+.merchant-offer-ticket-card__rail-bg {
+  fill: var(--ticket-rail);
+}
+
+.merchant-offer-ticket-card__rail-line {
+  stroke: color-mix(in srgb, var(--ticket-ink) 50%, transparent);
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}
+
+.merchant-offer-ticket-card__punch {
+  fill: #fff;
+  stroke: color-mix(in srgb, var(--ticket-ink) 55%, transparent);
+  stroke-width: 0.9;
+}
+
+.merchant-offer-ticket-card__body {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+  border-top: 1.5px solid color-mix(in srgb, var(--ticket-ink) 50%, transparent);
+  border-bottom: 1.5px solid color-mix(in srgb, var(--ticket-ink) 50%, transparent);
+  border-left: 1px dashed color-mix(in srgb, var(--ticket-ink) 35%, transparent);
+  border-right: 1px dashed color-mix(in srgb, var(--ticket-ink) 35%, transparent);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.5) 0%, transparent 45%),
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 3px,
+      color-mix(in srgb, var(--ticket-ink) 4%, transparent) 3px,
+      color-mix(in srgb, var(--ticket-ink) 4%, transparent) 4px
+    ),
+    linear-gradient(180deg, var(--ticket-bg), var(--ticket-bg-deep));
+  padding: 0.28rem 0.5rem;
+}
+
+.merchant-offer-ticket-card__body::before,
+.merchant-offer-ticket-card__body::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  z-index: 2;
+  width: 6px;
+  height: 6px;
+  border: 1.5px solid color-mix(in srgb, var(--ticket-ink) 50%, transparent);
+  border-radius: 50%;
+  background: #fff;
+  transform: translateY(-50%);
+}
+
+.merchant-offer-ticket-card__body::before {
+  left: -3px;
+}
+
+.merchant-offer-ticket-card__body::after {
+  right: -3px;
+}
+
+.merchant-offer-ticket-card__frame {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  min-width: 0;
+  max-width: 100%;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 1px dashed color-mix(in srgb, var(--ticket-ink) 30%, transparent);
+  border-radius: 1px;
+  padding: 0.12rem 0.38rem;
+  background: color-mix(in srgb, #fff 40%, var(--ticket-bg));
+}
+
+.merchant-offer-ticket-card__shine {
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 10;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.35) 35%,
+    rgba(255, 255, 255, 0.85) 50%,
+    rgba(255, 255, 255, 0.35) 65%,
+    transparent 100%
+  );
+  transform: translateX(-160%);
+  will-change: transform;
+  animation: offer-ticket-card-shine 3.2s ease-in-out infinite;
+}
+
+.merchant-offer-ticket-card__label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  line-height: 1.1;
+  text-align: center;
+}
+
+.merchant-offer-ticket-card--compact {
+  min-height: 1.28rem;
+}
+
+.merchant-offer-ticket-card--compact .merchant-offer-ticket-card__rail {
+  width: 0.38rem;
+}
+
+.merchant-offer-ticket-card--compact .merchant-offer-ticket-card__body {
+  padding: 0.22rem 0.4rem;
+}
+
+.merchant-offer-ticket-card--compact .merchant-offer-ticket-card__frame {
+  padding: 0.08rem 0.3rem;
+}
+
+.merchant-offer-ticket-card--compact .merchant-offer-ticket-card__label {
+  font-size: 0.58rem;
+}
+
+@keyframes offer-ticket-card-shine {
+  0%,
+  62% {
+    transform: translateX(-160%);
+  }
+  100% {
+    transform: translateX(320%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .merchant-offer-ticket-card__shine {
+    animation: none;
+  }
+}
+
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;

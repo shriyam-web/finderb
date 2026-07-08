@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useState, useEffect, useLayoutEffect, useMemo, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Search, Filter, ChevronRight, LayoutGrid, TrendingUp } from 'lucide-react';
 import {
@@ -33,6 +33,24 @@ interface SubCategory {
   businessCount?: number;
 }
 
+function categoryAsSubCategory(cat: {
+  id: string;
+  name: string;
+  slug?: string;
+  image?: string | null;
+  icon?: string | null;
+  businessCount?: number;
+}): SubCategory {
+  return {
+    id: cat.id,
+    name: cat.name,
+    slug: cat.slug || cat.name.toLowerCase().replace(/\s+/g, '-'),
+    image: cat.image ?? null,
+    icon: cat.icon ?? null,
+    businessCount: cat.businessCount,
+  };
+}
+
 export default function CategoriesPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -57,6 +75,14 @@ export default function CategoriesPage() {
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const searchGenerationRef = useRef(0);
   const lastExecutedSearchRef = useRef('');
+  const mainScrollRef = useRef<HTMLElement>(null);
+  const asideScrollRef = useRef<HTMLElement>(null);
+
+  const scrollPanelsToTop = useCallback(() => {
+    mainScrollRef.current?.scrollTo({ top: 0, behavior: 'auto' });
+    asideScrollRef.current?.scrollTo({ top: 0, behavior: 'auto' });
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  }, []);
 
   const urlSearchQ = searchParams.get('search')?.trim() ?? '';
 
@@ -267,19 +293,20 @@ export default function CategoriesPage() {
 
   useEffect(() => {
     async function fetchSubs() {
-      if (selectedCategory) {
-        setIsSubLoading(true);
-        const result = await getSubCategories(selectedCategory.id);
-        if (result.success && result.subCategories) {
-          setSubCategories(result.subCategories);
-          if (result.subCategories.length > 0) {
-            setSelectedSubCategory(result.subCategories[0]);
-          } else {
-            setSelectedSubCategory(null);
-          }
+      if (!selectedCategory) return;
+
+      setIsSubLoading(true);
+      const result = await getSubCategories(selectedCategory.id);
+      if (result.success && result.subCategories) {
+        setSubCategories(result.subCategories);
+        if (result.subCategories.length > 0) {
+          setSelectedSubCategory(result.subCategories[0]);
+        } else {
+          setSelectedSubCategory(categoryAsSubCategory(selectedCategory));
+          setViewMode('merchants');
         }
-        setIsSubLoading(false);
       }
+      setIsSubLoading(false);
     }
     fetchSubs();
   }, [selectedCategory]);
@@ -293,6 +320,11 @@ export default function CategoriesPage() {
     setSelectedSubCategory(sub);
     setViewMode('merchants');
   };
+
+  useLayoutEffect(() => {
+    if (viewMode === 'categories' && !selectedCategory && !isGlobalSearch) return;
+    scrollPanelsToTop();
+  }, [viewMode, selectedCategory?.id, selectedSubCategory?.id, isGlobalSearch, scrollPanelsToTop]);
 
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
@@ -585,7 +617,10 @@ export default function CategoriesPage() {
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar - Compact for more items */}
         {viewMode !== 'categories' && viewMode !== 'global-search' && (
-          <aside className="w-20 bg-white border-r border-slate-100 overflow-y-auto scrollbar-hide pb-24">
+          <aside
+            ref={asideScrollRef}
+            className="w-20 bg-white border-r border-slate-100 overflow-y-auto scrollbar-hide pb-24"
+          >
             {viewMode === 'subcategories' ? (
               [
                 ...(selectedCategory ? [selectedCategory] : []),
@@ -665,7 +700,7 @@ export default function CategoriesPage() {
         )}
 
         {/* Right Panel - Modern Grid */}
-        <main className="scrollbar-hide flex-1 overflow-y-auto bg-[#f4f7fb] pb-32">
+        <main ref={mainScrollRef} className="scrollbar-hide flex-1 overflow-y-auto bg-[#f4f7fb] pb-32">
           {isLoading ? (
             <div className="p-5 max-w-4xl mx-auto w-full">
               <div className="mb-8 mt-4">
@@ -757,11 +792,23 @@ export default function CategoriesPage() {
                     </button>
                   ))
                 ) : (
-                  <div className="col-span-2 flex flex-col items-center justify-center py-24 text-slate-400">
-                    <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-slate-100">
-                      <LayoutGrid size={28} />
+                  <div className="col-span-full space-y-4">
+                    <div className="flex flex-col items-center justify-center py-12 text-slate-400">
+                      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-slate-100">
+                        <LayoutGrid size={28} />
+                      </div>
+                      <p className="text-sm font-medium text-slate-500">No subcategories</p>
+                      <p className="mt-1 text-xs text-slate-400">
+                        Browse businesses listed directly under {selectedCategory?.name}
+                      </p>
                     </div>
-                    <p className="text-sm font-medium text-slate-500">No subcategories yet</p>
+                    {selectedCategory ? (
+                      <CategoryMerchantList
+                        key={selectedCategory.id}
+                        categorySlug={selectedCategory.slug || selectedCategory.name}
+                        searchQuery={searchQuery}
+                      />
+                    ) : null}
                   </div>
                 )}
               </div>

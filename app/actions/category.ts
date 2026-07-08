@@ -9,6 +9,13 @@ import {
   sortBySearchRelevance,
 } from '@/lib/searchMatch';
 import { enforceRateLimit } from '@/lib/security/enforceRateLimit.server';
+import {
+  attachSubcategoryBusinessCounts,
+  attachTopLevelBusinessCounts,
+  countBusinessesForSubCategory,
+  countBusinessesForTopLevelCategory,
+  fetchActiveBusinessCategoryLabels,
+} from '@/lib/categoryBusinessCounts';
 
 export async function getCategories(topLevelOnly = true) {
   try {
@@ -23,24 +30,28 @@ export async function getCategories(topLevelOnly = true) {
       query = query.is('parent_id', null);
     }
 
-    const { data: categories, error } = await query
-      .order('position', { ascending: true })
-      .order('items_count', { ascending: false });
+    const [{ data: categories, error }, businessLabels] = await Promise.all([
+      query.order('position', { ascending: true }).order('items_count', { ascending: false }),
+      fetchActiveBusinessCategoryLabels(supabase),
+    ]);
 
     if (error) {
       throw error;
     }
 
     // Map DB fields to the expected Category interface if necessary
-    const mappedCategories = categories.map((c: any) => ({
-      id: c.id,
-      name: c.name,
-      icon: dbSymbol(c.symbol),
-      image: dbBanner(c.banner),
-      slug: c.slug || c.name.toLowerCase().replace(/\s+/g, '-'),
-      businessCount: c.items_count || 0,
-      color: '#3B82F6',
-    }));
+    const mappedCategories = attachTopLevelBusinessCounts(
+      categories.map((c: any) => ({
+        id: c.id,
+        name: c.name,
+        icon: dbSymbol(c.symbol),
+        image: dbBanner(c.banner),
+        slug: c.slug || c.name.toLowerCase().replace(/\s+/g, '-'),
+        businessCount: 0,
+        color: '#3B82F6',
+      })),
+      businessLabels
+    );
 
     return { success: true, categories: mappedCategories };
   } catch (error: any) {
@@ -53,25 +64,38 @@ export async function getSubCategories(parentId: string) {
   try {
     const supabase = createClient(await cookies());
 
-    const { data: subCategories, error } = await supabase
-      .from('categories')
-      .select('*')
-      .eq('parent_id', parentId)
-      .eq('status', 'Active')
-      .order('items_count', { ascending: false });
+    const [
+      { data: subCategories, error },
+      { data: parent },
+      businessLabels,
+    ] = await Promise.all([
+      supabase
+        .from('categories')
+        .select('*')
+        .eq('parent_id', parentId)
+        .eq('status', 'Active')
+        .order('items_count', { ascending: false }),
+      supabase.from('categories').select('name').eq('id', parentId).maybeSingle(),
+      fetchActiveBusinessCategoryLabels(supabase),
+    ]);
 
     if (error) {
       throw error;
     }
 
-    const mappedSubCategories = subCategories.map((c: any) => ({
-      id: c.id,
-      name: c.name,
-      slug: c.slug || c.name.toLowerCase().replace(/\s+/g, '-'),
-      image: dbBanner(c.banner),
-      icon: dbSymbol(c.symbol),
-      businessCount: c.items_count || 0,
-    }));
+    const parentName = parent?.name ?? '';
+    const mappedSubCategories = attachSubcategoryBusinessCounts(
+      subCategories.map((c: any) => ({
+        id: c.id,
+        name: c.name,
+        slug: c.slug || c.name.toLowerCase().replace(/\s+/g, '-'),
+        image: dbBanner(c.banner),
+        icon: dbSymbol(c.symbol),
+        businessCount: 0,
+      })),
+      parentName,
+      businessLabels
+    );
 
     return { success: true, subCategories: mappedSubCategories };
   } catch (error: any) {
@@ -289,13 +313,21 @@ export async function searchCategoriesByQuery(query: string) {
       }
     }
 
+    const businessLabels = await fetchActiveBusinessCategoryLabels(supabase);
+
     const results: CategorySearchHit[] = rows.map((c) => ({
       id: c.id,
       name: c.name,
       slug: c.slug || c.name.toLowerCase().replace(/\s+/g, '-'),
       icon: dbSymbol(c.symbol),
       image: dbBanner(c.banner),
-      businessCount: c.items_count || 0,
+      businessCount: c.parent_id
+        ? countBusinessesForSubCategory(
+            c.name,
+            parentNameById.get(c.parent_id) ?? '',
+            businessLabels
+          )
+        : countBusinessesForTopLevelCategory(c.name, businessLabels),
       parentId: c.parent_id,
       parentName: c.parent_id ? parentNameById.get(c.parent_id) ?? null : null,
     }));

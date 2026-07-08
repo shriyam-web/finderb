@@ -534,8 +534,6 @@ export default function BusinessProfilePage({
       )}
 
       <main className="relative z-10 mx-auto max-w-6xl px-4 sm:px-6 lg:max-w-7xl">
-        <BusinessProfileBreadcrumb business={business} categoryBreadcrumb={categoryBreadcrumb} />
-
         <section className="border-b border-stone-200/80 py-5 md:py-8">
           <div className="md:grid md:grid-cols-2 md:items-start md:gap-10 lg:gap-14">
             <StackedPhotoGallery
@@ -880,6 +878,10 @@ export default function BusinessProfilePage({
           </section>
         </div>
 
+        <div className="border-t border-stone-200/80 pt-8">
+          <BusinessProfileBreadcrumb business={business} categoryBreadcrumb={categoryBreadcrumb} />
+        </div>
+
         {related.length > 0 && (
           <section className="border-t border-stone-200 py-10">
             <h2 className="text-base font-semibold text-[#153551]">Similar listings</h2>
@@ -889,6 +891,7 @@ export default function BusinessProfilePage({
                   key={item.id}
                   business={item}
                   compact
+                  hidePriceRange
                   distanceLabel={formatDistanceFromUser(userCoords, item.latitude, item.longitude)}
                 />
               ))}

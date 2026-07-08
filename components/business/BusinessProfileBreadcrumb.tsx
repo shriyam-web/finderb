@@ -31,7 +31,7 @@ export default function BusinessProfileBreadcrumb({
         : null;
 
   return (
-    <nav aria-label="Breadcrumb" className="pt-2">
+    <nav aria-label="Breadcrumb">
       <ol className="flex flex-wrap items-center text-[10px] leading-tight text-[#b8b2aa]">
         <li className="inline-flex items-center">
           <Link href="/" className="hover:text-[#215481]">

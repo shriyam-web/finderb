@@ -9,6 +9,11 @@ import { mapTouristPlaceRow } from '@/lib/touristPlaceImage';
 import { getPublicSupabase } from '@/lib/supabase/public';
 import { SHOW_HOME_LATEST_MOVIES_SECTION } from '@/lib/featureFlags';
 import { fetchFinderBTutorials, type FinderBTutorialVideo } from '@/lib/finderbYoutube';
+import {
+  attachSubcategoryBusinessCounts,
+  attachTopLevelBusinessCounts,
+  fetchActiveBusinessCategoryLabels,
+} from '@/lib/categoryBusinessCounts';
 
 export const HOME_PAGE_REVALIDATE_SECONDS = 300;
 export const HOME_PAGE_CACHE_TAG = 'homepage';
@@ -90,28 +95,34 @@ async function fetchFeaturedBusinesses(supabase: SupabaseClient) {
 }
 
 async function fetchCategories(supabase: SupabaseClient) {
-  const { data: categories, error } = await supabase
-    .from('categories')
-    .select('*')
-    .eq('status', 'Active')
-    .is('parent_id', null)
-    .order('position', { ascending: true })
-    .order('items_count', { ascending: false });
+  const [{ data: categories, error }, businessLabels] = await Promise.all([
+    supabase
+      .from('categories')
+      .select('*')
+      .eq('status', 'Active')
+      .is('parent_id', null)
+      .order('position', { ascending: true })
+      .order('items_count', { ascending: false }),
+    fetchActiveBusinessCategoryLabels(supabase),
+  ]);
 
   if (error) {
     console.error('[homepage] categories fetch failed:', error);
     return [];
   }
 
-  return (categories ?? []).map((c) => ({
-    id: c.id,
-    name: c.name,
-    icon: dbSymbol(c.symbol) ?? '',
-    image: dbBanner(c.banner) ?? '',
-    slug: c.slug || c.name.toLowerCase().replace(/\s+/g, '-'),
-    businessCount: c.items_count || 0,
-    color: '#3B82F6',
-  }));
+  return attachTopLevelBusinessCounts(
+    (categories ?? []).map((c) => ({
+      id: c.id,
+      name: c.name,
+      icon: dbSymbol(c.symbol) ?? '',
+      image: dbBanner(c.banner) ?? '',
+      slug: c.slug || c.name.toLowerCase().replace(/\s+/g, '-'),
+      businessCount: 0,
+      color: '#3B82F6',
+    })),
+    businessLabels
+  );
 }
 
 async function fetchMovies(supabase: SupabaseClient) {
@@ -202,13 +213,16 @@ async function fetchFeaturedGroups(supabase: SupabaseClient) {
   }
 
   const parentIds = parents.map((p) => p.id);
-  const { data: children, error: childError } = await supabase
-    .from('categories')
-    .select('id, name, slug, banner, symbol, items_count, parent_id, position')
-    .in('parent_id', parentIds)
-    .eq('status', 'Active')
-    .order('position', { ascending: true })
-    .order('items_count', { ascending: false });
+  const [{ data: children, error: childError }, businessLabels] = await Promise.all([
+    supabase
+      .from('categories')
+      .select('id, name, slug, banner, symbol, items_count, parent_id, position')
+      .in('parent_id', parentIds)
+      .eq('status', 'Active')
+      .order('position', { ascending: true })
+      .order('items_count', { ascending: false }),
+    fetchActiveBusinessCategoryLabels(supabase),
+  ]);
 
   if (childError) {
     console.error('[homepage] featured group children fetch failed:', childError);
@@ -232,15 +246,19 @@ async function fetchFeaturedGroups(supabase: SupabaseClient) {
         title: parent.name,
         slug: parent.slug,
         icon: dbSymbol(parent.symbol) ?? '',
-        subcategories: subs.map((child) => ({
-          id: child.id,
-          name: child.name,
-          slug: child.slug,
-          icon: dbSymbol(child.symbol) ?? '',
-          image: dbBanner(child.banner) ?? '',
-          businessCount: child.items_count || 0,
-          href: categoryHref(child.slug, child.name),
-        })),
+        subcategories: attachSubcategoryBusinessCounts(
+          subs.map((child) => ({
+            id: child.id,
+            name: child.name,
+            slug: child.slug,
+            icon: dbSymbol(child.symbol) ?? '',
+            image: dbBanner(child.banner) ?? '',
+            businessCount: 0,
+            href: categoryHref(child.slug, child.name),
+          })),
+          parent.name,
+          businessLabels
+        ),
       };
     })
     .filter((g): g is NonNullable<typeof g> => g !== null);

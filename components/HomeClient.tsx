@@ -6,6 +6,7 @@ import CategoryIcon from '@/components/CategoryIcon';
 import MobileHome from '@/components/MobileHome';
 import NativeAppsComingSoon from '@/components/NativeAppsComingSoon';
 import MerchantListingRating from '@/components/business/MerchantListingRating';
+import MerchantOfferBadge from '@/components/business/MerchantOfferBadge';
 import { VerifiedNameTick } from '@/components/business/VerifiedMark';
 import HomeHero from '@/components/HomeHero';
 import SubcategoryScrollRow from '@/components/SubcategoryScrollRow';
@@ -685,6 +686,9 @@ export default function HomeClient({ initialData }: { initialData: any }) {
                                 )}
                                 {biz.location}
                               </span>
+                            </div>
+                            <div className="min-w-0 pt-1 empty:hidden">
+                              <MerchantOfferBadge discountRange={biz.discountRange} />
                             </div>
                           </div>
                         </Link>

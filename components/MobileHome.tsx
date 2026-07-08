@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import CategoryIcon from '@/components/CategoryIcon';
 import MerchantListingRating from '@/components/business/MerchantListingRating';
+import MerchantOfferBadge from '@/components/business/MerchantOfferBadge';
 import { VerifiedNameTick } from '@/components/business/VerifiedMark';
 import HomeHero from '@/components/HomeHero';
 import { Business, Category } from '@/lib/mockData';
@@ -247,6 +248,9 @@ useEffect(() => {
                         )}
                         {biz.location}
                       </span>
+                    </div>
+                    <div className="min-w-0 pt-1 empty:hidden">
+                      <MerchantOfferBadge discountRange={biz.discountRange} compact />
                     </div>
                   </div>
                 </Link>
