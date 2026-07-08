@@ -58,12 +58,14 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
   const businessDashboardRoute = isBusinessDashboardRoute(pathname);
   const businessProfileRoute = isBusinessProfileRoute(pathname);
   const merchantAppShell = isMerchantAppShell(pathname);
+  const isCategoriesIndex = pathname === '/categories';
   const isCategoriesBrowse =
-    pathname === '/categories' ||
+    isCategoriesIndex ||
     (pathname?.startsWith('/categories/') && !pathname.startsWith('/categories/job'));
   const userDashboardRoute = isUserDashboardRoute(pathname);
   const hideTopNavFooter = merchantAppShell || isCategoriesBrowse || userDashboardRoute;
-  const showBottomNav = !merchantAppShell && !isCategoriesBrowse && !userDashboardRoute;
+  const showBottomNav = !merchantAppShell && !userDashboardRoute;
+  const showBottomNavPadding = showBottomNav && !isCategoriesIndex;
   const showLocationPrompt = !merchantAppShell && !isCategoriesBrowse && !userDashboardRoute;
 
   useEffect(() => {
@@ -89,7 +91,7 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
           <Loader />
         )
       ) : (
-        <div className={`flex flex-col min-h-screen ${showBottomNav ? 'pb-[6.75rem] lg:pb-0' : ''}`}>
+        <div className={`flex flex-col min-h-screen ${showBottomNavPadding ? 'pb-[6.75rem] lg:pb-0' : ''}`}>
           <Suspense fallback={null}>
             <ScrollRestoration />
           </Suspense>

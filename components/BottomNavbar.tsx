@@ -3,11 +3,14 @@
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { House, LayoutGrid, Briefcase, User } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getSession } from '@/app/actions/user';
 import { getBusinessSession } from '@/app/actions/business';
 
+type TabId = 'home' | 'categories' | 'ai' | 'business' | 'account';
+
 type TabItem = {
+  id: TabId;
   label: string;
   href: string;
   icon: typeof House;
@@ -45,12 +48,22 @@ function FinderBAiNavIcon() {
   );
 }
 
+function shortNavLabel(name: string, maxLen = 11): string {
+  const trimmed = name.trim();
+  if (!trimmed) return '';
+  const firstWord = trimmed.split(/\s+/)[0] ?? trimmed;
+  if (firstWord.length <= maxLen) return firstWord;
+  return `${firstWord.slice(0, maxLen - 1)}…`;
+}
+
 export default function BottomNavbar() {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isAiActive, setIsAiActive] = useState(false);
-  const [accountHref, setAccountHref] = useState('/login');
+  const [userName, setUserName] = useState<string | null>(null);
+  const [businessName, setBusinessName] = useState<string | null>(null);
+  const [businessId, setBusinessId] = useState<string | null>(null);
 
   useEffect(() => {
     const tab = searchParams.get('tab');
@@ -60,44 +73,72 @@ export default function BottomNavbar() {
     }
   }, [searchParams, router]);
 
-  useEffect(() => {
-    Promise.all([getSession(), getBusinessSession()]).then(([userResult, businessResult]) => {
-      if (userResult?.success) {
-        setAccountHref('/dashboard');
-        return;
-      }
-      if (businessResult?.success && businessResult.business?.id) {
-        setAccountHref(`/business/dashboard?id=${businessResult.business.id}`);
-        return;
-      }
-      setAccountHref('/login');
-    });
-  }, [pathname]);
+  const checkSession = useCallback(async () => {
+    const [userResult, businessResult] = await Promise.all([getSession(), getBusinessSession()]);
 
-  const tabs: TabItem[] = [
-    { label: 'Home', icon: House, href: '/' },
-    { label: 'Categories', icon: LayoutGrid, href: '/categories' },
-    { label: 'FinderB AI', icon: House, href: '/?tab=ai', center: true },
-    { label: 'Business', icon: Briefcase, href: '/business/register' },
-    { label: 'Account', icon: User, href: accountHref },
-  ];
+    if (userResult?.success && userResult.user) {
+      setUserName(userResult.user.fullName || null);
+      setBusinessName(null);
+      setBusinessId(null);
+      return;
+    }
+
+    setUserName(null);
+
+    if (businessResult?.success && businessResult.business?.id) {
+      setBusinessName(businessResult.business.name || businessResult.business.businessName || null);
+      setBusinessId(businessResult.business.id);
+      return;
+    }
+
+    setBusinessName(null);
+    setBusinessId(null);
+  }, []);
+
+  useEffect(() => {
+    void checkSession();
+  }, [pathname, checkSession]);
+
+  useEffect(() => {
+    const handleSessionChange = () => {
+      void checkSession();
+    };
+
+    window.addEventListener('finderb-session-change', handleSessionChange);
+    return () => window.removeEventListener('finderb-session-change', handleSessionChange);
+  }, [checkSession]);
+
+  const tabs: TabItem[] = useMemo(() => {
+    const accountLabel = userName ? shortNavLabel(userName) || 'Account' : 'Account';
+    const businessLabel = businessName ? shortNavLabel(businessName, 13) || 'Business' : 'Business';
+    const accountHref = userName ? '/dashboard' : '/login';
+    const businessHref = businessId
+      ? `/business/dashboard?id=${businessId}`
+      : '/business/register';
+
+    return [
+      { id: 'home', label: 'Home', icon: House, href: '/' },
+      { id: 'categories', label: 'Categories', icon: LayoutGrid, href: '/categories' },
+      { id: 'ai', label: 'FinderB AI', icon: House, href: '/?tab=ai', center: true },
+      { id: 'business', label: businessLabel, icon: Briefcase, href: businessHref },
+      { id: 'account', label: accountLabel, icon: User, href: accountHref },
+    ];
+  }, [userName, businessName, businessId]);
 
   const isTabActive = (tab: TabItem) => {
     if (tab.center) return isAiActive;
-    if (tab.label === 'Home') return pathname === '/' && !isAiActive;
-    if (tab.label === 'Categories') {
+    if (tab.id === 'home') return pathname === '/' && !isAiActive;
+    if (tab.id === 'categories') {
       return pathname === '/categories' || Boolean(pathname?.startsWith('/categories/'));
     }
-    if (tab.label === 'Account') {
+    if (tab.id === 'account') {
       return (
         pathname === '/dashboard' ||
-        Boolean(pathname?.startsWith('/dashboard')) ||
-        pathname === '/business/dashboard' ||
-        Boolean(pathname?.startsWith('/business/dashboard'))
+        Boolean(pathname?.startsWith('/dashboard/'))
       );
     }
-    if (tab.label === 'Business') {
-      return pathname === tab.href || Boolean(pathname?.startsWith('/business'));
+    if (tab.id === 'business') {
+      return Boolean(pathname?.startsWith('/business'));
     }
     return pathname === tab.href;
   };
@@ -161,7 +202,7 @@ export default function BottomNavbar() {
               if (tab.center) {
                 return (
                   <div
-                    key={tab.label}
+                    key={tab.id}
                     className="flex h-full flex-col items-center justify-end gap-1"
                   >
                     <div className="h-5 w-5 shrink-0" aria-hidden />
@@ -178,9 +219,10 @@ export default function BottomNavbar() {
 
               return (
                 <Link
-                  key={tab.label}
+                  key={tab.id}
                   href={tab.href}
                   className="flex h-full flex-col items-center justify-end gap-1"
+                  title={tab.label}
                 >
                   <Icon
                     size={20}
@@ -188,7 +230,7 @@ export default function BottomNavbar() {
                     className={active ? 'text-[#215481]' : 'text-slate-400'}
                   />
                   <span
-                    className={`text-[10px] leading-none tracking-tight ${
+                    className={`max-w-[4.25rem] truncate text-[10px] leading-none tracking-tight ${
                       active ? 'font-medium text-[#215481]' : 'font-normal text-slate-500'
                     }`}
                   >

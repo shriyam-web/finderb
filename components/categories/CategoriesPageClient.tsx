@@ -447,7 +447,7 @@ export default function CategoriesPage() {
   );
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-[#f4f7fb] font-sans">
+    <div className="flex h-[calc(100dvh-6.75rem)] flex-col overflow-hidden bg-[#f4f7fb] font-sans lg:h-screen">
       {/* Header / Search Bar */}
       <header className="z-10 border-b border-slate-200/80 bg-white px-4 py-3">
         <div className="flex items-center gap-3">

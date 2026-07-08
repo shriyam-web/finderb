@@ -42,12 +42,14 @@ export async function assertBusinessSession(businessId: string): Promise<
 
 export async function setUserSessionCookie(userId: string) {
   const jar = await cookies();
+  jar.delete('business_id');
   jar.delete('user_id');
   jar.set('user_id', userId, getSessionCookieOptions());
 }
 
 export async function setBusinessSessionCookie(businessId: string) {
   const jar = await cookies();
+  jar.delete('user_id');
   jar.delete('business_id');
   jar.set('business_id', businessId, getSessionCookieOptions());
 }
