@@ -177,6 +177,13 @@ export default function BusinessProfilePage({
   const businessId = business?.id ?? slugOrId;
 
   useEffect(() => {
+    // Always open merchant profile from top unless an explicit hash is present.
+    if (typeof window !== 'undefined' && !window.location.hash) {
+      window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    }
+  }, [slugOrId]);
+
+  useEffect(() => {
     if (initialBusiness) {
       setBusiness(initialBusiness);
       setReviews(parseBusinessReviews(initialBusiness.review));
