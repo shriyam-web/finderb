@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import MerchantRechargeButton from '@/components/business/MerchantRechargeButton';
+import { PricingPlanIcon } from '@/components/pricing/PricingPlanIcon';
 import {
   HiOutlineArrowLeftOnRectangle,
   HiOutlineArrowTopRightOnSquare,
@@ -52,6 +53,13 @@ function businessInitials(name: string) {
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase() ?? '')
     .join('');
+}
+
+function resolvePlanTone(planName: string): 'free' | 'monthly' | 'annual' {
+  const normalized = planName.trim().toLowerCase();
+  if (normalized.includes('pro')) return 'annual';
+  if (normalized.includes('growth')) return 'monthly';
+  return 'free';
 }
 
 export default function DashboardSidebar({
@@ -139,7 +147,14 @@ export default function DashboardSidebar({
         )}
       </div>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-semibold text-zinc-900">{businessName}</p>
+        <button
+          type="button"
+          onClick={() => handleNavSelect('overview')}
+          className="truncate text-left text-sm font-semibold text-zinc-900 hover:text-[#215481]"
+          title="Open dashboard overview"
+        >
+          {businessName}
+        </button>
         {registrationNumber ? (
           <div className="mt-0.5 flex items-center gap-1.5">
             <p className="truncate font-mono text-[10px] text-zinc-500" title={registrationNumber}>
@@ -261,7 +276,22 @@ export default function DashboardSidebar({
         >
           {isOpen ? <HiOutlineXMark size={20} /> : <HiOutlineBars3 size={20} />}
         </button>
-        <span className="truncate text-sm font-semibold text-zinc-900">{businessName}</span>
+        <div className="flex min-w-0 items-center gap-2">
+          <button
+            type="button"
+            onClick={() => handleNavSelect('overview')}
+            className="truncate text-sm font-semibold text-zinc-900 hover:text-[#215481]"
+            title="Open dashboard overview"
+          >
+            {businessName}
+          </button>
+          <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-[#caa24c] bg-gradient-to-r from-[#fff7df] via-[#fef2cc] to-[#fff7df] px-2.5 py-0.5 text-[10px] font-semibold text-[#6c4a08]">
+            <span className="inline-flex h-3.5 w-3.5 items-center justify-center [&>svg]:h-3 [&>svg]:w-3">
+              <PricingPlanIcon tone={resolvePlanTone(planName)} />
+            </span>
+            {planName}
+          </span>
+        </div>
       </header>
 
       <div className="h-14 lg:hidden" aria-hidden />

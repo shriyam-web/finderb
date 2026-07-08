@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { useState, useEffect, useCallback, Suspense } from 'react';
 import { createPortal } from 'react-dom';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { Menu, X, User, Briefcase, Globe, ChevronDown, Home, ArrowRight, Settings, LogIn, LogOut, LayoutDashboard, Newspaper, BookOpen, ClipboardList, CreditCard, MessageSquare, ExternalLink, Users } from 'lucide-react';
+import { Menu, X, User, Briefcase, Globe, ChevronDown, Home, ArrowRight, Settings, LogIn, LogOut, LayoutDashboard, Newspaper, BookOpen, ClipboardList, CreditCard, MessageSquare, ExternalLink, Users, Star } from 'lucide-react';
 import { getSession, logoutUser } from '@/app/actions/user';
 import { getBusinessSession, logoutBusiness } from '@/app/actions/business';
 import { useRouter } from 'next/navigation';
@@ -56,6 +56,7 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
         { label: 'Overview', href: businessDashboardTabHref('overview'), icon: LayoutDashboard },
         { label: 'Listing', href: businessDashboardTabHref('listings'), icon: ClipboardList },
         { label: 'Leads', href: businessDashboardTabHref('leads'), icon: Users },
+        { label: 'Reviews', href: businessDashboardTabHref('reviews'), icon: Star },
         { label: 'Jobs', href: businessDashboardTabHref('jobs'), icon: Briefcase },
         { label: 'My Subscription', href: businessDashboardTabHref('subscription'), icon: CreditCard },
         { label: 'Messages', href: businessDashboardTabHref('messages'), icon: MessageSquare },

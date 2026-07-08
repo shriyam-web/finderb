@@ -864,6 +864,14 @@ export default function BusinessProfilePage({
                       </div>
                     </div>
                     <p className="mt-2 text-sm leading-relaxed text-stone-600">{review.content}</p>
+                    {review.merchantReply?.content && (
+                      <div className="mt-3 border-l-2 border-stone-300 pl-4">
+                        <p className="text-xs font-medium uppercase tracking-wide text-stone-400">
+                          Owner reply
+                        </p>
+                        <p className="mt-1 text-sm text-stone-700">{review.merchantReply.content}</p>
+                      </div>
+                    )}
                   </article>
                 ))
               )}

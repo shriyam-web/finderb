@@ -10,8 +10,9 @@ import { HiOutlineSquares2X2,
   HiOutlineBriefcase,
   HiOutlineCursorArrowRays,
   HiOutlineCreditCard,
+  HiOutlineStar,
 } from 'react-icons/hi2';
-import { RiDashboardFill, RiListCheck, RiMessage3Line, RiSettings4Line } from 'react-icons/ri';
+import { RiDashboardFill, RiListCheck, RiMessage3Line, RiSettings4Line, RiStarFill } from 'react-icons/ri';
 import { getBusinessSession, updateBusinessImages, logoutBusiness, updateBusinessProfile } from '@/app/actions/business';
 import { getBusinessLeads } from '@/app/actions/leads';
 import SettingsTab from './components/SettingsTab';
@@ -32,12 +33,14 @@ import { getProfileCompletion, getAccountMissingFields } from '@/lib/dashboard/p
 import { hasPublicTrustBadge, isListingLive, KYC_OUTSOURCED_MESSAGE } from '@/lib/businessVerification';
 import { getJobsByBusiness } from '@/app/actions/job';
 import { getBusinessProfileViewStats } from '@/app/actions/analytics';
-import { getBusinessPublicRatingStats } from '@/lib/businessReviews';
+import { getBusinessPublicRatingStats, parseBusinessReviews } from '@/lib/businessReviews';
 import DashboardAtAGlance from './components/DashboardAtAGlance';
 import TrustBadgeCallout from './components/TrustBadgeCallout';
 import MyListingTab from './components/MyListingTab';
 import SubscriptionTab from './components/SubscriptionTab';
 import SubscriptionExpiryAlert from './components/SubscriptionExpiryAlert';
+import ReviewsTab from './components/ReviewsTab';
+import { getMerchantNotifications, markMerchantNotificationsRead } from '@/app/actions/merchantNotifications';
 import { getMerchantSubscriptionStatus } from '@/lib/subscription/merchantSubscription';
 import { CldUploadWidget } from 'next-cloudinary';
 import { createClient } from '@/utils/supabase/client';
@@ -67,6 +70,7 @@ function DashboardContent() {
   const [profileViews30d, setProfileViews30d] = useState(0);
   const [activeJobsCount, setActiveJobsCount] = useState(0);
   const [settingsFocusField, setSettingsFocusField] = useState<string | null>(null);
+  const [merchantAlertCount, setMerchantAlertCount] = useState(0);
 
   const handleSettingsFocusHandled = useCallback(() => {
     setSettingsFocusField(null);
@@ -128,6 +132,9 @@ function DashboardContent() {
     rating: business?.rating || 0,
     isFinderBVerified: business?.isFinderBVerified || false,
   });
+
+  const businessId = business?.id;
+  const businessProfilePath = business ? getBusinessProfilePath(business) : undefined;
 
   useEffect(() => {
     const welcome = searchParams.get('welcome') === '1';
@@ -194,10 +201,17 @@ function DashboardContent() {
 
   useEffect(() => {
     const tab = searchParams.get('tab');
-    if (tab && ['overview', 'listings', 'leads', 'jobs', 'subscription', 'messages', 'settings'].includes(tab)) {
+    if (tab && ['overview', 'listings', 'leads', 'reviews', 'jobs', 'subscription', 'messages', 'settings'].includes(tab)) {
       setActiveTab(tab);
     }
   }, [searchParams]);
+
+  useEffect(() => {
+    if (activeTab === 'reviews' && businessId) {
+      void markMerchantNotificationsRead(businessId);
+      setMerchantAlertCount(0);
+    }
+  }, [activeTab, businessId]);
 
   useEffect(() => {
     if (searchParams.get('payment') === 'success') {
@@ -210,29 +224,53 @@ function DashboardContent() {
   useEffect(() => {
     const fetchNotifications = async () => {
       const supabase = createClient();
-      const { data } = await supabase
-        .from('broadcasts')
-        .select('*')
-        .order('created_at', { ascending: false });
+      const [broadcastResult, merchantResult] = await Promise.all([
+        supabase.from('broadcasts').select('*').order('created_at', { ascending: false }),
+        businessId ? getMerchantNotifications(businessId) : Promise.resolve(null),
+      ]);
 
-      if (data) {
-        const merchantNotifications = data.filter((n: any) => 
-          n.target_audience.includes('merchants') || 
+      const broadcastItems =
+        broadcastResult.data?.filter((n: { target_audience: string[] }) =>
+          n.target_audience.includes('merchants') ||
           n.target_audience.includes('all') ||
           (business?.category && n.target_audience.includes(business.category))
-        );
-        setNotifications(merchantNotifications);
-        setUnreadCount(merchantNotifications.length);
-      }
+        ) ?? [];
+
+      const merchantItems =
+        merchantResult?.success
+          ? merchantResult.notifications.map((item) => ({
+              id: item.id,
+              title: item.title || 'Alert',
+              message: item.body,
+              created_at: item.created_at,
+              source: 'merchant' as const,
+              read: Boolean(item.read_at),
+            }))
+          : [];
+
+      const broadcastNotifications = broadcastItems.map((item: { title?: string; message: string; created_at: string }) => ({
+        id: `broadcast-${item.created_at}`,
+        title: item.title || 'FinderB update',
+        message: item.message,
+        created_at: item.created_at,
+        source: 'broadcast' as const,
+        read: false,
+      }));
+
+      const merged = [...merchantItems, ...broadcastNotifications].sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+
+      setNotifications(merged);
+      const unreadMerchant = merchantResult?.success ? merchantResult.unreadCount : 0;
+      setMerchantAlertCount(unreadMerchant);
+      setUnreadCount(unreadMerchant + broadcastNotifications.length);
     };
 
     if (business) {
-      fetchNotifications();
+      void fetchNotifications();
     }
-  }, [business]);
-
-  const businessId = business?.id;
-  const businessProfilePath = business ? getBusinessProfilePath(business) : undefined;
+  }, [business, businessId]);
 
   useEffect(() => {
     if (!businessId) return;
@@ -372,6 +410,16 @@ function DashboardContent() {
     { id: 'overview', label: 'Overview', icon: HiOutlineSquares2X2, activeIcon: RiDashboardFill },
     { id: 'listings', label: 'Listing', icon: HiOutlineQueueList, activeIcon: RiListCheck },
     { id: 'leads', label: 'Leads', icon: HiOutlineCursorArrowRays, activeIcon: HiOutlineCursorArrowRays, badge: leadCount },
+    {
+      id: 'reviews',
+      label: 'Reviews',
+      icon: HiOutlineStar,
+      activeIcon: RiStarFill,
+      badge:
+        parseBusinessReviews(profileData.review).filter(
+          (review) => !review.merchantReply?.content?.trim()
+        ).length || undefined,
+    },
     { id: 'jobs', label: 'Jobs', icon: HiOutlineBriefcase, activeIcon: HiOutlineBriefcase },
     { id: 'subscription', label: 'My Subscription', icon: HiOutlineCreditCard, activeIcon: HiOutlineCreditCard },
     { id: 'messages', label: 'Messages', icon: HiOutlineChatBubbleLeftRight, activeIcon: RiMessage3Line },
@@ -478,7 +526,15 @@ function DashboardContent() {
           activeTab={activeTab}
           unreadCount={unreadCount}
           isNotificationsOpen={isNotificationsOpen}
-          onNotificationsToggle={() => setIsNotificationsOpen(!isNotificationsOpen)}
+          onNotificationsToggle={async () => {
+            const nextOpen = !isNotificationsOpen;
+            setIsNotificationsOpen(nextOpen);
+            if (nextOpen && businessId) {
+              await markMerchantNotificationsRead(businessId);
+              setMerchantAlertCount(0);
+              setUnreadCount((count) => Math.max(0, count - merchantAlertCount));
+            }
+          }}
           onNotificationsClose={() => setIsNotificationsOpen(false)}
           notifications={notifications}
         />
@@ -588,6 +644,19 @@ function DashboardContent() {
               isPaymentPending={isPaymentPending}
               variant="leads"
               onCountChange={setLeadCount}
+            />
+          </DashboardTabShell>
+        )}
+
+        {activeTab === 'reviews' && businessId && (
+          <DashboardTabShell>
+            <ReviewsTab
+              businessId={businessId}
+              reviewData={profileData.review}
+              onReviewsChange={(reviews) => {
+                setProfileData((prev) => ({ ...prev, review: reviews }));
+                setBusiness((prev: typeof business) => (prev ? { ...prev, review: reviews } : prev));
+              }}
             />
           </DashboardTabShell>
         )}

@@ -15,6 +15,10 @@ const tabMeta: Record<string, { title: string; description: string }> = {
     title: 'Leads',
     description: 'Respond to FinderB enquiries and job applications.',
   },
+  reviews: {
+    title: 'Reviews',
+    description: 'Read customer feedback and reply on your public listing.',
+  },
   jobs: {
     title: 'Jobs',
     description: 'Create and manage open roles for your business.',
@@ -39,7 +43,7 @@ type DashboardTopBarProps = {
   isNotificationsOpen: boolean;
   onNotificationsToggle: () => void;
   onNotificationsClose: () => void;
-  notifications: Array<{ title?: string; message: string; created_at: string }>;
+  notifications: Array<{ id?: string; title?: string; message: string; created_at: string }>;
 };
 
 export default function DashboardTopBar({
@@ -86,9 +90,9 @@ export default function DashboardTopBar({
               </div>
               <div className="max-h-80 overflow-y-auto">
                 {notifications.length > 0 ? (
-                  notifications.map((n, i) => (
-                    <div key={i} className="border-b border-zinc-50 px-4 py-3 last:border-0">
-                      <p className="text-sm font-medium text-zinc-900">{n.title}</p>
+                  notifications.map((n) => (
+                    <div key={n.id || `${n.title}-${n.created_at}`} className="border-b border-zinc-50 px-4 py-3 last:border-0">
+                      <p className="text-sm font-medium text-zinc-900">{n.title || 'Notification'}</p>
                       <p className="mt-0.5 text-xs text-zinc-600">{n.message}</p>
                       <p className="mt-1 text-[11px] text-zinc-400">
                         {new Date(n.created_at).toLocaleString(undefined, {

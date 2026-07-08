@@ -156,6 +156,10 @@ export default function LeadsSection({
     () => businessLeads.filter(isDirectLead).length,
     [businessLeads],
   );
+  const overviewBusinessLimit = 3;
+  const overviewJobLimit = 2;
+  const hasMoreOverviewLeads =
+    businessLeads.length > overviewBusinessLimit || jobLeads.length > overviewJobLimit;
   const newBusinessCount = businessLeads.filter(isNewLead).length;
   const newJobCount = jobLeads.filter(isNewLead).length;
   const totalNew = newBusinessCount + newJobCount;
@@ -500,7 +504,7 @@ export default function LeadsSection({
                 Business enquiries
               </p>
               {renderLeadList('business', businessLeads, {
-                limit: 3,
+                limit: overviewBusinessLimit,
                 emptyTitle: 'No business enquiries yet',
                 emptyHint: 'Profile enquiries show up here.',
               })}
@@ -512,10 +516,21 @@ export default function LeadsSection({
                 Job applications
               </p>
               {renderLeadList('jobs', jobLeads, {
-                limit: 2,
+                limit: overviewJobLimit,
                 emptyTitle: 'No job applications yet',
                 emptyHint: 'Applications from your job postings show up here.',
               })}
+            </div>
+          )}
+          {hasMoreOverviewLeads && (
+            <div className="flex justify-end">
+              <Link
+                href="/business/dashboard?tab=leads"
+                className="inline-flex items-center gap-1 text-sm font-semibold text-[#215481] hover:underline"
+              >
+                View all leads
+                <HiOutlineChevronRight size={16} />
+              </Link>
             </div>
           )}
         </div>

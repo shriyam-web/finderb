@@ -5,6 +5,7 @@ export type BusinessReview = {
   rating: number;
   date: string;
   userId?: string;
+  merchantReply?: BusinessReviewReply;
 };
 
 export type BusinessReviewReply = {
@@ -59,6 +60,7 @@ function normalizeReviewEntry(raw: unknown, index: number): BusinessReview | nul
   if (!content) return null;
 
   const rating = Number(entry.rating);
+  const merchantReply = parseBusinessReviewReply(entry.merchantReply) ?? undefined;
   return {
     id: String(entry.id || `review-${index}`),
     author: String(entry.author || entry.name || 'Customer').trim() || 'Customer',
@@ -66,6 +68,7 @@ function normalizeReviewEntry(raw: unknown, index: number): BusinessReview | nul
     rating: Number.isFinite(rating) && rating >= 1 && rating <= 5 ? rating : 5,
     date: String(entry.date || entry.createdAt || '').trim(),
     userId: entry.userId ? String(entry.userId) : undefined,
+    merchantReply,
   };
 }
 
@@ -148,4 +151,16 @@ export function getBusinessPublicRatingStats(review: unknown): {
     rating: getPublicReviewRating(reviews),
     reviewCount: reviews.length,
   };
+}
+
+export function serializeBusinessReviewsForStorage(reviews: BusinessReview[]) {
+  return reviews.map((review) => ({
+    id: review.id,
+    author: review.author,
+    content: review.content,
+    rating: review.rating,
+    date: review.date,
+    ...(review.userId ? { userId: review.userId } : {}),
+    ...(review.merchantReply ? { merchantReply: review.merchantReply } : {}),
+  }));
 }

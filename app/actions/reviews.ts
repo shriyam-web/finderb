@@ -5,10 +5,15 @@ import { cookies } from 'next/headers';
 import { revalidateBusinessProfilePaths } from '@/lib/businessRevalidation';
 import {
   averageReviewRating,
+  normalizeReviewReplyForStorage,
   parseBusinessReviews,
+  serializeBusinessReviewsForStorage,
+  validateReviewReplyContent,
   type BusinessReview,
 } from '@/lib/businessReviews';
 import { enforceRateLimit } from '@/lib/security/enforceRateLimit.server';
+import { assertBusinessSession } from '@/lib/security/session';
+import { createMerchantReviewNotification } from '@/app/actions/merchantNotifications';
 
 async function getLoggedInUser() {
   const userId = (await cookies()).get('user_id')?.value;
@@ -86,13 +91,20 @@ export async function submitBusinessReview(data: {
     const { error: updateError } = await supabase
       .from('Business')
       .update({
-        review: nextReviews,
+        review: serializeBusinessReviewsForStorage(nextReviews),
         rating: nextRating,
         updatedAt: new Date().toISOString(),
       })
       .eq('id', businessId);
 
     if (updateError) throw updateError;
+
+    await createMerchantReviewNotification({
+      businessId,
+      reviewId: newReview.id,
+      author: newReview.author,
+      rating: newReview.rating,
+    });
 
     revalidateBusinessProfilePaths({
       id: businessId,
@@ -108,5 +120,84 @@ export async function submitBusinessReview(data: {
   } catch (error) {
     console.error('Submit Business Review Error:', error);
     return { success: false as const, error: 'Failed to submit review. Please try again.' };
+  }
+}
+
+export async function upsertMerchantReviewReply(data: {
+  businessId: string;
+  reviewId: string;
+  content: string;
+}) {
+  try {
+    const writeLimit = await enforceRateLimit('write', 'merchant-review-reply');
+    if (!writeLimit.ok) return { success: false as const, error: writeLimit.error };
+
+    const businessId = data.businessId?.trim();
+    const reviewId = data.reviewId?.trim();
+    const content = data.content ?? '';
+
+    if (!businessId) return { success: false as const, error: 'Business ID is required' };
+    if (!reviewId) return { success: false as const, error: 'Review ID is required' };
+
+    const validationError = validateReviewReplyContent(content);
+    if (validationError) {
+      return { success: false as const, error: validationError };
+    }
+
+    const merchantReply = normalizeReviewReplyForStorage(content);
+    if (!merchantReply) {
+      return { success: false as const, error: 'Reply cannot be empty' };
+    }
+
+    const auth = await assertBusinessSession(businessId);
+    if (!auth.ok) {
+      return { success: false as const, error: auth.error };
+    }
+
+    const supabase = createClient(await cookies());
+    const { data: business, error: fetchError } = await supabase
+      .from('Business')
+      .select('review, slug, businessName, city')
+      .eq('id', businessId)
+      .single();
+
+    if (fetchError || !business) {
+      return { success: false as const, error: 'Business not found' };
+    }
+
+    const reviews = parseBusinessReviews(business.review);
+    const reviewIndex = reviews.findIndex((review) => review.id === reviewId);
+    if (reviewIndex === -1) {
+      return { success: false as const, error: 'Review not found' };
+    }
+
+    const nextReviews = reviews.map((review, index) =>
+      index === reviewIndex ? { ...review, merchantReply } : review
+    );
+
+    const { error: updateError } = await supabase
+      .from('Business')
+      .update({
+        review: serializeBusinessReviewsForStorage(nextReviews),
+        updatedAt: new Date().toISOString(),
+      })
+      .eq('id', businessId);
+
+    if (updateError) throw updateError;
+
+    revalidateBusinessProfilePaths({
+      id: businessId,
+      slug: business.slug,
+      businessName: business.businessName,
+      city: business.city,
+    });
+
+    return {
+      success: true as const,
+      reviews: nextReviews,
+    };
+  } catch (error) {
+    console.error('Upsert Merchant Review Reply Error:', error);
+    return { success: false as const, error: 'Failed to save reply. Please try again.' };
   }
 }
