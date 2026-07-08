@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useEffect, useCallback, Suspense } from 'react';
+import { createPortal } from 'react-dom';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { Menu, X, User, Briefcase, Globe, ChevronDown, Home, ArrowRight, Settings, LogIn, LogOut, LayoutDashboard, Newspaper, BookOpen, ClipboardList, CreditCard, MessageSquare, ExternalLink, Users } from 'lucide-react';
 import { getSession, logoutUser } from '@/app/actions/user';
@@ -12,6 +13,7 @@ import { getBusinessProfilePath } from '@/lib/businessSlug';
 
 function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: boolean }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [menuMounted, setMenuMounted] = useState(false);
   const [currentLang, setCurrentLang] = useState('English');
   const [isLangOpen, setIsLangOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
@@ -232,6 +234,31 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
     </button>
   );
 
+  useEffect(() => {
+    setMenuMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setIsLangOpen(false);
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    window.dispatchEvent(
+      new CustomEvent('finderb-mobile-menu-change', { detail: { open: isOpen } })
+    );
+  }, [isOpen]);
+
   const menuItems = [
     { name: 'Home', href: '/', icon: Home },
     { name: 'Categories', href: '/categories', icon: LayoutDashboard },
@@ -245,6 +272,208 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
   const languages = ['English', 'Hindi', 'Bengali', 'Tamil', 'Telugu'];
 
   const showBusinessLogo = pathname === '/business/register';
+
+  const mobileMenu = (
+    <>
+      <button
+        type="button"
+        aria-label="Close menu"
+        onClick={() => setIsOpen(false)}
+        className={`lg:hidden fixed inset-0 z-[10050] bg-slate-900/40 transition-opacity duration-300 ${
+          isOpen ? 'opacity-100' : 'pointer-events-none opacity-0'
+        }`}
+      />
+
+      <div
+        className={`lg:hidden fixed inset-y-0 right-0 z-[10051] flex w-1/2 flex-col border-l border-slate-100 bg-white shadow-[-10px_0_36px_rgba(15,23,42,0.14)] transition-transform duration-300 ease-out ${
+          isOpen ? 'translate-x-0' : 'pointer-events-none translate-x-full'
+        }`}
+      >
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          <div className="flex shrink-0 items-center justify-between border-b border-slate-100 px-3 py-2">
+            <p className="text-sm font-semibold text-slate-800">Menu</p>
+            <button
+              type="button"
+              onClick={() => setIsOpen(false)}
+              className="flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-slate-700 transition-all active:scale-95"
+              aria-label="Close menu"
+            >
+              <X size={15} />
+            </button>
+          </div>
+
+          <div className="min-h-0 flex-1 overflow-y-auto px-2.5 py-1.5">
+            <div className="space-y-0.5">
+              {menuItems.map((item) => (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  onClick={() => setIsOpen(false)}
+                  className="group flex items-center justify-between rounded-lg px-1.5 py-1.5 transition-colors active:bg-slate-50"
+                >
+                  <div className="flex min-w-0 items-center gap-2">
+                    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-slate-50 text-slate-400 transition-colors group-hover:bg-primary/5 group-hover:text-primary">
+                      <item.icon size={14} />
+                    </div>
+                    <span className="truncate text-xs text-slate-700">{item.name}</span>
+                  </div>
+                  <ArrowRight
+                    size={12}
+                    className="shrink-0 text-slate-300 transition-all group-hover:translate-x-0.5 group-hover:text-primary"
+                  />
+                </Link>
+              ))}
+            </div>
+
+            <div className="my-1.5 h-px w-full bg-slate-100" />
+
+            <div className="space-y-0.5">
+              <button
+                type="button"
+                onClick={() => setIsLangOpen(!isLangOpen)}
+                className="flex w-full items-center justify-between rounded-lg border border-slate-100 bg-slate-50/70 px-1.5 py-1.5 transition-colors active:bg-slate-100"
+              >
+                <div className="flex items-center gap-2">
+                  <div className="flex h-6 w-6 items-center justify-center rounded-md border border-slate-100 bg-white text-slate-400">
+                    <Globe size={14} />
+                  </div>
+                  <span className="text-xs text-slate-700">{currentLang}</span>
+                </div>
+                <ChevronDown
+                  className={`text-slate-400 transition-transform duration-300 ${isLangOpen ? 'rotate-180' : ''}`}
+                  size={14}
+                />
+              </button>
+
+              <div
+                className={`grid grid-cols-2 gap-1 overflow-hidden px-0.5 transition-all duration-300 ${
+                  isLangOpen ? 'mb-1 max-h-20 opacity-100' : 'max-h-0 opacity-0'
+                }`}
+              >
+                {languages.map((lang) => (
+                  <button
+                    key={lang}
+                    type="button"
+                    onClick={() => {
+                      setCurrentLang(lang);
+                      setIsLangOpen(false);
+                    }}
+                    className={`rounded-md border py-1 text-[9px] font-medium transition-all ${
+                      currentLang === lang
+                        ? 'border-primary bg-primary text-white'
+                        : 'border-slate-100 bg-white text-slate-600'
+                    }`}
+                  >
+                    {lang}
+                  </button>
+                ))}
+              </div>
+
+              {isLoggedIn && (
+                <Link
+                  href="/dashboard"
+                  onClick={() => setIsOpen(false)}
+                  className="flex items-center justify-between rounded-lg px-1.5 py-1.5 transition-colors active:bg-slate-50"
+                >
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-6 w-6 items-center justify-center rounded-md bg-slate-50 text-slate-400">
+                      <User size={14} />
+                    </div>
+                    <span className="text-xs text-slate-700">My Account</span>
+                  </div>
+                  <ArrowRight size={12} className="text-slate-300" />
+                </Link>
+              )}
+              {isBusinessLoggedIn && !isLoggedIn && business && (
+                <Link
+                  href={businessDashboardHref}
+                  onClick={() => setIsOpen(false)}
+                  className="flex items-center justify-between rounded-lg px-1.5 py-1.5 transition-colors active:bg-slate-50"
+                >
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-6 w-6 items-center justify-center rounded-md bg-slate-50 text-slate-400">
+                      <Briefcase size={14} />
+                    </div>
+                    <span className="text-xs text-slate-700">My Business</span>
+                  </div>
+                  <ArrowRight size={12} className="text-slate-300" />
+                </Link>
+              )}
+            </div>
+          </div>
+
+          <div className="shrink-0 border-t border-slate-100 px-2.5 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+            {isBusinessLoggedIn && business ? (
+              <div className="grid grid-cols-1 gap-1.5">
+                <Link
+                  href={businessDashboardHref}
+                  onClick={() => setIsOpen(false)}
+                  className="flex items-center justify-center gap-1.5 rounded-lg bg-primary py-1.5 text-[10px] font-semibold text-white transition-all active:scale-[0.98]"
+                >
+                  <LayoutDashboard size={13} />
+                  Dashboard
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleBusinessLogout();
+                    setIsOpen(false);
+                  }}
+                  className="flex items-center justify-center gap-1.5 rounded-lg border border-red-100 bg-red-50 py-1.5 text-[10px] font-semibold text-red-500 transition-all active:scale-[0.98]"
+                >
+                  <LogOut size={13} />
+                  Sign Out
+                </button>
+              </div>
+            ) : isBusinessLoggedIn ? (
+              <button
+                type="button"
+                onClick={() => {
+                  handleBusinessLogout();
+                  setIsOpen(false);
+                }}
+                className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-red-100 bg-red-50 py-1.5 text-[10px] font-semibold text-red-500 transition-all active:scale-[0.98]"
+              >
+                <LogOut size={13} />
+                Sign Out
+              </button>
+            ) : isLoggedIn ? (
+              <button
+                type="button"
+                onClick={() => {
+                  handleLogout();
+                  setIsOpen(false);
+                }}
+                className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-red-100 bg-red-50 py-1.5 text-[10px] font-semibold text-red-500 transition-all active:scale-[0.98]"
+              >
+                <LogOut size={13} />
+                Sign Out
+              </button>
+            ) : (
+              <div className="grid grid-cols-1 gap-1.5">
+                <Link
+                  href="/login"
+                  onClick={() => setIsOpen(false)}
+                  className="flex items-center justify-center gap-1.5 rounded-lg bg-primary py-1.5 text-[10px] font-semibold text-white transition-all active:scale-[0.98]"
+                >
+                  <LogIn size={13} />
+                  Login
+                </Link>
+                <Link
+                  href="/business/register"
+                  onClick={() => setIsOpen(false)}
+                  className="flex items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white py-1.5 text-[10px] font-semibold text-slate-700 transition-all active:scale-[0.98]"
+                >
+                  <Briefcase size={13} className="text-secondary" />
+                  Register
+                </Link>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </>
+  );
 
   return (
     <nav className={`fixed top-0 w-full z-[9999] transition-all duration-700 ${
@@ -421,197 +650,7 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
         </div>
       </div>
 
-      {/* Mobile Menu Content */}
-      <div className={`lg:hidden fixed inset-0 w-full h-full bg-white z-[10001] transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] transform ${isOpen ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0 pointer-events-none'
-        }`}>
-        <div className="flex flex-col h-full bg-white relative overflow-hidden">
-          {/* Background Decorative Elements */}
-          <div className="absolute top-[-10%] right-[-10%] w-[60%] h-[40%] bg-primary/5 blur-[100px] rounded-full" />
-          <div className="absolute bottom-[-5%] left-[-5%] w-[50%] h-[30%] bg-secondary/5 blur-[80px] rounded-full" />
-
-          {/* Header — no logo (navbar logo is enough); single close control */}
-          <div className="flex items-center justify-between p-6 relative z-10 border-b border-slate-50">
-            <p className="text-lg font-bold text-primary">Menu</p>
-            <button
-              type="button"
-              onClick={() => setIsOpen(false)}
-              className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-slate-100 text-slate-900 transition-all active:scale-95"
-              aria-label="Close menu"
-            >
-              <X size={20} />
-            </button>
-          </div>
-
-          {/* Navigation Links */}
-          <div className="flex-1 px-8 py-4 space-y-2 overflow-y-auto relative z-10">
-            <div className="py-2">
-              <div className="space-y-1">
-                {menuItems.map((item, idx) => (
-                  <Link
-                    key={item.name}
-                    href={item.href}
-                    onClick={() => setIsOpen(false)}
-                    className="group flex items-center justify-between py-3 px-2 rounded-2xl transition-all duration-300 active:bg-slate-50"
-                    style={{
-                      transitionDelay: `${idx * 50}ms`,
-                      transform: isOpen ? 'translateX(0)' : 'translateX(20px)',
-                      opacity: isOpen ? 1 : 0
-                    }}
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-50 text-slate-400 group-hover:text-primary group-hover:bg-primary/5 transition-colors">
-                        <item.icon size={18} />
-                      </div>
-                      <span className="text-base text-slate-800 tracking-tight">{item.name}</span>
-                    </div>
-                    <ArrowRight size={16} className="text-slate-300 group-hover:text-primary transition-all group-hover:translate-x-1" />
-                  </Link>
-                ))}
-              </div>
-            </div>
-
-            <div className="h-px w-full bg-slate-100 my-4" />
-
-            <div className="py-0">
-              {/* <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 px-1">Settings & Preferences</p> */}
-
-              {/* Language Selector */}
-              <div className="mb-2">
-                <button
-                  onClick={() => setIsLangOpen(!isLangOpen)}
-                  className="w-full flex items-center justify-between py-3 px-2 rounded-2xl bg-slate-50/50 border border-slate-100 active:bg-slate-100 transition-all"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="w-9 h-9 flex items-center justify-center rounded-xl bg-white shadow-sm text-slate-400 border border-slate-100">
-                      <Globe size={18} />
-                    </div>
-                    <span className="text-base font-semibold text-slate-800 tracking-tight">{currentLang}</span>
-                  </div>
-                  <ChevronDown className={`transition-transform duration-300 ${isLangOpen ? 'rotate-180' : ''} text-slate-400`} size={18} />
-                </button>
-
-                <div className={`grid grid-cols-2 gap-3 mt-2 px-1 transition-all duration-500 overflow-hidden ${isLangOpen ? 'max-h-[300px] opacity-100 mb-4' : 'max-h-0 opacity-0'}`}>
-                  {languages.map((lang) => (
-                    <button
-                      key={lang}
-                      onClick={() => {
-                        setCurrentLang(lang);
-                        setIsLangOpen(false);
-                      }}
-                      className={`flex items-center justify-center py-2.5 rounded-xl text-[10px] font-bold transition-all border ${currentLang === lang
-                        ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20 scale-[1.02]'
-                        : 'bg-white text-slate-600 border-slate-100 hover:bg-slate-50 hover:border-slate-200'
-                        }`}
-                    >
-                      {lang}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Profile/Dashboard link if logged in */}
-              {isLoggedIn && (
-                <Link
-                  href="/dashboard"
-                  onClick={() => setIsOpen(false)}
-                  className="flex items-center justify-between py-3 px-2 rounded-2xl active:bg-slate-50 transition-all"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-50 text-slate-400">
-                      <User size={18} />
-                    </div>
-                    <span className="text-base text-slate-800 tracking-tight">My Account</span>
-                  </div>
-                  <ArrowRight size={16} className="text-slate-300" />
-                </Link>
-              )}
-              {isBusinessLoggedIn && !isLoggedIn && business && (
-                <Link
-                  href={businessDashboardHref}
-                  onClick={() => setIsOpen(false)}
-                  className="flex items-center justify-between py-3 px-2 rounded-2xl active:bg-slate-50 transition-all"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-50 text-slate-400">
-                      <Briefcase size={18} />
-                    </div>
-                    <span className="text-base text-slate-800 tracking-tight">My Business</span>
-                  </div>
-                  <ArrowRight size={16} className="text-slate-300" />
-                </Link>
-              )}
-            </div>
-          </div>
-
-          {/* Footer Action */}
-          <div className="p-8 pb-12 relative z-10 border-t border-slate-50">
-            {isBusinessLoggedIn && business ? (
-              <div className="space-y-3">
-                <Link
-                  href={businessDashboardHref}
-                  onClick={() => setIsOpen(false)}
-                  className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl bg-indigo-600 text-white font-bold text-xs shadow-xl shadow-indigo-200 active:scale-95 transition-all"
-                >
-                  <LayoutDashboard size={18} />
-                  Business Dashboard
-                </Link>
-                <button
-                  onClick={() => {
-                    handleBusinessLogout();
-                    setIsOpen(false);
-                  }}
-                  className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl bg-slate-50 text-red-500 font-bold text-xs border border-red-50 active:scale-95 transition-all"
-                >
-                  <LogOut size={18} />
-                  Sign Out Business
-                </button>
-              </div>
-            ) : isBusinessLoggedIn ? (
-              <button
-                onClick={() => {
-                  handleBusinessLogout();
-                  setIsOpen(false);
-                }}
-                className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl bg-slate-50 text-red-500 font-bold text-xs border border-red-50 active:scale-95 transition-all"
-              >
-                <LogOut size={18} />
-                Sign Out Business
-              </button>
-            ) : isLoggedIn ? (
-              <button
-                onClick={() => {
-                  handleLogout();
-                  setIsOpen(false);
-                }}
-                className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl bg-slate-50 text-red-500 font-bold text-xs border border-red-50 active:scale-95 transition-all"
-              >
-                <LogOut size={18} />
-                Sign Out
-              </button>
-            ) : (
-              <div className="space-y-3">
-                <Link
-                  href="/login"
-                  onClick={() => setIsOpen(false)}
-                  className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl bg-primary text-white font-bold text-xs shadow-xl shadow-primary/20 active:scale-95 transition-all"
-                >
-                  <LogIn size={18} />
-                  Login to Account
-                </Link>
-                <Link
-                  href="/business/register"
-                  onClick={() => setIsOpen(false)}
-                  className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl bg-white text-slate-900 font-bold text-xs border border-slate-200 active:scale-95 transition-all"
-                >
-                  <Briefcase size={18} className="text-secondary" />
-                  Register Business
-                </Link>
-              </div>
-            )}
-            <p className="text-center text-[9px] text-slate-400 font-medium mt-6 uppercase tracking-widest opacity-60">FinderB v2.0 • Made with ❤️</p>
-          </div>
-        </div>
-      </div>
+      {menuMounted ? createPortal(mobileMenu, document.body) : null}
     </nav>
   );
 }

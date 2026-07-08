@@ -100,6 +100,17 @@ export default function BottomNavbar() {
   const [businessName, setBusinessName] = useState<string | null>(null);
   const [businessAvatarUrl, setBusinessAvatarUrl] = useState<string | null>(null);
   const [businessId, setBusinessId] = useState<string | null>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    const handleMobileMenuChange = (event: Event) => {
+      const customEvent = event as CustomEvent<{ open: boolean }>;
+      setMobileMenuOpen(Boolean(customEvent.detail?.open));
+    };
+
+    window.addEventListener('finderb-mobile-menu-change', handleMobileMenuChange);
+    return () => window.removeEventListener('finderb-mobile-menu-change', handleMobileMenuChange);
+  }, []);
 
   useEffect(() => {
     const tab = searchParams.get('tab');
@@ -205,7 +216,11 @@ export default function BottomNavbar() {
   const centerActive = isTabActive(centerTab);
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-[9999] lg:hidden">
+    <div
+      className={`pointer-events-none fixed inset-x-0 bottom-0 z-[9999] transition-all duration-300 lg:hidden ${
+        mobileMenuOpen ? 'pointer-events-none translate-y-full opacity-0' : ''
+      }`}
+    >
       <div className="pointer-events-auto relative mx-auto max-w-lg px-4 pb-3">
         <div className="relative h-[58px]">
           <svg

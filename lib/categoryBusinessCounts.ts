@@ -1,4 +1,4 @@
-type SupabaseLike = {
+type BusinessCategoryQueryClient = {
   from: (table: string) => {
     select: (columns: string) => {
       eq: (
@@ -9,15 +9,18 @@ type SupabaseLike = {
   };
 };
 
+function asBusinessCategoryQueryClient(supabase: unknown): BusinessCategoryQueryClient {
+  return supabase as BusinessCategoryQueryClient;
+}
+
 function normalizeLabel(value: string): string {
   return value.trim().toLowerCase();
 }
 
 /** Active business `category` labels from the Business table. */
-export async function fetchActiveBusinessCategoryLabels(
-  supabase: SupabaseLike
-): Promise<string[]> {
-  const { data } = await supabase
+export async function fetchActiveBusinessCategoryLabels(supabase: unknown): Promise<string[]> {
+  const client = asBusinessCategoryQueryClient(supabase);
+  const { data } = await client
     .from('Business')
     .select('category')
     .eq('status', 'Active');
