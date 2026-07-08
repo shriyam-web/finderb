@@ -54,7 +54,7 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
   const businessMenuItems = business
     ? [
         { label: 'Overview', href: businessDashboardTabHref('overview'), icon: LayoutDashboard },
-        { label: 'Listing', href: businessDashboardTabHref('listings'), icon: ClipboardList },
+        { label: 'My Listing', href: businessDashboardTabHref('listings'), icon: ClipboardList },
         { label: 'Leads', href: businessDashboardTabHref('leads'), icon: Users },
         { label: 'Reviews', href: businessDashboardTabHref('reviews'), icon: Star },
         { label: 'Jobs', href: businessDashboardTabHref('jobs'), icon: Briefcase },

@@ -42,7 +42,7 @@ export default function DashboardAtAGlance({
       icon: HiOutlineBriefcase,
     },
     {
-      label: 'Listing',
+      label: 'My Listing',
       value: 'Open',
       onClick: onOpenListing,
       icon: HiOutlineQueueList,

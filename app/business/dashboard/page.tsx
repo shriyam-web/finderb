@@ -408,7 +408,7 @@ function DashboardContent() {
 
   const menuItems = [
     { id: 'overview', label: 'Overview', icon: HiOutlineSquares2X2, activeIcon: RiDashboardFill },
-    { id: 'listings', label: 'Listing', icon: HiOutlineQueueList, activeIcon: RiListCheck },
+    { id: 'listings', label: 'My Listing', icon: HiOutlineQueueList, activeIcon: RiListCheck },
     { id: 'leads', label: 'Leads', icon: HiOutlineCursorArrowRays, activeIcon: HiOutlineCursorArrowRays, badge: leadCount },
     {
       id: 'reviews',

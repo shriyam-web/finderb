@@ -8,7 +8,7 @@ const tabMeta: Record<string, { title: string; description: string }> = {
     description: 'Performance, readiness, and incoming enquiries at a glance.',
   },
   listings: {
-    title: 'Listing',
+    title: 'My Listing',
     description: 'Preview and manage how customers see your business.',
   },
   leads: {
