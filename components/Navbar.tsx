@@ -4,16 +4,18 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useEffect, useCallback, Suspense } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { Menu, X, User, Briefcase, Globe, ChevronDown, Home, ArrowRight, Settings, LogIn, LogOut, LayoutDashboard, Newspaper, BookOpen, ClipboardList } from 'lucide-react';
+import { Menu, X, User, Briefcase, Globe, ChevronDown, Home, ArrowRight, Settings, LogIn, LogOut, LayoutDashboard, Newspaper, BookOpen, ClipboardList, CreditCard, MessageSquare, ExternalLink, Users } from 'lucide-react';
 import { getSession, logoutUser } from '@/app/actions/user';
 import { getBusinessSession, logoutBusiness } from '@/app/actions/business';
 import { useRouter } from 'next/navigation';
+import { getBusinessProfilePath } from '@/lib/businessSlug';
 
 function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: boolean }) {
   const [isOpen, setIsOpen] = useState(false);
   const [currentLang, setCurrentLang] = useState('English');
   const [isLangOpen, setIsLangOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isBusinessMenuOpen, setIsBusinessMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState<any>(null);
@@ -28,10 +30,43 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
   const loginLabel = isOnLoginPage ? 'Business Login' : 'Login / Sign Up';
 
   const whiteText = initialWhiteText || isAiTab;
+  const isLight = !scrolled && whiteText;
 
   const businessDashboardHref = business?.id
     ? `/business/dashboard?id=${business.id}`
     : '/business/dashboard';
+
+  const businessDisplayName =
+    business?.displayName || business?.name || business?.businessName || 'My Business';
+
+  const businessAvatarUrl =
+    (typeof business?.profilePictureUrl === 'string' && business.profilePictureUrl) ||
+    (typeof business?.image === 'string' && business.image) ||
+    null;
+
+  const businessDashboardTabHref = (tab: string) =>
+    business?.id
+      ? `/business/dashboard?id=${business.id}&tab=${tab}`
+      : `/business/dashboard?tab=${tab}`;
+
+  const businessMenuItems = business
+    ? [
+        { label: 'Overview', href: businessDashboardTabHref('overview'), icon: LayoutDashboard },
+        { label: 'Listing', href: businessDashboardTabHref('listings'), icon: ClipboardList },
+        { label: 'Leads', href: businessDashboardTabHref('leads'), icon: Users },
+        { label: 'Jobs', href: businessDashboardTabHref('jobs'), icon: Briefcase },
+        { label: 'My Subscription', href: businessDashboardTabHref('subscription'), icon: CreditCard },
+        { label: 'Messages', href: businessDashboardTabHref('messages'), icon: MessageSquare },
+        { label: 'Settings', href: businessDashboardTabHref('settings'), icon: Settings },
+        {
+          label: 'View Public Profile',
+          href: getBusinessProfilePath(business),
+          icon: ExternalLink,
+        },
+      ]
+    : [];
+
+  const closeBusinessMenu = () => setIsBusinessMenuOpen(false);
 
   const checkSession = useCallback(async () => {
     const userResult = await getSession();
@@ -55,7 +90,12 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
 
   useEffect(() => {
     checkSession();
-  }, [pathname, checkSession]); // Check on every navigation
+  }, [pathname, checkSession]);
+
+  useEffect(() => {
+    setIsUserMenuOpen(false);
+    setIsBusinessMenuOpen(false);
+  }, [pathname]);
 
   useEffect(() => {
     const handleSessionChange = (event: Event) => {
@@ -93,8 +133,104 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
     await logoutBusiness();
     setIsBusinessLoggedIn(false);
     setBusiness(null);
+    setIsBusinessMenuOpen(false);
     router.push('/business/login');
   };
+
+  const renderBusinessMenuPanel = (compact = false) => (
+    <>
+      <div
+        className="fixed inset-0 z-40"
+        onClick={closeBusinessMenu}
+        aria-hidden
+      />
+      <div
+        className={`absolute top-full right-0 z-50 mt-2 animate-in fade-in zoom-in-95 rounded-2xl border border-gray-100 bg-white py-2 shadow-xl duration-200 ${
+          compact ? 'w-56' : 'w-52'
+        }`}
+      >
+        <div className="mb-1 border-b border-gray-50 px-4 py-2.5">
+          <p className="text-sm font-normal text-slate-500">
+            My Business
+          </p>
+          <p className="mt-0.5 truncate text-sm font-normal text-slate-700">
+            {businessDisplayName}
+          </p>
+        </div>
+        {businessMenuItems.map((item) => (
+          <Link
+            key={item.label}
+            href={item.href}
+            onClick={closeBusinessMenu}
+            className="flex items-center gap-2.5 px-4 py-2.5 text-sm font-normal text-slate-600 transition-all hover:bg-primary/5 hover:text-primary"
+          >
+            <item.icon size={16} className="text-gray-400" />
+            {item.label}
+          </Link>
+        ))}
+        <div className="my-1 border-t border-gray-50" />
+        <button
+          type="button"
+          onClick={() => {
+            closeBusinessMenu();
+            void handleBusinessLogout();
+          }}
+          className="flex w-full items-center gap-2.5 px-4 py-2.5 text-sm font-normal text-red-500 transition-all hover:bg-red-50"
+        >
+          <LogOut size={16} />
+          Log Out
+        </button>
+      </div>
+    </>
+  );
+
+  const renderBusinessTrigger = ({
+    compact = false,
+  }: {
+    compact?: boolean;
+  }) => (
+    <button
+      type="button"
+      onClick={() => {
+        setIsBusinessMenuOpen((open) => !open);
+        setIsUserMenuOpen(false);
+      }}
+      className={
+        compact
+          ? `inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-normal transition-all ${
+              scrolled
+                ? 'border-primary/10 bg-white text-slate-600'
+                : 'border-primary/15 bg-white/90 text-slate-600 backdrop-blur-sm'
+            }`
+          : `flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-normal transition-all duration-300 ${
+              isLight
+                ? 'border-white/20 bg-white/10 text-white backdrop-blur-md hover:bg-white/20'
+                : 'border-gray-200 bg-white/50 text-slate-600 backdrop-blur-md hover:border-gray-300 hover:bg-white'
+            }`
+      }
+      aria-expanded={isBusinessMenuOpen}
+      aria-haspopup="menu"
+    >
+      {businessAvatarUrl ? (
+        <span className="h-5 w-5 shrink-0 overflow-hidden rounded-full ring-1 ring-primary/15">
+          <img src={businessAvatarUrl} alt="" className="h-full w-full object-cover" />
+        </span>
+      ) : (
+        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-normal text-white">
+          <Briefcase size={12} />
+        </span>
+      )}
+      <span>
+        {compact
+          ? 'My Business'
+          : businessDisplayName.split(/\s+/)[0] || 'My Business'}
+      </span>
+      <ChevronDown
+        size={14}
+        className={`shrink-0 transition-transform duration-300 ${isBusinessMenuOpen ? 'rotate-180' : ''}`}
+      />
+    </button>
+  );
 
   const menuItems = [
     { name: 'Home', href: '/', icon: Home },
@@ -108,7 +244,6 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
 
   const languages = ['English', 'Hindi', 'Bengali', 'Tamil', 'Telugu'];
 
-  const isLight = !scrolled && whiteText;
   const showBusinessLogo = pathname === '/business/register';
 
   return (
@@ -225,18 +360,10 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
                   )}
                 </div>
               ) : isBusinessLoggedIn && business ? (
-                <Link
-                  href={businessDashboardHref}
-                  className={`flex items-center gap-2 px-4 py-2 border rounded-xl transition-all duration-300 font-medium text-xs shadow-sm hover:shadow-md ${isLight
-                    ? 'bg-white/10 backdrop-blur-md text-white border-white/20 hover:bg-white/20'
-                    : 'bg-white/50 backdrop-blur-md text-gray-700 border-gray-200 hover:bg-white hover:border-gray-300'
-                    }`}
-                >
-                  <div className="w-5 h-5 bg-primary rounded-full flex items-center justify-center text-[10px] text-white font-bold shadow-sm">
-                    <Briefcase size={12} />
-                  </div>
-                  <span>My Business</span>
-                </Link>
+                <div className="relative">
+                  {renderBusinessTrigger({ compact: false })}
+                  {isBusinessMenuOpen && renderBusinessMenuPanel()}
+                </div>
               ) : (
                 <Link
                   href={loginHref}
@@ -261,27 +388,11 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
               >
                 My Account
               </Link>
-            ) : isBusinessLoggedIn && business ? (
-              <Link
-                href={businessDashboardHref}
-                className={`rounded-lg px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider transition-all ${
-                  scrolled
-                    ? 'text-primary border border-primary/10 bg-white'
-                    : 'text-primary border border-primary/15 bg-white/90 shadow-sm backdrop-blur-sm'
-                }`}
-              >
-                My Business
-              </Link>
             ) : isBusinessLoggedIn ? (
-              <span
-                className={`rounded-lg px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider ${
-                  scrolled
-                    ? 'text-primary border border-primary/10 bg-white'
-                    : 'text-primary border border-primary/15 bg-white/90 shadow-sm backdrop-blur-sm'
-                }`}
-              >
-                My Business
-              </span>
+              <div className="relative z-[10002]">
+                {renderBusinessTrigger({ compact: true })}
+                {isBusinessMenuOpen && renderBusinessMenuPanel(true)}
+              </div>
             ) : (
               <Link
                 href={loginHref}

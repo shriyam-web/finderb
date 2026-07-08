@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { House, LayoutGrid, Briefcase, User } from 'lucide-react';
+import { House, LayoutGrid, Briefcase, User, type LucideIcon } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getSession } from '@/app/actions/user';
 import { getBusinessSession } from '@/app/actions/business';
@@ -13,8 +13,9 @@ type TabItem = {
   id: TabId;
   label: string;
   href: string;
-  icon: typeof House;
+  icon: LucideIcon;
   center?: boolean;
+  avatarUrl?: string | null;
 };
 
 function FinderBAiNavIcon() {
@@ -56,13 +57,48 @@ function shortNavLabel(name: string, maxLen = 11): string {
   return `${firstWord.slice(0, maxLen - 1)}…`;
 }
 
+function NavTabIcon({
+  avatarUrl,
+  fallbackIcon: Icon,
+  active,
+  label,
+}: {
+  avatarUrl?: string | null;
+  fallbackIcon: LucideIcon;
+  active: boolean;
+  label: string;
+}) {
+  if (avatarUrl) {
+    return (
+      <span
+        className={`relative h-5 w-5 shrink-0 overflow-hidden rounded-full ring-2 ${
+          active ? 'ring-[#215481]' : 'ring-slate-200'
+        }`}
+      >
+        <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
+        <span className="sr-only">{label}</span>
+      </span>
+    );
+  }
+
+  return (
+    <Icon
+      size={20}
+      strokeWidth={active ? 2 : 1.75}
+      className={active ? 'text-[#215481]' : 'text-slate-400'}
+    />
+  );
+}
+
 export default function BottomNavbar() {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isAiActive, setIsAiActive] = useState(false);
   const [userName, setUserName] = useState<string | null>(null);
+  const [userAvatarUrl, setUserAvatarUrl] = useState<string | null>(null);
   const [businessName, setBusinessName] = useState<string | null>(null);
+  const [businessAvatarUrl, setBusinessAvatarUrl] = useState<string | null>(null);
   const [businessId, setBusinessId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -78,20 +114,30 @@ export default function BottomNavbar() {
 
     if (userResult?.success && userResult.user) {
       setUserName(userResult.user.fullName || null);
+      setUserAvatarUrl(
+        typeof userResult.user.avatarUrl === 'string' && userResult.user.avatarUrl.trim()
+          ? userResult.user.avatarUrl
+          : null
+      );
       setBusinessName(null);
+      setBusinessAvatarUrl(null);
       setBusinessId(null);
       return;
     }
 
     setUserName(null);
+    setUserAvatarUrl(null);
 
     if (businessResult?.success && businessResult.business?.id) {
-      setBusinessName(businessResult.business.name || businessResult.business.businessName || null);
-      setBusinessId(businessResult.business.id);
+      const business = businessResult.business;
+      setBusinessName(business.name || business.businessName || null);
+      setBusinessAvatarUrl(business.profilePictureUrl || business.image || null);
+      setBusinessId(business.id);
       return;
     }
 
     setBusinessName(null);
+    setBusinessAvatarUrl(null);
     setBusinessId(null);
   }, []);
 
@@ -120,10 +166,22 @@ export default function BottomNavbar() {
       { id: 'home', label: 'Home', icon: House, href: '/' },
       { id: 'categories', label: 'Categories', icon: LayoutGrid, href: '/categories' },
       { id: 'ai', label: 'FinderB AI', icon: House, href: '/?tab=ai', center: true },
-      { id: 'business', label: businessLabel, icon: Briefcase, href: businessHref },
-      { id: 'account', label: accountLabel, icon: User, href: accountHref },
+      {
+        id: 'business',
+        label: businessLabel,
+        icon: Briefcase,
+        href: businessHref,
+        avatarUrl: businessAvatarUrl,
+      },
+      {
+        id: 'account',
+        label: accountLabel,
+        icon: User,
+        href: accountHref,
+        avatarUrl: userAvatarUrl,
+      },
     ];
-  }, [userName, businessName, businessId]);
+  }, [userName, userAvatarUrl, businessName, businessAvatarUrl, businessId]);
 
   const isTabActive = (tab: TabItem) => {
     if (tab.center) return isAiActive;
@@ -197,7 +255,6 @@ export default function BottomNavbar() {
           <div className="absolute inset-0 grid grid-cols-5 items-center px-1 py-2">
             {tabs.map((tab) => {
               const active = isTabActive(tab);
-              const Icon = tab.icon;
 
               if (tab.center) {
                 return (
@@ -224,10 +281,11 @@ export default function BottomNavbar() {
                   className="flex h-full flex-col items-center justify-end gap-1"
                   title={tab.label}
                 >
-                  <Icon
-                    size={20}
-                    strokeWidth={active ? 2 : 1.75}
-                    className={active ? 'text-[#215481]' : 'text-slate-400'}
+                  <NavTabIcon
+                    avatarUrl={tab.avatarUrl}
+                    fallbackIcon={tab.icon}
+                    active={active}
+                    label={tab.label}
                   />
                   <span
                     className={`max-w-[4.25rem] truncate text-[10px] leading-none tracking-tight ${
