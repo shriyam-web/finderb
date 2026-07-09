@@ -92,7 +92,7 @@ export function PricingPlanCard({
       {isAnnual ? <div className="pricing-card-aurora pointer-events-none absolute inset-0" aria-hidden /> : null}
       {highlighted ? (
         <span className="pricing-popular-ribbon pointer-events-none absolute left-0 top-0 z-[2]">
-          <Zap size={10} strokeWidth={2.5} />
+          <Zap size={8} strokeWidth={2.5} />
           Most picked
         </span>
       ) : null}
@@ -232,7 +232,7 @@ export function DiscountOffBadge({ percent }: { percent: number }) {
 
 export function EarlyBirdAppliedBadge() {
   return (
-    <span className="pricing-early-bird-badge inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-[0.08em] text-[#153551]">
+    <span className="pricing-early-bird-badge inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.06em] text-[#153551]">
       <span className="pricing-live-dot pricing-live-dot-gold" aria-hidden />
       {EARLY_BIRD_BADGE_LABEL}
     </span>

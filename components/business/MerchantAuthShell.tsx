@@ -99,8 +99,20 @@ export function MerchantAuthCard({ children, className = '' }: { children: React
   );
 }
 
-export function MerchantAuthPage({ children }: { children: ReactNode }) {
-  return <div className="merchant-auth-page min-h-screen">{children}</div>;
+export function MerchantAuthPage({
+  children,
+  compactTop = false,
+}: {
+  children: ReactNode;
+  compactTop?: boolean;
+}) {
+  return (
+    <div
+      className={`merchant-auth-page min-h-screen ${compactTop ? 'merchant-auth-page--compact-top' : ''}`}
+    >
+      {children}
+    </div>
+  );
 }
 
 /** Clears fixed site navbar — use on all /business/login and /business/register content */

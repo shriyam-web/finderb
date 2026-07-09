@@ -41,6 +41,10 @@ export default function PricingPlansSection({
   sectionId = 'pricing-plans',
 }: PricingPlansSectionProps) {
   const isRegister = mode === 'register';
+  const sectionPad = isRegister ? 'pt-4 pb-3 sm:pt-5 sm:pb-4' : 'py-12 sm:py-16';
+  const headerMb = isRegister ? 'mb-3' : 'mb-10';
+  const comparePad = isRegister ? 'pt-3 pb-4 sm:pt-4 sm:pb-5' : 'py-14 sm:py-16';
+  const plansGridGap = isRegister ? 'gap-4 lg:gap-4' : 'gap-6 lg:gap-5';
 
   const handlePro = (billing: 'monthly' | 'annual') => {
     onChoosePro?.(billing);
@@ -48,18 +52,24 @@ export default function PricingPlansSection({
 
   return (
     <>
-      <section id={sectionId} className="relative scroll-mt-24 py-12 sm:py-16">
+      <section id={sectionId} className={`relative scroll-mt-24 ${sectionPad}`}>
         <div
           className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#f5f2ed] via-[#faf8f5] to-[#fff9ed]"
           aria-hidden
         />
         <MerchantAuthMain className="relative z-10">
-          <div className="mb-10 flex flex-wrap items-end justify-between gap-4">
+          <div className={`${headerMb} flex flex-wrap items-end justify-between gap-4`}>
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[#215481]">
-                {isRegister ? 'Plans & pricing' : 'Pricing'}
-              </p>
-              <h2 className="pricing-section-title mt-2 text-2xl font-bold tracking-[-0.02em] text-[#0a1520] sm:text-3xl">
+              {!isRegister ? (
+                <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[#215481]">
+                  Pricing
+                </p>
+              ) : null}
+              <h2
+                className={`pricing-section-title text-2xl font-bold tracking-[-0.02em] text-[#0a1520] sm:text-3xl ${
+                  isRegister ? '' : 'mt-2'
+                }`}
+              >
                 {isRegister ? 'Choose how you want to grow' : 'Pick your plan'}
               </h2>
               <p className="mt-1.5 text-sm font-medium text-[#5c4a3d]">
@@ -83,7 +93,7 @@ export default function PricingPlansSection({
             </p>
           </div>
 
-          <div className="pricing-plans-grid grid grid-cols-1 gap-6 lg:grid-cols-3 lg:items-stretch lg:gap-5">
+          <div className={`pricing-plans-grid grid grid-cols-1 lg:grid-cols-3 lg:items-stretch ${plansGridGap}`}>
             <PricingPlanCard
               tone="free"
               badge={isRegister ? undefined : <CurrentPlanBadge />}
@@ -184,14 +194,14 @@ export default function PricingPlansSection({
         </MerchantAuthMain>
       </section>
 
-      <section className="border-t border-[#e8dfd4]/80 bg-white py-14 sm:py-16">
+      <section className={`border-t border-[#e8dfd4]/80 bg-white ${comparePad}`}>
         <MerchantAuthMain>
           <h2 className="pricing-section-title text-2xl font-bold tracking-[-0.02em] text-[#0a1520]">
             Compare plans
           </h2>
           <p className="mt-1.5 text-sm font-medium text-[#5c4a3d]">What you get at each tier</p>
 
-          <div className="mt-8 block sm:hidden">
+          <div className={`${isRegister ? 'mt-3' : 'mt-8'} block sm:hidden`}>
             <div className="overflow-x-auto rounded-2xl border border-[#e8dfd4] bg-white shadow-[0_16px_48px_-28px_rgba(21,53,81,0.15)]">
               <table className="w-full min-w-[360px] border-collapse text-left">
                 <thead>
@@ -248,7 +258,7 @@ export default function PricingPlansSection({
             <p className="mt-2 text-[11px] font-medium text-[#a89888]">Swipe to compare plans</p>
           </div>
 
-          <div className="pricing-compare-wrap mt-8 hidden overflow-x-auto rounded-2xl sm:block">
+          <div className={`pricing-compare-wrap ${isRegister ? 'mt-3' : 'mt-8'} hidden overflow-x-auto rounded-2xl sm:block`}>
             <table className="w-full min-w-[640px] border-collapse text-left">
               <thead>
                 <tr className="pricing-compare-head">

@@ -32,7 +32,7 @@ export default function RegisterHero({
   stats,
 }: RegisterHeroProps) {
   return (
-    <section className="register-hero relative overflow-hidden pb-14 sm:pb-20 lg:pb-24">
+    <section className="register-hero relative overflow-hidden pb-3 sm:pb-4">
       <div className="register-hero-bg pointer-events-none absolute inset-0" aria-hidden />
       <div
         className="pointer-events-none absolute -left-32 top-20 h-96 w-96 rounded-full bg-[#f9b864]/20 blur-[100px]"
@@ -48,7 +48,7 @@ export default function RegisterHero({
           Mobile: intro → form → stats (natural DOM order).
           Desktop: intro + stats in left column; form sticky in right column spanning both rows.
         */}
-        <div className="flex flex-col gap-8 lg:grid lg:grid-cols-[1fr_minmax(0,400px)] lg:grid-rows-[auto_auto] lg:items-start lg:gap-x-12 lg:gap-y-10 xl:grid-cols-[1.05fr_minmax(0,420px)] xl:gap-x-16">
+        <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[1fr_minmax(0,400px)] lg:grid-rows-[auto_auto] lg:items-start lg:gap-x-8 lg:gap-y-5 xl:grid-cols-[1.05fr_minmax(0,420px)] xl:gap-x-10">
           {/* Hero intro — first on mobile */}
           <div className="max-w-2xl lg:col-start-1 lg:row-start-1">
             <h1 className="text-[2.15rem] font-extrabold leading-[1.08] tracking-tight text-[#0a1520] sm:text-5xl lg:text-[3.25rem] xl:text-[3.5rem]">
@@ -56,12 +56,12 @@ export default function RegisterHero({
               <span className="register-hero-headline-accent">paying customers</span>
             </h1>
 
-            <p className="mt-5 max-w-xl text-base leading-relaxed text-[#3d4f63] sm:text-lg">
+            <p className="mt-3 max-w-xl text-base leading-relaxed text-[#3d4f63] sm:text-lg">
               List your business free on FinderB. Get discovered, collect leads, earn reviews, and
               upgrade when you&apos;re ready to scale.
             </p>
 
-            <ul className="mt-6 flex flex-wrap gap-2.5 sm:mt-8 sm:gap-3">
+            <ul className="mt-4 flex flex-wrap gap-2 sm:mt-5 sm:gap-2.5">
               {[
                 { icon: Zap, text: 'Starter, Growth, and Pro plans' },
                 { icon: MessageSquare, text: 'Direct enquiries' },
@@ -105,7 +105,7 @@ export default function RegisterHero({
           </div>
 
           {/* Stats + trust — third on mobile, below intro on desktop */}
-          <div className="space-y-8 lg:col-start-1 lg:row-start-2">
+          <div className="space-y-4 lg:col-start-1 lg:row-start-2">
             <ul className="flex flex-col gap-5 sm:flex-row sm:flex-wrap sm:items-end sm:gap-x-10 sm:gap-y-3">
               {stats.map((stat) => (
                 <li key={stat.label}>

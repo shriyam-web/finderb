@@ -447,6 +447,64 @@ h1, h2, h3, h4, h5, h6 {
   }
 }
 
+/* One auth page has many sections — only the hero clears the navbar; others get light top pad */
+.merchant-auth-page .merchant-auth-main {
+  padding-top: 0.75rem;
+}
+@media (min-width: 640px) {
+  .merchant-auth-page .merchant-auth-main {
+    padding-top: 1rem;
+  }
+}
+
+.merchant-auth-page .register-hero .merchant-auth-main,
+.merchant-auth-page > .merchant-auth-main:first-child {
+  padding-top: 5.75rem;
+}
+@media (min-width: 640px) {
+  .merchant-auth-page .register-hero .merchant-auth-main,
+  .merchant-auth-page > .merchant-auth-main:first-child {
+    padding-top: 7rem;
+  }
+}
+@media (min-width: 1024px) {
+  .merchant-auth-page .register-hero .merchant-auth-main,
+  .merchant-auth-page > .merchant-auth-main:first-child {
+    padding-top: 7.5rem;
+  }
+}
+
+.merchant-auth-page--compact-top .merchant-auth-main {
+  padding-top: 1rem;
+}
+@media (min-width: 640px) {
+  .merchant-auth-page--compact-top .merchant-auth-main {
+    padding-top: 1.25rem;
+  }
+}
+@media (min-width: 1024px) {
+  .merchant-auth-page--compact-top .merchant-auth-main {
+    padding-top: 1.5rem;
+  }
+}
+
+.merchant-auth-page--compact-top .register-hero .merchant-auth-main,
+.merchant-auth-page--compact-top > .merchant-auth-main:first-child {
+  padding-top: 1rem;
+}
+@media (min-width: 640px) {
+  .merchant-auth-page--compact-top .register-hero .merchant-auth-main,
+  .merchant-auth-page--compact-top > .merchant-auth-main:first-child {
+    padding-top: 1.25rem;
+  }
+}
+@media (min-width: 1024px) {
+  .merchant-auth-page--compact-top .register-hero .merchant-auth-main,
+  .merchant-auth-page--compact-top > .merchant-auth-main:first-child {
+    padding-top: 1.5rem;
+  }
+}
+
 .merchant-auth-register-hero-card {
   box-shadow:
     0 4px 6px -1px rgba(15, 39, 59, 0.06),
@@ -591,20 +649,20 @@ h1, h2, h3, h4, h5, h6 {
 
 .pricing-popular-ribbon {
   position: absolute;
-  top: 0.95rem;
-  left: 0.95rem;
+  top: 0.76rem;
+  left: 0.76rem;
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0.32rem 0.9rem;
-  font-size: 10px;
+  gap: 0.28rem;
+  padding: 0.26rem 0.72rem;
+  font-size: 8px;
   font-weight: 700;
   line-height: 1;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: #ffffff;
   background: linear-gradient(135deg, #059669 0%, #10b981 100%);
-  box-shadow: 0 8px 20px -12px rgba(5, 150, 105, 0.6);
+  box-shadow: 0 6px 16px -10px rgba(5, 150, 105, 0.6);
   border-radius: 9999px;
   border: 1px solid rgba(255, 255, 255, 0.18);
   z-index: 20;
@@ -964,6 +1022,11 @@ h1, h2, h3, h4, h5, h6 {
   animation: pricing-early-bird-shift 3s ease-in-out infinite;
   box-shadow: none;
   color: #153551 !important;
+}
+
+.pricing-early-bird-badge .pricing-live-dot {
+  height: 5px;
+  width: 5px;
 }
 
 @keyframes pricing-early-bird-shift {

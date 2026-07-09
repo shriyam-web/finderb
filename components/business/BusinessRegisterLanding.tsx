@@ -128,14 +128,11 @@ export default function BusinessRegisterLanding({
       </PricingFontRoot>
 
       {/* Stories */}
-      <section className="border-y border-zinc-200/70 bg-white py-16 sm:py-20">
+      <section className="border-y border-zinc-200/70 bg-white py-4 sm:py-5">
         <MerchantAuthMain>
-          <div className="mb-10 flex flex-col gap-3 sm:mb-12 md:flex-row md:items-end md:justify-between">
+          <div className="mb-3 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[#215481]">
-                Partner stories
-              </p>
-              <h2 className="mt-2 text-2xl font-bold tracking-tight text-[#0f273b] sm:text-3xl">
+              <h2 className="text-2xl font-bold tracking-tight text-[#0f273b] sm:text-3xl">
                 Real growth from real businesses
               </h2>
             </div>
@@ -147,7 +144,7 @@ export default function BusinessRegisterLanding({
             </div>
           </div>
 
-          <div className="grid gap-6 md:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-3">
             {successStories.map((story) => (
               <article
                 key={story.name}
@@ -183,18 +180,15 @@ export default function BusinessRegisterLanding({
       </section>
 
       {/* Steps */}
-      <section className="merchant-auth-section-muted py-16 sm:py-20">
+      <section className="merchant-auth-section-muted py-4 sm:py-5">
         <MerchantAuthMain>
-          <div className="mx-auto mb-12 max-w-2xl text-center">
-            <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[#215481]">
-              How it works
-            </p>
-            <h2 className="mt-2 text-2xl font-bold tracking-tight text-[#0f273b] sm:text-3xl">
+          <div className="mx-auto mb-3 max-w-2xl text-center">
+            <h2 className="text-2xl font-bold tracking-tight text-[#0f273b] sm:text-3xl">
               Three steps to go live
             </h2>
           </div>
 
-          <ol className="grid gap-6 md:grid-cols-3">
+          <ol className="grid gap-4 md:grid-cols-3">
             {steps.map((item) => {
               const Icon = item.icon;
               return (
@@ -217,7 +211,7 @@ export default function BusinessRegisterLanding({
             })}
           </ol>
 
-          <div className="mt-10 flex justify-center">
+          <div className="mt-3 flex justify-center">
             <button type="button" onClick={scrollToHero} className={`px-8 py-3.5 ${merchantAuthBtnPrimary}`}>
               Start step 1
               <ArrowRight size={16} />
@@ -227,18 +221,15 @@ export default function BusinessRegisterLanding({
       </section>
 
       {/* Benefits + FAQ */}
-      <section className="py-16 sm:py-20">
+      <section className="py-4 sm:py-5">
         <MerchantAuthMain>
-          <div className="grid gap-12 lg:grid-cols-2 lg:gap-16">
+          <div className="grid gap-5 lg:grid-cols-2 lg:gap-6">
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[#215481]">
-                Why FinderB
-              </p>
-              <h2 className="mt-2 text-2xl font-bold tracking-tight text-[#0f273b] sm:text-3xl">
+              <h2 className="text-2xl font-bold tracking-tight text-[#0f273b] sm:text-3xl">
                 Built for merchants who want more footfall, not more complexity
               </h2>
 
-              <div className="mt-8 space-y-5">
+              <div className="mt-3 space-y-2.5">
                 {[
                   {
                     icon: Users,
@@ -268,7 +259,7 @@ export default function BusinessRegisterLanding({
                 ))}
               </div>
 
-              <div className="mt-10 max-w-md">
+              <div className="mt-3 max-w-md">
                 <MobileRegisterInput
                   mobile={mobile}
                   onChange={onMobileChange}
@@ -279,7 +270,7 @@ export default function BusinessRegisterLanding({
             </div>
 
             <div className="rounded-2xl border border-zinc-200/90 bg-white p-6 shadow-sm sm:p-8">
-              <div className="mb-6 flex items-center justify-between">
+              <div className="mb-4 flex items-center justify-between">
                 <h3 className="text-lg font-bold text-zinc-900">Common questions</h3>
                 <HelpCircle className="text-[#215481]" size={22} />
               </div>
@@ -294,7 +285,7 @@ export default function BusinessRegisterLanding({
                   </div>
                 ))}
               </div>
-              <div className="mt-8 border-t border-zinc-100 pt-6">
+              <div className="mt-4 border-t border-zinc-100 pt-4">
                 <PartnerLoginCard />
               </div>
             </div>
@@ -303,22 +294,19 @@ export default function BusinessRegisterLanding({
       </section>
 
       {/* Final CTA */}
-      <section className="merchant-auth-panel-dark py-16 sm:py-20">
+      <section className="merchant-auth-panel-dark py-4 sm:py-5">
         <MerchantAuthMain>
           <div className="mx-auto max-w-2xl text-center">
-            <p className="text-[11px] font-bold uppercase tracking-[0.28em] text-[#f9b864]">
-              Get started today
-            </p>
-            <h2 className="mt-3 text-2xl font-bold !text-white sm:text-3xl">
+            <h2 className="text-2xl font-bold !text-white sm:text-3xl">
               Your next customer is already searching on FinderB
             </h2>
-            <p className="mx-auto mt-4 max-w-lg text-sm leading-relaxed text-white/70 sm:text-base">
+            <p className="mx-auto mt-2 max-w-lg text-sm leading-relaxed text-white/70 sm:text-base">
               Join thousands of local businesses. Listing is free and takes only a few minutes.
             </p>
             <button
               type="button"
               onClick={scrollToHero}
-              className="mt-8 inline-flex items-center gap-2 rounded-xl bg-[#f9b864] px-8 py-3.5 text-sm font-bold text-[#153551] transition-colors hover:bg-[#ffcc70]"
+              className="mt-3 inline-flex items-center gap-2 rounded-xl bg-[#f9b864] px-8 py-3.5 text-sm font-bold text-[#153551] transition-colors hover:bg-[#ffcc70]"
             >
               List your business free
               <ArrowRight size={16} />
