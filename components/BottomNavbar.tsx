@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { House, LayoutGrid, Briefcase, User, type LucideIcon } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useId, useMemo, useState } from 'react';
 import { getSession } from '@/app/actions/user';
 import { getBusinessSession } from '@/app/actions/business';
 
@@ -101,6 +101,7 @@ export default function BottomNavbar() {
   const [businessAvatarUrl, setBusinessAvatarUrl] = useState<string | null>(null);
   const [businessId, setBusinessId] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const navShadowId = useId().replace(/:/g, '');
 
   useEffect(() => {
     const handleMobileMenuChange = (event: Event) => {
@@ -213,44 +214,55 @@ export default function BottomNavbar() {
   };
 
   const centerTab = tabs.find((t) => t.center)!;
-  const centerActive = isTabActive(centerTab);
+  const navPathD =
+    'M28 0 H142 C152 0 158 2 163 8 C170 18 178 26 200 28 C222 26 230 18 237 8 C242 2 248 0 258 0 H372 C386 0 400 14 400 28 V52 C400 62 392 68 382 68 H18 C8 68 0 62 0 52 V28 C0 14 14 0 28 0 Z';
+  const navShadowClipId = `${navShadowId}-clip`;
 
   return (
     <div
-      className={`pointer-events-none fixed inset-x-0 bottom-0 z-[9999] transition-all duration-300 lg:hidden ${
+      className={`pointer-events-none fixed inset-x-0 bottom-[calc(0.75rem+env(safe-area-inset-bottom,0px))] z-[9999] transition-all duration-300 lg:hidden ${
         mobileMenuOpen ? 'pointer-events-none translate-y-full opacity-0' : ''
       }`}
     >
-      <div
-        className="pointer-events-none absolute inset-x-0 bottom-0 bg-white"
-        style={{ height: 'calc(6.75rem + env(safe-area-inset-bottom, 0px))' }}
-        aria-hidden
-      />
-      <div className="pointer-events-auto relative mx-auto max-w-lg px-4 pb-3">
-        <div className="relative h-[58px]">
+      <div className="pointer-events-auto relative mx-auto max-w-lg px-4">
+        <div className="relative h-[58px] overflow-visible">
           <svg
-            className="absolute inset-0 h-full w-full drop-shadow-[0_4px_24px_rgba(15,23,42,0.12)]"
-            viewBox="0 0 400 68"
+            className="absolute inset-0 h-full w-full overflow-visible"
+            viewBox="0 -1 400 70"
             preserveAspectRatio="none"
             aria-hidden
           >
+            <defs>
+              <filter
+                id={navShadowId}
+                x="-5%"
+                y="0%"
+                width="110%"
+                height="200%"
+                filterUnits="objectBoundingBox"
+              >
+                <feGaussianBlur in="SourceAlpha" stdDeviation="0 10" result="blur" />
+                <feOffset in="blur" dx="0" dy="8" result="offsetBlur" />
+                <feFlood floodColor="rgba(15,23,42,0.14)" result="color" />
+                <feComposite in="color" in2="offsetBlur" operator="in" result="shadow" />
+                <feMerge>
+                  <feMergeNode in="shadow" />
+                </feMerge>
+              </filter>
+              <clipPath id={navShadowClipId} clipPathUnits="userSpaceOnUse">
+                <rect x="-20" y="34" width="440" height="50" />
+              </clipPath>
+            </defs>
+            <g clipPath={`url(#${navShadowClipId})`}>
+              <path fill="#0f172a" filter={`url(#${navShadowId})`} d={navPathD} />
+            </g>
+            <path fill="#ffffff" d={navPathD} />
             <path
-              fill="#ffffff"
-              d="M28 0
-                 H142
-                 C152 0 158 2 163 8
-                 C170 18 178 26 200 28
-                 C222 26 230 18 237 8
-                 C242 2 248 0 258 0
-                 H372
-                 C386 0 400 14 400 28
-                 V52
-                 C400 62 392 68 382 68
-                 H18
-                 C8 68 0 62 0 52
-                 V28
-                 C0 14 14 0 28 0
-                 Z"
+              fill="none"
+              stroke="#cbd5e1"
+              strokeWidth="1.5"
+              vectorEffect="nonScalingStroke"
+              d={navPathD}
             />
           </svg>
 
@@ -264,9 +276,7 @@ export default function BottomNavbar() {
               aria-hidden
             />
             <span
-              className={`relative flex h-[50px] w-[50px] items-center justify-center rounded-full bg-[length:220%_220%] ring-[3px] ring-white shadow-[0_6px_24px_rgba(37,99,235,0.5)] animate-ai-fab-gradient bg-gradient-to-br from-[#1d4ed8] via-[#06b6d4] to-[#7c3aed] ${
-                centerActive ? 'shadow-[0_8px_28px_rgba(6,182,212,0.55)]' : ''
-              }`}
+              className="relative flex h-[50px] w-[50px] items-center justify-center rounded-full bg-[length:220%_220%] ring-[3.5px] ring-white shadow-[0_10px_20px_-6px_rgba(37,99,235,0.4)] animate-ai-fab-gradient bg-gradient-to-br from-[#1d4ed8] via-[#06b6d4] to-[#7c3aed]"
             >
               <FinderBAiNavIcon />
             </span>

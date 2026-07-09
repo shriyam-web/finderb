@@ -14,7 +14,7 @@ export default function LegalPageLayout({
   children,
 }: LegalPageLayoutProps) {
   return (
-    <div className="min-h-screen bg-[#fafaf9]">
+    <div className="min-h-[calc(100dvh-6.75rem)] bg-[#fafaf9] lg:min-h-screen">
       <main className="mx-auto max-w-2xl px-5 pt-28 pb-20 sm:px-6 lg:pt-32">
         <header className="mb-10 border-b border-neutral-200 pb-8">
           <p className="text-sm text-neutral-500">{LEGAL_COMPANY.brand}</p>

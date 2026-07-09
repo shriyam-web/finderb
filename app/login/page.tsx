@@ -223,7 +223,7 @@ function LoginContent() {
 
 function LoginFallback() {
   return (
-    <div className="flex min-h-[calc(100dvh-5rem)] items-center justify-center bg-[#eef3f9] pt-24 sm:pt-28 md:pt-32 lg:pt-36 xl:pt-40">
+    <div className="flex min-h-[calc(100dvh-5rem-6.75rem)] items-center justify-center bg-[#eef3f9] pt-24 lg:min-h-[calc(100dvh-5rem)]">
       <div className="h-9 w-9 animate-spin rounded-full border-2 border-[#215481] border-t-transparent" />
     </div>
   );

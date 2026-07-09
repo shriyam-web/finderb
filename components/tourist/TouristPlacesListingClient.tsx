@@ -46,7 +46,7 @@ export default function TouristPlacesListingClient({
   }, [initialPlaces.length]);
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] pb-24 lg:pb-12">
+    <div className="min-h-[calc(100dvh-6.75rem)] bg-[#f8fafc] pb-24 lg:min-h-screen lg:pb-12">
       <div className="border-b border-gray-100 bg-white pt-[4.25rem] sm:pt-24">
         <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
           <Link

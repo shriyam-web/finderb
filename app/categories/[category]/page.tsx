@@ -66,7 +66,7 @@ export default async function CategoryPage({ params }: PageProps) {
     }));
 
   return (
-    <div className="bg-accent/30 min-h-screen pt-24 pb-12 lg:pt-32">
+    <div className="bg-accent/30 min-h-[calc(100dvh-6.75rem)] pt-24 pb-12 lg:min-h-screen lg:pt-32">
       <JsonLd data={jsonLd} />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-12">

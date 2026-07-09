@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import CategoryIcon from '@/components/CategoryIcon';
 import MobileHome from '@/components/MobileHome';
@@ -25,12 +25,6 @@ import {
   Sparkles,
   Brain,
   MessageSquare,
-  Coffee,
-  Wrench,
-  Dumbbell,
-  Hotel,
-  Heart,
-  PlusCircle,
   Lightbulb,
   ChevronDown,
   ChevronRight,
@@ -73,25 +67,6 @@ const WORDS = [
   "premium local businesses",
   "trusted by millions",
   "verified professionals" // For seamless loop
-];
-
-const AI_SUGGESTIONS = [
-  { text: "Best cafes near me", icon: Coffee },
-  { text: "Top rated plumbers", icon: Wrench },
-  { text: "Gyms with personal trainers", icon: Dumbbell },
-  { text: "Luxury hotels in Delhi", icon: Hotel },
-  { text: "Yoga classes for beginners", icon: Heart },
-  { text: "24/7 Pharmacies nearby", icon: PlusCircle },
-  { text: "Electricians in Mumbai", icon: Wrench },
-  { text: "Co-working spaces", icon: Coffee },
-  { text: "Pet clinics", icon: Heart },
-  { text: "Interior designers", icon: Sparkles },
-];
-
-const SUGGESTIVE_KEYWORDS = [
-  "Restaurants", "Dentists", "Schools", "Packers & Movers", "Event Organizers", 
-  "Beauty Parlors", "Car Rentals", "Dry Cleaners", "Boutiques", "Real Estate Agents",
-  "Tailors", "Hardware Stores", "Bakeries", "Jewellers", "Clinics"
 ];
 
 export default function HomeClient({ initialData }: { initialData: any }) {
@@ -339,6 +314,33 @@ export default function HomeClient({ initialData }: { initialData: any }) {
   const desktopCategories = sortedCategories.slice(0, 12);
   const desktopFeaturedBusinesses = realBusinesses.slice(0, 4);
 
+  const aiKeywordPills = useMemo(
+    () => sortedCategories.slice(0, 14).map((cat) => cat.name),
+    [sortedCategories]
+  );
+
+  const aiSmartQueries = useMemo(() => {
+    const loc = effectiveSearchLocation?.trim();
+    const locationSuffix = loc ? `in ${loc}` : 'near me';
+    return sortedCategories.slice(0, 8).map((cat) => ({
+      id: cat.id,
+      text: `Best ${cat.name} ${locationSuffix}`,
+      icon: cat.icon,
+      name: cat.name,
+    }));
+  }, [sortedCategories, effectiveSearchLocation]);
+
+  const isAiSearchOpen = activeMobileTab === 'AI Search';
+
+  useEffect(() => {
+    if (!isAiSearchOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isAiSearchOpen]);
+
   const getCategorySubtitle = (cat: Category) => {
     const subtitles: Record<string, string> = {
       doctors: 'Hospitals, Clinics',
@@ -375,58 +377,58 @@ export default function HomeClient({ initialData }: { initialData: any }) {
   }, [index]);
 
   return (
-    <div className="flex w-full min-w-0 flex-col overflow-x-hidden bg-white selection:bg-primary/10 font-sans">
+    <div
+      className={`flex w-full min-w-0 flex-col overflow-x-hidden bg-white selection:bg-primary/10 font-sans ${
+        isAiSearchOpen ? 'h-dvh overflow-hidden lg:h-auto lg:overflow-visible' : ''
+      }`}
+    >
       {/* AI Search View */}
-      {activeMobileTab === 'AI Search' && (
-        <div className="fixed inset-0 z-[80] bg-white pt-20 pb-24 overflow-y-auto px-6">
-          {/* Futuristic Background Elements */}
-          <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_50%,rgba(var(--color-primary-500),0.02),transparent_70%)]"></div>
-            <div className="absolute top-1/4 -left-20 w-64 h-64 bg-primary/5 blur-[100px] rounded-full animate-pulse"></div>
-            <div className="absolute bottom-1/4 -right-20 w-80 h-80 bg-secondary/5 blur-[120px] rounded-full animate-pulse" style={{ animationDelay: '2s' }}></div>
-            
-            {/* Animated AI Nodes */}
-            <div className="absolute top-20 right-10 w-2 h-2 bg-primary/20 rounded-full animate-ping"></div>
-            <div className="absolute top-40 left-10 w-1.5 h-1.5 bg-secondary/20 rounded-full animate-ping" style={{ animationDelay: '1s' }}></div>
-            <div className="absolute bottom-40 right-20 w-2.5 h-2.5 bg-primary/20 rounded-full animate-ping" style={{ animationDelay: '1.5s' }}></div>
+      {isAiSearchOpen && (
+        <div className="fixed inset-0 z-[80] flex flex-col overflow-hidden pt-[4.25rem] sm:pt-24 lg:hidden">
+          <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
+            <div className="absolute top-0 left-0 h-full w-full bg-[radial-gradient(circle_at_50%_20%,rgba(37,99,235,0.06),transparent_55%)]" />
+            <div className="absolute top-1/4 -left-20 h-64 w-64 animate-pulse rounded-full bg-[#2563eb]/5 blur-[100px]" />
+            <div
+              className="absolute bottom-1/3 -right-20 h-80 w-80 animate-pulse rounded-full bg-cyan-400/5 blur-[120px]"
+              style={{ animationDelay: '2s' }}
+            />
           </div>
 
-          <div className="max-w-md mx-auto flex flex-col space-y-10 relative">
-            {/* Top Bar */}
-            <div className="flex justify-end items-center">
-              <button 
+          <div className="relative mx-auto flex min-h-0 w-full max-w-md flex-1 flex-col px-5">
+            <div className="flex shrink-0 justify-end py-2">
+              <button
+                type="button"
                 onClick={() => handleTabChange('Home')}
-                className="p-2 rounded-xl bg-gray-50 text-gray-400 hover:text-primary transition-colors"
+                className="rounded-lg border border-slate-200 p-2 text-slate-400 transition-colors hover:border-slate-300 hover:text-[#215481]"
+                aria-label="Close AI search"
               >
                 <X size={20} />
               </button>
             </div>
 
-            {/* Header */}
-            <div className="space-y-4">
-              <h1 className="text-4xl font-black text-primary tracking-tight leading-tight">
-                Finder<span className="text-secondary">B</span> <br />
-                <span className="bg-gradient-to-r from-primary via-secondary to-orange-400 bg-clip-text text-transparent">AI Assistant</span>
-              </h1>
-              <p className="text-gray-500 font-medium text-sm leading-relaxed">
-                Experience the next generation of local search. Just tell me what you need, and I'll find it for you.
-              </p>
-            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain pb-[6.75rem] scrollbar-hide">
+              <div className="space-y-8">
+                <div className="space-y-2">
+                  <h1 className="text-[1.75rem] font-bold leading-tight tracking-tight text-[#0f172a]">
+                    FinderB{' '}
+                    <span className="bg-gradient-to-r from-[#2563eb] to-cyan-500 bg-clip-text text-transparent">
+                      AI
+                    </span>
+                  </h1>
+                  <p className="text-sm leading-relaxed text-slate-500">
+                    Describe what you need — we&apos;ll find matching businesses from live categories.
+                  </p>
+                </div>
 
-            {/* Search Input Container */}
-            <div className="relative group">
-              <div className="absolute -inset-1 bg-gradient-to-r from-primary via-secondary to-primary rounded-2xl blur opacity-20 group-focus-within:opacity-40 transition duration-1000 group-focus-within:duration-200 animate-gradient-x"></div>
-              <div className="relative flex flex-col bg-white border border-gray-100 rounded-2xl overflow-hidden">
-                <div className="flex items-center p-2">
-                  <div className="flex-1 flex items-center px-4">
-                    <div className="relative mr-3">
-                      <Brain size={22} className="text-primary/60" />
-                      <div className="absolute -top-1 -right-1 w-2 h-2 bg-secondary rounded-full animate-ping"></div>
+                <div className="rounded-2xl border border-slate-200/90 bg-white shadow-[0_8px_28px_rgba(15,23,42,0.06)] transition-shadow focus-within:border-[#2563eb]/35 focus-within:shadow-[0_10px_32px_rgba(37,99,235,0.12)]">
+                  <div className="flex items-center gap-2 px-3 py-2.5">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#2563eb]/10">
+                      <Sparkles size={18} className="text-[#2563eb]" />
                     </div>
-                    <input 
-                      type="text" 
-                      placeholder="e.g., 'quiet cafe with wifi for work'..."
-                      className="w-full py-4 bg-transparent border-none focus:ring-0 text-gray-900 font-semibold text-sm placeholder:text-gray-300 disabled:opacity-50"
+                    <input
+                      type="text"
+                      placeholder="Try dentists near me, salon, CA firm..."
+                      className="min-w-0 flex-1 border-none bg-transparent py-2 text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:ring-0 disabled:opacity-50"
                       value={manualQuery}
                       disabled={voiceActive}
                       onChange={(e) => {
@@ -436,9 +438,7 @@ export default function HomeClient({ initialData }: { initialData: any }) {
                       }}
                       onKeyDown={(e) => e.key === 'Enter' && !voiceActive && handleManualSearch()}
                     />
-                  </div>
-                  <div className="flex items-center gap-2 pr-2">
-                    <button 
+                    <button
                       type="button"
                       disabled={voiceActive}
                       onPointerDown={(e) => e.preventDefault()}
@@ -447,79 +447,82 @@ export default function HomeClient({ initialData }: { initialData: any }) {
                         openVoiceSearch();
                       }}
                       aria-label="Start voice search"
-                      className={`touch-manipulation p-3 rounded-xl transition-all active:scale-95 disabled:opacity-40 ${voiceActive ? 'bg-red-500 text-white animate-pulse' : 'bg-slate-50 text-gray-400 hover:text-primary'}`}
+                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-all active:scale-95 disabled:opacity-40 ${
+                        voiceActive
+                          ? 'animate-pulse bg-rose-500 text-white'
+                          : 'bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-[#215481]'
+                      }`}
                     >
-                      <Mic size={20} className={voiceActive ? 'animate-bounce' : ''} />
+                      <Mic size={18} className={voiceActive ? 'animate-bounce' : ''} />
                     </button>
-                    <button 
+                    <button
                       type="button"
                       disabled={voiceActive}
                       onClick={() => handleManualSearch()}
-                      className="bg-primary text-white p-4 rounded-xl hover:bg-secondary transition-all active:scale-95 shadow-lg shadow-primary/20 flex items-center justify-center disabled:opacity-40 disabled:pointer-events-none"
+                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#2563eb] text-white transition-all hover:bg-[#1d4ed8] active:scale-95 disabled:pointer-events-none disabled:opacity-40"
+                      aria-label="Search"
                     >
-                      <Send size={20} />
+                      <Send size={18} />
                     </button>
                   </div>
                 </div>
-                
-                {/* Visual "Smart" indicator */}
-                <div className="px-4 py-2 bg-slate-50 border-t border-gray-50 flex items-center justify-between">
-                  <div className="flex gap-1">
-                    <div className="w-1.5 h-1.5 rounded-full bg-primary/40 animate-pulse"></div>
-                    <div className="w-1.5 h-1.5 rounded-full bg-primary/40 animate-pulse" style={{ animationDelay: '0.2s' }}></div>
-                    <div className="w-1.5 h-1.5 rounded-full bg-primary/40 animate-pulse" style={{ animationDelay: '0.4s' }}></div>
+
+                {aiKeywordPills.length > 0 ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Lightbulb size={15} className="text-amber-500" />
+                      <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        Browse categories
+                      </h3>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {aiKeywordPills.map((kw) => (
+                        <button
+                          key={kw}
+                          type="button"
+                          onClick={() => handleManualSearch(kw)}
+                          className="rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-[11px] font-semibold text-slate-600 transition-colors hover:border-[#2563eb]/30 hover:bg-[#2563eb]/5 hover:text-[#215481] active:scale-95"
+                        >
+                          {kw}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                  <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Real-time Analysis</span>
-                </div>
-              </div>
-            </div>
+                ) : null}
 
-            {/* Keywords Section */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <Lightbulb size={16} className="text-amber-400" />
-                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Popular Keywords</h3>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {SUGGESTIVE_KEYWORDS.map((kw, i) => (
-                  <button
-                    key={i}
-                    onClick={() => handleManualSearch(kw)}
-                    className="px-4 py-2 rounded-full bg-slate-50 border border-slate-100 text-[11px] font-bold text-slate-600 hover:bg-primary hover:text-white hover:border-primary transition-all duration-300 active:scale-95"
-                  >
-                    {kw}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Suggestions */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-gray-400">
-                  <MessageSquare size={14} />
-                  <span className="text-[10px] font-bold uppercase tracking-widest">Smart Queries</span>
-                </div>
-                <div className="h-[1px] flex-1 ml-4 bg-gray-100"></div>
-              </div>
-              <div className="grid grid-cols-2 gap-3 pb-8">
-                {AI_SUGGESTIONS.map((item, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => handleManualSearch(item.text)}
-                    className="flex flex-col items-start p-4 rounded-2xl bg-white border border-gray-100 hover:border-secondary/30 hover:shadow-2xl hover:shadow-secondary/5 transition-all group text-left relative overflow-hidden active:scale-95"
-                  >
-                    <div className="absolute top-0 right-0 p-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <ArrowRight size={10} className="text-secondary" />
+                {aiSmartQueries.length > 0 ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <MessageSquare size={14} className="text-slate-400" />
+                      <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        Suggested searches
+                      </span>
                     </div>
-                    <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center mb-3 group-hover:bg-secondary/10 transition-colors">
-                      <item.icon size={16} className="text-gray-400 group-hover:text-secondary transition-colors" />
+                    <div className="grid grid-cols-2 gap-2.5">
+                      {aiSmartQueries.map((item) => (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => handleManualSearch(item.text)}
+                          className="group flex flex-col items-start rounded-xl border border-slate-200/90 bg-white p-3.5 text-left transition-all hover:border-[#2563eb]/25 hover:bg-slate-50/80 active:scale-[0.98]"
+                        >
+                          <div className="mb-2.5 flex h-9 w-9 items-center justify-center rounded-lg bg-slate-50 transition-colors group-hover:bg-[#2563eb]/10">
+                            <CategoryIcon
+                              icon={item.icon}
+                              name={item.name}
+                              size={22}
+                              className="h-6 w-6 text-slate-500 group-hover:text-[#215481]"
+                              imageClassName="object-contain"
+                            />
+                          </div>
+                          <span className="text-[11px] font-semibold leading-snug text-slate-700 group-hover:text-[#215481]">
+                            {item.text}
+                          </span>
+                        </button>
+                      ))}
                     </div>
-                    <span className="text-[11px] font-bold text-gray-700 group-hover:text-primary transition-colors leading-tight">
-                      {item.text}
-                    </span>
-                  </button>
-                ))}
+                  </div>
+                ) : null}
               </div>
             </div>
           </div>

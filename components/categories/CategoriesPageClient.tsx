@@ -481,7 +481,7 @@ export default function CategoriesPage() {
   );
 
   return (
-    <div className="flex h-[calc(100dvh-6.75rem)] flex-col overflow-hidden bg-white font-sans lg:h-screen">
+    <div className="flex h-dvh flex-col overflow-hidden font-sans lg:h-screen">
       {/* Header / Search Bar */}
       <header className="z-10 border-b border-slate-200/80 bg-white px-4 py-3">
         <div className="flex items-center gap-3">
@@ -621,7 +621,7 @@ export default function CategoriesPage() {
         )}
       </div>
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex min-h-0 flex-1 overflow-hidden">
         {/* Sidebar - Compact for more items */}
         {viewMode !== 'categories' && viewMode !== 'global-search' && (
           <aside
@@ -707,7 +707,7 @@ export default function CategoriesPage() {
         )}
 
         {/* Right Panel - Modern Grid */}
-        <main ref={mainScrollRef} className="scrollbar-hide flex-1 overflow-y-auto bg-[#f4f7fb] pb-32">
+        <main ref={mainScrollRef} className="scrollbar-hide h-full flex-1 overflow-y-auto bg-[#f4f7fb] pb-[6.75rem] lg:pb-4">
           {isLoading ? (
             <div className="p-5 max-w-4xl mx-auto w-full">
               <div className="mb-8 mt-4">

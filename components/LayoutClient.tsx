@@ -67,7 +67,7 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
   const userDashboardRoute = isUserDashboardRoute(pathname);
   const hideTopNavFooter = merchantAppShell || isCategoriesBrowse || userDashboardRoute;
   const showBottomNav = !merchantAppShell && !userDashboardRoute;
-  const showBottomNavPadding = showBottomNav && !isCategoriesIndex;
+  const showBottomNavPadding = showBottomNav && !isCategoriesBrowse;
   const showLocationPrompt = !merchantAppShell && !isCategoriesBrowse && !userDashboardRoute;
 
   useEffect(() => {

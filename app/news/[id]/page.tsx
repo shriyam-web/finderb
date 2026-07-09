@@ -109,7 +109,7 @@ export default function NewsReaderPage({ params }: { params: Promise<{ id: strin
   }
 
   return (
-    <div className="min-h-screen bg-[#fafaf9] pb-16">
+    <div className="min-h-[calc(100dvh-6.75rem)] bg-[#fafaf9] pb-16 lg:min-h-screen">
       <div className="border-b border-neutral-200 bg-white pt-[4.25rem] sm:pt-24">
         <div className="mx-auto max-w-2xl px-4 py-4 sm:px-6">
           <Link
