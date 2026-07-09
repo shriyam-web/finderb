@@ -17,3 +17,8 @@ export function categoryHref(slug: string | null | undefined, name: string): str
   const s = slug || name.toLowerCase().replace(/\s+/g, '-');
   return `/categories/${s}`;
 }
+
+/** Opens the categories browse tab with a top-level category pre-selected. */
+export function categoryBrowseHref(categoryId: string): string {
+  return `/categories?id=${encodeURIComponent(categoryId)}`;
+}

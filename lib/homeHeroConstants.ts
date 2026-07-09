@@ -1,3 +1,4 @@
+import type { LucideIcon } from 'lucide-react';
 import {
   Briefcase,
   Stethoscope,
@@ -40,11 +41,28 @@ export const HERO_SEARCH_TYPEWRITER_EXAMPLES = [
   'pest control near me',
 ] as const;
 
-export const POPULAR_SEARCHES = [
+export type PopularSearchItem = {
+  term: string;
+  icon: LucideIcon;
+  iconColor: string;
+  href?: string;
+};
+
+export const POPULAR_SEARCHES: PopularSearchItem[] = [
   { term: 'Real Estate', icon: Building2, iconColor: 'text-blue-600' },
   { term: 'B2B', icon: Handshake, iconColor: 'text-indigo-600' },
-  { term: 'Admissions', icon: GraduationCap, iconColor: 'text-emerald-600' },
-  { term: 'FinderB News', icon: Newspaper, iconColor: 'text-sky-600' },
+  {
+    term: 'Admissions',
+    icon: GraduationCap,
+    iconColor: 'text-emerald-600',
+    href: '/categories/admissions',
+  },
+  {
+    term: 'FinderB News',
+    icon: Newspaper,
+    iconColor: 'text-sky-600',
+    href: '/news',
+  },
   { term: 'CA', icon: Briefcase, iconColor: 'text-blue-600' },
   { term: 'Dentist', icon: Stethoscope, iconColor: 'text-emerald-600' },
   { term: 'Restaurant', icon: UtensilsCrossed, iconColor: 'text-orange-500' },
@@ -54,7 +72,7 @@ export const POPULAR_SEARCHES = [
   { term: 'Lawyer', icon: Scale, iconColor: 'text-slate-600' },
   { term: 'Car Service', icon: Car, iconColor: 'text-slate-600' },
   { term: 'Makeup Artist', icon: Sparkles, iconColor: 'text-slate-600' },
-] as const;
+];
 
 export {
   HERO_CITIES_BY_STATE,

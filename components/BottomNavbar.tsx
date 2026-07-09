@@ -221,6 +221,11 @@ export default function BottomNavbar() {
         mobileMenuOpen ? 'pointer-events-none translate-y-full opacity-0' : ''
       }`}
     >
+      <div
+        className="pointer-events-none absolute inset-x-0 bottom-0 bg-white"
+        style={{ height: 'calc(6.75rem + env(safe-area-inset-bottom, 0px))' }}
+        aria-hidden
+      />
       <div className="pointer-events-auto relative mx-auto max-w-lg px-4 pb-3">
         <div className="relative h-[58px]">
           <svg

@@ -61,7 +61,9 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
   const isCategoriesIndex = pathname === '/categories';
   const isCategoriesBrowse =
     isCategoriesIndex ||
-    (pathname?.startsWith('/categories/') && !pathname.startsWith('/categories/job'));
+    (pathname?.startsWith('/categories/') &&
+      !pathname.startsWith('/categories/job') &&
+      !pathname.startsWith('/categories/admissions'));
   const userDashboardRoute = isUserDashboardRoute(pathname);
   const hideTopNavFooter = merchantAppShell || isCategoriesBrowse || userDashboardRoute;
   const showBottomNav = !merchantAppShell && !userDashboardRoute;

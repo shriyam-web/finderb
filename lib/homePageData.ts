@@ -14,6 +14,8 @@ import {
   attachTopLevelBusinessCounts,
   fetchActiveBusinessCategoryLabels,
 } from '@/lib/categoryBusinessCounts';
+import { getTrendingThisWeek } from '@/app/actions/analytics';
+import type { TrendingWeekItem } from '@/lib/trendingThisWeek';
 
 export const HOME_PAGE_REVALIDATE_SECONDS = 300;
 export const HOME_PAGE_CACHE_TAG = 'homepage';
@@ -64,6 +66,7 @@ export type HomePageData = {
     }>;
   }>;
   tutorials: FinderBTutorialVideo[];
+  trendingThisWeek: TrendingWeekItem[];
 };
 
 function plainBlogExcerpt(
@@ -267,7 +270,7 @@ async function fetchFeaturedGroups(supabase: SupabaseClient) {
 async function fetchHomePageData(): Promise<HomePageData> {
   const supabase = getPublicSupabase();
 
-  const [businesses, categories, movies, touristPlaces, blogs, featuredGroups, tutorials] =
+  const [businesses, categories, movies, touristPlaces, blogs, featuredGroups, tutorials, trendingThisWeek] =
     await Promise.all([
     fetchFeaturedBusinesses(supabase),
     fetchCategories(supabase),
@@ -276,6 +279,7 @@ async function fetchHomePageData(): Promise<HomePageData> {
     fetchBlogs(supabase),
     fetchFeaturedGroups(supabase),
     fetchFinderBTutorials(6),
+    getTrendingThisWeek(5),
   ]);
 
   return {
@@ -286,6 +290,7 @@ async function fetchHomePageData(): Promise<HomePageData> {
     blogs,
     featuredGroups,
     tutorials,
+    trendingThisWeek,
   };
 }
 

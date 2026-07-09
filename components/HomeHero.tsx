@@ -606,17 +606,36 @@ export default function HomeHero({
               </button>
             </div>
             <div className="scrollbar-hide flex gap-2 overflow-x-auto pb-0.5">
-              {POPULAR_SEARCHES.map(({ term, icon: Icon, iconColor }) => (
-                <button
-                  key={term}
-                  type="button"
-                  onClick={() => onSearch(term)}
-                  className="flex shrink-0 items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3.5 py-2 text-[12px] font-semibold text-[#334155] shadow-[0_1px_3px_rgba(0,0,0,0.06)]"
-                >
-                  <Icon size={15} className={`shrink-0 ${iconColor}`} strokeWidth={2} />
-                  {term}
-                </button>
-              ))}
+              {POPULAR_SEARCHES.map(({ term, icon: Icon, iconColor, href }) => {
+                const pillClassName =
+                  'flex shrink-0 items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3.5 py-2 text-[12px] font-semibold text-[#334155] shadow-[0_1px_3px_rgba(0,0,0,0.06)]';
+
+                const pillContent = (
+                  <>
+                    <Icon size={15} className={`shrink-0 ${iconColor}`} strokeWidth={2} />
+                    {term}
+                  </>
+                );
+
+                if (href) {
+                  return (
+                    <Link key={term} href={href} className={pillClassName}>
+                      {pillContent}
+                    </Link>
+                  );
+                }
+
+                return (
+                  <button
+                    key={term}
+                    type="button"
+                    onClick={() => onSearch(term)}
+                    className={pillClassName}
+                  >
+                    {pillContent}
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}

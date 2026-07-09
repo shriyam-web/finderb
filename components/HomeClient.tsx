@@ -11,7 +11,7 @@ import { VerifiedNameTick } from '@/components/business/VerifiedMark';
 import HomeHero from '@/components/HomeHero';
 import SubcategoryScrollRow from '@/components/SubcategoryScrollRow';
 import NewsWidget from '@/components/NewsWidget';
-import { categoryHref } from '@/lib/categoryDisplay';
+import { categoryBrowseHref } from '@/lib/categoryDisplay';
 import { getBusinessProfilePath } from '@/lib/businessSlug';
 import { getTouristPlacePath } from '@/lib/touristPlaceSlug';
 import {
@@ -60,6 +60,7 @@ import { useVoiceSearch } from '@/hooks/useVoiceSearch';
 import VoiceSearchModal from '@/components/VoiceSearchModal';
 import { normalizeVoiceTranscript } from '@/lib/voiceSearch';
 import { setLastSearchQuery } from '@/lib/lastSearchQuery';
+import { recordSearchAnalytics } from '@/lib/searchAnalytics';
 import { stripHtml } from '@/lib/stripHtml';
 import { SHOW_HOME_LATEST_MOVIES_SECTION } from '@/lib/featureFlags';
 import FinderBTutorialsSection from '@/components/home/FinderBTutorialsSection';
@@ -112,6 +113,8 @@ export default function HomeClient({ initialData }: { initialData: any }) {
   const [realBlogs, setRealBlogs] = useState<any[]>(initialData.blogs);
   const [featuredGroups, setFeaturedGroups] = useState<any[]>(initialData.featuredGroups ?? []);
   const [tutorials] = useState(initialData.tutorials ?? []);
+  const trendingThisWeek: Array<{ label: string; trend: number; query: string }> =
+    initialData.trendingThisWeek ?? [];
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [aiLoadProgress, setAiLoadProgress] = useState(0);
@@ -130,6 +133,7 @@ export default function HomeClient({ initialData }: { initialData: any }) {
       const withLocation = appendLocationToSearchQuery(trimmed, effectiveSearchLocation);
       setManualQuery('');
       manualQueryRef.current = '';
+      recordSearchAnalytics(withLocation);
       router.push(`/categories?search=${encodeURIComponent(withLocation)}`, { scroll: false });
     },
     [router, effectiveSearchLocation]
@@ -334,13 +338,6 @@ export default function HomeClient({ initialData }: { initialData: any }) {
   const otherCategories = sortedCategories.slice(18);
   const desktopCategories = sortedCategories.slice(0, 12);
   const desktopFeaturedBusinesses = realBusinesses.slice(0, 4);
-  const desktopTrendingItems = [
-    { label: 'Best Cafes in Delhi', trend: 12 },
-    { label: 'CA Services Near You', trend: 7 },
-    { label: 'Home Interior Designers', trend: 15 },
-    { label: 'PG in Delhi', trend: 5 },
-    { label: 'Immigration Consultants', trend: 15 },
-  ];
 
   const getCategorySubtitle = (cat: Category) => {
     const subtitles: Record<string, string> = {
@@ -560,7 +557,7 @@ export default function HomeClient({ initialData }: { initialData: any }) {
                       {desktopCategories.map((cat) => (
                         <Link
                           key={cat.id}
-                          href={categoryHref(cat.slug, cat.name)}
+                          href={categoryBrowseHref(cat.id)}
                           className="flex w-[108px] shrink-0 flex-col items-center rounded-xl border border-gray-100 bg-white px-3 py-4 text-center shadow-[0_1px_3px_rgba(0,0,0,0.06)] transition-shadow hover:shadow-md"
                         >
                           <div className="mb-2.5 flex h-11 w-11 items-center justify-center">
@@ -593,43 +590,61 @@ export default function HomeClient({ initialData }: { initialData: any }) {
 
                 {/* Trending + Featured */}
                 <section className="mb-5 grid grid-cols-12 gap-5">
-                  <div className="col-span-4 rounded-xl border border-gray-100 bg-white p-5 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
-                    <div className="mb-4 flex items-center justify-between">
-                      <h3 className="flex items-center gap-1.5 text-lg font-bold text-[#1e293b]">
-                        Trending This Week
-                        <span className="text-base leading-none" aria-hidden>
-                          🔥
-                        </span>
-                      </h3>
-                      <Link
-                        href="/categories"
-                        className="text-sm font-medium text-[#2563eb] hover:text-[#1d4ed8]"
-                      >
-                        View All
-                      </Link>
-                    </div>
-                    <ul className="divide-y divide-gray-100">
-                      {desktopTrendingItems.map((item, idx) => (
-                        <li key={item.label}>
-                          <button
-                            type="button"
-                            onClick={() => handleManualSearch(item.label)}
-                            className="flex w-full items-center gap-2 py-3.5 text-left transition-colors hover:bg-gray-50/80"
+                  {trendingThisWeek.length > 0 ? (
+                    <div className="col-span-4 rounded-xl border border-gray-100 bg-white p-5">
+                      <div className="mb-4 flex items-center justify-between">
+                        <h3 className="flex items-center gap-1.5 text-lg font-bold text-[#1e293b]">
+                          Trending This Week
+                          <span
+                            className="inline-block text-base leading-none animate-fire-flicker"
+                            aria-hidden
                           >
-                            <span className="w-4 shrink-0 text-xs font-medium text-[#94a3b8]">{idx + 1}</span>
-                            <span className="min-w-0 flex-1 text-[13px] font-medium text-[#334155]">{item.label}</span>
-                            <span className="flex shrink-0 items-center gap-0.5 text-xs font-semibold text-[#22c55e]">
-                              <TrendingUp size={13} strokeWidth={2.5} />
-                              {item.trend}%
-                            </span>
-                            <ChevronRight size={14} className="shrink-0 text-[#cbd5e1]" />
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
+                            🔥
+                          </span>
+                        </h3>
+                        <Link
+                          href="/categories"
+                          className="text-sm font-medium text-[#2563eb] hover:text-[#1d4ed8]"
+                        >
+                          View All
+                        </Link>
+                      </div>
+                      <ul className="divide-y divide-gray-100">
+                        {trendingThisWeek.map((item, idx) => (
+                          <li key={`${item.label}-${idx}`}>
+                            <button
+                              type="button"
+                              onClick={() => handleManualSearch(item.query)}
+                              className="flex w-full items-center gap-2 py-3.5 text-left transition-colors hover:bg-gray-50/80"
+                            >
+                              <span className="w-4 shrink-0 text-xs font-medium text-[#94a3b8]">{idx + 1}</span>
+                              <span className="min-w-0 flex-1 text-[13px] font-medium text-[#334155]">{item.label}</span>
+                              <span
+                                className={`flex shrink-0 items-center gap-0.5 text-xs font-semibold ${
+                                  item.trend > 0
+                                    ? 'text-[#22c55e]'
+                                    : item.trend < 0
+                                      ? 'text-rose-500'
+                                      : 'text-slate-400'
+                                }`}
+                              >
+                                <TrendingUp size={13} strokeWidth={2.5} />
+                                {item.trend > 0 ? '+' : ''}
+                                {item.trend}%
+                              </span>
+                              <ChevronRight size={14} className="shrink-0 text-[#cbd5e1]" />
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
 
-                  <div className="col-span-8 rounded-xl border border-gray-100 bg-white p-5 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
+                  <div
+                    className={`rounded-xl border border-gray-100 bg-white p-5 shadow-[0_1px_3px_rgba(0,0,0,0.06)] ${
+                      trendingThisWeek.length > 0 ? 'col-span-8' : 'col-span-12'
+                    }`}
+                  >
                     <div className="mb-5 flex items-center justify-between">
                       <h3 className="text-lg font-bold text-[#1e293b]">Featured Verified Businesses</h3>
                       <Link
@@ -782,6 +797,7 @@ export default function HomeClient({ initialData }: { initialData: any }) {
             businesses={realBusinesses}
             isBusinessesLoading={isBusinessesLoading}
             userCoords={userCoords}
+            trendingThisWeek={trendingThisWeek}
           />
 
       {/* Featured Group Categories — parents & subcategories from DB */}

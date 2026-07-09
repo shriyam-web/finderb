@@ -20,18 +20,12 @@ import MerchantOfferBadge from '@/components/business/MerchantOfferBadge';
 import { VerifiedNameTick } from '@/components/business/VerifiedMark';
 import HomeHero from '@/components/HomeHero';
 import { Business, Category } from '@/lib/mockData';
-import { categoryHref } from '@/lib/categoryDisplay';
+import { categoryBrowseHref } from '@/lib/categoryDisplay';
 import { getBusinessProfilePath } from '@/lib/businessSlug';
 import { formatDistanceFromUser } from '@/lib/geo';
 import { getBusinessOpenStatus } from '@/lib/businessHours';
+import type { TrendingWeekItem } from '@/lib/trendingThisWeek';
 import type { UserCoords } from '@/hooks/useUserCoords';
-
-const MOBILE_TRENDING = [
-  { label: 'Best Cafes in Delhi', trend: 12 },
-  { label: 'CA Services Near You', trend: 7 },
-  { label: 'Home Interior Designers', trend: 15 },
-  { label: 'PG in Delhi', trend: 5 },
-];
 
 type MobileHomeProps = {
   manualQuery: string;
@@ -44,6 +38,7 @@ type MobileHomeProps = {
   businesses: Business[];
   isBusinessesLoading: boolean;
   userCoords?: UserCoords | null;
+  trendingThisWeek?: TrendingWeekItem[];
 };
 
 export default function MobileHome({
@@ -57,6 +52,7 @@ export default function MobileHome({
   businesses,
   isBusinessesLoading,
   userCoords = null,
+  trendingThisWeek = [],
 }: MobileHomeProps) {
   const gridCategories = categories.slice(0, 7);
   const featured = businesses.slice(0, 6);
@@ -107,7 +103,7 @@ useEffect(() => {
           {gridCategories.map((cat) => (
             <Link
               key={cat.id}
-              href={categoryHref(cat.slug, cat.name)}
+              href={categoryBrowseHref(cat.id)}
               className="flex flex-col items-center rounded-xl border border-gray-100 bg-white px-1 py-3 shadow-[0_1px_4px_rgba(0,0,0,0.05)]"
             >
               <div className="mb-2 flex h-10 w-10 items-center justify-center">
@@ -150,40 +146,53 @@ useEffect(() => {
       </section>
 
       {/* Trending */}
-      <section className="mt-2 px-4 py-2">
-        <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-[0_1px_4px_rgba(0,0,0,0.05)]">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="flex items-center gap-1 text-[15px] font-bold text-[#0f2a4a]">
-              Trending This Week
-              <span aria-hidden>🔥</span>
-            </h2>
-            <Link href="/categories" className="text-[13px] font-medium text-[#2563eb]">
-              View All
-            </Link>
+      {trendingThisWeek.length > 0 ? (
+        <section className="mt-2 px-4 py-2">
+          <div className="rounded-xl border border-gray-100 bg-white p-4">
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="flex items-center gap-1 text-[15px] font-bold text-[#0f2a4a]">
+                Trending This Week
+                <span className="inline-block animate-fire-flicker" aria-hidden>
+                  🔥
+                </span>
+              </h2>
+              <Link href="/categories" className="text-[13px] font-medium text-[#2563eb]">
+                View All
+              </Link>
+            </div>
+            <ul className="divide-y divide-gray-100">
+              {trendingThisWeek.map((item, idx) => (
+                <li key={`${item.label}-${idx}`}>
+                  <button
+                    type="button"
+                    onClick={() => onSearch(item.query)}
+                    className="flex w-full items-center gap-2 py-3 text-left"
+                  >
+                    <span className="w-4 shrink-0 text-xs font-medium text-[#94a3b8]">{idx + 1}</span>
+                    <span className="min-w-0 flex-1 text-[13px] font-medium text-[#334155]">
+                      {item.label}
+                    </span>
+                    <span
+                      className={`flex shrink-0 items-center gap-0.5 text-xs font-semibold ${
+                        item.trend > 0
+                          ? 'text-[#22c55e]'
+                          : item.trend < 0
+                            ? 'text-rose-500'
+                            : 'text-slate-400'
+                      }`}
+                    >
+                      <TrendingUp size={12} strokeWidth={2.5} />
+                      {item.trend > 0 ? '+' : ''}
+                      {item.trend}%
+                    </span>
+                    <ChevronRight size={14} className="shrink-0 text-[#cbd5e1]" />
+                  </button>
+                </li>
+              ))}
+            </ul>
           </div>
-          <ul className="divide-y divide-gray-100">
-            {MOBILE_TRENDING.map((item, idx) => (
-              <li key={item.label}>
-                <button
-                  type="button"
-                  onClick={() => onSearch(item.label)}
-                  className="flex w-full items-center gap-2 py-3 text-left"
-                >
-                  <span className="w-4 shrink-0 text-xs font-medium text-[#94a3b8]">{idx + 1}</span>
-                  <span className="min-w-0 flex-1 text-[13px] font-medium text-[#334155]">
-                    {item.label}
-                  </span>
-                  <span className="flex shrink-0 items-center gap-0.5 text-xs font-semibold text-[#22c55e]">
-                    <TrendingUp size={12} strokeWidth={2.5} />
-                    {item.trend}%
-                  </span>
-                  <ChevronRight size={14} className="shrink-0 text-[#cbd5e1]" />
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </section>
+        </section>
+      ) : null}
 
       {/* Featured Verified */}
       <section className="mt-3 bg-white px-4 py-5">

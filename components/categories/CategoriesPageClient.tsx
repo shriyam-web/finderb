@@ -19,6 +19,7 @@ import {
   textMatchesSearch,
 } from '@/lib/searchMatch';
 import { setLastSearchQuery } from '@/lib/lastSearchQuery';
+import { recordSearchAnalytics } from '@/lib/searchAnalytics';
 import Image from 'next/image';
 import CategoryMerchantList from '@/components/category/CategoryMerchantList';
 import { getBusinessProfilePath } from '@/lib/businessSlug';
@@ -122,6 +123,7 @@ export default function CategoriesPage() {
         return;
       }
       lastExecutedSearchRef.current = trimmed;
+      recordSearchAnalytics(trimmed);
 
       setViewMode('global-search');
       setSelectedCategory(null);
@@ -479,14 +481,19 @@ export default function CategoriesPage() {
   );
 
   return (
-    <div className="flex h-[calc(100dvh-6.75rem)] flex-col overflow-hidden bg-[#f4f7fb] font-sans lg:h-screen">
+    <div className="flex h-[calc(100dvh-6.75rem)] flex-col overflow-hidden bg-white font-sans lg:h-screen">
       {/* Header / Search Bar */}
       <header className="z-10 border-b border-slate-200/80 bg-white px-4 py-3">
         <div className="flex items-center gap-3">
           <button 
             onClick={() => {
               if (viewMode === 'global-search') {
-                router.push('/?tab=ai');
+                if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+                lastExecutedSearchRef.current = '';
+                setCategorySearchHits([]);
+                setSearchQuery('');
+                setViewMode('categories');
+                router.replace('/categories', { scroll: false });
               } else if (viewMode === 'merchants') {
                 setViewMode('subcategories');
               } else if (viewMode === 'subcategories') {
@@ -494,7 +501,7 @@ export default function CategoriesPage() {
                 setSelectedCategory(null);
                 router.replace('/categories');
               } else {
-                router.back();
+                router.push('/', { scroll: false });
               }
             }} 
             className="rounded-lg p-2 text-slate-600 transition-colors hover:bg-slate-100 active:scale-95"
