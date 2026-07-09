@@ -79,7 +79,7 @@ export default function RegisterHero({
           </div>
 
           {/* Form — second on mobile, right column on desktop */}
-          <div className="mx-auto w-full max-w-md lg:col-start-2 lg:row-start-1 lg:row-span-2 lg:mx-0 lg:max-w-none lg:sticky lg:top-28">
+          <div className="mx-auto w-full max-w-md lg:col-start-2 lg:row-start-1 lg:row-span-2 lg:mx-0 lg:max-w-none lg:self-start">
             <MerchantAuthFormCard>
               <MerchantAuthFormHeader
                 title="List your business"

@@ -56,7 +56,7 @@ function MobileRegisterInput({
       <button
         type="button"
         onClick={onSubmit}
-        className={`inline-flex shrink-0 items-center justify-center gap-2 px-6 py-3.5 sm:min-w-[148px] ${merchantAuthBtnPrimary}`}
+        className={`inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-[#153551] px-6 py-3.5 text-sm font-semibold text-white transition-all hover:bg-[#215481] active:scale-[0.99] sm:min-w-[148px] sm:w-auto`}
       >
         Get started
         <ArrowRight size={16} />
@@ -223,8 +223,8 @@ export default function BusinessRegisterLanding({
       {/* Benefits + FAQ */}
       <section className="py-4 sm:py-5">
         <MerchantAuthMain>
-          <div className="grid gap-5 lg:grid-cols-2 lg:gap-6">
-            <div>
+          <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-2 xl:gap-8">
+            <div className="min-w-0">
               <h2 className="text-2xl font-bold tracking-tight text-[#0f273b] sm:text-3xl">
                 Built for merchants who want more footfall, not more complexity
               </h2>
@@ -269,7 +269,7 @@ export default function BusinessRegisterLanding({
               </div>
             </div>
 
-            <div className="rounded-2xl border border-zinc-200/90 bg-white p-6 shadow-sm sm:p-8">
+            <div className="min-w-0 rounded-2xl border border-zinc-200/90 bg-white p-6 shadow-sm sm:p-8">
               <div className="mb-4 flex items-center justify-between">
                 <h3 className="text-lg font-bold text-zinc-900">Common questions</h3>
                 <HelpCircle className="text-[#215481]" size={22} />
