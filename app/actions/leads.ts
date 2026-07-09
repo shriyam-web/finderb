@@ -32,6 +32,27 @@ async function getSessionBusinessId() {
   return businessId ?? null;
 }
 
+async function getLoggedInBusinessProfile() {
+  const businessId = await getSessionBusinessId();
+  if (!businessId) return null;
+
+  const supabase = createClient(await cookies());
+  const { data, error } = await supabase
+    .from('Business')
+    .select('id, businessName, displayName, email, workEmail, publicPhone, mobile')
+    .eq('id', businessId)
+    .maybeSingle();
+
+  if (error || !data) return null;
+
+  return {
+    id: data.id as string,
+    name: String(data.displayName || data.businessName || 'Business').trim(),
+    email: String(data.email || data.workEmail || '').trim() || null,
+    phone: String(data.publicPhone || data.mobile || '').trim() || null,
+  };
+}
+
 export async function getBusinessLeads(businessId: string) {
   try {
     if (!businessId) {
@@ -143,14 +164,19 @@ export async function recordDirectLead(params: {
     if (!writeLimit.ok) return { success: false as const, error: writeLimit.error };
 
     const userId = await getSessionUserId();
-    if (!userId) {
+    const loggedInBusiness = userId ? null : await getLoggedInBusinessProfile();
+    if (!userId && !loggedInBusiness) {
       return { success: false as const, error: 'Sign in to contact this business.' };
     }
 
-    const userResult = await getUser(userId);
-    if (!userResult.success || !userResult.user) {
+    const userResult = userId ? await getUser(userId) : null;
+    if (userId && (!userResult?.success || !userResult.user)) {
       return { success: false as const, error: 'Could not load your account.' };
     }
+
+    const actorName = userResult?.user?.fullName || loggedInBusiness?.name || 'FinderB user';
+    const actorEmail = userResult?.user?.email || loggedInBusiness?.email || null;
+    const actorPhone = loggedInBusiness?.phone || null;
 
     const supabase = createClient(await cookies());
     const { data: business, error: businessError } = await supabase
@@ -163,17 +189,23 @@ export async function recordDirectLead(params: {
       return { success: false as const, error: 'Business not found.' };
     }
 
-    const message = DIRECT_LEAD_MESSAGES[params.channel];
+    const message = userId
+      ? DIRECT_LEAD_MESSAGES[params.channel]
+      : `Business connect request via ${params.channel}`;
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    const { data: existing } = await supabase
+    let existingQuery = supabase
       .from('leads')
       .select('id')
       .eq('business_id', params.businessId)
-      .eq('email', userResult.user.email)
       .eq('status', DIRECT_LEAD_BADGE)
       .eq('message', message)
-      .gte('created_at', since)
-      .maybeSingle();
+      .gte('created_at', since);
+
+    existingQuery = actorEmail
+      ? existingQuery.eq('email', actorEmail)
+      : existingQuery.eq('name', actorName);
+
+    const { data: existing } = await existingQuery.maybeSingle();
 
     if (existing) {
       return { success: true as const, duplicate: true as const };
@@ -181,9 +213,9 @@ export async function recordDirectLead(params: {
 
     const now = new Date().toISOString();
     const { error: insertError } = await supabase.from('leads').insert({
-      name: userResult.user.fullName,
-      email: userResult.user.email,
-      phone: null,
+      name: actorName,
+      email: actorEmail,
+      phone: actorPhone,
       category: String(business.category || 'General'),
       business_id: params.businessId,
       message,

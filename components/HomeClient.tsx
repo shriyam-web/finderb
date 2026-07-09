@@ -63,6 +63,7 @@ import { setLastSearchQuery } from '@/lib/lastSearchQuery';
 import { stripHtml } from '@/lib/stripHtml';
 import { SHOW_HOME_LATEST_MOVIES_SECTION } from '@/lib/featureFlags';
 import FinderBTutorialsSection from '@/components/home/FinderBTutorialsSection';
+import { getBusinessOpenStatus } from '@/lib/businessHours';
 
 const WORDS = [
   "verified professionals",
@@ -645,6 +646,7 @@ export default function HomeClient({ initialData }: { initialData: any }) {
                           biz.latitude,
                           biz.longitude
                         );
+                        const openStatus = getBusinessOpenStatus(biz.timings);
 
                         return (
                         <Link
@@ -674,6 +676,15 @@ export default function HomeClient({ initialData }: { initialData: any }) {
                               )}
                             </p>
                             <p className="line-clamp-1 text-[12px] text-[#94a3b8]">{biz.category}</p>
+                            {openStatus && (
+                              <p
+                                className={`line-clamp-1 text-[11px] font-semibold ${
+                                  openStatus.status === 'Open' ? 'text-emerald-700' : 'text-rose-600'
+                                }`}
+                              >
+                                {openStatus.label}
+                              </p>
+                            )}
                             <MerchantListingRating
                               rating={biz.rating}
                               reviewCount={biz.reviewsCount}

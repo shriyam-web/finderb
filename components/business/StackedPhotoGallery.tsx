@@ -5,9 +5,6 @@ import Image from 'next/image';
 import { Building2, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { createPortal } from 'react-dom';
 
-const GALLERY_HEIGHT_CLASS =
-  'h-[190px] sm:h-[210px] md:h-[265px] lg:h-[300px]';
-
 const MAX_SIDE_THUMBNAILS = 2;
 
 type StackedPhotoGalleryProps = {
@@ -165,9 +162,7 @@ export default function StackedPhotoGallery({
 
   if (images.length === 0) {
     return (
-      <div
-        className={`flex ${GALLERY_HEIGHT_CLASS} items-center justify-center rounded-lg border border-dashed border-stone-200 bg-stone-50`}
-      >
+      <div className="flex aspect-square w-full items-center justify-center rounded-lg border border-dashed border-stone-200 bg-stone-50">
         <div className="text-center">
           <Building2 className="mx-auto text-stone-300" size={32} />
           <p className="mt-2 text-sm text-stone-400">No photos yet</p>
@@ -182,7 +177,7 @@ export default function StackedPhotoGallery({
         <button
           type="button"
           onClick={() => openLightbox(0)}
-          className={`relative block w-full overflow-hidden rounded-lg border border-stone-200 bg-stone-100 ${GALLERY_HEIGHT_CLASS}`}
+          className="relative block aspect-square w-full overflow-hidden rounded-lg border border-stone-200 bg-stone-100"
           aria-label="View photo"
         >
           <Image
@@ -213,11 +208,11 @@ export default function StackedPhotoGallery({
 
   return (
     <>
-      <div className={`flex gap-2 ${GALLERY_HEIGHT_CLASS}`}>
+      <div className="grid w-full grid-cols-2 gap-2">
         <button
           type="button"
           onClick={() => openLightbox(activeIndex)}
-          className="relative w-[70%] shrink-0 overflow-hidden rounded-lg border border-stone-200 bg-stone-100"
+          className="relative aspect-square w-full overflow-hidden rounded-lg border border-stone-200 bg-stone-100"
           aria-label={`View photo ${activeIndex + 1} of ${images.length}`}
         >
           <Image
@@ -226,42 +221,51 @@ export default function StackedPhotoGallery({
             fill
             className="object-cover"
             priority
-            sizes="(max-width: 768px) 70vw, (max-width: 1280px) 35vw, 400px"
+            sizes="(max-width: 768px) 50vw, (max-width: 1280px) 25vw, 360px"
           />
           <span className="absolute bottom-2 right-2 border border-stone-200 bg-white/95 px-2 py-0.5 text-[11px] font-medium text-stone-600">
             {activeIndex + 1}/{images.length}
           </span>
         </button>
 
-        <div className="flex h-full w-[30%] min-w-0 flex-col gap-1.5 overflow-hidden">
-          {visibleSideIndices.map((index) => (
-            <button
-              key={`${images[index]}-side-${index}`}
-              type="button"
-              onClick={() => openLightbox(index)}
-              className="relative min-h-0 w-full flex-1 overflow-hidden rounded-md border border-stone-200 bg-stone-100 opacity-90 hover:opacity-100"
-              aria-label={`View photo ${index + 1}`}
-            >
-              <Image
-                src={images[index]}
-                alt={`${alt} thumbnail ${index + 1}`}
-                fill
-                className="object-cover"
-                sizes="120px"
-              />
-            </button>
-          ))}
+        <div className="flex h-full min-h-0 flex-col gap-1.5">
+          {visibleSideIndices.map((index, thumbIndex) => {
+            const isLastThumb = thumbIndex === visibleSideIndices.length - 1;
+            const showMoreOverlay = isLastThumb && hiddenSideCount > 0;
 
-          {hiddenSideCount > 0 ? (
-            <button
-              type="button"
-              onClick={() => openLightbox(sideIndices[MAX_SIDE_THUMBNAILS])}
-              className="relative flex min-h-0 w-full flex-1 items-center justify-center overflow-hidden rounded-md border border-stone-200 bg-stone-200/80 text-sm font-semibold text-stone-700 hover:bg-stone-300/80"
-              aria-label={`View ${hiddenSideCount} more photos`}
-            >
-              +{hiddenSideCount}
-            </button>
-          ) : null}
+            return (
+              <button
+                key={`${images[index]}-side-${index}`}
+                type="button"
+                onClick={() => openLightbox(index)}
+                className="relative min-h-0 w-full flex-1 overflow-hidden rounded-md border border-stone-200 bg-stone-100 opacity-90 hover:opacity-100"
+                aria-label={
+                  showMoreOverlay
+                    ? `View ${hiddenSideCount} more photos`
+                    : `View photo ${index + 1}`
+                }
+              >
+                <Image
+                  src={images[index]}
+                  alt={`${alt} thumbnail ${index + 1}`}
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 768px) 25vw, 180px"
+                />
+                {showMoreOverlay ? (
+                  <>
+                    <div
+                      className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/45 to-black/15"
+                      aria-hidden
+                    />
+                    <span className="absolute inset-0 flex items-center justify-center text-base font-semibold text-white">
+                      +{hiddenSideCount}
+                    </span>
+                  </>
+                ) : null}
+              </button>
+            );
+          })}
         </div>
       </div>
 

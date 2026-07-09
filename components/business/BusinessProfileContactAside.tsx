@@ -1,8 +1,9 @@
 import Link from 'next/link';
-import { ExternalLink } from 'lucide-react';
 import { FaFacebook, FaInstagram, FaYoutube } from 'react-icons/fa6';
 import type { IconType } from 'react-icons';
 import { buildLoginHref, buildSignupHref } from '@/lib/authRedirect';
+import { getPaymentModeIcon } from '@/lib/paymentModeIcon';
+import { normalizeExternalHref } from '@/lib/validateProfileUrl';
 
 type SocialLink = {
   label: string;
@@ -103,11 +104,11 @@ export default function BusinessProfileContactAside({
   const signupHref = buildSignupHref(profileRedirectPath);
 
   return (
-    <aside className="border border-stone-200 bg-[#fffdf8] p-5 lg:sticky lg:top-32 lg:self-start">
+    <aside className="border border-stone-200 bg-stone-50 p-5 lg:sticky lg:top-32 lg:self-start">
       <h3 className="text-sm font-semibold text-[#153551]">Contact</h3>
 
       {!contactRevealed && (
-        <div className="mt-4 rounded-lg border border-[#f9b864]/30 bg-[#fff8ef] px-3 py-3 text-sm text-stone-700">
+        <div className="mt-4 rounded-lg border border-stone-200 bg-stone-100/80 px-3 py-3 text-sm text-stone-700">
           <p>Sign in or Create Account to continue.</p>
           <div className="mt-3 flex flex-wrap gap-2">
             <Link
@@ -166,10 +167,8 @@ export default function BusinessProfileContactAside({
             </div>
           )}
           {website && (
-            <ContactRow label="Website" href={website} external>
-              <span className="inline-flex items-center gap-1">
-                Visit website <ExternalLink size={11} />
-              </span>
+            <ContactRow label="Website" href={normalizeExternalHref(website) ?? website} external>
+              <span className="break-all">{website}</span>
             </ContactRow>
           )}
         </dl>
@@ -180,7 +179,20 @@ export default function BusinessProfileContactAside({
       {paymentModes.length > 0 && (
         <div className="mt-5 border-t border-stone-200 pt-4">
           <p className="text-xs text-stone-500">Payment accepted</p>
-          <p className="mt-1 text-sm text-stone-700">{paymentModes.join(', ')}</p>
+          <ul className="mt-2.5 flex flex-wrap gap-2">
+            {paymentModes.map((mode) => {
+              const Icon = getPaymentModeIcon(mode);
+              return (
+                <li
+                  key={mode}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-stone-200 bg-white px-2.5 py-1.5 text-xs font-medium text-stone-700"
+                >
+                  <Icon size={14} className="shrink-0 text-[#215481]" aria-hidden />
+                  {mode}
+                </li>
+              );
+            })}
+          </ul>
         </div>
       )}
 
@@ -191,10 +203,12 @@ export default function BusinessProfileContactAside({
             {socialLinks.map((link) => {
               const brand = SOCIAL_BRAND[link.label];
               const Icon = brand?.Icon;
+              const href = normalizeExternalHref(link.href);
+              if (!href) return null;
               return (
                 <li key={link.label}>
                   <a
-                    href={link.href}
+                    href={href}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 text-sm text-[#153551] hover:underline"

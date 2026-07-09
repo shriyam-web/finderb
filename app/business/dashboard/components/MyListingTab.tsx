@@ -22,6 +22,7 @@ import { getBusinessLocationLabel } from '@/lib/businessBreadcrumb';
 import BusinessLocationMap from '@/components/business/BusinessLocationMap';
 import { directionsHref, mapEmbedSrc, phoneHref } from '@/lib/businessContact';
 import { getBusinessOpenStatus } from '@/lib/businessHours';
+import { normalizeExternalHref } from '@/lib/validateProfileUrl';
 import {
   getPublicReviewRating,
   parseBusinessReviewReply,
@@ -538,7 +539,7 @@ export default function MyListingTab({
                   <div className="rounded-lg border border-zinc-200/80 p-4 sm:col-span-2">
                     <p className="text-[11px] font-semibold uppercase tracking-wide text-zinc-400">Website</p>
                     <a
-                      href={profileData.website.startsWith('http') ? profileData.website : `https://${profileData.website}`}
+                      href={normalizeExternalHref(profileData.website) ?? '#'}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="mt-1.5 flex items-center gap-2 truncate text-sm font-medium text-[#215481]"
@@ -562,7 +563,7 @@ export default function MyListingTab({
                 <div className="mt-4 flex flex-wrap gap-2">
                   {profileData.instagramUrl && (
                     <a
-                      href={profileData.instagramUrl}
+                      href={normalizeExternalHref(profileData.instagramUrl) ?? '#'}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 px-3 py-2 text-xs font-semibold text-pink-600 hover:bg-zinc-50"
@@ -573,7 +574,7 @@ export default function MyListingTab({
                   )}
                   {profileData.facebookUrl && (
                     <a
-                      href={profileData.facebookUrl}
+                      href={normalizeExternalHref(profileData.facebookUrl) ?? '#'}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 px-3 py-2 text-xs font-semibold text-blue-600 hover:bg-zinc-50"
@@ -584,7 +585,7 @@ export default function MyListingTab({
                   )}
                   {profileData.youtubeUrl && (
                     <a
-                      href={profileData.youtubeUrl}
+                      href={normalizeExternalHref(profileData.youtubeUrl) ?? '#'}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 px-3 py-2 text-xs font-semibold text-red-600 hover:bg-zinc-50"

@@ -16,6 +16,18 @@ const LINK_FIELD_META: Record<string, { label: string; hosts?: string[] }> = {
 
 export const PROFILE_LINK_FIELDS = new Set(Object.keys(LINK_FIELD_META));
 
+/** Ensure user-entered links open externally (e.g. instagram.com → https://instagram.com). */
+export function normalizeExternalHref(raw: string | null | undefined): string | null {
+  const trimmed = raw?.trim();
+  if (!trimmed) return null;
+
+  if (/^(https?:\/\/|mailto:|tel:)/i.test(trimmed)) {
+    return trimmed;
+  }
+
+  return `https://${trimmed.replace(/^\/+/, '')}`;
+}
+
 function normalizeHostname(hostname: string) {
   return hostname.toLowerCase().replace(/^www\./, '');
 }
@@ -38,10 +50,8 @@ export function validateProfileLink(
   const meta = LINK_FIELD_META[field];
   if (!meta) return { ok: true, value: trimmed };
 
-  let candidate = trimmed;
-  if (!/^https?:\/\//i.test(candidate)) {
-    candidate = `https://${candidate}`;
-  }
+  const candidate = normalizeExternalHref(trimmed);
+  if (!candidate) return { ok: true, value: '' };
 
   let parsed: URL;
   try {

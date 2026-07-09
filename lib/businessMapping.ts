@@ -4,6 +4,7 @@ import { getBusinessPublicRatingStats } from '@/lib/businessReviews';
 import { hasPublicTrustBadge } from '@/lib/businessVerification';
 import { parseBusinessServices } from '@/lib/parseBusinessServices';
 import { getPlanDisplayName } from '@/lib/subscription/merchantSubscription';
+import { normalizeExternalHref } from '@/lib/validateProfileUrl';
 
 function parseBusinessServicesFromRecord(business: {
   serviceCategory?: string | null;
@@ -59,11 +60,11 @@ export function mapBusinessRecord(business: Record<string, unknown>) {
     rating,
     reviewsCount: reviewCount,
     services,
-    website: (business.website as string) || undefined,
-    instagramUrl: (business.instagramUrl as string) || undefined,
-    facebookUrl: (business.facebookUrl as string) || undefined,
+    website: normalizeExternalHref(business.website as string) || undefined,
+    instagramUrl: normalizeExternalHref(business.instagramUrl as string) || undefined,
+    facebookUrl: normalizeExternalHref(business.facebookUrl as string) || undefined,
     whatsappNumber: (business.whatsappNumber as string) || undefined,
-    youtubeUrl: (business.youtubeUrl as string) || undefined,
+    youtubeUrl: normalizeExternalHref(business.youtubeUrl as string) || undefined,
     timings: business.timings,
     yearsInBusiness:
       typeof business.yearsInBusiness === 'number' ? business.yearsInBusiness : null,

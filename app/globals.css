@@ -1729,3 +1729,24 @@ h1, h2, h3, h4, h5, h6 {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+@keyframes service-pill-float-in {
+  0% {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.service-pill-motion {
+  animation: service-pill-float-in 260ms ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .service-pill-motion {
+    animation: none;
+  }
+}

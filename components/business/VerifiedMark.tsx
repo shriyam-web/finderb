@@ -7,6 +7,28 @@ export const VERIFIED_BADGE_LABEL = 'Verified on FinderB';
 export const VERIFIED_BADGE_DESCRIPTION =
   'FinderB has confirmed this business\'s identity and listing details.';
 
+export const VERIFIED_USER_LABEL = 'Verified user';
+export const VERIFIED_USER_DESCRIPTION =
+  'This reviewer signed in to FinderB before posting their review.';
+
+export function VerifiedUserTick({
+  className = '',
+  size = 14,
+}: {
+  className?: string;
+  size?: number;
+}) {
+  return (
+    <span
+      className={`inline-flex shrink-0 text-sky-600 ${className}`}
+      title={`${VERIFIED_USER_LABEL}. ${VERIFIED_USER_DESCRIPTION}`}
+      aria-label={`${VERIFIED_USER_LABEL}. ${VERIFIED_USER_DESCRIPTION}`}
+    >
+      <BadgeCheck size={size} strokeWidth={2} className="shrink-0" />
+    </span>
+  );
+}
+
 export function VerifiedNameTick({
   className = '',
   size = 16,

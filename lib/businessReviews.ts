@@ -5,6 +5,7 @@ export type BusinessReview = {
   rating: number;
   date: string;
   userId?: string;
+  authorVerified?: boolean;
   merchantReply?: BusinessReviewReply;
 };
 
@@ -68,6 +69,10 @@ function normalizeReviewEntry(raw: unknown, index: number): BusinessReview | nul
     rating: Number.isFinite(rating) && rating >= 1 && rating <= 5 ? rating : 5,
     date: String(entry.date || entry.createdAt || '').trim(),
     userId: entry.userId ? String(entry.userId) : undefined,
+    authorVerified:
+      typeof entry.authorVerified === 'boolean'
+        ? entry.authorVerified
+        : Boolean(entry.userId),
     merchantReply,
   };
 }
@@ -153,6 +158,10 @@ export function getBusinessPublicRatingStats(review: unknown): {
   };
 }
 
+export function isReviewAuthorVerified(review: BusinessReview): boolean {
+  return review.authorVerified ?? Boolean(review.userId);
+}
+
 export function serializeBusinessReviewsForStorage(reviews: BusinessReview[]) {
   return reviews.map((review) => ({
     id: review.id,
@@ -161,6 +170,7 @@ export function serializeBusinessReviewsForStorage(reviews: BusinessReview[]) {
     rating: review.rating,
     date: review.date,
     ...(review.userId ? { userId: review.userId } : {}),
+    ...(isReviewAuthorVerified(review) ? { authorVerified: true } : {}),
     ...(review.merchantReply ? { merchantReply: review.merchantReply } : {}),
   }));
 }

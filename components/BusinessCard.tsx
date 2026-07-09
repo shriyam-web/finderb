@@ -15,6 +15,8 @@ interface BusinessCardProps {
   hidePriceRange?: boolean;
   /** Fixed-size carousel card (Recommended Merchants). */
   uniform?: boolean;
+  /** Matches merchant profile page typography and spacing. */
+  variant?: 'default' | 'profile';
   distanceLabel?: string | null;
 }
 
@@ -32,6 +34,7 @@ export default function BusinessCard({
   compact = false,
   hidePriceRange = false,
   uniform = false,
+  variant = 'default',
   distanceLabel = null,
 }: BusinessCardProps) {
   const showVerified = Boolean(
@@ -39,6 +42,65 @@ export default function BusinessCard({
   );
   const openStatus = getBusinessOpenStatus(business.timings);
   const shortDescription = getShortDescription(business);
+
+  if (variant === 'profile') {
+    return (
+      <Link
+        href={getBusinessProfilePath(business)}
+        className="group flex flex-col overflow-hidden rounded-lg border border-stone-200 bg-white transition-colors hover:border-stone-300"
+      >
+        <div className="relative h-28 w-full shrink-0 bg-stone-100">
+          <Image
+            src={business.profilePictureUrl || business.image || '/fallback.jpg'}
+            alt={business.name || 'Business Image'}
+            fill
+            className="object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+            sizes="(max-width: 640px) 100vw, 50vw"
+          />
+          {(business.reviewsCount ?? 0) > 0 && business.rating != null ? (
+            <div className="absolute right-2 top-2 flex items-center gap-0.5 rounded-md border border-stone-200/80 bg-white/95 px-1.5 py-0.5 text-[10px] font-semibold text-[#153551]">
+              <Star size={10} className="fill-amber-500 text-amber-500" />
+              {business.rating}
+            </div>
+          ) : null}
+        </div>
+
+        <div className="flex flex-col p-3">
+          <p className="flex items-center gap-1 text-sm font-semibold leading-snug text-[#153551] group-hover:text-[#215481]">
+            <span className="min-w-0 truncate">{business.name}</span>
+            {showVerified ? <VerifiedNameTick size={13} className="shrink-0" /> : null}
+          </p>
+
+          {business.category ? (
+            <p className="mt-0.5 line-clamp-1 text-xs text-stone-500">{business.category}</p>
+          ) : null}
+
+          {openStatus ? (
+            <p
+              className={`mt-1 line-clamp-1 text-[10px] font-medium ${
+                openStatus.status === 'Open' ? 'text-emerald-700' : 'text-stone-500'
+              }`}
+            >
+              {openStatus.label}
+            </p>
+          ) : null}
+
+          <div className="mt-1.5 flex items-start gap-1 text-[11px] leading-snug text-stone-500">
+            <MapPin size={11} className="mt-0.5 shrink-0 text-stone-400" />
+            <span className="line-clamp-2">
+              {distanceLabel ? (
+                <>
+                  <span className="font-medium text-[#215481]">{distanceLabel}</span>
+                  <span className="text-stone-300"> · </span>
+                </>
+              ) : null}
+              {business.location}
+            </span>
+          </div>
+        </div>
+      </Link>
+    );
+  }
 
   return (
     <div

@@ -23,6 +23,7 @@ import { Business, Category } from '@/lib/mockData';
 import { categoryHref } from '@/lib/categoryDisplay';
 import { getBusinessProfilePath } from '@/lib/businessSlug';
 import { formatDistanceFromUser } from '@/lib/geo';
+import { getBusinessOpenStatus } from '@/lib/businessHours';
 import type { UserCoords } from '@/hooks/useUserCoords';
 
 const MOBILE_TRENDING = [
@@ -206,6 +207,7 @@ useEffect(() => {
                   biz.latitude,
                   biz.longitude
                 );
+                const openStatus = getBusinessOpenStatus(biz.timings);
 
                 return (
                 <Link
@@ -233,6 +235,15 @@ useEffect(() => {
                       )}
                     </p>
                     <p className="line-clamp-1 text-[11px] text-[#94a3b8]">{biz.category}</p>
+                    {openStatus && (
+                      <p
+                        className={`line-clamp-1 text-[10px] font-semibold ${
+                          openStatus.status === 'Open' ? 'text-emerald-700' : 'text-rose-600'
+                        }`}
+                      >
+                        {openStatus.label}
+                      </p>
+                    )}
                     <MerchantListingRating
                       rating={biz.rating}
                       reviewCount={biz.reviewsCount}

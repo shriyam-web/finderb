@@ -74,7 +74,7 @@ function closedState(message = 'Closed now'): BusinessOpenState {
 function openState(closeTime: string): BusinessOpenState {
   return {
     status: 'Open',
-    label: `Open Now. Open till ${formatTime12h(closeTime)}`,
+    label: `Open now · Open till ${formatTime12h(closeTime)}`,
     colorClass: 'text-emerald-600',
     dotClass: 'bg-emerald-500',
   };

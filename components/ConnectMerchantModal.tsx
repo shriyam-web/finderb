@@ -27,6 +27,7 @@ type ConnectMerchantModalProps = {
   profileRedirectPath: string;
   userName?: string;
   userEmail?: string;
+  userPhone?: string;
   onContactAction: (intent: ContactIntent) => void | Promise<void>;
   initialStep?: ModalStep;
 };
@@ -40,6 +41,7 @@ export default function ConnectMerchantModal({
   profileRedirectPath,
   userName = '',
   userEmail = '',
+  userPhone = '',
   onContactAction,
   initialStep = 'options',
 }: ConnectMerchantModalProps) {
@@ -209,7 +211,7 @@ export default function ConnectMerchantModal({
                 area.
               </p>
 
-              <form onSubmit={handleSubmit} className="space-y-3">
+              <form key={`${userName}-${userEmail}-${userPhone}`} onSubmit={handleSubmit} className="space-y-3">
                 {error && (
                   <p className="text-sm text-red-700 border border-red-200 bg-red-50 px-3 py-2">
                     {error}
@@ -256,6 +258,7 @@ export default function ConnectMerchantModal({
                     name="phone"
                     type="tel"
                     required
+                    defaultValue={userPhone}
                     autoComplete="tel"
                     className="w-full border border-gray-300 px-3 py-2 text-sm text-gray-900 rounded-sm focus:outline-none focus:border-gray-500"
                   />
