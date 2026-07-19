@@ -16,7 +16,7 @@ import { useUserCoords } from '@/hooks/useUserCoords';
 import MerchantListingRating from '@/components/business/MerchantListingRating';
 import MerchantOfferBadge from '@/components/business/MerchantOfferBadge';
 import MerchantJobBadge from '@/components/business/MerchantJobBadge';
-import { VerifiedNameTick } from '@/components/business/VerifiedMark';
+import { VerifiedBusinessName } from '@/components/business/VerifiedMark';
 
 type MerchantListing = {
   id: string;
@@ -107,15 +107,12 @@ function MerchantRow({
               {categoryLabel(biz.category)}
             </p>
             <h3 className="mt-0.5 text-[13px] font-semibold leading-snug text-slate-900 sm:text-sm">
-              <span className="break-words">
-                {biz.name}
-                {verified ? (
-                  <VerifiedNameTick
-                    size={13}
-                    className="ml-1 inline-flex translate-y-[1px] align-text-bottom"
-                  />
-                ) : null}
-              </span>
+              <VerifiedBusinessName
+                name={biz.name}
+                verified={verified}
+                tickSize={13}
+                className="break-words"
+              />
             </h3>
           </div>
           <div className="flex shrink-0 flex-wrap items-center justify-end gap-1 empty:hidden">

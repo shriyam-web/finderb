@@ -29,7 +29,7 @@ import { getBusinessListingImage } from '@/lib/businessMapping';
 import { formatDistanceFromUser } from '@/lib/geo';
 import { useUserCoords } from '@/hooks/useUserCoords';
 import MerchantListingRating from '@/components/business/MerchantListingRating';
-import { VerifiedNameTick } from '@/components/business/VerifiedMark';
+import { VerifiedBusinessName } from '@/components/business/VerifiedMark';
 
 interface SubCategory {
   id: string;
@@ -520,15 +520,12 @@ export default function CategoriesPage() {
       <div className="flex min-w-0 flex-1 flex-col justify-center gap-1 py-0.5">
         <span className="text-[10px] font-medium text-[#215481]">{biz.category || 'Business'}</span>
         <h3 className="text-sm font-semibold leading-snug text-slate-900">
-          <span className="break-words">
-            {biz.name}
-            {(biz.isFinderBVerified || biz.hasVerifiedBadge) ? (
-              <VerifiedNameTick
-                size={14}
-                className="ml-1 inline-flex translate-y-[1px] align-text-bottom"
-              />
-            ) : null}
-          </span>
+          <VerifiedBusinessName
+            name={biz.name}
+            verified={Boolean(biz.isFinderBVerified || biz.hasVerifiedBadge)}
+            tickSize={14}
+            className="break-words"
+          />
         </h3>
         <MerchantListingRating
           rating={biz.rating}

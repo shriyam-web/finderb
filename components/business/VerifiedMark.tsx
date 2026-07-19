@@ -136,3 +136,40 @@ export function VerifiedNameTick({
     </span>
   );
 }
+
+/**
+ * Renders a wrapping business name with the verified tick glued to the last word,
+ * so the icon never orphans onto its own line when there is leftover space.
+ */
+export function VerifiedBusinessName({
+  name,
+  verified,
+  tickSize = 14,
+  className = '',
+  tickClassName = 'ml-1 inline-flex translate-y-[1px] align-text-bottom',
+}: {
+  name: string;
+  verified: boolean;
+  tickSize?: number;
+  className?: string;
+  tickClassName?: string;
+}) {
+  const trimmed = name.trim();
+  if (!verified || !trimmed) {
+    return <span className={className}>{name}</span>;
+  }
+
+  const parts = trimmed.split(/\s+/);
+  const lastWord = parts.pop() ?? trimmed;
+  const head = parts.join(' ');
+
+  return (
+    <span className={className}>
+      {head ? `${head} ` : null}
+      <span className="whitespace-nowrap">
+        {lastWord}
+        <VerifiedNameTick size={tickSize} className={tickClassName} />
+      </span>
+    </span>
+  );
+}
