@@ -1,4 +1,5 @@
 import { parseCoordinate } from '@/lib/geo';
+import { pickPublicBusinessEmail } from '@/lib/placeholderEmail';
 import { formatMerchantName } from '@/lib/formatMerchantName';
 import { getBusinessPublicRatingStats } from '@/lib/businessReviews';
 import { hasPublicTrustBadge } from '@/lib/businessVerification';
@@ -73,7 +74,12 @@ export function mapBusinessRecord(business: Record<string, unknown>) {
       hasVerifiedBadge: Boolean(business.hasVerifiedBadge),
     }),
     paymentModes: Array.isArray(business.paymentModes) ? business.paymentModes : [],
-    email: (business.email as string) || (business.workEmail as string) || undefined,
+    // Placeholder logins (…@finderb.com) are credentials, not contact info —
+    // skip them so those profiles read as "email missing" everywhere.
+    email: pickPublicBusinessEmail(
+      business.email as string | null | undefined,
+      business.workEmail as string | null | undefined,
+    ),
     businessAddress: (business.businessAddress as string) || undefined,
     images: Array.isArray(business.images) ? business.images : [],
     latitude: parseCoordinate(business.latitude),

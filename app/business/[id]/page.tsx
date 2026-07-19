@@ -6,11 +6,13 @@ import {
   getRelatedBusinessesForProfile,
 } from '@/app/actions/business';
 import { findCategoryForBreadcrumb, getCategories } from '@/app/actions/category';
+import BusinessListingInactivePage from '@/components/business/BusinessListingInactivePage';
 import BusinessProfilePage from '@/components/business/BusinessProfilePage';
 import BusinessInternalLinks from '@/components/business/BusinessInternalLinks';
 import BusinessSeoContent from '@/components/business/BusinessSeoContent';
 import JsonLd from '@/components/JsonLd';
 import { buildBusinessJsonLd, buildBusinessMetadata } from '@/lib/businessSeo';
+import { buildPageMetadata, NO_INDEX_ROBOTS } from '@/lib/seoUtils';
 import { categoryHref } from '@/lib/categoryDisplay';
 import {
   getBusinessProfilePath,
@@ -27,12 +29,30 @@ const getBusinessCached = cache((slugOrId: string) => getBusinessBySlugOrId(slug
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { id } = await params;
   const result = await getBusinessCached(id);
+
+  if (result.reason === 'inactive' && result.listing) {
+    const name = result.listing.displayName || result.listing.businessName;
+    return buildPageMetadata({
+      title: `${name} isn’t active yet`,
+      description: `${name} is registered on FinderB, but this public listing is not live yet.`,
+      canonicalPath: result.listing.slug
+        ? `/business/${result.listing.slug}`
+        : `/business/${id}`,
+      robots: NO_INDEX_ROBOTS,
+    });
+  }
+
   return buildBusinessMetadata(result.success && result.business ? result.business : null);
 }
 
 export default async function BusinessDetailPage({ params }: PageProps) {
   const { id: slugOrId } = await params;
   const result = await getBusinessCached(slugOrId);
+
+  if (result.reason === 'inactive' && result.listing) {
+    return <BusinessListingInactivePage listing={result.listing} />;
+  }
+
   const business = result.success && result.business ? result.business : null;
 
   if (!business) {

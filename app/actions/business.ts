@@ -28,7 +28,10 @@ import {
   hasResolvedMapAddress,
   mapPinMatchesManualAddress,
 } from '@/lib/locationMatch';
-import { validateAndNormalizeRegistrationPayload } from '@/lib/merchantRegistrationValidation';
+import {
+  REGISTRATION_EMAIL_REGEX,
+  validateAndNormalizeRegistrationPayload,
+} from '@/lib/merchantRegistrationValidation';
 import {
   getReviewReplyDraft,
   normalizeReviewReplyForStorage,
@@ -314,7 +317,7 @@ export async function updateBusinessImages(id: string, images: string[], profile
 export async function getBusinessBySlugOrId(slugOrId: string) {
   try {
     if (!slugOrId?.trim()) {
-      return { success: false, error: 'Business identifier is required' };
+      return { success: false, error: 'Business identifier is required', reason: 'not_found' as const };
     }
 
     const identifier = slugOrId.trim();
@@ -364,12 +367,30 @@ export async function getBusinessBySlugOrId(slugOrId: string) {
     }
 
     if (!business) {
-      return { success: false, error: 'Business not found' };
+      return { success: false, error: 'Business not found', reason: 'not_found' as const };
     }
 
     const listingStatus = String(business.status || 'Pending');
     if (listingStatus.toLowerCase() !== 'active') {
-      return { success: false, error: 'Business not found' };
+      const displayName =
+        String(business.displayName || business.businessName || 'This business').trim() ||
+        'This business';
+      return {
+        success: false,
+        error: 'Business listing is not active',
+        reason: 'inactive' as const,
+        listing: {
+          id: String(business.id),
+          businessName: String(business.businessName || displayName),
+          displayName,
+          city: business.city ? String(business.city) : null,
+          status: listingStatus,
+          slug: business.slug ? String(business.slug) : null,
+          registrationNumber: business.registrationNumber
+            ? String(business.registrationNumber)
+            : null,
+        },
+      };
     }
 
     let slug = business.slug?.trim() || '';
@@ -389,10 +410,10 @@ export async function getBusinessBySlugOrId(slugOrId: string) {
 
     const mapped = mapBusinessRecord({ ...business, slug });
     const publicBusiness = redactPublicBusinessFields(mapped);
-    return { success: true, business: publicBusiness };
+    return { success: true, business: publicBusiness, reason: 'active' as const };
   } catch (error: any) {
     const errorMessage = handleError(error, 'Get Business');
-    return { success: false, error: errorMessage };
+    return { success: false, error: errorMessage, reason: 'not_found' as const };
   }
 }
 
@@ -974,14 +995,21 @@ export async function updateBusinessProfile(id: string, profileData: any) {
     }
     const reviewReplyValue = normalizeReviewReplyForStorage(reviewReplyDraft);
 
+    // Placeholder-onboarded merchants see an empty email field; never let a
+    // blank submit erase the login email. Only write when a real one is given.
+    const submittedEmail =
+      typeof profileData.email === 'string' ? profileData.email.trim().toLowerCase() : '';
+    if (submittedEmail && !REGISTRATION_EMAIL_REGEX.test(submittedEmail)) {
+      return { success: false, error: 'Please enter a valid email address.' };
+    }
+
     const { data: business, error } = await supabase
       .from('Business')
       .update({
         displayName: profileData.displayName?.trim() || null,
         owner_name: profileData.ownerName?.trim() || null,
         owner_mobile: profileData.ownerMobile || null,
-        email: profileData.email,
-        workEmail: profileData.email,
+        ...(submittedEmail ? { email: submittedEmail, workEmail: submittedEmail } : {}),
         publicPhone: profileData.publicPhone,
         businessAddress: profileData.businessAddress,
         city: profileData.city,
