@@ -241,14 +241,26 @@ export default function HomeClient({ initialData }: { initialData: any }) {
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    if (window.location.hash !== '#native-apps') return;
+
+    const hash = window.location.hash;
+    const tab = activeTabFromUrl;
+    const shouldScrollTopPicks = hash === '#top-picks' || tab === 'top-picks';
+    const targetId = hash === '#native-apps' ? 'native-apps' : shouldScrollTopPicks ? 'top-picks' : null;
+
+    if (!targetId) return;
 
     const timer = window.setTimeout(() => {
-      document.getElementById('native-apps')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if (targetId === 'top-picks') {
+        const nodes = Array.from(document.querySelectorAll<HTMLElement>('[data-top-picks]'));
+        const visible = nodes.find((el) => el.getClientRects().length > 0) ?? nodes[0];
+        visible?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return;
+      }
+      document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 150);
 
     return () => window.clearTimeout(timer);
-  }, []);
+  }, [activeTabFromUrl]);
 
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout>;
@@ -295,8 +307,13 @@ export default function HomeClient({ initialData }: { initialData: any }) {
 
     if (label === 'Top Picks') {
       setProtectedTab(null);
-      setActiveMobileTab('Top Picks');
-      router.push('/?tab=top-picks', { scroll: false });
+      setActiveMobileTab('Home');
+      router.push('/#top-picks', { scroll: false });
+      window.setTimeout(() => {
+        const nodes = Array.from(document.querySelectorAll<HTMLElement>('[data-top-picks]'));
+        const visible = nodes.find((el) => el.getClientRects().length > 0) ?? nodes[0];
+        visible?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 50);
       return;
     }
 
@@ -645,7 +662,8 @@ export default function HomeClient({ initialData }: { initialData: any }) {
                   ) : null}
 
                   <div
-                    className={`rounded-xl border border-gray-100 bg-white p-5 shadow-[0_1px_3px_rgba(0,0,0,0.06)] ${
+                    data-top-picks
+                    className={`scroll-mt-28 rounded-xl border border-gray-100 bg-white p-5 shadow-[0_1px_3px_rgba(0,0,0,0.06)] ${
                       trendingThisWeek.length > 0 ? 'col-span-8' : 'col-span-12'
                     }`}
                   >

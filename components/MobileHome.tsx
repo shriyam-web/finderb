@@ -184,7 +184,7 @@ useEffect(() => {
       ) : null}
 
       {/* Featured Verified */}
-      <section className="mt-3 bg-white px-4 py-5">
+      <section data-top-picks className="mt-3 scroll-mt-24 bg-white px-4 py-5">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-[15px] font-bold text-[#0f2a4a]">Featured Verified Businesses</h2>
           <Link href="/categories" className="text-[13px] font-medium text-[#2563eb]">

@@ -14,12 +14,31 @@ export function footerCityHref(city: string): string {
   return footerSearchHref(`local businesses in ${city}`);
 }
 
+/** Map footer “Browse by city” labels onto real category slugs used elsewhere. */
+const FOOTER_LOCAL_SERVICE_SLUGS: Record<string, string> = {
+  Restaurants: 'restaurants',
+  Doctors: 'doctors',
+  Hotels: 'hotels',
+  Gyms: 'gym',
+  Salons: 'beauty-spa',
+  Plumbers: 'plumbers',
+  Electricians: 'electricians',
+  Schools: 'college',
+  Dentists: 'dentists',
+  Pharmacies: 'pharmacies',
+  'CA Firms': 'chartered-accountant',
+  Lawyers: 'lawyers',
+};
+
 export function footerLocalHref(service: string, city: string): string {
-  const categorySlug = service
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
+  const mapped = FOOTER_LOCAL_SERVICE_SLUGS[service];
+  const categorySlug =
+    mapped ||
+    service
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
   return categoryCityHref(categorySlug, slugifyCity(city));
 }
 
@@ -53,7 +72,7 @@ export const FOOTER_NAV_COLUMNS = [
     links: [
       { label: 'Home', href: '/' },
       { label: 'All Categories', href: '/categories' },
-      { label: 'Top Picks Near You', href: '/?tab=top-picks' },
+      { label: 'Top Picks Near You', href: '/#top-picks' },
       { label: 'AI Search Assistant', href: '/?tab=ai' },
       { label: 'Latest Local News', href: '/news' },
       { label: 'Movies & Showtimes', href: '/movies' },
@@ -81,11 +100,11 @@ export const FOOTER_NAV_COLUMNS = [
       { label: 'Doctors & Hospitals', href: footerCategoryHref('doctors') },
       { label: 'Real Estate & Property', href: footerCategoryHref('real-estate') },
       { label: 'Plumbers & Home Repair', href: footerCategoryHref('repairs-services') },
-      { label: 'Salons & Beauty Spas', href: footerSearchHref('salon spa') },
-      { label: 'Gyms & Fitness Centres', href: footerSearchHref('gym fitness') },
-      { label: 'Schools & Coaching', href: footerCategoryHref('education') },
+      { label: 'Salons & Beauty Spas', href: footerCategoryHref('beauty-spa') },
+      { label: 'Gyms & Fitness Centres', href: footerCategoryHref('gym') },
+      { label: 'Schools & Coaching', href: footerSearchHref('schools coaching tuition') },
       { label: 'CA & Tax Consultants', href: footerSearchHref('chartered accountant') },
-      { label: 'Lawyers & Legal Aid', href: footerCategoryHref('finance') },
+      { label: 'Lawyers & Legal Aid', href: footerCategoryHref('lawyers') },
       { label: 'Wedding Vendors', href: footerSearchHref('wedding services') },
       { label: 'Car Service & Garages', href: footerSearchHref('car service garage') },
       { label: 'Hotels, PG & Lodging', href: footerSearchHref('hotels pg accommodation') },
