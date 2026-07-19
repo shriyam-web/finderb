@@ -7,6 +7,7 @@ import { buildJobApplicationMessage } from '@/lib/jobLeadMessage';
 import { formatMerchantName } from '@/lib/formatMerchantName';
 import { assertBusinessSession } from '@/lib/security/session';
 import { enforceRateLimit } from '@/lib/security/enforceRateLimit.server';
+import { revalidateHomePage } from '@/lib/homePageData';
 
 export async function createJob(data: {
   title: string;
@@ -55,6 +56,8 @@ export async function createJob(data: {
     if (error) throw error;
 
     revalidatePath('/business/dashboard');
+    revalidatePath('/categories/job');
+    revalidateHomePage();
     return { success: true, job };
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Failed to create job';
@@ -112,6 +115,8 @@ export async function deleteJob(jobId: string) {
     if (error) throw error;
 
     revalidatePath('/business/dashboard');
+    revalidatePath('/categories/job');
+    revalidateHomePage();
     return { success: true };
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Failed to delete job';
@@ -157,6 +162,8 @@ export async function updateJob(jobId: string, data: {
     if (error) throw error;
 
     revalidatePath('/business/dashboard');
+    revalidatePath('/categories/job');
+    revalidateHomePage();
     return { success: true, job };
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Failed to update job';
@@ -206,6 +213,28 @@ export async function getAllJobs() {
     const message = error instanceof Error ? error.message : 'Failed to fetch jobs';
     console.error('Get All Jobs Error:', error);
     return { success: false, error: message };
+  }
+}
+
+/** Public: active job postings for a merchant profile. */
+export async function getActiveJobsByBusiness(businessId: string) {
+  try {
+    const supabase = createClient(await cookies());
+
+    const { data: jobs, error } = await supabase
+      .from('jobs')
+      .select('id, business_id, title, type, location, salary, description, department, created_at, status')
+      .eq('business_id', businessId)
+      .eq('status', 'active')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    return { success: true, jobs: jobs ?? [] };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Failed to fetch jobs';
+    console.error('Get Active Jobs By Business Error:', error);
+    return { success: false, error: message, jobs: [] as never[] };
   }
 }
 

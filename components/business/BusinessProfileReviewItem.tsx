@@ -23,6 +23,8 @@ type BusinessProfileReviewItemProps = {
   businessName: string;
   contactRevealed: boolean;
   profileRedirectPath: string;
+  /** Fallback thank-you when this review has no custom merchant reply. */
+  defaultReply?: string | null;
 };
 
 export default function BusinessProfileReviewItem({
@@ -31,6 +33,7 @@ export default function BusinessProfileReviewItem({
   businessName,
   contactRevealed,
   profileRedirectPath,
+  defaultReply = null,
 }: BusinessProfileReviewItemProps) {
   const [reporting, setReporting] = useState(false);
   const [reported, setReported] = useState(false);
@@ -41,6 +44,8 @@ export default function BusinessProfileReviewItem({
   const [otherDetails, setOtherDetails] = useState('');
   const showVerifiedBadge = isReviewAuthorVerified(review);
   const loginHref = buildLoginHref(`${profileRedirectPath}#reviews`);
+  const replyContent =
+    review.merchantReply?.content?.trim() || defaultReply?.trim() || '';
 
   useEffect(() => {
     setPortalMounted(true);
@@ -277,12 +282,12 @@ export default function BusinessProfileReviewItem({
 
         <p className="mt-2 text-sm leading-relaxed text-stone-600">{review.content}</p>
 
-        {review.merchantReply?.content && (
+        {replyContent ? (
           <div className="mt-3 border-l-2 border-stone-300 pl-4">
             <p className="text-xs font-medium text-stone-500">{businessName}</p>
-            <p className="mt-1 text-sm text-stone-700">{review.merchantReply.content}</p>
+            <p className="mt-1 text-sm text-stone-700">{replyContent}</p>
           </div>
-        )}
+        ) : null}
       </article>
 
       {portalMounted && reportModal ? createPortal(reportModal, document.body) : null}

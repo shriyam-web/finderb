@@ -6,7 +6,9 @@ import CategoryIcon from '@/components/CategoryIcon';
 import MobileHome from '@/components/MobileHome';
 import NativeAppsComingSoon from '@/components/NativeAppsComingSoon';
 import MerchantListingRating from '@/components/business/MerchantListingRating';
+import HomeTrustHighlights from '@/components/HomeTrustHighlights';
 import MerchantOfferBadge from '@/components/business/MerchantOfferBadge';
+import MerchantJobBadge from '@/components/business/MerchantJobBadge';
 import { VerifiedNameTick } from '@/components/business/VerifiedMark';
 import HomeHero from '@/components/HomeHero';
 import SubcategoryScrollRow from '@/components/SubcategoryScrollRow';
@@ -29,9 +31,6 @@ import {
   ChevronDown,
   ChevronRight,
   TrendingUp,
-  ShieldCheck,
-  RefreshCw,
-  Phone,
   X,
   Cpu,
   Mic,
@@ -238,6 +237,17 @@ export default function HomeClient({ initialData }: { initialData: any }) {
       setIsLoggedIn(!!result?.success);
     };
     checkSession();
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (window.location.hash !== '#native-apps') return;
+
+    const timer = window.setTimeout(() => {
+      document.getElementById('native-apps')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 150);
+
+    return () => window.clearTimeout(timer);
   }, []);
 
   useEffect(() => {
@@ -622,18 +632,9 @@ export default function HomeClient({ initialData }: { initialData: any }) {
                             >
                               <span className="w-4 shrink-0 text-xs font-medium text-[#94a3b8]">{idx + 1}</span>
                               <span className="min-w-0 flex-1 text-[13px] font-medium text-[#334155]">{item.label}</span>
-                              <span
-                                className={`flex shrink-0 items-center gap-0.5 text-xs font-semibold ${
-                                  item.trend > 0
-                                    ? 'text-[#22c55e]'
-                                    : item.trend < 0
-                                      ? 'text-rose-500'
-                                      : 'text-slate-400'
-                                }`}
-                              >
+                              <span className="flex shrink-0 items-center gap-0.5 text-xs font-semibold text-[#22c55e]">
                                 <TrendingUp size={13} strokeWidth={2.5} />
-                                {item.trend > 0 ? '+' : ''}
-                                {item.trend}%
+                                +{item.trend}%
                               </span>
                               <ChevronRight size={14} className="shrink-0 text-[#cbd5e1]" />
                             </button>
@@ -716,8 +717,11 @@ export default function HomeClient({ initialData }: { initialData: any }) {
                                 {biz.location}
                               </span>
                             </div>
-                            <div className="min-w-0 pt-1 empty:hidden">
+                            <div className="flex min-w-0 items-center gap-1.5 pt-1 empty:hidden">
                               <MerchantOfferBadge discountRange={biz.discountRange} />
+                              {biz.hasActiveJobs ? (
+                                <MerchantJobBadge compact className="ml-auto shrink-0" />
+                              ) : null}
                             </div>
                           </div>
                         </Link>
@@ -741,52 +745,7 @@ export default function HomeClient({ initialData }: { initialData: any }) {
                 </div>
 
                 {/* Trust bar */}
-                <section className="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
-                  <div className="grid grid-cols-4 divide-x divide-gray-100">
-                    {[
-                      {
-                        title: 'Verified Businesses',
-                        subtitle: 'Authentic & Verified Listings',
-                        icon: ShieldCheck,
-                        iconBg: 'bg-blue-50',
-                        iconColor: 'text-blue-600',
-                      },
-                      {
-                        title: 'Real Customer Reviews',
-                        subtitle: 'Honest Reviews from Real People',
-                        icon: MessageSquare,
-                        iconBg: 'bg-emerald-50',
-                        iconColor: 'text-emerald-600',
-                      },
-                      {
-                        title: 'Updated Daily',
-                        subtitle: 'Latest Information Always',
-                        icon: RefreshCw,
-                        iconBg: 'bg-violet-50',
-                        iconColor: 'text-violet-600',
-                      },
-                      {
-                        title: 'Instant Contact',
-                        subtitle: 'Call, Chat or Enquire Directly',
-                        icon: Phone,
-                        iconBg: 'bg-orange-50',
-                        iconColor: 'text-orange-500',
-                      },
-                    ].map(({ title, subtitle, icon: Icon, iconBg, iconColor }) => (
-                      <div key={title} className="flex items-center gap-4 px-6 py-5">
-                        <div
-                          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${iconBg}`}
-                        >
-                          <Icon size={20} className={iconColor} />
-                        </div>
-                        <div>
-                          <p className="text-[13px] font-semibold text-[#1e293b]">{title}</p>
-                          <p className="mt-0.5 text-[11px] leading-snug text-[#94a3b8]">{subtitle}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </section>
+                <HomeTrustHighlights variant="desktop" />
               </div>
 
           <MobileHome

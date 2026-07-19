@@ -126,21 +126,26 @@ function CollapsibleSection({
 
   return (
     <section aria-labelledby={id} className="">
-      <div className="flex items-start justify-between">
+      <button
+        type="button"
+        onClick={() => setOpen((s) => !s)}
+        aria-expanded={open}
+        aria-controls={`${id}-content`}
+        className="flex w-full items-start justify-between text-left"
+      >
         <div className="mb-1 max-w-3xl">
-          <h2 id={id} className="text-sm font-medium text-neutral-900">{title}</h2>
+          <h2 id={id} className="text-sm font-medium text-neutral-900">
+            {title}
+          </h2>
           <p className="text-xs leading-relaxed text-neutral-500">{description}</p>
         </div>
-
-        <button
-          onClick={() => setOpen((s) => !s)}
-          aria-expanded={open}
-          aria-controls={`${id}-content`}
-          className="ml-4 -mr-2 rounded p-2 text-neutral-600 hover:text-neutral-900"
-        >
-          <ChevronDown className={`h-4 w-4 transition-transform ${open ? 'rotate-180' : 'rotate-0'}`} />
-        </button>
-      </div>
+        <span className="ml-4 -mr-2 rounded p-2 text-neutral-600">
+          <ChevronDown
+            className={`h-4 w-4 transition-transform ${open ? 'rotate-180' : 'rotate-0'}`}
+            aria-hidden
+          />
+        </span>
+      </button>
 
       <div id={`${id}-content`} className={`${open ? 'mt-3 block' : 'hidden'}`}>
         {children}
@@ -388,14 +393,22 @@ export default function Footer() {
                 <div className="space-y-2.5">
                   <p className="text-sm text-neutral-600">Mobile app coming soon</p>
                   <div className="flex flex-wrap gap-2">
-                    <span className="inline-flex items-center gap-2 rounded-md border border-neutral-300 px-3 py-1.5 text-xs text-neutral-500">
+                    <Link
+                      href="/#native-apps"
+                      className="inline-flex items-center gap-2 rounded-md border border-neutral-300 px-3 py-1.5 text-xs text-neutral-700 transition-colors hover:border-neutral-400 hover:text-neutral-900"
+                      title="Preview FinderB apps coming to the App Store"
+                    >
                       <AppStoreIcon className="h-3.5 w-3.5 text-neutral-800" />
                       App Store
-                    </span>
-                    <span className="inline-flex items-center gap-2 rounded-md border border-neutral-300 px-3 py-1.5 text-xs text-neutral-500">
+                    </Link>
+                    <Link
+                      href="/#native-apps"
+                      className="inline-flex items-center gap-2 rounded-md border border-neutral-300 px-3 py-1.5 text-xs text-neutral-700 transition-colors hover:border-neutral-400 hover:text-neutral-900"
+                      title="Preview FinderB apps coming to Google Play"
+                    >
                       <FaGooglePlay size={13} />
                       Google Play
-                    </span>
+                    </Link>
                   </div>
                 </div>
               </div>

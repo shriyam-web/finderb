@@ -792,7 +792,28 @@ export async function getFeaturedBusinesses() {
     const mappedBusinesses = businesses.map((b: Record<string, unknown>) => mapBusinessRecord(b));
     const rankedBusinesses = sortBusinessesByProfileCompleteness(mappedBusinesses).slice(0, 12);
 
-    return { success: true, businesses: rankedBusinesses };
+    const ids = rankedBusinesses.map((business) => business.id);
+    const { data: jobs } = ids.length
+      ? await supabase
+          .from('jobs')
+          .select('business_id')
+          .eq('status', 'active')
+          .in('business_id', ids)
+      : { data: [] as { business_id: string }[] };
+
+    const hiringIds = new Set(
+      (jobs ?? [])
+        .map((row) => row.business_id)
+        .filter(Boolean)
+        .map(String)
+    );
+
+    const withJobs = rankedBusinesses.map((business) => ({
+      ...business,
+      hasActiveJobs: hiringIds.has(String(business.id)),
+    }));
+
+    return { success: true, businesses: withJobs };
   } catch (error: any) {
     const errorMessage = handleError(error, 'Get Featured Businesses');
     return { success: false, error: errorMessage };

@@ -157,7 +157,7 @@ export async function recordSearchEvent(query: string, sessionHash?: string) {
   }
 }
 
-export async function getTrendingThisWeek(limit = 5): Promise<TrendingWeekItem[]> {
+export async function getTrendingThisWeek(limit = 4): Promise<TrendingWeekItem[]> {
   const supabase = createServiceClient();
   if (!supabase) return [];
 

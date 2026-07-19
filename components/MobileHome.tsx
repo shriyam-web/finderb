@@ -8,17 +8,15 @@ import {
   MapPin,
   ChevronRight,
   TrendingUp,
-  ShieldCheck,
-  MessageSquare,
-  RefreshCw,
-  Phone,
   Grid3X3,
 } from 'lucide-react';
 import CategoryIcon from '@/components/CategoryIcon';
 import MerchantListingRating from '@/components/business/MerchantListingRating';
 import MerchantOfferBadge from '@/components/business/MerchantOfferBadge';
+import MerchantJobBadge from '@/components/business/MerchantJobBadge';
 import { VerifiedNameTick } from '@/components/business/VerifiedMark';
 import HomeHero from '@/components/HomeHero';
+import HomeTrustHighlights from '@/components/HomeTrustHighlights';
 import { Business, Category } from '@/lib/mockData';
 import { categoryBrowseHref } from '@/lib/categoryDisplay';
 import { getBusinessProfilePath } from '@/lib/businessSlug';
@@ -172,18 +170,9 @@ useEffect(() => {
                     <span className="min-w-0 flex-1 text-[13px] font-medium text-[#334155]">
                       {item.label}
                     </span>
-                    <span
-                      className={`flex shrink-0 items-center gap-0.5 text-xs font-semibold ${
-                        item.trend > 0
-                          ? 'text-[#22c55e]'
-                          : item.trend < 0
-                            ? 'text-rose-500'
-                            : 'text-slate-400'
-                      }`}
-                    >
+                    <span className="flex shrink-0 items-center gap-0.5 text-xs font-semibold text-[#22c55e]">
                       <TrendingUp size={12} strokeWidth={2.5} />
-                      {item.trend > 0 ? '+' : ''}
-                      {item.trend}%
+                      +{item.trend}%
                     </span>
                     <ChevronRight size={14} className="shrink-0 text-[#cbd5e1]" />
                   </button>
@@ -269,8 +258,11 @@ useEffect(() => {
                         {biz.location}
                       </span>
                     </div>
-                    <div className="min-w-0 pt-1 empty:hidden">
+                    <div className="flex min-w-0 items-center gap-1.5 pt-1 empty:hidden">
                       <MerchantOfferBadge discountRange={biz.discountRange} compact />
+                      {biz.hasActiveJobs ? (
+                        <MerchantJobBadge compact className="ml-auto shrink-0" />
+                      ) : null}
                     </div>
                   </div>
                 </Link>
@@ -280,25 +272,7 @@ useEffect(() => {
       </section>
 
       {/* Trust icons */}
-      <section className="bg-white px-4 pb-3 pt-3">
-        <div className="grid grid-cols-4 gap-2">
-          {[
-            { label: 'Verified\nBusinesses', icon: ShieldCheck, bg: 'bg-blue-50', color: 'text-blue-600' },
-            { label: 'Real Customer\nReviews', icon: MessageSquare, bg: 'bg-emerald-50', color: 'text-emerald-600' },
-            { label: 'Updated\nDaily', icon: RefreshCw, bg: 'bg-violet-50', color: 'text-violet-600' },
-            { label: 'Instant\nContact', icon: Phone, bg: 'bg-orange-50', color: 'text-orange-500' },
-          ].map(({ label, icon: Icon, bg, color }) => (
-            <div key={label} className="flex flex-col items-center text-center">
-              <div className={`mb-1.5 flex h-10 w-10 items-center justify-center rounded-full ${bg}`}>
-                <Icon size={18} className={color} />
-              </div>
-              <p className="whitespace-pre-line text-[9px] font-semibold leading-tight text-[#475569]">
-                {label}
-              </p>
-            </div>
-          ))}
-        </div>
-      </section>
+      <HomeTrustHighlights variant="mobile" />
     </div>
   );
 }

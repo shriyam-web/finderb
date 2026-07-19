@@ -94,6 +94,7 @@ export function mapBusinessRecord(business: Record<string, unknown>) {
     discountRange: (business.discountRange as string | null) ?? null,
     displayName: formattedDisplayName || null,
     registrationNumber: (business.registrationNumber as string | null) ?? null,
+    hasActiveJobs: Boolean(business.hasActiveJobs),
   };
 }
 

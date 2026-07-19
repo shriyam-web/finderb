@@ -78,6 +78,37 @@ function plainBlogExcerpt(
   return stripHtml(raw);
 }
 
+async function attachActiveJobFlags<T extends { id: string }>(
+  supabase: SupabaseClient,
+  businesses: T[]
+): Promise<(T & { hasActiveJobs: boolean })[]> {
+  if (businesses.length === 0) return [];
+
+  const ids = businesses.map((business) => business.id);
+  const { data: jobs, error } = await supabase
+    .from('jobs')
+    .select('business_id')
+    .eq('status', 'active')
+    .in('business_id', ids);
+
+  if (error) {
+    console.error('[homepage] active jobs lookup failed:', error);
+    return businesses.map((business) => ({ ...business, hasActiveJobs: false }));
+  }
+
+  const hiringIds = new Set(
+    (jobs ?? [])
+      .map((row) => row.business_id)
+      .filter((id): id is string => Boolean(id))
+      .map(String)
+  );
+
+  return businesses.map((business) => ({
+    ...business,
+    hasActiveJobs: hiringIds.has(String(business.id)),
+  }));
+}
+
 async function fetchFeaturedBusinesses(supabase: SupabaseClient) {
   const { data: businesses, error } = await supabase
     .from('Business')
@@ -94,7 +125,8 @@ async function fetchFeaturedBusinesses(supabase: SupabaseClient) {
   const mappedBusinesses = (businesses ?? []).map((b: Record<string, unknown>) =>
     mapBusinessRecord(b)
   );
-  return sortBusinessesByProfileCompleteness(mappedBusinesses).slice(0, 12);
+  const ranked = sortBusinessesByProfileCompleteness(mappedBusinesses).slice(0, 12);
+  return attachActiveJobFlags(supabase, ranked);
 }
 
 async function fetchCategories(supabase: SupabaseClient) {
@@ -279,7 +311,7 @@ async function fetchHomePageData(): Promise<HomePageData> {
     fetchBlogs(supabase),
     fetchFeaturedGroups(supabase),
     fetchFinderBTutorials(6),
-    getTrendingThisWeek(5),
+    getTrendingThisWeek(4),
   ]);
 
   return {

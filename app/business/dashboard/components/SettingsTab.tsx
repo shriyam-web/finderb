@@ -666,8 +666,9 @@ export default function SettingsTab({
                   ) : activeModal === 'reviewReply' ? (
                     <div className="space-y-2">
                       <p className="rounded-lg border border-[#215481]/15 bg-[#215481]/[0.04] px-3 py-2.5 text-xs leading-relaxed text-zinc-700">
-                        This message appears on your public profile under Reviews as your standard thank-you
-                        reply. You can update it anytime.
+                        Used as your thank-you under reviews that don’t have a custom reply yet. It
+                        won’t appear when there are no reviews, and it won’t duplicate a reply you’ve
+                        already posted on a review. You can update it anytime.
                       </p>
                       <textarea
                         value={getReviewReplyDraft(profileData.reviewReply)}

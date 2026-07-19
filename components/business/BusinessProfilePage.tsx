@@ -31,6 +31,9 @@ import { VerifiedNameTick } from '@/components/business/VerifiedMark';
 import BusinessProfileContactAside from '@/components/business/BusinessProfileContactAside';
 import BusinessProfileOfferBanner from '@/components/business/BusinessProfileOfferBanner';
 import BusinessProfileAboutSection from '@/components/business/BusinessProfileAboutSection';
+import BusinessProfileJobsSection, {
+  type ProfileJob,
+} from '@/components/business/BusinessProfileJobsSection';
 import BusinessProfileReviewCard from '@/components/business/BusinessProfileReviewCard';
 import BusinessProfileReviewItem from '@/components/business/BusinessProfileReviewItem';
 import DistanceBadge from '@/components/business/DistanceBadge';
@@ -67,6 +70,7 @@ import {
   getProfileViewSessionHash,
   shouldRecordProfileViewToday,
 } from '@/lib/profileViews';
+import { getActiveJobsByBusiness } from '@/app/actions/job';
 
 const WEEKDAYS = [
   'Monday',
@@ -78,15 +82,15 @@ const WEEKDAYS = [
   'Sunday',
 ] as const;
 
-const SECTIONS = [
+const BASE_SECTIONS = [
   { id: 'services', label: 'Services' },
-  { id: 'hours', label: 'Hours' },
   { id: 'contact', label: 'Contact' },
+  { id: 'hours', label: 'Hours' },
   { id: 'reviews', label: 'Reviews' },
   { id: 'about', label: 'About' },
 ] as const;
 
-type SectionId = (typeof SECTIONS)[number]['id'];
+type SectionId = (typeof BASE_SECTIONS)[number]['id'] | 'jobs';
 
 type SessionUser = {
   id: string;
@@ -181,6 +185,7 @@ export default function BusinessProfilePage({
   const [categoryBreadcrumb, setCategoryBreadcrumb] = useState<CategoryBreadcrumb | null>(
     initialCategoryBreadcrumb
   );
+  const [jobs, setJobs] = useState<ProfileJob[]>([]);
   const userCoords = useUserCoords();
   const businessId = business?.id ?? slugOrId;
 
@@ -340,10 +345,46 @@ export default function BusinessProfilePage({
   }, [isLoading, business?.id]);
 
   useEffect(() => {
+    if (!business?.id) {
+      setJobs([]);
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadJobs() {
+      const result = await getActiveJobsByBusiness(business!.id);
+      if (cancelled) return;
+      if (result.success && result.jobs) {
+        setJobs(result.jobs as ProfileJob[]);
+      } else {
+        setJobs([]);
+      }
+    }
+
+    void loadJobs();
+    return () => {
+      cancelled = true;
+    };
+  }, [business?.id]);
+
+  useEffect(() => {
     if (!shareMessage) return;
     const timer = window.setTimeout(() => setShareMessage(null), 2400);
     return () => window.clearTimeout(timer);
   }, [shareMessage]);
+
+  const navSections = useMemo(() => {
+    if (jobs.length === 0) return [...BASE_SECTIONS];
+    const sections: { id: SectionId; label: string }[] = [];
+    for (const section of BASE_SECTIONS) {
+      sections.push(section);
+      if (section.id === 'reviews') {
+        sections.push({ id: 'jobs', label: 'Jobs' });
+      }
+    }
+    return sections;
+  }, [jobs.length]);
 
   const scrollToSection = useCallback((sectionId: SectionId) => {
     setActiveSection(sectionId);
@@ -630,7 +671,12 @@ export default function BusinessProfilePage({
               <p className="text-sm font-medium leading-tight text-[#215481]">{business.category}</p>
             )}
 
-            <BusinessProfileHeroBadges category={business.category} />
+            <BusinessProfileHeroBadges
+              category={business.category}
+              hasActiveJobs={jobs.length > 0}
+              jobCount={jobs.length}
+              onJobBadgeClick={() => scrollToSection('jobs')}
+            />
 
             {locationLabel && (
               <p className="flex items-start gap-1.5 text-sm leading-tight text-stone-600">
@@ -713,7 +759,7 @@ export default function BusinessProfilePage({
         </section>
 
         <nav className="sticky top-[calc(4.25rem+2.75rem)] z-30 -mx-4 flex gap-5 overflow-x-auto border-b border-stone-200/80 bg-white/90 px-4 backdrop-blur-md sm:top-[calc(6rem+2.75rem)] sm:-mx-6 sm:px-6">
-          {SECTIONS.map((section) => (
+          {navSections.map((section) => (
             <button
               key={section.id}
               type="button"
@@ -735,7 +781,28 @@ export default function BusinessProfilePage({
               <BusinessProfileServicesSection services={business.services ?? []} />
             </section>
 
-            <section id="hours" className="scroll-mt-40 order-2 border-t border-stone-200/60 pt-5 lg:col-start-1 lg:row-start-3">
+          <section
+            id="contact"
+            className="scroll-mt-40 order-2 border-t border-stone-200/60 pt-5 lg:col-start-2 lg:row-start-1 lg:sticky lg:top-32 lg:self-start lg:border-t-0 lg:pt-0"
+          >
+            <BusinessProfileContactAside
+              contactRevealed={contactRevealed}
+              profileRedirectPath={profileRedirectPath}
+              phoneLink={phoneLink}
+              phone={business.contact}
+              email={business.email}
+              website={business.website}
+              paymentModes={business.paymentModes ?? []}
+              socialLinks={socialLinks}
+              onCall={() => void handleContactAction('call')}
+              onEnquire={() => {
+                if (contactRevealed) void handleContactAction('enquire');
+                else handleRequestContact('enquire');
+              }}
+            />
+          </section>
+
+            <section id="hours" className="scroll-mt-40 order-3 border-t border-stone-200/60 pt-5 lg:col-start-1 lg:row-start-3">
               <h2 className="text-base font-semibold text-[#153551]">Hours</h2>
 
               {business.timings ? (
@@ -781,27 +848,6 @@ export default function BusinessProfilePage({
                 <p className="mt-3 text-sm text-stone-400">Hours not listed.</p>
               )}
             </section>
-
-          <section
-            id="contact"
-            className="scroll-mt-40 order-3 border-t border-stone-200/60 pt-5 lg:col-start-2 lg:row-start-1 lg:sticky lg:top-32 lg:self-start lg:border-t-0 lg:pt-0"
-          >
-            <BusinessProfileContactAside
-              contactRevealed={contactRevealed}
-              profileRedirectPath={profileRedirectPath}
-              phoneLink={phoneLink}
-              phone={business.contact}
-              email={business.email}
-              website={business.website}
-              paymentModes={business.paymentModes ?? []}
-              socialLinks={socialLinks}
-              onCall={() => void handleContactAction('call')}
-              onEnquire={() => {
-                if (contactRevealed) void handleContactAction('enquire');
-                else handleRequestContact('enquire');
-              }}
-            />
-          </section>
 
           <section id="reviews" className="scroll-mt-40 order-4 border-t border-stone-200/60 pt-5 lg:col-start-1 lg:row-start-2">
             <div className="flex items-baseline justify-between gap-3">
@@ -869,23 +915,19 @@ export default function BusinessProfilePage({
                     businessName={business.name}
                     contactRevealed={contactRevealed}
                     profileRedirectPath={profileRedirectPath}
+                    defaultReply={ownerReply?.content}
                   />
                 ))
               )}
             </div>
-
-            {ownerReply && (
-              <div className="mt-5 border-l-2 border-stone-300 pl-4">
-                <p className="text-xs font-medium text-stone-500">{business.name}</p>
-                <p className="mt-1 text-sm text-stone-700">{ownerReply.content}</p>
-              </div>
-            )}
           </section>
 
-          <div className="order-5 lg:col-start-2 lg:row-start-2">
+          <div className="order-5 space-y-5 lg:col-start-2 lg:row-start-2">
+            <BusinessProfileJobsSection jobs={jobs} />
             <BusinessProfileAboutSection
               description={business.description}
               keywords={business.keywords}
+              withTopRule={jobs.length > 0}
             />
           </div>
 

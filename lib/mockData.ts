@@ -40,6 +40,8 @@ export interface Business {
   displayName?: string | null;
   about?: string | null;
   registrationNumber?: string | null;
+  /** True when the merchant has at least one active public job posting. */
+  hasActiveJobs?: boolean;
 }
 
 export interface Category {

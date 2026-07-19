@@ -1599,7 +1599,7 @@ const BUSINESS_FEATURES = [
 
 export default function NativeAppsComingSoon() {
   return (
-    <section className="relative overflow-hidden py-10 sm:px-6 lg:py-16">
+    <section id="native-apps" className="relative scroll-mt-28 overflow-hidden py-10 sm:px-6 lg:py-16">
       <div className="relative w-full sm:mx-auto sm:max-w-7xl">
         <div className="relative overflow-hidden rounded-none border-y border-white/10 bg-[#071222] shadow-[0_32px_80px_rgba(33,84,129,0.35)] sm:rounded-[2.5rem] sm:border">
           <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>

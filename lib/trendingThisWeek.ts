@@ -95,7 +95,7 @@ export function buildTrendingWeekItems(input: {
   categoriesByBusinessId: Map<string, string>;
   limit?: number;
 }): TrendingWeekItem[] {
-  const limit = input.limit ?? 5;
+  const limit = Math.min(4, Math.max(1, input.limit ?? 4));
   const nowMs = Date.now();
   const weekAgoMs = nowMs - 7 * MS_PER_DAY;
   const twoWeeksAgoMs = nowMs - 14 * MS_PER_DAY;
@@ -130,17 +130,18 @@ export function buildTrendingWeekItems(input: {
   }
 
   return [...map.values()]
-    .filter((item) => item.thisWeek > 0 || item.lastWeek > 0)
-    .sort((a, b) => {
-      const scoreA = a.thisWeek * 2 + a.lastWeek;
-      const scoreB = b.thisWeek * 2 + b.lastWeek;
-      if (scoreB !== scoreA) return scoreB - scoreA;
-      return b.thisWeek - a.thisWeek;
-    })
-    .slice(0, limit)
+    .filter((item) => item.thisWeek > 0)
     .map((item) => ({
       label: item.label,
       query: item.query,
+      thisWeek: item.thisWeek,
       trend: computeTrendPercent(item.thisWeek, item.lastWeek),
-    }));
+    }))
+    .filter((item) => item.trend > 0)
+    .sort((a, b) => {
+      if (b.trend !== a.trend) return b.trend - a.trend;
+      return b.thisWeek - a.thisWeek;
+    })
+    .slice(0, limit)
+    .map(({ label, query, trend }) => ({ label, query, trend }));
 }

@@ -670,7 +670,7 @@ export default function MyListingTab({
                   className="mt-4 w-full rounded-lg border border-dashed border-zinc-200 px-4 py-3 text-left text-xs text-zinc-500 hover:border-[#215481]/30 hover:bg-zinc-50"
                 >
                   <span className="font-semibold text-zinc-700">Add a default review reply</span>
-                  <span className="mt-0.5 block">Opens Settings — add a thank-you message shown on your public profile</span>
+                  <span className="mt-0.5 block">Opens Settings — thank-you shown under reviews without a custom reply</span>
                 </button>
               )}
             </section>

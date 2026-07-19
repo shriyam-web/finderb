@@ -7,11 +7,14 @@ const COLLAPSED_LINE_COUNT = 4;
 type BusinessProfileAboutSectionProps = {
   description: string;
   keywords?: string[];
+  /** When true, keep a top rule on desktop (e.g. jobs sit above). */
+  withTopRule?: boolean;
 };
 
 export default function BusinessProfileAboutSection({
   description,
   keywords = [],
+  withTopRule = false,
 }: BusinessProfileAboutSectionProps) {
   const [expanded, setExpanded] = useState(false);
 
@@ -23,7 +26,14 @@ export default function BusinessProfileAboutSection({
   }, [trimmedDescription]);
 
   return (
-    <section id="about" className="scroll-mt-40 border-t border-stone-200/60 pt-5 lg:border-t-0 lg:pt-0">
+    <section
+      id="about"
+      className={
+        withTopRule
+          ? 'scroll-mt-40 border-t border-stone-200/60 pt-5'
+          : 'scroll-mt-40 border-t border-stone-200/60 pt-5 lg:border-t-0 lg:pt-0'
+      }
+    >
       <h2 className="text-base font-semibold text-[#153551]">About</h2>
       {trimmedDescription ? (
         <div className="mt-3">

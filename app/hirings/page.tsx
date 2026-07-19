@@ -153,10 +153,13 @@ export default function HiringsPage() {
                     </div>
                   </div>
                 </div>
-                <button className="flex items-center justify-center gap-3 px-10 py-5 bg-primary text-white rounded-[20px] font-black text-base hover:bg-secondary hover:shadow-xl hover:shadow-secondary/20 transition-all active:scale-95 group/btn">
-                  Apply Now 
+                <Link
+                  href="/contact"
+                  className="flex items-center justify-center gap-3 px-10 py-5 bg-primary text-white rounded-[20px] font-black text-base hover:bg-secondary hover:shadow-xl hover:shadow-secondary/20 transition-all active:scale-95 group/btn"
+                >
+                  Apply Now
                   <ArrowRight size={20} className="group-hover/btn:translate-x-2 transition-transform" />
-                </button>
+                </Link>
               </div>
             ))}
           </div>
