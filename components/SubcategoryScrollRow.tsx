@@ -4,6 +4,7 @@ import { useRef, useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import CategoryIcon from '@/components/CategoryIcon';
+import { categoryBrowseHref } from '@/lib/categoryDisplay';
 
 export interface SubcategoryScrollItem {
   id?: string;
@@ -13,10 +14,14 @@ export interface SubcategoryScrollItem {
 }
 
 interface SubcategoryScrollRowProps {
+  parentId?: string;
   subcategories: SubcategoryScrollItem[];
 }
 
-export default function SubcategoryScrollRow({ subcategories }: SubcategoryScrollRowProps) {
+export default function SubcategoryScrollRow({
+  parentId,
+  subcategories,
+}: SubcategoryScrollRowProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
@@ -75,24 +80,29 @@ export default function SubcategoryScrollRow({ subcategories }: SubcategoryScrol
         className="min-w-0 flex-1 overflow-x-auto scrollbar-hide"
       >
         <div className="flex flex-nowrap gap-3 sm:gap-4 pb-1">
-          {subcategories.map((sub) => (
-            <Link
-              key={sub.id ?? sub.name}
-              href={sub.href}
-              className="group flex w-[4.25rem] sm:w-[5.25rem] shrink-0 flex-col items-center text-center space-y-2"
-            >
-              <CategoryIcon
-                icon={sub.icon}
-                name={sub.name}
-                size={40}
-                className="h-10 w-10 text-slate-500 transition-colors group-hover:text-primary sm:h-11 sm:w-11"
-                imageClassName="object-contain"
-              />
-              <span className="line-clamp-2 w-full text-[10px] font-semibold leading-tight text-gray-600 transition-colors group-hover:text-primary sm:text-[11px]">
-                {sub.name}
-              </span>
-            </Link>
-          ))}
+          {subcategories.map((sub) => {
+            const href =
+              parentId && sub.id ? categoryBrowseHref(parentId, sub.id) : sub.href;
+
+            return (
+              <Link
+                key={sub.id ?? sub.name}
+                href={href}
+                className="group flex w-[4.25rem] sm:w-[5.25rem] shrink-0 flex-col items-center text-center space-y-2"
+              >
+                <CategoryIcon
+                  icon={sub.icon}
+                  name={sub.name}
+                  size={40}
+                  className="h-10 w-10 text-slate-500 transition-colors group-hover:text-primary sm:h-11 sm:w-11"
+                  imageClassName="object-contain"
+                />
+                <span className="line-clamp-2 w-full text-[10px] font-semibold leading-tight text-gray-600 transition-colors group-hover:text-primary sm:text-[11px]">
+                  {sub.name}
+                </span>
+              </Link>
+            );
+          })}
         </div>
       </div>
 

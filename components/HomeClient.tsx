@@ -791,7 +791,10 @@ export default function HomeClient({ initialData }: { initialData: any }) {
                   className="bg-white rounded-[1.5rem] border border-gray-100 shadow-sm p-5 sm:p-7 hover:shadow-md transition-shadow"
                 >
                   <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4">{group.title}</h3>
-                  <SubcategoryScrollRow subcategories={group.subcategories} />
+                  <SubcategoryScrollRow
+                    parentId={group.id}
+                    subcategories={group.subcategories}
+                  />
                 </div>
               ))}
             </div>

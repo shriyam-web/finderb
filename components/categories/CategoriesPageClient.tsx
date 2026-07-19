@@ -23,7 +23,8 @@ import { recordSearchAnalytics } from '@/lib/searchAnalytics';
 import Image from 'next/image';
 import CategoryMerchantList from '@/components/category/CategoryMerchantList';
 import { getBusinessProfilePath } from '@/lib/businessSlug';
-import { categoryHref } from '@/lib/categoryDisplay';
+import { categoryBrowseHref } from '@/lib/categoryDisplay';
+import { getBusinessListingImage } from '@/lib/businessMapping';
 
 interface SubCategory {
   id: string;
@@ -56,6 +57,7 @@ export default function CategoriesPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const categoryIdFromUrl = searchParams.get('id');
+  const subIdFromUrl = searchParams.get('sub');
   const [categories, setCategories] = useState<any[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<any>(null);
   const [subCategories, setSubCategories] = useState<SubCategory[]>([]);
@@ -67,7 +69,15 @@ export default function CategoriesPage() {
 
   const [viewMode, setViewMode] = useState<
     'categories' | 'subcategories' | 'merchants' | 'global-search'
-  >(searchParams.get('search')?.trim() ? 'global-search' : 'categories');
+  >(
+    searchParams.get('search')?.trim()
+      ? 'global-search'
+      : searchParams.get('id') && searchParams.get('sub')
+        ? 'merchants'
+        : searchParams.get('id')
+          ? 'subcategories'
+          : 'categories'
+  );
 
   const [categorySearchHits, setCategorySearchHits] = useState<CategorySearchHit[]>([]);
   const [isSearchCategoriesLoading, setIsSearchCategoriesLoading] = useState(false);
@@ -169,12 +179,12 @@ export default function CategoriesPage() {
       const category = categories.find((cat) => cat.id === categoryIdFromUrl);
       if (category) {
         setSelectedCategory(category);
-        setViewMode('subcategories');
+        setViewMode(subIdFromUrl ? 'merchants' : 'subcategories');
       }
     } else if (!categoryIdFromUrl) {
       setViewMode('categories');
     }
-  }, [urlSearchQ, categoryIdFromUrl, categories, executeSearch]);
+  }, [urlSearchQ, categoryIdFromUrl, subIdFromUrl, categories, executeSearch]);
 
   // Typing in the categories search bar (skip when query matches URL — already loaded)
   useEffect(() => {
@@ -265,10 +275,7 @@ export default function CategoriesPage() {
       setSelectedCategory(parent);
       setViewMode('merchants');
       setSearchQuery('');
-      router.replace(
-        hit.slug ? categoryHref(hit.slug, hit.name) : `/categories?id=${hit.parentId}`,
-        { scroll: false }
-      );
+      router.replace(categoryBrowseHref(hit.parentId, hit.id), { scroll: false });
 
       setIsSubLoading(true);
       const result = await getSubCategories(hit.parentId);
@@ -286,10 +293,7 @@ export default function CategoriesPage() {
     if (top) {
       handleCategoryClick(top);
       setSearchQuery('');
-      router.replace(
-        hit.slug ? categoryHref(hit.slug, hit.name) : `/categories?id=${hit.id}`,
-        { scroll: false }
-      );
+      router.replace(categoryBrowseHref(hit.id), { scroll: false });
     }
   };
 
@@ -302,7 +306,15 @@ export default function CategoriesPage() {
       if (result.success && result.subCategories) {
         setSubCategories(result.subCategories);
         if (result.subCategories.length > 0) {
-          setSelectedSubCategory(result.subCategories[0]);
+          const fromUrl = subIdFromUrl
+            ? result.subCategories.find((s) => s.id === subIdFromUrl)
+            : null;
+          if (fromUrl) {
+            setSelectedSubCategory(fromUrl);
+            setViewMode('merchants');
+          } else {
+            setSelectedSubCategory(result.subCategories[0]);
+          }
         } else {
           setSelectedSubCategory(categoryAsSubCategory(selectedCategory));
           setViewMode('merchants');
@@ -311,16 +323,20 @@ export default function CategoriesPage() {
       setIsSubLoading(false);
     }
     fetchSubs();
-  }, [selectedCategory]);
+  }, [selectedCategory, subIdFromUrl]);
 
   const handleCategoryClick = (cat: any) => {
     setSelectedCategory(cat);
     setViewMode('subcategories');
+    router.replace(categoryBrowseHref(cat.id), { scroll: false });
   };
 
   const handleSubCategoryClick = (sub: any) => {
     setSelectedSubCategory(sub);
     setViewMode('merchants');
+    if (selectedCategory?.id) {
+      router.replace(categoryBrowseHref(selectedCategory.id, sub.id), { scroll: false });
+    }
   };
 
   useLayoutEffect(() => {
@@ -461,7 +477,7 @@ export default function CategoriesPage() {
     >
       <div className="relative h-[88px] w-[88px] shrink-0 overflow-hidden sm:h-24 sm:w-24">
         <Image
-          src={biz.image || biz.profilePictureUrl || 'https://images.unsplash.com/photo-1581244277943-fe4a9c777189?auto=format&fit=crop&q=80&w=400'}
+          src={getBusinessListingImage(biz) || '/fallback.jpg'}
           alt={biz.name}
           fill
           className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
@@ -675,7 +691,14 @@ export default function CategoriesPage() {
                 {subCategories.map((sub) => (
                   <button
                     key={sub.id}
-                    onClick={() => setSelectedSubCategory(sub)}
+                    onClick={() => {
+                      setSelectedSubCategory(sub);
+                      if (selectedCategory?.id) {
+                        router.replace(categoryBrowseHref(selectedCategory.id, sub.id), {
+                          scroll: false,
+                        });
+                      }
+                    }}
                     className={`w-full py-3.5 flex flex-col items-center gap-1.5 transition-all relative group ${
                       selectedSubCategory?.id === sub.id
                         ? 'bg-secondary/5'

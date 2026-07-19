@@ -9,6 +9,7 @@ import { CATEGORY_LISTINGS_PAGE_SIZE } from '@/lib/categoryListings';
 import { setLastSearchQuery } from '@/lib/lastSearchQuery';
 
 import { getBusinessProfilePath } from '@/lib/businessSlug';
+import { getBusinessListingImage } from '@/lib/businessMapping';
 
 type MerchantListing = {
   id: string;
@@ -20,6 +21,7 @@ type MerchantListing = {
   location?: string;
   image?: string;
   profilePictureUrl?: string;
+  images?: string[];
 };
 
 type CategoryMerchantListProps = {
@@ -37,11 +39,7 @@ function MerchantRow({ biz, onNavigate }: { biz: MerchantListing; onNavigate: ()
     >
       <div className="relative h-[88px] w-[88px] shrink-0 overflow-hidden sm:h-24 sm:w-24">
         <Image
-          src={
-            biz.image ||
-            biz.profilePictureUrl ||
-            'https://images.unsplash.com/photo-1581244277943-fe4a9c777189?auto=format&fit=crop&q=80&w=400'
-          }
+          src={getBusinessListingImage(biz) || '/fallback.jpg'}
           alt={biz.name}
           fill
           className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"

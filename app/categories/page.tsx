@@ -6,7 +6,7 @@ import {
 } from '@/lib/categorySeo';
 
 type PageProps = {
-  searchParams: Promise<{ search?: string; id?: string }>;
+  searchParams: Promise<{ search?: string; id?: string; sub?: string }>;
 };
 
 export async function generateMetadata({ searchParams }: PageProps): Promise<Metadata> {

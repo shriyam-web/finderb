@@ -14,6 +14,37 @@ function parseBusinessServicesFromRecord(business: {
   return parseBusinessServices(business.serviceCategory);
 }
 
+function firstNonEmptyUrl(...candidates: unknown[]): string | undefined {
+  for (const candidate of candidates) {
+    if (typeof candidate !== 'string') continue;
+    const trimmed = candidate.trim();
+    if (trimmed) return trimmed;
+  }
+  return undefined;
+}
+
+function firstGalleryImage(images: unknown): string | undefined {
+  if (!Array.isArray(images)) return undefined;
+  for (const item of images) {
+    const url = firstNonEmptyUrl(item);
+    if (url) return url;
+  }
+  return undefined;
+}
+
+/** Best photo for cards/lists: profile pic, then first gallery image. */
+export function getBusinessListingImage(business: {
+  profilePictureUrl?: string | null;
+  image?: string | null;
+  images?: unknown;
+}): string | undefined {
+  return firstNonEmptyUrl(
+    business.profilePictureUrl,
+    business.image,
+    firstGalleryImage(business.images)
+  );
+}
+
 export function mapBusinessRecord(business: Record<string, unknown>) {
   const {
     password: _password,
@@ -34,6 +65,10 @@ export function mapBusinessRecord(business: Record<string, unknown>) {
   const publicName =
     formattedDisplayName || formattedBusinessName || formatMerchantName('Business') || 'Business';
 
+  const galleryImages = Array.isArray(business.images) ? business.images : [];
+  const profilePictureUrl = firstNonEmptyUrl(safeBusiness.profilePictureUrl);
+  const listingImage = profilePictureUrl || firstGalleryImage(galleryImages);
+
   return {
     ...safeBusiness,
     id: safeBusiness.id as string,
@@ -52,8 +87,8 @@ export function mapBusinessRecord(business: Record<string, unknown>) {
     mobile: (safeBusiness.mobile as string) || '',
     serviceCategory: (safeBusiness.serviceCategory as string | null) ?? null,
     profileQrLink: (safeBusiness.profileQrLink as string | null) ?? null,
-    image: (safeBusiness.profilePictureUrl as string) || undefined,
-    profilePictureUrl: (safeBusiness.profilePictureUrl as string) || undefined,
+    image: listingImage,
+    profilePictureUrl,
     priceRange: `${getPlanDisplayName(
       safeBusiness.selectedPlan as string | undefined,
       safeBusiness.billingCycle as string | undefined,
@@ -81,7 +116,7 @@ export function mapBusinessRecord(business: Record<string, unknown>) {
       business.workEmail as string | null | undefined,
     ),
     businessAddress: (business.businessAddress as string) || undefined,
-    images: Array.isArray(business.images) ? business.images : [],
+    images: galleryImages,
     latitude: parseCoordinate(business.latitude),
     longitude: parseCoordinate(business.longitude),
     hasVerifiedBadge: hasPublicTrustBadge({

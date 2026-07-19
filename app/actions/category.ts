@@ -2,7 +2,7 @@
 
 import { createClient } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';
-import { categoryHref, dbBanner, dbSymbol } from '@/lib/categoryDisplay';
+import { categoryBrowseHref, categoryHref, dbBanner, dbSymbol } from '@/lib/categoryDisplay';
 import {
   escapeIlikePattern,
   getSearchTermsForQuery,
@@ -107,14 +107,17 @@ export async function getSubCategories(parentId: string) {
 /** Only show parent groups with more than one active subcategory. */
 const MIN_SUBCATEGORIES_PER_GROUP = 2;
 
-function mapSubcategory(child: {
-  id: string;
-  name: string;
-  slug: string | null;
-  symbol: string | null;
-  banner: string | null;
-  items_count: number | null;
-}) {
+function mapSubcategory(
+  child: {
+    id: string;
+    name: string;
+    slug: string | null;
+    symbol: string | null;
+    banner: string | null;
+    items_count: number | null;
+  },
+  parentId: string
+) {
   return {
     id: child.id,
     name: child.name,
@@ -122,7 +125,7 @@ function mapSubcategory(child: {
     icon: dbSymbol(child.symbol),
     image: dbBanner(child.banner),
     businessCount: child.items_count || 0,
-    href: categoryHref(child.slug, child.name),
+    href: categoryBrowseHref(parentId, child.id),
   };
 }
 
@@ -172,7 +175,7 @@ export async function getFeaturedGroups() {
           title: parent.name,
           slug: parent.slug,
           icon: dbSymbol(parent.symbol),
-          subcategories: subs.map(mapSubcategory),
+          subcategories: subs.map((child) => mapSubcategory(child, parent.id)),
         };
       })
       .filter((g): g is NonNullable<typeof g> => g !== null);

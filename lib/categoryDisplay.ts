@@ -18,7 +18,12 @@ export function categoryHref(slug: string | null | undefined, name: string): str
   return `/categories/${s}`;
 }
 
-/** Opens the categories browse tab with a top-level category pre-selected. */
-export function categoryBrowseHref(categoryId: string): string {
-  return `/categories?id=${encodeURIComponent(categoryId)}`;
+/**
+ * Opens the categories browse UI with a top-level category pre-selected,
+ * and optionally a subcategory already chosen (merchants view).
+ */
+export function categoryBrowseHref(categoryId: string, subcategoryId?: string): string {
+  const params = new URLSearchParams({ id: categoryId });
+  if (subcategoryId) params.set('sub', subcategoryId);
+  return `/categories?${params.toString()}`;
 }

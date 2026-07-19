@@ -7,6 +7,7 @@ import { Business } from '@/lib/mockData';
 import { getBusinessOpenStatus } from '@/lib/businessHours';
 import { getBusinessProfilePath } from '@/lib/businessSlug';
 import { VerifiedNameTick } from '@/components/business/VerifiedMark';
+import { getBusinessListingImage } from '@/lib/businessMapping';
 
 interface BusinessCardProps {
   business: Business;
@@ -51,7 +52,7 @@ export default function BusinessCard({
       >
         <div className="relative h-28 w-full shrink-0 bg-stone-100">
           <Image
-            src={business.profilePictureUrl || business.image || '/fallback.jpg'}
+            src={getBusinessListingImage(business) || '/fallback.jpg'}
             alt={business.name || 'Business Image'}
             fill
             className="object-cover transition-transform duration-300 group-hover:scale-[1.02]"
@@ -115,7 +116,7 @@ export default function BusinessCard({
         }`}
       >
         <Image
-          src={business.profilePictureUrl || business.image || '/fallback.jpg'}
+          src={getBusinessListingImage(business) || '/fallback.jpg'}
           alt={business.name || 'Business Image'}
           fill
           className="object-cover transition-transform duration-1000 group-hover:scale-105"

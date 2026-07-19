@@ -3,7 +3,7 @@ import { revalidatePath, updateTag } from 'next/cache';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { sortBusinessesByProfileCompleteness } from '@/lib/businessProfileCompleteness';
 import { mapBusinessRecord } from '@/lib/businessMapping';
-import { categoryHref, dbBanner, dbSymbol } from '@/lib/categoryDisplay';
+import { categoryBrowseHref, dbBanner, dbSymbol } from '@/lib/categoryDisplay';
 import { stripHtml } from '@/lib/stripHtml';
 import { mapTouristPlaceRow } from '@/lib/touristPlaceImage';
 import { getPublicSupabase } from '@/lib/supabase/public';
@@ -289,7 +289,7 @@ async function fetchFeaturedGroups(supabase: SupabaseClient) {
             icon: dbSymbol(child.symbol) ?? '',
             image: dbBanner(child.banner) ?? '',
             businessCount: 0,
-            href: categoryHref(child.slug, child.name),
+            href: categoryBrowseHref(parent.id, child.id),
           })),
           parent.name,
           businessLabels
