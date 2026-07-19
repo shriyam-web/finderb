@@ -72,6 +72,8 @@ import {
   isValidIndianMobileDigits,
 } from '@/lib/indianPhone';
 import { dashboard } from './dashboard-ui';
+import ListingHiddenNoPhotosBanner from './ListingHiddenNoPhotosBanner';
+import { businessHasPublicPhoto } from '@/lib/businessMapping';
 import ChangePasswordPanel from './ChangePasswordPanel';
 
 const discountOptions = [
@@ -81,7 +83,6 @@ const discountOptions = [
   '30% - 40% OFF',
   'Up to 50% OFF',
   'Special Festive Discount',
-  'Seasonal Offer',
 ];
 
 const NO_DISCOUNT = 'No Discount';
@@ -281,7 +282,9 @@ export default function SettingsTab({
   }, [focusField, onFocusHandled]);
 
   const checkIsMissing = (field: FieldDef) => {
-    if (field.key === 'media') return images.length === 0 || !profilePictureUrl;
+    if (field.key === 'media') {
+      return !businessHasPublicPhoto({ profilePictureUrl, images });
+    }
     if (field.key === 'paymentModes') {
       return !profileData.paymentModes || profileData.paymentModes.length === 0;
     }
@@ -365,7 +368,7 @@ export default function SettingsTab({
     }
     if (field.key === 'discountRange') {
       const value = profileData.discountRange;
-      if (!value || value === NO_DISCOUNT) return NO_DISCOUNT;
+      if (!value || value === NO_DISCOUNT || value === 'Seasonal Offer') return NO_DISCOUNT;
       return value;
     }
     if (field.key === 'mapLocation') {
@@ -779,7 +782,13 @@ export default function SettingsTab({
                   ) : activeModal === 'discountRange' ? (
                     <div className="space-y-3">
                       <select
-                        value={profileData.discountRange || NO_DISCOUNT}
+                        value={
+                          !profileData.discountRange ||
+                          profileData.discountRange === NO_DISCOUNT ||
+                          profileData.discountRange === 'Seasonal Offer'
+                            ? NO_DISCOUNT
+                            : profileData.discountRange
+                        }
                         onChange={(e) => updateField('discountRange', e.target.value)}
                         className="w-full rounded-lg border border-zinc-200 px-3 py-2.5 text-sm outline-none focus:border-[#215481]"
                       >
@@ -1132,6 +1141,10 @@ export default function SettingsTab({
           <HiOutlineShieldCheck size={18} />
           {successMessage}
         </div>
+      )}
+
+      {!businessHasPublicPhoto({ profilePictureUrl, images }) && (
+        <ListingHiddenNoPhotosBanner onAddPhotos={() => setActiveModal('media')} />
       )}
 
       {missingFields.length > 0 && (

@@ -45,6 +45,25 @@ export function getBusinessListingImage(business: {
   );
 }
 
+/** Public listings require at least one usable photo (profile or gallery). */
+export function businessHasPublicPhoto(business: {
+  profilePictureUrl?: string | null;
+  image?: string | null;
+  images?: unknown;
+}): boolean {
+  return Boolean(getBusinessListingImage(business));
+}
+
+export function filterBusinessesWithPublicPhotos<
+  T extends {
+    profilePictureUrl?: string | null;
+    image?: string | null;
+    images?: unknown;
+  },
+>(businesses: T[]): T[] {
+  return businesses.filter(businessHasPublicPhoto);
+}
+
 export function mapBusinessRecord(business: Record<string, unknown>) {
   const {
     password: _password,

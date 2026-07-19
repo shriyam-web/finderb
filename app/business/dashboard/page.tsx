@@ -42,9 +42,11 @@ import SubscriptionExpiryAlert from './components/SubscriptionExpiryAlert';
 import ReviewsTab from './components/ReviewsTab';
 import { getMerchantNotifications, markMerchantNotificationsRead } from '@/app/actions/merchantNotifications';
 import { getMerchantSubscriptionStatus } from '@/lib/subscription/merchantSubscription';
+import { businessHasPublicPhoto } from '@/lib/businessMapping';
 import { CldUploadWidget } from 'next-cloudinary';
 import { createClient } from '@/utils/supabase/client';
 import { buildGoogleMapsUrl } from '@/lib/googleMapsLocation';
+import ListingHiddenNoPhotosBanner from './components/ListingHiddenNoPhotosBanner';
 
 function DashboardContent() {
   const router = useRouter();
@@ -92,7 +94,6 @@ function DashboardContent() {
     '30% - 40% OFF',
     'Up to 50% OFF',
     'Special Festive Discount',
-    'Seasonal Offer'
   ];
   
   // New Profile Fields State
@@ -123,7 +124,10 @@ function DashboardContent() {
     keywords: business?.keywords || [],
     email: business?.email || '',
     timings: business?.timings || {},
-    discountRange: business?.discountRange || '',
+    discountRange:
+      !business?.discountRange || business?.discountRange === 'Seasonal Offer'
+        ? ''
+        : business.discountRange,
     serviceCategory: business?.serviceCategory || '',
     paymentModes: business?.paymentModes || [],
     profileQrLink: business?.profileQrLink || '',
@@ -186,7 +190,10 @@ function DashboardContent() {
           keywords: resBusiness.keywords || [],
           email: resBusiness.email || '',
           timings: resBusiness.timings || {},
-          discountRange: resBusiness.discountRange || '',
+          discountRange:
+            !resBusiness.discountRange || resBusiness.discountRange === 'Seasonal Offer'
+              ? 'No Discount'
+              : resBusiness.discountRange,
           serviceCategory: resBusiness.serviceCategory || '',
           paymentModes: resBusiness.paymentModes || [],
           profileQrLink: resBusiness.profileQrLink || '',
@@ -457,10 +464,22 @@ function DashboardContent() {
   });
   const listingStatus = String(business?.status || 'Pending');
   const isListingLiveOnPlatform = isListingLive(listingStatus);
+  const hasPublicPhotos = businessHasPublicPhoto({
+    profilePictureUrl,
+    images,
+  });
 
   const { percentage: completionPercent, missingFields: profileMissingFields } =
-    getProfileCompletion(business);
-  const listingMissingFields = getAccountMissingFields(business);
+    getProfileCompletion({
+      ...(business || {}),
+      profilePictureUrl,
+      images,
+    });
+  const listingMissingFields = getAccountMissingFields({
+    ...(business || {}),
+    profilePictureUrl,
+    images,
+  });
   const accountHealth = getAccountHealth({
     paymentStatus: business?.paymentStatus,
     kycStatus: business?.kycStatus,
@@ -546,6 +565,12 @@ function DashboardContent() {
           </div>
         )}
 
+        {!hasPublicPhotos && (
+          <div className="mb-6">
+            <ListingHiddenNoPhotosBanner onAddPhotos={() => openSettingsField('media')} />
+          </div>
+        )}
+
         {activeTab === 'overview' && (
           <DashboardTabShell>
             <DashboardKpiRow kpis={kpis} />
@@ -585,6 +610,7 @@ function DashboardContent() {
                   email={business?.email || business?.workEmail}
                   mobile={business?.mobile || business?.publicPhone}
                   missingFields={profileMissingFields}
+                  hasPublicPhotos={hasPublicPhotos}
                   paymentError={paymentError}
                   onPaymentError={setPaymentError}
                   onOpenSettingsField={openSettingsField}

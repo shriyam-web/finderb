@@ -23,18 +23,22 @@ const OFFER_COPY: Record<string, { headline: string; detail: (name: string) => s
     headline: 'Festive discount',
     detail: (name) => `Festive pricing is on. Call ${name} to know what’s covered.`,
   },
-  'Seasonal Offer': {
-    headline: 'Seasonal offer',
-    detail: (name) => `A seasonal deal is running. Call or message ${name} for what’s on offer.`,
-  },
 };
+
+const REMOVED_DISCOUNT_LABELS = new Set(['Seasonal Offer', 'Seasonal deal']);
+
+function normalizeDiscountLabel(discountRange: string | null | undefined): string | null {
+  const label = discountRange?.trim();
+  if (!label || label === 'No Discount' || REMOVED_DISCOUNT_LABELS.has(label)) return null;
+  return label;
+}
 
 export function getDiscountOfferDisplay(
   discountRange: string | null | undefined,
   businessName = 'this business'
 ): { headline: string; detail: string; label: string } | null {
-  const label = discountRange?.trim();
-  if (!label || label === 'No Discount') return null;
+  const label = normalizeDiscountLabel(discountRange);
+  if (!label) return null;
 
   const copy = OFFER_COPY[label];
   if (copy) {
@@ -56,8 +60,8 @@ export function getDiscountOfferDisplay(
 export function getDiscountOfferBadgeLabel(
   discountRange: string | null | undefined
 ): string | null {
-  const label = discountRange?.trim();
-  if (!label || label === 'No Discount') return null;
+  const label = normalizeDiscountLabel(discountRange);
+  if (!label) return null;
   if (label.includes('%')) return label;
   if (label === 'Special Festive Discount') return 'Festive Discount';
   return label;
@@ -74,7 +78,6 @@ export function getDiscountOfferCardLabel(
       .replace(/\s*-\s*/g, '–')
       .replace(/\s*OFF$/i, ' off');
   }
-  if (label === 'Seasonal Offer') return 'Seasonal deal';
   if (label === 'Festive Discount') return 'Festive deal';
   return label;
 }
@@ -86,7 +89,7 @@ export function getDiscountVisibilityImpact(discountRange: string | null | undef
   title: string;
   message: string;
 } {
-  const label = discountRange?.trim() || 'No Discount';
+  const label = normalizeDiscountLabel(discountRange) || 'No Discount';
 
   if (!label || label === 'No Discount') {
     return {
@@ -106,7 +109,7 @@ export function getDiscountVisibilityImpact(discountRange: string | null | undef
     };
   }
 
-  if (label === '10% - 20% OFF' || label === 'Seasonal Offer') {
+  if (label === '10% - 20% OFF') {
     return {
       tier: 'medium',
       title: 'Better discoverability',

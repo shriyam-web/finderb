@@ -172,8 +172,11 @@ export default function MyListingTab({
   ].filter((item) => Boolean(item.href));
 
   const checklist = [
-    { label: 'Cover photo', done: images.length > 0, key: 'photos' },
-    { label: 'Logo', done: Boolean(profilePictureUrl), key: 'logo' },
+    {
+      label: 'At least 1 photo',
+      done: Boolean(profilePictureUrl?.trim()) || images.some((url) => Boolean(url?.trim())),
+      key: 'media',
+    },
     { label: 'About text', done: Boolean(profileData.about?.trim()), key: 'about' },
     { label: 'Phone number', done: Boolean(profileData.publicPhone), key: 'publicPhone' },
     {
@@ -243,10 +246,16 @@ export default function MyListingTab({
             </div>
             <span className="text-xs font-medium text-zinc-600">Complete</span>
           </div>
-          <Link href={businessProfilePath ?? '#'} target="_blank" className={dashboard.btnSecondary}>
-            View live
-            <HiOutlineArrowTopRightOnSquare size={14} />
-          </Link>
+          {Boolean(profilePictureUrl?.trim()) || images.some((url) => Boolean(url?.trim())) ? (
+            <Link href={businessProfilePath ?? '#'} target="_blank" className={dashboard.btnSecondary}>
+              View live
+              <HiOutlineArrowTopRightOnSquare size={14} />
+            </Link>
+          ) : (
+            <span className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-medium text-rose-800">
+              Hidden until photos added
+            </span>
+          )}
           <button type="button" onClick={onEditProfile} className={dashboard.btnPrimary}>
             <HiOutlinePencilSquare size={14} />
             Edit listing

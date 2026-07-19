@@ -13,7 +13,7 @@ import {
   LOGIN_PATHS,
   lookupEmailAccountTypes,
 } from '@/lib/emailAccountLookup';
-import { mapBusinessRecord, mapOwnedBusinessRecord } from '@/lib/businessMapping';
+import { mapBusinessRecord, mapOwnedBusinessRecord, businessHasPublicPhoto, filterBusinessesWithPublicPhotos } from '@/lib/businessMapping';
 import { revalidateBusinessProfilePaths } from '@/lib/businessRevalidation';
 import { ensureBusinessSlug } from '@/lib/businessSlug.server';
 import { isLegacyBusinessId, resolveBusinessSlug } from '@/lib/businessSlug';
@@ -416,6 +416,14 @@ export async function getBusinessBySlugOrId(slugOrId: string) {
     }
 
     const mapped = mapBusinessRecord({ ...business, slug });
+    if (!businessHasPublicPhoto(mapped)) {
+      return {
+        success: false,
+        error: 'Business listing is hidden until photos are added',
+        reason: 'not_found' as const,
+      };
+    }
+
     const publicBusiness = redactPublicBusinessFields(mapped);
     return { success: true, business: publicBusiness, reason: 'active' as const };
   } catch (error: any) {
@@ -467,17 +475,19 @@ export async function getRelatedBusinessesForProfile(
     const { data: categoryRows, error } = await categoryQuery;
     if (error) throw error;
 
-    const sameCategory = (categoryRows ?? [])
-      .map((row) => mapBusinessRecord(row))
-      .filter((row) => row.id !== business.id)
-      .slice(0, categoryLimit);
+    const sameCategory = filterBusinessesWithPublicPhotos(
+      (categoryRows ?? [])
+        .map((row) => mapBusinessRecord(row))
+        .filter((row) => row.id !== business.id)
+    ).slice(0, categoryLimit);
 
-    const sameCity = cityBusinesses
-      .map((row) => mapBusinessRecord(row))
-      .filter(
-        (row) => row.id !== business.id && !sameCategory.some((item) => item.id === row.id)
-      )
-      .slice(0, cityLimit);
+    const sameCity = filterBusinessesWithPublicPhotos(
+      cityBusinesses
+        .map((row) => mapBusinessRecord(row))
+        .filter(
+          (row) => row.id !== business.id && !sameCategory.some((item) => item.id === row.id)
+        )
+    ).slice(0, cityLimit);
 
     return { success: true as const, sameCategory, sameCity };
   } catch (error: any) {
@@ -790,12 +800,14 @@ export async function getBusinessSummariesByIds(ids: string[]) {
     const supabase = createClient(await cookies());
     const { data, error } = await supabase
       .from('Business')
-      .select('id, businessName, displayName, slug, city')
+      .select('id, businessName, displayName, slug, city, profilePictureUrl, images')
       .in('id', uniqueIds);
 
     if (error) throw error;
 
-    const businesses = (data ?? []).map((row) => mapBusinessRecord(row));
+    const businesses = filterBusinessesWithPublicPhotos(
+      (data ?? []).map((row) => mapBusinessRecord(row))
+    );
     return { success: true, businesses };
   } catch (error: any) {
     const errorMessage = handleError(error, 'Get Business Summaries');
@@ -818,7 +830,9 @@ export async function getFeaturedBusinesses() {
       throw error;
     }
 
-    const mappedBusinesses = businesses.map((b: Record<string, unknown>) => mapBusinessRecord(b));
+    const mappedBusinesses = filterBusinessesWithPublicPhotos(
+      businesses.map((b: Record<string, unknown>) => mapBusinessRecord(b))
+    );
     const rankedBusinesses = sortBusinessesByProfileCompleteness(mappedBusinesses).slice(0, 12);
 
     const ids = rankedBusinesses.map((business) => business.id);
@@ -860,8 +874,8 @@ export async function getBusinessesByCategoryAndCity(
       Math.max(options?.pageSize ?? CATEGORY_LISTINGS_PAGE_SIZE, 1),
       CATEGORY_LISTINGS_MAX_PAGE_SIZE
     );
-    const from = (page - 1) * pageSize;
-    const to = from + pageSize - 1;
+    const needed = page * pageSize;
+    const fetchLimit = Math.min(Math.max(needed * 4, pageSize * 4), 500);
 
     const supabase = createClient(await cookies());
     const escapedCategory = escapeIlikePattern(categorySlug.replace(/-/g, ' '));
@@ -874,15 +888,22 @@ export async function getBusinessesByCategoryAndCity(
       .ilike('category', `%${escapedCategory}%`)
       .or(`city.ilike.%${escapedCity}%,location.ilike.%${escapedCity}%`)
       .order('createdAt', { ascending: false })
-      .range(from, to);
+      .range(0, fetchLimit - 1);
 
     if (error) throw error;
 
-    const mappedBusinesses = (businesses ?? [])
-      .map((b: Record<string, unknown>) => mapBusinessRecord(b))
-      .filter((b) => b.id);
+    const withPhotos = filterBusinessesWithPublicPhotos(
+      (businesses ?? []).map((b: Record<string, unknown>) => mapBusinessRecord(b)).filter((b) => b.id)
+    );
+    const mappedBusinesses = withPhotos.slice((page - 1) * pageSize, page * pageSize);
 
-    const total = count ?? mappedBusinesses.length;
+    // Approximate public total from the photo ratio in the fetched window.
+    const rawFetched = businesses?.length ?? 0;
+    const photoRatio = rawFetched > 0 ? withPhotos.length / rawFetched : 1;
+    const total = Math.max(
+      mappedBusinesses.length,
+      Math.round((count ?? withPhotos.length) * photoRatio)
+    );
 
     return {
       success: true as const,
@@ -890,7 +911,7 @@ export async function getBusinessesByCategoryAndCity(
       total,
       page,
       pageSize,
-      hasMore: from + mappedBusinesses.length < total,
+      hasMore: withPhotos.length > page * pageSize || fetchLimit < (count ?? 0),
     };
   } catch (error: any) {
     const errorMessage = handleError(error, 'Get Businesses By Category And City');
@@ -908,8 +929,8 @@ export async function getBusinessesByCategory(
       Math.max(options?.pageSize ?? CATEGORY_LISTINGS_PAGE_SIZE, 1),
       CATEGORY_LISTINGS_MAX_PAGE_SIZE
     );
-    const from = (page - 1) * pageSize;
-    const to = from + pageSize - 1;
+    const needed = page * pageSize;
+    const fetchLimit = Math.min(Math.max(needed * 4, pageSize * 4), 500);
 
     const supabase = createClient(await cookies());
 
@@ -924,17 +945,23 @@ export async function getBusinessesByCategory(
       query = query.ilike('category', `%${escapedCategory}%`);
     }
 
-    const { data: businesses, error, count } = await query.range(from, to);
+    const { data: businesses, error, count } = await query.range(0, fetchLimit - 1);
 
     if (error) {
       throw error;
     }
 
-    const mappedBusinesses = (businesses ?? [])
-      .map((b: Record<string, unknown>) => mapBusinessRecord(b))
-      .filter((b) => b.id);
+    const withPhotos = filterBusinessesWithPublicPhotos(
+      (businesses ?? []).map((b: Record<string, unknown>) => mapBusinessRecord(b)).filter((b) => b.id)
+    );
+    const mappedBusinesses = withPhotos.slice((page - 1) * pageSize, page * pageSize);
 
-    const total = count ?? mappedBusinesses.length;
+    const rawFetched = businesses?.length ?? 0;
+    const photoRatio = rawFetched > 0 ? withPhotos.length / rawFetched : 1;
+    const total = Math.max(
+      mappedBusinesses.length,
+      Math.round((count ?? withPhotos.length) * photoRatio)
+    );
 
     return {
       success: true,
@@ -942,7 +969,7 @@ export async function getBusinessesByCategory(
       total,
       page,
       pageSize,
-      hasMore: from + mappedBusinesses.length < total,
+      hasMore: withPhotos.length > page * pageSize || fetchLimit < (count ?? 0),
     };
   } catch (error: any) {
     const errorMessage = handleError(error, 'Get Businesses By Category');

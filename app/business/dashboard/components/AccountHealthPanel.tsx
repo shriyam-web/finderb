@@ -26,6 +26,7 @@ type AccountHealthPanelProps = {
   email?: string;
   mobile?: string;
   missingFields: MissingProfileField[];
+  hasPublicPhotos?: boolean;
   paymentError?: string | null;
   onPaymentError: (msg: string) => void;
   onOpenSettingsField: (settingsKey: string) => void;
@@ -66,6 +67,7 @@ export default function AccountHealthPanel({
   email,
   mobile,
   missingFields,
+  hasPublicPhotos = true,
   paymentError,
   onPaymentError,
   onOpenSettingsField,
@@ -161,7 +163,7 @@ export default function AccountHealthPanel({
         </div>
       )}
 
-      {businessProfilePath && (
+      {businessProfilePath && hasPublicPhotos ? (
         <p className="mt-4 border-t border-zinc-100 pt-4">
           <Link
             href={businessProfilePath}
@@ -171,6 +173,10 @@ export default function AccountHealthPanel({
           >
             View live public profile →
           </Link>
+        </p>
+      ) : (
+        <p className="mt-4 border-t border-zinc-100 pt-4 text-sm text-rose-700">
+          Public profile is hidden until you add at least one photo.
         </p>
       )}
     </div>

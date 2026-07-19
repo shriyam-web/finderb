@@ -1,4 +1,5 @@
 import type { Business } from '@/lib/mockData';
+import { businessHasPublicPhoto } from '@/lib/businessMapping';
 import { getBusinessProfileCompletenessScore } from '@/lib/businessProfileCompleteness';
 
 /** Minimum completeness score required for Google indexing. */
@@ -38,6 +39,15 @@ export function getBusinessIndexDecision(business: BusinessIndexRecord): Busines
     };
   }
 
+  if (!businessHasPublicPhoto(business)) {
+    return {
+      index: false,
+      score,
+      reason: 'Missing photos — listing is hidden from public',
+      tier: 'noindex-thin',
+    };
+  }
+
   const paymentStatus = (business.paymentStatus || '').toLowerCase();
   if (paymentStatus === 'draft') {
     return {
@@ -56,7 +66,7 @@ export function getBusinessIndexDecision(business: BusinessIndexRecord): Busines
     hasMeaningfulText(business.city, 2);
   const hasDescription =
     hasMeaningfulText(business.about, 20) || hasMeaningfulText(business.description, 20);
-  const hasVisual = Boolean(business.profilePictureUrl || business.image);
+  const hasVisual = businessHasPublicPhoto(business);
   const hasServices = (business.services?.length ?? 0) > 0;
 
   if (!hasIdentity || !hasContactOrLocation) {

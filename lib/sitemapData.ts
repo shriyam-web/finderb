@@ -5,6 +5,7 @@ import { revalidateHomePage } from '@/lib/homePageData';
 import { SITE_ORIGIN } from '@/lib/siteSeo';
 import { slugifyCity } from '@/lib/categoryCity';
 import { getBusinessProfilePath } from '@/lib/businessSlug';
+import { businessHasPublicPhoto } from '@/lib/businessMapping';
 import { getTouristPlacePath } from '@/lib/touristPlaceSlug';
 
 export const SITEMAP_BASE_URL = SITE_ORIGIN;
@@ -87,7 +88,7 @@ async function fetchActiveBusinesses() {
   while (true) {
     const { data, error } = await supabase
       .from('Business')
-      .select('id, slug, businessName, city, updatedAt')
+      .select('id, slug, businessName, city, updatedAt, profilePictureUrl, images')
       .eq('status', 'Active')
       .order('updatedAt', { ascending: false })
       .range(from, from + pageSize - 1);
@@ -95,7 +96,16 @@ async function fetchActiveBusinesses() {
     if (error) throw error;
     if (!data?.length) break;
 
-    businesses.push(...data);
+    for (const row of data) {
+      if (!businessHasPublicPhoto(row)) continue;
+      businesses.push({
+        id: row.id,
+        slug: row.slug,
+        businessName: row.businessName,
+        city: row.city,
+        updatedAt: row.updatedAt,
+      });
+    }
     if (data.length < pageSize) break;
     from += pageSize;
   }
@@ -116,7 +126,7 @@ async function fetchCategoryCityEntries(): Promise<SitemapEntry[]> {
   while (true) {
     const { data, error } = await supabase
       .from('Business')
-      .select('category, city, updatedAt')
+      .select('category, city, updatedAt, profilePictureUrl, images')
       .eq('status', 'Active')
       .not('city', 'is', null)
       .order('updatedAt', { ascending: false })
@@ -126,6 +136,7 @@ async function fetchCategoryCityEntries(): Promise<SitemapEntry[]> {
     if (!data?.length) break;
 
     for (const row of data) {
+      if (!businessHasPublicPhoto(row)) continue;
       const category = row.category?.trim();
       const city = row.city?.trim();
       if (!category || !city) continue;
@@ -264,7 +275,7 @@ export async function getSitemapSections(): Promise<SitemapSection[]> {
         .order('name', { ascending: true }),
       supabase
         .from('Business')
-        .select('id, slug, businessName, city')
+        .select('id, slug, businessName, city, profilePictureUrl, images')
         .eq('status', 'Active')
         .order('updatedAt', { ascending: false })
         .limit(200),
@@ -282,10 +293,14 @@ export async function getSitemapSections(): Promise<SitemapSection[]> {
       });
     }
 
-    if (businesses.data?.length) {
+    const publicBusinesses = (businesses.data ?? []).filter((business) =>
+      businessHasPublicPhoto(business)
+    );
+
+    if (publicBusinesses.length) {
       sections.push({
         title: 'Business listings',
-        links: businesses.data.map((business) => ({
+        links: publicBusinesses.map((business) => ({
           label: business.businessName,
           href: getBusinessProfilePath(business),
         })),

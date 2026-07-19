@@ -69,7 +69,13 @@ export function getBusinessProfileCompletenessScore(business: Business): number 
   const paymentCount = business.paymentModes?.length ?? 0;
   if (paymentCount > 0) score += 3;
 
-  if (business.discountRange && business.discountRange !== 'No Discount') score += 2;
+  if (
+    business.discountRange &&
+    business.discountRange !== 'No Discount' &&
+    business.discountRange !== 'Seasonal Offer'
+  ) {
+    score += 2;
+  }
   if (hasReviews(business.review)) score += 6;
 
   return score;

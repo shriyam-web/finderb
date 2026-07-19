@@ -5,6 +5,7 @@ import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import { buildJobApplicationMessage } from '@/lib/jobLeadMessage';
 import { formatMerchantName } from '@/lib/formatMerchantName';
+import { businessHasPublicPhoto } from '@/lib/businessMapping';
 import { assertBusinessSession } from '@/lib/security/session';
 import { enforceRateLimit } from '@/lib/security/enforceRateLimit.server';
 import { revalidateHomePage } from '@/lib/homePageData';
@@ -186,6 +187,7 @@ export async function getAllJobs() {
           businessName,
           city,
           profilePictureUrl,
+          images,
           isVerified,
           latitude,
           longitude
@@ -196,17 +198,21 @@ export async function getAllJobs() {
 
     if (error) throw error;
 
-    const normalizedJobs = (jobs ?? []).map((job) => {
-      if (!job.business || typeof job.business !== 'object') return job;
-      const business = job.business as { businessName?: string | null };
-      return {
-        ...job,
-        business: {
-          ...job.business,
-          businessName: formatMerchantName(business.businessName) || business.businessName,
-        },
-      };
-    });
+    const normalizedJobs = (jobs ?? [])
+      .filter((job) => {
+        if (!job.business || typeof job.business !== 'object') return false;
+        return businessHasPublicPhoto(job.business as Record<string, unknown>);
+      })
+      .map((job) => {
+        const business = job.business as { businessName?: string | null };
+        return {
+          ...job,
+          business: {
+            ...job.business,
+            businessName: formatMerchantName(business.businessName) || business.businessName,
+          },
+        };
+      });
 
     return { success: true, jobs: normalizedJobs };
   } catch (error: unknown) {

@@ -1,3 +1,4 @@
+import { businessHasPublicPhoto } from '@/lib/businessMapping';
 import { isValidIndianMobileDigits } from '@/lib/indianPhone';
 import { isKycInReview, isKycVerified } from '@/lib/businessVerification';
 
@@ -37,7 +38,7 @@ const COMPLETION_FIELDS: CompletionField[] = [
   { key: 'state', label: 'State', settingsKey: 'state', action: 'settings' },
   { key: 'country', label: 'Country', settingsKey: 'country', action: 'settings' },
   { key: 'about', label: 'About Business', settingsKey: 'about', action: 'settings' },
-  { key: 'profilePictureUrl', label: 'Profile Picture', settingsKey: 'media', action: 'settings' },
+  { key: 'profilePictureUrl', label: 'Business Photos (required to go public)', settingsKey: 'media', action: 'settings' },
   { key: 'timings', label: 'Business Timings', settingsKey: 'timings', action: 'settings' },
   { key: 'yearsInBusiness', label: 'Year of Establishment', settingsKey: 'yearsInBusiness', action: 'settings' },
   { key: 'serviceCategory', label: 'Service Category', settingsKey: 'serviceCategory', action: 'settings' },
@@ -80,6 +81,10 @@ function isFieldComplete(business: Record<string, unknown>, field: CompletionFie
     return lat != null && lng != null && !(lat === 0 && lng === 0);
   }
 
+  if (field.key === 'profilePictureUrl') {
+    return businessHasPublicPhoto(business);
+  }
+
   const value = business[field.key];
   return (
     value !== undefined &&
@@ -106,15 +111,9 @@ export function getProfileCompletion(business: Record<string, unknown> | null | 
     }
   });
 
-  if (business?.images && Array.isArray(business.images) && business.images.length > 0) {
+  // Same photo gate as public visibility: profile or gallery counts as one completeness slot.
+  if (businessHasPublicPhoto(business || {})) {
     completedCount++;
-  } else {
-    missingFields.push({
-      key: 'images',
-      label: 'Business Images',
-      settingsKey: 'media',
-      action: 'settings',
-    });
   }
 
   if (

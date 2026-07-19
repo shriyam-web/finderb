@@ -4,7 +4,15 @@ type BusinessCategoryQueryClient = {
       eq: (
         column: string,
         value: string
-      ) => PromiseLike<{ data: { category: string | null }[] | null }>;
+      ) => PromiseLike<{
+        data:
+          | {
+              category: string | null;
+              profilePictureUrl?: string | null;
+              images?: unknown;
+            }[]
+          | null;
+      }>;
     };
   };
 };
@@ -17,15 +25,29 @@ function normalizeLabel(value: string): string {
   return value.trim().toLowerCase();
 }
 
-/** Active business `category` labels from the Business table. */
+function hasUsablePhotoUrl(value: unknown): boolean {
+  return typeof value === 'string' && value.trim().length > 0;
+}
+
+function businessRowHasPublicPhoto(row: {
+  profilePictureUrl?: string | null;
+  images?: unknown;
+}): boolean {
+  if (hasUsablePhotoUrl(row.profilePictureUrl)) return true;
+  if (!Array.isArray(row.images)) return false;
+  return row.images.some((item) => hasUsablePhotoUrl(item));
+}
+
+/** Active business `category` labels from the Business table (photo-gated public listings only). */
 export async function fetchActiveBusinessCategoryLabels(supabase: unknown): Promise<string[]> {
   const client = asBusinessCategoryQueryClient(supabase);
   const { data } = await client
     .from('Business')
-    .select('category')
+    .select('category, profilePictureUrl, images')
     .eq('status', 'Active');
 
   return (data ?? [])
+    .filter(businessRowHasPublicPhoto)
     .map((row) => row.category?.trim())
     .filter((label): label is string => Boolean(label));
 }

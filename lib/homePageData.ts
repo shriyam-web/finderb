@@ -2,7 +2,7 @@ import { unstable_cache } from 'next/cache';
 import { revalidatePath, updateTag } from 'next/cache';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { sortBusinessesByProfileCompleteness } from '@/lib/businessProfileCompleteness';
-import { mapBusinessRecord } from '@/lib/businessMapping';
+import { mapBusinessRecord, filterBusinessesWithPublicPhotos } from '@/lib/businessMapping';
 import { categoryBrowseHref, dbBanner, dbSymbol } from '@/lib/categoryDisplay';
 import { stripHtml } from '@/lib/stripHtml';
 import { mapTouristPlaceRow } from '@/lib/touristPlaceImage';
@@ -122,8 +122,8 @@ async function fetchFeaturedBusinesses(supabase: SupabaseClient) {
     return [];
   }
 
-  const mappedBusinesses = (businesses ?? []).map((b: Record<string, unknown>) =>
-    mapBusinessRecord(b)
+  const mappedBusinesses = filterBusinessesWithPublicPhotos(
+    (businesses ?? []).map((b: Record<string, unknown>) => mapBusinessRecord(b))
   );
   const ranked = sortBusinessesByProfileCompleteness(mappedBusinesses).slice(0, 12);
   return attachActiveJobFlags(supabase, ranked);
