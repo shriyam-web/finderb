@@ -290,12 +290,19 @@ export async function updateBusinessImages(id: string, images: string[], profile
     console.log('Updating images for business:', id);
 
     const supabase = createClient(await cookies());
+    const cleanImages = images
+      .map((url) => (typeof url === 'string' ? url.trim() : ''))
+      .filter(Boolean);
+    const explicitProfile =
+      typeof profilePictureUrl === 'string' ? profilePictureUrl.trim() : '';
+    // Always keep a profile pic when gallery photos exist.
+    const resolvedProfile = explicitProfile || cleanImages[0] || null;
 
     const { data: business, error } = await supabase
       .from('Business')
       .update({
-        images: images,
-        profilePictureUrl: profilePictureUrl || (images.length > 0 ? images[0] : null),
+        images: cleanImages,
+        profilePictureUrl: resolvedProfile,
         updatedAt: new Date().toISOString(),
       })
       .eq('id', id)
@@ -504,6 +511,28 @@ export async function getOwnedBusiness(id: string) {
         return { success: false, error: 'Business not found' };
       }
       throw error;
+    }
+
+    const gallery = Array.isArray(business.images)
+      ? business.images.filter((url: unknown): url is string => typeof url === 'string' && Boolean(url.trim()))
+      : [];
+    const hasProfile =
+      typeof business.profilePictureUrl === 'string' && Boolean(business.profilePictureUrl.trim());
+
+    if (!hasProfile && gallery.length > 0) {
+      const { data: healed, error: healError } = await supabase
+        .from('Business')
+        .update({
+          profilePictureUrl: gallery[0],
+          updatedAt: new Date().toISOString(),
+        })
+        .eq('id', id)
+        .select('*')
+        .single();
+
+      if (!healError && healed) {
+        return { success: true, business: mapOwnedBusinessRecord(healed) };
+      }
     }
 
     return { success: true, business: mapOwnedBusinessRecord(business) };

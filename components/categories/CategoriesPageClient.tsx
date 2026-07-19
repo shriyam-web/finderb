@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useLayoutEffect, useMemo, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Search, Filter, ChevronRight, LayoutGrid, TrendingUp } from 'lucide-react';
+import { Search, Filter, ChevronRight, LayoutGrid, TrendingUp, MapPin, Phone } from 'lucide-react';
 import {
   getCategories,
   getSubCategories,
@@ -10,6 +10,7 @@ import {
   type CategorySearchHit,
 } from '@/app/actions/category';
 import { getFeaturedBusinesses } from '@/app/actions/business';
+import { getSession } from '@/app/actions/user';
 import CategoryIcon from '@/components/CategoryIcon';
 import {
   businessMatchesNaturalSearch,
@@ -25,6 +26,10 @@ import CategoryMerchantList from '@/components/category/CategoryMerchantList';
 import { getBusinessProfilePath } from '@/lib/businessSlug';
 import { categoryBrowseHref } from '@/lib/categoryDisplay';
 import { getBusinessListingImage } from '@/lib/businessMapping';
+import { formatDistanceFromUser } from '@/lib/geo';
+import { useUserCoords } from '@/hooks/useUserCoords';
+import MerchantListingRating from '@/components/business/MerchantListingRating';
+import { VerifiedNameTick } from '@/components/business/VerifiedMark';
 
 interface SubCategory {
   id: string;
@@ -56,6 +61,7 @@ function categoryAsSubCategory(cat: {
 export default function CategoriesPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const userCoords = useUserCoords();
   const categoryIdFromUrl = searchParams.get('id');
   const subIdFromUrl = searchParams.get('sub');
   const [categories, setCategories] = useState<any[]>([]);
@@ -81,6 +87,12 @@ export default function CategoriesPage() {
 
   const [categorySearchHits, setCategorySearchHits] = useState<CategorySearchHit[]>([]);
   const [isSearchCategoriesLoading, setIsSearchCategoriesLoading] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [listingStats, setListingStats] = useState<{
+    shown: number;
+    total: number;
+    loading: boolean;
+  } | null>(null);
 
   const isGlobalSearch = viewMode === 'global-search';
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -96,6 +108,16 @@ export default function CategoriesPage() {
   }, []);
 
   const urlSearchQ = searchParams.get('search')?.trim() ?? '';
+
+  useEffect(() => {
+    let cancelled = false;
+    void getSession().then((result) => {
+      if (!cancelled) setIsLoggedIn(!!result?.success);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     async function fetchData() {
@@ -438,26 +460,26 @@ export default function CategoriesPage() {
   }, [isGlobalSearch, globalSearchCategoryPartitions, globalSearchBusinessPartitions]);
 
   const renderCategoryHitGrid = (hits: CategorySearchHit[]) => (
-    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2.5 sm:gap-3">
+    <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 sm:gap-2.5 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7">
       {hits.map((hit) => (
         <button
           key={hit.id}
           type="button"
           onClick={() => openCategorySearchHit(hit)}
-          className="flex flex-col items-center gap-2 rounded-xl border border-slate-200/80 bg-white p-3.5 text-center transition-colors hover:border-[#215481]/25 hover:bg-slate-50/80 sm:p-4"
+          className="flex flex-col items-center gap-1.5 rounded-xl border border-slate-200/80 bg-white p-2.5 text-center transition-colors hover:border-[#215481]/25 hover:bg-slate-50/80 sm:p-3"
         >
           <CategoryIcon
             icon={hit.icon}
             name={hit.name}
-            size={48}
-            className="h-11 w-11 text-slate-600"
+            size={44}
+            className="h-10 w-10 text-slate-600 sm:h-11 sm:w-11"
             imageClassName="object-contain"
           />
-          <span className="text-[11px] font-medium text-slate-800 line-clamp-2 leading-snug">
+          <span className="line-clamp-2 text-[11px] font-medium leading-snug text-slate-800">
             {hit.name}
           </span>
           {hit.parentName ? (
-            <span className="text-[10px] text-slate-400 line-clamp-1">{hit.parentName}</span>
+            <span className="line-clamp-1 text-[10px] text-slate-400">{hit.parentName}</span>
           ) : (
             <span className="text-[10px] text-slate-400">{hit.businessCount}+ listings</span>
           )}
@@ -466,35 +488,96 @@ export default function CategoriesPage() {
     </div>
   );
 
-  const renderGlobalBusinessCard = (biz: (typeof businesses)[number]) => (
-    <button
-      type="button"
+  const renderGlobalBusinessCard = (biz: (typeof businesses)[number]) => {
+    const hasPhone = Boolean((biz.publicPhone || biz.contact || '').trim());
+    const distanceLabel = formatDistanceFromUser(userCoords, biz.latitude, biz.longitude);
+
+    return (
+    <div
+      tabIndex={0}
       onClick={() => {
         if (searchQuery.trim()) setLastSearchQuery(searchQuery);
         router.push(getBusinessProfilePath(biz));
       }}
-      className="group flex w-full overflow-hidden rounded-xl border border-slate-200/80 bg-white text-left transition-colors hover:border-[#215481]/25 hover:bg-slate-50/50"
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          if (searchQuery.trim()) setLastSearchQuery(searchQuery);
+          router.push(getBusinessProfilePath(biz));
+        }
+      }}
+      className="group flex w-full cursor-pointer items-start gap-3 rounded-xl border border-slate-200/80 bg-white p-3 text-left transition-colors hover:border-[#215481]/25 hover:bg-slate-50/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#215481]/30 sm:p-3.5"
     >
-      <div className="relative h-[88px] w-[88px] shrink-0 overflow-hidden sm:h-24 sm:w-24">
+      <div className="relative h-[96px] w-[96px] shrink-0 overflow-hidden rounded-xl bg-slate-100 ring-1 ring-slate-200/80 sm:h-[108px] sm:w-[108px]">
         <Image
           src={getBusinessListingImage(biz) || '/fallback.jpg'}
           alt={biz.name}
           fill
-          className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+          className="object-cover object-center transition-transform duration-300 group-hover:scale-[1.03]"
+          sizes="108px"
         />
       </div>
-      <div className="flex min-w-0 flex-1 flex-col justify-center gap-1 px-3.5 py-3 sm:px-4">
+      <div className="flex min-w-0 flex-1 flex-col justify-center gap-1 py-0.5">
         <span className="text-[10px] font-medium text-[#215481]">{biz.category || 'Business'}</span>
-        <h3 className="truncate text-sm font-semibold text-slate-900">{biz.name}</h3>
-        {biz.location ? (
-          <p className="truncate text-xs text-slate-500">{biz.location}</p>
+        <h3 className="text-sm font-semibold leading-snug text-slate-900">
+          <span className="break-words">
+            {biz.name}
+            {(biz.isFinderBVerified || biz.hasVerifiedBadge) ? (
+              <VerifiedNameTick
+                size={14}
+                className="ml-1 inline-flex translate-y-[1px] align-text-bottom"
+              />
+            ) : null}
+          </span>
+        </h3>
+        <MerchantListingRating
+          rating={biz.rating}
+          reviewCount={biz.reviewsCount}
+          starSize={11}
+          textClassName="text-[11px] font-medium text-[#475569]"
+          emptyClassName="text-[11px] text-[#94a3b8]"
+        />
+        {biz.location || distanceLabel ? (
+          <p className="flex min-w-0 items-start gap-1 text-[11px] leading-snug text-slate-500">
+            <MapPin size={12} className="mt-0.5 shrink-0 text-slate-400" />
+            <span className="line-clamp-2">
+              {distanceLabel ? (
+                <>
+                  <span className="font-semibold text-[#2563eb]">{distanceLabel}</span>
+                  {biz.location ? <span className="text-slate-300"> · </span> : null}
+                </>
+              ) : null}
+              {biz.location}
+            </span>
+          </p>
+        ) : null}
+        {hasPhone ? (
+          <p className="flex min-w-0 items-center gap-1 text-[11px] text-slate-500">
+            <Phone size={12} className="shrink-0 text-slate-400" />
+            {isLoggedIn ? (
+              <span className="truncate">{biz.publicPhone || biz.contact}</span>
+            ) : (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  router.push('/login');
+                }}
+                className="font-medium text-[#2563eb] underline-offset-2 hover:underline"
+              >
+                Login to view
+              </button>
+            )}
+          </p>
         ) : null}
       </div>
-      <div className="hidden shrink-0 items-center pr-4 sm:flex">
+      <div className="hidden shrink-0 self-center pr-1 sm:flex">
         <ChevronRight size={16} className="text-slate-300 transition-colors group-hover:text-[#215481]" />
       </div>
-    </button>
-  );
+    </div>
+    );
+  };
 
   return (
     <div className="flex h-dvh flex-col overflow-hidden font-sans lg:h-screen">
@@ -730,7 +813,7 @@ export default function CategoriesPage() {
         )}
 
         {/* Right Panel - Modern Grid */}
-        <main ref={mainScrollRef} className="scrollbar-hide h-full flex-1 overflow-y-auto bg-[#f4f7fb] pb-[6.75rem] lg:pb-4">
+        <main ref={mainScrollRef} className="scrollbar-hide h-full min-w-0 flex-1 overflow-y-auto bg-[#f4f7fb] pb-[6.75rem] lg:pb-4">
           {isLoading ? (
             <div className="p-5 max-w-4xl mx-auto w-full">
               <div className="mb-8 mt-4">
@@ -759,12 +842,12 @@ export default function CategoriesPage() {
               ))}
             </div>
           ) : viewMode === 'categories' ? (
-            <div className="mx-auto w-full max-w-4xl p-5">
-              <div className="mb-6 mt-2">
-                <h1 className="text-xl font-semibold tracking-tight text-slate-900">Browse categories</h1>
-                <p className="mt-1 text-sm text-slate-500">Pick a category to see services and listings near you</p>
+            <div className="w-full p-3 sm:p-4">
+              <div className="mb-4 mt-1">
+                <h1 className="text-lg font-semibold tracking-tight text-slate-900 sm:text-xl">Browse categories</h1>
+                <p className="mt-0.5 text-sm text-slate-500">Pick a category to see services and listings near you</p>
               </div>
-              <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-4 sm:gap-3 md:grid-cols-5">
+              <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 sm:gap-2.5 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7">
                 {categories.filter(cat => !searchQuery || textMatchesSearch(cat.name, searchQuery)).map((cat, index) => (
                   <button
                     key={cat.id}
@@ -791,15 +874,13 @@ export default function CategoriesPage() {
               </div>
             </div>
           ) : viewMode === 'subcategories' ? (
-            <div className="p-5">
-              <div className="mb-5 flex items-end justify-between">
-                <div>
-                  <h1 className="text-lg font-semibold tracking-tight text-slate-900">{selectedCategory?.name}</h1>
-                  <p className="mt-0.5 text-sm text-slate-500">{subCategories.length} subcategories</p>
-                </div>
+            <div className="w-full p-3 sm:p-4">
+              <div className="mb-3">
+                <h1 className="text-lg font-semibold tracking-tight text-slate-900">{selectedCategory?.name}</h1>
+                <p className="mt-0.5 text-sm text-slate-500">{subCategories.length} subcategories</p>
               </div>
 
-              <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-4 sm:gap-3 md:grid-cols-5">
+              <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 sm:gap-2.5 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7">
                 {subCategories.filter(sub => !searchQuery || textMatchesSearch(sub.name, searchQuery)).length > 0 ? (
                   subCategories.filter(sub => !searchQuery || textMatchesSearch(sub.name, searchQuery)).map((sub, index) => (
                     <button
@@ -844,8 +925,8 @@ export default function CategoriesPage() {
               </div>
             </div>
           ) : viewMode === 'global-search' ? (
-            <div className="mx-auto w-full max-w-3xl space-y-6 p-5">
-              <div className="flex items-center justify-between gap-3 border-b border-slate-200/80 pb-3">
+            <div className="w-full space-y-4 p-3 sm:p-4">
+              <div className="flex items-center justify-between gap-3 border-b border-slate-200/80 pb-2.5">
                 <p className="text-sm text-slate-500">
                   {isSearchCategoriesLoading ? (
                     'Searching…'
@@ -868,25 +949,25 @@ export default function CategoriesPage() {
                 </p>
               </div>
 
-              <section className="space-y-3">
+              <section className="space-y-2.5">
                 <h2 className="text-xs font-semibold text-slate-700">Categories</h2>
                 {isSearchCategoriesLoading ? (
-                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+                  <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
                     {[1, 2, 3, 4, 5, 6].map((i) => (
                       <div
                         key={i}
-                        className="h-28 rounded-2xl bg-white border border-slate-100 animate-pulse"
+                        className="h-24 animate-pulse rounded-xl border border-slate-100 bg-white"
                       />
                     ))}
                   </div>
                 ) : globalSearchCategoryPartitions.best.length > 0 ||
                   globalSearchCategoryPartitions.related.length > 0 ? (
-                  <div className="space-y-5">
+                  <div className="space-y-4">
                     {globalSearchCategoryPartitions.best.length > 0
                       ? renderCategoryHitGrid(globalSearchCategoryPartitions.best)
                       : null}
                     {globalSearchCategoryPartitions.related.length > 0 ? (
-                      <div className="space-y-3 border-t border-slate-200/80 pt-4">
+                      <div className="space-y-2.5 border-t border-slate-200/80 pt-3">
                         <h3 className="text-xs font-medium text-slate-500">Related categories</h3>
                         {renderCategoryHitGrid(globalSearchCategoryPartitions.related)}
                       </div>
@@ -899,22 +980,22 @@ export default function CategoriesPage() {
                 )}
               </section>
 
-              <section className="space-y-3">
+              <section className="space-y-2.5">
                 <h2 className="text-xs font-semibold text-slate-700">Businesses</h2>
                 {globalSearchBusinessPartitions.best.length > 0 ||
                 globalSearchBusinessPartitions.related.length > 0 ? (
-                  <div className="space-y-5">
+                  <div className="space-y-4">
                     {globalSearchBusinessPartitions.best.length > 0 ? (
-                      <div className="flex flex-col gap-2.5">
+                      <div className="grid grid-cols-1 gap-2 lg:grid-cols-2">
                         {globalSearchBusinessPartitions.best.map((biz) => (
                           <div key={biz.id}>{renderGlobalBusinessCard(biz)}</div>
                         ))}
                       </div>
                     ) : null}
                     {globalSearchBusinessPartitions.related.length > 0 ? (
-                      <div className="space-y-3 border-t border-slate-200/80 pt-4">
+                      <div className="space-y-2.5 border-t border-slate-200/80 pt-3">
                         <h3 className="text-xs font-medium text-slate-500">Related businesses</h3>
-                        <div className="flex flex-col gap-2.5">
+                        <div className="grid grid-cols-1 gap-2 lg:grid-cols-2">
                           {globalSearchBusinessPartitions.related.map((biz) => (
                             <div key={biz.id}>{renderGlobalBusinessCard(biz)}</div>
                           ))}
@@ -940,17 +1021,28 @@ export default function CategoriesPage() {
                 )}
             </div>
           ) : (
-            <div className="space-y-4 p-4">
-              <div className="flex items-center justify-between px-1">
-                <div>
-                  <p className="text-xs text-slate-500">{selectedCategory?.name}</p>
-                  <h3 className="text-lg font-semibold tracking-tight text-slate-900">
+            <div className="w-full space-y-2 p-2.5 sm:p-3 lg:p-4">
+              <div className="sticky top-0 z-[1] -mx-2.5 flex items-center gap-2 border-b border-slate-200/70 bg-[#f4f7fb]/95 px-2.5 py-1.5 backdrop-blur-sm sm:-mx-3 sm:px-3 lg:-mx-4 lg:px-4">
+                <div className="min-w-0 flex-1">
+                  <h3 className="truncate text-sm font-semibold tracking-tight text-slate-900">
                     {selectedSubCategory?.name}
                   </h3>
+                  <p className="truncate text-[10px] leading-tight text-slate-500">
+                    {selectedCategory?.name}
+                    {listingStats && !listingStats.loading
+                      ? ` · ${listingStats.shown}${
+                          listingStats.total !== listingStats.shown
+                            ? ` of ${listingStats.total}`
+                            : ''
+                        } listing${listingStats.shown === 1 ? '' : 's'}`
+                      : listingStats?.loading
+                        ? ' · Loading…'
+                        : ''}
+                  </p>
                 </div>
                 <button
                   onClick={() => setViewMode('subcategories')}
-                  className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:border-[#215481]/30 hover:text-[#215481]"
+                  className="shrink-0 rounded-md border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-medium text-slate-600 transition-colors hover:border-[#215481]/30 hover:text-[#215481]"
                 >
                   Change
                 </button>
@@ -961,6 +1053,7 @@ export default function CategoriesPage() {
                   key={selectedSubCategory.id}
                   categorySlug={selectedSubCategory.slug || selectedSubCategory.name}
                   searchQuery={searchQuery}
+                  onStatsChange={setListingStats}
                 />
               ) : null}
             </div>

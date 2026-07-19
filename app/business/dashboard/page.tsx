@@ -314,8 +314,8 @@ function DashboardContent() {
       const updatedImages = [...images, newImageUrl].slice(0, 5);
       setImages(updatedImages);
       
-      // Auto set as profile if none exists
-      let newProfilePic = profilePictureUrl;
+      // Auto set first uploaded photo as profile if none exists
+      let newProfilePic = (profilePictureUrl || '').trim() || null;
       if (!newProfilePic) {
         newProfilePic = newImageUrl;
         setprofilePictureUrl(newImageUrl);
