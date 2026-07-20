@@ -86,7 +86,7 @@ export default function HomeClient({ initialData }: { initialData: any }) {
   const sortedTouristPlaces = useSortedTouristPlaces(realTouristPlaces);
   const [realBlogs, setRealBlogs] = useState<any[]>(initialData.blogs);
   const [featuredGroups, setFeaturedGroups] = useState<any[]>(initialData.featuredGroups ?? []);
-  const [tutorials] = useState(initialData.tutorials ?? []);
+  const [tutorialPlaylists] = useState(initialData.tutorialPlaylists ?? []);
   const trendingThisWeek: Array<{ label: string; trend: number; query: string }> =
     initialData.trendingThisWeek ?? [];
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -802,7 +802,9 @@ export default function HomeClient({ initialData }: { initialData: any }) {
         </section>
       )}
 
-      {tutorials.length > 0 ? <FinderBTutorialsSection tutorials={tutorials} /> : null}
+      {tutorialPlaylists.length > 0 ? (
+        <FinderBTutorialsSection playlists={tutorialPlaylists} />
+      ) : null}
 
       {/* Tourist Places Section */}
       <section className="bg-slate-50 py-6 lg:py-10">

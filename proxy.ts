@@ -77,14 +77,6 @@ export async function proxy(request: NextRequest) {
     if (blocked) return blocked;
   }
 
-  if (pathname === '/admin' || pathname.startsWith('/admin/')) {
-    if (pathname === '/admin/login' || pathname.startsWith('/admin/login/')) {
-      return NextResponse.next();
-    }
-    const blocked = requireCookie(request, 'admin_id', '/admin/login');
-    if (blocked) return blocked;
-  }
-
   return NextResponse.next();
 }
 
@@ -98,8 +90,6 @@ export const config = {
     '/business/dashboard/:path*',
     '/business/kyc/:path*',
     '/business/payment/:path*',
-    '/admin',
-    '/admin/:path*',
     '/business/:segment',
     '/tourist-places/:segment',
   ],

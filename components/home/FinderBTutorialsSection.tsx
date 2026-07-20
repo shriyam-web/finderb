@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowRight, Clock, Play, X } from 'lucide-react';
-import type { FinderBTutorialVideo } from '@/lib/finderbYoutube';
+import type { FinderBTutorialPlaylist, FinderBTutorialVideo } from '@/lib/finderbYoutube';
 import {
   FINDERB_YOUTUBE_CHANNEL_URL,
   formatTutorialDate,
@@ -12,7 +12,7 @@ import {
 } from '@/lib/finderbYoutube';
 
 type FinderBTutorialsSectionProps = {
-  tutorials: FinderBTutorialVideo[];
+  playlists: FinderBTutorialPlaylist[];
 };
 
 const STUDIO_TOPICS = [
@@ -21,6 +21,8 @@ const STUDIO_TOPICS = [
   'Get verified & grow leads',
   'Search smarter every day',
 ];
+
+const VIDEOS_PER_PLAYLIST = 4;
 
 function YoutubeIcon({ className = '' }: { className?: string }) {
   return (
@@ -108,7 +110,7 @@ function FeaturedPlayer({
           <span className="inline-flex rounded-md bg-[#f9b864] px-2 py-0.5 text-[11px] font-semibold text-[#153551]">
             {video.topic}
           </span>
-            <h3 className="mt-2 text-lg font-bold leading-snug !text-white sm:text-xl">{video.title}</h3>
+          <h3 className="mt-2 text-lg font-bold leading-snug !text-white sm:text-xl">{video.title}</h3>
           <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-white/80 sm:text-sm">
             {video.description}
           </p>
@@ -199,13 +201,34 @@ function RailCard({
   );
 }
 
-export default function FinderBTutorialsSection({ tutorials }: FinderBTutorialsSectionProps) {
+export default function FinderBTutorialsSection({ playlists }: FinderBTutorialsSectionProps) {
+  const visiblePlaylists = useMemo(
+    () => playlists.filter((playlist) => playlist.videos.length > 0),
+    [playlists]
+  );
+
+  const [activePlaylistId, setActivePlaylistId] = useState(visiblePlaylists[0]?.id ?? '');
   const [activeVideo, setActiveVideo] = useState<FinderBTutorialVideo | null>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
 
-  const featured = tutorials[0];
-  const queue = useMemo(() => tutorials.slice(1, 4), [tutorials]);
-  const rail = useMemo(() => tutorials.slice(1, 6), [tutorials]);
+  useEffect(() => {
+    if (!visiblePlaylists.length) return;
+    if (!visiblePlaylists.some((playlist) => playlist.id === activePlaylistId)) {
+      setActivePlaylistId(visiblePlaylists[0].id);
+    }
+  }, [visiblePlaylists, activePlaylistId]);
+
+  const activePlaylist =
+    visiblePlaylists.find((playlist) => playlist.id === activePlaylistId) ?? visiblePlaylists[0];
+
+  const videos = useMemo(
+    () => (activePlaylist?.videos ?? []).slice(0, VIDEOS_PER_PLAYLIST),
+    [activePlaylist]
+  );
+
+  const featured = videos[0];
+  const queue = useMemo(() => videos.slice(1, 4), [videos]);
+  const rail = useMemo(() => videos.slice(0, 4), [videos]);
 
   const closeModal = useCallback(() => setActiveVideo(null), []);
 
@@ -226,7 +249,9 @@ export default function FinderBTutorialsSection({ tutorials }: FinderBTutorialsS
     };
   }, [activeVideo, closeModal]);
 
-  if (!featured) return null;
+  if (!activePlaylist || !featured) return null;
+
+  const showPlaylistTabs = visiblePlaylists.length > 1;
 
   return (
     <>
@@ -290,6 +315,38 @@ export default function FinderBTutorialsSection({ tutorials }: FinderBTutorialsS
                   </Link>
                 </div>
 
+                {showPlaylistTabs ? (
+                  <div
+                    className="scrollbar-hide mt-5 flex gap-2 overflow-x-auto pb-1"
+                    role="tablist"
+                    aria-label="Tutorial playlists"
+                  >
+                    {visiblePlaylists.map((playlist) => {
+                      const isActive = playlist.id === activePlaylist.id;
+                      return (
+                        <button
+                          key={playlist.id}
+                          type="button"
+                          role="tab"
+                          aria-selected={isActive}
+                          onClick={() => setActivePlaylistId(playlist.id)}
+                          className={`shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
+                            isActive
+                              ? 'bg-[#153551] text-white shadow-sm'
+                              : 'bg-white/80 text-[#153551] ring-1 ring-[#153551]/15 hover:bg-white'
+                          }`}
+                        >
+                          {playlist.title}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : null}
+
+                {activePlaylist.description ? (
+                  <p className="mt-3 max-w-2xl text-sm text-[#64748b]">{activePlaylist.description}</p>
+                ) : null}
+
                 <div className="relative mt-6 grid gap-5 lg:grid-cols-[1.15fr_0.85fr] lg:items-start">
                   <MonitorChrome>
                     <FeaturedPlayer video={featured} onPlay={setActiveVideo} />
@@ -298,7 +355,9 @@ export default function FinderBTutorialsSection({ tutorials }: FinderBTutorialsS
                   <div className="flex flex-col gap-3">
                     <div className="flex items-center justify-between gap-2">
                       <p className="text-sm font-semibold text-[#153551]">
-                        {queue.length > 0 ? 'More videos' : 'More coming soon'}
+                        {queue.length > 0
+                          ? `More in ${activePlaylist.title}`
+                          : `From ${activePlaylist.title}`}
                       </p>
                       <Link
                         href={FINDERB_YOUTUBE_CHANNEL_URL}
@@ -315,7 +374,7 @@ export default function FinderBTutorialsSection({ tutorials }: FinderBTutorialsS
                       <div className="space-y-2.5">
                         {queue.map((video, index) => (
                           <QueueItem
-                            key={video.id}
+                            key={`${activePlaylist.id}-${video.id}`}
                             video={video}
                             index={index}
                             onPlay={setActiveVideo}
@@ -326,8 +385,7 @@ export default function FinderBTutorialsSection({ tutorials }: FinderBTutorialsS
                       <div className="rounded-2xl border-2 border-dashed border-[#153551]/15 bg-white/70 p-5">
                         <p className="text-sm font-semibold text-[#153551]">More videos on the way</p>
                         <p className="mt-1.5 text-xs leading-relaxed text-[#64748b]">
-                          Merchant guides, search tips, and product walkthroughs drop on our YouTube
-                          channel first.
+                          More guides for this playlist will appear here as they are published.
                         </p>
                         <Link
                           href={FINDERB_YOUTUBE_CHANNEL_URL}
@@ -356,7 +414,11 @@ export default function FinderBTutorialsSection({ tutorials }: FinderBTutorialsS
                 {rail.length > 0 ? (
                   <div className="scrollbar-hide -mx-1 mt-6 flex gap-4 overflow-x-auto px-1 pb-1 lg:hidden">
                     {rail.map((video) => (
-                      <RailCard key={video.id} video={video} onPlay={setActiveVideo} />
+                      <RailCard
+                        key={`${activePlaylist.id}-rail-${video.id}`}
+                        video={video}
+                        onPlay={setActiveVideo}
+                      />
                     ))}
                   </div>
                 ) : null}

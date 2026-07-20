@@ -58,5 +58,22 @@ CREATE POLICY "broadcasts_public_read"
   ON broadcasts FOR SELECT
   USING (true);
 
+-- ============ youtube_playlists / youtube_videos ============
+-- Anon CRUD matches FinderB Admin content tabs (movies/blogs). Homepage filters is_published in app code.
+ALTER TABLE youtube_playlists ENABLE ROW LEVEL SECURITY;
+ALTER TABLE youtube_videos ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "youtube_playlists_anon_all"
+  ON youtube_playlists FOR ALL
+  TO anon, authenticated
+  USING (true)
+  WITH CHECK (true);
+
+CREATE POLICY "youtube_videos_anon_all"
+  ON youtube_videos FOR ALL
+  TO anon, authenticated
+  USING (true)
+  WITH CHECK (true);
+
 -- NOTE: Review each policy in staging. Custom cookie sessions require
 -- server-side Supabase client with service role for mutations, or Supabase Auth migration.

@@ -8,7 +8,10 @@ import { stripHtml } from '@/lib/stripHtml';
 import { mapTouristPlaceRow } from '@/lib/touristPlaceImage';
 import { getPublicSupabase } from '@/lib/supabase/public';
 import { SHOW_HOME_LATEST_MOVIES_SECTION } from '@/lib/featureFlags';
-import { fetchFinderBTutorials, type FinderBTutorialVideo } from '@/lib/finderbYoutube';
+import {
+  fetchFinderBTutorialPlaylists,
+  type FinderBTutorialPlaylist,
+} from '@/lib/finderbYoutube';
 import {
   attachSubcategoryBusinessCounts,
   attachTopLevelBusinessCounts,
@@ -65,7 +68,7 @@ export type HomePageData = {
       href: string;
     }>;
   }>;
-  tutorials: FinderBTutorialVideo[];
+  tutorialPlaylists: FinderBTutorialPlaylist[];
   trendingThisWeek: TrendingWeekItem[];
 };
 
@@ -302,15 +305,23 @@ async function fetchFeaturedGroups(supabase: SupabaseClient) {
 async function fetchHomePageData(): Promise<HomePageData> {
   const supabase = getPublicSupabase();
 
-  const [businesses, categories, movies, touristPlaces, blogs, featuredGroups, tutorials, trendingThisWeek] =
-    await Promise.all([
+  const [
+    businesses,
+    categories,
+    movies,
+    touristPlaces,
+    blogs,
+    featuredGroups,
+    tutorialPlaylists,
+    trendingThisWeek,
+  ] = await Promise.all([
     fetchFeaturedBusinesses(supabase),
     fetchCategories(supabase),
     SHOW_HOME_LATEST_MOVIES_SECTION ? fetchMovies(supabase) : Promise.resolve([]),
     fetchTouristPlaces(supabase),
     fetchBlogs(supabase),
     fetchFeaturedGroups(supabase),
-    fetchFinderBTutorials(6),
+    fetchFinderBTutorialPlaylists(),
     getTrendingThisWeek(4),
   ]);
 
@@ -321,7 +332,7 @@ async function fetchHomePageData(): Promise<HomePageData> {
     touristPlaces,
     blogs,
     featuredGroups,
-    tutorials,
+    tutorialPlaylists,
     trendingThisWeek,
   };
 }

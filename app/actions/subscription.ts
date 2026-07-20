@@ -380,7 +380,6 @@ export async function cancelMerchantAutoRenew(businessId: string) {
   }
 
   revalidatePath('/business/dashboard');
-  revalidatePath('/admin/payments');
 
   return {
     success: true as const,

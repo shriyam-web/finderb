@@ -44,6 +44,8 @@ export default async function TouristPlaceDetailPage({ params }: PageProps) {
   const { id: slugOrId } = await params;
   const placeResult = await getPlaceCached(slugOrId);
   const place = placeResult.success && placeResult.touristPlace ? placeResult.touristPlace : null;
+  const travelPartners =
+    placeResult.success && placeResult.travelPartners ? placeResult.travelPartners : [];
 
   if (place && shouldRedirectToCanonicalTouristPlaceSlug(slugOrId, place)) {
     permanentRedirect(getTouristPlacePath(place));
@@ -75,6 +77,7 @@ export default async function TouristPlaceDetailPage({ params }: PageProps) {
         slugOrId={canonicalSlug}
         initialPlace={place}
         initialNearby={nearby}
+        initialTravelPartners={travelPartners}
       />
     </>
   );

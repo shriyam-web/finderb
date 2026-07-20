@@ -13,7 +13,8 @@ const ACCOUNT_LABELS: Record<AccountType, string> = {
 export const LOGIN_PATHS: Record<AccountType, string> = {
   user: '/login',
   merchant: '/business/login',
-  admin: '/admin/login',
+  // Admin accounts are managed in the separate FinderB Admin app.
+  admin: '',
 };
 
 export function getAccountTypeLabel(type: AccountType): string {

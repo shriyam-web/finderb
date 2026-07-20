@@ -1,6 +1,7 @@
 import { FINDERB_SOCIAL_URLS } from '@/lib/finderbSocial';
+import { getPublicSupabase } from '@/lib/supabase/public';
 
-/** Official FinderB YouTube channel — RSS feed source */
+/** Official FinderB YouTube channel — RSS feed source (fallback only) */
 export const FINDERB_YOUTUBE_CHANNEL_ID = 'UC7ZEL-97eTiAl2fFG7xMWEw';
 
 export const FINDERB_YOUTUBE_CHANNEL_URL = FINDERB_SOCIAL_URLS.youtube;
@@ -14,6 +15,13 @@ export type FinderBTutorialVideo = {
   thumbnailUrl: string;
   watchUrl: string;
   isShort: boolean;
+};
+
+export type FinderBTutorialPlaylist = {
+  id: string;
+  title: string;
+  description: string | null;
+  videos: FinderBTutorialVideo[];
 };
 
 /** Rich copy when YouTube titles/descriptions are sparse */
@@ -36,6 +44,8 @@ const TOPIC_FALLBACKS = [
   'Grow with FinderB',
   'Platform tips',
 ];
+
+const YOUTUBE_VIDEO_ID_RE = /^[a-zA-Z0-9_-]{11}$/;
 
 function decodeXml(text: string): string {
   return text
@@ -121,6 +131,154 @@ export function youtubeEmbedUrl(videoId: string): string {
   return `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1`;
 }
 
+export function youtubeWatchUrl(videoId: string, isShort = false): string {
+  return isShort
+    ? `https://www.youtube.com/shorts/${videoId}`
+    : `https://www.youtube.com/watch?v=${videoId}`;
+}
+
+/** Extract an 11-char YouTube video id from common URL shapes or a bare id. */
+export function parseYoutubeVideoUrl(input: string): {
+  videoId: string;
+  isShort: boolean;
+  watchUrl: string;
+} | null {
+  const raw = input.trim();
+  if (!raw) return null;
+
+  if (YOUTUBE_VIDEO_ID_RE.test(raw)) {
+    return { videoId: raw, isShort: false, watchUrl: youtubeWatchUrl(raw) };
+  }
+
+  let url: URL;
+  try {
+    url = new URL(raw.startsWith('http') ? raw : `https://${raw}`);
+  } catch {
+    return null;
+  }
+
+  const host = url.hostname.replace(/^www\./, '').toLowerCase();
+  if (!['youtube.com', 'm.youtube.com', 'music.youtube.com', 'youtu.be'].includes(host)) {
+    return null;
+  }
+
+  let videoId: string | null = null;
+  let isShort = false;
+
+  if (host === 'youtu.be') {
+    videoId = url.pathname.split('/').filter(Boolean)[0] ?? null;
+  } else {
+    const parts = url.pathname.split('/').filter(Boolean);
+    if (parts[0] === 'shorts' || parts[0] === 'embed' || parts[0] === 'live' || parts[0] === 'v') {
+      videoId = parts[1] ?? null;
+      isShort = parts[0] === 'shorts';
+    } else {
+      videoId = url.searchParams.get('v');
+    }
+  }
+
+  if (!videoId || !YOUTUBE_VIDEO_ID_RE.test(videoId)) return null;
+
+  return {
+    videoId,
+    isShort,
+    watchUrl: youtubeWatchUrl(videoId, isShort),
+  };
+}
+
+type AdminPlaylistRow = {
+  id: string;
+  title: string;
+  description: string | null;
+  sort_order: number | null;
+};
+
+type AdminVideoRow = {
+  id: string;
+  playlist_id: string;
+  youtube_video_id: string;
+  title: string;
+  description: string | null;
+  topic: string | null;
+  thumbnail_url: string;
+  watch_url: string;
+  sort_order: number | null;
+  created_at: string | null;
+};
+
+function mapAdminVideo(row: AdminVideoRow, index: number): FinderBTutorialVideo {
+  const isShort = row.watch_url.includes('/shorts/');
+  return enrichVideo(
+    {
+      id: row.youtube_video_id,
+      title: row.title,
+      description: row.description || '',
+      topic: row.topic || undefined,
+      publishedAt: row.created_at,
+      thumbnailUrl: row.thumbnail_url || youtubeThumbnailUrl(row.youtube_video_id),
+      watchUrl: row.watch_url || youtubeWatchUrl(row.youtube_video_id, isShort),
+      isShort,
+    },
+    index
+  );
+}
+
+export async function fetchAdminTutorialPlaylists(): Promise<FinderBTutorialPlaylist[]> {
+  try {
+    const supabase = getPublicSupabase();
+
+    const { data: playlistRows, error: playlistError } = await supabase
+      .from('youtube_playlists')
+      .select('id, title, description, sort_order')
+      .eq('is_published', true)
+      .order('sort_order', { ascending: true })
+      .order('created_at', { ascending: false });
+
+    if (playlistError) {
+      console.error('[finderbYoutube] admin playlists fetch failed:', playlistError.message);
+      return [];
+    }
+
+    const playlists = (playlistRows ?? []) as AdminPlaylistRow[];
+    if (!playlists.length) return [];
+
+    const playlistIds = playlists.map((p) => p.id);
+    const { data: videoRows, error: videoError } = await supabase
+      .from('youtube_videos')
+      .select(
+        'id, playlist_id, youtube_video_id, title, description, topic, thumbnail_url, watch_url, sort_order, created_at'
+      )
+      .in('playlist_id', playlistIds)
+      .eq('is_published', true)
+      .order('sort_order', { ascending: true })
+      .order('created_at', { ascending: false });
+
+    if (videoError) {
+      console.error('[finderbYoutube] admin videos fetch failed:', videoError.message);
+      return [];
+    }
+
+    const videosByPlaylist = new Map<string, FinderBTutorialVideo[]>();
+    for (const row of (videoRows ?? []) as AdminVideoRow[]) {
+      const list = videosByPlaylist.get(row.playlist_id) ?? [];
+      list.push(mapAdminVideo(row, list.length));
+      videosByPlaylist.set(row.playlist_id, list);
+    }
+
+    return playlists
+      .map((playlist) => ({
+        id: playlist.id,
+        title: playlist.title,
+        description: playlist.description,
+        videos: videosByPlaylist.get(playlist.id) ?? [],
+      }))
+      .filter((playlist) => playlist.videos.length > 0);
+  } catch (error) {
+    console.error('[finderbYoutube] admin playlists failed:', error);
+    return [];
+  }
+}
+
 export async function fetchFinderBTutorials(limit = 6): Promise<FinderBTutorialVideo[]> {
   try {
     const response = await fetch(
@@ -142,6 +300,24 @@ export async function fetchFinderBTutorials(limit = 6): Promise<FinderBTutorialV
     console.error('[finderbYoutube] RSS parse failed:', error);
     return [];
   }
+}
+
+/** Prefer admin-curated playlists; fall back to RSS as a single synthetic playlist. */
+export async function fetchFinderBTutorialPlaylists(): Promise<FinderBTutorialPlaylist[]> {
+  const adminPlaylists = await fetchAdminTutorialPlaylists();
+  if (adminPlaylists.length > 0) return adminPlaylists;
+
+  const rssVideos = await fetchFinderBTutorials(6);
+  if (!rssVideos.length) return [];
+
+  return [
+    {
+      id: 'rss-latest',
+      title: 'Latest from FinderB',
+      description: 'Recent videos from the official FinderB YouTube channel.',
+      videos: rssVideos,
+    },
+  ];
 }
 
 export function formatTutorialDate(iso: string | null): string | null {

@@ -4,7 +4,7 @@ import { getPublicSupabase } from '@/lib/supabase/public';
 import { geocodePlaceQuery } from '@/app/actions/location';
 import { distanceKmFromUser, type TouristPlaceLike } from '@/lib/touristPlaceSort';
 import { formatDistanceFromUser } from '@/lib/geo';
-import { mapTouristPlaceRow } from '@/lib/touristPlaceImage';
+import { mapTouristPlaceRow, type TouristPlaceTravelPartner } from '@/lib/touristPlaceImage';
 import { isLegacyTouristPlaceId } from '@/lib/touristPlaceSlug';
 import { ensureTouristPlaceSlug } from '@/lib/touristPlaceSlug.server';
 
@@ -121,10 +121,82 @@ export async function getTouristPlaceBySlugOrId(slugOrId: string) {
     }
 
     const slug = await ensureTouristPlaceSlug(place);
-    return { success: true, touristPlace: mapTouristPlaceRow({ ...place, slug }) };
+    const touristPlace = mapTouristPlaceRow({ ...place, slug });
+    const partners = await fetchTravelPartnersForPlace(supabase, place.id);
+
+    return { success: true, touristPlace, travelPartners: partners };
   } catch (error: any) {
     console.error('Get Tourist Place Error:', error);
     return { success: false, error: error.message || 'An unexpected error occurred' };
+  }
+}
+
+async function fetchTravelPartnersForPlace(
+  supabase: ReturnType<typeof getPublicSupabase>,
+  placeId: string
+): Promise<TouristPlaceTravelPartner[]> {
+  try {
+    const { data: tags, error: tagError } = await supabase
+      .from('tourist_place_merchants')
+      .select('business_id, note, sort_order')
+      .eq('tourist_place_id', placeId)
+      .order('sort_order', { ascending: true });
+
+    if (tagError || !tags?.length) {
+      if (tagError && !tagError.message.includes('does not exist')) {
+        console.error('[touristPlace] partners fetch failed:', tagError.message);
+      }
+      return [];
+    }
+
+    const businessIds = tags.map((t) => String(t.business_id));
+    const { data: businesses, error: bizError } = await supabase
+      .from('Business')
+      .select(
+        'id, businessName, category, city, slug, profilePictureUrl, rating, status, images'
+      )
+      .in('id', businessIds)
+      .eq('status', 'Active');
+
+    if (bizError || !businesses?.length) {
+      if (bizError) console.error('[touristPlace] partner businesses failed:', bizError.message);
+      return [];
+    }
+
+    const byId = new Map(businesses.map((b) => [String(b.id), b]));
+    const noteById = new Map(tags.map((t) => [String(t.business_id), t.note as string | null]));
+
+    return businessIds
+      .map((id) => {
+        const row = byId.get(id);
+        if (!row) return null;
+        return {
+          id: String(row.id),
+          businessName: String(row.businessName || 'Travel partner'),
+          category: String(row.category || 'Tour & Travels'),
+          city: (row.city as string | null) ?? null,
+          slug: (row.slug as string | null) ?? null,
+          profilePictureUrl: (row.profilePictureUrl as string | null) ?? null,
+          rating: row.rating != null ? Number(row.rating) : null,
+          note: noteById.get(id) ?? null,
+        } satisfies TouristPlaceTravelPartner;
+      })
+      .filter((p): p is TouristPlaceTravelPartner => p !== null);
+  } catch (error) {
+    console.error('[touristPlace] partners unexpected error:', error);
+    return [];
+  }
+}
+
+/** Public helper if callers only need partners for an already-loaded place. */
+export async function getTouristPlaceTravelPartners(placeId: string) {
+  try {
+    if (!placeId) return { success: true as const, travelPartners: [] as TouristPlaceTravelPartner[] };
+    const supabase = getPublicSupabase();
+    const travelPartners = await fetchTravelPartnersForPlace(supabase, placeId);
+    return { success: true as const, travelPartners };
+  } catch (error: any) {
+    return { success: false as const, error: error.message || 'Failed to load travel partners' };
   }
 }
 

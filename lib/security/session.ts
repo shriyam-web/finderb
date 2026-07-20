@@ -53,23 +53,3 @@ export async function setBusinessSessionCookie(businessId: string) {
   jar.delete('business_id');
   jar.set('business_id', businessId, getSessionCookieOptions());
 }
-
-export async function getSessionAdminId(): Promise<string | null> {
-  return (await cookies()).get('admin_id')?.value ?? null;
-}
-
-export async function assertAdminSession(): Promise<
-  { ok: true; adminId: string } | { ok: false; error: string }
-> {
-  const adminId = await getSessionAdminId();
-  if (!adminId) {
-    return { ok: false, error: 'Unauthorized' };
-  }
-  return { ok: true, adminId };
-}
-
-export async function setAdminSessionCookie(adminId: string) {
-  const jar = await cookies();
-  jar.delete('admin_id');
-  jar.set('admin_id', adminId, getSessionCookieOptions());
-}

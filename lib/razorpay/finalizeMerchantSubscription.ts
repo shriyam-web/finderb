@@ -47,7 +47,6 @@ export type FinalizeResult =
 async function revalidateMerchantPaths(businessId: string) {
   revalidatePath('/business/dashboard');
   revalidatePath(`/business/payment/${businessId}`);
-  revalidatePath('/admin/payments');
   const supabase = createServiceClient();
   if (!supabase) return;
   const { data } = await supabase
