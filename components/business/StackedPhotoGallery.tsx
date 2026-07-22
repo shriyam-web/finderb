@@ -162,7 +162,7 @@ export default function StackedPhotoGallery({
 
   if (images.length === 0) {
     return (
-      <div className="flex aspect-square w-full items-center justify-center rounded-lg border border-dashed border-stone-200 bg-stone-50">
+      <div className="flex aspect-[2/1] w-full items-center justify-center rounded-lg border border-dashed border-stone-200 bg-stone-50">
         <div className="text-center">
           <Building2 className="mx-auto text-stone-300" size={32} />
           <p className="mt-2 text-sm text-stone-400">No photos yet</p>
@@ -177,7 +177,7 @@ export default function StackedPhotoGallery({
         <button
           type="button"
           onClick={() => openLightbox(0)}
-          className="relative block aspect-square w-full overflow-hidden rounded-lg border border-stone-200 bg-stone-100"
+          className="relative block aspect-[2/1] w-full overflow-hidden rounded-lg border border-stone-200 bg-stone-100"
           aria-label="View photo"
         >
           <Image
@@ -202,17 +202,18 @@ export default function StackedPhotoGallery({
     );
   }
 
+  // Keep overall gallery height aligned with the single-photo `aspect-[2/1]` frame.
   const sideIndices = images.map((_, index) => index).filter((index) => index !== activeIndex);
   const visibleSideIndices = sideIndices.slice(0, MAX_SIDE_THUMBNAILS);
   const hiddenSideCount = sideIndices.length - visibleSideIndices.length;
 
   return (
     <>
-      <div className="grid w-full grid-cols-2 gap-2">
+      <div className="grid w-full aspect-[2/1] grid-cols-2 gap-2">
         <button
           type="button"
           onClick={() => openLightbox(activeIndex)}
-          className="relative aspect-square w-full overflow-hidden rounded-lg border border-stone-200 bg-stone-100"
+          className="relative h-full min-h-0 w-full overflow-hidden rounded-lg border border-stone-200 bg-stone-100"
           aria-label={`View photo ${activeIndex + 1} of ${images.length}`}
         >
           <Image

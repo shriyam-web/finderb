@@ -293,7 +293,7 @@ function MerchantPortraitCard({
     <div className="group relative flex w-[184px] shrink-0 flex-col overflow-hidden rounded-2xl bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_20px_-12px_rgba(15,23,42,0.12)] ring-1 ring-slate-200/70 transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-[0_20px_36px_-18px_rgba(33,84,129,0.35)] hover:ring-primary/25 sm:w-[208px]">
       <Link href={profileHref} className="absolute inset-0 z-0" aria-label={biz.name} />
 
-      <div className="relative h-[160px] w-full overflow-hidden bg-slate-100 sm:h-[180px]">
+      <div className="pointer-events-none relative h-[160px] w-full overflow-hidden bg-slate-100 sm:h-[180px]">
         <Image
           src={getBusinessListingImage(biz) || '/fallback.jpg'}
           alt={biz.name}
@@ -319,7 +319,7 @@ function MerchantPortraitCard({
         ) : null}
 
         {(callHref || mapsHref) && (
-          <div className="absolute inset-x-0 top-1/2 z-[2] hidden -translate-y-1/2 items-center justify-center gap-1.5 opacity-0 transition-opacity duration-200 group-hover:opacity-100 sm:flex">
+          <div className="pointer-events-auto absolute inset-x-0 top-1/2 z-[2] hidden -translate-y-1/2 items-center justify-center gap-1.5 opacity-0 transition-opacity duration-200 group-hover:opacity-100 sm:flex">
             {callHref ? (
               <a
                 href={callHref}
