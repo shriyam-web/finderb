@@ -289,7 +289,16 @@ export default function CategoryMerchantList({
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [visibleSlug, setVisibleSlug] = useState(categorySlug);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
+
+  if (categorySlug !== visibleSlug) {
+    setVisibleSlug(categorySlug);
+    setLoading(true);
+    setBusinesses([]);
+    setTotal(0);
+    setPage(0);
+  }
 
   const hasMore = showLoadMore && businesses.length < total;
 
@@ -385,6 +394,10 @@ export default function CategoryMerchantList({
         setBusinesses(rows);
         setTotal(result.total ?? rows.length);
         setPage(1);
+      } else {
+        setBusinesses([]);
+        setTotal(0);
+        setPage(0);
       }
 
       setLoading(false);

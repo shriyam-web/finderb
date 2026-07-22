@@ -95,12 +95,12 @@ const MERCHANT_FILTERS: Array<{
   label: string;
   icon: typeof Clock3;
 }> = [
+  { id: 'nearest', label: 'Nearest', icon: Navigation },
   { id: 'open-now', label: 'Open now', icon: Clock3 },
   { id: 'top-rated', label: 'Top rated', icon: Star },
   { id: 'verified', label: 'Verified', icon: BadgeCheck },
   { id: 'offers', label: 'Offers', icon: Tag },
   { id: 'hiring', label: 'Hiring', icon: Briefcase },
-  { id: 'nearest', label: 'Nearest', icon: Navigation },
 ];
 
 function isAllSubcategory(sub: FeaturedSubcategory) {
@@ -108,23 +108,10 @@ function isAllSubcategory(sub: FeaturedSubcategory) {
 }
 
 function pickDefaultSubcategory(subs: FeaturedSubcategory[]) {
-  const concrete = subs.find(
-    (sub) => !isAllSubcategory(sub) && (sub.businessCount ?? 0) > 0
-  );
-  if (concrete) return concrete;
+  const allTab = subs.find((sub) => isAllSubcategory(sub));
+  if (allTab) return allTab;
   const withBusinesses = subs.find((sub) => (sub.businessCount ?? 0) > 0);
   return withBusinesses ?? subs[0] ?? null;
-}
-
-function readStoredSubcategoryId(categoryId: string, subs: FeaturedSubcategory[]) {
-  if (typeof window === 'undefined') return null;
-  try {
-    const stored = sessionStorage.getItem(`${SUBCAT_STORAGE_PREFIX}${categoryId}`);
-    if (stored && subs.some((sub) => sub.id === stored)) return stored;
-  } catch {
-    /* ignore */
-  }
-  return null;
 }
 
 function writeStoredSubcategoryId(categoryId: string, subId: string) {
@@ -147,10 +134,37 @@ function trendingScore(biz: MerchantCard) {
   return merchantRating(biz) * 1000 + (biz.reviewsCount ?? 0);
 }
 
+function hashSeed(input: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < input.length; i++) {
+    h ^= input.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+/** Stable shuffle so the homepage strip doesn't jump on every re-render. */
+function seededShuffle<T>(items: T[], seed: string): T[] {
+  const arr = [...items];
+  let s = hashSeed(seed) || 1;
+  const next = () => {
+    s = (Math.imul(s, 1664525) + 1013904223) >>> 0;
+    return s / 4294967296;
+  };
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(next() * (i + 1));
+    const tmp = arr[i];
+    arr[i] = arr[j];
+    arr[j] = tmp;
+  }
+  return arr;
+}
+
 function applyMerchantFilters(
   merchants: MerchantCard[],
   activeFilters: MerchantFilterId[],
-  userCoords: { lat: number; lng: number } | null
+  userCoords: { lat: number; lng: number } | null,
+  shuffleSeed: string
 ) {
   let rows = [...merchants];
 
@@ -174,43 +188,48 @@ function applyMerchantFilters(
     rows = rows.filter((biz) => Boolean(biz.hasActiveJobs));
   }
 
+  // Default: randomised order so filter chips visibly change the strip.
+  if (activeFilters.length === 0) {
+    return seededShuffle(rows, shuffleSeed);
+  }
+
   const preferNearest = activeFilters.includes('nearest') && userCoords;
+  const preferRated = activeFilters.includes('top-rated');
+  const preferOpen = activeFilters.includes('open-now');
 
-  rows.sort((a, b) => {
-    const aOpen = getBusinessOpenStatus(a.timings).status === 'Open' ? 1 : 0;
-    const bOpen = getBusinessOpenStatus(b.timings).status === 'Open' ? 1 : 0;
-    if (bOpen !== aOpen) return bOpen - aOpen;
+  if (preferNearest || preferRated || preferOpen) {
+    rows.sort((a, b) => {
+      if (preferOpen) {
+        const aOpen = getBusinessOpenStatus(a.timings).status === 'Open' ? 1 : 0;
+        const bOpen = getBusinessOpenStatus(b.timings).status === 'Open' ? 1 : 0;
+        if (bOpen !== aOpen) return bOpen - aOpen;
+      }
 
-    // Default (and with filters): open → discount offers → closest
-    if (!preferNearest) {
-      const aOffer = merchantHasOffer(a) ? 1 : 0;
-      const bOffer = merchantHasOffer(b) ? 1 : 0;
-      if (bOffer !== aOffer) return bOffer - aOffer;
-    }
+      if (preferNearest && userCoords) {
+        const distA =
+          a.latitude != null && a.longitude != null
+            ? getDistanceKm(userCoords.lat, userCoords.lng, a.latitude, a.longitude)
+            : Number.POSITIVE_INFINITY;
+        const distB =
+          b.latitude != null && b.longitude != null
+            ? getDistanceKm(userCoords.lat, userCoords.lng, b.latitude, b.longitude)
+            : Number.POSITIVE_INFINITY;
+        if (distA !== distB) return distA - distB;
+      }
 
-    if (userCoords) {
-      const distA =
-        a.latitude != null && a.longitude != null
-          ? getDistanceKm(userCoords.lat, userCoords.lng, a.latitude, a.longitude)
-          : Number.POSITIVE_INFINITY;
-      const distB =
-        b.latitude != null && b.longitude != null
-          ? getDistanceKm(userCoords.lat, userCoords.lng, b.latitude, b.longitude)
-          : Number.POSITIVE_INFINITY;
-      if (distA !== distB) return distA - distB;
-    }
+      if (preferRated) {
+        const ratingDiff = merchantRating(b) - merchantRating(a);
+        if (ratingDiff !== 0) return ratingDiff;
+        return (b.reviewsCount ?? 0) - (a.reviewsCount ?? 0);
+      }
 
-    // When Nearest filter is on, still prefer offer as a light tie-break after distance
-    if (preferNearest) {
-      const aOffer = merchantHasOffer(a) ? 1 : 0;
-      const bOffer = merchantHasOffer(b) ? 1 : 0;
-      if (bOffer !== aOffer) return bOffer - aOffer;
-    }
+      return 0;
+    });
+    return rows;
+  }
 
-    return 0;
-  });
-
-  return rows;
+  // Offers / verified / hiring only — keep a shuffled filtered set.
+  return seededShuffle(rows, `${shuffleSeed}:${activeFilters.slice().sort().join(',')}`);
 }
 
 function emptyFilterTip(activeFilters: MerchantFilterId[]) {
@@ -454,8 +473,14 @@ export default function FeaturedCategoryGroup({
     : categoryBrowseHref(id);
 
   const visibleMerchants = useMemo(
-    () => applyMerchantFilters(merchants, activeFilters, userCoords),
-    [merchants, activeFilters, userCoords]
+    () =>
+      applyMerchantFilters(
+        merchants,
+        activeFilters,
+        userCoords,
+        `${id}:${selected?.id || selectedId || 'all'}`
+      ),
+    [merchants, activeFilters, userCoords, id, selected?.id, selectedId]
   );
 
   const trendingIds = useMemo(() => {
@@ -492,13 +517,12 @@ export default function FeaturedCategoryGroup({
     setActiveFilters((prev) => prev.filter((fid) => fid !== filterId));
   };
 
-  // Resolve remembered subcategory before fetching merchants.
+  // Always open on "All" for each category section.
   useEffect(() => {
-    const stored = readStoredSubcategoryId(id, subcategories);
     const fallback = pickDefaultSubcategory(subcategories)?.id ?? '';
-    const nextId = stored || fallback;
-    setSelectedId(nextId);
+    setSelectedId(fallback);
     setSubReady(true);
+    if (fallback) writeStoredSubcategoryId(id, fallback);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- subIdsKey tracks list identity
   }, [id, subIdsKey]);
 
@@ -785,20 +809,20 @@ export default function FeaturedCategoryGroup({
         <div role="tabpanel" aria-label={selected.name} className="relative mt-3">
           {canScrollLeft ? (
             <div
-              className={`pointer-events-none absolute inset-y-0 left-0 z-[1] w-8 sm:w-12 ${
+              className={`pointer-events-none absolute inset-y-0 left-0 z-[1] w-4 sm:w-5 ${
                 isMuted
-                  ? 'bg-gradient-to-r from-slate-100 via-slate-100/80 to-transparent'
-                  : 'bg-gradient-to-r from-white via-white/80 to-transparent'
+                  ? 'bg-gradient-to-r from-slate-100/35 via-slate-100/10 to-transparent'
+                  : 'bg-gradient-to-r from-white/40 via-white/10 to-transparent'
               }`}
               aria-hidden
             />
           ) : null}
           {canScrollRight ? (
             <div
-              className={`pointer-events-none absolute inset-y-0 right-0 z-[1] w-8 sm:w-12 ${
+              className={`pointer-events-none absolute inset-y-0 right-0 z-[1] w-4 sm:w-5 ${
                 isMuted
-                  ? 'bg-gradient-to-l from-slate-100 via-slate-100/80 to-transparent'
-                  : 'bg-gradient-to-l from-white via-white/80 to-transparent'
+                  ? 'bg-gradient-to-l from-slate-100/35 via-slate-100/10 to-transparent'
+                  : 'bg-gradient-to-l from-white/40 via-white/10 to-transparent'
               }`}
               aria-hidden
             />

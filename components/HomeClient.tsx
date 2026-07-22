@@ -815,7 +815,7 @@ export default function HomeClient({ initialData }: { initialData: any }) {
                 id={group.id}
                 title={group.title}
                 subcategories={group.subcategories ?? []}
-                tone={index % 2 === 0 ? 'light' : 'muted'}
+                tone={index % 2 === 0 ? 'muted' : 'light'}
               />
             ))}
           </div>

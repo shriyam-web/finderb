@@ -121,6 +121,8 @@ export default function CategoriesPage() {
   const asideScrollRef = useRef<HTMLElement>(null);
   const subCategoryScrollRef = useRef<HTMLDivElement>(null);
   const [canScrollSubsRight, setCanScrollSubsRight] = useState(false);
+  /** Prevents stale URL from overwriting a subcategory the user just tapped. */
+  const pendingSubIdRef = useRef<string | null>(null);
 
   const urlSearchQ = searchParams.get('search')?.trim() ?? '';
 
@@ -369,27 +371,36 @@ export default function CategoriesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- subIdFromUrl synced separately
   }, [selectedCategory?.id]);
 
-  // Sync selected subcategory from URL without remounting the whole panel.
+  // Sync selected subcategory from URL only — never fight an in-progress tap.
   useEffect(() => {
     if (!selectedCategory || subCategories.length === 0) return;
 
+    const pendingId = pendingSubIdRef.current;
+    if (pendingId) {
+      const pendingIsAll = pendingId.startsWith('all:');
+      const urlMatchesPending = pendingIsAll
+        ? !subIdFromUrl || String(subIdFromUrl).startsWith('all:')
+        : subIdFromUrl === pendingId;
+      if (!urlMatchesPending) return;
+      pendingSubIdRef.current = null;
+    }
+
     if (subIdFromUrl && !String(subIdFromUrl).startsWith('all:')) {
       const fromUrl = subCategories.find((s) => s.id === subIdFromUrl);
-      if (fromUrl && selectedSubCategory?.id !== fromUrl.id) {
-        setSelectedSubCategory(fromUrl);
+      if (fromUrl) {
+        setSelectedSubCategory((prev) => (prev?.id === fromUrl.id ? prev : fromUrl));
       }
       return;
     }
 
     const allTab =
       subCategories.find((s) => isAllSubCategory(s)) ?? allSubCategoryFor(selectedCategory);
-    if (selectedSubCategory?.id !== allTab.id) {
-      setSelectedSubCategory(allTab);
-    }
-  }, [subIdFromUrl, selectedCategory, subCategories, selectedSubCategory?.id]);
+    setSelectedSubCategory((prev) => (prev?.id === allTab.id ? prev : allTab));
+  }, [subIdFromUrl, selectedCategory, subCategories]);
 
   const handleCategoryClick = (cat: any) => {
     const allTab = allSubCategoryFor(cat);
+    pendingSubIdRef.current = allTab.id;
     setListingStats({ shown: 0, total: 0, loading: true });
     setSelectedCategory(cat);
     setSubCategories([allTab]);
@@ -400,6 +411,7 @@ export default function CategoriesPage() {
 
   const handleSubCategoryClick = (sub: SubCategory) => {
     if (selectedSubCategory?.id === sub.id) return;
+    pendingSubIdRef.current = sub.id;
     setListingStats({ shown: 0, total: 0, loading: true });
     setSelectedSubCategory(sub);
     setViewMode('merchants');
