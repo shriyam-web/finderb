@@ -27,7 +27,14 @@ import DashboardQuickActions from './components/DashboardQuickActions';
 import DashboardTabShell from './components/DashboardShell';
 import BusinessWorkspaceLoader from '@/components/business/BusinessWorkspaceLoader';
 import BusinessOnboardingLoader from '@/components/business/BusinessOnboardingLoader';
-import { consumeNewBusinessOnboarding } from '@/lib/businessOnboarding';
+import {
+  hasPendingBusinessOnboarding,
+  hasCompletedBusinessOnboarding,
+  markBusinessOnboardingComplete,
+  markNewBusinessOnboarding,
+  beginBusinessOnboardingThisLoad,
+  isBusinessOnboardingActiveThisLoad,
+} from '@/lib/businessOnboarding';
 import { getAccountHealth } from '@/lib/dashboard/accountHealth';
 import { getProfileCompletion, getAccountMissingFields } from '@/lib/dashboard/profileCompletion';
 import { hasPublicTrustBadge, isListingLive, KYC_OUTSOURCED_MESSAGE } from '@/lib/businessVerification';
@@ -140,16 +147,48 @@ function DashboardContent() {
   const businessId = business?.id;
   const businessProfilePath = business ? getBusinessProfilePath(business) : undefined;
 
+  // If registration sent ?welcome=1, keep a session flag and strip it from the URL
+  // immediately so refresh never re-triggers via the query string.
   useEffect(() => {
-    const welcome = searchParams.get('welcome') === '1';
-    const stored = consumeNewBusinessOnboarding();
-    if (welcome || stored) {
-      setShowOnboarding(true);
-      if (welcome) {
-        router.replace('/business/dashboard', { scroll: false });
-      }
+    if (!searchParams.has('welcome')) return;
+
+    if (searchParams.get('welcome') === '1') {
+      markNewBusinessOnboarding();
     }
+
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete('welcome');
+    const qs = params.toString();
+    router.replace(qs ? `/business/dashboard?${qs}` : '/business/dashboard', {
+      scroll: false,
+    });
   }, [searchParams, router]);
+
+  // Show the one-time welcome splash only when a pending registration flag exists
+  // and this business has never completed onboarding on this browser.
+  useEffect(() => {
+    if (!businessId) return;
+
+    // Strict Mode remount: restore the in-progress splash for this page load only.
+    if (isBusinessOnboardingActiveThisLoad(businessId)) {
+      setShowOnboarding(true);
+      return;
+    }
+
+    if (hasCompletedBusinessOnboarding(businessId)) return;
+    if (!hasPendingBusinessOnboarding()) return;
+
+    beginBusinessOnboardingThisLoad(businessId);
+    markBusinessOnboardingComplete(businessId);
+    setShowOnboarding(true);
+  }, [businessId]);
+
+  const handleOnboardingComplete = useCallback(() => {
+    if (businessId) {
+      markBusinessOnboardingComplete(businessId);
+    }
+    setShowOnboarding(false);
+  }, [businessId]);
 
   useEffect(() => {
     const fetchBusiness = async () => {
@@ -434,7 +473,7 @@ function DashboardContent() {
   ];
 
   if (showOnboarding) {
-    return <BusinessOnboardingLoader onComplete={() => setShowOnboarding(false)} />;
+    return <BusinessOnboardingLoader onComplete={handleOnboardingComplete} />;
   }
 
   if (loading) {

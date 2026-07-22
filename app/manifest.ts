@@ -1,4 +1,6 @@
-import { MetadataRoute } from 'next'
+import type { MetadataRoute } from 'next';
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || 'https://finderb.in';
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
@@ -15,9 +17,15 @@ export default function manifest(): MetadataRoute.Manifest {
     lang: 'en-IN',
     dir: 'ltr',
     background_color: '#ffffff',
-    theme_color: '#215481',
+    theme_color: '#0f273b',
     categories: ['business', 'lifestyle'],
     prefer_related_applications: false,
+    related_applications: [
+      {
+        platform: 'webapp',
+        url: `${SITE_URL}/manifest.webmanifest`,
+      },
+    ],
     icons: [
       {
         src: '/icon-192.png',
@@ -38,5 +46,5 @@ export default function manifest(): MetadataRoute.Manifest {
         purpose: 'any',
       },
     ],
-  }
+  };
 }

@@ -10,6 +10,13 @@ import { getSession, logoutUser } from '@/app/actions/user';
 import { getBusinessSession, logoutBusiness } from '@/app/actions/business';
 import { useRouter } from 'next/navigation';
 import { getBusinessProfilePath } from '@/lib/businessSlug';
+import { Plus_Jakarta_Sans } from 'next/font/google';
+
+const mobileMenuFont = Plus_Jakarta_Sans({
+  subsets: ['latin'],
+  weight: ['500', '600', '700'],
+  display: 'swap',
+});
 
 function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: boolean }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -280,74 +287,96 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
         type="button"
         aria-label="Close menu"
         onClick={() => setIsOpen(false)}
-        className={`lg:hidden fixed inset-0 z-[10050] bg-slate-900/40 transition-opacity duration-300 ${
+        className={`lg:hidden fixed inset-0 z-[10050] bg-stone-900/25 transition-opacity duration-300 ${
           isOpen ? 'opacity-100' : 'pointer-events-none opacity-0'
         }`}
       />
 
       <div
-        className={`lg:hidden fixed inset-y-0 right-0 z-[10051] flex w-1/2 flex-col border-l border-slate-100 bg-white shadow-[-10px_0_36px_rgba(15,23,42,0.14)] transition-transform duration-300 ease-out ${
+        className={`lg:hidden fixed inset-y-0 right-0 z-[10051] flex w-[min(78vw,18.5rem)] flex-col overflow-hidden border-l border-stone-200/80 bg-[#fafaf9] shadow-[-12px_0_28px_rgba(28,25,23,0.12)] transition-transform duration-300 ease-out ${mobileMenuFont.className} ${
           isOpen ? 'translate-x-0' : 'pointer-events-none translate-x-full'
         }`}
       >
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-          <div className="flex shrink-0 items-center justify-between border-b border-slate-100 px-3 py-2">
-            <p className="text-sm font-semibold text-slate-800">Menu</p>
+        <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
+          <div className="flex shrink-0 items-center justify-end border-b border-stone-200/70 px-2.5 py-2 pt-[max(0.5rem,env(safe-area-inset-top))]">
             <button
               type="button"
               onClick={() => setIsOpen(false)}
-              className="flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-slate-700 transition-all active:scale-95"
+              className="flex h-8 w-8 items-center justify-center rounded-full text-stone-500 transition-all hover:bg-stone-100 hover:text-stone-800 active:scale-95"
               aria-label="Close menu"
             >
-              <X size={15} />
+              <X size={16} />
             </button>
           </div>
 
-          <div className="min-h-0 flex-1 overflow-y-auto px-2.5 py-1.5">
+          <div className="min-h-0 flex-1 overflow-y-auto px-2 py-1.5">
             <div className="space-y-0.5">
-              {menuItems.map((item) => (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  onClick={() => setIsOpen(false)}
-                  className="group flex items-center justify-between rounded-lg px-1.5 py-1.5 transition-colors active:bg-slate-50"
-                >
-                  <div className="flex min-w-0 items-center gap-2">
-                    <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-slate-50 text-slate-400 transition-colors group-hover:bg-primary/5 group-hover:text-primary">
-                      <item.icon size={14} />
+              {menuItems.map((item) => {
+                const active = pathname === item.href;
+                return (
+                  <Link
+                    key={item.name}
+                    href={item.href}
+                    onClick={() => setIsOpen(false)}
+                    className={`group flex items-center justify-between rounded-lg px-2 py-2 transition-colors ${
+                      active ? 'bg-teal-50' : 'hover:bg-white active:bg-stone-100'
+                    }`}
+                  >
+                    <div className="flex min-w-0 items-center gap-2.5">
+                      <div
+                        className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md ${
+                          active
+                            ? 'bg-[#0f766e] text-white'
+                            : 'bg-white text-stone-500 ring-1 ring-stone-200/80 group-hover:text-[#0f766e]'
+                        }`}
+                      >
+                        <item.icon size={14} strokeWidth={2.1} />
+                      </div>
+                      <span
+                        className={`truncate text-[13px] ${
+                          active
+                            ? 'font-semibold text-[#115e59]'
+                            : 'font-medium text-stone-800'
+                        }`}
+                      >
+                        {item.name}
+                      </span>
                     </div>
-                    <span className="truncate text-xs text-slate-700">{item.name}</span>
-                  </div>
-                  <ArrowRight
-                    size={12}
-                    className="shrink-0 text-slate-300 transition-all group-hover:translate-x-0.5 group-hover:text-primary"
-                  />
-                </Link>
-              ))}
+                    <ArrowRight
+                      size={13}
+                      className={`shrink-0 transition-transform ${
+                        active
+                          ? 'text-[#0f766e]'
+                          : 'text-stone-300 group-hover:translate-x-0.5 group-hover:text-stone-400'
+                      }`}
+                    />
+                  </Link>
+                );
+              })}
             </div>
 
-            <div className="my-1.5 h-px w-full bg-slate-100" />
+            <div className="my-2 h-px bg-stone-200/80" />
 
             <div className="space-y-0.5">
               <button
                 type="button"
                 onClick={() => setIsLangOpen(!isLangOpen)}
-                className="flex w-full items-center justify-between rounded-lg border border-slate-100 bg-slate-50/70 px-1.5 py-1.5 transition-colors active:bg-slate-100"
+                className="flex w-full items-center justify-between rounded-lg px-2 py-2 transition-colors hover:bg-white"
               >
-                <div className="flex items-center gap-2">
-                  <div className="flex h-6 w-6 items-center justify-center rounded-md border border-slate-100 bg-white text-slate-400">
+                <div className="flex items-center gap-2.5">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-md bg-white text-stone-500 ring-1 ring-stone-200/80">
                     <Globe size={14} />
                   </div>
-                  <span className="text-xs text-slate-700">{currentLang}</span>
+                  <span className="text-[13px] font-medium text-stone-800">{currentLang}</span>
                 </div>
                 <ChevronDown
-                  className={`text-slate-400 transition-transform duration-300 ${isLangOpen ? 'rotate-180' : ''}`}
+                  className={`text-stone-400 transition-transform duration-300 ${isLangOpen ? 'rotate-180' : ''}`}
                   size={14}
                 />
               </button>
 
               <div
-                className={`grid grid-cols-2 gap-1 overflow-hidden px-0.5 transition-all duration-300 ${
+                className={`grid grid-cols-2 gap-1 overflow-hidden px-1 transition-all duration-300 ${
                   isLangOpen ? 'mb-1 max-h-20 opacity-100' : 'max-h-0 opacity-0'
                 }`}
               >
@@ -359,10 +388,10 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
                       setCurrentLang(lang);
                       setIsLangOpen(false);
                     }}
-                    className={`rounded-md border py-1 text-[9px] font-medium transition-all ${
+                    className={`rounded-md py-1.5 text-[11px] font-semibold transition-colors ${
                       currentLang === lang
-                        ? 'border-primary bg-primary text-white'
-                        : 'border-slate-100 bg-white text-slate-600'
+                        ? 'bg-[#0f766e] text-white'
+                        : 'bg-white text-stone-600 ring-1 ring-stone-200/80 hover:bg-stone-50'
                     }`}
                   >
                     {lang}
@@ -374,42 +403,42 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
                 <Link
                   href="/dashboard"
                   onClick={() => setIsOpen(false)}
-                  className="flex items-center justify-between rounded-lg px-1.5 py-1.5 transition-colors active:bg-slate-50"
+                  className="flex items-center justify-between rounded-lg px-2 py-2 transition-colors hover:bg-white"
                 >
-                  <div className="flex items-center gap-2">
-                    <div className="flex h-6 w-6 items-center justify-center rounded-md bg-slate-50 text-slate-400">
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex h-7 w-7 items-center justify-center rounded-md bg-white text-stone-500 ring-1 ring-stone-200/80">
                       <User size={14} />
                     </div>
-                    <span className="text-xs text-slate-700">My Account</span>
+                    <span className="text-[13px] font-medium text-stone-800">My Account</span>
                   </div>
-                  <ArrowRight size={12} className="text-slate-300" />
+                  <ArrowRight size={13} className="text-stone-300" />
                 </Link>
               )}
               {isBusinessLoggedIn && !isLoggedIn && business && (
                 <Link
                   href={businessDashboardHref}
                   onClick={() => setIsOpen(false)}
-                  className="flex items-center justify-between rounded-lg px-1.5 py-1.5 transition-colors active:bg-slate-50"
+                  className="flex items-center justify-between rounded-lg px-2 py-2 transition-colors hover:bg-white"
                 >
-                  <div className="flex items-center gap-2">
-                    <div className="flex h-6 w-6 items-center justify-center rounded-md bg-slate-50 text-slate-400">
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex h-7 w-7 items-center justify-center rounded-md bg-white text-stone-500 ring-1 ring-stone-200/80">
                       <Briefcase size={14} />
                     </div>
-                    <span className="text-xs text-slate-700">My Business</span>
+                    <span className="text-[13px] font-medium text-stone-800">My Business</span>
                   </div>
-                  <ArrowRight size={12} className="text-slate-300" />
+                  <ArrowRight size={13} className="text-stone-300" />
                 </Link>
               )}
             </div>
           </div>
 
-          <div className="shrink-0 border-t border-slate-100 px-2.5 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+          <div className="shrink-0 border-t border-stone-200/70 px-2.5 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
             {isBusinessLoggedIn && business ? (
               <div className="grid grid-cols-1 gap-1.5">
                 <Link
                   href={businessDashboardHref}
                   onClick={() => setIsOpen(false)}
-                  className="flex items-center justify-center gap-1.5 rounded-lg bg-primary py-1.5 text-[10px] font-semibold text-white transition-all active:scale-[0.98]"
+                  className="flex items-center justify-center gap-1.5 rounded-lg bg-[#0f766e] py-2 text-[12px] font-semibold text-white transition-all active:scale-[0.98]"
                 >
                   <LayoutDashboard size={13} />
                   Dashboard
@@ -420,7 +449,7 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
                     handleBusinessLogout();
                     setIsOpen(false);
                   }}
-                  className="flex items-center justify-center gap-1.5 rounded-lg border border-red-100 bg-red-50 py-1.5 text-[10px] font-semibold text-red-500 transition-all active:scale-[0.98]"
+                  className="flex items-center justify-center gap-1.5 rounded-lg border border-red-100 bg-red-50 py-2 text-[12px] font-semibold text-red-500 transition-all active:scale-[0.98]"
                 >
                   <LogOut size={13} />
                   Sign Out
@@ -433,7 +462,7 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
                   handleBusinessLogout();
                   setIsOpen(false);
                 }}
-                className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-red-100 bg-red-50 py-1.5 text-[10px] font-semibold text-red-500 transition-all active:scale-[0.98]"
+                className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-red-100 bg-red-50 py-2 text-[12px] font-semibold text-red-500 transition-all active:scale-[0.98]"
               >
                 <LogOut size={13} />
                 Sign Out
@@ -445,7 +474,7 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
                   handleLogout();
                   setIsOpen(false);
                 }}
-                className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-red-100 bg-red-50 py-1.5 text-[10px] font-semibold text-red-500 transition-all active:scale-[0.98]"
+                className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-red-100 bg-red-50 py-2 text-[12px] font-semibold text-red-500 transition-all active:scale-[0.98]"
               >
                 <LogOut size={13} />
                 Sign Out
@@ -455,7 +484,7 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
                 <Link
                   href="/login"
                   onClick={() => setIsOpen(false)}
-                  className="flex items-center justify-center gap-1.5 rounded-lg bg-primary py-1.5 text-[10px] font-semibold text-white transition-all active:scale-[0.98]"
+                  className="flex items-center justify-center gap-1.5 rounded-lg bg-[#0f766e] py-2 text-[12px] font-semibold text-white transition-all active:scale-[0.98]"
                 >
                   <LogIn size={13} />
                   Login
@@ -463,10 +492,10 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
                 <Link
                   href="/business/register"
                   onClick={() => setIsOpen(false)}
-                  className="flex items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white py-1.5 text-[10px] font-semibold text-slate-700 transition-all active:scale-[0.98]"
+                  className="flex items-center justify-center gap-1.5 rounded-lg border border-stone-200 bg-white py-2 text-[12px] font-semibold text-stone-800 transition-all hover:bg-stone-50 active:scale-[0.98]"
                 >
-                  <Briefcase size={13} className="text-secondary" />
-                  Register
+                  <Briefcase size={13} className="text-[#0f766e]" />
+                  Register Business
                 </Link>
               </div>
             )}
@@ -641,7 +670,7 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
             {!isOpen && (
               <button
                 onClick={() => setIsOpen(true)}
-                className="relative z-[10002] flex h-10 w-10 items-center justify-center rounded-full text-[#475569] transition-all hover:bg-gray-50 active:scale-95"
+                className="relative z-[10002] flex h-10 w-10 items-center justify-center rounded-full bg-white text-[#0f766e] shadow-sm ring-1 ring-teal-100 transition-all hover:bg-teal-50 active:scale-95"
                 aria-label="Open menu"
               >
                 <Menu size={24} strokeWidth={1.75} />

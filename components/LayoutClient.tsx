@@ -13,6 +13,10 @@ const MERCHANT_APP_PREFIXES = [
   '/business/kyc/',
 ];
 
+function isBusinessOnboardingPreview(pathname: string | null) {
+  return pathname === '/business/onboarding-preview';
+}
+
 function isBusinessDashboardRoute(pathname: string | null) {
   return pathname === '/business/dashboard' || Boolean(pathname?.startsWith('/business/dashboard/'));
 }
@@ -65,13 +69,22 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
       !pathname.startsWith('/categories/job') &&
       !pathname.startsWith('/categories/admissions'));
   const userDashboardRoute = isUserDashboardRoute(pathname);
-  const hideTopNavFooter = merchantAppShell || isCategoriesBrowse || userDashboardRoute;
-  const showBottomNav = !merchantAppShell && !userDashboardRoute;
+  const hideTopNavFooter =
+    merchantAppShell ||
+    isCategoriesBrowse ||
+    userDashboardRoute ||
+    isBusinessOnboardingPreview(pathname);
+  const showBottomNav =
+    !merchantAppShell && !userDashboardRoute && !isBusinessOnboardingPreview(pathname);
   const showBottomNavPadding = showBottomNav && !isCategoriesBrowse;
-  const showLocationPrompt = !merchantAppShell && !isCategoriesBrowse && !userDashboardRoute;
+  const showLocationPrompt =
+    !merchantAppShell &&
+    !isCategoriesBrowse &&
+    !userDashboardRoute &&
+    !isBusinessOnboardingPreview(pathname);
 
   useEffect(() => {
-    if (businessProfileRoute || userDashboardRoute) {
+    if (businessProfileRoute || userDashboardRoute || isBusinessOnboardingPreview(pathname)) {
       setLoading(false);
       return;
     }
@@ -81,11 +94,13 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
     }, 3000);
 
     return () => clearTimeout(timer);
-  }, [businessProfileRoute, userDashboardRoute]);
+  }, [businessProfileRoute, userDashboardRoute, pathname]);
 
   return (
     <UserLocationProvider>
-      <PWAInstallPrompt appReady={!loading} />
+      {!isBusinessOnboardingPreview(pathname) && (
+        <PWAInstallPrompt appReady={!loading} />
+      )}
       {loading ? (
         businessDashboardRoute ? (
           <BusinessWorkspaceLoader />
@@ -106,7 +121,9 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
           </Suspense>
           {showBottomNav && <BottomNavbar />}
           {showLocationPrompt && <LocationPermissionPrompt appReady />}
-          <ScrollToTopButton showBottomNav={showBottomNav} />
+          {!isBusinessOnboardingPreview(pathname) && (
+            <ScrollToTopButton showBottomNav={showBottomNav} />
+          )}
         </div>
       )}
     </UserLocationProvider>

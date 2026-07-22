@@ -1,9 +1,15 @@
 'use client';
 
 import { useEffect } from 'react';
+import { initInstallPromptCapture, isStandaloneMode, markPwaInstalled } from '@/lib/pwa';
 
 export default function ServiceWorkerRegister() {
   useEffect(() => {
+    initInstallPromptCapture();
+    if (isStandaloneMode()) {
+      markPwaInstalled();
+    }
+
     if (!('serviceWorker' in navigator)) return;
 
     const register = async () => {
