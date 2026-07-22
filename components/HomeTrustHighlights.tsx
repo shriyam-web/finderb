@@ -204,7 +204,7 @@ export default function HomeTrustHighlights({ variant = 'desktop' }: HomeTrustHi
 
   if (variant === 'mobile') {
     return (
-      <section ref={sectionRef} className="relative z-10 bg-white px-4 pb-8 pt-3">
+      <section ref={sectionRef} className="relative z-10 bg-white px-4 pb-2 pt-2">
         <div className="grid grid-cols-4 gap-2">
           {TRUST_ITEMS.map((item, index) => (
             <TrustItemControl

@@ -188,24 +188,45 @@ export async function getTrendingThisWeek(limit = 4): Promise<TrendingWeekItem[]
 
     const businessIds = [...new Set(profileViews.map((row) => row.business_id).filter(Boolean))];
     const categoriesByBusinessId = new Map<string, string>();
+    let fallbackCategoryLabels: string[] = [];
 
-    if (businessIds.length > 0) {
-      const { data: businesses } = await supabase
-        .from('Business')
-        .select('id, category')
-        .in('id', businessIds.slice(0, 500));
+    const [businessesResult, fallbackCatsResult, parentCatsResult] = await Promise.all([
+      businessIds.length > 0
+        ? supabase
+            .from('Business')
+            .select('id, category')
+            .in('id', businessIds.slice(0, 500))
+        : Promise.resolve({ data: [] as { id: string; category: string | null }[] }),
+      supabase.from('Business').select('category').eq('status', 'Active').limit(500),
+      supabase
+        .from('categories')
+        .select('name, items_count')
+        .is('parent_id', null)
+        .eq('status', 'Active')
+        .order('items_count', { ascending: false })
+        .limit(12),
+    ]);
 
-      for (const business of businesses ?? []) {
-        if (business.id && business.category) {
-          categoriesByBusinessId.set(String(business.id), String(business.category));
-        }
+    for (const business of businessesResult.data ?? []) {
+      if (business.id && business.category) {
+        categoriesByBusinessId.set(String(business.id), String(business.category));
       }
     }
+
+    fallbackCategoryLabels = [
+      ...(fallbackCatsResult.data ?? [])
+        .map((row) => row.category?.trim())
+        .filter((label): label is string => Boolean(label)),
+      ...(parentCatsResult.data ?? [])
+        .map((row) => row.name?.trim())
+        .filter((label): label is string => Boolean(label)),
+    ];
 
     return buildTrendingWeekItems({
       searches,
       profileViews,
       categoriesByBusinessId,
+      fallbackCategoryLabels,
       limit,
     });
   } catch {

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { setLastSearchQuery } from '@/lib/lastSearchQuery';
 import Image from 'next/image';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   MapPin,
   ChevronRight,
@@ -25,6 +25,19 @@ import { getBusinessOpenStatus } from '@/lib/businessHours';
 import type { TrendingWeekItem } from '@/lib/trendingThisWeek';
 import type { UserCoords } from '@/hooks/useUserCoords';
 
+const HOME_BANNERS = [
+  {
+    src: '/business-register.png',
+    href: '/business/register',
+    alt: 'Register your business on FinderB',
+  },
+  {
+    src: '/meet-ai.png',
+    href: '/?tab=ai',
+    alt: 'Meet FinderB AI',
+  },
+] as const;
+
 type MobileHomeProps = {
   manualQuery: string;
   onQueryChange: (value: string) => void;
@@ -37,6 +50,7 @@ type MobileHomeProps = {
   isBusinessesLoading: boolean;
   userCoords?: UserCoords | null;
   trendingThisWeek?: TrendingWeekItem[];
+  showFeaturedVerified?: boolean;
 };
 
 export default function MobileHome({
@@ -51,32 +65,53 @@ export default function MobileHome({
   isBusinessesLoading,
   userCoords = null,
   trendingThisWeek = [],
+  showFeaturedVerified = true,
 }: MobileHomeProps) {
   const gridCategories = categories.slice(0, 7);
   const featured = businesses.slice(0, 6);
 
-  const banners = [
-  {
-    src: '/business-register.png',
-    href: '/business/register',
-    alt: 'Register your business on FinderB',
-  },
-  {
-    src: '/meet-ai.png',
-    href: '/?tab=ai',
-    alt: 'Meet FinderB AI',
-  },
-];
+  const [currentBanner, setCurrentBanner] = useState(0);
+  const bannerScrollerRef = useRef<HTMLDivElement>(null);
+  const bannerPauseUntilRef = useRef(0);
+  const bannerScrollRafRef = useRef(0);
 
-const [currentBanner, setCurrentBanner] = useState(0);
+  const scrollBannerTo = (index: number, behavior: ScrollBehavior = 'smooth') => {
+    const el = bannerScrollerRef.current;
+    if (!el) return;
+    const width = el.clientWidth || 1;
+    el.scrollTo({ left: index * width, behavior });
+    setCurrentBanner(index);
+  };
 
-useEffect(() => {
-  const interval = setInterval(() => {
-    setCurrentBanner((prev) => (prev + 1) % banners.length);
-  }, 3500);
+  const pauseBannerAutoplay = (ms = 6000) => {
+    bannerPauseUntilRef.current = Date.now() + ms;
+  };
 
-  return () => clearInterval(interval);
-}, []);
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      if (Date.now() < bannerPauseUntilRef.current) return;
+      setCurrentBanner((prev) => {
+        const next = (prev + 1) % HOME_BANNERS.length;
+        const el = bannerScrollerRef.current;
+        if (el) {
+          const width = el.clientWidth || 1;
+          el.scrollTo({ left: next * width, behavior: 'smooth' });
+        }
+        return next;
+      });
+    }, 3500);
+
+    return () => window.clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (bannerScrollRafRef.current) {
+        cancelAnimationFrame(bannerScrollRafRef.current);
+      }
+    };
+  }, []);
+
   return (
     <div className="lg:hidden bg-white">
       <HomeHero
@@ -130,33 +165,75 @@ useEffect(() => {
         </div>
       </section>
 
-      {/* Auto Scrolling Banner */}
-      <section className="mt-1 px-4 pb-1">
-        <div className="relative overflow-hidden rounded-xl">
-          <div className="flex transition-transform duration-700 ease-in-out" style={{transform:`translateX(-${currentBanner*100}%)`}}>
-            {banners.map((banner)=>(
-              <Link key={banner.src} href={banner.href} className="min-w-full">
-                <Image src={banner.src} alt={banner.alt} width={1200} height={320} className="h-auto w-full" sizes="(max-width: 1024px) 100vw, 400px"/>
+      {/* Banner carousel — auto + manual swipe / dots */}
+      <section className="mt-1 w-full px-4 pb-1">
+        <div className="relative w-full overflow-hidden rounded-xl">
+          <div
+            ref={bannerScrollerRef}
+            className="scrollbar-hide flex w-full snap-x snap-mandatory overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch]"
+            onPointerDown={() => pauseBannerAutoplay()}
+            onTouchStart={() => pauseBannerAutoplay()}
+            onScroll={() => {
+              if (bannerScrollRafRef.current) cancelAnimationFrame(bannerScrollRafRef.current);
+              bannerScrollRafRef.current = requestAnimationFrame(() => {
+                const el = bannerScrollerRef.current;
+                if (!el) return;
+                const width = el.clientWidth || 1;
+                const next = Math.round(el.scrollLeft / width);
+                const clamped = Math.max(0, Math.min(HOME_BANNERS.length - 1, next));
+                setCurrentBanner((prev) => (prev === clamped ? prev : clamped));
+              });
+            }}
+          >
+            {HOME_BANNERS.map((banner) => (
+              <Link
+                key={banner.src}
+                href={banner.href}
+                className="relative block w-full min-w-full max-w-full shrink-0 grow-0 basis-full snap-center snap-always"
+              >
+                <Image
+                  src={banner.src}
+                  alt={banner.alt}
+                  width={1200}
+                  height={320}
+                  className="block h-auto w-full max-w-full object-cover object-center"
+                  sizes="(max-width: 1024px) calc(100vw - 2rem), 400px"
+                  priority={banner.src === HOME_BANNERS[0].src}
+                />
               </Link>
             ))}
           </div>
+        </div>
+        <div className="mt-1.5 flex items-center justify-center gap-1.5">
+          {HOME_BANNERS.map((banner, index) => (
+            <button
+              key={`${banner.src}-dot`}
+              type="button"
+              aria-label={`Show banner ${index + 1}`}
+              aria-current={currentBanner === index ? 'true' : undefined}
+              onClick={() => {
+                pauseBannerAutoplay();
+                scrollBannerTo(index);
+              }}
+              className={`h-1.5 rounded-full transition-all ${
+                currentBanner === index ? 'w-4 bg-primary' : 'w-1.5 bg-slate-300'
+              }`}
+            />
+          ))}
         </div>
       </section>
 
       {/* Trending */}
       {trendingThisWeek.length > 0 ? (
-        <section className="mt-2 px-4 py-2">
-          <div className="rounded-xl border border-gray-100 bg-white p-4">
-            <div className="mb-3 flex items-center justify-between">
-              <h2 className="flex items-center gap-1 text-[15px] font-bold text-[#0f2a4a]">
+        <section className="mt-1.5 px-4 py-1">
+          <div className="rounded-xl border border-gray-100 bg-white px-3.5 py-2.5">
+            <div className="mb-1 flex items-center gap-2">
+              <h2 className="flex items-center gap-1 text-[14px] font-bold text-[#0f2a4a]">
                 Trending This Week
                 <span className="inline-block animate-fire-flicker" aria-hidden>
                   🔥
                 </span>
               </h2>
-              <Link href="/categories" className="text-[13px] font-medium text-[#2563eb]">
-                View All
-              </Link>
             </div>
             <ul className="divide-y divide-gray-100">
               {trendingThisWeek.map((item, idx) => (
@@ -164,9 +241,11 @@ useEffect(() => {
                   <button
                     type="button"
                     onClick={() => onSearch(item.query)}
-                    className="flex w-full items-center gap-2 py-3 text-left"
+                    className="flex w-full items-center gap-2 py-1.5 text-left"
                   >
-                    <span className="w-4 shrink-0 text-xs font-medium text-[#94a3b8]">{idx + 1}</span>
+                    <span className="w-4 shrink-0 text-xs font-medium text-[#94a3b8]">
+                      {idx + 1}
+                    </span>
                     <span className="min-w-0 flex-1 text-[13px] font-medium text-[#334155]">
                       {item.label}
                     </span>
@@ -184,6 +263,7 @@ useEffect(() => {
       ) : null}
 
       {/* Featured Verified */}
+      {showFeaturedVerified ? (
       <section data-top-picks className="mt-3 scroll-mt-24 bg-white px-4 py-5">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-[15px] font-bold text-[#0f2a4a]">Featured Verified Businesses</h2>
@@ -270,6 +350,7 @@ useEffect(() => {
               })}
         </div>
       </section>
+      ) : null}
 
       {/* Trust icons */}
       <HomeTrustHighlights variant="mobile" />

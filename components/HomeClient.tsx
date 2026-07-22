@@ -11,7 +11,7 @@ import MerchantOfferBadge from '@/components/business/MerchantOfferBadge';
 import MerchantJobBadge from '@/components/business/MerchantJobBadge';
 import { VerifiedNameTick } from '@/components/business/VerifiedMark';
 import HomeHero from '@/components/HomeHero';
-import SubcategoryScrollRow from '@/components/SubcategoryScrollRow';
+import FeaturedCategoryGroup from '@/components/home/FeaturedCategoryGroup';
 import NewsWidget from '@/components/NewsWidget';
 import { categoryBrowseHref } from '@/lib/categoryDisplay';
 import { getBusinessProfilePath } from '@/lib/businessSlug';
@@ -164,12 +164,21 @@ export default function HomeClient({ initialData }: { initialData: any }) {
 
   useEffect(() => {
     async function fetchData() {
-      // Only fetch if initial data is empty or we want to refresh
+      // Refresh featured groups even when other SSR data is present — merchant
+      // coverage changes and we always want up to 6 sections with listings.
+      const refreshFeaturedGroups = async () => {
+        const groupsResult = await getFeaturedGroups();
+        if (groupsResult.success && groupsResult.groups) {
+          setFeaturedGroups(groupsResult.groups);
+        }
+      };
+
       if (
         initialData.businesses.length > 0 &&
         initialData.categories.length > 0 &&
         initialData.featuredGroups?.length > 0
       ) {
+        void refreshFeaturedGroups();
         setIsBusinessesLoading(false);
         return;
       }
@@ -340,6 +349,7 @@ export default function HomeClient({ initialData }: { initialData: any }) {
   const otherCategories = sortedCategories.slice(18);
   const desktopCategories = sortedCategories.slice(0, 12);
   const desktopFeaturedBusinesses = realBusinesses.slice(0, 4);
+  const showFeaturedVerified = featuredGroups.length === 0;
 
   const aiKeywordPills = useMemo(
     () => sortedCategories.slice(0, 14).map((cat) => cat.name),
@@ -619,11 +629,16 @@ export default function HomeClient({ initialData }: { initialData: any }) {
                 </section>
 
                 {/* Trending + Featured */}
+                {(trendingThisWeek.length > 0 || showFeaturedVerified) && (
                 <section className="mb-5 grid grid-cols-12 gap-5">
                   {trendingThisWeek.length > 0 ? (
-                    <div className="col-span-4 rounded-xl border border-gray-100 bg-white p-5">
-                      <div className="mb-4 flex items-center justify-between">
-                        <h3 className="flex items-center gap-1.5 text-lg font-bold text-[#1e293b]">
+                    <div
+                      className={`rounded-xl border border-gray-100 bg-white px-4 py-3 ${
+                        showFeaturedVerified ? 'col-span-4' : 'col-span-12'
+                      }`}
+                    >
+                      <div className="mb-1.5 flex items-center gap-2">
+                        <h3 className="flex items-center gap-1.5 text-base font-bold text-[#1e293b]">
                           Trending This Week
                           <span
                             className="inline-block text-base leading-none animate-fire-flicker"
@@ -632,28 +647,34 @@ export default function HomeClient({ initialData }: { initialData: any }) {
                             🔥
                           </span>
                         </h3>
-                        <Link
-                          href="/categories"
-                          className="text-sm font-medium text-[#2563eb] hover:text-[#1d4ed8]"
-                        >
-                          View All
-                        </Link>
                       </div>
-                      <ul className="divide-y divide-gray-100">
+                      <ul
+                        className={
+                          showFeaturedVerified
+                            ? 'divide-y divide-gray-100'
+                            : 'grid grid-cols-2 gap-x-6 sm:grid-cols-4'
+                        }
+                      >
                         {trendingThisWeek.map((item, idx) => (
                           <li key={`${item.label}-${idx}`}>
                             <button
                               type="button"
                               onClick={() => handleManualSearch(item.query)}
-                              className="flex w-full items-center gap-2 py-3.5 text-left transition-colors hover:bg-gray-50/80"
+                              className="flex w-full items-center gap-2 py-1.5 text-left transition-colors hover:bg-gray-50/80"
                             >
-                              <span className="w-4 shrink-0 text-xs font-medium text-[#94a3b8]">{idx + 1}</span>
-                              <span className="min-w-0 flex-1 text-[13px] font-medium text-[#334155]">{item.label}</span>
+                              <span className="w-4 shrink-0 text-xs font-medium text-[#94a3b8]">
+                                {idx + 1}
+                              </span>
+                              <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-[#334155]">
+                                {item.label}
+                              </span>
                               <span className="flex shrink-0 items-center gap-0.5 text-xs font-semibold text-[#22c55e]">
-                                <TrendingUp size={13} strokeWidth={2.5} />
+                                <TrendingUp size={12} strokeWidth={2.5} />
                                 +{item.trend}%
                               </span>
-                              <ChevronRight size={14} className="shrink-0 text-[#cbd5e1]" />
+                              {showFeaturedVerified ? (
+                                <ChevronRight size={14} className="shrink-0 text-[#cbd5e1]" />
+                              ) : null}
                             </button>
                           </li>
                         ))}
@@ -661,6 +682,7 @@ export default function HomeClient({ initialData }: { initialData: any }) {
                     </div>
                   ) : null}
 
+                  {showFeaturedVerified ? (
                   <div
                     data-top-picks
                     className={`scroll-mt-28 rounded-xl border border-gray-100 bg-white p-5 shadow-[0_1px_3px_rgba(0,0,0,0.06)] ${
@@ -747,7 +769,9 @@ export default function HomeClient({ initialData }: { initialData: any }) {
                       })}
                     </div>
                   </div>
+                  ) : null}
                 </section>
+                )}
 
                 <div className="mb-6 flex justify-center">
                   <Link href="/?tab=ai" className="block w-full max-w-3xl">
@@ -778,26 +802,22 @@ export default function HomeClient({ initialData }: { initialData: any }) {
             isBusinessesLoading={isBusinessesLoading}
             userCoords={userCoords}
             trendingThisWeek={trendingThisWeek}
+            showFeaturedVerified={showFeaturedVerified}
           />
 
-      {/* Featured Group Categories — parents & subcategories from DB */}
+      {/* Featured categories — Category → subcategory tabs → merchant profiles */}
       {featuredGroups.length > 0 && (
-        <section className="bg-white pt-3 pb-6 lg:py-12">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-8">
-              {featuredGroups.map((group: any) => (
-                <div
-                  key={group.id ?? group.title}
-                  className="bg-white rounded-[1.5rem] border border-gray-100 shadow-sm p-5 sm:p-7 hover:shadow-md transition-shadow"
-                >
-                  <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4">{group.title}</h3>
-                  <SubcategoryScrollRow
-                    parentId={group.id}
-                    subcategories={group.subcategories}
-                  />
-                </div>
-              ))}
-            </div>
+        <section className="relative bg-white pt-0 pb-0 lg:pt-3">
+          <div>
+            {featuredGroups.map((group: any, index: number) => (
+              <FeaturedCategoryGroup
+                key={group.id ?? group.title}
+                id={group.id}
+                title={group.title}
+                subcategories={group.subcategories ?? []}
+                tone={index % 2 === 0 ? 'light' : 'muted'}
+              />
+            ))}
           </div>
         </section>
       )}

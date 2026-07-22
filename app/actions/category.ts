@@ -16,6 +16,7 @@ import {
   countBusinessesForTopLevelCategory,
   fetchActiveBusinessCategoryLabels,
 } from '@/lib/categoryBusinessCounts';
+import { buildFeaturedCategoryGroups } from '@/lib/featuredCategoryGroups';
 
 export async function getCategories(topLevelOnly = true) {
   try {
@@ -104,9 +105,6 @@ export async function getSubCategories(parentId: string) {
   }
 }
 
-/** Only show parent groups with more than one active subcategory. */
-const MIN_SUBCATEGORIES_PER_GROUP = 2;
-
 function mapSubcategory(
   child: {
     id: string;
@@ -129,7 +127,7 @@ function mapSubcategory(
   };
 }
 
-/** Top-level categories from DB that have multiple active subcategories. */
+/** Top-level categories with onboarded merchants (parent or subcategory), up to 6. */
 export async function getFeaturedGroups() {
   try {
     const supabase = createClient(await cookies());
@@ -148,37 +146,20 @@ export async function getFeaturedGroups() {
     }
 
     const parentIds = parents.map((p) => p.id);
-    const { data: children, error: childError } = await supabase
-      .from('categories')
-      .select('id, name, slug, banner, symbol, items_count, parent_id, position')
-      .in('parent_id', parentIds)
-      .eq('status', 'Active')
-      .order('position', { ascending: true })
-      .order('items_count', { ascending: false });
+    const [{ data: children, error: childError }, businessLabels] = await Promise.all([
+      supabase
+        .from('categories')
+        .select('id, name, slug, banner, symbol, items_count, parent_id, position')
+        .in('parent_id', parentIds)
+        .eq('status', 'Active')
+        .order('position', { ascending: true })
+        .order('items_count', { ascending: false }),
+      fetchActiveBusinessCategoryLabels(supabase),
+    ]);
 
     if (childError) throw childError;
 
-    const childrenByParent = new Map<string, NonNullable<typeof children>>();
-    for (const child of children ?? []) {
-      const list = childrenByParent.get(child.parent_id) ?? [];
-      list.push(child);
-      childrenByParent.set(child.parent_id, list);
-    }
-
-    const groups = parents
-      .map((parent) => {
-        const subs = childrenByParent.get(parent.id) ?? [];
-        if (subs.length < MIN_SUBCATEGORIES_PER_GROUP) return null;
-
-        return {
-          id: parent.id,
-          title: parent.name,
-          slug: parent.slug,
-          icon: dbSymbol(parent.symbol),
-          subcategories: subs.map((child) => mapSubcategory(child, parent.id)),
-        };
-      })
-      .filter((g): g is NonNullable<typeof g> => g !== null);
+    const groups = buildFeaturedCategoryGroups(parents, children ?? [], businessLabels);
 
     return { success: true, groups };
   } catch (error: any) {

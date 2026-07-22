@@ -48,6 +48,9 @@ type CategoryMerchantListProps = {
   categorySlug: string;
   searchQuery?: string;
   pageSize?: number;
+  /** When false, only the first page is shown (no infinite scroll / load more). */
+  showLoadMore?: boolean;
+  emptyMessage?: string;
   onStatsChange?: (stats: { shown: number; total: number; loading: boolean }) => void;
 };
 
@@ -188,6 +191,8 @@ export default function CategoryMerchantList({
   categorySlug,
   searchQuery = '',
   pageSize = CATEGORY_LISTINGS_PAGE_SIZE,
+  showLoadMore = true,
+  emptyMessage = 'No businesses found in this category yet.',
   onStatsChange,
 }: CategoryMerchantListProps) {
   const router = useRouter();
@@ -200,7 +205,7 @@ export default function CategoryMerchantList({
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
-  const hasMore = businesses.length < total;
+  const hasMore = showLoadMore && businesses.length < total;
 
   const visibleBusinesses = searchQuery.trim()
     ? businesses.filter((biz) =>
@@ -333,8 +338,8 @@ export default function CategoryMerchantList({
 
   if (visibleBusinesses.length === 0) {
     return (
-      <div className="flex flex-col items-center py-16 text-slate-400">
-        <p className="text-sm font-medium text-slate-500">No businesses found in this category yet.</p>
+      <div className="flex flex-col items-center py-10 text-slate-400 sm:py-16">
+        <p className="text-sm font-medium text-slate-500">{emptyMessage}</p>
       </div>
     );
   }

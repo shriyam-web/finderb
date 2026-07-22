@@ -956,16 +956,37 @@ export async function getBusinessesByCategory(
     );
     const mappedBusinesses = withPhotos.slice((page - 1) * pageSize, page * pageSize);
 
+    const ids = mappedBusinesses.map((business) => business.id);
+    const { data: jobs } = ids.length
+      ? await supabase
+          .from('jobs')
+          .select('business_id')
+          .eq('status', 'active')
+          .in('business_id', ids)
+      : { data: [] as { business_id: string }[] };
+
+    const hiringIds = new Set(
+      (jobs ?? [])
+        .map((row) => row.business_id)
+        .filter(Boolean)
+        .map(String)
+    );
+
+    const withJobs = mappedBusinesses.map((business) => ({
+      ...business,
+      hasActiveJobs: hiringIds.has(String(business.id)),
+    }));
+
     const rawFetched = businesses?.length ?? 0;
     const photoRatio = rawFetched > 0 ? withPhotos.length / rawFetched : 1;
     const total = Math.max(
-      mappedBusinesses.length,
+      withJobs.length,
       Math.round((count ?? withPhotos.length) * photoRatio)
     );
 
     return {
       success: true,
-      businesses: mappedBusinesses,
+      businesses: withJobs,
       total,
       page,
       pageSize,

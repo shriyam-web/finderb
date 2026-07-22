@@ -1,0 +1,165 @@
+import { categoryBrowseHref, dbBanner, dbSymbol } from '@/lib/categoryDisplay';
+import {
+  attachSubcategoryBusinessCounts,
+  countBusinessesForTopLevelCategory,
+} from '@/lib/categoryBusinessCounts';
+
+/** How many category sections to show on the homepage. */
+export const HOME_FEATURED_GROUP_LIMIT = 6;
+
+export type FeaturedGroupParentRow = {
+  id: string;
+  name: string;
+  slug: string | null;
+  symbol?: string | null;
+  banner?: string | null;
+  position?: number | null;
+};
+
+export type FeaturedGroupChildRow = {
+  id: string;
+  name: string;
+  slug: string | null;
+  symbol?: string | null;
+  banner?: string | null;
+  items_count?: number | null;
+  parent_id: string;
+  position?: number | null;
+};
+
+export type FeaturedGroupSubcategory = {
+  id: string;
+  name: string;
+  slug: string | null;
+  icon: string;
+  image?: string;
+  businessCount: number;
+  href: string;
+  /** Category label used for Business.category queries (defaults to name). */
+  queryName?: string;
+};
+
+export type FeaturedCategoryGroup = {
+  id: string;
+  title: string;
+  slug: string | null;
+  icon: string;
+  merchantCount: number;
+  subcategories: FeaturedGroupSubcategory[];
+};
+
+function mapChildSubcategory(
+  child: FeaturedGroupChildRow,
+  parentId: string
+): Omit<FeaturedGroupSubcategory, 'businessCount'> & { businessCount: number } {
+  return {
+    id: child.id,
+    name: child.name,
+    slug: child.slug,
+    icon: dbSymbol(child.symbol) ?? '',
+    image: dbBanner(child.banner) ?? '',
+    businessCount: child.items_count || 0,
+    href: categoryBrowseHref(parentId, child.id),
+  };
+}
+
+/**
+ * Build homepage featured category sections from category rows + live Business labels.
+ * Includes parent-level and leaf categories (not only subcategory hits), sorted by
+ * onboarded merchant count, capped at {@link HOME_FEATURED_GROUP_LIMIT}.
+ */
+export function buildFeaturedCategoryGroups(
+  parents: FeaturedGroupParentRow[],
+  children: FeaturedGroupChildRow[],
+  businessLabels: string[],
+  limit = HOME_FEATURED_GROUP_LIMIT
+): FeaturedCategoryGroup[] {
+  const childrenByParent = new Map<string, FeaturedGroupChildRow[]>();
+  for (const child of children) {
+    const list = childrenByParent.get(child.parent_id) ?? [];
+    list.push(child);
+    childrenByParent.set(child.parent_id, list);
+  }
+
+  const groups = parents
+    .map((parent) => {
+      const merchantCount = countBusinessesForTopLevelCategory(parent.name, businessLabels);
+      const subs = childrenByParent.get(parent.id) ?? [];
+      const parentIcon = dbSymbol(parent.symbol) ?? '';
+
+      if (subs.length === 0) {
+        if (merchantCount === 0) return null;
+
+        return {
+          id: parent.id,
+          title: parent.name,
+          slug: parent.slug,
+          icon: parentIcon,
+          merchantCount,
+          subcategories: [
+            {
+              id: parent.id,
+              name: parent.name,
+              slug: parent.slug,
+              icon: parentIcon,
+              image: dbBanner(parent.banner) ?? '',
+              businessCount: merchantCount,
+              href: categoryBrowseHref(parent.id),
+              queryName: parent.name,
+            },
+          ],
+        } satisfies FeaturedCategoryGroup;
+      }
+
+      const childSubs = attachSubcategoryBusinessCounts(
+        subs.map((child) => mapChildSubcategory(child, parent.id)),
+        parent.name,
+        businessLabels
+      ).sort((a, b) => {
+        const aCount = a.businessCount ?? 0;
+        const bCount = b.businessCount ?? 0;
+        const aHas = aCount > 0 ? 1 : 0;
+        const bHas = bCount > 0 ? 1 : 0;
+        if (bHas !== aHas) return bHas - aHas;
+        if (bCount !== aCount) return bCount - aCount;
+        return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+      });
+
+      const hasSubMerchants = childSubs.some((sub) => (sub.businessCount ?? 0) > 0);
+      if (merchantCount === 0 && !hasSubMerchants) return null;
+
+      const subcategories: FeaturedGroupSubcategory[] = [
+        {
+          id: `all:${parent.id}`,
+          name: 'All',
+          slug: parent.slug,
+          icon: parentIcon,
+          image: dbBanner(parent.banner) ?? '',
+          businessCount: merchantCount,
+          href: categoryBrowseHref(parent.id),
+          queryName: parent.name,
+        },
+        ...childSubs.map((sub) => ({
+          ...sub,
+          queryName: sub.name,
+        })),
+      ];
+
+      return {
+        id: parent.id,
+        title: parent.name,
+        slug: parent.slug,
+        icon: parentIcon,
+        merchantCount,
+        subcategories,
+      } satisfies FeaturedCategoryGroup;
+    })
+    .filter((g): g is FeaturedCategoryGroup => g !== null);
+
+  return groups
+    .sort(
+      (a, b) =>
+        b.merchantCount - a.merchantCount || a.title.localeCompare(b.title, undefined, { sensitivity: 'base' })
+    )
+    .slice(0, Math.max(1, limit));
+}

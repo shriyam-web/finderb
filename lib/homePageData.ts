@@ -3,7 +3,7 @@ import { revalidatePath, updateTag } from 'next/cache';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { sortBusinessesByProfileCompleteness } from '@/lib/businessProfileCompleteness';
 import { mapBusinessRecord, filterBusinessesWithPublicPhotos } from '@/lib/businessMapping';
-import { categoryBrowseHref, dbBanner, dbSymbol } from '@/lib/categoryDisplay';
+import { dbBanner, dbSymbol } from '@/lib/categoryDisplay';
 import { stripHtml } from '@/lib/stripHtml';
 import { mapTouristPlaceRow } from '@/lib/touristPlaceImage';
 import { getPublicSupabase } from '@/lib/supabase/public';
@@ -13,17 +13,15 @@ import {
   type FinderBTutorialPlaylist,
 } from '@/lib/finderbYoutube';
 import {
-  attachSubcategoryBusinessCounts,
   attachTopLevelBusinessCounts,
   fetchActiveBusinessCategoryLabels,
 } from '@/lib/categoryBusinessCounts';
+import { buildFeaturedCategoryGroups } from '@/lib/featuredCategoryGroups';
 import { getTrendingThisWeek } from '@/app/actions/analytics';
 import type { TrendingWeekItem } from '@/lib/trendingThisWeek';
 
 export const HOME_PAGE_REVALIDATE_SECONDS = 300;
 export const HOME_PAGE_CACHE_TAG = 'homepage';
-
-const MIN_SUBCATEGORIES_PER_GROUP = 2;
 
 export type HomePageData = {
   businesses: ReturnType<typeof mapBusinessRecord>[];
@@ -56,16 +54,18 @@ export type HomePageData = {
   featuredGroups: Array<{
     id: string;
     title: string;
-    slug: string;
+    slug: string | null;
     icon: string;
+    merchantCount?: number;
     subcategories: Array<{
       id: string;
       name: string;
       slug: string | null;
       icon: string;
-      image: string;
+      image?: string;
       businessCount: number;
       href: string;
+      queryName?: string;
     }>;
   }>;
   tutorialPlaylists: FinderBTutorialPlaylist[];
@@ -267,39 +267,7 @@ async function fetchFeaturedGroups(supabase: SupabaseClient) {
     return [];
   }
 
-  const childrenByParent = new Map<string, NonNullable<typeof children>>();
-  for (const child of children ?? []) {
-    const list = childrenByParent.get(child.parent_id) ?? [];
-    list.push(child);
-    childrenByParent.set(child.parent_id, list);
-  }
-
-  return parents
-    .map((parent) => {
-      const subs = childrenByParent.get(parent.id) ?? [];
-      if (subs.length < MIN_SUBCATEGORIES_PER_GROUP) return null;
-
-      return {
-        id: parent.id,
-        title: parent.name,
-        slug: parent.slug,
-        icon: dbSymbol(parent.symbol) ?? '',
-        subcategories: attachSubcategoryBusinessCounts(
-          subs.map((child) => ({
-            id: child.id,
-            name: child.name,
-            slug: child.slug,
-            icon: dbSymbol(child.symbol) ?? '',
-            image: dbBanner(child.banner) ?? '',
-            businessCount: 0,
-            href: categoryBrowseHref(parent.id, child.id),
-          })),
-          parent.name,
-          businessLabels
-        ),
-      };
-    })
-    .filter((g): g is NonNullable<typeof g> => g !== null);
+  return buildFeaturedCategoryGroups(parents, children ?? [], businessLabels);
 }
 
 async function fetchHomePageData(): Promise<HomePageData> {
@@ -337,7 +305,7 @@ async function fetchHomePageData(): Promise<HomePageData> {
   };
 }
 
-const getHomePageDataCached = unstable_cache(fetchHomePageData, ['homepage-data'], {
+const getHomePageDataCached = unstable_cache(fetchHomePageData, ['homepage-data-trending-v3'], {
   revalidate: HOME_PAGE_REVALIDATE_SECONDS,
   tags: [HOME_PAGE_CACHE_TAG],
 });
