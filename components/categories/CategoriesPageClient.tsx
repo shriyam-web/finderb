@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useLayoutEffect, useMemo, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Search, Filter, ChevronRight, LayoutGrid, TrendingUp, MapPin, Phone } from 'lucide-react';
+import { Search, Filter, ChevronRight, LayoutGrid, MapPin, Phone, Loader2 } from 'lucide-react';
 import {
   getCategories,
   getSubCategories,
@@ -23,8 +23,10 @@ import { setLastSearchQuery } from '@/lib/lastSearchQuery';
 import { recordSearchAnalytics } from '@/lib/searchAnalytics';
 import Image from 'next/image';
 import CategoryMerchantList from '@/components/category/CategoryMerchantList';
+import CategoryListingsLoading from '@/components/category/CategoryListingsLoading';
 import { getBusinessProfilePath } from '@/lib/businessSlug';
 import { categoryBrowseHref } from '@/lib/categoryDisplay';
+import { formatLocalityCityLabel } from '@/lib/businessAddress';
 import { getBusinessListingImage } from '@/lib/businessMapping';
 import { formatDistanceFromUser } from '@/lib/geo';
 import { useUserCoords } from '@/hooks/useUserCoords';
@@ -40,7 +42,7 @@ interface SubCategory {
   businessCount?: number;
 }
 
-function categoryAsSubCategory(cat: {
+function allSubCategoryFor(cat: {
   id: string;
   name: string;
   slug?: string;
@@ -49,13 +51,32 @@ function categoryAsSubCategory(cat: {
   businessCount?: number;
 }): SubCategory {
   return {
-    id: cat.id,
-    name: cat.name,
+    id: `all:${cat.id}`,
+    name: 'All',
     slug: cat.slug || cat.name.toLowerCase().replace(/\s+/g, '-'),
     image: cat.image ?? null,
     icon: cat.icon ?? null,
     businessCount: cat.businessCount,
   };
+}
+
+function isAllSubCategory(sub: SubCategory | null | undefined) {
+  return Boolean(sub?.id?.startsWith('all:'));
+}
+
+function sortSubCategoriesByMerchants(subs: SubCategory[]) {
+  return [...subs].sort((a, b) => {
+    const countDiff = (b.businessCount ?? 0) - (a.businessCount ?? 0);
+    if (countDiff !== 0) return countDiff;
+    return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+  });
+}
+
+function subcategoryLabel(category?: string) {
+  if (!category?.trim()) return null;
+  const parts = category.split('›').map((part) => part.trim()).filter(Boolean);
+  if (parts.length < 2) return parts[0] || null;
+  return parts[parts.length - 1] || null;
 }
 
 export default function CategoriesPage() {
@@ -78,11 +99,9 @@ export default function CategoriesPage() {
   >(
     searchParams.get('search')?.trim()
       ? 'global-search'
-      : searchParams.get('id') && searchParams.get('sub')
+      : searchParams.get('id')
         ? 'merchants'
-        : searchParams.get('id')
-          ? 'subcategories'
-          : 'categories'
+        : 'categories'
   );
 
   const [categorySearchHits, setCategorySearchHits] = useState<CategorySearchHit[]>([]);
@@ -100,12 +119,8 @@ export default function CategoriesPage() {
   const lastExecutedSearchRef = useRef('');
   const mainScrollRef = useRef<HTMLElement>(null);
   const asideScrollRef = useRef<HTMLElement>(null);
-
-  const scrollPanelsToTop = useCallback(() => {
-    mainScrollRef.current?.scrollTo({ top: 0, behavior: 'auto' });
-    asideScrollRef.current?.scrollTo({ top: 0, behavior: 'auto' });
-    window.scrollTo({ top: 0, behavior: 'auto' });
-  }, []);
+  const subCategoryScrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollSubsRight, setCanScrollSubsRight] = useState(false);
 
   const urlSearchQ = searchParams.get('search')?.trim() ?? '';
 
@@ -201,12 +216,12 @@ export default function CategoriesPage() {
       const category = categories.find((cat) => cat.id === categoryIdFromUrl);
       if (category) {
         setSelectedCategory(category);
-        setViewMode(subIdFromUrl ? 'merchants' : 'subcategories');
+        setViewMode('merchants');
       }
     } else if (!categoryIdFromUrl) {
       setViewMode('categories');
     }
-  }, [urlSearchQ, categoryIdFromUrl, subIdFromUrl, categories, executeSearch]);
+  }, [urlSearchQ, categoryIdFromUrl, categories, executeSearch]);
 
   // Typing in the categories search bar (skip when query matches URL — already loaded)
   useEffect(() => {
@@ -302,9 +317,9 @@ export default function CategoriesPage() {
       setIsSubLoading(true);
       const result = await getSubCategories(hit.parentId);
       if (result.success && result.subCategories) {
-        setSubCategories(result.subCategories);
-        const sub =
-          result.subCategories.find((s) => s.id === hit.id) ?? result.subCategories[0];
+        const kids = sortSubCategoriesByMerchants(result.subCategories as SubCategory[]);
+        setSubCategories(kids);
+        const sub = kids.find((s) => s.id === hit.id) ?? kids[0];
         setSelectedSubCategory(sub ?? null);
       }
       setIsSubLoading(false);
@@ -320,67 +335,139 @@ export default function CategoriesPage() {
   };
 
   useEffect(() => {
+    let cancelled = false;
+
     async function fetchSubs() {
       if (!selectedCategory) return;
 
       setIsSubLoading(true);
       const result = await getSubCategories(selectedCategory.id);
+      if (cancelled) return;
+
       if (result.success && result.subCategories) {
-        setSubCategories(result.subCategories);
-        if (result.subCategories.length > 0) {
-          const fromUrl = subIdFromUrl
-            ? result.subCategories.find((s) => s.id === subIdFromUrl)
+        const allTab = allSubCategoryFor(selectedCategory);
+        const kids = sortSubCategoriesByMerchants(result.subCategories as SubCategory[]);
+        const withAll = kids.length > 0 ? [allTab, ...kids] : [allTab];
+        setSubCategories(withAll);
+
+        const fromUrl =
+          subIdFromUrl && !String(subIdFromUrl).startsWith('all:')
+            ? kids.find((s) => s.id === subIdFromUrl)
             : null;
-          if (fromUrl) {
-            setSelectedSubCategory(fromUrl);
-            setViewMode('merchants');
-          } else {
-            setSelectedSubCategory(result.subCategories[0]);
-          }
-        } else {
-          setSelectedSubCategory(categoryAsSubCategory(selectedCategory));
-          setViewMode('merchants');
-        }
+
+        setSelectedSubCategory(fromUrl ?? allTab);
+        setViewMode('merchants');
       }
       setIsSubLoading(false);
     }
-    fetchSubs();
-  }, [selectedCategory, subIdFromUrl]);
+
+    void fetchSubs();
+    return () => {
+      cancelled = true;
+    };
+    // Only refetch subcategory chips when the parent category changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- subIdFromUrl synced separately
+  }, [selectedCategory?.id]);
+
+  // Sync selected subcategory from URL without remounting the whole panel.
+  useEffect(() => {
+    if (!selectedCategory || subCategories.length === 0) return;
+
+    if (subIdFromUrl && !String(subIdFromUrl).startsWith('all:')) {
+      const fromUrl = subCategories.find((s) => s.id === subIdFromUrl);
+      if (fromUrl && selectedSubCategory?.id !== fromUrl.id) {
+        setSelectedSubCategory(fromUrl);
+      }
+      return;
+    }
+
+    const allTab =
+      subCategories.find((s) => isAllSubCategory(s)) ?? allSubCategoryFor(selectedCategory);
+    if (selectedSubCategory?.id !== allTab.id) {
+      setSelectedSubCategory(allTab);
+    }
+  }, [subIdFromUrl, selectedCategory, subCategories, selectedSubCategory?.id]);
 
   const handleCategoryClick = (cat: any) => {
+    const allTab = allSubCategoryFor(cat);
+    setListingStats({ shown: 0, total: 0, loading: true });
     setSelectedCategory(cat);
-    setViewMode('subcategories');
+    setSubCategories([allTab]);
+    setSelectedSubCategory(allTab);
+    setViewMode('merchants');
     router.replace(categoryBrowseHref(cat.id), { scroll: false });
   };
 
-  const handleSubCategoryClick = (sub: any) => {
+  const handleSubCategoryClick = (sub: SubCategory) => {
+    if (selectedSubCategory?.id === sub.id) return;
+    setListingStats({ shown: 0, total: 0, loading: true });
     setSelectedSubCategory(sub);
     setViewMode('merchants');
-    if (selectedCategory?.id) {
+    if (!selectedCategory?.id) return;
+    if (isAllSubCategory(sub)) {
+      router.replace(categoryBrowseHref(selectedCategory.id), { scroll: false });
+    } else {
       router.replace(categoryBrowseHref(selectedCategory.id, sub.id), { scroll: false });
     }
   };
 
   useLayoutEffect(() => {
     if (viewMode === 'categories' && !selectedCategory && !isGlobalSearch) return;
-    scrollPanelsToTop();
-  }, [viewMode, selectedCategory?.id, selectedSubCategory?.id, isGlobalSearch, scrollPanelsToTop]);
+    // Keep subcategory chip row stable — only scroll the main listings panel.
+    mainScrollRef.current?.scrollTo({ top: 0, behavior: 'auto' });
+  }, [viewMode, selectedCategory?.id, selectedSubCategory?.id, isGlobalSearch, selectedCategory]);
+
+  const updateSubCategoryScrollState = useCallback(() => {
+    const el = subCategoryScrollRef.current;
+    if (!el) {
+      setCanScrollSubsRight(false);
+      return;
+    }
+    const maxScroll = el.scrollWidth - el.clientWidth;
+    setCanScrollSubsRight(maxScroll > 4 && el.scrollLeft < maxScroll - 4);
+  }, []);
+
+  useEffect(() => {
+    const el = subCategoryScrollRef.current;
+    if (!el || subCategories.length === 0) {
+      setCanScrollSubsRight(false);
+      return;
+    }
+
+    updateSubCategoryScrollState();
+    el.addEventListener('scroll', updateSubCategoryScrollState, { passive: true });
+    window.addEventListener('resize', updateSubCategoryScrollState);
+
+    const ro =
+      typeof ResizeObserver !== 'undefined' ? new ResizeObserver(updateSubCategoryScrollState) : null;
+    ro?.observe(el);
+
+    return () => {
+      el.removeEventListener('scroll', updateSubCategoryScrollState);
+      window.removeEventListener('resize', updateSubCategoryScrollState);
+      ro?.disconnect();
+    };
+  }, [subCategories, selectedCategory?.id, updateSubCategoryScrollState, viewMode]);
+
+  const scrollSubCategoriesRight = useCallback(() => {
+    const el = subCategoryScrollRef.current;
+    if (!el) return;
+    el.scrollBy({ left: Math.min(160, el.clientWidth * 0.65), behavior: 'smooth' });
+  }, []);
 
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [sortOrder, setSortOrder] = useState<'relevance' | 'asc' | 'desc'>('relevance');
   const [filterActive, setFilterActive] = useState(false);
-  const [sortActive, setSortActive] = useState(false);
 
   const toggleFilter = (filter: string) => {
-    setActiveFilters(prev => 
-      prev.includes(filter) 
-        ? prev.filter(f => f !== filter) 
-        : [...prev, filter]
+    setActiveFilters((prev) =>
+      prev.includes(filter) ? prev.filter((f) => f !== filter) : [...prev, filter]
     );
   };
 
   const resetFilters = () => {
     setActiveFilters([]);
+    setSortOrder('relevance');
   };
 
   const relevanceRankedBusinesses = isGlobalSearch
@@ -466,16 +553,18 @@ export default function CategoriesPage() {
           key={hit.id}
           type="button"
           onClick={() => openCategorySearchHit(hit)}
-          className="flex flex-col items-center gap-1.5 rounded-xl border border-slate-200/80 bg-white p-2.5 text-center transition-colors hover:border-[#215481]/25 hover:bg-slate-50/80 sm:p-3"
+          className="group flex flex-col items-center gap-2 rounded-2xl bg-white/95 p-2.5 text-center shadow-[0_1px_2px_rgba(15,23,42,0.04),0_10px_22px_-16px_rgba(15,23,42,0.2)] ring-1 ring-slate-200/70 transition-all duration-300 hover:-translate-y-0.5 hover:ring-primary/25 sm:p-3"
         >
-          <CategoryIcon
-            icon={hit.icon}
-            name={hit.name}
-            size={44}
-            className="h-10 w-10 text-slate-600 sm:h-11 sm:w-11"
-            imageClassName="object-contain"
-          />
-          <span className="line-clamp-2 text-[11px] font-medium leading-snug text-slate-800">
+          <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-slate-50 to-primary/[0.08] ring-1 ring-slate-200/60 transition-transform duration-300 group-hover:scale-[1.04]">
+            <CategoryIcon
+              icon={hit.icon}
+              name={hit.name}
+              size={44}
+              className="h-9 w-9 text-slate-600 sm:h-10 sm:w-10"
+              imageClassName="object-contain"
+            />
+          </span>
+          <span className="line-clamp-2 font-heading text-[11px] font-semibold leading-snug text-slate-800 group-hover:text-primary">
             {hit.name}
           </span>
           {hit.parentName ? (
@@ -491,6 +580,8 @@ export default function CategoriesPage() {
   const renderGlobalBusinessCard = (biz: (typeof businesses)[number]) => {
     const hasPhone = Boolean((biz.publicPhone || biz.contact || '').trim());
     const distanceLabel = formatDistanceFromUser(userCoords, biz.latitude, biz.longitude);
+    const placeLabel = formatLocalityCityLabel(biz);
+    const subLabel = subcategoryLabel(biz.category);
 
     return (
     <div
@@ -506,20 +597,24 @@ export default function CategoriesPage() {
           router.push(getBusinessProfilePath(biz));
         }
       }}
-      className="group flex w-full cursor-pointer items-start gap-3 rounded-xl border border-slate-200/80 bg-white p-3 text-left transition-colors hover:border-[#215481]/25 hover:bg-slate-50/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#215481]/30 sm:p-3.5"
+      className="group flex w-full cursor-pointer items-start gap-3 rounded-2xl bg-white p-3 text-left shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_-16px_rgba(15,23,42,0.18)] ring-1 ring-slate-200/70 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_28px_-16px_rgba(33,84,129,0.3)] hover:ring-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 sm:p-3.5"
     >
-      <div className="relative h-[96px] w-[96px] shrink-0 overflow-hidden rounded-xl bg-slate-100 ring-1 ring-slate-200/80 sm:h-[108px] sm:w-[108px]">
+      <div className="relative h-[96px] w-[96px] shrink-0 overflow-hidden rounded-xl bg-slate-100 sm:h-[108px] sm:w-[108px]">
         <Image
           src={getBusinessListingImage(biz) || '/fallback.jpg'}
           alt={biz.name}
           fill
-          className="object-cover object-center transition-transform duration-300 group-hover:scale-[1.03]"
+          className="object-cover object-center transition-transform duration-500 ease-out group-hover:scale-[1.04]"
           sizes="108px"
         />
       </div>
       <div className="flex min-w-0 flex-1 flex-col justify-center gap-1 py-0.5">
-        <span className="text-[10px] font-medium text-[#215481]">{biz.category || 'Business'}</span>
-        <h3 className="text-sm font-semibold leading-snug text-slate-900">
+        {subLabel ? (
+          <span className="text-[10px] font-semibold uppercase tracking-[0.06em] text-primary/80">
+            {subLabel}
+          </span>
+        ) : null}
+        <h3 className="font-heading text-sm font-semibold leading-snug tracking-tight text-slate-900">
           <VerifiedBusinessName
             name={biz.name}
             verified={Boolean(biz.isFinderBVerified || biz.hasVerifiedBadge)}
@@ -530,21 +625,22 @@ export default function CategoriesPage() {
         <MerchantListingRating
           rating={biz.rating}
           reviewCount={biz.reviewsCount}
+          defaultRating={5}
           starSize={11}
-          textClassName="text-[11px] font-medium text-[#475569]"
-          emptyClassName="text-[11px] text-[#94a3b8]"
+          textClassName="text-[11px] font-semibold text-slate-600"
+          emptyClassName="text-[11px] text-slate-400"
         />
-        {biz.location || distanceLabel ? (
+        {placeLabel || distanceLabel ? (
           <p className="flex min-w-0 items-start gap-1 text-[11px] leading-snug text-slate-500">
             <MapPin size={12} className="mt-0.5 shrink-0 text-slate-400" />
             <span className="line-clamp-2">
               {distanceLabel ? (
                 <>
-                  <span className="font-semibold text-[#2563eb]">{distanceLabel}</span>
-                  {biz.location ? <span className="text-slate-300"> · </span> : null}
+                  <span className="font-semibold text-primary">{distanceLabel}</span>
+                  {placeLabel ? <span className="text-slate-300"> · </span> : null}
                 </>
               ) : null}
-              {biz.location}
+              {placeLabel}
             </span>
           </p>
         ) : null}
@@ -561,7 +657,7 @@ export default function CategoriesPage() {
                   e.stopPropagation();
                   router.push('/login');
                 }}
-                className="font-medium text-[#2563eb] underline-offset-2 hover:underline"
+                className="font-semibold text-primary underline-offset-2 hover:underline"
               >
                 Login to view
               </button>
@@ -570,18 +666,22 @@ export default function CategoriesPage() {
         ) : null}
       </div>
       <div className="hidden shrink-0 self-center pr-1 sm:flex">
-        <ChevronRight size={16} className="text-slate-300 transition-colors group-hover:text-[#215481]" />
+        <ChevronRight size={16} className="text-slate-300 transition-colors group-hover:text-primary" />
       </div>
     </div>
     );
   };
 
+  const exploreCategories = categories.filter(
+    (cat) => !searchQuery || textMatchesSearch(cat.name, searchQuery),
+  );
+
   return (
-    <div className="flex h-dvh flex-col overflow-hidden font-sans lg:h-screen">
+    <div className="flex h-dvh flex-col overflow-hidden bg-[#f7f7f8] font-sans lg:h-screen">
       {/* Header / Search Bar */}
-      <header className="z-10 border-b border-slate-200/80 bg-white px-4 py-3">
-        <div className="flex items-center gap-3">
-          <button 
+      <header className="relative z-20 shrink-0 border-b border-slate-200/80 bg-white px-2.5 py-2 sm:px-3">
+        <div className="flex items-center gap-2">
+          <button
             onClick={() => {
               if (viewMode === 'global-search') {
                 if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
@@ -590,27 +690,34 @@ export default function CategoriesPage() {
                 setSearchQuery('');
                 setViewMode('categories');
                 router.replace('/categories', { scroll: false });
-              } else if (viewMode === 'merchants') {
-                setViewMode('subcategories');
-              } else if (viewMode === 'subcategories') {
+              } else if (viewMode === 'merchants' || viewMode === 'subcategories') {
                 setViewMode('categories');
                 setSelectedCategory(null);
-                router.replace('/categories');
+                setSelectedSubCategory(null);
+                setSubCategories([]);
+                router.replace('/categories', { scroll: false });
               } else {
                 router.push('/', { scroll: false });
               }
-            }} 
-            className="rounded-lg p-2 text-slate-600 transition-colors hover:bg-slate-100 active:scale-95"
+            }}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-slate-600 transition-colors hover:bg-slate-100 active:scale-95"
             aria-label="Go back"
           >
-            <ChevronRight className="rotate-180" size={20} />
+            <ChevronRight className="rotate-180" size={18} />
           </button>
           <div className="group relative flex-1">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-[#215481]" size={17} />
+            <Search
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-primary"
+              size={15}
+            />
             <input
               type="text"
-              placeholder={isGlobalSearch ? 'Search categories and businesses' : 'Search categories'}
-              className="w-full rounded-lg border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-900 outline-none transition-all placeholder:text-slate-400 focus:border-[#215481]/40 focus:ring-4 focus:ring-[#215481]/10"
+              placeholder={
+                isGlobalSearch
+                  ? 'Search categories and businesses'
+                  : 'Search categories, services…'
+              }
+              className="w-full rounded-full border border-slate-200 bg-[#f7f7f8] py-2 pl-9 pr-3 text-sm font-medium text-slate-900 outline-none transition-colors placeholder:font-normal placeholder:text-slate-400 focus:border-slate-300 focus:bg-white"
               value={searchQuery}
               onChange={(e) => handleSearchInputChange(e.target.value)}
               onKeyDown={(e) => {
@@ -620,321 +727,230 @@ export default function CategoriesPage() {
               }}
             />
           </div>
+          {viewMode === 'merchants' ? (
+            <button
+              type="button"
+              onClick={() => {
+                setFilterActive(!filterActive);
+              }}
+              className={`relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-colors ${
+                filterActive || activeFilters.length > 0
+                  ? 'bg-slate-900 text-white'
+                  : 'bg-slate-100 text-slate-600'
+              }`}
+              aria-label="Filters"
+            >
+              <Filter size={14} />
+              {activeFilters.length > 0 ? (
+                <span className="absolute -right-0.5 -top-0.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-primary px-0.5 text-[9px] font-bold text-white">
+                  {activeFilters.length}
+                </span>
+              ) : null}
+            </button>
+          ) : null}
         </div>
-      </header>
 
-      {/* Sort & Filter Bar */}
-      <div className="relative z-10 flex border-b border-slate-200/80 bg-white">
-        <button 
-          onClick={() => {
-            setFilterActive(!filterActive);
-            setSortActive(false);
-          }}
-          className={`flex flex-1 items-center justify-center gap-1.5 border-r border-slate-100 py-2.5 text-xs font-medium transition-colors ${
-            filterActive ? 'bg-[#215481] text-white' : 'text-slate-600 hover:bg-slate-50'
-          }`}
-        >
-          <Filter size={13} className={filterActive ? 'text-white' : 'text-slate-400'} />
-          Filter{activeFilters.length > 0 ? ` · ${activeFilters.length}` : ''}
-        </button>
-
-        <button 
-          onClick={() => {
-            setSortActive(!sortActive);
-            setFilterActive(false);
-          }}
-          className={`flex flex-1 items-center justify-center gap-1.5 py-2.5 text-xs font-medium transition-colors ${
-            sortActive ? 'bg-[#215481] text-white' : 'text-slate-600 hover:bg-slate-50'
-          }`}
-        >
-          <TrendingUp size={13} className={sortActive ? 'text-white' : 'text-slate-400'} />
-          Sort
-        </button>
-
-        {/* Filter Dropdown */}
-        {filterActive && (
-          <div className="absolute top-full left-0 z-50 w-full animate-in slide-in-from-top-2 border-t border-slate-100 bg-white p-4 shadow-lg duration-300">
-            <div className="space-y-4">
-              <div className="mb-2 flex items-center justify-between">
-                <h4 className="text-xs font-semibold text-slate-700">Filters</h4>
-                <button 
+        {viewMode === 'merchants' && filterActive ? (
+          <div className="mt-2 rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+            <div className="mb-2 flex items-center justify-between">
+              <h4 className="text-xs font-semibold text-slate-800">Filters</h4>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
                   onClick={resetFilters}
-                  className="text-xs font-medium text-[#215481] hover:underline"
+                  className="text-[11px] font-semibold text-primary"
                 >
-                  Clear all
+                  Clear
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFilterActive(false)}
+                  className="text-[11px] font-semibold text-slate-500"
+                >
+                  Done
                 </button>
               </div>
-              <div className="flex flex-wrap gap-2">
-                {['Open Now', 'Top Rated', 'Nearest First', 'FinderB verified'].map((f) => (
-                  <button
-                    key={f}
-                    onClick={() => toggleFilter(f)}
-                    className={`rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors ${
-                      activeFilters.includes(f)
-                        ? 'border-[#215481] bg-[#215481] text-white'
-                        : 'border-slate-200 bg-white text-slate-600 hover:border-[#215481]/30'
-                    }`}
-                  >
-                    {f}
-                  </button>
-                ))}
-              </div>
-              <button 
-                onClick={() => setFilterActive(false)}
-                className="mt-2 w-full rounded-lg bg-slate-900 py-2.5 text-xs font-semibold text-white transition-colors hover:bg-slate-800"
-              >
-                Apply
-              </button>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {['Open Now', 'Top Rated', 'Nearest First', 'FinderB verified'].map((f) => (
+                <button
+                  key={f}
+                  type="button"
+                  onClick={() => toggleFilter(f)}
+                  className={`rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                    activeFilters.includes(f)
+                      ? 'border-slate-900 bg-slate-900 text-white'
+                      : 'border-slate-200 bg-white text-slate-600'
+                  }`}
+                >
+                  {f}
+                </button>
+              ))}
+            </div>
+            <div className="mt-2.5 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-2.5">
+              <span className="text-[11px] font-medium text-slate-500">Sort</span>
+              {(
+                [
+                  { id: 'relevance', label: 'Best' },
+                  { id: 'asc', label: 'A → Z' },
+                  { id: 'desc', label: 'Z → A' },
+                ] as const
+              ).map((option) => (
+                <button
+                  key={option.id}
+                  type="button"
+                  onClick={() => setSortOrder(option.id)}
+                  className={`rounded-full border px-2.5 py-1 text-[11px] font-medium ${
+                    sortOrder === option.id
+                      ? 'border-slate-900 bg-slate-900 text-white'
+                      : 'border-slate-200 bg-white text-slate-600'
+                  }`}
+                >
+                  {option.label}
+                </button>
+              ))}
             </div>
           </div>
-        )}
+        ) : null}
+      </header>
 
-        {/* Sort Dropdown */}
-        {sortActive && (
-          <div className="absolute top-full left-0 z-50 w-full animate-in slide-in-from-top-2 border-t border-slate-100 bg-white p-4 shadow-lg duration-300">
-            <div className="space-y-3">
-              <h4 className="text-xs font-semibold text-slate-700">Sort by name</h4>
-              <div className="grid grid-cols-2 gap-2">
-                {(['asc', 'desc'] as const).map((order) => (
-                  <button
-                    key={order}
-                    onClick={() => {
-                      setSortOrder(order);
-                      setSortActive(false);
-                    }}
-                    className={`rounded-lg border py-2 text-xs font-medium transition-colors ${
-                      sortOrder === order 
-                        ? 'border-[#215481] bg-[#215481] text-white' 
-                        : 'border-slate-200 bg-white text-slate-600 hover:border-[#215481]/30'
-                    }`}
-                  >
-                    {order === 'asc' ? 'A → Z' : 'Z → A'}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      <div className="flex min-h-0 flex-1 overflow-hidden">
-        {/* Sidebar - Compact for more items */}
+      <div className="relative z-[1] flex min-h-0 flex-1 overflow-hidden">
+        {/* Category rail — parents only */}
         {viewMode !== 'categories' && viewMode !== 'global-search' && (
           <aside
             ref={asideScrollRef}
-            className="w-20 bg-white border-r border-slate-100 overflow-y-auto scrollbar-hide pb-24"
+            className="w-[4.15rem] shrink-0 overflow-y-auto border-r border-slate-200/80 bg-[#f0f0f2] scrollbar-hide sm:w-[4.5rem]"
           >
-            {viewMode === 'subcategories' ? (
-              [
+            <nav className="flex flex-col pb-24" aria-label="Categories">
+              {[
                 ...(selectedCategory ? [selectedCategory] : []),
-                ...categories.filter(cat => cat.id !== selectedCategory?.id)
-              ].map((cat) => (
-                <button
-                  key={cat.id}
-                  onClick={() => handleCategoryClick(cat)}
-                  className={`w-full py-3.5 flex flex-col items-center gap-1.5 transition-all relative group ${
-                    selectedCategory?.id === cat.id
-                      ? 'bg-primary/5'
-                      : 'hover:bg-slate-50'
-                  }`}
-                >
-                  {selectedCategory?.id === cat.id && (
-                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary rounded-r-full" />
-                  )}
-                  <CategoryIcon
-                    icon={cat.icon}
-                    name={cat.name}
-                    size={32}
-                    className={`h-8 w-8 transition-transform duration-300 ${
-                      selectedCategory?.id === cat.id
-                        ? 'text-primary scale-110'
-                        : 'text-slate-400 group-hover:scale-105'
-                    }`}
-                    imageClassName="object-contain"
-                  />
-                  <span className={`text-[8px] font-semibold text-center px-1 leading-tight transition-colors line-clamp-2 font-sans ${
-                    selectedCategory?.id === cat.id ? 'text-primary' : 'text-slate-400'
-                  }`}>{cat.name}</span>
-                </button>
-              ))
-            ) : (
-              <div className="flex flex-col">
-                <button
-                  onClick={() => setViewMode('subcategories')}
-                  className="w-full py-4 flex flex-col items-center gap-1 border-b border-slate-100 bg-slate-50/50 group"
-                >
-                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all">
-                    <ChevronRight className="rotate-180" size={14} />
-                  </div>
-                  <span className="text-[8px] font-black text-primary uppercase">Back</span>
-                </button>
-                {subCategories.map((sub) => (
+                ...categories.filter((cat) => cat.id !== selectedCategory?.id),
+              ].map((cat) => {
+                const isSelected = selectedCategory?.id === cat.id;
+                return (
                   <button
-                    key={sub.id}
-                    onClick={() => {
-                      setSelectedSubCategory(sub);
-                      if (selectedCategory?.id) {
-                        router.replace(categoryBrowseHref(selectedCategory.id, sub.id), {
-                          scroll: false,
-                        });
-                      }
-                    }}
-                    className={`w-full py-3.5 flex flex-col items-center gap-1.5 transition-all relative group ${
-                      selectedSubCategory?.id === sub.id
-                        ? 'bg-secondary/5'
-                        : 'hover:bg-slate-50'
+                    key={cat.id}
+                    type="button"
+                    onClick={() => handleCategoryClick(cat)}
+                    className={`relative flex w-full flex-col items-center gap-1 px-1 py-2 text-center transition-colors ${
+                      isSelected
+                        ? 'bg-white text-slate-900'
+                        : 'text-slate-500 hover:bg-white/70 hover:text-slate-800'
                     }`}
                   >
-                    {selectedSubCategory?.id === sub.id && (
-                      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-secondary rounded-r-full" />
-                    )}
-                    <CategoryIcon
-                      icon={sub.icon}
-                      name={sub.name}
-                      size={32}
-                      className={`h-8 w-8 transition-transform duration-300 ${
-                        selectedSubCategory?.id === sub.id
-                          ? 'text-secondary scale-110'
-                          : 'text-slate-400 group-hover:scale-105'
+                    {isSelected ? (
+                      <span
+                        className="absolute inset-y-1.5 left-0 w-[2.5px] rounded-r-full bg-slate-900"
+                        aria-hidden
+                      />
+                    ) : null}
+                    <span
+                      className={`flex h-9 w-9 items-center justify-center rounded-full ${
+                        isSelected ? 'bg-slate-100' : 'bg-white'
                       }`}
-                      imageClassName="object-contain"
-                    />
-                    <span className={`text-[8px] font-semibold text-center px-1 leading-tight transition-colors line-clamp-2 font-sans ${
-                      selectedSubCategory?.id === sub.id ? 'text-secondary' : 'text-slate-400'
-                    }`}>{sub.name}</span>
+                    >
+                      <CategoryIcon
+                        icon={cat.icon}
+                        name={cat.name}
+                        size={20}
+                        className={`h-5 w-5 ${isSelected ? 'text-slate-900' : 'text-slate-500'}`}
+                        imageClassName="object-contain"
+                      />
+                    </span>
+                    <span
+                      className={`line-clamp-2 w-full px-0.5 text-[9px] leading-[1.15] tracking-tight ${
+                        isSelected ? 'font-semibold text-slate-900' : 'font-medium text-slate-500'
+                      }`}
+                    >
+                      {cat.name}
+                    </span>
                   </button>
-                ))}
-              </div>
-            )}
+                );
+              })}
+            </nav>
           </aside>
         )}
 
-        {/* Right Panel - Modern Grid */}
-        <main ref={mainScrollRef} className="scrollbar-hide h-full min-w-0 flex-1 overflow-y-auto bg-[#f4f7fb] pb-[6.75rem] lg:pb-4">
+        {/* Right Panel */}
+        <main
+          ref={mainScrollRef}
+          className="scrollbar-hide h-full min-w-0 flex-1 overflow-y-auto bg-[#f7f7f8] pb-[6.75rem] lg:pb-4"
+        >
           {isLoading ? (
-            <div className="p-5 max-w-4xl mx-auto w-full">
-              <div className="mb-8 mt-4">
-                <div className="h-10 w-48 bg-slate-200 rounded-xl animate-pulse mb-2" />
-                <div className="h-4 w-64 bg-slate-200 rounded-lg animate-pulse" />
+            <div className="mx-auto w-full max-w-5xl p-3" aria-busy="true" aria-live="polite">
+              <div className="mb-3 flex items-center gap-2 text-[12px] font-medium text-slate-500">
+                <Loader2 size={14} className="animate-spin text-primary" />
+                Loading categories…
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
+              <div className="mb-4">
+                <div className="mb-2 h-6 w-28 animate-pulse rounded-lg bg-slate-200/80" />
+                <div className="h-3 w-48 animate-pulse rounded-lg bg-slate-200/60" />
+              </div>
+              <div className="grid grid-cols-4 gap-2 sm:gap-2.5 md:grid-cols-5">
                 {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-                  <div key={i} className="flex flex-col items-center gap-4 p-6 bg-white rounded-[2.5rem] shadow-sm animate-pulse border border-slate-100">
-                    <div className="w-14 h-14 sm:w-20 sm:h-20 rounded-2xl sm:rounded-3xl bg-slate-100" />
-                    <div className="flex flex-col items-center gap-2">
-                      <div className="h-3 w-16 bg-slate-100 rounded-full" />
-                      <div className="h-2 w-12 bg-slate-50 rounded-full" />
-                    </div>
+                  <div
+                    key={i}
+                    className="flex animate-pulse flex-col items-center gap-2 rounded-xl bg-white p-3 ring-1 ring-slate-200/70"
+                  >
+                    <div className="h-11 w-11 rounded-xl bg-slate-100" />
+                    <div className="h-2.5 w-14 rounded-full bg-slate-100" />
                   </div>
                 ))}
               </div>
             </div>
-          ) : isSubLoading ? (
-            <div className="grid grid-cols-2 gap-4 p-5">
-              {[1, 2, 3, 4, 5, 6].map((i) => (
-                <div key={i} className="flex flex-col gap-3">
-                  <div className="w-full aspect-[4/5] rounded-3xl bg-white animate-pulse" />
-                  <div className="w-2/3 h-4 bg-white rounded-full animate-pulse" />
-                </div>
-              ))}
-            </div>
           ) : viewMode === 'categories' ? (
-            <div className="w-full p-3 sm:p-4">
-              <div className="mb-4 mt-1">
-                <h1 className="text-lg font-semibold tracking-tight text-slate-900 sm:text-xl">Browse categories</h1>
-                <p className="mt-0.5 text-sm text-slate-500">Pick a category to see services and listings near you</p>
+            <div className="relative mx-auto w-full max-w-6xl px-3 pb-6 pt-3 sm:px-4 sm:pt-4">
+              <div className="mb-3.5">
+                <h1 className="font-categories text-[1.45rem] font-semibold tracking-tight text-slate-900">
+                  Explore
+                </h1>
+                <p className="mt-0.5 font-categories text-[12px] font-normal leading-snug text-slate-500">
+                  Pick a category to see listings instantly.
+                </p>
               </div>
-              <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 sm:gap-2.5 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7">
-                {categories.filter(cat => !searchQuery || textMatchesSearch(cat.name, searchQuery)).map((cat, index) => (
+              <div className="grid grid-cols-4 gap-2 sm:gap-2.5 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7">
+                {exploreCategories.map((cat) => (
                   <button
                     key={cat.id}
                     onClick={() => handleCategoryClick(cat)}
-                    className="group flex flex-col items-center gap-2 rounded-xl border border-slate-200/80 bg-white p-3.5 transition-colors hover:border-[#215481]/25 hover:bg-slate-50/80 sm:gap-2.5 sm:p-4"
+                    className="group flex flex-col items-center gap-1.5 rounded-xl bg-white p-2 text-center ring-1 ring-slate-200/80 transition-colors active:bg-slate-50 sm:gap-2 sm:p-2.5"
                   >
-                    <CategoryIcon
-                      icon={cat.icon}
-                      name={cat.name}
-                      size={52}
-                      className="h-12 w-12 text-slate-600 transition-transform duration-200 group-hover:scale-[1.03] sm:h-14 sm:w-14"
-                      imageClassName="object-contain"
-                    />
+                    <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#f7f7f8] sm:h-12 sm:w-12">
+                      <CategoryIcon
+                        icon={cat.icon}
+                        name={cat.name}
+                        size={26}
+                        className="h-[26px] w-[26px] text-slate-700 sm:h-8 sm:w-8"
+                        imageClassName="object-contain"
+                      />
+                    </span>
                     <div className="flex w-full flex-col items-center gap-0.5">
-                      <span className="line-clamp-2 w-full text-center text-[11px] font-medium leading-snug text-slate-800 group-hover:text-[#215481] sm:text-xs">
+                      <span className="line-clamp-2 w-full font-categories text-[10px] font-medium leading-snug tracking-[-0.01em] text-slate-600 sm:text-[12px]">
                         {cat.name}
                       </span>
-                      <span className="text-[10px] text-slate-400">
-                        {cat.businessCount || 0} listings
+                      <span className="font-categories text-[8px] font-normal text-slate-400 sm:text-[9px]">
+                        {(cat.businessCount || 0) > 0 ? `${cat.businessCount}` : 'Browse'}
                       </span>
                     </div>
                   </button>
                 ))}
               </div>
             </div>
-          ) : viewMode === 'subcategories' ? (
-            <div className="w-full p-3 sm:p-4">
-              <div className="mb-3">
-                <h1 className="text-lg font-semibold tracking-tight text-slate-900">{selectedCategory?.name}</h1>
-                <p className="mt-0.5 text-sm text-slate-500">{subCategories.length} subcategories</p>
-              </div>
-
-              <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 sm:gap-2.5 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7">
-                {subCategories.filter(sub => !searchQuery || textMatchesSearch(sub.name, searchQuery)).length > 0 ? (
-                  subCategories.filter(sub => !searchQuery || textMatchesSearch(sub.name, searchQuery)).map((sub, index) => (
-                    <button
-                      key={sub.id}
-                      onClick={() => handleSubCategoryClick(sub)}
-                      className="group flex w-full flex-col items-center gap-2 rounded-xl border border-slate-200/80 bg-white p-3.5 text-center transition-colors hover:border-[#215481]/25 hover:bg-slate-50/80 sm:p-4"
-                    >
-                      <CategoryIcon
-                        icon={sub.icon}
-                        name={sub.name}
-                        size={48}
-                        className="h-11 w-11 text-slate-600 transition-transform duration-200 group-hover:scale-[1.03] sm:h-12 sm:w-12"
-                        imageClassName="object-contain"
-                      />
-                      <div className="flex w-full flex-col items-center gap-0.5">
-                        <h3 className="line-clamp-2 w-full text-[11px] font-medium leading-snug text-slate-900 group-hover:text-[#215481] sm:text-xs">
-                          {sub.name}
-                        </h3>
-                      </div>
-                    </button>
-                  ))
-                ) : (
-                  <div className="col-span-full space-y-4">
-                    <div className="flex flex-col items-center justify-center py-12 text-slate-400">
-                      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-slate-100">
-                        <LayoutGrid size={28} />
-                      </div>
-                      <p className="text-sm font-medium text-slate-500">No subcategories</p>
-                      <p className="mt-1 text-xs text-slate-400">
-                        Browse businesses listed directly under {selectedCategory?.name}
-                      </p>
-                    </div>
-                    {selectedCategory ? (
-                      <CategoryMerchantList
-                        key={selectedCategory.id}
-                        categorySlug={selectedCategory.slug || selectedCategory.name}
-                        searchQuery={searchQuery}
-                      />
-                    ) : null}
-                  </div>
-                )}
-              </div>
-            </div>
           ) : viewMode === 'global-search' ? (
-            <div className="w-full space-y-4 p-3 sm:p-4">
-              <div className="flex items-center justify-between gap-3 border-b border-slate-200/80 pb-2.5">
-                <p className="text-sm text-slate-500">
+            <div className="w-full space-y-3 p-2.5 sm:p-3">
+              <div className="flex items-center justify-between gap-3 px-0.5 py-1">
+                <p className="text-[13px] text-slate-500">
                   {isSearchCategoriesLoading ? (
                     'Searching…'
                   ) : globalSearchTotalCount > 0 ? (
                     <>
-                      <span className="font-medium text-slate-800">{globalSearchTotalCount}</span>
-                      {' '}result{globalSearchTotalCount !== 1 ? 's' : ''}
+                      <span className="font-semibold text-slate-900">{globalSearchTotalCount}</span>{' '}
+                      result{globalSearchTotalCount !== 1 ? 's' : ''}
                       {parsedGlobalSearch.locationHint ? (
                         <>
-                          {' '}in{' '}
-                          <span className="capitalize text-slate-700">
+                          {' '}
+                          in{' '}
+                          <span className="capitalize font-medium text-slate-700">
                             {parsedGlobalSearch.locationHint}
                           </span>
                         </>
@@ -946,8 +962,8 @@ export default function CategoriesPage() {
                 </p>
               </div>
 
-              <section className="space-y-2.5">
-                <h2 className="text-xs font-semibold text-slate-700">Categories</h2>
+              <section className="space-y-2">
+                <h2 className="text-[12px] font-semibold text-slate-800">Categories</h2>
                 {isSearchCategoriesLoading ? (
                   <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
                     {[1, 2, 3, 4, 5, 6].map((i) => (
@@ -977,8 +993,8 @@ export default function CategoriesPage() {
                 )}
               </section>
 
-              <section className="space-y-2.5">
-                <h2 className="text-xs font-semibold text-slate-700">Businesses</h2>
+              <section className="space-y-2">
+                <h2 className="text-[12px] font-semibold text-slate-800">Businesses</h2>
                 {globalSearchBusinessPartitions.best.length > 0 ||
                 globalSearchBusinessPartitions.related.length > 0 ? (
                   <div className="space-y-4">
@@ -1018,46 +1034,150 @@ export default function CategoriesPage() {
                 )}
             </div>
           ) : (
-            <div className="w-full space-y-2 p-2.5 sm:p-3 lg:p-4">
-              <div className="sticky top-0 z-[1] -mx-2.5 flex items-center gap-2 border-b border-slate-200/70 bg-[#f4f7fb]/95 px-2.5 py-1.5 backdrop-blur-sm sm:-mx-3 sm:px-3 lg:-mx-4 lg:px-4">
-                <div className="min-w-0 flex-1">
-                  <h3 className="truncate text-sm font-semibold tracking-tight text-slate-900">
-                    {selectedSubCategory?.name}
-                  </h3>
-                  <p className="truncate text-[10px] leading-tight text-slate-500">
-                    {selectedCategory?.name}
-                    {listingStats && !listingStats.loading
-                      ? ` · ${listingStats.shown}${
-                          listingStats.total !== listingStats.shown
-                            ? ` of ${listingStats.total}`
-                            : ''
-                        } listing${listingStats.shown === 1 ? '' : 's'}`
-                      : listingStats?.loading
-                        ? ' · Loading…'
-                        : ''}
-                  </p>
+            <div className="flex w-full flex-col">
+              <div className="sticky top-0 z-[2] shrink-0 border-b border-slate-200/80 bg-white">
+                <div className="flex items-center justify-between gap-2 px-2.5 py-1.5 sm:px-3">
+                  <div className="min-w-0 flex-1">
+                    <h3 className="truncate font-heading text-[15px] font-semibold tracking-tight text-slate-900">
+                      {selectedCategory?.name}
+                      <span className="text-[11px] font-normal text-slate-400">
+                        {' '}
+                        ›{' '}
+                        {isAllSubCategory(selectedSubCategory)
+                          ? 'All'
+                          : selectedSubCategory?.name || 'All'}
+                      </span>
+                      {listingStats && !listingStats.loading ? (
+                        <span className="ml-1.5 text-[12px] font-medium text-slate-400">
+                          ({listingStats.shown}
+                          {listingStats.total !== listingStats.shown
+                            ? `/${listingStats.total}`
+                            : ''}
+                          )
+                        </span>
+                      ) : null}
+                    </h3>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setViewMode('categories');
+                      setSelectedCategory(null);
+                      setSelectedSubCategory(null);
+                      setSubCategories([]);
+                      router.replace('/categories', { scroll: false });
+                    }}
+                    className="shrink-0 text-[11px] font-semibold text-primary"
+                  >
+                    Change
+                  </button>
                 </div>
-                <button
-                  onClick={() => setViewMode('subcategories')}
-                  className="shrink-0 rounded-md border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-medium text-slate-600 transition-colors hover:border-[#215481]/30 hover:text-[#215481]"
-                >
-                  Change
-                </button>
+
+                {subCategories.length > 0 ? (
+                  <div className="relative">
+                    <div
+                      ref={subCategoryScrollRef}
+                      className="scrollbar-hide flex gap-2 overflow-x-auto px-2.5 pb-1.5 pt-0.5 sm:px-3"
+                    >
+                      {subCategories.map((sub) => {
+                        const isSubSelected = selectedSubCategory?.id === sub.id;
+                        const isAll = isAllSubCategory(sub);
+                        return (
+                          <button
+                            key={sub.id}
+                            type="button"
+                            onClick={() => handleSubCategoryClick(sub)}
+                            className="flex w-[3.35rem] shrink-0 flex-col items-center gap-0.5 text-center"
+                          >
+                            <span
+                              className={`flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl p-0.5 transition-all duration-200 ${
+                                isSubSelected
+                                  ? 'bg-primary text-white shadow-sm shadow-primary/20 ring-1 ring-primary/20 ring-offset-1 ring-offset-white'
+                                  : 'bg-slate-100 text-slate-500 ring-1 ring-slate-200/80 active:bg-white'
+                              }`}
+                            >
+                              {isAll && sub.icon ? (
+                                <CategoryIcon
+                                  icon={sub.icon}
+                                  name={sub.name}
+                                  size={28}
+                                  className={`h-7 w-7 ${
+                                    isSubSelected ? 'text-white' : 'text-slate-500'
+                                  }`}
+                                  imageClassName="object-contain"
+                                />
+                              ) : isAll ? (
+                                <svg
+                                  viewBox="0 0 24 24"
+                                  className="h-[18px] w-[18px]"
+                                  fill="none"
+                                  aria-hidden
+                                >
+                                  <circle cx="8" cy="8" r="3.1" fill="currentColor" opacity="0.95" />
+                                  <circle cx="16" cy="8" r="3.1" fill="currentColor" opacity="0.7" />
+                                  <circle cx="8" cy="16" r="3.1" fill="currentColor" opacity="0.7" />
+                                  <circle cx="16" cy="16" r="3.1" fill="currentColor" opacity="0.45" />
+                                </svg>
+                              ) : (
+                                <CategoryIcon
+                                  icon={sub.icon}
+                                  name={sub.name}
+                                  size={28}
+                                  className={`h-7 w-7 ${
+                                    isSubSelected ? 'text-white' : 'text-slate-500'
+                                  }`}
+                                  imageClassName="object-contain"
+                                />
+                              )}
+                            </span>
+                            <span
+                              className={`line-clamp-2 w-full text-[8px] leading-[1.1] tracking-tight ${
+                                isSubSelected
+                                  ? 'font-semibold text-slate-900'
+                                  : 'font-medium text-slate-500'
+                              }`}
+                            >
+                              {sub.name}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {canScrollSubsRight ? (
+                      <button
+                        type="button"
+                        onClick={scrollSubCategoriesRight}
+                        className="absolute inset-y-0 right-0 z-[2] flex w-9 items-center justify-end bg-gradient-to-l from-white via-white/95 to-transparent pr-1.5"
+                        aria-label="Scroll subcategories"
+                      >
+                        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white text-slate-700 shadow-sm ring-1 ring-slate-200">
+                          <ChevronRight size={14} strokeWidth={2.25} />
+                        </span>
+                      </button>
+                    ) : null}
+                  </div>
+                ) : null}
               </div>
 
-              {selectedSubCategory ? (
-                <CategoryMerchantList
-                  key={selectedSubCategory.id}
-                  categorySlug={selectedSubCategory.slug || selectedSubCategory.name}
-                  searchQuery={searchQuery}
-                  onStatsChange={setListingStats}
-                />
-              ) : null}
+              <div className="space-y-2 p-2 sm:p-2.5">
+                {isSubLoading ? (
+                  <CategoryListingsLoading />
+                ) : selectedSubCategory ? (
+                  <CategoryMerchantList
+                    key={selectedSubCategory.id}
+                    categorySlug={selectedSubCategory.slug || selectedSubCategory.name}
+                    searchQuery={searchQuery}
+                    activeFilters={activeFilters}
+                    sortOrder={sortOrder}
+                    onStatsChange={setListingStats}
+                  />
+                ) : null}
+              </div>
             </div>
           )}
         </main>
       </div>
-
     </div>
   );
 }
