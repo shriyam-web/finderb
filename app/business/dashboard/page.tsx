@@ -164,7 +164,7 @@ function DashboardContent() {
     });
   }, [searchParams, router]);
 
-  // Show the one-time welcome splash only when a pending registration flag exists
+  // Show the one-time welcome splash when registration/login set a pending flag
   // and this business has never completed onboarding on this browser.
   useEffect(() => {
     if (!businessId) return;

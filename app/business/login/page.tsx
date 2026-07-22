@@ -16,6 +16,10 @@ import {
   MerchantAuthFormHeader,
   MerchantAuthSubmitButton,
 } from '@/components/business/MerchantAuthForm';
+import {
+  hasCompletedBusinessOnboarding,
+  markNewBusinessOnboarding,
+} from '@/lib/businessOnboarding';
 
 export default function BusinessLoginPage() {
   const [email, setEmail] = useState('');
@@ -47,8 +51,22 @@ export default function BusinessLoginPage() {
       const result = await loginBusiness(email, password);
 
       if (result.success) {
-        const destination = result.businessId
-          ? `/business/dashboard?id=${result.businessId}`
+        const params = new URLSearchParams();
+        if (result.businessId) params.set('id', result.businessId);
+
+        // First login on this browser (self-serve or admin-created credentials)
+        // gets the one-time welcome splash; later logins skip it.
+        if (
+          result.businessId &&
+          !hasCompletedBusinessOnboarding(result.businessId)
+        ) {
+          markNewBusinessOnboarding();
+          params.set('welcome', '1');
+        }
+
+        const qs = params.toString();
+        const destination = qs
+          ? `/business/dashboard?${qs}`
           : '/business/dashboard';
 
         if (typeof window !== 'undefined') {
