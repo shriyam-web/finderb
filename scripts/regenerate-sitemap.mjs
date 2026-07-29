@@ -79,6 +79,7 @@ const STATIC_PATHS = [
   '/',
   '/categories',
   '/categories/job',
+  '/categories/admissions',
   '/movies',
   '/tourist-places',
   '/blog',
@@ -95,7 +96,10 @@ const STATIC_PATHS = [
   '/policy',
   '/business/register',
   '/business/list',
+  '/llms.txt',
 ];
+
+const RESERVED_CATEGORY_SLUGS = new Set(['job', 'admissions']);
 
 function resolveTouristPlaceSlug(place) {
   const persisted = place.slug?.trim();
@@ -120,7 +124,7 @@ async function buildSitemapPaths(supabase) {
   const [categoriesResult, blogsResult, touristResult, businessesResult] = await Promise.all([
     supabase
       .from('categories')
-      .select('name, slug')
+      .select('id, name, slug, parent_id')
       .eq('status', 'Active')
       .order('position', { ascending: true }),
     supabase
@@ -141,8 +145,24 @@ async function buildSitemapPaths(supabase) {
   if (touristResult.error) throw touristResult.error;
   if (businessesResult.error) throw businessesResult.error;
 
-  for (const category of categoriesResult.data ?? []) {
-    paths.push(`/categories/${categorySlug(category.name, category.slug)}`);
+  const allCategories = categoriesResult.data ?? [];
+  const parents = allCategories.filter((category) => !category.parent_id);
+  const parentById = new Map(parents.map((category) => [category.id, category]));
+
+  for (const category of parents) {
+    const slug = categorySlug(category.name, category.slug);
+    if (RESERVED_CATEGORY_SLUGS.has(slug)) continue;
+    paths.push(`/categories/${slug}`);
+  }
+
+  for (const category of allCategories) {
+    if (!category.parent_id) continue;
+    const parent = parentById.get(category.parent_id);
+    if (!parent) continue;
+    const parentSlug = categorySlug(parent.name, parent.slug);
+    const subSlug = categorySlug(category.name, category.slug);
+    if (!parentSlug || !subSlug || RESERVED_CATEGORY_SLUGS.has(parentSlug)) continue;
+    paths.push(`/categories/${parentSlug}?sub=${encodeURIComponent(subSlug)}`);
   }
 
   const cityPairs = new Set();
@@ -234,7 +254,16 @@ async function main() {
   console.log(`Total URLs: ${paths.length}`);
   console.log(`Business URLs: ${businessPaths.length}`);
   console.log(`Tourist place URLs: ${touristPaths.length}`);
-  console.log(`Category + city URLs: ${paths.filter((p) => p.match(/^\/categories\/[^/]+\/[^/]+$/)).length}`);
+  console.log(`Category URLs: ${paths.filter((p) => /^\/categories\/[^/?]+$/.test(p)).length}`);
+  console.log(
+    `Subcategory URLs: ${paths.filter((p) => p.includes('/categories/') && p.includes('?sub=')).length}`
+  );
+  console.log(`Category + city URLs: ${paths.filter((p) => p.match(/^\/categories\/[^/]+\/[^/?]+$/)).length}`);
+
+  console.log('\nSample category / subcategory URLs:');
+  for (const path of paths.filter((p) => p.startsWith('/categories/')).slice(0, 12)) {
+    console.log(`  ${siteUrl}${path}`);
+  }
 
   if (uuidTouristPaths.length) {
     console.error('\nERROR: Sitemap still contains UUID tourist place URLs:');

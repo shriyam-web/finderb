@@ -49,6 +49,7 @@ const STATIC_PAGES: Array<{
   { path: '/', changeFrequency: 'daily', priority: 1 },
   { path: '/categories', changeFrequency: 'daily', priority: 0.9 },
   { path: '/categories/job', changeFrequency: 'daily', priority: 0.7 },
+  { path: '/categories/admissions', changeFrequency: 'daily', priority: 0.75 },
   { path: '/movies', changeFrequency: 'daily', priority: 0.7 },
   { path: '/tourist-places', changeFrequency: 'weekly', priority: 0.7 },
   { path: '/blog', changeFrequency: 'daily', priority: 0.8 },
@@ -65,7 +66,32 @@ const STATIC_PAGES: Array<{
   { path: '/policy', changeFrequency: 'yearly', priority: 0.3 },
   { path: '/business/register', changeFrequency: 'monthly', priority: 0.7 },
   { path: '/business/list', changeFrequency: 'weekly', priority: 0.5 },
+  { path: '/llms.txt', changeFrequency: 'monthly', priority: 0.3 },
 ];
+
+/** Special /categories/* routes that are not DB category rows (or share a slug). */
+const RESERVED_CATEGORY_SLUGS = new Set(['job', 'admissions']);
+
+function dedupeSitemapEntries(entries: SitemapEntry[]): SitemapEntry[] {
+  const byUrl = new Map<string, SitemapEntry>();
+  for (const entry of entries) {
+    const existing = byUrl.get(entry.url);
+    if (!existing) {
+      byUrl.set(entry.url, entry);
+      continue;
+    }
+    const existingPri = existing.priority ?? 0;
+    const nextPri = entry.priority ?? 0;
+    if (nextPri > existingPri) {
+      byUrl.set(entry.url, entry);
+      continue;
+    }
+    const existingMod = existing.lastModified ? new Date(existing.lastModified).getTime() : 0;
+    const nextMod = entry.lastModified ? new Date(entry.lastModified).getTime() : 0;
+    if (nextMod > existingMod) byUrl.set(entry.url, { ...existing, lastModified: entry.lastModified });
+  }
+  return [...byUrl.values()];
+}
 
 function getStaticEntries(): SitemapEntry[] {
   return STATIC_PAGES.map(({ path, changeFrequency, priority }) =>
@@ -167,35 +193,60 @@ async function fetchDynamicEntries(): Promise<SitemapEntry[]> {
 
   const [categoriesResult, blogsResult, touristResult, businesses, categoryCityEntries] =
     await Promise.all([
-    supabase
-      .from('categories')
-      .select('name, slug, updated_at')
-      .eq('status', 'Active')
-      .order('position', { ascending: true }),
-    supabase
-      .from('blogs')
-      .select('id, slug, updated_at, published_at')
-      .eq('status', 'published')
-      .order('published_at', { ascending: false }),
-    supabase
-      .from('tourist_places')
-      .select('id, slug, name, location, updated_at')
-      .order('updated_at', { ascending: false }),
-    fetchActiveBusinesses(),
-    fetchCategoryCityEntries(),
-  ]);
+      supabase
+        .from('categories')
+        .select('id, name, slug, parent_id, updated_at')
+        .eq('status', 'Active')
+        .order('position', { ascending: true }),
+      supabase
+        .from('blogs')
+        .select('id, slug, updated_at, published_at')
+        .eq('status', 'published')
+        .order('published_at', { ascending: false }),
+      supabase
+        .from('tourist_places')
+        .select('id, slug, name, location, updated_at')
+        .order('updated_at', { ascending: false }),
+      fetchActiveBusinesses(),
+      fetchCategoryCityEntries(),
+    ]);
 
   if (categoriesResult.error) throw categoriesResult.error;
   if (blogsResult.error) throw blogsResult.error;
   if (touristResult.error) throw touristResult.error;
 
-  const categoryEntries = (categoriesResult.data ?? []).map((category) =>
-    toEntry(`/categories/${categorySlug(category.name, category.slug)}`, {
-      lastModified: parseDate(category.updated_at),
-      changeFrequency: 'daily',
-      priority: 0.8,
+  const allCategories = categoriesResult.data ?? [];
+  const parents = allCategories.filter((category) => !category.parent_id);
+  const parentById = new Map(parents.map((category) => [category.id, category]));
+
+  const categoryEntries = parents
+    .map((category) => {
+      const slug = categorySlug(category.name, category.slug);
+      if (RESERVED_CATEGORY_SLUGS.has(slug)) return null;
+      return toEntry(`/categories/${slug}`, {
+        lastModified: parseDate(category.updated_at),
+        changeFrequency: 'daily',
+        priority: 0.8,
+      });
     })
-  );
+    .filter((entry): entry is SitemapEntry => Boolean(entry));
+
+  // Subcategory browse URLs used by the modern Categories UI.
+  const subcategoryEntries = allCategories
+    .filter((category) => Boolean(category.parent_id))
+    .map((category) => {
+      const parent = parentById.get(category.parent_id as string);
+      if (!parent) return null;
+      const parentSlug = categorySlug(parent.name, parent.slug);
+      const subSlug = categorySlug(category.name, category.slug);
+      if (!parentSlug || !subSlug || RESERVED_CATEGORY_SLUGS.has(parentSlug)) return null;
+      return toEntry(`/categories/${parentSlug}?sub=${encodeURIComponent(subSlug)}`, {
+        lastModified: parseDate(category.updated_at) ?? parseDate(parent.updated_at),
+        changeFrequency: 'daily',
+        priority: 0.7,
+      });
+    })
+    .filter((entry): entry is SitemapEntry => Boolean(entry));
 
   const blogEntries = (blogsResult.data ?? []).map((blog) =>
     toEntry(`/blog/${blog.slug || blog.id}`, {
@@ -223,6 +274,7 @@ async function fetchDynamicEntries(): Promise<SitemapEntry[]> {
 
   return [
     ...categoryEntries,
+    ...subcategoryEntries,
     ...categoryCityEntries,
     ...businessEntries,
     ...blogEntries,
@@ -233,7 +285,7 @@ async function fetchDynamicEntries(): Promise<SitemapEntry[]> {
 export async function buildSitemap(): Promise<MetadataRoute.Sitemap> {
   try {
     const dynamicEntries = await fetchDynamicEntries();
-    return [...getStaticEntries(), ...dynamicEntries];
+    return dedupeSitemapEntries([...getStaticEntries(), ...dynamicEntries]);
   } catch (error) {
     console.error('[sitemap] Dynamic fetch failed, serving static URLs only:', error);
     return getStaticEntries();
@@ -259,9 +311,8 @@ export async function getSitemapSections(): Promise<SitemapSection[]> {
     const [categoriesResult, blogsResult, touristResult, businesses] = await Promise.all([
       supabase
         .from('categories')
-        .select('name, slug')
+        .select('id, name, slug, parent_id')
         .eq('status', 'Active')
-        .is('parent_id', null)
         .order('position', { ascending: true }),
       supabase
         .from('blogs')
@@ -282,14 +333,39 @@ export async function getSitemapSections(): Promise<SitemapSection[]> {
     ]);
 
     const sections: SitemapSection[] = [staticSection];
+    const allCategories = categoriesResult.data ?? [];
+    const parents = allCategories.filter((category) => !category.parent_id);
+    const parentById = new Map(parents.map((category) => [category.id, category]));
 
-    if (categoriesResult.data?.length) {
+    if (parents.length) {
       sections.push({
         title: 'Categories',
-        links: categoriesResult.data.map((category) => ({
+        links: parents.map((category) => ({
           label: category.name,
           href: `/categories/${categorySlug(category.name, category.slug)}`,
         })),
+      });
+    }
+
+    const subcategoryLinks = allCategories
+      .filter((category) => Boolean(category.parent_id))
+      .map((category) => {
+        const parent = parentById.get(category.parent_id as string);
+        if (!parent) return null;
+        const parentSlug = categorySlug(parent.name, parent.slug);
+        const subSlug = categorySlug(category.name, category.slug);
+        return {
+          label: `${parent.name} › ${category.name}`,
+          href: `/categories/${parentSlug}?sub=${encodeURIComponent(subSlug)}`,
+        };
+      })
+      .filter((link): link is { label: string; href: string } => Boolean(link))
+      .slice(0, 200);
+
+    if (subcategoryLinks.length) {
+      sections.push({
+        title: 'Subcategories',
+        links: subcategoryLinks,
       });
     }
 

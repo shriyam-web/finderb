@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { House, LayoutGrid, Briefcase, User, type LucideIcon } from 'lucide-react';
-import { useCallback, useEffect, useId, useMemo, useState } from 'react';
+import { Suspense, useCallback, useEffect, useId, useMemo, useState } from 'react';
 import { getSession } from '@/app/actions/user';
 import { getBusinessSession } from '@/app/actions/business';
 
@@ -90,7 +90,7 @@ function NavTabIcon({
   );
 }
 
-export default function BottomNavbar() {
+function BottomNavbarContent() {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -331,5 +331,13 @@ export default function BottomNavbar() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function BottomNavbar() {
+  return (
+    <Suspense fallback={null}>
+      <BottomNavbarContent />
+    </Suspense>
   );
 }

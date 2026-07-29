@@ -50,7 +50,7 @@ export type FeaturedCategoryGroup = {
 
 function mapChildSubcategory(
   child: FeaturedGroupChildRow,
-  parentId: string
+  parent: FeaturedGroupParentRow
 ): Omit<FeaturedGroupSubcategory, 'businessCount'> & { businessCount: number } {
   return {
     id: child.id,
@@ -59,7 +59,7 @@ function mapChildSubcategory(
     icon: dbSymbol(child.symbol) ?? '',
     image: dbBanner(child.banner) ?? '',
     businessCount: child.items_count || 0,
-    href: categoryBrowseHref(parentId, child.id),
+    href: categoryBrowseHref({ slug: parent.slug, name: parent.name }, child),
   };
 }
 
@@ -104,7 +104,7 @@ export function buildFeaturedCategoryGroups(
               icon: parentIcon,
               image: dbBanner(parent.banner) ?? '',
               businessCount: merchantCount,
-              href: categoryBrowseHref(parent.id),
+              href: categoryBrowseHref({ slug: parent.slug, name: parent.name }),
               queryName: parent.name,
             },
           ],
@@ -112,7 +112,7 @@ export function buildFeaturedCategoryGroups(
       }
 
       const childSubs = attachSubcategoryBusinessCounts(
-        subs.map((child) => mapChildSubcategory(child, parent.id)),
+        subs.map((child) => mapChildSubcategory(child, parent)),
         parent.name,
         businessLabels
       ).sort((a, b) => {
@@ -136,7 +136,7 @@ export function buildFeaturedCategoryGroups(
           icon: parentIcon,
           image: dbBanner(parent.banner) ?? '',
           businessCount: merchantCount,
-          href: categoryBrowseHref(parent.id),
+          href: categoryBrowseHref({ slug: parent.slug, name: parent.name }),
           queryName: parent.name,
         },
         ...childSubs.map((sub) => ({

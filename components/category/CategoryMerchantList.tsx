@@ -1,9 +1,9 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { Loader2, MapPin, Phone } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Loader2, MapPin, Phone } from 'lucide-react';
 import { getBusinessesByCategory } from '@/app/actions/business';
 import { getSession } from '@/app/actions/user';
 import { formatLocalityCityLabel } from '@/lib/businessAddress';
@@ -50,13 +50,46 @@ type CategoryMerchantListProps = {
   categorySlug: string;
   searchQuery?: string;
   pageSize?: number;
-  /** When false, only the first page is shown (no infinite scroll / load more). */
-  showLoadMore?: boolean;
+  /** When false, only page 1 is shown (no pagination controls). */
+  showPagination?: boolean;
   emptyMessage?: string;
   activeFilters?: string[];
   sortOrder?: 'relevance' | 'asc' | 'desc';
   onStatsChange?: (stats: { shown: number; total: number; loading: boolean }) => void;
+  /** Nested scroll container (categories main pane). Used to jump to top on page change. */
+  scrollRootRef?: RefObject<HTMLElement | null>;
 };
+
+function buildPageNumbers(current: number, totalPages: number): (number | '…')[] {
+  if (totalPages <= 7) {
+    return Array.from({ length: totalPages }, (_, i) => i + 1);
+  }
+
+  const pages = new Set<number>([1, totalPages, current]);
+  for (let i = current - 1; i <= current + 1; i += 1) {
+    if (i >= 1 && i <= totalPages) pages.add(i);
+  }
+  if (current <= 3) {
+    pages.add(2);
+    pages.add(3);
+    pages.add(4);
+  }
+  if (current >= totalPages - 2) {
+    pages.add(totalPages - 1);
+    pages.add(totalPages - 2);
+    pages.add(totalPages - 3);
+  }
+
+  const sorted = [...pages].sort((a, b) => a - b);
+  const out: (number | '…')[] = [];
+  let prev = 0;
+  for (const n of sorted) {
+    if (prev && n - prev > 1) out.push('…');
+    out.push(n);
+    prev = n;
+  }
+  return out;
+}
 
 function subcategoryLabel(category?: string) {
   if (!category?.trim()) return null;
@@ -275,32 +308,33 @@ export default function CategoryMerchantList({
   categorySlug,
   searchQuery = '',
   pageSize = CATEGORY_LISTINGS_PAGE_SIZE,
-  showLoadMore = true,
+  showPagination = true,
   emptyMessage = 'No businesses found in this category yet.',
   activeFilters = [],
   sortOrder = 'relevance',
   onStatsChange,
+  scrollRootRef,
 }: CategoryMerchantListProps) {
   const router = useRouter();
   const userCoords = useUserCoords();
   const [businesses, setBusinesses] = useState<MerchantListing[]>([]);
   const [total, setTotal] = useState(0);
-  const [page, setPage] = useState(0);
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [visibleSlug, setVisibleSlug] = useState(categorySlug);
-  const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const requestIdRef = useRef(0);
 
   if (categorySlug !== visibleSlug) {
     setVisibleSlug(categorySlug);
     setLoading(true);
     setBusinesses([]);
     setTotal(0);
-    setPage(0);
+    setPage(1);
   }
 
-  const hasMore = showLoadMore && businesses.length < total;
+  const preferNearest = activeFilters.includes('Nearest First');
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   const visibleBusinesses = useMemo(() => {
     let rows = searchQuery.trim()
@@ -320,10 +354,10 @@ export default function CategoryMerchantList({
     }
 
     return sortMerchantsForBrowse(rows, userCoords, {
-      preferNearest: activeFilters.includes('Nearest First'),
+      preferNearest,
       sortOrder,
     });
-  }, [activeFilters, businesses, searchQuery, sortOrder, userCoords]);
+  }, [activeFilters, businesses, preferNearest, searchQuery, sortOrder, userCoords]);
 
   const onStatsChangeRef = useRef(onStatsChange);
   onStatsChangeRef.current = onStatsChange;
@@ -346,107 +380,63 @@ export default function CategoryMerchantList({
     };
   }, []);
 
-  const fetchPage = useCallback(
-    async (nextPage: number, append: boolean) => {
+  const scrollListToTop = useCallback(() => {
+    const root = scrollRootRef?.current;
+    if (root) {
+      root.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [scrollRootRef]);
+
+  const loadPage = useCallback(
+    async (nextPage: number, opts?: { scroll?: boolean }) => {
+      const requestId = ++requestIdRef.current;
+      setLoading(true);
+
       const result = await getBusinessesByCategory(categorySlug, {
         page: nextPage,
         pageSize,
       });
 
-      if (!result.success || !result.businesses) {
-        if (!append) {
-          setBusinesses([]);
-          setTotal(0);
-          setPage(0);
-        }
-        return;
-      }
+      if (requestId !== requestIdRef.current) return;
 
-      const rows = result.businesses as MerchantListing[];
-      const nextTotal = result.total ?? rows.length;
-
-      setBusinesses((prev) => {
-        if (!append) return rows;
-        const seen = new Set(prev.map((biz) => biz.id));
-        const next = rows.filter((biz) => !seen.has(biz.id));
-        return [...prev, ...next];
-      });
-      setTotal(nextTotal);
-      setPage(nextPage);
-    },
-    [categorySlug, pageSize]
-  );
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadInitial() {
-      setLoading(true);
-      setBusinesses([]);
-      setTotal(0);
-      setPage(0);
-
-      const result = await getBusinessesByCategory(categorySlug, { page: 1, pageSize });
-      if (cancelled) return;
-
-      if (result.success && result.businesses) {
+      if (result.success && Array.isArray(result.businesses)) {
         const rows = result.businesses as MerchantListing[];
         setBusinesses(rows);
         setTotal(result.total ?? rows.length);
-        setPage(1);
+        setPage(nextPage);
       } else {
         setBusinesses([]);
         setTotal(0);
-        setPage(0);
+        setPage(1);
       }
 
       setLoading(false);
-    }
-
-    void loadInitial();
-    return () => {
-      cancelled = true;
-    };
-  }, [categorySlug, pageSize]);
-
-  const loadMore = useCallback(async () => {
-    if (loadingMore || loading || !hasMore) return;
-
-    setLoadingMore(true);
-    try {
-      await fetchPage(page + 1, true);
-    } finally {
-      setLoadingMore(false);
-    }
-  }, [fetchPage, hasMore, loading, loadingMore, page]);
+      if (opts?.scroll) scrollListToTop();
+    },
+    [categorySlug, pageSize, scrollListToTop]
+  );
 
   useEffect(() => {
-    const node = sentinelRef.current;
-    if (!node || !hasMore || loading) return;
+    void loadPage(1);
+  }, [categorySlug, pageSize]); // eslint-disable-line react-hooks/exhaustive-deps -- reset to page 1 on category change
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0]?.isIntersecting) {
-          void loadMore();
-        }
-      },
-      { rootMargin: '240px' }
-    );
-
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, [hasMore, loadMore, loading]);
+  const goToPage = (nextPage: number) => {
+    if (nextPage < 1 || nextPage > totalPages || nextPage === page || loading) return;
+    void loadPage(nextPage, { scroll: true });
+  };
 
   const openBusiness = (biz: MerchantListing) => {
     if (searchQuery.trim()) setLastSearchQuery(searchQuery);
     router.push(getBusinessProfilePath(biz));
   };
 
-  if (loading) {
+  if (loading && businesses.length === 0) {
     return <CategoryListingsLoading columns={2} />;
   }
 
-  if (visibleBusinesses.length === 0) {
+  if (!loading && visibleBusinesses.length === 0) {
     return (
       <div className="flex flex-col items-center rounded-xl bg-white py-12 text-slate-400 ring-1 ring-slate-200/70">
         <p className="text-sm font-medium text-slate-500">{emptyMessage}</p>
@@ -454,35 +444,90 @@ export default function CategoryMerchantList({
     );
   }
 
-  return (
-    <div className="grid grid-cols-1 gap-2 lg:grid-cols-2">
-      {visibleBusinesses.map((biz) => (
-        <MerchantRow
-          key={biz.id}
-          biz={biz}
-          showPhone={isLoggedIn}
-          distanceLabel={formatDistanceFromUser(userCoords, biz.latitude, biz.longitude)}
-          onNavigate={() => openBusiness(biz)}
-          onLogin={() => router.push('/login')}
-        />
-      ))}
+  const rangeStart = total === 0 ? 0 : (page - 1) * pageSize + 1;
+  const rangeEnd = Math.min(page * pageSize, total);
+  const pageNumbers = buildPageNumbers(page, totalPages);
+  const showPager = showPagination && total > pageSize && !searchQuery.trim();
 
-      {hasMore && !searchQuery.trim() ? (
-        <div ref={sentinelRef} className="col-span-full flex flex-col items-center gap-2 py-2">
-          {loadingMore ? (
-            <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
-              <Loader2 size={16} className="animate-spin" />
-              Loading more…
-            </div>
-          ) : (
+  return (
+    <div className="space-y-3">
+      <div
+        className={`grid grid-cols-1 gap-2 lg:grid-cols-2 ${loading ? 'opacity-60' : ''}`}
+        aria-busy={loading}
+      >
+        {visibleBusinesses.map((biz) => (
+          <MerchantRow
+            key={biz.id}
+            biz={biz}
+            showPhone={isLoggedIn}
+            distanceLabel={formatDistanceFromUser(userCoords, biz.latitude, biz.longitude)}
+            onNavigate={() => openBusiness(biz)}
+            onLogin={() => router.push('/login')}
+          />
+        ))}
+      </div>
+
+      {showPager ? (
+        <div className="flex flex-col items-center gap-2 border-t border-slate-200/70 pt-3 pb-1">
+          <p className="text-[11px] text-slate-400">
+            {rangeStart}–{rangeEnd} of {total}
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-1">
             <button
               type="button"
-              onClick={() => void loadMore()}
-              className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-600 transition-colors hover:border-primary/30 hover:text-primary"
+              onClick={() => goToPage(page - 1)}
+              disabled={page <= 1 || loading}
+              className="inline-flex h-8 items-center gap-0.5 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-600 transition-colors hover:border-primary/30 hover:text-primary disabled:cursor-not-allowed disabled:opacity-40"
+              aria-label="Previous page"
             >
-              Load more
+              <ChevronLeft size={14} strokeWidth={2.25} />
+              Prev
             </button>
-          )}
+
+            {pageNumbers.map((item, index) =>
+              item === '…' ? (
+                <span
+                  key={`ellipsis-${index}`}
+                  className="px-1 text-xs font-medium text-slate-400"
+                  aria-hidden
+                >
+                  …
+                </span>
+              ) : (
+                <button
+                  key={item}
+                  type="button"
+                  onClick={() => goToPage(item)}
+                  disabled={loading}
+                  aria-current={item === page ? 'page' : undefined}
+                  className={`inline-flex h-8 min-w-8 items-center justify-center rounded-lg px-2 text-xs font-semibold transition-colors disabled:cursor-not-allowed ${
+                    item === page
+                      ? 'bg-primary text-white'
+                      : 'border border-slate-200 bg-white text-slate-600 hover:border-primary/30 hover:text-primary'
+                  }`}
+                >
+                  {item}
+                </button>
+              )
+            )}
+
+            <button
+              type="button"
+              onClick={() => goToPage(page + 1)}
+              disabled={page >= totalPages || loading}
+              className="inline-flex h-8 items-center gap-0.5 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-600 transition-colors hover:border-primary/30 hover:text-primary disabled:cursor-not-allowed disabled:opacity-40"
+              aria-label="Next page"
+            >
+              Next
+              <ChevronRight size={14} strokeWidth={2.25} />
+            </button>
+          </div>
+          {loading ? (
+            <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-400">
+              <Loader2 size={12} className="animate-spin" />
+              Loading…
+            </div>
+          ) : null}
         </div>
       ) : null}
     </div>

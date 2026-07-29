@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { Suspense, useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import CategoryIcon from '@/components/CategoryIcon';
 import MobileHome from '@/components/MobileHome';
@@ -16,6 +16,7 @@ import NewsWidget from '@/components/NewsWidget';
 import { categoryBrowseHref } from '@/lib/categoryDisplay';
 import { getBusinessProfilePath } from '@/lib/businessSlug';
 import { getTouristPlacePath } from '@/lib/touristPlaceSlug';
+import { buildHeroPopularSearches } from '@/lib/homeHeroConstants';
 import {
   ArrowRight,
   Star,
@@ -68,12 +69,35 @@ const WORDS = [
   "verified professionals" // For seamless loop
 ];
 
+/**
+ * useSearchParams() forces a client-render bailout. Keep it in a child behind
+ * Suspense so the homepage HTML still SSR's real content for crawlers/AI.
+ */
 export default function HomeClient({ initialData }: { initialData: any }) {
+  return (
+    <Suspense fallback={<HomeClientView initialData={initialData} activeTabFromUrl={null} />}>
+      <HomeClientWithSearchParams initialData={initialData} />
+    </Suspense>
+  );
+}
+
+function HomeClientWithSearchParams({ initialData }: { initialData: any }) {
+  const searchParams = useSearchParams();
+  return (
+    <HomeClientView initialData={initialData} activeTabFromUrl={searchParams.get('tab')} />
+  );
+}
+
+function HomeClientView({
+  initialData,
+  activeTabFromUrl,
+}: {
+  initialData: any;
+  activeTabFromUrl: string | null;
+}) {
   const [index, setIndex] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(true);
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const activeTabFromUrl = searchParams.get('tab');
 
   const [activeMobileTab, setActiveMobileTab] = useState(
     activeTabFromUrl === 'ai' ? 'AI Search' : 'Home'
@@ -350,6 +374,10 @@ export default function HomeClient({ initialData }: { initialData: any }) {
   const desktopCategories = sortedCategories.slice(0, 12);
   const desktopFeaturedBusinesses = realBusinesses.slice(0, 4);
   const showFeaturedVerified = featuredGroups.length === 0;
+  const heroPopularSearches = useMemo(
+    () => buildHeroPopularSearches(realCategories),
+    [realCategories]
+  );
 
   const aiKeywordPills = useMemo(
     () => sortedCategories.slice(0, 14).map((cat) => cat.name),
@@ -576,6 +604,7 @@ export default function HomeClient({ initialData }: { initialData: any }) {
             onVoiceSearch={openVoiceSearch}
             voiceActive={voiceActive}
             searchHint={searchHint}
+            popularSearches={heroPopularSearches}
           />
 
               <div className="mx-auto mt-4 hidden max-w-[1280px] px-8 lg:block">
@@ -597,7 +626,7 @@ export default function HomeClient({ initialData }: { initialData: any }) {
                       {desktopCategories.map((cat) => (
                         <Link
                           key={cat.id}
-                          href={categoryBrowseHref(cat.id)}
+                          href={categoryBrowseHref(cat)}
                           className="flex w-[108px] shrink-0 flex-col items-center rounded-xl border border-gray-100 bg-white px-3 py-4 text-center shadow-[0_1px_3px_rgba(0,0,0,0.06)] transition-shadow hover:shadow-md"
                         >
                           <div className="mb-2.5 flex h-11 w-11 items-center justify-center">
@@ -803,6 +832,7 @@ export default function HomeClient({ initialData }: { initialData: any }) {
             userCoords={userCoords}
             trendingThisWeek={trendingThisWeek}
             showFeaturedVerified={showFeaturedVerified}
+            popularSearches={heroPopularSearches}
           />
 
       {/* Featured categories — Category → subcategory tabs → merchant profiles */}
@@ -814,6 +844,7 @@ export default function HomeClient({ initialData }: { initialData: any }) {
                 key={group.id ?? group.title}
                 id={group.id}
                 title={group.title}
+                slug={group.slug}
                 subcategories={group.subcategories ?? []}
                 tone={index % 2 === 0 ? 'muted' : 'light'}
               />

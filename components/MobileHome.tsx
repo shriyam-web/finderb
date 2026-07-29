@@ -24,6 +24,7 @@ import { formatDistanceFromUser } from '@/lib/geo';
 import { getBusinessOpenStatus } from '@/lib/businessHours';
 import type { TrendingWeekItem } from '@/lib/trendingThisWeek';
 import type { UserCoords } from '@/hooks/useUserCoords';
+import type { PopularSearchItem } from '@/lib/homeHeroConstants';
 
 const HOME_BANNERS = [
   {
@@ -51,6 +52,7 @@ type MobileHomeProps = {
   userCoords?: UserCoords | null;
   trendingThisWeek?: TrendingWeekItem[];
   showFeaturedVerified?: boolean;
+  popularSearches?: PopularSearchItem[];
 };
 
 export default function MobileHome({
@@ -66,6 +68,7 @@ export default function MobileHome({
   userCoords = null,
   trendingThisWeek = [],
   showFeaturedVerified = true,
+  popularSearches = [],
 }: MobileHomeProps) {
   const gridCategories = categories.slice(0, 7);
   const featured = businesses.slice(0, 6);
@@ -122,6 +125,7 @@ export default function MobileHome({
         onVoiceSearch={onVoiceSearch}
         voiceActive={voiceActive}
         searchHint={searchHint}
+        popularSearches={popularSearches}
       />
 
       {/* Popular Categories */}
@@ -136,7 +140,7 @@ export default function MobileHome({
           {gridCategories.map((cat) => (
             <Link
               key={cat.id}
-              href={categoryBrowseHref(cat.id)}
+              href={categoryBrowseHref(cat)}
               className="flex flex-col items-center rounded-xl border border-gray-100 bg-white px-1 py-3 shadow-[0_1px_4px_rgba(0,0,0,0.05)]"
             >
               <div className="mb-2 flex h-10 w-10 items-center justify-center">

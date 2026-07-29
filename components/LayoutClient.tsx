@@ -56,8 +56,11 @@ import ScrollRestoration from "@/components/ScrollRestoration";
 import ScrollToTopButton from "@/components/ScrollToTopButton";
 import { UserLocationProvider } from '@/hooks/useUserCoords';
 
+function isHomePage(pathname: string | null) {
+  return pathname === '/';
+}
+
 export default function LayoutClient({ children }: { children: React.ReactNode }) {
-  const [loading, setLoading] = useState(true);
   const pathname = usePathname();
   const businessDashboardRoute = isBusinessDashboardRoute(pathname);
   const businessProfileRoute = isBusinessProfileRoute(pathname);
@@ -69,6 +72,14 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
       !pathname.startsWith('/categories/job') &&
       !pathname.startsWith('/categories/admissions'));
   const userDashboardRoute = isUserDashboardRoute(pathname);
+  // Instant browse: no splash on home or categories (index + /categories/{slug}).
+  const skipSplash =
+    isHomePage(pathname) ||
+    isCategoriesBrowse ||
+    businessProfileRoute ||
+    userDashboardRoute ||
+    isBusinessOnboardingPreview(pathname);
+  const [loading, setLoading] = useState(!skipSplash);
   const hideTopNavFooter =
     merchantAppShell ||
     isCategoriesBrowse ||
@@ -84,48 +95,55 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
     !isBusinessOnboardingPreview(pathname);
 
   useEffect(() => {
-    if (businessProfileRoute || userDashboardRoute || isBusinessOnboardingPreview(pathname)) {
+    if (skipSplash) {
       setLoading(false);
       return;
     }
 
+    setLoading(true);
     const timer = setTimeout(() => {
       setLoading(false);
     }, 3000);
 
     return () => clearTimeout(timer);
-  }, [businessProfileRoute, userDashboardRoute, pathname]);
+  }, [skipSplash, pathname]);
 
   return (
     <UserLocationProvider>
       {!isBusinessOnboardingPreview(pathname) && (
         <PWAInstallPrompt appReady={!loading} />
       )}
-      {loading ? (
-        businessDashboardRoute ? (
-          <BusinessWorkspaceLoader />
-        ) : (
-          <Loader />
-        )
-      ) : (
-        <div className={`flex flex-col min-h-screen ${showBottomNavPadding ? 'pb-[6.75rem] lg:pb-0' : ''}`}>
-          <Suspense fallback={null}>
-            <ScrollRestoration />
-          </Suspense>
-          {!hideTopNavFooter && <Navbar />}
-          <Suspense fallback={<div className="flex-grow bg-white" />}>
-            <main className="min-w-0 flex-grow overflow-x-hidden">
-              {children}
-            </main>
-            {!hideTopNavFooter && <Footer />}
-          </Suspense>
-          {showBottomNav && <BottomNavbar />}
-          {showLocationPrompt && <LocationPermissionPrompt appReady />}
-          {!isBusinessOnboardingPreview(pathname) && (
-            <ScrollToTopButton showBottomNav={showBottomNav} />
-          )}
+      {/*
+        Keep the splash as an overlay only. Never replace `{children}` while
+        loading — that made SSR/HTML for crawlers (ChatGPT, Claude, etc.)
+        contain only the splash text and look "uncrawlable".
+      */}
+      {loading && (
+        <div aria-hidden="true">
+          {businessDashboardRoute ? <BusinessWorkspaceLoader /> : <Loader />}
         </div>
       )}
+      <div
+        className={`flex flex-col min-h-screen ${showBottomNavPadding ? 'pb-[6.75rem] lg:pb-0' : ''}`}
+        aria-busy={loading || undefined}
+        inert={loading ? true : undefined}
+      >
+        <Suspense fallback={null}>
+          <ScrollRestoration />
+        </Suspense>
+        {!hideTopNavFooter && <Navbar />}
+        <Suspense fallback={<div className="flex-grow bg-white" />}>
+          <main className="min-w-0 flex-grow overflow-x-hidden">
+            {children}
+          </main>
+        </Suspense>
+        {!hideTopNavFooter && <Footer />}
+        {showBottomNav && <BottomNavbar />}
+        {showLocationPrompt && <LocationPermissionPrompt appReady={!loading} />}
+        {!isBusinessOnboardingPreview(pathname) && (
+          <ScrollToTopButton showBottomNav={showBottomNav} />
+        )}
+      </div>
     </UserLocationProvider>
   );
 }

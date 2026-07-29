@@ -46,6 +46,7 @@ export type FeaturedSubcategory = {
 type FeaturedCategoryGroupProps = {
   id: string;
   title: string;
+  slug?: string | null;
   subcategories: FeaturedSubcategory[];
   /** Alternating section tone: even = white, odd = soft gray */
   tone?: 'light' | 'muted';
@@ -312,12 +313,6 @@ function MerchantPortraitCard({
           </div>
         ) : null}
 
-        {hasOffer ? (
-          <div className="pointer-events-none absolute left-2 top-2 z-[1]">
-            <MerchantOfferBadge discountRange={biz.discountRange} compact />
-          </div>
-        ) : null}
-
         {(callHref || mapsHref) && (
           <div className="pointer-events-auto absolute inset-x-0 top-1/2 z-[2] hidden -translate-y-1/2 items-center justify-center gap-1.5 opacity-0 transition-opacity duration-200 group-hover:opacity-100 sm:flex">
             {callHref ? (
@@ -418,6 +413,12 @@ function MerchantPortraitCard({
             <MerchantJobBadge compact className="shrink-0" />
           </div>
         ) : null}
+
+        {hasOffer ? (
+          <div className="mt-auto flex justify-start pt-2">
+            <MerchantOfferBadge discountRange={biz.discountRange} compact />
+          </div>
+        ) : null}
       </div>
     </div>
   );
@@ -441,6 +442,7 @@ function MerchantCardSkeleton() {
 export default function FeaturedCategoryGroup({
   id,
   title,
+  slug = null,
   subcategories,
   tone = 'light',
 }: FeaturedCategoryGroupProps) {
@@ -469,8 +471,10 @@ export default function FeaturedCategoryGroup({
 
   const viewAllHref = selected
     ? selected.href ||
-      (selected.id ? categoryBrowseHref(id, selected.id) : categoryBrowseHref(id))
-    : categoryBrowseHref(id);
+      (selected.id?.startsWith('all:')
+        ? categoryBrowseHref({ slug, name: title })
+        : categoryBrowseHref({ slug, name: title }, selected))
+    : categoryBrowseHref({ slug, name: title });
 
   const visibleMerchants = useMemo(
     () =>

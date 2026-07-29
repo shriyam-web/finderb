@@ -14,12 +14,14 @@ export interface SubcategoryScrollItem {
 }
 
 interface SubcategoryScrollRowProps {
+  parent?: { slug?: string | null; name?: string | null };
+  /** @deprecated Prefer `parent` + `sub.href` */
   parentId?: string;
   subcategories: SubcategoryScrollItem[];
 }
 
 export default function SubcategoryScrollRow({
-  parentId,
+  parent,
   subcategories,
 }: SubcategoryScrollRowProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -82,7 +84,8 @@ export default function SubcategoryScrollRow({
         <div className="flex flex-nowrap gap-3 sm:gap-4 pb-1">
           {subcategories.map((sub) => {
             const href =
-              parentId && sub.id ? categoryBrowseHref(parentId, sub.id) : sub.href;
+              sub.href ||
+              (parent ? categoryBrowseHref(parent, sub) : '/categories');
 
             return (
               <Link

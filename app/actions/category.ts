@@ -114,7 +114,7 @@ function mapSubcategory(
     banner: string | null;
     items_count: number | null;
   },
-  parentId: string
+  parent: { id: string; slug?: string | null; name?: string | null }
 ) {
   return {
     id: child.id,
@@ -123,7 +123,7 @@ function mapSubcategory(
     icon: dbSymbol(child.symbol),
     image: dbBanner(child.banner),
     businessCount: child.items_count || 0,
-    href: categoryBrowseHref(parentId, child.id),
+    href: categoryBrowseHref({ slug: parent.slug, name: parent.name }, child),
   };
 }
 

@@ -75,49 +75,52 @@ export default async function CategoryCityPage({ params }: PageProps) {
     }));
 
   return (
-    <div className="bg-accent/30 min-h-screen pt-24 pb-12 lg:pt-32">
+    <div className="min-h-[calc(100dvh-6.75rem)] bg-slate-50 pb-12 pt-6 lg:min-h-screen lg:pt-10">
       <JsonLd data={jsonLd} />
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <nav aria-label="Breadcrumb" className="mb-4 text-sm text-gray-500">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <nav aria-label="Breadcrumb" className="mb-4 text-sm text-slate-500">
           <ol className="flex flex-wrap items-center gap-1">
             <li>
-              <Link href="/" className="hover:text-blue-600">
+              <Link href="/" className="hover:text-primary">
                 Home
               </Link>
             </li>
             <li aria-hidden>/</li>
             <li>
-              <Link href="/categories" className="hover:text-blue-600">
+              <Link href="/categories" className="hover:text-primary">
                 Categories
               </Link>
             </li>
             <li aria-hidden>/</li>
             <li>
-              <Link href={categoryHref(categorySlug, currentCategory.name)} className="hover:text-blue-600">
+              <Link
+                href={categoryHref(categorySlug, currentCategory.name)}
+                className="hover:text-primary"
+              >
                 {currentCategory.name}
               </Link>
             </li>
             <li aria-hidden>/</li>
-            <li className="font-medium text-gray-800">{cityName}</li>
+            <li className="font-medium text-slate-800">{cityName}</li>
           </ol>
         </nav>
 
-        <div className="mb-12">
-          <div className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
+        <div className="mb-10">
+          <div className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700">
             <MapPin size={12} />
             {cityName}
           </div>
-          <h1 className="text-3xl md:text-4xl lg:text-5xl font-black text-primary mb-4">
+          <h1 className="mb-3 text-3xl font-black tracking-tight text-primary md:text-4xl lg:text-5xl">
             {currentCategory.name} in {cityName}
           </h1>
-          <p className="text-gray-500 font-medium max-w-3xl">
+          <p className="max-w-3xl font-medium text-slate-500">
             {total > 0
               ? `${total} verified ${currentCategory.name.toLowerCase()} listing${total !== 1 ? 's' : ''} in ${cityName}. Compare ratings, contact numbers, and addresses on FinderB.`
               : `Discover ${currentCategory.name.toLowerCase()} services in ${cityName}. New listings are added regularly on FinderB.`}
           </p>
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-8">
+        <div className="flex flex-col gap-8 lg:flex-row">
           {relatedCategories.length > 0 ? (
             <aside className="w-full lg:w-64">
               <RelatedCategoryLinks title="Related categories" links={relatedCategories} />

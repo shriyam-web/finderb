@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useLayoutEffect, useMemo, useCallback, useRef } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Search, Filter, ChevronRight, LayoutGrid, MapPin, Phone, Loader2 } from 'lucide-react';
 import {
   getCategories,
@@ -25,13 +26,30 @@ import Image from 'next/image';
 import CategoryMerchantList from '@/components/category/CategoryMerchantList';
 import CategoryListingsLoading from '@/components/category/CategoryListingsLoading';
 import { getBusinessProfilePath } from '@/lib/businessSlug';
-import { categoryBrowseHref } from '@/lib/categoryDisplay';
+import { categoryBrowseHref, slugifyCategoryName, subMatchesQueryParam } from '@/lib/categoryDisplay';
 import { formatLocalityCityLabel } from '@/lib/businessAddress';
 import { getBusinessListingImage } from '@/lib/businessMapping';
 import { formatDistanceFromUser } from '@/lib/geo';
 import { useUserCoords } from '@/hooks/useUserCoords';
 import MerchantListingRating from '@/components/business/MerchantListingRating';
 import { VerifiedBusinessName } from '@/components/business/VerifiedMark';
+
+const RESERVED_CATEGORY_SEGMENTS = new Set(['job', 'admissions']);
+
+function categorySlugFromPath(pathname: string | null): string | null {
+  if (!pathname) return null;
+  const parts = pathname.split('/').filter(Boolean);
+  if (parts[0] !== 'categories' || parts.length !== 2) return null;
+  const slug = parts[1];
+  if (!slug || RESERVED_CATEGORY_SEGMENTS.has(slug)) return null;
+  return slug;
+}
+
+function categoryMatchesSlug(cat: { slug?: string | null; name?: string }, slug: string) {
+  if (cat.slug && cat.slug === slug) return true;
+  if (cat.name && slugifyCategoryName(cat.name) === slug) return true;
+  return false;
+}
 
 interface SubCategory {
   id: string;
@@ -79,12 +97,20 @@ function subcategoryLabel(category?: string) {
   return parts[parts.length - 1] || null;
 }
 
-export default function CategoriesPage() {
+export default function CategoriesPage({
+  initialCategorySlug = null,
+  initialSubSlug = null,
+}: {
+  initialCategorySlug?: string | null;
+  initialSubSlug?: string | null;
+}) {
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const userCoords = useUserCoords();
+  const slugFromPath = categorySlugFromPath(pathname) ?? initialCategorySlug;
   const categoryIdFromUrl = searchParams.get('id');
-  const subIdFromUrl = searchParams.get('sub');
+  const subIdFromUrl = searchParams.get('sub') ?? initialSubSlug;
   const [categories, setCategories] = useState<any[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<any>(null);
   const [subCategories, setSubCategories] = useState<SubCategory[]>([]);
@@ -99,7 +125,7 @@ export default function CategoriesPage() {
   >(
     searchParams.get('search')?.trim()
       ? 'global-search'
-      : searchParams.get('id')
+      : slugFromPath || searchParams.get('id')
         ? 'merchants'
         : 'categories'
   );
@@ -214,16 +240,33 @@ export default function CategoriesPage() {
     lastExecutedSearchRef.current = '';
     setCategorySearchHits([]);
 
+    if (slugFromPath && categories.length > 0) {
+      const category = categories.find((cat) => categoryMatchesSlug(cat, slugFromPath));
+      if (category) {
+        setSelectedCategory((prev: any) => (prev?.id === category.id ? prev : category));
+        setViewMode('merchants');
+      }
+      return;
+    }
+
+    // Legacy `/categories?id=` → canonical `/categories/{slug}`
     if (categoryIdFromUrl && categories.length > 0) {
       const category = categories.find((cat) => cat.id === categoryIdFromUrl);
       if (category) {
-        setSelectedCategory(category);
+        setSelectedCategory((prev: any) => (prev?.id === category.id ? prev : category));
         setViewMode('merchants');
+        router.replace(
+          categoryBrowseHref(
+            category,
+            subIdFromUrl && !String(subIdFromUrl).startsWith('all:')
+              ? subIdFromUrl
+              : undefined
+          ),
+          { scroll: false }
+        );
       }
-    } else if (!categoryIdFromUrl) {
-      setViewMode('categories');
     }
-  }, [urlSearchQ, categoryIdFromUrl, categories, executeSearch]);
+  }, [urlSearchQ, slugFromPath, categoryIdFromUrl, subIdFromUrl, categories, executeSearch, router]);
 
   // Typing in the categories search bar (skip when query matches URL — already loaded)
   useEffect(() => {
@@ -314,7 +357,7 @@ export default function CategoriesPage() {
       setSelectedCategory(parent);
       setViewMode('merchants');
       setSearchQuery('');
-      router.replace(categoryBrowseHref(hit.parentId, hit.id), { scroll: false });
+      router.replace(categoryBrowseHref(parent, hit), { scroll: false });
 
       setIsSubLoading(true);
       const result = await getSubCategories(hit.parentId);
@@ -332,7 +375,6 @@ export default function CategoriesPage() {
     if (top) {
       handleCategoryClick(top);
       setSearchQuery('');
-      router.replace(categoryBrowseHref(hit.id), { scroll: false });
     }
   };
 
@@ -354,7 +396,7 @@ export default function CategoriesPage() {
 
         const fromUrl =
           subIdFromUrl && !String(subIdFromUrl).startsWith('all:')
-            ? kids.find((s) => s.id === subIdFromUrl)
+            ? kids.find((s) => subMatchesQueryParam(s, subIdFromUrl))
             : null;
 
         setSelectedSubCategory(fromUrl ?? allTab);
@@ -378,15 +420,16 @@ export default function CategoriesPage() {
     const pendingId = pendingSubIdRef.current;
     if (pendingId) {
       const pendingIsAll = pendingId.startsWith('all:');
+      const pendingSub = subCategories.find((s) => s.id === pendingId);
       const urlMatchesPending = pendingIsAll
         ? !subIdFromUrl || String(subIdFromUrl).startsWith('all:')
-        : subIdFromUrl === pendingId;
+        : Boolean(pendingSub && subMatchesQueryParam(pendingSub, subIdFromUrl));
       if (!urlMatchesPending) return;
       pendingSubIdRef.current = null;
     }
 
     if (subIdFromUrl && !String(subIdFromUrl).startsWith('all:')) {
-      const fromUrl = subCategories.find((s) => s.id === subIdFromUrl);
+      const fromUrl = subCategories.find((s) => subMatchesQueryParam(s, subIdFromUrl));
       if (fromUrl) {
         setSelectedSubCategory((prev) => (prev?.id === fromUrl.id ? prev : fromUrl));
       }
@@ -398,6 +441,17 @@ export default function CategoriesPage() {
     setSelectedSubCategory((prev) => (prev?.id === allTab.id ? prev : allTab));
   }, [subIdFromUrl, selectedCategory, subCategories]);
 
+  const navigateCategoryBrowse = useCallback(
+    (category: { slug?: string | null; name?: string | null }, sub?: SubCategory | null) => {
+      const href = categoryBrowseHref(
+        category,
+        sub && !isAllSubCategory(sub) ? sub : undefined
+      );
+      router.replace(href, { scroll: false });
+    },
+    [router]
+  );
+
   const handleCategoryClick = (cat: any) => {
     const allTab = allSubCategoryFor(cat);
     pendingSubIdRef.current = allTab.id;
@@ -406,21 +460,7 @@ export default function CategoriesPage() {
     setSubCategories([allTab]);
     setSelectedSubCategory(allTab);
     setViewMode('merchants');
-    router.replace(categoryBrowseHref(cat.id), { scroll: false });
-  };
-
-  const handleSubCategoryClick = (sub: SubCategory) => {
-    if (selectedSubCategory?.id === sub.id) return;
-    pendingSubIdRef.current = sub.id;
-    setListingStats({ shown: 0, total: 0, loading: true });
-    setSelectedSubCategory(sub);
-    setViewMode('merchants');
-    if (!selectedCategory?.id) return;
-    if (isAllSubCategory(sub)) {
-      router.replace(categoryBrowseHref(selectedCategory.id), { scroll: false });
-    } else {
-      router.replace(categoryBrowseHref(selectedCategory.id, sub.id), { scroll: false });
-    }
+    navigateCategoryBrowse(cat);
   };
 
   useLayoutEffect(() => {
@@ -1061,11 +1101,7 @@ export default function CategoriesPage() {
                       </span>
                       {listingStats && !listingStats.loading ? (
                         <span className="ml-1.5 text-[12px] font-medium text-slate-400">
-                          ({listingStats.shown}
-                          {listingStats.total !== listingStats.shown
-                            ? `/${listingStats.total}`
-                            : ''}
-                          )
+                          ({listingStats.total} Businesses)
                         </span>
                       ) : null}
                     </h3>
@@ -1094,12 +1130,27 @@ export default function CategoriesPage() {
                       {subCategories.map((sub) => {
                         const isSubSelected = selectedSubCategory?.id === sub.id;
                         const isAll = isAllSubCategory(sub);
+                        const href = selectedCategory
+                          ? categoryBrowseHref(
+                              selectedCategory,
+                              isAll ? undefined : sub
+                            )
+                          : '/categories';
                         return (
-                          <button
+                          <Link
                             key={sub.id}
-                            type="button"
-                            onClick={() => handleSubCategoryClick(sub)}
+                            href={href}
+                            replace
+                            scroll={false}
+                            onClick={() => {
+                              if (selectedSubCategory?.id === sub.id) return;
+                              pendingSubIdRef.current = sub.id;
+                              setListingStats({ shown: 0, total: 0, loading: true });
+                              setSelectedSubCategory(sub);
+                              setViewMode('merchants');
+                            }}
                             className="flex w-[3.35rem] shrink-0 flex-col items-center gap-0.5 text-center"
+                            aria-current={isSubSelected ? 'true' : undefined}
                           >
                             <span
                               className={`flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl p-0.5 transition-all duration-200 ${
@@ -1151,7 +1202,7 @@ export default function CategoriesPage() {
                             >
                               {sub.name}
                             </span>
-                          </button>
+                          </Link>
                         );
                       })}
                     </div>
@@ -1180,9 +1231,11 @@ export default function CategoriesPage() {
                     key={selectedSubCategory.id}
                     categorySlug={selectedSubCategory.slug || selectedSubCategory.name}
                     searchQuery={searchQuery}
+                    pageSize={25}
                     activeFilters={activeFilters}
                     sortOrder={sortOrder}
                     onStatsChange={setListingStats}
+                    scrollRootRef={mainScrollRef}
                   />
                 ) : null}
               </div>

@@ -1,0 +1,24 @@
+# FinderB
+
+> India's local business directory and discovery platform.
+
+FinderB helps people find verified local businesses, restaurants, hotels, doctors, tutors, salons, lawyers, contractors, and more across India.
+
+## Site
+
+- Home: https://finderb.com/
+- Categories index: https://finderb.com/categories
+- Category pages (SEO): https://finderb.com/categories/{slug}
+- Category + city: https://finderb.com/categories/{slug}/{city}
+- Tourist places: https://finderb.com/tourist-places
+- Blog: https://finderb.com/blog
+- Pricing: https://finderb.com/pricing
+- About: https://finderb.com/about
+- Register a business: https://finderb.com/business/register
+- Sitemap: https://finderb.com/sitemap.xml
+
+## Notes
+
+- Public pages are intended to be crawlable by search engines and AI assistants.
+- Prefer `/categories/{slug}` over query-string category links.
+- Account, dashboard, login, signup, and API routes are private and should not be indexed.

@@ -16,10 +16,10 @@ import {
 import {
   HERO_TRUST_BADGES,
   HERO_SEARCH_TYPEWRITER_EXAMPLES,
-  POPULAR_SEARCHES,
   HERO_CITIES_BY_STATE,
   isHeroCitySelected,
   filterCitiesByState,
+  type PopularSearchItem,
 } from '@/lib/homeHeroConstants';
 import { useUserLocationState } from '@/hooks/useUserCoords';
 import { useTypewriterCycle } from '@/hooks/useTypewriterCycle';
@@ -33,6 +33,7 @@ type HomeHeroProps = {
   onVoiceSearch?: () => void;
   voiceActive?: boolean;
   searchHint?: boolean;
+  popularSearches?: PopularSearchItem[];
 };
 
 function SearchInputHint() {
@@ -394,6 +395,7 @@ export default function HomeHero({
   onVoiceSearch,
   voiceActive = false,
   searchHint = false,
+  popularSearches = [],
 }: HomeHeroProps) {
   const isDesktop = variant === 'desktop';
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -606,7 +608,7 @@ export default function HomeHero({
               </button>
             </div>
             <div className="scrollbar-hide flex gap-2 overflow-x-auto pb-0.5">
-              {POPULAR_SEARCHES.map(({ term, icon: Icon, iconColor, href }) => {
+              {popularSearches.map(({ term, icon: Icon, iconColor, href }) => {
                 const pillClassName =
                   'flex shrink-0 items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3.5 py-2 text-[12px] font-semibold text-[#334155] shadow-[0_1px_3px_rgba(0,0,0,0.06)]';
 
