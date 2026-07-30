@@ -44,3 +44,9 @@ next-env.d.ts
 /lib/generated/prisma
 
 .env*.local
+
+# Separate Expo app — not part of the Next.js site build
+/mobile
+
+# Local editor rules
+/.cursor
