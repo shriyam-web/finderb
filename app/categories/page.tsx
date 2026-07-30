@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
 import CategoriesPageClient from '@/components/categories/CategoriesPageClient';
+import CategoriesBrowseFallback from '@/components/categories/CategoriesBrowseFallback';
 import {
   buildCategoryIndexMetadata,
   buildCategorySearchMetadata,
@@ -23,7 +24,7 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
 
 export default function CategoriesPage() {
   return (
-    <Suspense fallback={<div className="min-h-dvh bg-[#f7f7f8]" />}>
+    <Suspense fallback={<CategoriesBrowseFallback />}>
       <CategoriesPageClient />
     </Suspense>
   );

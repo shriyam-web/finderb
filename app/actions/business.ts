@@ -863,6 +863,96 @@ export async function getFeaturedBusinesses() {
   }
 }
 
+/**
+ * Expand a category slug/name into Business.category match needles.
+ * Merchants may store "Parent › Child", only the parent, or only the leaf subcategory.
+ * Parent → All must include every child label under that parent (same as category counts).
+ */
+function toCategoryLookupSlug(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/&/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+async function resolveBusinessCategoryNeedles(
+  supabase: ReturnType<typeof createClient>,
+  categoryName: string
+): Promise<string[]> {
+  const raw = categoryName.trim();
+  if (!raw || raw.toLowerCase() === 'all') return [];
+
+  const asSlug = toCategoryLookupSlug(raw);
+
+  let cat: { id: string; name: string; parent_id: string | null } | null = null;
+
+  const { data: bySlug } = await supabase
+    .from('categories')
+    .select('id, name, parent_id')
+    .eq('slug', asSlug)
+    .maybeSingle();
+  if (bySlug?.name) cat = bySlug;
+
+  if (!cat) {
+    const { data: byName } = await supabase
+      .from('categories')
+      .select('id, name, parent_id')
+      .eq('name', raw)
+      .maybeSingle();
+    if (byName?.name) cat = byName;
+  }
+
+  if (!cat) {
+    const fallback =
+      raw.includes('-') && !/\s/.test(raw) ? raw.replace(/-/g, ' ') : raw;
+    return [fallback];
+  }
+
+  const needles = new Set<string>([cat.name.trim()]);
+
+  const { data: children } = await supabase
+    .from('categories')
+    .select('name')
+    .eq('parent_id', cat.id);
+
+  for (const child of children ?? []) {
+    const childName = child.name?.trim();
+    if (!childName) continue;
+    needles.add(childName);
+    needles.add(`${cat.name.trim()} › ${childName}`);
+  }
+
+  if (cat.parent_id) {
+    const { data: parent } = await supabase
+      .from('categories')
+      .select('name')
+      .eq('id', cat.parent_id)
+      .maybeSingle();
+    const parentName = parent?.name?.trim();
+    if (parentName) {
+      needles.add(`${parentName} › ${cat.name.trim()}`);
+    }
+  }
+
+  return [...needles];
+}
+
+function applyBusinessCategoryFilter<T extends { or: Function; ilike: Function }>(
+  query: T,
+  needles: string[]
+): T {
+  if (needles.length === 0) return query;
+  if (needles.length === 1) {
+    return query.ilike('category', `%${escapeIlikePattern(needles[0])}%`) as T;
+  }
+  const orFilter = needles
+    .map((n) => `category.ilike.%${escapeIlikePattern(n)}%`)
+    .join(',');
+  return query.or(orFilter) as T;
+}
+
 export async function getBusinessesByCategoryAndCity(
   categorySlug: string,
   citySlug: string,
@@ -878,15 +968,16 @@ export async function getBusinessesByCategoryAndCity(
     const fetchLimit = Math.min(Math.max(needed * 4, pageSize * 4), 500);
 
     const supabase = createClient(await cookies());
-    const categoryNeedle = await resolveBusinessCategoryNeedle(supabase, categorySlug);
-    const escapedCategory = escapeIlikePattern(categoryNeedle);
+    const needles = await resolveBusinessCategoryNeedles(supabase, categorySlug);
     const escapedCity = escapeIlikePattern(citySlug.replace(/-/g, ' '));
 
-    const { data: businesses, error, count } = await supabase
+    let query = supabase
       .from('Business')
       .select('*', { count: 'exact' })
-      .eq('status', 'Active')
-      .ilike('category', `%${escapedCategory}%`)
+      .eq('status', 'Active');
+    query = applyBusinessCategoryFilter(query, needles);
+
+    const { data: businesses, error, count } = await query
       .or(`city.ilike.%${escapedCity}%,location.ilike.%${escapedCity}%`)
       .order('createdAt', { ascending: false })
       .range(0, fetchLimit - 1);
@@ -920,31 +1011,6 @@ export async function getBusinessesByCategoryAndCity(
   }
 }
 
-/**
- * Map a category slug/name to the label stored on Business.category.
- * Slug-only matching breaks on names with punctuation (e.g. "Car Repair & Services"
- * → slug "car-repair-services" → "car repair services" which does not substring-match).
- */
-async function resolveBusinessCategoryNeedle(
-  supabase: ReturnType<typeof createClient>,
-  categoryName: string
-): Promise<string> {
-  const raw = categoryName.trim();
-  if (!raw || raw.toLowerCase() === 'all') return raw;
-
-  const asSlug = raw.toLowerCase().replace(/\s+/g, '-');
-  const { data: bySlug } = await supabase
-    .from('categories')
-    .select('name')
-    .eq('slug', asSlug)
-    .maybeSingle();
-
-  if (bySlug?.name?.trim()) return bySlug.name.trim();
-
-  // Already a display name, or unknown slug — keep hyphens→spaces fallback.
-  return raw.includes('-') && !raw.includes(' ') ? raw.replace(/-/g, ' ') : raw;
-}
-
 export async function getBusinessesByCategory(
   categoryName: string,
   options?: { page?: number; pageSize?: number }
@@ -967,9 +1033,8 @@ export async function getBusinessesByCategory(
       .order('createdAt', { ascending: false });
 
     if (categoryName !== 'all') {
-      const needle = await resolveBusinessCategoryNeedle(supabase, categoryName);
-      const escapedCategory = escapeIlikePattern(needle);
-      query = query.ilike('category', `%${escapedCategory}%`);
+      const needles = await resolveBusinessCategoryNeedles(supabase, categoryName);
+      query = applyBusinessCategoryFilter(query, needles);
     }
 
     const { data: businesses, error, count } = await query.range(0, fetchLimit - 1);

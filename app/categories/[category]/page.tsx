@@ -3,6 +3,7 @@ import { Suspense } from 'react';
 import { getCategories } from '@/app/actions/category';
 import { getBusinessesByCategory } from '@/app/actions/business';
 import CategoriesPageClient from '@/components/categories/CategoriesPageClient';
+import CategoriesBrowseFallback from '@/components/categories/CategoriesBrowseFallback';
 import JsonLd from '@/components/JsonLd';
 import RelatedCategoryLinks from '@/components/seo/RelatedCategoryLinks';
 import {
@@ -85,10 +86,11 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
           <RelatedCategoryLinks title="Related categories" links={relatedCategories} />
         ) : null}
       </div>
-      <Suspense fallback={<div className="min-h-dvh bg-[#f7f7f8]" />}>
+      <Suspense fallback={<CategoriesBrowseFallback />}>
         <CategoriesPageClient
           initialCategorySlug={categorySlug}
           initialSubSlug={initialSubSlug}
+          initialCategories={allCategories}
         />
       </Suspense>
     </>

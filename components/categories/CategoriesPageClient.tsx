@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useLayoutEffect, useMemo, useCallback, useRef } from 'react';
-import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Search, Filter, ChevronRight, LayoutGrid, MapPin, Phone, Loader2 } from 'lucide-react';
 import {
@@ -104,23 +103,62 @@ function subcategoryLabel(category?: string) {
 export default function CategoriesPage({
   initialCategorySlug = null,
   initialSubSlug = null,
+  initialCategories = null,
 }: {
   initialCategorySlug?: string | null;
   initialSubSlug?: string | null;
+  initialCategories?: any[] | null;
 }) {
   const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
+  const nextPathname = usePathname();
+  const nextSearchParams = useSearchParams();
   const userCoords = useUserCoords();
-  const slugFromPath = categorySlugFromPath(pathname) ?? initialCategorySlug;
+
+  // Soft URL updates (history.replaceState) keep this client mounted across
+  // /categories ↔ /categories/[slug]. Next's usePathname only updates on real navigations.
+  const [softPath, setSoftPath] = useState<string | null>(null);
+  const [softQuery, setSoftQuery] = useState<string | null>(null);
+
+  const nextSearchKey = nextSearchParams.toString();
+
+  useEffect(() => {
+    setSoftPath(null);
+    setSoftQuery(null);
+  }, [nextPathname, nextSearchKey]);
+
+  useEffect(() => {
+    const onPopState = () => {
+      setSoftPath(window.location.pathname);
+      setSoftQuery(window.location.search.startsWith('?') ? window.location.search.slice(1) : '');
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
+
+  const pathname = softPath ?? nextPathname;
+  const searchParams = useMemo(() => {
+    if (softQuery != null) return new URLSearchParams(softQuery);
+    return new URLSearchParams(nextSearchKey);
+  }, [softQuery, nextSearchKey]);
+
+  const softReplace = useCallback((href: string) => {
+    const url = new URL(href, window.location.origin);
+    const path = url.pathname;
+    const query = url.search.startsWith('?') ? url.search.slice(1) : url.search;
+    setSoftPath(path);
+    setSoftQuery(query);
+    window.history.replaceState(window.history.state, '', `${path}${url.search}`);
+  }, []);
+
+  const slugFromPath = categorySlugFromPath(pathname) ?? (softPath ? null : initialCategorySlug);
   const categoryIdFromUrl = searchParams.get('id');
-  const subIdFromUrl = searchParams.get('sub') ?? initialSubSlug;
-  const [categories, setCategories] = useState<any[]>([]);
+  const subIdFromUrl = searchParams.get('sub') ?? (softPath || softQuery != null ? null : initialSubSlug);
+  const [categories, setCategories] = useState<any[]>(() => initialCategories ?? []);
   const [selectedCategory, setSelectedCategory] = useState<any>(null);
   const [subCategories, setSubCategories] = useState<SubCategory[]>([]);
   const [selectedSubCategory, setSelectedSubCategory] = useState<SubCategory | null>(null);
   const [businesses, setBusinesses] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(() => !(initialCategories && initialCategories.length > 0));
   const [isSubLoading, setIsSubLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') ?? '');
 
@@ -168,22 +206,24 @@ export default function CategoriesPage({
 
   useEffect(() => {
     async function fetchData() {
-      setIsLoading(true);
+      // Don't blank the shell if we already have categories (SSR / soft nav remount-safe).
+      if (categories.length === 0) setIsLoading(true);
       const [catResult, bizResult] = await Promise.all([
         getCategories(),
-        getFeaturedBusinesses()
+        getFeaturedBusinesses(),
       ]);
 
       if (catResult.success && catResult.categories) {
         setCategories(catResult.categories);
       }
-      
+
       if (bizResult.success && bizResult.businesses) {
         setBusinesses(bizResult.businesses);
       }
       setIsLoading(false);
     }
-    fetchData();
+    void fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount / SSR seed only
   }, []);
 
   const executeSearch = useCallback(
@@ -219,10 +259,10 @@ export default function CategoriesPage({
       setIsSearchCategoriesLoading(false);
 
       if (syncUrl && urlSearchQ !== trimmed) {
-        router.replace(`/categories?search=${encodeURIComponent(trimmed)}`, { scroll: false });
+        softReplace(`/categories?search=${encodeURIComponent(trimmed)}`);
       }
     },
-    [router, urlSearchQ]
+    [softReplace, urlSearchQ]
   );
 
   // FinderB AI / shared links: refetch whenever URL ?search= changes
@@ -259,18 +299,17 @@ export default function CategoriesPage({
       if (category) {
         setSelectedCategory((prev: any) => (prev?.id === category.id ? prev : category));
         setViewMode('merchants');
-        router.replace(
+        softReplace(
           categoryBrowseHref(
             category,
             subIdFromUrl && !String(subIdFromUrl).startsWith('all:')
               ? subIdFromUrl
               : undefined
-          ),
-          { scroll: false }
+          )
         );
       }
     }
-  }, [urlSearchQ, slugFromPath, categoryIdFromUrl, subIdFromUrl, categories, executeSearch, router]);
+  }, [urlSearchQ, slugFromPath, categoryIdFromUrl, subIdFromUrl, categories, executeSearch, softReplace]);
 
   // Typing in the categories search bar (skip when query matches URL — already loaded)
   useEffect(() => {
@@ -321,7 +360,7 @@ export default function CategoriesPage({
       lastExecutedSearchRef.current = '';
       setCategorySearchHits([]);
       setViewMode('categories');
-      router.replace('/categories', { scroll: false });
+      softReplace('/categories');
       return;
     }
     if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
@@ -342,7 +381,7 @@ export default function CategoriesPage({
       lastExecutedSearchRef.current = '';
       setCategorySearchHits([]);
       setViewMode('categories');
-      router.replace('/categories', { scroll: false });
+      softReplace('/categories');
     }
   };
 
@@ -361,7 +400,7 @@ export default function CategoriesPage({
       setSelectedCategory(parent);
       setViewMode('merchants');
       setSearchQuery('');
-      router.replace(categoryBrowseHref(parent, hit), { scroll: false });
+      softReplace(categoryBrowseHref(parent, hit));
 
       setIsSubLoading(true);
       const result = await getSubCategories(hit.parentId);
@@ -451,9 +490,9 @@ export default function CategoriesPage({
         category,
         sub && !isAllSubCategory(sub) ? sub : undefined
       );
-      router.replace(href, { scroll: false });
+      softReplace(href);
     },
-    [router]
+    [softReplace]
   );
 
   const handleCategoryClick = (cat: any) => {
@@ -745,13 +784,13 @@ export default function CategoriesPage({
                 setCategorySearchHits([]);
                 setSearchQuery('');
                 setViewMode('categories');
-                router.replace('/categories', { scroll: false });
+                softReplace('/categories');
               } else if (viewMode === 'merchants' || viewMode === 'subcategories') {
                 setViewMode('categories');
                 setSelectedCategory(null);
                 setSelectedSubCategory(null);
                 setSubCategories([]);
-                router.replace('/categories', { scroll: false });
+                softReplace('/categories');
               } else {
                 router.push('/', { scroll: false });
               }
@@ -1117,7 +1156,7 @@ export default function CategoriesPage({
                       setSelectedCategory(null);
                       setSelectedSubCategory(null);
                       setSubCategories([]);
-                      router.replace('/categories', { scroll: false });
+                      softReplace('/categories');
                     }}
                     className="shrink-0 text-[11px] font-semibold text-primary"
                   >
@@ -1134,24 +1173,19 @@ export default function CategoriesPage({
                       {subCategories.map((sub) => {
                         const isSubSelected = selectedSubCategory?.id === sub.id;
                         const isAll = isAllSubCategory(sub);
-                        const href = selectedCategory
-                          ? categoryBrowseHref(
-                              selectedCategory,
-                              isAll ? undefined : sub
-                            )
-                          : '/categories';
                         return (
-                          <Link
+                          <button
                             key={sub.id}
-                            href={href}
-                            replace
-                            scroll={false}
+                            type="button"
                             onClick={() => {
                               if (selectedSubCategory?.id === sub.id) return;
                               pendingSubIdRef.current = sub.id;
                               setListingStats({ shown: 0, total: 0, loading: true });
                               setSelectedSubCategory(sub);
                               setViewMode('merchants');
+                              if (selectedCategory) {
+                                navigateCategoryBrowse(selectedCategory, isAll ? null : sub);
+                              }
                             }}
                             className="flex w-[3.35rem] shrink-0 flex-col items-center gap-0.5 text-center"
                             aria-current={isSubSelected ? 'true' : undefined}
@@ -1206,7 +1240,7 @@ export default function CategoriesPage({
                             >
                               {sub.name}
                             </span>
-                          </Link>
+                          </button>
                         );
                       })}
                     </div>
@@ -1228,7 +1262,7 @@ export default function CategoriesPage({
               </div>
 
               <div className="space-y-2 p-2 sm:p-2.5">
-                {isSubLoading ? (
+                {isSubLoading && !selectedSubCategory ? (
                   <CategoryListingsLoading />
                 ) : selectedSubCategory ? (
                   <CategoryMerchantList
@@ -1245,6 +1279,8 @@ export default function CategoriesPage({
                     onStatsChange={setListingStats}
                     scrollRootRef={mainScrollRef}
                   />
+                ) : isSubLoading ? (
+                  <CategoryListingsLoading />
                 ) : null}
               </div>
             </div>
