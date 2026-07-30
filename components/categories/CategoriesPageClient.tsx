@@ -58,6 +58,8 @@ interface SubCategory {
   image: string | null;
   icon: string | null;
   businessCount?: number;
+  /** Prefer for Business.category match (All tab = parent display name). */
+  queryName?: string;
 }
 
 function allSubCategoryFor(cat: {
@@ -71,10 +73,12 @@ function allSubCategoryFor(cat: {
   return {
     id: `all:${cat.id}`,
     name: 'All',
+    // Keep parent slug for URLs; listings must query by display name (see queryName).
     slug: cat.slug || cat.name.toLowerCase().replace(/\s+/g, '-'),
     image: cat.image ?? null,
     icon: cat.icon ?? null,
     businessCount: cat.businessCount,
+    queryName: cat.name,
   };
 }
 
@@ -1229,7 +1233,11 @@ export default function CategoriesPage({
                 ) : selectedSubCategory ? (
                   <CategoryMerchantList
                     key={selectedSubCategory.id}
-                    categorySlug={selectedSubCategory.slug || selectedSubCategory.name}
+                    categorySlug={
+                      selectedSubCategory.queryName ||
+                      selectedSubCategory.slug ||
+                      selectedSubCategory.name
+                    }
                     searchQuery={searchQuery}
                     pageSize={25}
                     activeFilters={activeFilters}

@@ -1,0 +1,49 @@
+{
+  "name": "finderb-mobile",
+  "version": "1.0.0",
+  "main": "expo-router/entry",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "web": "expo start --web",
+    "prebuild:android": "expo prebuild --platform android",
+    "build:apk": "eas build --platform android --profile preview",
+    "build:apk:local": "eas build --platform android --profile preview-local --local",
+    "build:apk:gradle": "expo prebuild --platform android && cd android && .\\gradlew.bat assembleRelease",
+    "build:apk:local-win": "node -e \"console.log('Use: subst F: to a no-space path, then cd /d F:\\\\android && gradlew.bat assembleRelease')\"",
+    "build:apk:dev": "eas build --platform android --profile development"
+  },
+  "dependencies": {
+    "@expo-google-fonts/plus-jakarta-sans": "^0.4.2",
+    "@expo/metro-runtime": "~57.0.3",
+    "@expo/ui": "~57.0.4",
+    "@expo/vector-icons": "^15.0.2",
+    "@react-navigation/bottom-tabs": "^7.18.8",
+    "@supabase/supabase-js": "^2.110.4",
+    "expo": "~57.0.4",
+    "expo-asset": "~57.0.3",
+    "expo-constants": "~57.0.3",
+    "expo-font": "~57.0.0",
+    "expo-image": "~57.0.0",
+    "expo-linear-gradient": "~57.0.0",
+    "expo-linking": "~57.0.2",
+    "expo-navigation-bar": "~57.0.1",
+    "expo-router": "~57.0.4",
+    "expo-splash-screen": "~57.0.2",
+    "expo-status-bar": "~57.0.0",
+    "expo-system-ui": "~57.0.0",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-native": "0.86.0",
+    "react-native-gesture-handler": "~2.32.0",
+    "react-native-safe-area-context": "~5.7.0",
+    "react-native-screens": "4.25.2",
+    "react-native-web": "^0.21.2"
+  },
+  "devDependencies": {
+    "@types/react": "~19.2.2",
+    "typescript": "~6.0.3"
+  },
+  "private": true
+}

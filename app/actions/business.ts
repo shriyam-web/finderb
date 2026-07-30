@@ -878,7 +878,8 @@ export async function getBusinessesByCategoryAndCity(
     const fetchLimit = Math.min(Math.max(needed * 4, pageSize * 4), 500);
 
     const supabase = createClient(await cookies());
-    const escapedCategory = escapeIlikePattern(categorySlug.replace(/-/g, ' '));
+    const categoryNeedle = await resolveBusinessCategoryNeedle(supabase, categorySlug);
+    const escapedCategory = escapeIlikePattern(categoryNeedle);
     const escapedCity = escapeIlikePattern(citySlug.replace(/-/g, ' '));
 
     const { data: businesses, error, count } = await supabase
@@ -919,6 +920,31 @@ export async function getBusinessesByCategoryAndCity(
   }
 }
 
+/**
+ * Map a category slug/name to the label stored on Business.category.
+ * Slug-only matching breaks on names with punctuation (e.g. "Car Repair & Services"
+ * → slug "car-repair-services" → "car repair services" which does not substring-match).
+ */
+async function resolveBusinessCategoryNeedle(
+  supabase: ReturnType<typeof createClient>,
+  categoryName: string
+): Promise<string> {
+  const raw = categoryName.trim();
+  if (!raw || raw.toLowerCase() === 'all') return raw;
+
+  const asSlug = raw.toLowerCase().replace(/\s+/g, '-');
+  const { data: bySlug } = await supabase
+    .from('categories')
+    .select('name')
+    .eq('slug', asSlug)
+    .maybeSingle();
+
+  if (bySlug?.name?.trim()) return bySlug.name.trim();
+
+  // Already a display name, or unknown slug — keep hyphens→spaces fallback.
+  return raw.includes('-') && !raw.includes(' ') ? raw.replace(/-/g, ' ') : raw;
+}
+
 export async function getBusinessesByCategory(
   categoryName: string,
   options?: { page?: number; pageSize?: number }
@@ -941,7 +967,8 @@ export async function getBusinessesByCategory(
       .order('createdAt', { ascending: false });
 
     if (categoryName !== 'all') {
-      const escapedCategory = escapeIlikePattern(categoryName.replace(/-/g, ' '));
+      const needle = await resolveBusinessCategoryNeedle(supabase, categoryName);
+      const escapedCategory = escapeIlikePattern(needle);
       query = query.ilike('category', `%${escapedCategory}%`);
     }
 
