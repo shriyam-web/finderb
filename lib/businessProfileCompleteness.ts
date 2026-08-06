@@ -11,7 +11,12 @@ function hasTimings(timings: unknown): boolean {
 
   return Object.values(timings as Record<string, unknown>).some((entry) => {
     if (!entry || entry === 'Closed') return false;
-    if (typeof entry === 'object' && (entry as { isClosed?: boolean }).isClosed) return false;
+    if (typeof entry === 'object') {
+      const slot = entry as { isClosed?: boolean; is24Hours?: boolean; open?: string; close?: string };
+      if (slot.isClosed) return false;
+      if (slot.is24Hours) return true;
+      return Boolean(slot.open && slot.close);
+    }
     return true;
   });
 }

@@ -76,7 +76,10 @@ type ProfileData = {
   facebookUrl?: string;
   youtubeUrl?: string;
   whatsappNumber?: string;
-  timings?: Record<string, string | { open: string; close: string; isClosed?: boolean }>;
+  timings?: Record<
+    string,
+    string | { open: string; close: string; isClosed?: boolean; is24Hours?: boolean }
+  >;
   review?: unknown;
   reviewReply?: unknown;
   latitude?: number | null;

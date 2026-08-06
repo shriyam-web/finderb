@@ -14,6 +14,7 @@ type DaySlot = {
   open: string;
   close: string;
   isClosed: boolean;
+  is24Hours: boolean;
 };
 
 export type BusinessOpenState = {
@@ -42,20 +43,28 @@ function normalizeDayTiming(raw: unknown): DaySlot | null {
 
   if (typeof raw === 'string') {
     if (raw === 'Closed' || !raw.includes('-')) {
-      return { open: '', close: '', isClosed: true };
+      return { open: '', close: '', isClosed: true, is24Hours: false };
     }
     const [open, close] = raw.split('-').map((part) => part.trim());
     if (!open || !close) return null;
-    return { open, close, isClosed: false };
+    return { open, close, isClosed: false, is24Hours: false };
   }
 
   if (typeof raw === 'object' && raw !== null) {
-    const slot = raw as { open?: string; close?: string; isClosed?: boolean };
+    const slot = raw as {
+      open?: string;
+      close?: string;
+      isClosed?: boolean;
+      is24Hours?: boolean;
+    };
     if (slot.isClosed) {
-      return { open: '', close: '', isClosed: true };
+      return { open: '', close: '', isClosed: true, is24Hours: false };
+    }
+    if (slot.is24Hours) {
+      return { open: '00:00', close: '23:59', isClosed: false, is24Hours: true };
     }
     if (slot.open && slot.close) {
-      return { open: slot.open, close: slot.close, isClosed: false };
+      return { open: slot.open, close: slot.close, isClosed: false, is24Hours: false };
     }
   }
 
@@ -71,10 +80,10 @@ function closedState(message = 'Closed now'): BusinessOpenState {
   };
 }
 
-function openState(closeTime: string): BusinessOpenState {
+function openState(closeTime: string, is24Hours = false): BusinessOpenState {
   return {
     status: 'Open',
-    label: `Open now · Open till ${formatTime12h(closeTime)}`,
+    label: is24Hours ? 'Open now · Open 24 hours' : `Open now · Open till ${formatTime12h(closeTime)}`,
     colorClass: 'text-emerald-600',
     dotClass: 'bg-emerald-500',
   };
@@ -99,6 +108,9 @@ function buildClosedLabel(timings: Record<string, unknown>, now: Date): string {
   const todaySlot = normalizeDayTiming(timings[todayName]);
 
   if (todaySlot && !todaySlot.isClosed && todaySlot.open) {
+    if (todaySlot.is24Hours) {
+      return 'Closed now';
+    }
     const openMinutes = parseTimeToMinutes(todaySlot.open);
     if (openMinutes !== null && currentMinutes < openMinutes) {
       return `Closed now, opens ${formatTime12h(todaySlot.open)}`;
@@ -112,6 +124,13 @@ function buildClosedLabel(timings: Record<string, unknown>, now: Date): string {
     const slot = normalizeDayTiming(timings[dayName]);
 
     if (!slot || slot.isClosed || !slot.open) continue;
+
+    if (slot.is24Hours) {
+      if (offset === 1) {
+        return 'Closed now, opens tomorrow';
+      }
+      return `Closed now, opens ${dayName}`;
+    }
 
     const openLabel = formatTime12h(slot.open);
     if (offset === 1) {
@@ -131,6 +150,10 @@ function getStatusForSlot(
 ): BusinessOpenState {
   if (slot.isClosed || !slot.open || !slot.close) {
     return closedState(buildClosedLabel(timings, now));
+  }
+
+  if (slot.is24Hours) {
+    return openState(slot.close, true);
   }
 
   return isOpenNow(slot.open, slot.close, currentMinutes)

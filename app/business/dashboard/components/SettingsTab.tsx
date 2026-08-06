@@ -113,22 +113,35 @@ type DayTiming = {
   open?: string;
   close?: string;
   isClosed?: boolean;
+  is24Hours?: boolean;
 };
 
 type TimingsMap = Record<string, DayTiming>;
 
+const ALL_DAY_OPEN = '00:00';
+const ALL_DAY_CLOSE = '23:59';
+
 function applyDayTimingsToAll(timings: TimingsMap, sourceDay: string): TimingsMap {
   const source = timings[sourceDay];
-  if (!source?.open || !source?.close) return timings;
+  if (!source) return timings;
+  if (!source.is24Hours && (!source.open || !source.close)) return timings;
 
   const next: TimingsMap = { ...timings };
   for (const day of WEEKDAYS) {
-    next[day] = {
-      ...next[day],
-      open: source.open,
-      close: source.close,
-      isClosed: next[day]?.isClosed ?? false,
-    };
+    next[day] = source.is24Hours
+      ? {
+          open: ALL_DAY_OPEN,
+          close: ALL_DAY_CLOSE,
+          isClosed: false,
+          is24Hours: true,
+        }
+      : {
+          ...next[day],
+          open: source.open,
+          close: source.close,
+          isClosed: false,
+          is24Hours: false,
+        };
   }
   return next;
 }
@@ -398,7 +411,34 @@ export default function SettingsTab({
     }
 
     const current = (profileData.timings?.[day] as DayTiming | undefined) ?? {};
-    const nextTiming: DayTiming = { ...current, ...patch };
+    let nextTiming: DayTiming = { ...current, ...patch };
+
+    if (patch.is24Hours) {
+      nextTiming = {
+        open: ALL_DAY_OPEN,
+        close: ALL_DAY_CLOSE,
+        isClosed: false,
+        is24Hours: true,
+      };
+    } else if (patch.isClosed) {
+      nextTiming = {
+        ...nextTiming,
+        isClosed: true,
+        is24Hours: false,
+      };
+    } else if (patch.is24Hours === false) {
+      nextTiming = {
+        ...nextTiming,
+        is24Hours: false,
+      };
+    } else if (patch.open !== undefined || patch.close !== undefined) {
+      nextTiming = {
+        ...nextTiming,
+        is24Hours: false,
+        isClosed: false,
+      };
+    }
+
     const nextTimings: TimingsMap = {
       ...(profileData.timings || {}),
       [day]: nextTiming,
@@ -407,9 +447,8 @@ export default function SettingsTab({
     if (
       day === MONDAY &&
       syncMondayToAll &&
-      nextTiming.open &&
-      nextTiming.close &&
-      !nextTiming.isClosed
+      !nextTiming.isClosed &&
+      (nextTiming.is24Hours || (nextTiming.open && nextTiming.close))
     ) {
       updateField('timings', applyDayTimingsToAll(nextTimings, MONDAY));
       return;
@@ -863,17 +902,23 @@ export default function SettingsTab({
                   ) : activeModal === 'timings' ? (
                     <div className="space-y-2">
                       <p className="text-xs text-zinc-500">
-                        Mark a day closed to disable its hours. On Monday, use &quot;Apply same to all days&quot; to
-                        copy Monday&apos;s timings to the rest of the week.
+                        Use &quot;Open 24 hours&quot; for days you never close (e.g. hospitals). Mark a day closed to
+                        disable its hours. On Monday, use &quot;Apply same to all days&quot; to copy Monday&apos;s
+                        timings to the rest of the week.
                       </p>
                       {WEEKDAYS.map((day) => {
                         const dayTiming = profileData.timings?.[day] as DayTiming | undefined;
                         const isClosed = Boolean(dayTiming?.isClosed);
+                        const is24Hours = Boolean(dayTiming?.is24Hours);
+                        const timesDisabled = isClosed || is24Hours;
                         const mondayTiming = profileData.timings?.[MONDAY] as DayTiming | undefined;
                         const showMondaySyncToggle =
                           day === MONDAY &&
-                          Boolean(mondayTiming?.open && mondayTiming?.close) &&
-                          !isClosed;
+                          !isClosed &&
+                          Boolean(
+                            mondayTiming?.is24Hours ||
+                              (mondayTiming?.open && mondayTiming?.close),
+                          );
 
                         return (
                           <div
@@ -881,25 +926,43 @@ export default function SettingsTab({
                             className="flex flex-wrap items-center gap-2 rounded-lg border border-zinc-100 bg-zinc-50 px-3 py-2"
                           >
                             <span className="w-10 text-xs font-medium text-zinc-700">{day.slice(0, 3)}</span>
-                            <input
-                              type="time"
-                              value={dayTiming?.open || ''}
-                              disabled={isClosed}
-                              onChange={(e) => updateDayTiming(day, { open: e.target.value, isClosed })}
-                              className="rounded border border-zinc-200 px-2 py-1 text-xs disabled:cursor-not-allowed disabled:border-zinc-100 disabled:bg-zinc-100 disabled:text-zinc-400"
-                            />
-                            <span className="text-xs text-zinc-400">–</span>
-                            <input
-                              type="time"
-                              value={dayTiming?.close || ''}
-                              disabled={isClosed}
-                              onChange={(e) => updateDayTiming(day, { close: e.target.value, isClosed })}
-                              className="rounded border border-zinc-200 px-2 py-1 text-xs disabled:cursor-not-allowed disabled:border-zinc-100 disabled:bg-zinc-100 disabled:text-zinc-400"
-                            />
+                            {is24Hours ? (
+                              <span className="rounded border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-800">
+                                Open 24 hours
+                              </span>
+                            ) : (
+                              <>
+                                <input
+                                  type="time"
+                                  value={dayTiming?.open || ''}
+                                  disabled={timesDisabled}
+                                  onChange={(e) => updateDayTiming(day, { open: e.target.value })}
+                                  className="rounded border border-zinc-200 px-2 py-1 text-xs disabled:cursor-not-allowed disabled:border-zinc-100 disabled:bg-zinc-100 disabled:text-zinc-400"
+                                />
+                                <span className="text-xs text-zinc-400">–</span>
+                                <input
+                                  type="time"
+                                  value={dayTiming?.close || ''}
+                                  disabled={timesDisabled}
+                                  onChange={(e) => updateDayTiming(day, { close: e.target.value })}
+                                  className="rounded border border-zinc-200 px-2 py-1 text-xs disabled:cursor-not-allowed disabled:border-zinc-100 disabled:bg-zinc-100 disabled:text-zinc-400"
+                                />
+                              </>
+                            )}
                             <label className="ml-auto flex items-center gap-1 text-xs text-zinc-500">
                               <input
                                 type="checkbox"
+                                checked={is24Hours}
+                                disabled={isClosed}
+                                onChange={(e) => updateDayTiming(day, { is24Hours: e.target.checked })}
+                              />
+                              24 hrs
+                            </label>
+                            <label className="flex items-center gap-1 text-xs text-zinc-500">
+                              <input
+                                type="checkbox"
                                 checked={isClosed}
+                                disabled={is24Hours}
                                 onChange={(e) => updateDayTiming(day, { isClosed: e.target.checked })}
                               />
                               Closed

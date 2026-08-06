@@ -40,8 +40,14 @@ function parseTimingSlot(timing: unknown): { opens: string; closes: string } | n
   }
 
   if (typeof timing === 'object' && timing !== null) {
-    const slot = timing as { open?: string; close?: string; isClosed?: boolean };
+    const slot = timing as {
+      open?: string;
+      close?: string;
+      isClosed?: boolean;
+      is24Hours?: boolean;
+    };
     if (slot.isClosed) return null;
+    if (slot.is24Hours) return { opens: '00:00', closes: '23:59' };
     const opens = slot.open ? normalizeTime(slot.open) : null;
     const closes = slot.close ? normalizeTime(slot.close) : null;
     if (opens && closes) return { opens, closes };

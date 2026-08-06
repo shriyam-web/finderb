@@ -29,8 +29,14 @@ export function formatTimingRange12h(timing: unknown): string {
   }
 
   if (typeof timing === 'object' && timing !== null) {
-    const slot = timing as { open?: string; close?: string; isClosed?: boolean };
+    const slot = timing as {
+      open?: string;
+      close?: string;
+      isClosed?: boolean;
+      is24Hours?: boolean;
+    };
     if (slot.isClosed) return 'Closed';
+    if (slot.is24Hours) return 'Open 24 hours';
     if (slot.open && slot.close) {
       return `${formatTime12h(slot.open)} – ${formatTime12h(slot.close)}`;
     }
