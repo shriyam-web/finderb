@@ -1,13 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import Image from 'next/image';
 import { Star, MapPin } from 'lucide-react';
 import { Business } from '@/lib/mockData';
 import { getBusinessOpenStatus } from '@/lib/businessHours';
 import { getBusinessProfilePath } from '@/lib/businessSlug';
 import { VerifiedNameTick } from '@/components/business/VerifiedMark';
-import { getBusinessListingImage } from '@/lib/businessMapping';
+import BusinessListingImage from '@/components/business/BusinessListingImage';
 
 interface BusinessCardProps {
   business: Business;
@@ -51,8 +50,8 @@ export default function BusinessCard({
         className="group flex flex-col overflow-hidden rounded-lg border border-stone-200 bg-white transition-colors hover:border-stone-300"
       >
         <div className="relative h-28 w-full shrink-0 bg-stone-100">
-          <Image
-            src={getBusinessListingImage(business) || '/fallback.jpg'}
+          <BusinessListingImage
+            business={business}
             alt={business.name || 'Business Image'}
             fill
             className="object-cover transition-transform duration-300 group-hover:scale-[1.02]"
@@ -115,8 +114,8 @@ export default function BusinessCard({
           uniform ? 'h-[108px] sm:h-[120px]' : compact ? 'h-40' : 'h-56'
         }`}
       >
-        <Image
-          src={getBusinessListingImage(business) || '/fallback.jpg'}
+        <BusinessListingImage
+          business={business}
           alt={business.name || 'Business Image'}
           fill
           className="object-cover transition-transform duration-1000 group-hover:scale-105"

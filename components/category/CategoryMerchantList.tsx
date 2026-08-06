@@ -1,7 +1,6 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, ChevronRight, Loader2, MapPin, Phone } from 'lucide-react';
 import { getBusinessesByCategory } from '@/app/actions/business';
@@ -10,7 +9,6 @@ import { formatLocalityCityLabel } from '@/lib/businessAddress';
 import { CATEGORY_LISTINGS_PAGE_SIZE } from '@/lib/categoryListings';
 import { setLastSearchQuery } from '@/lib/lastSearchQuery';
 import { getBusinessProfilePath } from '@/lib/businessSlug';
-import { getBusinessListingImage } from '@/lib/businessMapping';
 import { getBusinessOpenStatus } from '@/lib/businessHours';
 import { formatDistanceFromUser, getDistanceKm } from '@/lib/geo';
 import { useUserCoords } from '@/hooks/useUserCoords';
@@ -18,6 +16,7 @@ import MerchantListingRating from '@/components/business/MerchantListingRating';
 import MerchantOfferBadge from '@/components/business/MerchantOfferBadge';
 import CategoryListingsLoading from '@/components/category/CategoryListingsLoading';
 import { VerifiedBusinessName } from '@/components/business/VerifiedMark';
+import BusinessListingImage from '@/components/business/BusinessListingImage';
 
 type MerchantListing = {
   id: string;
@@ -188,8 +187,8 @@ function MerchantRow({
       className="group flex w-full cursor-pointer items-start gap-2.5 rounded-xl bg-white p-2 text-left ring-1 ring-slate-200/80 transition-colors active:bg-slate-50 sm:gap-3 sm:p-2.5"
     >
       <div className="relative h-[92px] w-[92px] shrink-0 overflow-hidden rounded-lg bg-slate-100 sm:h-[104px] sm:w-[104px]">
-        <Image
-          src={getBusinessListingImage(biz) || '/fallback.jpg'}
+        <BusinessListingImage
+          business={biz}
           alt={biz.name}
           fill
           className="object-cover object-center"

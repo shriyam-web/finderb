@@ -22,6 +22,7 @@ import { categoryBrowseHref } from '@/lib/categoryDisplay';
 import { getBusinessProfilePath } from '@/lib/businessSlug';
 import { formatDistanceFromUser } from '@/lib/geo';
 import { getBusinessOpenStatus } from '@/lib/businessHours';
+import BusinessListingImage from '@/components/business/BusinessListingImage';
 import type { TrendingWeekItem } from '@/lib/trendingThisWeek';
 import type { UserCoords } from '@/hooks/useUserCoords';
 import type { PopularSearchItem } from '@/lib/homeHeroConstants';
@@ -300,9 +301,9 @@ export default function MobileHome({
                   }}
                   className="w-[200px] shrink-0 overflow-hidden rounded-xl border border-gray-200 bg-white"
                 >
-                  <div className="relative h-[110px]">
-                    <Image
-                      src={biz.profilePictureUrl || biz.image || '/fallback.jpg'}
+                  <div className="relative h-[110px] bg-gray-100">
+                    <BusinessListingImage
+                      business={biz}
                       alt={biz.name}
                       fill
                       className="object-cover"

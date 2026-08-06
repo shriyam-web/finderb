@@ -21,17 +21,16 @@ import {
 } from '@/lib/searchMatch';
 import { setLastSearchQuery } from '@/lib/lastSearchQuery';
 import { recordSearchAnalytics } from '@/lib/searchAnalytics';
-import Image from 'next/image';
 import CategoryMerchantList from '@/components/category/CategoryMerchantList';
 import CategoryListingsLoading from '@/components/category/CategoryListingsLoading';
 import { getBusinessProfilePath } from '@/lib/businessSlug';
 import { categoryBrowseHref, slugifyCategoryName, subMatchesQueryParam } from '@/lib/categoryDisplay';
 import { formatLocalityCityLabel } from '@/lib/businessAddress';
-import { getBusinessListingImage } from '@/lib/businessMapping';
 import { formatDistanceFromUser } from '@/lib/geo';
 import { useUserCoords } from '@/hooks/useUserCoords';
 import MerchantListingRating from '@/components/business/MerchantListingRating';
 import { VerifiedBusinessName } from '@/components/business/VerifiedMark';
+import BusinessListingImage from '@/components/business/BusinessListingImage';
 
 const RESERVED_CATEGORY_SEGMENTS = new Set(['job', 'admissions']);
 
@@ -695,8 +694,8 @@ export default function CategoriesPage({
       className="group flex w-full cursor-pointer items-start gap-3 rounded-2xl bg-white p-3 text-left shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_-16px_rgba(15,23,42,0.18)] ring-1 ring-slate-200/70 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_28px_-16px_rgba(33,84,129,0.3)] hover:ring-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 sm:p-3.5"
     >
       <div className="relative h-[96px] w-[96px] shrink-0 overflow-hidden rounded-xl bg-slate-100 sm:h-[108px] sm:w-[108px]">
-        <Image
-          src={getBusinessListingImage(biz) || '/fallback.jpg'}
+        <BusinessListingImage
+          business={biz}
           alt={biz.name}
           fill
           className="object-cover object-center transition-transform duration-500 ease-out group-hover:scale-[1.04]"

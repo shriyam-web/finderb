@@ -49,7 +49,10 @@ import SubscriptionExpiryAlert from './components/SubscriptionExpiryAlert';
 import ReviewsTab from './components/ReviewsTab';
 import { getMerchantNotifications, markMerchantNotificationsRead } from '@/app/actions/merchantNotifications';
 import { getMerchantSubscriptionStatus } from '@/lib/subscription/merchantSubscription';
-import { businessHasPublicPhoto } from '@/lib/businessMapping';
+import {
+  businessHasPublicPhoto,
+  syncBusinessImagesWithCover,
+} from '@/lib/businessMapping';
 import { CldUploadWidget } from 'next-cloudinary';
 import { createClient } from '@/utils/supabase/client';
 import { buildGoogleMapsUrl } from '@/lib/googleMapsLocation';
@@ -195,9 +198,11 @@ function DashboardContent() {
       const sessionRes = await getBusinessSession();
       if (sessionRes?.success && sessionRes.business) {
         const resBusiness = sessionRes.business;
+        const cover = resBusiness.profilePictureUrl || null;
+        const syncedImages = syncBusinessImagesWithCover(resBusiness.images, cover);
         setBusiness(resBusiness);
-        setImages(resBusiness.images || []);
-        setprofilePictureUrl(resBusiness.profilePictureUrl || null);
+        setImages(syncedImages);
+        setprofilePictureUrl(cover);
         setProfileData({
           rating: resBusiness.rating || 0,
           yearsInBusiness: resBusiness.yearsInBusiness || 0,

@@ -59,6 +59,7 @@ import { stripHtml } from '@/lib/stripHtml';
 import { SHOW_HOME_LATEST_MOVIES_SECTION } from '@/lib/featureFlags';
 import FinderBTutorialsSection from '@/components/home/FinderBTutorialsSection';
 import { getBusinessOpenStatus } from '@/lib/businessHours';
+import BusinessListingImage from '@/components/business/BusinessListingImage';
 
 const WORDS = [
   "verified professionals",
@@ -748,12 +749,12 @@ function HomeClientView({
                           className="group overflow-hidden rounded-xl border border-gray-200 bg-white transition-colors hover:border-gray-300"
                         >
                           <div className="relative aspect-[4/3] overflow-hidden bg-gray-100">
-                            <Image
-                              src={biz.profilePictureUrl || biz.image || '/fallback.jpg'}
+                            <BusinessListingImage
+                              business={biz}
                               alt={biz.name}
                               fill
                               className="object-cover transition-transform duration-300 group-hover:scale-105"
-                              sizes="(max-width: 1280px) 25vw"
+                              sizes="(max-width: 1280px) 25vw, 20vw"
                             />
                           </div>
                           <div className="space-y-1.5 p-3">

@@ -14,6 +14,9 @@ function parseBusinessServicesFromRecord(business: {
   return parseBusinessServices(business.serviceCategory);
 }
 
+/** Used when a listing image is missing or fails to load. */
+export const BUSINESS_IMAGE_FALLBACK = '/fallback.jpg';
+
 function firstNonEmptyUrl(...candidates: unknown[]): string | undefined {
   for (const candidate of candidates) {
     if (typeof candidate !== 'string') continue;
@@ -23,13 +26,36 @@ function firstNonEmptyUrl(...candidates: unknown[]): string | undefined {
   return undefined;
 }
 
-function firstGalleryImage(images: unknown): string | undefined {
-  if (!Array.isArray(images)) return undefined;
-  for (const item of images) {
-    const url = firstNonEmptyUrl(item);
-    if (url) return url;
+/** Normalize gallery payloads from Supabase/Prisma (array, JSON string, empties). */
+export function normalizeBusinessImages(images: unknown): string[] {
+  let list: unknown[] = [];
+
+  if (Array.isArray(images)) {
+    list = images;
+  } else if (typeof images === 'string') {
+    const trimmed = images.trim();
+    if (!trimmed) return [];
+    try {
+      const parsed = JSON.parse(trimmed);
+      list = Array.isArray(parsed) ? parsed : [trimmed];
+    } catch {
+      list = [trimmed];
+    }
   }
-  return undefined;
+
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const item of list) {
+    const url = firstNonEmptyUrl(item);
+    if (!url || seen.has(url)) continue;
+    seen.add(url);
+    out.push(url);
+  }
+  return out;
+}
+
+function firstGalleryImage(images: unknown): string | undefined {
+  return normalizeBusinessImages(images)[0];
 }
 
 /** Best photo for cards/lists: profile pic, then first gallery image. */
@@ -43,6 +69,39 @@ export function getBusinessListingImage(business: {
     business.image,
     firstGalleryImage(business.images)
   );
+}
+
+/** Always returns a usable image URL for next/image. */
+export function resolveBusinessListingImage(business: {
+  profilePictureUrl?: string | null;
+  image?: string | null;
+  images?: unknown;
+}): string {
+  return getBusinessListingImage(business) || BUSINESS_IMAGE_FALLBACK;
+}
+
+/** Cover + gallery, de-duplicated, for profile / My Listing photo strips. */
+export function getBusinessGalleryImages(business: {
+  profilePictureUrl?: string | null;
+  image?: string | null;
+  images?: unknown;
+}): string[] {
+  const gallery = normalizeBusinessImages(business.images);
+  const cover = firstNonEmptyUrl(business.profilePictureUrl, business.image);
+  if (!cover) return gallery;
+  return [cover, ...gallery.filter((url) => url !== cover)];
+}
+
+/** Keep cover in the gallery array so merchant Settings always shows uploaded photos. */
+export function syncBusinessImagesWithCover(
+  images: unknown,
+  profilePictureUrl?: string | null
+): string[] {
+  const gallery = normalizeBusinessImages(images);
+  const cover = firstNonEmptyUrl(profilePictureUrl);
+  if (!cover) return gallery;
+  if (gallery.includes(cover)) return gallery;
+  return [cover, ...gallery];
 }
 
 /** Public listings require at least one usable photo (profile or gallery). */
@@ -84,9 +143,9 @@ export function mapBusinessRecord(business: Record<string, unknown>) {
   const publicName =
     formattedDisplayName || formattedBusinessName || formatMerchantName('Business') || 'Business';
 
-  const galleryImages = Array.isArray(business.images) ? business.images : [];
   const profilePictureUrl = firstNonEmptyUrl(safeBusiness.profilePictureUrl);
-  const listingImage = profilePictureUrl || firstGalleryImage(galleryImages);
+  const galleryImages = syncBusinessImagesWithCover(business.images, profilePictureUrl);
+  const listingImage = profilePictureUrl || galleryImages[0];
 
   return {
     ...safeBusiness,

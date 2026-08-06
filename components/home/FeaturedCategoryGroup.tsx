@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
 import {
   ArrowRight,
@@ -25,7 +24,7 @@ import { VerifiedBusinessName } from '@/components/business/VerifiedMark';
 import { directionsHref, phoneHref } from '@/lib/businessContact';
 import { formatLocalityCityLabel } from '@/lib/businessAddress';
 import { categoryBrowseHref } from '@/lib/categoryDisplay';
-import { getBusinessListingImage } from '@/lib/businessMapping';
+import BusinessListingImage from '@/components/business/BusinessListingImage';
 import { getBusinessProfilePath } from '@/lib/businessSlug';
 import { getBusinessOpenStatus } from '@/lib/businessHours';
 import { getDiscountOfferCardLabel } from '@/lib/discountOffer';
@@ -295,8 +294,8 @@ function MerchantPortraitCard({
       <Link href={profileHref} className="absolute inset-0 z-0" aria-label={biz.name} />
 
       <div className="pointer-events-none relative h-[160px] w-full overflow-hidden bg-slate-100 sm:h-[180px]">
-        <Image
-          src={getBusinessListingImage(biz) || '/fallback.jpg'}
+        <BusinessListingImage
+          business={biz}
           alt={biz.name}
           fill
           className="object-cover transition-transform duration-700 ease-out will-change-transform group-hover:scale-[1.05]"
@@ -917,7 +916,7 @@ export default function FeaturedCategoryGroup({
               {visibleMerchants.map((biz, index) => (
                 <div
                   key={biz.id}
-                  className="animate-app-reveal-up opacity-0"
+                  className="animate-app-reveal-up"
                   style={{ animationDelay: `${Math.min(index, 7) * 40}ms` }}
                 >
                   <MerchantPortraitCard

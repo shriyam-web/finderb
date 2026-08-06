@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import Image from 'next/image';
 import { Building2, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { createPortal } from 'react-dom';
+import { BUSINESS_IMAGE_FALLBACK } from '@/lib/businessMapping';
 
 const MAX_SIDE_THUMBNAILS = 2;
 
@@ -131,7 +132,7 @@ function PhotoLightbox({
       >
         <div className="relative h-full w-full overflow-hidden rounded-lg">
           <Image
-            src={images[index]}
+            src={images[index] || BUSINESS_IMAGE_FALLBACK}
             alt={`${alt} photo ${index + 1}`}
             fill
             className="object-contain"
@@ -181,7 +182,7 @@ export default function StackedPhotoGallery({
           aria-label="View photo"
         >
           <Image
-            src={images[0]}
+            src={images[0] || BUSINESS_IMAGE_FALLBACK}
             alt={alt}
             fill
             className="object-cover"
@@ -217,7 +218,7 @@ export default function StackedPhotoGallery({
           aria-label={`View photo ${activeIndex + 1} of ${images.length}`}
         >
           <Image
-            src={images[activeIndex]}
+            src={images[activeIndex] || BUSINESS_IMAGE_FALLBACK}
             alt={`${alt} photo ${activeIndex + 1}`}
             fill
             className="object-cover"
@@ -247,7 +248,7 @@ export default function StackedPhotoGallery({
                 }
               >
                 <Image
-                  src={images[index]}
+                  src={images[index] || BUSINESS_IMAGE_FALLBACK}
                   alt={`${alt} thumbnail ${index + 1}`}
                   fill
                   className="object-cover"

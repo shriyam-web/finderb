@@ -73,7 +73,10 @@ import {
 } from '@/lib/indianPhone';
 import { dashboard } from './dashboard-ui';
 import ListingHiddenNoPhotosBanner from './ListingHiddenNoPhotosBanner';
-import { businessHasPublicPhoto } from '@/lib/businessMapping';
+import {
+  businessHasPublicPhoto,
+  syncBusinessImagesWithCover,
+} from '@/lib/businessMapping';
 import ChangePasswordPanel from './ChangePasswordPanel';
 
 const discountOptions = [
@@ -296,7 +299,10 @@ export default function SettingsTab({
 
   const checkIsMissing = (field: FieldDef) => {
     if (field.key === 'media') {
-      return !businessHasPublicPhoto({ profilePictureUrl, images });
+      return !businessHasPublicPhoto({
+        profilePictureUrl,
+        images: syncBusinessImagesWithCover(images, profilePictureUrl),
+      });
     }
     if (field.key === 'paymentModes') {
       return !profileData.paymentModes || profileData.paymentModes.length === 0;
@@ -334,7 +340,10 @@ export default function SettingsTab({
   };
 
   const getDisplayValue = (field: FieldDef) => {
-    if (field.key === 'media') return `${images.length} photo${images.length === 1 ? '' : 's'}`;
+    if (field.key === 'media') {
+      const count = syncBusinessImagesWithCover(images, profilePictureUrl).length;
+      return `${count} photo${count === 1 ? '' : 's'}`;
+    }
     if (field.key === 'timings') return Object.keys(profileData.timings || {}).length > 0 ? 'Set' : 'Not set';
     if (field.key === 'yearsInBusiness') {
       return formatEstablishmentYearDisplay(profileData.yearsInBusiness) || 'Not set';
@@ -626,10 +635,13 @@ export default function SettingsTab({
               >
                 <div className="flex-1 overflow-y-auto px-5 py-4">
                   {activeModal === 'media' ? (
+                    (() => {
+                      const mediaImages = syncBusinessImagesWithCover(images, profilePictureUrl);
+                      return (
                     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                      {images.map((url, index) => (
-                        <div key={index} className="relative aspect-square overflow-hidden rounded-lg border border-zinc-200">
-                          <Image src={url} alt="" fill className="object-cover" />
+                      {mediaImages.map((url, index) => (
+                        <div key={`${url}-${index}`} className="relative aspect-square overflow-hidden rounded-lg border border-zinc-200 bg-zinc-100">
+                          <Image src={url} alt="" fill className="object-cover" sizes="160px" />
                           <div className="absolute inset-0 flex flex-col justify-end gap-1 bg-gradient-to-t from-black/70 to-transparent p-2 opacity-0 transition-opacity hover:opacity-100">
                             <button
                               type="button"
@@ -651,12 +663,12 @@ export default function SettingsTab({
                           </div>
                         </div>
                       ))}
-                      {images.length < 5 && (
+                      {mediaImages.length < 5 && (
                         <CldUploadWidget
                           uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET}
                           onSuccess={handleUploadSuccess}
                           options={{
-                            maxFiles: 5 - images.length,
+                            maxFiles: 5 - mediaImages.length,
                             cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
                           }}
                         >
@@ -673,6 +685,8 @@ export default function SettingsTab({
                         </CldUploadWidget>
                       )}
                     </div>
+                      );
+                    })()
                   ) : activeModal === 'about' ? (
                     <div className="space-y-2">
                       <textarea

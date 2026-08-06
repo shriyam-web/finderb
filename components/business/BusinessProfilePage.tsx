@@ -54,6 +54,7 @@ import {
 } from '@/lib/businessContact';
 import { formatEstablishmentYearsLabel } from '@/lib/establishmentYear';
 import { formatTimingRange12h } from '@/lib/formatBusinessHours';
+import { getBusinessGalleryImages } from '@/lib/businessMapping';
 import { buildLoginHref } from '@/lib/authRedirect';
 import {
   buildProfileIntentPath,
@@ -106,10 +107,7 @@ type SessionBusiness = {
 };
 
 function getGalleryImages(business: Business): string[] {
-  const pool = [business.profilePictureUrl, business.image, ...(business.images || [])].filter(
-    Boolean
-  ) as string[];
-  return [...new Set(pool)];
+  return getBusinessGalleryImages(business);
 }
 
 function StarPicker({

@@ -31,6 +31,7 @@ import {
 import { getDiscountOfferDisplay } from '@/lib/discountOffer';
 import { formatEstablishmentYearsLabel } from '@/lib/establishmentYear';
 import { formatTimingRange12h } from '@/lib/formatBusinessHours';
+import { getBusinessGalleryImages } from '@/lib/businessMapping';
 import { parseBusinessServices } from '@/lib/parseBusinessServices';
 import type { MissingProfileField } from '@/lib/dashboard/profileCompletion';
 import { dashboard } from './dashboard-ui';
@@ -101,8 +102,7 @@ type MyListingTabProps = {
 };
 
 function getGalleryImages(profilePictureUrl: string | null, images: string[]) {
-  const pool = [profilePictureUrl, ...images].filter(Boolean) as string[];
-  return [...new Set(pool)];
+  return getBusinessGalleryImages({ profilePictureUrl, images });
 }
 
 export default function MyListingTab({

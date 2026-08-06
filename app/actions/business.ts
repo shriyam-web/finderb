@@ -13,7 +13,14 @@ import {
   LOGIN_PATHS,
   lookupEmailAccountTypes,
 } from '@/lib/emailAccountLookup';
-import { mapBusinessRecord, mapOwnedBusinessRecord, businessHasPublicPhoto, filterBusinessesWithPublicPhotos } from '@/lib/businessMapping';
+import {
+  mapBusinessRecord,
+  mapOwnedBusinessRecord,
+  businessHasPublicPhoto,
+  filterBusinessesWithPublicPhotos,
+  normalizeBusinessImages,
+  syncBusinessImagesWithCover,
+} from '@/lib/businessMapping';
 import { revalidateBusinessProfilePaths } from '@/lib/businessRevalidation';
 import { ensureBusinessSlug } from '@/lib/businessSlug.server';
 import { isLegacyBusinessId, resolveBusinessSlug } from '@/lib/businessSlug';
@@ -290,18 +297,17 @@ export async function updateBusinessImages(id: string, images: string[], profile
     console.log('Updating images for business:', id);
 
     const supabase = createClient(await cookies());
-    const cleanImages = images
-      .map((url) => (typeof url === 'string' ? url.trim() : ''))
-      .filter(Boolean);
+    const cleanImages = normalizeBusinessImages(images);
     const explicitProfile =
       typeof profilePictureUrl === 'string' ? profilePictureUrl.trim() : '';
-    // Always keep a profile pic when gallery photos exist.
+    // Always keep a profile pic when gallery photos exist, and keep cover in images[].
     const resolvedProfile = explicitProfile || cleanImages[0] || null;
+    const syncedImages = syncBusinessImagesWithCover(cleanImages, resolvedProfile);
 
     const { data: business, error } = await supabase
       .from('Business')
       .update({
-        images: cleanImages,
+        images: syncedImages,
         profilePictureUrl: resolvedProfile,
         updatedAt: new Date().toISOString(),
       })
@@ -523,17 +529,20 @@ export async function getOwnedBusiness(id: string) {
       throw error;
     }
 
-    const gallery = Array.isArray(business.images)
-      ? business.images.filter((url: unknown): url is string => typeof url === 'string' && Boolean(url.trim()))
-      : [];
-    const hasProfile =
-      typeof business.profilePictureUrl === 'string' && Boolean(business.profilePictureUrl.trim());
+    const gallery = normalizeBusinessImages(business.images);
+    const profileUrl =
+      typeof business.profilePictureUrl === 'string' ? business.profilePictureUrl.trim() : '';
+    const hasProfile = Boolean(profileUrl);
+    const syncedGallery = syncBusinessImagesWithCover(gallery, profileUrl || null);
 
-    if (!hasProfile && gallery.length > 0) {
+    // Heal cover from gallery, and keep cover inside images[] so Settings/My Listing always show it.
+    if ((!hasProfile && gallery.length > 0) || syncedGallery.length !== gallery.length) {
+      const nextProfile = profileUrl || syncedGallery[0] || null;
       const { data: healed, error: healError } = await supabase
         .from('Business')
         .update({
-          profilePictureUrl: gallery[0],
+          profilePictureUrl: nextProfile,
+          images: syncedGallery,
           updatedAt: new Date().toISOString(),
         })
         .eq('id', id)

@@ -143,7 +143,9 @@ function BottomNavbarContent() {
     if (businessResult?.success && businessResult.business?.id) {
       const business = businessResult.business;
       setBusinessName(business.name || business.businessName || null);
-      setBusinessAvatarUrl(business.profilePictureUrl || business.image || null);
+      setBusinessAvatarUrl(
+        business.profilePictureUrl || business.image || business.images?.[0] || null
+      );
       setBusinessId(business.id);
       return;
     }
