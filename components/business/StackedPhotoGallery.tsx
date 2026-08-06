@@ -15,6 +15,42 @@ type StackedPhotoGalleryProps = {
   onSelect: (index: number) => void;
 };
 
+function GalleryImage({
+  src,
+  alt,
+  priority,
+  sizes,
+  className,
+}: {
+  src: string;
+  alt: string;
+  priority?: boolean;
+  sizes: string;
+  className?: string;
+}) {
+  const [currentSrc, setCurrentSrc] = useState(src || BUSINESS_IMAGE_FALLBACK);
+
+  useEffect(() => {
+    setCurrentSrc(src || BUSINESS_IMAGE_FALLBACK);
+  }, [src]);
+
+  return (
+    <Image
+      src={currentSrc}
+      alt={alt}
+      fill
+      className={className}
+      priority={priority}
+      sizes={sizes}
+      onError={() => {
+        if (currentSrc !== BUSINESS_IMAGE_FALLBACK) {
+          setCurrentSrc(BUSINESS_IMAGE_FALLBACK);
+        }
+      }}
+    />
+  );
+}
+
 function PhotoLightbox({
   images,
   alt,
@@ -127,20 +163,42 @@ function PhotoLightbox({
       </div>
 
       <div
-        className="relative flex h-full max-h-[min(82vh,720px)] w-full max-w-5xl flex-col items-center justify-center"
+        className="relative flex h-full max-h-[min(82vh,720px)] w-full max-w-5xl flex-col items-center justify-center gap-3"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="relative h-full w-full overflow-hidden rounded-lg">
-          <Image
-            src={images[index] || BUSINESS_IMAGE_FALLBACK}
+        <div className="relative h-full w-full min-h-0 overflow-hidden rounded-lg">
+          <GalleryImage
+            src={images[index]}
             alt={`${alt} photo ${index + 1}`}
-            fill
             className="object-contain"
             sizes="100vw"
             priority
           />
         </div>
-        
+        {images.length > 1 ? (
+          <div className="flex w-full max-w-xl gap-1.5 overflow-x-auto pb-1">
+            {images.map((url, thumbIndex) => (
+              <button
+                key={`lightbox-thumb-${thumbIndex}`}
+                type="button"
+                onClick={() => setGalleryIndex(thumbIndex)}
+                className={`relative h-14 w-14 shrink-0 overflow-hidden rounded-md border ${
+                  thumbIndex === index
+                    ? 'border-white ring-2 ring-white/70'
+                    : 'border-white/20 opacity-80 hover:opacity-100'
+                }`}
+                aria-label={`View photo ${thumbIndex + 1}`}
+              >
+                <GalleryImage
+                  src={url}
+                  alt={`${alt} thumbnail ${thumbIndex + 1}`}
+                  className="object-cover"
+                  sizes="56px"
+                />
+              </button>
+            ))}
+          </div>
+        ) : null}
       </div>
     </div>
   , document.body);
@@ -181,10 +239,9 @@ export default function StackedPhotoGallery({
           className="relative block aspect-[2/1] w-full overflow-hidden rounded-lg border border-stone-200 bg-stone-100"
           aria-label="View photo"
         >
-          <Image
-            src={images[0] || BUSINESS_IMAGE_FALLBACK}
+          <GalleryImage
+            src={images[0]}
             alt={alt}
-            fill
             className="object-cover"
             priority
             sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 480px"
@@ -210,64 +267,89 @@ export default function StackedPhotoGallery({
 
   return (
     <>
-      <div className="grid w-full aspect-[2/1] grid-cols-2 gap-2">
-        <button
-          type="button"
-          onClick={() => openLightbox(activeIndex)}
-          className="relative h-full min-h-0 w-full overflow-hidden rounded-lg border border-stone-200 bg-stone-100"
-          aria-label={`View photo ${activeIndex + 1} of ${images.length}`}
-        >
-          <Image
-            src={images[activeIndex] || BUSINESS_IMAGE_FALLBACK}
-            alt={`${alt} photo ${activeIndex + 1}`}
-            fill
-            className="object-cover"
-            priority
-            sizes="(max-width: 768px) 50vw, (max-width: 1280px) 25vw, 360px"
-          />
-          <span className="absolute bottom-2 right-2 border border-stone-200 bg-white/95 px-2 py-0.5 text-[11px] font-medium text-stone-600">
-            {activeIndex + 1}/{images.length}
-          </span>
-        </button>
+      <div className="space-y-2">
+        <div className="grid w-full aspect-[2/1] grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => openLightbox(activeIndex)}
+            className="relative h-full min-h-0 w-full overflow-hidden rounded-lg border border-stone-200 bg-stone-100"
+            aria-label={`View photo ${activeIndex + 1} of ${images.length}`}
+          >
+            <GalleryImage
+              src={images[activeIndex]}
+              alt={`${alt} photo ${activeIndex + 1}`}
+              className="object-cover"
+              priority
+              sizes="(max-width: 768px) 50vw, (max-width: 1280px) 25vw, 360px"
+            />
+            <span className="absolute bottom-2 right-2 border border-stone-200 bg-white/95 px-2 py-0.5 text-[11px] font-medium text-stone-600">
+              {activeIndex + 1}/{images.length}
+            </span>
+          </button>
 
-        <div className="flex h-full min-h-0 flex-col gap-1.5">
-          {visibleSideIndices.map((index, thumbIndex) => {
-            const isLastThumb = thumbIndex === visibleSideIndices.length - 1;
-            const showMoreOverlay = isLastThumb && hiddenSideCount > 0;
+          <div className="flex h-full min-h-0 flex-col gap-1.5">
+            {visibleSideIndices.map((index, thumbIndex) => {
+              const isLastThumb = thumbIndex === visibleSideIndices.length - 1;
+              const showMoreOverlay = isLastThumb && hiddenSideCount > 0;
 
-            return (
-              <button
-                key={`${images[index]}-side-${index}`}
-                type="button"
-                onClick={() => openLightbox(index)}
-                className="relative min-h-0 w-full flex-1 overflow-hidden rounded-md border border-stone-200 bg-stone-100 opacity-90 hover:opacity-100"
-                aria-label={
-                  showMoreOverlay
-                    ? `View ${hiddenSideCount} more photos`
-                    : `View photo ${index + 1}`
-                }
-              >
-                <Image
-                  src={images[index] || BUSINESS_IMAGE_FALLBACK}
-                  alt={`${alt} thumbnail ${index + 1}`}
-                  fill
-                  className="object-cover"
-                  sizes="(max-width: 768px) 25vw, 180px"
-                />
-                {showMoreOverlay ? (
-                  <>
-                    <div
-                      className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/45 to-black/15"
-                      aria-hidden
-                    />
-                    <span className="absolute inset-0 flex items-center justify-center text-base font-semibold text-white">
-                      +{hiddenSideCount}
-                    </span>
-                  </>
-                ) : null}
-              </button>
-            );
-          })}
+              return (
+                <button
+                  key={`${images[index]}-side-${index}`}
+                  type="button"
+                  onClick={() => openLightbox(index)}
+                  className="relative min-h-0 w-full flex-1 overflow-hidden rounded-md border border-stone-200 bg-stone-100 opacity-90 hover:opacity-100"
+                  aria-label={
+                    showMoreOverlay
+                      ? `View ${hiddenSideCount} more photos`
+                      : `View photo ${index + 1}`
+                  }
+                >
+                  <GalleryImage
+                    src={images[index]}
+                    alt={`${alt} thumbnail ${index + 1}`}
+                    className="object-cover"
+                    sizes="(max-width: 768px) 25vw, 180px"
+                  />
+                  {showMoreOverlay ? (
+                    <>
+                      <div
+                        className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/45 to-black/15"
+                        aria-hidden
+                      />
+                      <span className="absolute inset-0 flex items-center justify-center text-base font-semibold text-white">
+                        +{hiddenSideCount}
+                      </span>
+                    </>
+                  ) : null}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Always show every photo so none are hidden behind +N only. */}
+        <div className="flex gap-1.5 overflow-x-auto pb-0.5">
+          {images.map((url, index) => (
+            <button
+              key={`strip-${url}-${index}`}
+              type="button"
+              onClick={() => openLightbox(index)}
+              className={`relative h-14 w-14 shrink-0 overflow-hidden rounded-md border bg-stone-100 ${
+                index === activeIndex
+                  ? 'border-[#215481] ring-2 ring-[#215481]/25'
+                  : 'border-stone-200 hover:border-stone-300'
+              }`}
+              aria-label={`Open photo ${index + 1} of ${images.length}`}
+              aria-current={index === activeIndex ? 'true' : undefined}
+            >
+              <GalleryImage
+                src={url}
+                alt={`${alt} photo ${index + 1}`}
+                className="object-cover"
+                sizes="56px"
+              />
+            </button>
+          ))}
         </div>
       </div>
 

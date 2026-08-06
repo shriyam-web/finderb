@@ -41,6 +41,11 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   productionBrowserSourceMaps: false,
   images: {
+    // Serve remote images via our loader (Cloudinary transforms) instead of
+    // Vercel Image Optimization — production was returning 402
+    // OPTIMIZED_IMAGE_REQUEST_PAYMENT_REQUIRED once the quota was hit.
+    loader: 'custom',
+    loaderFile: './lib/imageLoader.ts',
     qualities: [100, 75],
     remotePatterns: [
       {
