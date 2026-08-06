@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { MapPin, X } from 'lucide-react';
 import { useUserLocationState } from '@/hooks/useUserCoords';
 
@@ -13,12 +13,16 @@ type LocationPermissionPromptProps = {
 
 export default function LocationPermissionPrompt({ appReady }: LocationPermissionPromptProps) {
   const { userCoords, isLocating, permissionState, requestLocation } = useUserLocationState();
-  const [dismissed, setDismissed] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    return sessionStorage.getItem(DISMISS_KEY) === '1';
-  });
+  // Defer browser-only checks until after mount so SSR HTML matches the first client render.
+  const [mounted, setMounted] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
 
-  if (!appReady || dismissed) return null;
+  useEffect(() => {
+    setMounted(true);
+    setDismissed(sessionStorage.getItem(DISMISS_KEY) === '1');
+  }, []);
+
+  if (!mounted || !appReady || dismissed) return null;
 
   if (userCoords || permissionState === 'denied' || permissionState === 'unsupported') {
     return null;
