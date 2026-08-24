@@ -10,6 +10,7 @@ import { useEffect, useState } from 'react';
  *
  * Use `finderb://auth/callback` (AuthSession return URL). Expo Router
  * maps it via `+native-intent` because URL parsing treats `auth` as host.
+ * Also emit `finderb:///auth/callback` which already has pathname `/auth/callback`.
  */
 export default function MobileAuthCallbackPage() {
   const [deepLink, setDeepLink] = useState('finderb://auth/callback');
@@ -18,19 +19,28 @@ export default function MobileAuthCallbackPage() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const { search, hash } = window.location;
-    const target = `finderb://auth/callback${search}${hash}`;
-    setDeepLink(target);
+    const qs = `${search}${hash}`;
+    // Host-form matches AuthSession return URL (finderb://auth/callback).
+    const hostForm = `finderb://auth/callback${qs}`;
+    // Path-form opens Expo route /auth/callback even if intent rewrite fails.
+    const pathForm = `finderb:///auth/callback${qs}`;
+    setDeepLink(hostForm);
 
-    window.location.replace(target);
+    window.location.replace(hostForm);
 
     const retry = window.setTimeout(() => {
-      window.location.href = target;
-    }, 350);
+      window.location.href = hostForm;
+    }, 300);
 
-    const failTimer = window.setTimeout(() => setFailed(true), 1600);
+    const retryPath = window.setTimeout(() => {
+      window.location.href = pathForm;
+    }, 800);
+
+    const failTimer = window.setTimeout(() => setFailed(true), 1800);
 
     return () => {
       window.clearTimeout(retry);
+      window.clearTimeout(retryPath);
       window.clearTimeout(failTimer);
     };
   }, []);
