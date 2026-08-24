@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server';
 import { enforceRateLimit } from '@/lib/security/enforceRateLimit.server';
 import { getSafeRedirectPath } from '@/lib/authRedirect';
-import { isValidTruecallerRequestId } from '@/lib/auth/truecallerConfig';
+import {
+  buildTruecallerDeepLink,
+  isTruecallerEnabled,
+  isValidTruecallerRequestId,
+} from '@/lib/auth/truecallerConfig';
 import { createTruecallerAuthRequest } from '@/lib/auth/truecallerPendingStore.server';
 
 export const dynamic = 'force-dynamic';
@@ -27,8 +31,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid verification request.' }, { status: 400 });
     }
 
+    if (!isTruecallerEnabled()) {
+      return NextResponse.json({ error: 'Truecaller is not enabled.' }, { status: 503 });
+    }
+
+    const deepLink = buildTruecallerDeepLink(requestId);
+    if (!deepLink) {
+      return NextResponse.json({ error: 'Truecaller is not configured.' }, { status: 503 });
+    }
+
     await createTruecallerAuthRequest(requestId, redirectPath);
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, deepLink });
   } catch (error) {
     console.error('[truecaller init]', error);
     return NextResponse.json(

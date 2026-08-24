@@ -54,8 +54,10 @@ function resolveProvider(user: SupabaseAuthUser): string {
 }
 
 export async function syncOAuthUserToAppSession(
-  authUser: SupabaseAuthUser
+  authUser: SupabaseAuthUser,
+  options?: { setSession?: boolean }
 ): Promise<OAuthSyncResult> {
+  const setSession = options?.setSession !== false;
   const email = authUser.email?.toLowerCase().trim();
   if (!email) {
     return { success: false, error: 'Your sign-in provider did not share an email address.' };
@@ -99,7 +101,7 @@ export async function syncOAuthUserToAppSession(
       })
       .eq('id', existingByAuthId.id);
 
-    await setUserSessionCookie(existingByAuthId.id);
+    if (setSession) await setUserSessionCookie(existingByAuthId.id);
     return { success: true, userId: existingByAuthId.id, isNewUser: false };
   }
 
@@ -121,7 +123,7 @@ export async function syncOAuthUserToAppSession(
       })
       .eq('id', existingByEmail.id);
 
-    await setUserSessionCookie(existingByEmail.id);
+    if (setSession) await setUserSessionCookie(existingByEmail.id);
     return { success: true, userId: existingByEmail.id, isNewUser: false };
   }
 
@@ -150,6 +152,6 @@ export async function syncOAuthUserToAppSession(
     return { success: false, error: 'Could not create your FinderB account. Please try again.' };
   }
 
-  await setUserSessionCookie(created.id);
+  if (setSession) await setUserSessionCookie(created.id);
   return { success: true, userId: created.id, isNewUser: true };
 }

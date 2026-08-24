@@ -21,6 +21,7 @@ import { submitBusinessReview } from '@/app/actions/reviews';
 import { getSession } from '@/app/actions/user';
 import { recordDirectLead } from '@/app/actions/leads';
 import ConnectMerchantModal from '@/components/ConnectMerchantModal';
+import OpenInAppPrefer from '@/components/business/OpenInAppPrefer';
 import BusinessCard from '@/components/BusinessCard';
 import StackedPhotoGallery from '@/components/business/StackedPhotoGallery';
 import BusinessProfileBackdrop from '@/components/business/BusinessProfileBackdrop';
@@ -603,6 +604,7 @@ export default function BusinessProfilePage({
   return (
     <div className="relative min-h-screen bg-white pb-36 lg:pb-10 pt-[4.25rem] sm:pt-24">
       <BusinessProfileBackdrop />
+      <OpenInAppPrefer slug={slugOrId} />
 
       <header className="sticky top-[4.25rem] z-40 border-b border-stone-200/80 bg-white/90 backdrop-blur-md sm:top-24">
         {showManageToast && (

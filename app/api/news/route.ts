@@ -29,6 +29,25 @@ import { decodeHtmlEntities } from '@/lib/stripHtml';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
+/** Allow FinderB mobile (Expo web / native fetch) to read homepage news. */
+const NEWS_CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Accept',
+  'Access-Control-Max-Age': '86400',
+} as const;
+
+function newsJson(body: unknown, init?: { status?: number }) {
+  return NextResponse.json(body, {
+    status: init?.status ?? 200,
+    headers: NEWS_CORS_HEADERS,
+  });
+}
+
+export async function OPTIONS() {
+  return new NextResponse(null, { status: 204, headers: NEWS_CORS_HEADERS });
+}
+
 const parser = new Parser({
   customFields: {
     item: [
@@ -319,7 +338,7 @@ export async function GET(request: NextRequest) {
     );
 
     if (!items.length) {
-      return NextResponse.json(
+      return newsJson(
         {
           success: false,
           error:
@@ -363,7 +382,7 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    return NextResponse.json({
+    return newsJson({
       success: true,
       articles,
       lang,
@@ -372,6 +391,6 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('RSS Fetch Error:', error);
-    return NextResponse.json({ success: false, error: 'Failed to fetch news' }, { status: 502 });
+    return newsJson({ success: false, error: 'Failed to fetch news' }, { status: 502 });
   }
 }

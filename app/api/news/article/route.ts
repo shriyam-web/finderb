@@ -10,6 +10,24 @@ import { sanitizeRichHtml } from '@/lib/security/sanitizeHtml';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
+const NEWS_CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Accept',
+  'Access-Control-Max-Age': '86400',
+} as const;
+
+function articleJson(body: unknown, init?: { status?: number }) {
+  return NextResponse.json(body, {
+    status: init?.status ?? 200,
+    headers: NEWS_CORS_HEADERS,
+  });
+}
+
+export async function OPTIONS() {
+  return new NextResponse(null, { status: 204, headers: NEWS_CORS_HEADERS });
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -22,7 +40,7 @@ export async function GET(request: NextRequest) {
     const category = searchParams.get('category') || '';
 
     if (!isValidNewsUrl(url)) {
-      return NextResponse.json({ success: false, error: 'Invalid article URL' }, { status: 400 });
+      return articleJson({ success: false, error: 'Invalid article URL' }, { status: 400 });
     }
 
     const lang = normalizeNewsLanguage(searchParams.get('lang'));
@@ -37,7 +55,7 @@ export async function GET(request: NextRequest) {
       source ||
       (() => {
         try {
-          return new URL(url).hostname.replace(/^www\./, '');
+          return new URL(publisherUrl || url).hostname.replace(/^www\./, '');
         } catch {
           return 'स्रोत';
         }
@@ -48,7 +66,7 @@ export async function GET(request: NextRequest) {
         `<p>${stripHtml(resolvedExcerpt).replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>`
     );
 
-    return NextResponse.json({
+    return articleJson({
       success: true,
       article: {
         title: resolvedTitle,
@@ -63,6 +81,6 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('News article fetch error:', error);
-    return NextResponse.json({ success: false, error: 'Failed to load article' }, { status: 500 });
+    return articleJson({ success: false, error: 'Failed to load article' }, { status: 500 });
   }
 }

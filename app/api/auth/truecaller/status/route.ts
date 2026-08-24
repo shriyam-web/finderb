@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { enforceRateLimit } from '@/lib/security/enforceRateLimit.server';
 import { getSafeRedirectPath } from '@/lib/authRedirect';
+import { mobileAuthSuccessForUserId } from '@/lib/auth/mobileAuth.server';
 import { isValidTruecallerRequestId } from '@/lib/auth/truecallerConfig';
 import { getTruecallerAuthRequest } from '@/lib/auth/truecallerPendingStore.server';
 import { setUserSessionCookie } from '@/lib/security/session';
@@ -16,6 +17,7 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url);
   const requestId = searchParams.get('requestId')?.trim() ?? '';
+  const client = searchParams.get('client')?.trim() ?? '';
 
   if (!isValidTruecallerRequestId(requestId)) {
     return NextResponse.json({ error: 'Invalid request.' }, { status: 400 });
@@ -28,6 +30,25 @@ export async function GET(request: Request) {
     }
 
     if (record.status === 'completed' && record.userId) {
+      if (client === 'mobile') {
+        const auth = await mobileAuthSuccessForUserId(
+          record.userId,
+          Boolean(record.isNewUser)
+        );
+        if (!auth.success) {
+          return NextResponse.json({
+            status: 'error',
+            error: auth.error,
+          });
+        }
+        return NextResponse.json({
+          status: 'completed',
+          token: auth.token,
+          user: auth.user,
+          isNewUser: Boolean(record.isNewUser),
+        });
+      }
+
       await setUserSessionCookie(record.userId);
       const redirectPath = getSafeRedirectPath(record.redirectPath);
       const redirectUrl = new URL(redirectPath, request.url);
