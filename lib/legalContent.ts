@@ -1,12 +1,12 @@
 export const LEGAL_COMPANY = {
-  name: 'Maaga Connect Private Limited',
+  name: 'MAAGAA Connect Private Limited',
   brand: 'FinderB',
   website: 'https://finderb.com',
   email: 'support@finderb.com',
   phone: '+919990222346',
   phoneDisplay: '+91 9990222346',
   address: {
-    line1: 'Maaga Connect Private Limited',
+    line1: 'MAAGAA Connect Private Limited',
     line2: 'Noida, Uttar Pradesh',
     country: 'India',
     pincode: '201301',
