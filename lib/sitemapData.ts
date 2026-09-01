@@ -23,12 +23,36 @@ function categorySlug(name: string, slug?: string | null): string {
   return slug || name.toLowerCase().replace(/\s+/g, '-');
 }
 
+/**
+ * Next.js writes MetadataRoute.Sitemap `url` values into <loc> without XML
+ * escaping. Raw `&` in category slugs (car-wash-&-detailing) crashes Googlebot
+ * with xmlParseEntityRef. Escape here; crawlers decode &amp; back to `&`.
+ */
+function escapeXmlText(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
+
+function toSitemapLoc(path: string): string {
+  const normalized = path.startsWith('/') ? path : `/${path}`;
+  const absolute = `${SITEMAP_BASE_URL}${normalized}`;
+  try {
+    return escapeXmlText(encodeURI(decodeURI(absolute)));
+  } catch {
+    return escapeXmlText(encodeURI(absolute));
+  }
+}
+
 function toEntry(
   path: string,
   opts: Partial<Pick<SitemapEntry, 'lastModified' | 'changeFrequency' | 'priority'>> = {}
 ): SitemapEntry {
   return {
-    url: `${SITEMAP_BASE_URL}${path}`,
+    url: toSitemapLoc(path),
     lastModified: opts.lastModified ?? new Date(),
     changeFrequency: opts.changeFrequency ?? 'weekly',
     priority: opts.priority ?? 0.5,
