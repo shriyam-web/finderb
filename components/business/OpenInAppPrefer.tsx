@@ -2,28 +2,29 @@
 
 import { useEffect, useState } from 'react';
 
-type Props = {
-  slug: string;
-};
-
 function isMobileUa() {
   if (typeof navigator === 'undefined') return false;
   return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
 }
 
 function appDeepLink(slug: string) {
-  return `finderb://merchant/${encodeURIComponent(slug)}`;
+  return `finderb://business/${encodeURIComponent(slug)}`;
 }
 
-function androidIntentLink(slug: string) {
+function androidAppLinkIntent(slug: string) {
+  const encoded = encodeURIComponent(slug);
   const fallback = encodeURIComponent(`https://finderb.com/business/${slug}`);
-  return `intent://merchant/${encodeURIComponent(slug)}#Intent;scheme=finderb;package=com.finderb.app;S.browser_fallback_url=${fallback};end`;
+  return `intent://finderb.com/business/${encoded}#Intent;scheme=https;package=com.finderb.app;S.browser_fallback_url=${fallback};end`;
 }
+
+type Props = {
+  slug: string;
+};
 
 /**
  * Prefer the installed native app for shared business profile links.
- * - Auto-attempts once on mobile (custom scheme / Android intent)
- * - Sticky banner if the user stays on the website
+ * Verified Android App Links open the app before this page loads.
+ * This banner/intent is the fallback when the user is already in a mobile browser.
  */
 export default function OpenInAppPrefer({ slug }: Props) {
   const [showBanner, setShowBanner] = useState(false);
@@ -45,11 +46,9 @@ export default function OpenInAppPrefer({ slug }: Props) {
 
     setShowBanner(true);
 
-    // One soft attempt to hand off to the app when installed.
-    // If the app isn't present, the user remains on this page.
     const started = Date.now();
     const isAndroid = /Android/i.test(navigator.userAgent);
-    const target = isAndroid ? androidIntentLink(slug) : appDeepLink(slug);
+    const target = isAndroid ? androidAppLinkIntent(slug) : appDeepLink(slug);
 
     const timer = window.setTimeout(() => {
       try {
@@ -57,11 +56,10 @@ export default function OpenInAppPrefer({ slug }: Props) {
       } catch {
         // ignore
       }
-    }, 350);
+    }, 400);
 
     const visibility = () => {
       if (document.hidden && Date.now() - started < 2500) {
-        // Likely opened into the app — hide banner next time this session
         try {
           sessionStorage.setItem(storageKey, '1');
         } catch {
@@ -81,7 +79,7 @@ export default function OpenInAppPrefer({ slug }: Props) {
 
   const openApp = () => {
     const isAndroid = /Android/i.test(navigator.userAgent);
-    window.location.href = isAndroid ? androidIntentLink(slug) : appDeepLink(slug);
+    window.location.href = isAndroid ? androidAppLinkIntent(slug) : appDeepLink(slug);
   };
 
   const dismiss = () => {

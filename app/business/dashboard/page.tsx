@@ -48,6 +48,7 @@ import SubscriptionTab from './components/SubscriptionTab';
 import SubscriptionExpiryAlert from './components/SubscriptionExpiryAlert';
 import ReviewsTab from './components/ReviewsTab';
 import { getMerchantNotifications, markMerchantNotificationsRead } from '@/app/actions/merchantNotifications';
+import { broadcastTargetsMerchants } from '@/lib/broadcastAudience';
 import { getMerchantSubscriptionStatus } from '@/lib/subscription/merchantSubscription';
 import {
   businessHasPublicPhoto,
@@ -280,12 +281,10 @@ function DashboardContent() {
         businessId ? getMerchantNotifications(businessId) : Promise.resolve(null),
       ]);
 
-      const broadcastItems =
-        broadcastResult.data?.filter((n: { target_audience: string[] }) =>
-          n.target_audience.includes('merchants') ||
-          n.target_audience.includes('all') ||
-          (business?.category && n.target_audience.includes(business.category))
-        ) ?? [];
+        const broadcastItems =
+          broadcastResult.data?.filter((n: { target_audience: string[] }) =>
+            broadcastTargetsMerchants(n.target_audience, business?.category)
+          ) ?? [];
 
       const merchantItems =
         merchantResult?.success

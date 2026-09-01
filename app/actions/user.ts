@@ -21,6 +21,7 @@ import {
   setUserSessionCookie,
 } from '@/lib/security/session';
 import { enforceRateLimit } from '@/lib/security/enforceRateLimit.server';
+import { deleteUserAccountById } from '@/lib/accountDeletion.server';
 
 const USER_PUBLIC_FIELDS =
   'id, fullName, email, favorites, searchHistory, createdAt, updatedAt, avatarUrl';
@@ -239,4 +240,21 @@ export async function getSession() {
   const result = await getUser(userId);
   if (!result.success || !result.user) return null;
   return { success: true, user: result.user };
+}
+
+export async function deleteOwnAccount() {
+  try {
+    const userId = await getSessionUserId();
+    if (!userId) {
+      return { success: false as const, error: 'Please sign in to delete your account.' };
+    }
+
+    const result = await deleteUserAccountById(userId);
+    if (!result.success) return result;
+
+    (await cookies()).delete('user_id');
+    return { success: true as const };
+  } catch (error: unknown) {
+    return { success: false as const, error: handleError(error, 'Delete Account') };
+  }
 }

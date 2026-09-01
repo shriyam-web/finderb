@@ -24,6 +24,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { getSession, logoutUser } from '@/app/actions/user';
+import { getUserNotifications } from '@/app/actions/notifications';
 import { getCategories } from '@/app/actions/category';
 import { getFeaturedBusinesses, getBusinessSummariesByIds } from '@/app/actions/business';
 import { getLastSearchQuery } from '@/lib/lastSearchQuery';
@@ -42,6 +43,9 @@ function DashboardContent() {
   const [categories, setCategories] = useState<any[]>([]);
   const [businesses, setBusinesses] = useState<any[]>([]);
   const [favoriteBusinesses, setFavoriteBusinesses] = useState<any[]>([]);
+  const [notifications, setNotifications] = useState<
+    Array<{ id: string; title: string; message: string; created_at: string }>
+  >([]);
   const [lastSearch, setLastSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [loading, setLoading] = useState(true);
@@ -57,10 +61,11 @@ function DashboardContent() {
 
   useEffect(() => {
     async function load() {
-      const [session, catRes, bizRes] = await Promise.all([
+      const [session, catRes, bizRes, notifRes] = await Promise.all([
         getSession(),
         getCategories(),
         getFeaturedBusinesses(),
+        getUserNotifications(),
       ]);
 
       if (session?.success) {
@@ -84,6 +89,9 @@ function DashboardContent() {
       }
       if (bizRes.success && bizRes.businesses) {
         setBusinesses(bizRes.businesses.slice(0, 6));
+      }
+      if (notifRes.success) {
+        setNotifications(notifRes.notifications);
       }
 
       const recent = getLastSearchQuery();
@@ -119,7 +127,7 @@ function DashboardContent() {
     { id: 'profile' as const, label: 'Overview', icon: Home },
     { id: 'favorites' as const, label: 'Saved', icon: Heart },
     { id: 'history' as const, label: 'Search history', icon: History },
-    { id: 'messages' as const, label: 'Messages', icon: MessageSquare },
+    { id: 'messages' as const, label: 'Updates', icon: MessageSquare },
     { id: 'settings' as const, label: 'Account', icon: Settings },
   ];
 
@@ -433,7 +441,7 @@ function DashboardContent() {
                 {[
                   { label: 'Saved', value: favorites.length, icon: Heart, tab: 'favorites' as TabId },
                   { label: 'Recent searches', value: searchHistory.length, icon: History, tab: 'history' as TabId },
-                  { label: 'Messages', value: 0, icon: MessageSquare, tab: 'messages' as TabId },
+                  { label: 'Updates', value: notifications.length, icon: MessageSquare, tab: 'messages' as TabId },
                 ].map((item) => (
                   <button
                     key={item.label}
@@ -539,25 +547,39 @@ function DashboardContent() {
             </div>
           )}
 
-          {/* Messages */}
+          {/* Messages / FinderB updates */}
           {activeTab === 'messages' && (
             <div className="mx-auto max-w-3xl">
-              <h1 className="text-xl font-semibold text-slate-900 sm:text-2xl">Messages</h1>
-              <p className="mt-1 text-sm text-slate-500">Conversations with businesses you contact.</p>
-              <div className="mt-6 rounded-2xl border border-dashed border-slate-200 bg-white p-8 text-center">
-                <MessageSquare size={28} className="mx-auto text-slate-300" />
-                <p className="mt-3 text-sm font-medium text-slate-700">No messages yet</p>
-                <p className="mx-auto mt-1 max-w-sm text-sm text-slate-500">
-                  When you enquire with a business on FinderB, your chats will show up here.
-                </p>
-                <Link
-                  href="/categories"
-                  className="mt-5 inline-flex items-center gap-1 rounded-lg bg-[#215481] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#1a4367]"
-                >
-                  Find a business
-                  <ChevronRight size={16} />
-                </Link>
-              </div>
+              <h1 className="text-xl font-semibold text-slate-900 sm:text-2xl">Updates</h1>
+              <p className="mt-1 text-sm text-slate-500">
+                Announcements from FinderB. The same updates appear in the mobile app.
+              </p>
+              {notifications.length > 0 ? (
+                <ul className="mt-6 space-y-3">
+                  {notifications.map((item) => (
+                    <li
+                      key={item.id}
+                      className="rounded-2xl border border-slate-200/80 bg-white px-4 py-4"
+                    >
+                      <p className="text-sm font-semibold text-slate-900">{item.title}</p>
+                      <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-slate-600">
+                        {item.message}
+                      </p>
+                      <p className="mt-2 text-xs text-slate-400">
+                        {new Date(item.created_at).toLocaleString('en-IN')}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="mt-6 rounded-2xl border border-dashed border-slate-200 bg-white p-8 text-center">
+                  <MessageSquare size={28} className="mx-auto text-slate-300" />
+                  <p className="mt-3 text-sm font-medium text-slate-700">No updates yet</p>
+                  <p className="mx-auto mt-1 max-w-sm text-sm text-slate-500">
+                    When FinderB sends an announcement, it will show up here and in the app.
+                  </p>
+                </div>
+              )}
             </div>
           )}
 
@@ -601,6 +623,14 @@ function DashboardContent() {
                   </Link>
                   <Link href="/business/register" className="flex items-center justify-between rounded-lg px-2 py-2.5 text-sm text-slate-600 hover:bg-slate-50">
                     List your business
+                    <ChevronRight size={16} className="text-slate-300" />
+                  </Link>
+                  <Link href="/account-deletion" className="flex items-center justify-between rounded-lg px-2 py-2.5 text-sm text-red-600 hover:bg-red-50">
+                    Delete account
+                    <ChevronRight size={16} className="text-red-300" />
+                  </Link>
+                  <Link href="/privacy" className="flex items-center justify-between rounded-lg px-2 py-2.5 text-sm text-slate-600 hover:bg-slate-50">
+                    Privacy policy
                     <ChevronRight size={16} className="text-slate-300" />
                   </Link>
                 </div>

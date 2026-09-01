@@ -120,6 +120,8 @@ export const FOOTER_NAV_COLUMNS = [
       { label: 'Create Account', href: '/signup' },
       { label: 'My Dashboard', href: '/dashboard' },
       { label: 'Privacy Policy', href: '/privacy' },
+      { label: 'Data safety', href: '/data-safety' },
+      { label: 'Delete account', href: '/account-deletion' },
       { label: 'Terms & Conditions', href: '/terms' },
       { label: 'Cancellation & Refund', href: '/cancellation-refund' },
       { label: 'Shipping & Delivery', href: '/shipping-delivery' },

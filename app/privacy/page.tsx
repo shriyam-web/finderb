@@ -105,9 +105,41 @@ export default function PrivacyPage() {
             'Raise a grievance regarding data handling',
           ]}
         />
+        <p>
+          To delete a FinderB user account, use{' '}
+          <a className="underline" href="/account-deletion">
+            finderb.com/account-deletion
+          </a>{' '}
+          or Account → Delete account in the Android app. Google Play users can also reach that URL
+          from the store listing.
+        </p>
       </LegalSection>
 
-      <LegalSection title="9. Cookies">
+      <LegalSection title="9. FinderB mobile app">
+        <p>
+          The FinderB Android app (
+          <span className="font-medium text-neutral-900">com.finderb.app</span>) uses the same
+          accounts and privacy rules as this website. In addition, the app may collect:
+        </p>
+        <LegalList
+          items={[
+            'Precise or approximate location, only if you grant permission, to show nearby businesses',
+            'A push-notification token so we can deliver announcements and account alerts',
+            'Google account name, email, and profile photo if you sign in with Google',
+            'Phone number and name if you sign in with Truecaller',
+            'Microphone audio while you use voice search, processed on-device / by the OS speech service',
+          ]}
+        />
+        <p>
+          A Play Console summary is published at{' '}
+          <a className="underline" href="/data-safety">
+            /data-safety
+          </a>
+          .
+        </p>
+      </LegalSection>
+
+      <LegalSection title="10. Cookies">
         <p>
           We use cookies and similar technologies to keep you signed in, remember preferences, and
           understand how the platform is used. You can manage cookies through your browser settings,
@@ -115,7 +147,7 @@ export default function PrivacyPage() {
         </p>
       </LegalSection>
 
-      <LegalSection title="10. Grievance Officer">
+      <LegalSection title="11. Grievance Officer">
         <p>
           In accordance with the Information Technology Act, 2000 and applicable rules, the grievance
           officer for {LEGAL_COMPANY.brand} is:
@@ -126,7 +158,7 @@ export default function PrivacyPage() {
         />
       </LegalSection>
 
-      <LegalSection title="11. Contact Us">
+      <LegalSection title="12. Contact Us">
         <p>For privacy-related questions, contact us at:</p>
         <LegalContactBox email={LEGAL_COMPANY.email} />
       </LegalSection>

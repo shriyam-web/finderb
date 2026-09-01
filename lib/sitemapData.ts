@@ -83,6 +83,8 @@ const STATIC_PAGES: Array<{
   { path: '/contact', changeFrequency: 'monthly', priority: 0.4 },
   { path: '/terms', changeFrequency: 'yearly', priority: 0.3 },
   { path: '/privacy', changeFrequency: 'yearly', priority: 0.3 },
+  { path: '/data-safety', changeFrequency: 'yearly', priority: 0.3 },
+  { path: '/account-deletion', changeFrequency: 'yearly', priority: 0.4 },
   { path: '/cancellation-refund', changeFrequency: 'yearly', priority: 0.3 },
   { path: '/shipping-delivery', changeFrequency: 'yearly', priority: 0.3 },
   { path: '/advertisements', changeFrequency: 'monthly', priority: 0.4 },

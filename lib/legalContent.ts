@@ -29,10 +29,12 @@ export const SHOW_COMPANY_PHONE = false;
 /** Hide company office address on contact, legal pages, and policy until re-enabled. */
 export const SHOW_COMPANY_ADDRESS = false;
 
-export const LEGAL_LAST_UPDATED = 'June 17, 2025';
+export const LEGAL_LAST_UPDATED = 'September 1, 2026';
 
 export const LEGAL_FOOTER_LINKS = [
   { label: 'Privacy Policy', href: '/privacy' },
+  { label: 'Data safety', href: '/data-safety' },
+  { label: 'Delete account', href: '/account-deletion' },
   { label: 'Terms & Conditions', href: '/terms' },
   { label: 'Cancellation & Refund', href: '/cancellation-refund' },
   { label: 'Contact Us', href: '/contact' },
