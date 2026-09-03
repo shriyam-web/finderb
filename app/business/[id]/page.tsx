@@ -1,11 +1,5 @@
-import { cache } from 'react';
 import type { Metadata } from 'next';
 import { notFound, permanentRedirect } from 'next/navigation';
-import {
-  getBusinessBySlugOrId,
-  getRelatedBusinessesForProfile,
-} from '@/app/actions/business';
-import { findCategoryForBreadcrumb, getCategories } from '@/app/actions/category';
 import BusinessListingInactivePage from '@/components/business/BusinessListingInactivePage';
 import BusinessProfilePage from '@/components/business/BusinessProfilePage';
 import BusinessInternalLinks from '@/components/business/BusinessInternalLinks';
@@ -19,16 +13,23 @@ import {
   resolveBusinessSlug,
   shouldRedirectToCanonicalBusinessSlug,
 } from '@/lib/businessSlug';
+import {
+  getCachedCategoryBreadcrumb,
+  getCachedPublicBusiness,
+  getCachedRelatedBusinesses,
+  getCachedTopCategoriesForLinks,
+} from '@/lib/businessPublicPageData';
+
+/** Public profiles: ISR ~10 min. Updates call revalidateBusinessProfilePaths. */
+export const revalidate = 600;
 
 type PageProps = {
   params: Promise<{ id: string }>;
 };
 
-const getBusinessCached = cache((slugOrId: string) => getBusinessBySlugOrId(slugOrId));
-
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { id } = await params;
-  const result = await getBusinessCached(id);
+  const result = await getCachedPublicBusiness(id);
 
   if (result.reason === 'inactive' && result.listing) {
     const name = result.listing.displayName || result.listing.businessName;
@@ -47,7 +48,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function BusinessDetailPage({ params }: PageProps) {
   const { id: slugOrId } = await params;
-  const result = await getBusinessCached(slugOrId);
+  const result = await getCachedPublicBusiness(slugOrId);
 
   if (result.reason === 'inactive' && result.listing) {
     return <BusinessListingInactivePage listing={result.listing} />;
@@ -66,21 +67,18 @@ export default async function BusinessDetailPage({ params }: PageProps) {
   const canonicalSlug = resolveBusinessSlug(business);
 
   const categoryResult = business.category
-    ? await findCategoryForBreadcrumb(business.category)
+    ? await getCachedCategoryBreadcrumb(business.category)
     : null;
   const categorySlug = categoryResult?.success ? categoryResult.category?.slug : null;
   const jsonLd = buildBusinessJsonLd(business, categorySlug);
 
-  const relatedResult = await getRelatedBusinessesForProfile(business);
+  const relatedResult = await getCachedRelatedBusinesses(business);
+  const topCategories = await getCachedTopCategoriesForLinks();
 
-  const categoriesResult = await getCategories(true);
-  const relatedCategories = (categoriesResult.success && categoriesResult.categories
-    ? categoriesResult.categories
-    : []
-  )
-    .filter((cat: { name?: string }) => cat.name !== business.category)
+  const relatedCategories = topCategories
+    .filter((cat) => cat.name !== business.category)
     .slice(0, 6)
-    .map((cat: { name: string; slug?: string }) => ({
+    .map((cat) => ({
       name: cat.name,
       href: categoryHref(cat.slug, cat.name),
     }));

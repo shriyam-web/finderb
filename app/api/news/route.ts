@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { unstable_cache } from 'next/cache';
 import Parser from 'rss-parser';
 import type { Item } from 'rss-parser';
-import { fetchArticleFromUrl } from '@/lib/extractArticle';
-import { resolveNewsArticleUrl } from '@/lib/googleNewsUrl';
 import {
   extractAllImagesFromRssItem,
-  extractImageFromRssItem,
   pickBestNewsImage,
 } from '@/lib/newsImage';
 import {
@@ -26,8 +24,10 @@ import {
 } from '@/lib/newsFeeds';
 import { decodeHtmlEntities } from '@/lib/stripHtml';
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
+/** List responses cached ~10 min — no HTML scrape on the list path. */
+export const revalidate = 600;
+
+const NEWS_LIST_REVALIDATE_SECONDS = 600;
 
 /** Allow FinderB mobile (Expo web / native fetch) to read homepage news. */
 const NEWS_CORS_HEADERS = {
@@ -35,6 +35,8 @@ const NEWS_CORS_HEADERS = {
   'Access-Control-Allow-Methods': 'GET, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Accept',
   'Access-Control-Max-Age': '86400',
+  'Cache-Control':
+    'public, s-maxage=600, stale-while-revalidate=300, max-age=60',
 } as const;
 
 function newsJson(body: unknown, init?: { status?: number }) {
@@ -45,7 +47,15 @@ function newsJson(body: unknown, init?: { status?: number }) {
 }
 
 export async function OPTIONS() {
-  return new NextResponse(null, { status: 204, headers: NEWS_CORS_HEADERS });
+  return new NextResponse(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Accept',
+      'Access-Control-Max-Age': '86400',
+    },
+  });
 }
 
 const parser = new Parser({
@@ -266,53 +276,126 @@ async function fetchCategoryFeed(
   return { items: preparedItems.slice(0, limit), feedTitle };
 }
 
-async function resolveArticleImage(
-  link: string | undefined,
-  rawItem: Record<string, unknown>,
-  title: string | undefined,
-  lang: NewsLanguage
-): Promise<string | null> {
-  const feedImage = pickBestNewsImage(extractAllImagesFromRssItem(rawItem));
-  if (feedImage) return feedImage;
-
-  if (!link) return null;
-
-  const publisherUrl = await resolveNewsArticleUrl(link, lang === 'en' ? 'en' : 'hi');
-
-  try {
-    const article = await fetchArticleFromUrl(publisherUrl, title || '');
-    if (article?.image) return article.image;
-  } catch (error) {
-    console.error('News article image fetch failed:', publisherUrl, error);
-  }
-
-  if (publisherUrl !== link) {
-    const legacyFeedImage = extractImageFromRssItem(rawItem);
-    if (legacyFeedImage) return legacyFeedImage;
-  }
-
-  return null;
+/** RSS / media fields only — never scrape publisher HTML on the list path. */
+function imageFromRssItem(rawItem: Record<string, unknown>): string | null {
+  return pickBestNewsImage(extractAllImagesFromRssItem(rawItem));
 }
 
-async function mapWithConcurrency<T, R>(
-  items: T[],
-  concurrency: number,
-  mapper: (item: T, index: number) => Promise<R>
-): Promise<R[]> {
-  const results: R[] = new Array(items.length);
-  let cursor = 0;
-
-  async function worker() {
-    while (cursor < items.length) {
-      const index = cursor++;
-      results[index] = await mapper(items[index], index);
+type NewsListPayload =
+  | {
+      success: true;
+      articles: Array<{
+        id: string;
+        title: string;
+        link: string | undefined;
+        excerpt: string;
+        date: string;
+        category: string;
+        categorySlug: NewsCategorySlug;
+        source: string;
+        image: string | null;
+        imageFromFeed: boolean;
+      }>;
+      lang: NewsLanguage;
+      category: ReturnType<typeof getCategoryMeta> & { label: string };
+      location: { city: string | null; state: string | null } | null;
     }
+  | { success: false; error: string; status: number };
+
+async function buildNewsListPayload(
+  slug: NewsCategorySlug,
+  lang: NewsLanguage,
+  city: string | null,
+  state: string | null,
+  limit: number
+): Promise<NewsListPayload> {
+  const localLocation: LocalNewsLocation = { city, state };
+  const meta = getCategoryMeta(slug);
+  const dateLocale = lang === 'en' ? 'en-IN' : 'hi-IN';
+  const defaultTitle = lang === 'en' ? 'News' : 'समाचार';
+  const defaultDate = lang === 'en' ? 'Recently' : 'हाल ही में';
+  const defaultSource = lang === 'en' ? 'News' : 'समाचार';
+
+  const { items, feedTitle } = await fetchCategoryFeed(
+    slug,
+    lang,
+    slug === 'local' ? localLocation : undefined,
+    limit
+  );
+
+  if (!items.length) {
+    return {
+      success: false,
+      status: 502,
+      error:
+        lang === 'en'
+          ? 'No news items were found for this category'
+          : 'No Hindi news items were found for this category',
+    };
   }
 
-  await Promise.all(
-    Array.from({ length: Math.min(concurrency, items.length) }, () => worker())
-  );
-  return results;
+  const articles = items.map((item, index) => {
+    const rawItem = item as unknown as Record<string, unknown>;
+    const image = imageFromRssItem(rawItem);
+    const snippet = cleanNewsSnippet(
+      item.contentSnippet ||
+        item.content ||
+        (item as Record<string, unknown>)['content:encoded'],
+      item.title
+    );
+
+    return {
+      id: String(item.guid || item.link || `${lang}-${slug}-${index}`),
+      title: decodeHtmlEntities(item.title || defaultTitle),
+      link: item.link,
+      excerpt: snippet,
+      date: item.pubDate
+        ? new Date(item.pubDate).toLocaleDateString(dateLocale, {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric',
+          })
+        : defaultDate,
+      category: getCategoryLabel(meta, lang),
+      categorySlug: slug,
+      source:
+        (item as { creator?: string }).creator ||
+        (item as { author?: string }).author ||
+        feedTitle?.split('|')[0]?.trim() ||
+        defaultSource,
+      image: image || null,
+      imageFromFeed: Boolean(image),
+    };
+  });
+
+  return {
+    success: true,
+    articles,
+    lang,
+    category: { ...meta, label: getCategoryLabel(meta, lang) },
+    location: slug === 'local' && (city || state) ? { city, state } : null,
+  };
+}
+
+function getCachedNewsList(
+  slug: NewsCategorySlug,
+  lang: NewsLanguage,
+  city: string | null,
+  state: string | null,
+  limit: number
+) {
+  return unstable_cache(
+    async () => buildNewsListPayload(slug, lang, city, state, limit),
+    [
+      'news-list-v2',
+      slug,
+      lang,
+      city || '',
+      state || '',
+      String(limit),
+    ],
+    { revalidate: NEWS_LIST_REVALIDATE_SECONDS }
+  )();
 }
 
 export async function GET(request: NextRequest) {
@@ -322,72 +405,23 @@ export async function GET(request: NextRequest) {
     const lang = normalizeNewsLanguage(searchParams.get('lang'));
     const city = searchParams.get('city')?.trim() || null;
     const state = searchParams.get('state')?.trim() || null;
-    const localLocation: LocalNewsLocation = { city, state };
-    const meta = getCategoryMeta(slug);
-    const dateLocale = lang === 'en' ? 'en-IN' : 'hi-IN';
-    const defaultTitle = lang === 'en' ? 'News' : 'समाचार';
-    const defaultDate = lang === 'en' ? 'Recently' : 'हाल ही में';
-    const defaultSource = lang === 'en' ? 'News' : 'समाचार';
     const limit = Math.min(Number(searchParams.get('limit') || 12), 24);
 
-    const { items, feedTitle } = await fetchCategoryFeed(
-      slug,
-      lang,
-      slug === 'local' ? localLocation : undefined,
-      limit
-    );
+    const payload = await getCachedNewsList(slug, lang, city, state, limit);
 
-    if (!items.length) {
+    if (!payload.success) {
       return newsJson(
-        {
-          success: false,
-          error:
-            lang === 'en'
-              ? 'No news items were found for this category'
-              : 'No Hindi news items were found for this category',
-        },
-        { status: 502 }
+        { success: false, error: payload.error },
+        { status: payload.status }
       );
     }
 
-    const articles = await mapWithConcurrency(items, 8, async (item, index) => {
-      const rawItem = item as unknown as Record<string, unknown>;
-      const image = await resolveArticleImage(item.link, rawItem, item.title, lang);
-      const snippet = cleanNewsSnippet(
-        item.contentSnippet || item.content || (item as Record<string, unknown>)['content:encoded'],
-        item.title
-      );
-
-      return {
-        id: String(item.guid || item.link || `${lang}-${slug}-${index}`),
-        title: decodeHtmlEntities(item.title || defaultTitle),
-        link: item.link,
-        excerpt: snippet,
-        date: item.pubDate
-          ? new Date(item.pubDate).toLocaleDateString(dateLocale, {
-              day: '2-digit',
-              month: 'short',
-              year: 'numeric',
-            })
-          : defaultDate,
-        category: getCategoryLabel(meta, lang),
-        categorySlug: slug,
-        source:
-          (item as { creator?: string }).creator ||
-          (item as { author?: string }).author ||
-          feedTitle?.split('|')[0]?.trim() ||
-          defaultSource,
-        image: image || null,
-        imageFromFeed: Boolean(image),
-      };
-    });
-
     return newsJson({
       success: true,
-      articles,
-      lang,
-      category: { ...meta, label: getCategoryLabel(meta, lang) },
-      location: slug === 'local' && (city || state) ? { city, state } : null,
+      articles: payload.articles,
+      lang: payload.lang,
+      category: payload.category,
+      location: payload.location,
     });
   } catch (error) {
     console.error('RSS Fetch Error:', error);
