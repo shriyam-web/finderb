@@ -149,6 +149,12 @@ function RegisterFormContent() {
     prefix: <CategoryIcon icon={c.icon} name={c.name} size={20} className="h-5 w-5" />,
   }));
 
+  const subcategoryOptions = subCategories.map((c) => ({
+    label: c.name,
+    value: c.id,
+    prefix: <CategoryIcon icon={c.icon} name={c.name} size={20} className="h-5 w-5" />,
+  }));
+
   const nestedSubcategoryOptions = nestedSubCategories.map((c) => ({
     label: c.name,
     value: c.id,

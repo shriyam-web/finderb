@@ -84,7 +84,7 @@ export async function submitBusinessReviewForUser(
     };
 
     const nextReviews = [newReview, ...existing];
-    const nextRating = averageReviewRating(nextReviews);
+    const nextRating = averageReviewRating(nextReviews) ?? rating;
 
     const { error: updateError } = await supabase
       .from('Business')

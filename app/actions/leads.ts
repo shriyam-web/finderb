@@ -207,7 +207,7 @@ export async function submitBroadcastEnquiry(data: {
   email: string;
   phone: string;
   lookingFor: string;
-}) {
+}): Promise<{ success: true; merchantCount: number } | { success: false; error: string }> {
   try {
     const writeLimit = await enforceRateLimit('write', 'broadcast-enquiry');
     if (!writeLimit.ok) return { success: false, error: writeLimit.error };

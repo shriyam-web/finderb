@@ -219,5 +219,6 @@ export function mapOwnedBusinessRecord(business: Record<string, unknown>) {
     ownerName: String(business.owner_name || '').trim(),
     ownerMobile: String(business.owner_mobile || '').trim(),
     kycStatus: String(business.kycStatus || 'pending'),
+    selectedPlan: String(business.selectedPlan || 'free'),
   };
 }

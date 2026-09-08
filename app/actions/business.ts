@@ -30,6 +30,7 @@ import {
   CATEGORY_LISTINGS_PAGE_SIZE,
 } from '@/lib/categoryListings';
 import { validateMapPinAgainstAddress } from '@/app/actions/location';
+import { finalizeMerchantPayment } from '@/lib/razorpay/finalizeMerchantPayment';
 import {
   applyResolvedAddressToManual,
   hasResolvedMapAddress,
