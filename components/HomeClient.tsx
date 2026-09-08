@@ -862,8 +862,8 @@ function HomeClientView({
       <section className="bg-slate-50 py-6 lg:py-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mb-5 flex items-center justify-between gap-3">
-            <h2 className="min-w-0 text-2xl font-extrabold tracking-tight text-primary sm:text-3xl lg:text-4xl">
-              Explore <span className="text-secondary">Destinations</span>
+            <h2 className="min-w-0 text-2xl font-extrabold tracking-tight text-black sm:text-3xl lg:text-4xl">
+              Explore Destinations
             </h2>
             <Link
               href="/tourist-places"
@@ -918,8 +918,8 @@ function HomeClientView({
         <div className="mx-auto w-full min-w-0 max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mb-5 flex min-w-0 items-end justify-between gap-3">
             <div className="min-w-0 space-y-2">
-              <h2 className="text-2xl font-extrabold tracking-tight text-primary sm:text-3xl lg:text-4xl">
-                Latest <span className="text-secondary">News</span>
+              <h2 className="text-2xl font-extrabold tracking-tight text-black sm:text-3xl lg:text-4xl">
+                Latest News
               </h2>
               <p className="text-sm font-medium text-gray-500">
                 Top headlines by category — switch between Hindi and English.
@@ -942,8 +942,8 @@ function HomeClientView({
           <div className="mx-auto w-full min-w-0 max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="mb-5 flex min-w-0 items-end justify-between gap-3">
               <div className="min-w-0 space-y-2">
-                <h2 className="text-2xl font-extrabold tracking-tight text-primary sm:text-3xl lg:text-4xl">
-                  FinderB <span className="text-secondary">Blog</span>
+                <h2 className="text-2xl font-extrabold tracking-tight text-black sm:text-3xl lg:text-4xl">
+                  FinderB Blog
                 </h2>
                 <p className="text-sm font-medium text-gray-500">
                   Guides, tips, and local insights from the FinderB team.
@@ -1007,8 +1007,8 @@ function HomeClientView({
       <section className="bg-white py-6 lg:py-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center mb-5">
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-primary tracking-tight">
-              Latest <span className="text-secondary">Movies</span>
+            <h2 className="text-2xl font-extrabold tracking-tight text-black sm:text-3xl lg:text-4xl">
+              Latest Movies
             </h2>
             <Link href="/movies" className="text-sm font-semibold text-[#2563eb] hover:text-[#1d4ed8] transition-colors flex items-center gap-1.5">
               View all <ArrowRight size={15} />
@@ -1049,8 +1049,8 @@ function HomeClientView({
         <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent"></div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16 space-y-4">
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-primary tracking-tight">
-              What our <span className="text-secondary">Users</span> say
+            <h2 className="text-3xl font-extrabold tracking-tight text-black sm:text-4xl lg:text-5xl">
+              What our Users say
             </h2>
             <p className="text-gray-500 font-medium max-w-2xl mx-auto">
               Don't just take our word for it. Here's what people across India are saying about their experience with FinderB.

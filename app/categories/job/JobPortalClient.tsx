@@ -147,8 +147,8 @@ export default function JobPortalClient({ initialJobs }: { initialJobs: Job[] })
             <ArrowLeft size={16} />
             Back to home
           </Link>
-          <h1 className="text-2xl font-bold tracking-tight text-[#1e293b] sm:text-3xl">
-            FinderB <span className="text-[#2563eb]">Jobs</span>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+            FinderB Jobs
           </h1>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[#64748b] sm:text-base">
             Positions posted directly by local businesses on FinderB. Always verify the employer

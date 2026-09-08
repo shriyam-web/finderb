@@ -15,6 +15,7 @@ type NewsArticleView = {
   date: string;
   category: string;
   sourceUrl: string;
+  hasFullContent?: boolean;
 };
 
 export default function NewsReaderPage({ params }: { params: Promise<{ id: string }> }) {
@@ -70,6 +71,7 @@ export default function NewsReaderPage({ params }: { params: Promise<{ id: strin
             date: cached.date || 'Recently',
             category: cached.category || 'News',
             sourceUrl,
+            hasFullContent: false,
           });
         } else {
           setError(err instanceof Error ? err.message : 'Could not load article');
@@ -108,6 +110,12 @@ export default function NewsReaderPage({ params }: { params: Promise<{ id: strin
     );
   }
 
+  const bodyText = stripHtml(article.contentHtml || '');
+  const hasReadableBody =
+    article.hasFullContent === true &&
+    bodyText.length >= 360 &&
+    !/full story is available on the source/i.test(bodyText);
+
   return (
     <div className="min-h-[calc(100dvh-6.75rem)] bg-[#fafaf9] pb-16 lg:min-h-screen">
       <div className="border-b border-neutral-200 bg-white pt-[4.25rem] sm:pt-24">
@@ -145,26 +153,42 @@ export default function NewsReaderPage({ params }: { params: Promise<{ id: strin
           </div>
         )}
 
-        {article.excerpt && (
-          <p className="mt-6 border-l-2 border-neutral-300 pl-4 text-[15px] leading-relaxed text-neutral-600">
-            {stripHtml(article.excerpt)}
-          </p>
+        {hasReadableBody ? (
+          <>
+            {article.excerpt &&
+            !/full story is available on the source/i.test(article.excerpt) ? (
+              <p className="mt-6 border-l-2 border-neutral-300 pl-4 text-[15px] leading-relaxed text-neutral-600">
+                {stripHtml(article.excerpt)}
+              </p>
+            ) : null}
+            <div
+              className="news-article-body mt-6 text-[15px] leading-7 text-neutral-700 [&_p]:mb-4"
+              dangerouslySetInnerHTML={{ __html: article.contentHtml }}
+            />
+          </>
+        ) : (
+          <div className="mt-6 overflow-hidden rounded-md border border-neutral-200 bg-white">
+            <div className="border-b border-neutral-100 px-4 py-3 text-sm text-neutral-600">
+              Reading full story from {article.source || 'publisher'}
+            </div>
+            <iframe
+              title={article.title}
+              src={article.sourceUrl}
+              className="h-[70vh] w-full border-0"
+              sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+              referrerPolicy="no-referrer-when-downgrade"
+            />
+          </div>
         )}
 
-        <div
-          className="news-article-body mt-6 text-[15px] leading-7 text-neutral-700 [&_p]:mb-4"
-          dangerouslySetInnerHTML={{ __html: article.contentHtml }}
-        />
-
         <div className="mt-10 border-t border-neutral-200 pt-6">
-          <p className="text-sm text-neutral-600">Read the full story at the original publisher.</p>
           <a
             href={article.sourceUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-3 inline-flex items-center gap-2 rounded-md border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-800 transition-colors hover:border-neutral-400 hover:bg-neutral-50"
+            className="inline-flex items-center gap-2 rounded-md border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-800 transition-colors hover:border-neutral-400 hover:bg-neutral-50"
           >
-            Continue on {article.source}
+            Open on {article.source || 'publisher site'}
             <ExternalLink size={14} />
           </a>
         </div>

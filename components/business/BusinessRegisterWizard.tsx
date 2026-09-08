@@ -40,6 +40,7 @@ type FormData = {
   categoryId: string;
   subcategory: string;
   subcategoryId: string;
+  nestedSubcategoryId: string;
   location: string;
   city: string;
   cityCode: string;
@@ -63,10 +64,16 @@ type BusinessRegisterWizardProps = {
   onFormPatch: (patch: Partial<FormData>) => void;
   categoryOptions: SelectOption[];
   subcategoryOptions: SelectOption[];
+  nestedSubcategoryOptions?: SelectOption[];
   loadingSubcategories: boolean;
+  loadingNestedSubcategories?: boolean;
   showSubcategory: boolean;
+  showNestedSubcategory?: boolean;
   onCategoryChange: (categoryId: string) => void;
   onSubcategoryChange: (subcategoryId: string) => void;
+  onNestedSubcategoryChange?: (nestedSubcategoryId: string) => void;
+  subcategoryLabel?: string;
+  nestedSubcategoryLabel?: string;
   countryOptions: SelectOption[];
   stateOptions: SelectOption[];
   cityOptions: SelectOption[];
@@ -151,10 +158,16 @@ export default function BusinessRegisterWizard({
   onFormPatch,
   categoryOptions,
   subcategoryOptions,
+  nestedSubcategoryOptions = [],
   loadingSubcategories,
+  loadingNestedSubcategories = false,
   showSubcategory,
+  showNestedSubcategory = false,
   onCategoryChange,
   onSubcategoryChange,
+  onNestedSubcategoryChange,
+  subcategoryLabel = 'Subcategory',
+  nestedSubcategoryLabel = 'Subcategory',
   countryOptions,
   stateOptions,
   cityOptions,
@@ -318,15 +331,32 @@ export default function BusinessRegisterWizard({
                     <SearchableSelect
                       tone="merchant"
                       id="subcategoryId"
-                      label="Subcategory"
+                      label={subcategoryLabel}
                       options={subcategoryOptions}
                       value={formData.subcategoryId}
                       onChange={onSubcategoryChange}
-                      placeholder={loadingSubcategories ? 'Loading subcategories…' : 'Select subcategory'}
+                      placeholder={loadingSubcategories ? 'Loading…' : `Select ${subcategoryLabel.toLowerCase()}`}
                       icon={<Briefcase size={17} />}
                       disabled={!formData.categoryId || loadingSubcategories}
                       loading={loadingSubcategories}
                       error={fieldErrors.subcategoryId}
+                    />
+                  )}
+                  {showNestedSubcategory && (
+                    <SearchableSelect
+                      tone="merchant"
+                      id="nestedSubcategoryId"
+                      label={nestedSubcategoryLabel}
+                      options={nestedSubcategoryOptions}
+                      value={formData.nestedSubcategoryId}
+                      onChange={(id) => onNestedSubcategoryChange?.(id)}
+                      placeholder={
+                        loadingNestedSubcategories ? 'Loading subcategories…' : 'Select subcategory'
+                      }
+                      icon={<Briefcase size={17} />}
+                      disabled={!formData.subcategoryId || loadingNestedSubcategories}
+                      loading={loadingNestedSubcategories}
+                      error={fieldErrors.nestedSubcategoryId}
                     />
                   )}
                   <MerchantAuthField

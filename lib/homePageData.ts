@@ -13,7 +13,7 @@ import {
   type FinderBTutorialPlaylist,
 } from '@/lib/finderbYoutube';
 import {
-  attachTopLevelBusinessCounts,
+  attachDescendantBusinessCounts,
   fetchActiveBusinessCategoryLabels,
 } from '@/lib/categoryBusinessCounts';
 import { buildFeaturedCategoryGroups } from '@/lib/featuredCategoryGroups';
@@ -138,7 +138,6 @@ async function fetchCategories(supabase: SupabaseClient) {
       .from('categories')
       .select('*')
       .eq('status', 'Active')
-      .is('parent_id', null)
       .order('position', { ascending: true })
       .order('items_count', { ascending: false }),
     fetchActiveBusinessCategoryLabels(supabase),
@@ -149,16 +148,20 @@ async function fetchCategories(supabase: SupabaseClient) {
     return [];
   }
 
-  return attachTopLevelBusinessCounts(
-    (categories ?? []).map((c) => ({
-      id: c.id,
-      name: c.name,
-      icon: dbSymbol(c.symbol) ?? '',
-      image: dbBanner(c.banner) ?? '',
-      slug: c.slug || c.name.toLowerCase().replace(/\s+/g, '-'),
-      businessCount: 0,
-      color: '#3B82F6',
-    })),
+  const mapped = (categories ?? []).map((c) => ({
+    id: c.id,
+    name: c.name,
+    icon: dbSymbol(c.symbol) ?? '',
+    image: dbBanner(c.banner) ?? '',
+    slug: c.slug || c.name.toLowerCase().replace(/\s+/g, '-'),
+    businessCount: 0,
+    color: '#3B82F6',
+    parent_id: c.parent_id ?? null,
+  }));
+
+  return attachDescendantBusinessCounts(
+    mapped.filter((c) => !c.parent_id),
+    mapped,
     businessLabels
   );
 }
@@ -267,7 +270,28 @@ async function fetchFeaturedGroups(supabase: SupabaseClient) {
     return [];
   }
 
-  return buildFeaturedCategoryGroups(parents, children ?? [], businessLabels);
+  const childIds = (children ?? []).map((c) => c.id);
+  const { data: grandchildren, error: grandchildError } =
+    childIds.length > 0
+      ? await supabase
+          .from('categories')
+          .select('id, name, slug, banner, symbol, items_count, parent_id, position')
+          .in('parent_id', childIds)
+          .eq('status', 'Active')
+      : { data: [] as typeof children, error: null };
+
+  if (grandchildError) {
+    console.error('[homepage] featured group grandchildren fetch failed:', grandchildError);
+    return [];
+  }
+
+  return buildFeaturedCategoryGroups(
+    parents,
+    children ?? [],
+    businessLabels,
+    undefined,
+    grandchildren ?? []
+  );
 }
 
 async function fetchHomePageData(): Promise<HomePageData> {

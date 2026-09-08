@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { ArrowRight } from 'lucide-react';
@@ -12,6 +12,8 @@ import {
   GROWTH_PRO_EFFECTIVE_MONTHLY_ANNUAL,
   GROWTH_PRO_OFFER_MONTHLY,
 } from '@/lib/pricing/growthPro';
+import { getBusinessSession } from '@/app/actions/business';
+import { isStarterPlan } from '@/lib/subscription/merchantSubscription';
 
 function merchantPaymentUrl(businessId: string, billing: 'monthly' | 'annual') {
   return `/business/payment/${encodeURIComponent(businessId)}?billing=${billing}&checkout=1`;
@@ -22,6 +24,19 @@ function PricingPageContent() {
   const businessId = searchParams.get('businessId');
   const isRechargeFlow = Boolean(businessId);
   const [loadingPlan, setLoadingPlan] = useState<'monthly' | 'annual' | null>(null);
+  const [hideStarter, setHideStarter] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    void getBusinessSession().then((result) => {
+      if (cancelled || !result?.success || !result.business) return;
+      const plan = String(result.business.selectedPlan || 'free');
+      if (isStarterPlan(plan)) setHideStarter(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handlePayment = (plan: 'monthly' | 'annual') => {
     setLoadingPlan(plan);
@@ -55,7 +70,12 @@ function PricingPageContent() {
 
       <PricingHero />
 
-      <PricingPlansSection mode="pricing" loadingPlan={loadingPlan} onChoosePro={handlePayment} />
+      <PricingPlansSection
+        mode="pricing"
+        loadingPlan={loadingPlan}
+        onChoosePro={handlePayment}
+        hideStarter={hideStarter}
+      />
 
       {/* Closing CTA */}
       <section className="pricing-close-cta py-16 sm:py-20">

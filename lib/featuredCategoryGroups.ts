@@ -1,8 +1,5 @@
 import { categoryBrowseHref, dbBanner, dbSymbol } from '@/lib/categoryDisplay';
-import {
-  attachSubcategoryBusinessCounts,
-  countBusinessesForTopLevelCategory,
-} from '@/lib/categoryBusinessCounts';
+import { countBusinessesForCategoryTree } from '@/lib/categoryBusinessCounts';
 
 /** How many category sections to show on the homepage. */
 export const HOME_FEATURED_GROUP_LIMIT = 6;
@@ -50,17 +47,27 @@ export type FeaturedCategoryGroup = {
 
 function mapChildSubcategory(
   child: FeaturedGroupChildRow,
-  parent: FeaturedGroupParentRow
-): Omit<FeaturedGroupSubcategory, 'businessCount'> & { businessCount: number } {
+  parent: FeaturedGroupParentRow,
+  businessCount: number
+): FeaturedGroupSubcategory {
   return {
     id: child.id,
     name: child.name,
     slug: child.slug,
     icon: dbSymbol(child.symbol) ?? '',
     image: dbBanner(child.banner) ?? '',
-    businessCount: child.items_count || 0,
+    businessCount,
     href: categoryBrowseHref({ slug: parent.slug, name: parent.name }, child),
+    queryName: child.name,
   };
+}
+
+function collectDescendantNames(
+  id: string,
+  childrenByParent: Map<string, FeaturedGroupChildRow[]>
+): string[] {
+  const kids = childrenByParent.get(id) ?? [];
+  return kids.flatMap((kid) => [kid.name, ...collectDescendantNames(kid.id, childrenByParent)]);
 }
 
 /**
@@ -72,10 +79,11 @@ export function buildFeaturedCategoryGroups(
   parents: FeaturedGroupParentRow[],
   children: FeaturedGroupChildRow[],
   businessLabels: string[],
-  limit = HOME_FEATURED_GROUP_LIMIT
+  limit = HOME_FEATURED_GROUP_LIMIT,
+  grandchildren: FeaturedGroupChildRow[] = []
 ): FeaturedCategoryGroup[] {
   const childrenByParent = new Map<string, FeaturedGroupChildRow[]>();
-  for (const child of children) {
+  for (const child of [...children, ...grandchildren]) {
     const list = childrenByParent.get(child.parent_id) ?? [];
     list.push(child);
     childrenByParent.set(child.parent_id, list);
@@ -83,7 +91,11 @@ export function buildFeaturedCategoryGroups(
 
   const groups = parents
     .map((parent) => {
-      const merchantCount = countBusinessesForTopLevelCategory(parent.name, businessLabels);
+      const merchantCount = countBusinessesForCategoryTree(
+        parent.name,
+        collectDescendantNames(parent.id, childrenByParent),
+        businessLabels
+      );
       const subs = childrenByParent.get(parent.id) ?? [];
       const parentIcon = dbSymbol(parent.symbol) ?? '';
 
@@ -111,19 +123,27 @@ export function buildFeaturedCategoryGroups(
         } satisfies FeaturedCategoryGroup;
       }
 
-      const childSubs = attachSubcategoryBusinessCounts(
-        subs.map((child) => mapChildSubcategory(child, parent)),
-        parent.name,
-        businessLabels
-      ).sort((a, b) => {
-        const aCount = a.businessCount ?? 0;
-        const bCount = b.businessCount ?? 0;
-        const aHas = aCount > 0 ? 1 : 0;
-        const bHas = bCount > 0 ? 1 : 0;
-        if (bHas !== aHas) return bHas - aHas;
-        if (bCount !== aCount) return bCount - aCount;
-        return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
-      });
+      const childSubs = subs
+        .map((child) =>
+          mapChildSubcategory(
+            child,
+            parent,
+            countBusinessesForCategoryTree(
+              child.name,
+              collectDescendantNames(child.id, childrenByParent),
+              businessLabels
+            )
+          )
+        )
+        .sort((a, b) => {
+          const aCount = a.businessCount ?? 0;
+          const bCount = b.businessCount ?? 0;
+          const aHas = aCount > 0 ? 1 : 0;
+          const bHas = bCount > 0 ? 1 : 0;
+          if (bHas !== aHas) return bHas - aHas;
+          if (bCount !== aCount) return bCount - aCount;
+          return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+        });
 
       const hasSubMerchants = childSubs.some((sub) => (sub.businessCount ?? 0) > 0);
       if (merchantCount === 0 && !hasSubMerchants) return null;
@@ -139,10 +159,7 @@ export function buildFeaturedCategoryGroups(
           href: categoryBrowseHref({ slug: parent.slug, name: parent.name }),
           queryName: parent.name,
         },
-        ...childSubs.map((sub) => ({
-          ...sub,
-          queryName: sub.name,
-        })),
+        ...childSubs,
       ];
 
       return {

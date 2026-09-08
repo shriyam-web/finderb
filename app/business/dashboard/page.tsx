@@ -46,6 +46,7 @@ import TrustBadgeCallout from './components/TrustBadgeCallout';
 import MyListingTab from './components/MyListingTab';
 import SubscriptionTab from './components/SubscriptionTab';
 import SubscriptionExpiryAlert from './components/SubscriptionExpiryAlert';
+import SubscriptionExpiryBanner from './components/SubscriptionExpiryBanner';
 import ReviewsTab from './components/ReviewsTab';
 import { getMerchantNotifications, markMerchantNotificationsRead } from '@/app/actions/merchantNotifications';
 import { broadcastTargetsMerchants } from '@/lib/broadcastAudience';
@@ -600,6 +601,18 @@ function DashboardContent() {
           onNotificationsClose={() => setIsNotificationsOpen(false)}
           notifications={notifications}
         />
+
+        {businessId && subscriptionStatus.alertLevel !== 'none' && (
+          <SubscriptionExpiryBanner
+            businessId={businessId}
+            businessName={businessName}
+            fullName={business?.fullName}
+            email={business?.email || business?.workEmail}
+            mobile={business?.mobile || business?.publicPhone}
+            subscription={subscriptionStatus}
+            onOpenSubscription={() => setActiveTab('subscription')}
+          />
+        )}
 
         {successMessage && (
           <div className="mb-6 overflow-hidden rounded-xl border border-emerald-200 bg-emerald-50 shadow-sm">

@@ -10,8 +10,8 @@ import {
 } from '@/lib/searchMatch';
 import { enforceRateLimit } from '@/lib/security/enforceRateLimit.server';
 import {
-  attachSubcategoryBusinessCounts,
-  attachTopLevelBusinessCounts,
+  attachDescendantBusinessCounts,
+  countBusinessesForCategoryTree,
   countBusinessesForSubCategory,
   countBusinessesForTopLevelCategory,
   fetchActiveBusinessCategoryLabels,
@@ -22,17 +22,13 @@ export async function getCategories(topLevelOnly = true) {
   try {
     const supabase = createClient(await cookies());
 
-    let query = supabase
-      .from('categories')
-      .select('*')
-      .eq('status', 'Active');
-
-    if (topLevelOnly) {
-      query = query.is('parent_id', null);
-    }
-
     const [{ data: categories, error }, businessLabels] = await Promise.all([
-      query.order('position', { ascending: true }).order('items_count', { ascending: false }),
+      supabase
+        .from('categories')
+        .select('*')
+        .eq('status', 'Active')
+        .order('position', { ascending: true })
+        .order('items_count', { ascending: false }),
       fetchActiveBusinessCategoryLabels(supabase),
     ]);
 
@@ -40,21 +36,26 @@ export async function getCategories(topLevelOnly = true) {
       throw error;
     }
 
-    // Map DB fields to the expected Category interface if necessary
-    const mappedCategories = attachTopLevelBusinessCounts(
-      categories.map((c: any) => ({
-        id: c.id,
-        name: c.name,
-        icon: dbSymbol(c.symbol),
-        image: dbBanner(c.banner),
-        slug: c.slug || c.name.toLowerCase().replace(/\s+/g, '-'),
-        businessCount: 0,
-        color: '#3B82F6',
-      })),
-      businessLabels
-    );
+    const mappedCategories = (categories ?? []).map((c: any) => ({
+      id: c.id,
+      name: c.name,
+      icon: dbSymbol(c.symbol),
+      image: dbBanner(c.banner),
+      slug: c.slug || c.name.toLowerCase().replace(/\s+/g, '-'),
+      businessCount: 0,
+      color: '#3B82F6',
+      level: typeof c.level === 'number' ? c.level : c.parent_id ? 2 : 1,
+      parent_id: c.parent_id ?? null,
+    }));
 
-    return { success: true, categories: mappedCategories };
+    const scoped = topLevelOnly
+      ? mappedCategories.filter((c) => !c.parent_id)
+      : mappedCategories;
+
+    return {
+      success: true,
+      categories: attachDescendantBusinessCounts(scoped, mappedCategories, businessLabels),
+    };
   } catch (error: any) {
     console.error('Get Categories Error:', error);
     return { success: false, error: error.message || 'Failed to fetch categories' };
@@ -67,7 +68,6 @@ export async function getSubCategories(parentId: string) {
 
     const [
       { data: subCategories, error },
-      { data: parent },
       businessLabels,
     ] = await Promise.all([
       supabase
@@ -76,7 +76,6 @@ export async function getSubCategories(parentId: string) {
         .eq('parent_id', parentId)
         .eq('status', 'Active')
         .order('items_count', { ascending: false }),
-      supabase.from('categories').select('name').eq('id', parentId).maybeSingle(),
       fetchActiveBusinessCategoryLabels(supabase),
     ]);
 
@@ -84,19 +83,37 @@ export async function getSubCategories(parentId: string) {
       throw error;
     }
 
-    const parentName = parent?.name ?? '';
-    const mappedSubCategories = attachSubcategoryBusinessCounts(
-      subCategories.map((c: any) => ({
-        id: c.id,
-        name: c.name,
-        slug: c.slug || c.name.toLowerCase().replace(/\s+/g, '-'),
-        image: dbBanner(c.banner),
-        icon: dbSymbol(c.symbol),
-        businessCount: 0,
-      })),
-      parentName,
-      businessLabels
-    );
+    const childIds = (subCategories ?? []).map((c: { id: string }) => c.id);
+    const { data: grandchildren } =
+      childIds.length > 0
+        ? await supabase
+            .from('categories')
+            .select('id, name, parent_id')
+            .in('parent_id', childIds)
+            .eq('status', 'Active')
+        : { data: [] as Array<{ id: string; name: string; parent_id: string }> };
+
+    const grandchildNamesByParent = new Map<string, string[]>();
+    for (const row of grandchildren ?? []) {
+      const list = grandchildNamesByParent.get(row.parent_id) ?? [];
+      list.push(row.name);
+      grandchildNamesByParent.set(row.parent_id, list);
+    }
+
+    const mappedSubCategories = (subCategories ?? []).map((c: any) => ({
+      id: c.id,
+      name: c.name,
+      slug: c.slug || c.name.toLowerCase().replace(/\s+/g, '-'),
+      image: dbBanner(c.banner),
+      icon: dbSymbol(c.symbol),
+      businessCount: countBusinessesForCategoryTree(
+        c.name,
+        grandchildNamesByParent.get(c.id) ?? [],
+        businessLabels
+      ),
+      level: typeof c.level === 'number' ? c.level : 2,
+      parent_id: c.parent_id ?? parentId,
+    }));
 
     return { success: true, subCategories: mappedSubCategories };
   } catch (error: any) {
@@ -159,7 +176,25 @@ export async function getFeaturedGroups() {
 
     if (childError) throw childError;
 
-    const groups = buildFeaturedCategoryGroups(parents, children ?? [], businessLabels);
+    const childIds = (children ?? []).map((c) => c.id);
+    const { data: grandchildren, error: grandchildError } =
+      childIds.length > 0
+        ? await supabase
+            .from('categories')
+            .select('id, name, slug, banner, symbol, items_count, parent_id, position')
+            .in('parent_id', childIds)
+            .eq('status', 'Active')
+        : { data: [] as typeof children, error: null };
+
+    if (grandchildError) throw grandchildError;
+
+    const groups = buildFeaturedCategoryGroups(
+      parents,
+      children ?? [],
+      businessLabels,
+      undefined,
+      grandchildren ?? []
+    );
 
     return { success: true, groups };
   } catch (error: any) {

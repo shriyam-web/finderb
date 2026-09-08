@@ -82,6 +82,56 @@ export function countBusinessesForSubCategory(
   }).length;
 }
 
+export function countBusinessesForCategoryTree(
+  categoryName: string,
+  descendantNames: string[],
+  labels: string[]
+): number {
+  const names = [categoryName, ...descendantNames]
+    .map(normalizeLabel)
+    .filter(Boolean);
+  if (!names.length) return 0;
+
+  return labels.filter((label) => {
+    const normalized = normalizeLabel(label);
+    return names.some(
+      (name) =>
+        normalized === name ||
+        normalized.startsWith(`${name} ›`) ||
+        normalized.endsWith(` › ${name}`)
+    );
+  }).length;
+}
+
+export function attachDescendantBusinessCounts<
+  T extends { id: string; name: string; businessCount?: number },
+>(
+  nodes: T[],
+  allRows: Array<{ id: string; name: string; parent_id?: string | null }>,
+  labels: string[]
+): T[] {
+  const childrenByParent = new Map<string, Array<{ id: string; name: string }>>();
+  for (const row of allRows) {
+    if (!row.parent_id) continue;
+    const list = childrenByParent.get(row.parent_id) ?? [];
+    list.push({ id: row.id, name: row.name });
+    childrenByParent.set(row.parent_id, list);
+  }
+
+  const collectNames = (id: string, name: string): string[] => {
+    const kids = childrenByParent.get(id) ?? [];
+    return [name, ...kids.flatMap((kid) => collectNames(kid.id, kid.name))];
+  };
+
+  return nodes.map((node) => {
+    const names = collectNames(node.id, node.name);
+    return {
+      ...node,
+      businessCount: countBusinessesForCategoryTree(names[0] ?? node.name, names.slice(1), labels),
+    };
+  });
+}
+
 export function attachTopLevelBusinessCounts<
   T extends { name: string; businessCount?: number },
 >(categories: T[], labels: string[]): T[] {

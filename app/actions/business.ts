@@ -73,7 +73,12 @@ import {
 } from '@/lib/security/session';
 import { enforceRateLimit } from '@/lib/security/enforceRateLimit.server';
 import { redactPublicBusinessFields } from '@/lib/security/businessFields';
-import { finalizeMerchantPayment } from '@/lib/razorpay/finalizeMerchantPayment';
+import { type CategoryTreeRef } from '@/lib/categoryTree';
+import {
+  applyFixedSlotOrder,
+  getCategoryFixedSlotIds,
+  type CategoryFixedSlotRow,
+} from '@/lib/categoryFixedSlots';
 
 // Safe error handler wrapper
 function handleError(error: any, context: string): string {
@@ -886,6 +891,41 @@ function toCategoryLookupSlug(value: string): string {
     .replace(/^-+|-+$/g, '');
 }
 
+const CATEGORY_SLOT_SELECT =
+  'id, name, parent_id, level, fixed_slots, position_1_business_id, position_2_business_id, position_3_business_id, position_4_business_id, position_5_business_id';
+
+type CategoryLookupRow = CategoryTreeRef & CategoryFixedSlotRow;
+
+async function resolveCategoryListingContext(
+  supabase: ReturnType<typeof createClient>,
+  categoryName: string
+): Promise<{ needles: string[]; slotIds: Array<string | null> }> {
+  const needles = await resolveBusinessCategoryNeedles(supabase, categoryName);
+  const raw = categoryName.trim();
+  if (!raw || raw.toLowerCase() === 'all') {
+    return { needles, slotIds: [] };
+  }
+
+  const asSlug = toCategoryLookupSlug(raw);
+  let row: CategoryLookupRow | null = null;
+  const { data: bySlug } = await supabase
+    .from('categories')
+    .select(CATEGORY_SLOT_SELECT)
+    .eq('slug', asSlug)
+    .maybeSingle();
+  if (bySlug?.id) row = bySlug as CategoryLookupRow;
+  if (!row) {
+    const { data: byName } = await supabase
+      .from('categories')
+      .select(CATEGORY_SLOT_SELECT)
+      .eq('name', raw)
+      .maybeSingle();
+    if (byName?.id) row = byName as CategoryLookupRow;
+  }
+
+  return { needles, slotIds: getCategoryFixedSlotIds(row) };
+}
+
 async function resolveBusinessCategoryNeedles(
   supabase: ReturnType<typeof createClient>,
   categoryName: string
@@ -923,8 +963,12 @@ async function resolveBusinessCategoryNeedles(
 
   const { data: children } = await supabase
     .from('categories')
-    .select('name')
+    .select('id, name')
     .eq('parent_id', cat.id);
+
+  const childIds = (children ?? [])
+    .map((child) => String(child.id || ''))
+    .filter(Boolean);
 
   for (const child of children ?? []) {
     const childName = child.name?.trim();
@@ -933,14 +977,34 @@ async function resolveBusinessCategoryNeedles(
     needles.add(`${cat.name.trim()} › ${childName}`);
   }
 
+  if (childIds.length) {
+    const { data: grands } = await supabase
+      .from('categories')
+      .select('name, parent_id')
+      .in('parent_id', childIds);
+
+    const childNameById = new Map(
+      (children ?? []).map((child) => [String(child.id), String(child.name || '').trim()])
+    );
+
+    for (const grand of grands ?? []) {
+      const grandName = grand.name?.trim();
+      if (!grandName) continue;
+      needles.add(grandName);
+      const midName = childNameById.get(String(grand.parent_id)) || '';
+      if (midName) needles.add(`${midName} › ${grandName}`);
+    }
+  }
+
   if (cat.parent_id) {
     const { data: parent } = await supabase
       .from('categories')
-      .select('name')
+      .select('name, level, parent_id')
       .eq('id', cat.parent_id)
       .maybeSingle();
     const parentName = parent?.name?.trim();
-    if (parentName) {
+    // Only combine with a Category (not a Parent Category grouping name).
+    if (parentName && Number(parent?.level) !== 0) {
       needles.add(`${parentName} › ${cat.name.trim()}`);
     }
   }
@@ -977,7 +1041,7 @@ export async function getBusinessesByCategoryAndCity(
     const fetchLimit = Math.min(Math.max(needed * 4, pageSize * 4), 500);
 
     const supabase = createClient(await cookies());
-    const needles = await resolveBusinessCategoryNeedles(supabase, categorySlug);
+    const { needles, slotIds } = await resolveCategoryListingContext(supabase, categorySlug);
     const escapedCity = escapeIlikePattern(citySlug.replace(/-/g, ' '));
 
     let query = supabase
@@ -993,8 +1057,11 @@ export async function getBusinessesByCategoryAndCity(
 
     if (error) throw error;
 
-    const withPhotos = filterBusinessesWithPublicPhotos(
-      (businesses ?? []).map((b: Record<string, unknown>) => mapBusinessRecord(b)).filter((b) => b.id)
+    const withPhotos = applyFixedSlotOrder(
+      filterBusinessesWithPublicPhotos(
+        (businesses ?? []).map((b: Record<string, unknown>) => mapBusinessRecord(b)).filter((b) => b.id)
+      ),
+      slotIds
     );
     const mappedBusinesses = withPhotos.slice((page - 1) * pageSize, page * pageSize);
 
@@ -1013,6 +1080,7 @@ export async function getBusinessesByCategoryAndCity(
       page,
       pageSize,
       hasMore: withPhotos.length > page * pageSize || fetchLimit < (count ?? 0),
+      fixedSlotIds: slotIds.filter((id): id is string => Boolean(id)),
     };
   } catch (error: any) {
     const errorMessage = handleError(error, 'Get Businesses By Category And City');
@@ -1041,9 +1109,12 @@ export async function getBusinessesByCategory(
       .eq('status', 'Active')
       .order('createdAt', { ascending: false });
 
+    let slotIds: Array<string | null> = [];
+
     if (categoryName !== 'all') {
-      const needles = await resolveBusinessCategoryNeedles(supabase, categoryName);
-      query = applyBusinessCategoryFilter(query, needles);
+      const context = await resolveCategoryListingContext(supabase, categoryName);
+      slotIds = context.slotIds;
+      query = applyBusinessCategoryFilter(query, context.needles);
     }
 
     const { data: businesses, error, count } = await query.range(0, fetchLimit - 1);
@@ -1052,8 +1123,11 @@ export async function getBusinessesByCategory(
       throw error;
     }
 
-    const withPhotos = filterBusinessesWithPublicPhotos(
-      (businesses ?? []).map((b: Record<string, unknown>) => mapBusinessRecord(b)).filter((b) => b.id)
+    const withPhotos = applyFixedSlotOrder(
+      filterBusinessesWithPublicPhotos(
+        (businesses ?? []).map((b: Record<string, unknown>) => mapBusinessRecord(b)).filter((b) => b.id)
+      ),
+      slotIds
     );
     const mappedBusinesses = withPhotos.slice((page - 1) * pageSize, page * pageSize);
 
@@ -1092,6 +1166,7 @@ export async function getBusinessesByCategory(
       page,
       pageSize,
       hasMore: withPhotos.length > page * pageSize || fetchLimit < (count ?? 0),
+      fixedSlotIds: slotIds.filter((id): id is string => Boolean(id)),
     };
   } catch (error: any) {
     const errorMessage = handleError(error, 'Get Businesses By Category');

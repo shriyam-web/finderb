@@ -42,12 +42,18 @@ function normalizeDayTiming(raw: unknown): DaySlot | null {
   if (!raw) return null;
 
   if (typeof raw === 'string') {
+    const text = raw.toLowerCase();
+    if (text.includes('24') && text.includes('open')) {
+      return { open: '00:00', close: '23:59', isClosed: false, is24Hours: true };
+    }
     if (raw === 'Closed' || !raw.includes('-')) {
       return { open: '', close: '', isClosed: true, is24Hours: false };
     }
     const [open, close] = raw.split('-').map((part) => part.trim());
     if (!open || !close) return null;
-    return { open, close, isClosed: false, is24Hours: false };
+    const is24Hours =
+      open === '00:00' && (close === '23:59' || close === '24:00' || close === '00:00');
+    return { open, close, isClosed: false, is24Hours };
   }
 
   if (typeof raw === 'object' && raw !== null) {
@@ -64,7 +70,10 @@ function normalizeDayTiming(raw: unknown): DaySlot | null {
       return { open: '00:00', close: '23:59', isClosed: false, is24Hours: true };
     }
     if (slot.open && slot.close) {
-      return { open: slot.open, close: slot.close, isClosed: false, is24Hours: false };
+      const is24Hours =
+        slot.open === '00:00' &&
+        (slot.close === '23:59' || slot.close === '24:00' || slot.close === '00:00');
+      return { open: slot.open, close: slot.close, isClosed: false, is24Hours };
     }
   }
 
@@ -94,8 +103,11 @@ function isOpenNow(open: string, close: string, currentMinutes: number): boolean
   const closeMinutes = parseTimeToMinutes(close);
   if (openMinutes === null || closeMinutes === null) return false;
 
+  if (closeMinutes === openMinutes) {
+    return false;
+  }
   if (closeMinutes > openMinutes) {
-    return currentMinutes >= openMinutes && currentMinutes < closeMinutes;
+    return currentMinutes >= openMinutes && currentMinutes <= closeMinutes;
   }
 
   // Overnight hours (e.g. 22:00 – 02:00)

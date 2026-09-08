@@ -173,7 +173,7 @@ function LoginContent() {
               Password
             </label>
             <Link
-              href="#"
+              href="/forgot-password"
               className="text-xs font-medium text-[#215481] transition-colors hover:text-[#1a4367]"
             >
               Forgot password?

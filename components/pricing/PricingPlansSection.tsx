@@ -31,6 +31,7 @@ export type PricingPlansSectionProps = {
   onChoosePro?: (billing: 'monthly' | 'annual') => void;
   onChooseFree?: () => void;
   sectionId?: string;
+  hideStarter?: boolean;
 };
 
 export default function PricingPlansSection({
@@ -39,8 +40,10 @@ export default function PricingPlansSection({
   onChoosePro,
   onChooseFree,
   sectionId = 'pricing-plans',
+  hideStarter = false,
 }: PricingPlansSectionProps) {
   const isRegister = mode === 'register';
+  const showStarter = !hideStarter;
   const sectionPad = isRegister ? 'pt-4 pb-3 sm:pt-5 sm:pb-4' : 'py-12 sm:py-16';
   const headerMb = isRegister ? 'mb-3' : 'mb-10';
   const comparePad = isRegister ? 'pt-3 pb-4 sm:pt-4 sm:pb-5' : 'py-14 sm:py-16';
@@ -93,7 +96,8 @@ export default function PricingPlansSection({
             </p>
           </div>
 
-          <div className={`pricing-plans-grid grid grid-cols-1 lg:grid-cols-3 lg:items-stretch ${plansGridGap}`}>
+          <div className={`pricing-plans-grid grid grid-cols-1 ${showStarter ? 'lg:grid-cols-3' : 'lg:grid-cols-2'} lg:items-stretch ${plansGridGap}`}>
+            {showStarter ? (
             <PricingPlanCard
               tone="free"
               badge={isRegister ? undefined : <CurrentPlanBadge />}
@@ -116,6 +120,7 @@ export default function PricingPlansSection({
                 ) : undefined
               }
             />
+            ) : null}
 
             <PricingPlanCard
               tone="monthly"
@@ -209,10 +214,12 @@ export default function PricingPlansSection({
                     <th className="px-3 py-3 text-left text-[11px] font-bold uppercase tracking-[0.16em] text-white/80">
                       Feature
                     </th>
+                    {showStarter ? (
                     <th className="px-2 py-3 text-center">
                       <p className="text-[11px] font-extrabold text-white">{PRICING_PLANS.free.compareLabel}</p>
                       <p className="mt-0.5 text-[10px] font-medium text-white/55">{formatInr(0)}</p>
                     </th>
+                    ) : null}
                     <th className="px-2 py-3 text-center">
                       <p className="text-[11px] font-extrabold text-white">{PRICING_PLANS.monthly.compareLabel}</p>
                       <p className="mt-0.5 text-[10px] font-medium text-white/55">
@@ -235,11 +242,13 @@ export default function PricingPlansSection({
                       <td className="px-3 py-2.5 text-[12px] font-semibold leading-5 text-[#0a1520]">
                         {row.label}
                       </td>
+                      {showStarter ? (
                       <td className="px-2 py-2.5 text-center">
                         <div className="flex justify-center">
                           <CompareCell value={row.free} />
                         </div>
                       </td>
+                      ) : null}
                       <td className="px-2 py-2.5 text-center">
                         <div className="flex justify-center">
                           <CompareCell value={row.monthly} />
@@ -263,10 +272,12 @@ export default function PricingPlansSection({
               <thead>
                 <tr className="pricing-compare-head">
                   <th className="px-5 py-4 text-left text-sm font-bold text-white/80">Feature</th>
+                  {showStarter ? (
                   <th className="px-5 py-4 text-center">
                     <p className="text-sm font-extrabold text-white">{PRICING_PLANS.free.compareLabel}</p>
                     <p className="mt-0.5 text-xs font-medium text-white/55">{formatInr(0)}</p>
                   </th>
+                  ) : null}
                   <th className="px-5 py-4 text-center">
                     <p className="text-sm font-extrabold text-white">{PRICING_PLANS.monthly.compareLabel}</p>
                     <p className="mt-0.5 text-xs font-medium text-white/55">
@@ -287,11 +298,13 @@ export default function PricingPlansSection({
                 {PLAN_COMPARE_ROWS.map((row, i) => (
                   <tr key={row.label} className={i % 2 === 0 ? 'bg-[#fffdf9]' : 'bg-white'}>
                     <td className="px-5 py-3.5 text-sm font-semibold text-[#0a1520]">{row.label}</td>
+                    {showStarter ? (
                     <td className="px-5 py-3.5 text-center">
                       <div className="flex justify-center">
                         <CompareCell value={row.free} />
                       </div>
                     </td>
+                    ) : null}
                     <td className="px-5 py-3.5 text-center">
                       <div className="flex justify-center">
                         <CompareCell value={row.monthly} />

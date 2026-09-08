@@ -31,7 +31,12 @@ import { markNewBusinessOnboarding } from '@/lib/businessOnboarding';
 import AuthRedirectScreen from '@/components/auth/AuthRedirectScreen';
 import { useAlreadyLoggedInRedirect } from '@/hooks/useAlreadyLoggedInRedirect';
 
-type LiveCategory = { id: string; name: string; icon?: string | null };
+type LiveCategory = {
+  id: string;
+  name: string;
+  icon?: string | null;
+  level?: number | null;
+};
 
 function isStep1RegistrationError(error: string): boolean {
   const lower = error.toLowerCase();
@@ -52,7 +57,9 @@ function RegisterFormContent() {
   const [showForm, setShowForm] = useState(false);
   const [liveCategories, setLiveCategories] = useState<LiveCategory[]>(mockCategories);
   const [subCategories, setSubCategories] = useState<LiveCategory[]>([]);
+  const [nestedSubCategories, setNestedSubCategories] = useState<LiveCategory[]>([]);
   const [loadingSubcategories, setLoadingSubcategories] = useState(false);
+  const [loadingNestedSubcategories, setLoadingNestedSubcategories] = useState(false);
 
   useEffect(() => {
     async function fetchCats() {
@@ -103,6 +110,7 @@ function RegisterFormContent() {
     categoryId: '',
     subcategory: '',
     subcategoryId: '',
+    nestedSubcategoryId: '',
     location: '',
     city: '',
     cityCode: '',
@@ -141,11 +149,13 @@ function RegisterFormContent() {
     prefix: <CategoryIcon icon={c.icon} name={c.name} size={20} className="h-5 w-5" />,
   }));
 
-  const subcategoryOptions = subCategories.map((c) => ({
+  const nestedSubcategoryOptions = nestedSubCategories.map((c) => ({
     label: c.name,
     value: c.id,
     prefix: <CategoryIcon icon={c.icon} name={c.name} size={20} className="h-5 w-5" />,
   }));
+  const selectedRoot = liveCategories.find((c) => c.id === formData.categoryId);
+  const rootIsGroup = selectedRoot?.level === 0;
 
   const clearFieldErrors = (...keys: RegistrationFieldKey[]) => {
     setFieldErrors((prev) => {
@@ -183,9 +193,11 @@ function RegisterFormContent() {
       categoryId,
       category: parent?.name || '',
       subcategoryId: '',
+      nestedSubcategoryId: '',
       subcategory: '',
     });
     setSubCategories([]);
+    setNestedSubCategories([]);
 
     if (!categoryId) return;
 
@@ -200,13 +212,40 @@ function RegisterFormContent() {
     }
   };
 
-  const handleSubcategoryChange = (subcategoryId: string) => {
+  const handleSubcategoryChange = async (subcategoryId: string) => {
     const sub = subCategories.find((c) => c.id === subcategoryId);
     const parent = liveCategories.find((c) => c.id === formData.categoryId);
+    const rootIsGroup = parent?.level === 0;
     patchFormData({
       subcategoryId,
       subcategory: sub?.name || '',
-      category: sub && parent ? `${parent.name} › ${sub.name}` : formData.category,
+      nestedSubcategoryId: '',
+      category: rootIsGroup
+        ? sub?.name || formData.category
+        : sub && parent
+          ? `${parent.name} › ${sub.name}`
+          : formData.category,
+    });
+    setNestedSubCategories([]);
+    if (!subcategoryId || !rootIsGroup) return;
+    setLoadingNestedSubcategories(true);
+    try {
+      const res = await getSubCategories(subcategoryId);
+      if (res.success && res.subCategories) {
+        setNestedSubCategories(res.subCategories as LiveCategory[]);
+      }
+    } finally {
+      setLoadingNestedSubcategories(false);
+    }
+  };
+
+  const handleNestedSubcategoryChange = (nestedSubcategoryId: string) => {
+    const leaf = nestedSubCategories.find((c) => c.id === nestedSubcategoryId);
+    const mid = subCategories.find((c) => c.id === formData.subcategoryId);
+    patchFormData({
+      nestedSubcategoryId,
+      category:
+        leaf && mid ? `${mid.name} › ${leaf.name}` : mid?.name || formData.category,
     });
   };
   const stepLabels = ['Basic Details', 'Business Info', 'Success'];
@@ -245,6 +284,7 @@ function RegisterFormContent() {
         displayName: formData.displayName,
         categoryId: formData.categoryId,
         subcategoryId: formData.subcategoryId,
+        nestedSubcategoryId: formData.nestedSubcategoryId,
         city: formData.city,
         state: formData.state,
         country: formData.country,
@@ -254,6 +294,7 @@ function RegisterFormContent() {
         addressLine1: formData.addressLine1,
         addressLine2: formData.addressLine2,
         hasSubcategories: subCategories.length > 0,
+        hasNestedSubcategories: nestedSubCategories.length > 0,
       });
       if (Object.keys(errors).length > 0) {
         setFieldErrors(errors);
@@ -312,8 +353,15 @@ function RegisterFormContent() {
     try {
       const parent = liveCategories.find((c) => c.id === formData.categoryId);
       const sub = subCategories.find((c) => c.id === formData.subcategoryId);
+      const leaf = nestedSubCategories.find((c) => c.id === formData.nestedSubcategoryId);
       const categoryLabel =
-        sub && parent ? `${parent.name} › ${sub.name}` : parent?.name || formData.category;
+        parent?.level === 0
+          ? leaf && sub
+            ? `${sub.name} › ${leaf.name}`
+            : sub?.name || parent?.name || formData.category
+          : sub && parent
+            ? `${parent.name} › ${sub.name}`
+            : parent?.name || formData.category;
 
       const registrationData = {
         ...formData,
@@ -503,10 +551,19 @@ function RegisterFormContent() {
         onFormPatch={patchFormData}
         categoryOptions={categoryOptions}
         subcategoryOptions={subcategoryOptions}
+        nestedSubcategoryOptions={nestedSubcategoryOptions}
         loadingSubcategories={loadingSubcategories}
+        loadingNestedSubcategories={loadingNestedSubcategories}
         showSubcategory={Boolean(formData.categoryId) && (loadingSubcategories || subCategories.length > 0)}
+        showNestedSubcategory={
+          Boolean(formData.subcategoryId) &&
+          (loadingNestedSubcategories || nestedSubCategories.length > 0)
+        }
         onCategoryChange={handleCategoryChange}
         onSubcategoryChange={handleSubcategoryChange}
+        onNestedSubcategoryChange={handleNestedSubcategoryChange}
+        subcategoryLabel={rootIsGroup ? 'Category' : 'Subcategory'}
+        nestedSubcategoryLabel="Subcategory"
         countryOptions={countryOptions}
         stateOptions={stateOptions}
         cityOptions={cityOptions}

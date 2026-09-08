@@ -1,0 +1,187 @@
+import 'server-only';
+
+import { createHmac, timingSafeEqual } from 'crypto';
+import { createServiceClient } from '@/lib/supabase/service';
+import { createClient } from '@/utils/supabase/server';
+import { cookies } from 'next/headers';
+import {
+  hashPassword,
+  PASSWORD_MIN_LENGTH_USER,
+  validatePasswordLength,
+} from '@/lib/security/password';
+import { sendPasswordResetEmail } from '@/lib/email/sendPasswordResetEmail';
+import { SITE_ORIGIN } from '@/lib/siteSeo';
+
+const OTP_WINDOW_MS = 15 * 60 * 1000;
+const GENERIC_OK =
+  'If an account exists for this email, we sent a reset code.';
+
+type ResetNext = 'code' | 'oauth' | 'none';
+
+export type PasswordResetRequestResult = {
+  success: true;
+  message: string;
+  next: ResetNext;
+  provider?: string;
+};
+
+export type PasswordResetFailure = {
+  success: false;
+  error: string;
+};
+
+function dbClient() {
+  return createServiceClient();
+}
+
+function resetSecret(): string {
+  const secret =
+    process.env.PASSWORD_RESET_SECRET?.trim() ||
+    process.env.MOBILE_SESSION_SECRET?.trim() ||
+    process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+  if (!secret) {
+    throw new Error('Missing PASSWORD_RESET_SECRET for password reset');
+  }
+  return secret;
+}
+
+function windowIndex(at = Date.now()): number {
+  return Math.floor(at / OTP_WINDOW_MS);
+}
+
+function otpForEmail(email: string, window: number): string {
+  const hmac = createHmac('sha256', resetSecret())
+    .update(`pw-reset:${email}:${window}`)
+    .digest('hex');
+  const n = parseInt(hmac.slice(0, 8), 16) % 1_000_000;
+  return String(n).padStart(6, '0');
+}
+
+function codesMatch(a: string, b: string): boolean {
+  const left = Buffer.from(a);
+  const right = Buffer.from(b);
+  if (left.length !== right.length) return false;
+  return timingSafeEqual(left, right);
+}
+
+export function verifyPasswordResetCode(email: string, code: string): boolean {
+  const normalized = email.toLowerCase().trim();
+  const digits = String(code || '').replace(/\D/g, '');
+  if (digits.length !== 6) return false;
+  const current = windowIndex();
+  return (
+    codesMatch(digits, otpForEmail(normalized, current)) ||
+    codesMatch(digits, otpForEmail(normalized, current - 1))
+  );
+}
+
+function providerLabel(provider: string): string {
+  if (provider === 'google') return 'Google';
+  if (provider === 'truecaller') return 'Truecaller';
+  if (provider === 'apple') return 'Apple';
+  if (provider === 'github') return 'GitHub';
+  return provider.charAt(0).toUpperCase() + provider.slice(1);
+}
+
+export async function requestPasswordReset(
+  email: string
+): Promise<PasswordResetRequestResult | PasswordResetFailure> {
+  const normalized = String(email || '').trim().toLowerCase();
+  if (!normalized || !normalized.includes('@')) {
+    return { success: false, error: 'Please enter a valid email address.' };
+  }
+
+  const supabase = dbClient() ?? createClient(await cookies());
+  const { data: user } = await supabase
+    .from('User')
+    .select('id, email, authProvider')
+    .eq('email', normalized)
+    .maybeSingle();
+
+  if (!user) {
+    return { success: true, message: GENERIC_OK, next: 'none' };
+  }
+
+  const provider = String(user.authProvider || '').trim().toLowerCase();
+  if (provider && provider !== 'email' && provider !== 'password') {
+    return {
+      success: true,
+      message: `This account uses ${providerLabel(provider)}. Sign in with ${providerLabel(provider)} instead of a password.`,
+      next: 'oauth',
+      provider,
+    };
+  }
+
+  const code = otpForEmail(normalized, windowIndex());
+  const resetUrl = `${SITE_ORIGIN}/reset-password?email=${encodeURIComponent(normalized)}`;
+  const sent = await sendPasswordResetEmail(normalized, code, resetUrl);
+
+  if (!sent) {
+    console.warn('[password-reset] Email was not sent for', normalized);
+  }
+
+  return {
+    success: true,
+    message:
+      'We sent a 6-digit code to your email. It expires in 15 minutes.',
+    next: 'code',
+  };
+}
+
+export async function completePasswordReset(input: {
+  email: string;
+  code: string;
+  password: string;
+}): Promise<{ success: true } | PasswordResetFailure> {
+  const email = String(input.email || '').trim().toLowerCase();
+  const password = String(input.password || '');
+  const code = String(input.code || '').trim();
+
+  if (!email || !email.includes('@')) {
+    return { success: false, error: 'Please enter a valid email address.' };
+  }
+
+  const passwordCheck = validatePasswordLength(password, PASSWORD_MIN_LENGTH_USER);
+  if (!passwordCheck.ok) {
+    return { success: false, error: passwordCheck.error || 'Invalid password' };
+  }
+
+  if (!verifyPasswordResetCode(email, code)) {
+    return {
+      success: false,
+      error: 'That code is invalid or expired. Request a new one.',
+    };
+  }
+
+  const supabase = dbClient() ?? createClient(await cookies());
+  const { data: user } = await supabase
+    .from('User')
+    .select('id, authProvider')
+    .eq('email', email)
+    .maybeSingle();
+
+  if (!user) {
+    return { success: false, error: 'That code is invalid or expired. Request a new one.' };
+  }
+
+  const provider = String(user.authProvider || '').trim().toLowerCase();
+  if (provider && provider !== 'email' && provider !== 'password') {
+    return {
+      success: false,
+      error: `This account uses ${providerLabel(provider)}. Sign in with ${providerLabel(provider)} instead.`,
+    };
+  }
+
+  const hashed = await hashPassword(password);
+  const { error } = await supabase
+    .from('User')
+    .update({ password: hashed, updatedAt: new Date().toISOString() })
+    .eq('id', user.id);
+
+  if (error) {
+    console.error('[password-reset] update failed', error);
+    return { success: false, error: 'Could not update your password. Please try again.' };
+  }
+
+  return { success: true };
+}

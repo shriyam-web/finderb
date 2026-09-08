@@ -15,6 +15,7 @@ export type RegistrationStep2Field =
   | 'displayName'
   | 'categoryId'
   | 'subcategoryId'
+  | 'nestedSubcategoryId'
   | 'addressLine1'
   | 'addressLine2'
   | 'country'
@@ -54,6 +55,7 @@ const REGISTRATION_FIELD_SCROLL_ORDER: RegistrationFieldKey[] = [
   'displayName',
   'categoryId',
   'subcategoryId',
+  'nestedSubcategoryId',
   'addressLine1',
   'addressLine2',
   'country',
@@ -92,6 +94,7 @@ export type RegistrationStep2Input = {
   displayName?: string;
   categoryId: string;
   subcategoryId: string;
+  nestedSubcategoryId?: string;
   city: string;
   state: string;
   country: string;
@@ -101,6 +104,7 @@ export type RegistrationStep2Input = {
   addressLine1: string;
   addressLine2?: string;
   hasSubcategories: boolean;
+  hasNestedSubcategories?: boolean;
 };
 
 export type NormalizedRegistrationData = {
@@ -237,6 +241,9 @@ export function validateRegistrationStep2Fields(
 
   if (input.hasSubcategories && !input.subcategoryId) {
     errors.subcategoryId = 'Please select a subcategory.';
+  }
+  if (input.hasNestedSubcategories && !input.nestedSubcategoryId) {
+    errors.nestedSubcategoryId = 'Please select a subcategory.';
   }
 
   const businessNameError = validateBusinessName(input.businessName);

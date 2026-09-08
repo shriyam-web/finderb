@@ -27,6 +27,7 @@ import { categoryBrowseHref } from '@/lib/categoryDisplay';
 import BusinessListingImage from '@/components/business/BusinessListingImage';
 import { getBusinessProfilePath } from '@/lib/businessSlug';
 import { getBusinessOpenStatus } from '@/lib/businessHours';
+import { shufflePreservingFixedSlots } from '@/lib/categoryFixedSlots';
 import { getDiscountOfferCardLabel } from '@/lib/discountOffer';
 import { formatDistanceFromUser, getDistanceKm } from '@/lib/geo';
 import { useUserCoords } from '@/hooks/useUserCoords';
@@ -164,7 +165,8 @@ function applyMerchantFilters(
   merchants: MerchantCard[],
   activeFilters: MerchantFilterId[],
   userCoords: { lat: number; lng: number } | null,
-  shuffleSeed: string
+  shuffleSeed: string,
+  fixedSlotIds: string[] = []
 ) {
   let rows = [...merchants];
 
@@ -188,9 +190,11 @@ function applyMerchantFilters(
     rows = rows.filter((biz) => Boolean(biz.hasActiveJobs));
   }
 
-  // Default: randomised order so filter chips visibly change the strip.
+  // Default: randomised order, but keep admin-fixed partner slots in place.
   if (activeFilters.length === 0) {
-    return seededShuffle(rows, shuffleSeed);
+    return shufflePreservingFixedSlots(rows, fixedSlotIds, (list) =>
+      seededShuffle(list, shuffleSeed)
+    );
   }
 
   const preferNearest = activeFilters.includes('nearest') && userCoords;
@@ -459,6 +463,7 @@ export default function FeaturedCategoryGroup({
   );
   const [subReady, setSubReady] = useState(false);
   const [merchants, setMerchants] = useState<MerchantCard[]>([]);
+  const [fixedSlotIds, setFixedSlotIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [activeFilters, setActiveFilters] = useState<MerchantFilterId[]>([]);
 
@@ -481,9 +486,10 @@ export default function FeaturedCategoryGroup({
         merchants,
         activeFilters,
         userCoords,
-        `${id}:${selected?.id || selectedId || 'all'}`
+        `${id}:${selected?.id || selectedId || 'all'}`,
+        fixedSlotIds
       ),
-    [merchants, activeFilters, userCoords, id, selected?.id, selectedId]
+    [merchants, activeFilters, userCoords, id, selected?.id, selectedId, fixedSlotIds]
   );
 
   const trendingIds = useMemo(() => {
@@ -575,8 +581,10 @@ export default function FeaturedCategoryGroup({
 
       if (result.success && result.businesses) {
         setMerchants(result.businesses as MerchantCard[]);
+        setFixedSlotIds(result.fixedSlotIds ?? []);
       } else {
         setMerchants([]);
+        setFixedSlotIds([]);
       }
       setLoading(false);
     }

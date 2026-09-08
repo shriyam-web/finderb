@@ -85,6 +85,11 @@ export function getSubscriptionAlertLevel(daysRemaining: number | null): Subscri
   return 'none';
 }
 
+export function isStarterPlan(planId?: string | null): boolean {
+  const normalized = String(planId || 'free').toLowerCase();
+  return normalized === 'free' || normalized === 'starter';
+}
+
 export function getPlanDisplayName(
   planId?: string | null,
   billingCycle?: string | null,

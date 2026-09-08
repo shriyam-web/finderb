@@ -296,8 +296,8 @@ export default function FinderBTutorialsSection({ playlists }: FinderBTutorialsS
                 <div className="relative flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                   <div className="max-w-xl space-y-2">
                     <p className="text-sm font-medium text-[#64748b]">Video guides from the FinderB team</p>
-                    <h2 className="text-2xl font-extrabold tracking-tight text-[#153551] sm:text-3xl lg:text-4xl">
-                      FinderB <span className="text-[#215481]">Tutorials</span>
+                    <h2 className="text-2xl font-extrabold tracking-tight text-black sm:text-3xl lg:text-4xl">
+                      FinderB Tutorials
                     </h2>
                     <p className="max-w-md text-sm leading-relaxed text-[#64748b]">
                       Short walkthroughs on discovering local businesses, listing on FinderB, and

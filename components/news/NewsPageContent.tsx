@@ -179,8 +179,8 @@ export default function NewsPageContent() {
             <ArrowLeft size={16} />
             Back to home
           </Link>
-          <h1 className="text-2xl font-bold tracking-tight text-[#1e293b] sm:text-3xl">
-            FinderB <span className="text-[#2563eb]">News</span>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+            FinderB News
           </h1>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[#64748b] sm:text-base">
             Headlines from trusted sources — local, national, and by topic. Updated throughout the
