@@ -15,6 +15,7 @@ export type FcmPushMessage = {
   body: string;
   data?: Record<string, string>;
   channelId?: string;
+  collapseTag?: string;
 };
 
 let cachedAccount: ServiceAccount | null | undefined;
@@ -183,11 +184,13 @@ export async function sendFcmPushMessages(
             data: item.data,
             android: {
               priority: 'HIGH',
+              collapse_key: item.collapseTag || item.data?.broadcastId || undefined,
               notification: {
                 channelId: item.channelId || 'finderb_heads_up',
                 sound: 'default',
                 defaultVibrateTimings: true,
                 visibility: 'PUBLIC',
+                tag: item.collapseTag || item.data?.broadcastId || undefined,
               },
             },
           },

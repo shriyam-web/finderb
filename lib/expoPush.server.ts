@@ -10,6 +10,7 @@ export type ExpoPushMessage = {
   priority?: 'default' | 'normal' | 'high';
   /** Expo Push API uses hyphenated iOS values, not the client `timeSensitive` spelling. */
   interruptionLevel?: 'passive' | 'active' | 'time-sensitive' | 'critical';
+  collapseId?: string;
   badge?: number;
   ttl?: number;
 };

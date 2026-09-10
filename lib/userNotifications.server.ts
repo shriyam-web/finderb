@@ -59,6 +59,62 @@ function toUserNotification(row: BroadcastRow): UserNotification | null {
   };
 }
 
+function isExpoToken(token: string) {
+  return (
+    token.startsWith('ExponentPushToken[') || token.startsWith('ExpoPushToken[')
+  );
+}
+
+function isIosPlatform(platform?: string | null) {
+  return /^ios$/i.test(String(platform || '').trim());
+}
+
+/** One delivery path per user: native FCM wins on Android so Expo+FCM do not double-alert. */
+function splitPushTokens(
+  rows: Array<{ token?: string | null; user_id?: string | null; platform?: string | null }>,
+): { expoTokens: string[]; fcmTokens: string[] } {
+  const byUser = new Map<
+    string,
+    { expo: string[]; expoIos: string[]; fcm: string[] }
+  >();
+
+  for (const row of rows) {
+    const token = String(row.token || '').trim();
+    if (!token) continue;
+    const userId = String(row.user_id || 'guest').trim() || 'guest';
+    let bucket = byUser.get(userId);
+    if (!bucket) {
+      bucket = { expo: [], expoIos: [], fcm: [] };
+      byUser.set(userId, bucket);
+    }
+    if (isExpoToken(token)) {
+      if (isIosPlatform(row.platform)) bucket.expoIos.push(token);
+      else bucket.expo.push(token);
+    } else {
+      bucket.fcm.push(token);
+    }
+  }
+
+  const expoTokens: string[] = [];
+  const fcmTokens: string[] = [];
+  for (const bucket of byUser.values()) {
+    const uniqueFcm = [...new Set(bucket.fcm)];
+    const uniqueExpo = [...new Set(bucket.expo)];
+    const uniqueIos = [...new Set(bucket.expoIos)];
+    if (uniqueFcm.length) {
+      fcmTokens.push(...uniqueFcm);
+      expoTokens.push(...uniqueIos);
+    } else {
+      expoTokens.push(...uniqueExpo, ...uniqueIos);
+    }
+  }
+
+  return {
+    expoTokens: [...new Set(expoTokens)],
+    fcmTokens: [...new Set(fcmTokens)],
+  };
+}
+
 function db() {
   return createServiceClient();
 }
@@ -122,6 +178,26 @@ export async function upsertUserPushToken(input: {
     console.error('[push-token]', error);
     return { success: false, error: 'Could not save notification token.' };
   }
+
+  if (
+    input.userId &&
+    input.userId !== 'guest' &&
+    !isExpoToken(token)
+  ) {
+    await supabase
+      .from('user_push_tokens')
+      .delete()
+      .eq('user_id', input.userId)
+      .eq('platform', 'android')
+      .like('token', 'ExponentPushToken[%');
+    await supabase
+      .from('user_push_tokens')
+      .delete()
+      .eq('user_id', input.userId)
+      .eq('platform', 'android')
+      .like('token', 'ExpoPushToken[%');
+  }
+
   return { success: true };
 }
 
@@ -189,7 +265,7 @@ export async function dispatchBroadcastPush(broadcastId: string): Promise<{
 
   const { data: tokens, error: tokenError } = await supabase
     .from('user_push_tokens')
-    .select('token');
+    .select('user_id, token, platform');
 
   if (tokenError) {
     if (/does not exist|schema cache/i.test(tokenError.message || '')) {
@@ -198,22 +274,12 @@ export async function dispatchBroadcastPush(broadcastId: string): Promise<{
     return { success: false, error: tokenError.message };
   }
 
-  const unique = [
-    ...new Set(
-      ((tokens || []) as { token?: string }[])
-        .map((item) => String(item.token || '').trim())
-        .filter(Boolean)
-    ),
-  ];
-
-  const expoTokens = unique.filter(
-    (token) =>
-      token.startsWith('ExponentPushToken[') || token.startsWith('ExpoPushToken['),
-  );
-  const fcmTokens = unique.filter(
-    (token) =>
-      !token.startsWith('ExponentPushToken[') &&
-      !token.startsWith('ExpoPushToken['),
+  const { expoTokens, fcmTokens } = splitPushTokens(
+    (tokens || []) as Array<{
+      token?: string | null;
+      user_id?: string | null;
+      platform?: string | null;
+    }>,
   );
 
   const cta = resolveBroadcastCta({
@@ -241,6 +307,7 @@ export async function dispatchBroadcastPush(broadcastId: string): Promise<{
         interruptionLevel: 'time-sensitive',
         badge: 1,
         ttl: 86400,
+        collapseId: row.id,
         data: pushData,
       })),
     ),
@@ -250,6 +317,7 @@ export async function dispatchBroadcastPush(broadcastId: string): Promise<{
         title,
         body,
         channelId: 'finderb_heads_up',
+        collapseTag: row.id,
         data: pushData,
       })),
     ),
