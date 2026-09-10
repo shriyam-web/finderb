@@ -299,14 +299,27 @@ function DashboardContent() {
             }))
           : [];
 
-      const broadcastNotifications = broadcastItems.map((item: { title?: string; message: string; created_at: string }) => ({
-        id: `broadcast-${item.created_at}`,
-        title: item.title || 'FinderB update',
-        message: item.message,
-        created_at: item.created_at,
-        source: 'broadcast' as const,
-        read: false,
-      }));
+      const broadcastNotifications = broadcastItems.map(
+        (item: {
+          id?: string;
+          title?: string;
+          message: string;
+          created_at: string;
+          cta_url?: string | null;
+          cta_label?: string | null;
+          show_datetime?: boolean | null;
+        }) => ({
+          id: item.id || `broadcast-${item.created_at}`,
+          title: item.title || 'FinderB update',
+          message: item.message,
+          created_at: item.created_at,
+          cta_url: item.cta_url || null,
+          cta_label: item.cta_label || null,
+          show_datetime: item.show_datetime !== false,
+          source: 'broadcast' as const,
+          read: false,
+        }),
+      );
 
       const merged = [...merchantItems, ...broadcastNotifications].sort(
         (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
@@ -596,6 +609,16 @@ function DashboardContent() {
               await markMerchantNotificationsRead(businessId);
               setMerchantAlertCount(0);
               setUnreadCount((count) => Math.max(0, count - merchantAlertCount));
+              const broadcastIds = notifications
+                .filter((n) => n.source === 'broadcast' && n.id && !String(n.id).startsWith('broadcast-'))
+                .map((n) => n.id);
+              if (broadcastIds.length) {
+                void fetch('/api/notifications/read', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+                  body: JSON.stringify({ ids: broadcastIds }),
+                });
+              }
             }
           }}
           onNotificationsClose={() => setIsNotificationsOpen(false)}

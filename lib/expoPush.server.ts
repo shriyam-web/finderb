@@ -17,9 +17,7 @@ const EXPO_PUSH_URL = 'https://exp.host/--/api/v2/push/send';
 
 function isExpoPushToken(token: string): boolean {
   return (
-    token.startsWith('ExponentPushToken[') ||
-    token.startsWith('ExpoPushToken[') ||
-    /^[a-zA-Z0-9_-]{20,}$/.test(token)
+    token.startsWith('ExponentPushToken[') || token.startsWith('ExpoPushToken[')
   );
 }
 

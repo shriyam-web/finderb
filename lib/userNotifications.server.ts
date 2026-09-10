@@ -4,14 +4,30 @@ import { createServiceClient } from '@/lib/supabase/service';
 import { createClient } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';
 import { broadcastTargetsUsers } from '@/lib/broadcastAudience';
+import {
+  broadcastShowsDatetime,
+  resolveBroadcastCta,
+} from '@/lib/broadcastFields';
 import { sendExpoPushMessages } from '@/lib/expoPush.server';
+import { sendFcmPushMessages } from '@/lib/fcmPush.server';
 
 export type UserNotification = {
   id: string;
   title: string;
   message: string;
   created_at: string;
+  cta_url: string | null;
+  cta_label: string | null;
+  show_datetime: boolean;
 };
+
+const LIST_SELECT =
+  'id, title, message, target_audience, created_at, cta_url, cta_label, show_datetime';
+const LIST_SELECT_FALLBACK = 'id, title, message, target_audience, created_at';
+const PUSH_SELECT =
+  'id, title, message, target_audience, created_at, push_sent_at, cta_url, cta_label';
+const PUSH_SELECT_FALLBACK = 'id, title, message, target_audience, created_at, push_sent_at';
+const PUSH_SELECT_MIN = 'id, title, message, target_audience, created_at';
 
 type BroadcastRow = {
   id: string;
@@ -20,7 +36,28 @@ type BroadcastRow = {
   target_audience?: unknown;
   created_at?: string | null;
   push_sent_at?: string | null;
+  cta_url?: string | null;
+  cta_label?: string | null;
+  show_datetime?: boolean | null;
 };
+
+function toUserNotification(row: BroadcastRow): UserNotification | null {
+  const message = (row.message || '').trim();
+  if (!message) return null;
+  const cta = resolveBroadcastCta({
+    cta_url: row.cta_url,
+    cta_label: row.cta_label,
+  });
+  return {
+    id: row.id,
+    title: (row.title || 'FinderB update').trim() || 'FinderB update',
+    message,
+    created_at: row.created_at || new Date().toISOString(),
+    cta_url: cta?.url ?? null,
+    cta_label: cta?.label ?? null,
+    show_datetime: broadcastShowsDatetime(row.show_datetime),
+  };
+}
 
 function db() {
   return createServiceClient();
@@ -28,26 +65,31 @@ function db() {
 
 export async function listUserNotifications(limit = 50): Promise<UserNotification[]> {
   const supabase = db() ?? createClient(await cookies());
-  const { data, error } = await supabase
+  const take = Math.min(100, Math.max(1, limit));
+  const full = await supabase
     .from('broadcasts')
-    .select('id, title, message, target_audience, created_at')
+    .select(LIST_SELECT)
     .order('created_at', { ascending: false })
-    .limit(Math.min(100, Math.max(1, limit)));
+    .limit(take);
 
-  if (error) {
-    console.error('[notifications list]', error);
+  const used =
+    full.error && /cta_url|cta_label|show_datetime|schema cache/i.test(full.error.message || '')
+      ? await supabase
+          .from('broadcasts')
+          .select(LIST_SELECT_FALLBACK)
+          .order('created_at', { ascending: false })
+          .limit(take)
+      : full;
+
+  if (used.error) {
+    console.error('[notifications list]', used.error);
     return [];
   }
 
-  return ((data || []) as BroadcastRow[])
+  return ((used.data || []) as BroadcastRow[])
     .filter((row) => broadcastTargetsUsers(row.target_audience))
-    .map((row) => ({
-      id: row.id,
-      title: (row.title || 'FinderB update').trim() || 'FinderB update',
-      message: (row.message || '').trim(),
-      created_at: row.created_at || new Date().toISOString(),
-    }))
-    .filter((row) => row.message);
+    .map(toUserNotification)
+    .filter((row): row is UserNotification => Boolean(row));
 }
 
 export async function upsertUserPushToken(input: {
@@ -104,25 +146,32 @@ export async function dispatchBroadcastPush(broadcastId: string): Promise<{
     return { success: false, error: 'Notifications are not configured.' };
   }
 
-  const { data, error } = await supabase
+  const full = await supabase
     .from('broadcasts')
-    .select('id, title, message, target_audience, created_at, push_sent_at')
+    .select(PUSH_SELECT)
     .eq('id', id)
     .maybeSingle();
 
-  let row: BroadcastRow | null = data as BroadcastRow | null;
-  if (error && /push_sent_at|schema cache/i.test(error.message || '')) {
-    const fallback = await supabase
-      .from('broadcasts')
-      .select('id, title, message, target_audience, created_at')
-      .eq('id', id)
-      .maybeSingle();
-    row = (fallback.data as BroadcastRow | null) ?? null;
-  } else if (error || !data) {
-    return { success: false, error: 'Broadcast not found.' };
-  }
+  const withoutCta =
+    full.error && /cta_url|cta_label|schema cache/i.test(full.error.message || '')
+      ? await supabase
+          .from('broadcasts')
+          .select(PUSH_SELECT_FALLBACK)
+          .eq('id', id)
+          .maybeSingle()
+      : full;
 
-  if (!row) {
+  const used =
+    withoutCta.error && /push_sent_at|schema cache/i.test(withoutCta.error.message || '')
+      ? await supabase
+          .from('broadcasts')
+          .select(PUSH_SELECT_MIN)
+          .eq('id', id)
+          .maybeSingle()
+      : withoutCta;
+
+  const row = used.data as BroadcastRow | null;
+  if (used.error || !row) {
     return { success: false, error: 'Broadcast not found.' };
   }
   if (!broadcastTargetsUsers(row.target_audience)) {
@@ -157,29 +206,85 @@ export async function dispatchBroadcastPush(broadcastId: string): Promise<{
     ),
   ];
 
-  const result = await sendExpoPushMessages(
-    unique.map((token) => ({
-      to: token,
-      title,
-      body,
-      sound: 'default',
-      channelId: 'finderb_heads_up',
-      priority: 'high',
-      interruptionLevel: 'timeSensitive',
-      badge: 1,
-      ttl: 86400,
-      data: { type: 'broadcast', broadcastId: row.id },
-    }))
+  const expoTokens = unique.filter(
+    (token) =>
+      token.startsWith('ExponentPushToken[') || token.startsWith('ExpoPushToken['),
   );
+  const fcmTokens = unique.filter(
+    (token) =>
+      !token.startsWith('ExponentPushToken[') &&
+      !token.startsWith('ExpoPushToken['),
+  );
+
+  const cta = resolveBroadcastCta({
+    cta_url: row.cta_url,
+    cta_label: row.cta_label,
+  });
+  const pushData: Record<string, string> = {
+    type: 'broadcast',
+    broadcastId: row.id,
+  };
+  if (cta) {
+    pushData.ctaUrl = cta.url;
+    pushData.ctaLabel = cta.label;
+  }
+
+  const [expoResult, fcmResult] = await Promise.all([
+    sendExpoPushMessages(
+      expoTokens.map((token) => ({
+        to: token,
+        title,
+        body,
+        sound: 'default',
+        channelId: 'finderb_heads_up',
+        priority: 'high',
+        interruptionLevel: 'timeSensitive',
+        badge: 1,
+        ttl: 86400,
+        data: pushData,
+      })),
+    ),
+    sendFcmPushMessages(
+      fcmTokens.map((token) => ({
+        token,
+        title,
+        body,
+        channelId: 'finderb_heads_up',
+        data: pushData,
+      })),
+    ),
+  ]);
 
   await supabase
     .from('broadcasts')
     .update({ push_sent_at: new Date().toISOString() })
     .eq('id', id);
 
-  if (result.error && result.sent === 0) {
-    return { success: false, error: result.error };
+  const sent = expoResult.sent + fcmResult.sent;
+  const error = [expoResult.error, fcmResult.error].filter(Boolean).join('; ');
+  if (error && sent === 0) {
+    return { success: false, error };
   }
 
-  return { success: true, sent: result.sent };
+  return { success: true, sent };
+}
+
+export async function dispatchPendingBroadcastPushes(): Promise<void> {
+  const supabase = db();
+  if (!supabase) return;
+
+  const { data, error } = await supabase
+    .from('broadcasts')
+    .select('id')
+    .is('push_sent_at', null)
+    .order('created_at', { ascending: false })
+    .limit(8);
+
+  if (error || !data?.length) return;
+
+  for (const row of data) {
+    const id = String((row as { id?: string }).id || '').trim();
+    if (!id) continue;
+    await dispatchBroadcastPush(id).catch(() => undefined);
+  }
 }

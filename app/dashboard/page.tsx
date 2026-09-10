@@ -31,6 +31,21 @@ import { getLastSearchQuery } from '@/lib/lastSearchQuery';
 import CategoryIcon from '@/components/CategoryIcon';
 import { categoryHref } from '@/lib/categoryDisplay';
 import { getBusinessProfilePath } from '@/lib/businessSlug';
+import { formatDateTimeInr } from '@/lib/formatDateTime';
+import {
+  broadcastShowsDatetime,
+  resolveBroadcastCta,
+} from '@/lib/broadcastFields';
+
+type UserUpdate = {
+  id: string;
+  title: string;
+  message: string;
+  created_at: string;
+  cta_url?: string | null;
+  cta_label?: string | null;
+  show_datetime?: boolean;
+};
 
 type TabId = 'profile' | 'favorites' | 'messages' | 'history' | 'settings';
 
@@ -43,9 +58,7 @@ function DashboardContent() {
   const [categories, setCategories] = useState<any[]>([]);
   const [businesses, setBusinesses] = useState<any[]>([]);
   const [favoriteBusinesses, setFavoriteBusinesses] = useState<any[]>([]);
-  const [notifications, setNotifications] = useState<
-    Array<{ id: string; title: string; message: string; created_at: string }>
-  >([]);
+  const [notifications, setNotifications] = useState<UserUpdate[]>([]);
   const [lastSearch, setLastSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [loading, setLoading] = useState(true);
@@ -101,6 +114,17 @@ function DashboardContent() {
     }
     load();
   }, [router]);
+
+  useEffect(() => {
+    if (activeTab !== 'messages' || notifications.length === 0) return;
+    const ids = notifications.map((item) => item.id).filter(Boolean);
+    if (!ids.length) return;
+    void fetch('/api/notifications/read', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ ids }),
+    });
+  }, [activeTab, notifications]);
 
   const setTab = (id: TabId) => {
     setActiveTab(id);
@@ -556,7 +580,9 @@ function DashboardContent() {
               </p>
               {notifications.length > 0 ? (
                 <ul className="mt-6 space-y-3">
-                  {notifications.map((item) => (
+                  {notifications.map((item) => {
+                    const cta = resolveBroadcastCta(item);
+                    return (
                     <li
                       key={item.id}
                       className="rounded-2xl border border-slate-200/80 bg-white px-4 py-4"
@@ -565,11 +591,25 @@ function DashboardContent() {
                       <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-slate-600">
                         {item.message}
                       </p>
-                      <p className="mt-2 text-xs text-slate-400">
-                        {new Date(item.created_at).toLocaleString('en-IN')}
-                      </p>
+                      {cta ? (
+                        <a
+                          href={cta.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-[#215481] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#1a4367]"
+                        >
+                          {cta.label}
+                          <ExternalLink size={12} />
+                        </a>
+                      ) : null}
+                      {broadcastShowsDatetime(item.show_datetime) ? (
+                        <p className="mt-2 text-xs text-slate-400">
+                          {formatDateTimeInr(item.created_at)}
+                        </p>
+                      ) : null}
                     </li>
-                  ))}
+                    );
+                  })}
                 </ul>
               ) : (
                 <div className="mt-6 rounded-2xl border border-dashed border-slate-200 bg-white p-8 text-center">

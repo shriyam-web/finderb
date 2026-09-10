@@ -23,16 +23,36 @@ export async function POST(request: Request) {
 
     const body = (await request.json().catch(() => null)) as {
       token?: string;
+      fcmToken?: string;
       platform?: string;
     } | null;
 
-    const result = await upsertUserPushToken({
-      userId,
-      token: String(body?.token || ''),
-      platform: String(body?.platform || ''),
-    });
+    const tokens = [
+      String(body?.token || '').trim(),
+      String(body?.fcmToken || '').trim(),
+    ].filter((value, index, list) => value.length >= 20 && list.indexOf(value) === index);
 
-    return NextResponse.json(result, { status: result.success ? 200 : 400 });
+    if (!tokens.length) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid push token.' },
+        { status: 400 },
+      );
+    }
+
+    let last = { success: true as const };
+    for (const pushToken of tokens) {
+      const result = await upsertUserPushToken({
+        userId,
+        token: pushToken,
+        platform: String(body?.platform || ''),
+      });
+      if (!result.success) {
+        return NextResponse.json(result, { status: 400 });
+      }
+      last = result;
+    }
+
+    return NextResponse.json(last, { status: 200 });
   } catch (error) {
     console.error('[push-token]', error);
     return NextResponse.json(

@@ -2,6 +2,11 @@
 
 import { HiOutlineBell, HiOutlineCalendarDays } from 'react-icons/hi2';
 import { KycStatusBadge, ListingStatusBadge, PaymentStatusBadge, VerifiedBadge } from './StatusBadge';
+import { formatDateTimeInr } from '@/lib/formatDateTime';
+import {
+  broadcastShowsDatetime,
+  resolveBroadcastCta,
+} from '@/lib/broadcastFields';
 
 type DashboardHeaderProps = {
   activeTab: string;
@@ -14,7 +19,14 @@ type DashboardHeaderProps = {
   isNotificationsOpen: boolean;
   onNotificationsToggle: () => void;
   onNotificationsClose: () => void;
-  notifications: Array<{ title?: string; message: string; created_at: string }>;
+  notifications: Array<{
+    title?: string;
+    message: string;
+    created_at: string;
+    cta_url?: string | null;
+    cta_label?: string | null;
+    show_datetime?: boolean | null;
+  }>;
 };
 
 const tabTitles: Record<string, string> = {
@@ -104,20 +116,30 @@ export default function DashboardHeader({
                   </div>
                   <div className="max-h-80 overflow-y-auto p-2">
                     {notifications.length > 0 ? (
-                      notifications.map((n, i) => (
+                      notifications.map((n, i) => {
+                        const cta = resolveBroadcastCta(n);
+                        return (
                         <div key={i} className="rounded-lg px-3 py-2.5 hover:bg-amber-50/50">
                           <p className="text-sm font-semibold text-slate-900">{n.title}</p>
                           <p className="mt-0.5 text-xs text-slate-600">{n.message}</p>
-                          <p className="mt-1 text-[11px] text-slate-400">
-                            {new Date(n.created_at).toLocaleDateString(undefined, {
-                              month: 'short',
-                              day: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })}
-                          </p>
+                          {cta ? (
+                            <a
+                              href={cta.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="mt-2 inline-flex rounded-md bg-[#215481] px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-[#1a4367]"
+                            >
+                              {cta.label}
+                            </a>
+                          ) : null}
+                          {broadcastShowsDatetime(n.show_datetime) ? (
+                            <p className="mt-1 text-[11px] text-slate-400">
+                              {formatDateTimeInr(n.created_at)}
+                            </p>
+                          ) : null}
                         </div>
-                      ))
+                        );
+                      })
                     ) : (
                       <p className="py-8 text-center text-sm text-slate-500">No new notifications</p>
                     )}
