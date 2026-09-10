@@ -79,7 +79,7 @@ const STATIC_PATHS = [
   '/',
   '/categories',
   '/categories/job',
-  '/categories/admissions',
+  '/categories/education',
   '/movies',
   '/tourist-places',
   '/blog',
@@ -99,7 +99,7 @@ const STATIC_PATHS = [
   '/llms.txt',
 ];
 
-const RESERVED_CATEGORY_SLUGS = new Set(['job', 'admissions']);
+const RESERVED_CATEGORY_SLUGS = new Set(['job']);
 
 function resolveTouristPlaceSlug(place) {
   const persisted = place.slug?.trim();

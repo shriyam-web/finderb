@@ -9,6 +9,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock3,
+  Filter,
   MapPin,
   Navigation,
   Phone,
@@ -41,6 +42,7 @@ export type FeaturedSubcategory = {
   href?: string;
   /** Category label for Business.category queries (e.g. parent name for "All"). */
   queryName?: string;
+  children?: FeaturedSubcategory[];
 };
 
 type FeaturedCategoryGroupProps = {
@@ -109,10 +111,204 @@ function isAllSubcategory(sub: FeaturedSubcategory) {
 }
 
 function pickDefaultSubcategory(subs: FeaturedSubcategory[]) {
+  const realCategories = subs.filter((sub) => !isAllSubcategory(sub));
+  if (realCategories.length === 1) return realCategories[0];
   const allTab = subs.find((sub) => isAllSubcategory(sub));
   if (allTab) return allTab;
   const withBusinesses = subs.find((sub) => (sub.businessCount ?? 0) > 0);
   return withBusinesses ?? subs[0] ?? null;
+}
+
+function nestedTabsFor(category: FeaturedSubcategory | null): FeaturedSubcategory[] {
+  if (!category || isAllSubcategory(category)) return [];
+  const kids = category.children ?? [];
+  if (kids.length === 0) return [];
+  return [
+    {
+      ...category,
+      id: `all:${category.id}`,
+      name: 'All',
+    },
+    ...kids,
+  ];
+}
+
+function CategoryTabsBar({
+  items,
+  selectedId,
+  onSelect,
+  ariaLabel,
+  variant = 'categories',
+}: {
+  items: FeaturedSubcategory[];
+  selectedId: string;
+  onSelect: (id: string) => void;
+  ariaLabel: string;
+  variant?: 'categories' | 'subcategories';
+}) {
+  const tabsRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+  const idsKey = items.map((item) => item.id).join(',');
+
+  useEffect(() => {
+    const el = tabsRef.current;
+    if (!el) return;
+
+    const update = () => {
+      const maxScroll = el.scrollWidth - el.clientWidth;
+      setCanScrollLeft(el.scrollLeft > 2);
+      setCanScrollRight(maxScroll > 2 && el.scrollLeft < maxScroll - 2);
+    };
+
+    update();
+    el.addEventListener('scroll', update, { passive: true });
+    const observer = new ResizeObserver(update);
+    observer.observe(el);
+    const raf = requestAnimationFrame(update);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      el.removeEventListener('scroll', update);
+      observer.disconnect();
+    };
+  }, [idsKey]);
+
+  const scrollTabs = (direction: 'left' | 'right') => {
+    const el = tabsRef.current;
+    if (!el) return;
+    const step = Math.max(el.clientWidth * 0.6, 140);
+    el.scrollBy({
+      left: direction === 'left' ? -step : step,
+      behavior: 'smooth',
+    });
+  };
+
+  const selectTab = (subId: string) => {
+    onSelect(subId);
+    requestAnimationFrame(() => {
+      const tab = tabsRef.current?.querySelector<HTMLElement>(`[data-sub-id="${subId}"]`);
+      tab?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+    });
+  };
+
+  if (items.length === 0) return null;
+
+  const isPills = variant === 'subcategories';
+
+  return (
+    <div className="relative">
+      <div className="flex items-center gap-1 sm:gap-1.5">
+        {canScrollLeft ? (
+          <button
+            type="button"
+            onClick={() => scrollTabs('left')}
+            className={`flex shrink-0 items-center justify-center rounded-full border bg-white text-slate-500 shadow-sm transition-colors hover:border-primary/30 hover:text-primary ${
+              isPills ? 'h-7 w-7 border-slate-200/80' : 'h-8 w-8 border-slate-200'
+            }`}
+            aria-label={`Scroll ${ariaLabel} left`}
+          >
+            <ChevronLeft size={isPills ? 14 : 16} strokeWidth={2} />
+          </button>
+        ) : null}
+
+        <div
+          ref={tabsRef}
+          className="scrollbar-hide min-w-0 flex-1 overflow-x-auto"
+          role="tablist"
+          aria-label={ariaLabel}
+        >
+          {isPills ? (
+            <div className="flex gap-1.5 py-0.5">
+              {items.map((sub) => {
+                const isActive = sub.id === selectedId;
+                return (
+                  <button
+                    key={sub.id}
+                    type="button"
+                    role="tab"
+                    data-sub-id={sub.id}
+                    aria-selected={isActive}
+                    onClick={() => selectTab(sub.id)}
+                    className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-semibold tracking-tight transition-colors duration-150 sm:px-3 sm:text-[11px] ${
+                      isActive
+                        ? 'bg-slate-900 text-white shadow-sm'
+                        : 'bg-white text-slate-600 ring-1 ring-slate-200/90 hover:bg-slate-50 hover:text-slate-900 hover:ring-slate-300'
+                    }`}
+                  >
+                    <CategoryIcon
+                      icon={sub.icon}
+                      name={sub.name}
+                      size={14}
+                      className={`h-3.5 w-3.5 ${isActive ? 'text-white' : 'text-slate-400'}`}
+                      imageClassName="object-contain"
+                    />
+                    <span className="max-w-[9.5rem] truncate">{sub.name}</span>
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="flex gap-1.5 pb-0.5 pt-0.5 sm:gap-2">
+              {items.map((sub) => {
+                const isActive = sub.id === selectedId;
+                return (
+                  <button
+                    key={sub.id}
+                    type="button"
+                    role="tab"
+                    data-sub-id={sub.id}
+                    aria-selected={isActive}
+                    onClick={() => selectTab(sub.id)}
+                    className="group/tab relative flex w-[4rem] shrink-0 flex-col items-center gap-1 px-0.5 py-1 text-center transition-colors duration-200 sm:w-[4.35rem]"
+                  >
+                    <CategoryIcon
+                      icon={sub.icon}
+                      name={sub.name}
+                      size={24}
+                      className={`h-6 w-6 transition-colors duration-200 sm:h-[26px] sm:w-[26px] ${
+                        isActive
+                          ? 'text-primary'
+                          : 'text-slate-500 group-hover/tab:text-primary'
+                      }`}
+                      imageClassName="object-contain"
+                    />
+                    <span
+                      className={`line-clamp-2 w-full text-[9px] font-semibold leading-tight transition-colors duration-200 sm:text-[10px] ${
+                        isActive
+                          ? 'text-primary'
+                          : 'text-slate-500 group-hover/tab:text-slate-700'
+                      }`}
+                    >
+                      {sub.name}
+                    </span>
+                    <span
+                      className={`mt-0.5 h-0.5 w-4 rounded-full transition-colors duration-200 ${
+                        isActive ? 'bg-primary' : 'bg-transparent'
+                      }`}
+                    />
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {canScrollRight ? (
+          <button
+            type="button"
+            onClick={() => scrollTabs('right')}
+            className={`flex shrink-0 items-center justify-center rounded-full border bg-white text-slate-500 shadow-sm transition-colors hover:border-primary/30 hover:text-primary ${
+              isPills ? 'h-7 w-7 border-slate-200/80' : 'h-8 w-8 border-slate-200'
+            }`}
+            aria-label={`Scroll ${ariaLabel} right`}
+          >
+            <ChevronRight size={isPills ? 14 : 16} strokeWidth={2} />
+          </button>
+        ) : null}
+      </div>
+    </div>
+  );
 }
 
 function writeStoredSubcategoryId(categoryId: string, subId: string) {
@@ -452,32 +648,39 @@ export default function FeaturedCategoryGroup({
   const userCoords = useUserCoords();
   const sectionRef = useRef<HTMLElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const tabsRef = useRef<HTMLDivElement>(null);
   const [inView, setInView] = useState(false);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
-  const [canScrollTabsLeft, setCanScrollTabsLeft] = useState(false);
-  const [canScrollTabsRight, setCanScrollTabsRight] = useState(false);
   const [selectedId, setSelectedId] = useState(
     () => pickDefaultSubcategory(subcategories)?.id ?? ''
   );
+  const [nestedSelectedId, setNestedSelectedId] = useState('');
   const [subReady, setSubReady] = useState(false);
   const [merchants, setMerchants] = useState<MerchantCard[]>([]);
   const [fixedSlotIds, setFixedSlotIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [activeFilters, setActiveFilters] = useState<MerchantFilterId[]>([]);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const filterPanelRef = useRef<HTMLDivElement>(null);
 
   const subIdsKey = subcategories.map((sub) => sub.id).join(',');
 
   const selected =
     subcategories.find((sub) => sub.id === selectedId) ??
     pickDefaultSubcategory(subcategories);
+  const nestedTabs = nestedTabsFor(selected);
+  const nestedSelected =
+    nestedTabs.find((tab) => tab.id === nestedSelectedId) ?? nestedTabs[0] ?? null;
+  const listingSource =
+    nestedSelected && !isAllSubcategory(nestedSelected) ? nestedSelected : selected;
+  const hideCategoryRow =
+    subcategories.filter((sub) => !isAllSubcategory(sub)).length <= 1;
 
-  const viewAllHref = selected
-    ? selected.href ||
-      (selected.id?.startsWith('all:')
+  const viewAllHref = listingSource
+    ? listingSource.href ||
+      (listingSource.id?.startsWith('all:')
         ? categoryBrowseHref({ slug, name: title })
-        : categoryBrowseHref({ slug, name: title }, selected))
+        : categoryBrowseHref({ slug, name: title }, listingSource))
     : categoryBrowseHref({ slug, name: title });
 
   const visibleMerchants = useMemo(
@@ -486,10 +689,10 @@ export default function FeaturedCategoryGroup({
         merchants,
         activeFilters,
         userCoords,
-        `${id}:${selected?.id || selectedId || 'all'}`,
+        `${id}:${listingSource?.id || selected?.id || selectedId || 'all'}`,
         fixedSlotIds
       ),
-    [merchants, activeFilters, userCoords, id, selected?.id, selectedId, fixedSlotIds]
+    [merchants, activeFilters, userCoords, id, listingSource?.id, selected?.id, selectedId, fixedSlotIds]
   );
 
   const trendingIds = useMemo(() => {
@@ -505,13 +708,8 @@ export default function FeaturedCategoryGroup({
 
   const selectSubcategory = (subId: string) => {
     setSelectedId(subId);
+    setNestedSelectedId('');
     writeStoredSubcategoryId(id, subId);
-    requestAnimationFrame(() => {
-      const tab = tabsRef.current?.querySelector<HTMLElement>(
-        `[data-sub-id="${subId}"]`
-      );
-      tab?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-    });
   };
 
   const toggleFilter = (filterId: MerchantFilterId) => {
@@ -526,10 +724,31 @@ export default function FeaturedCategoryGroup({
     setActiveFilters((prev) => prev.filter((fid) => fid !== filterId));
   };
 
+  useEffect(() => {
+    if (!filterOpen) return;
+
+    const onPointerDown = (event: MouseEvent) => {
+      if (!filterPanelRef.current?.contains(event.target as Node)) {
+        setFilterOpen(false);
+      }
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setFilterOpen(false);
+    };
+
+    document.addEventListener('mousedown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [filterOpen]);
+
   // Always open on "All" for each category section.
   useEffect(() => {
     const fallback = pickDefaultSubcategory(subcategories)?.id ?? '';
     setSelectedId(fallback);
+    setNestedSelectedId('');
     setSubReady(true);
     if (fallback) writeStoredSubcategoryId(id, fallback);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- subIdsKey tracks list identity
@@ -544,6 +763,11 @@ export default function FeaturedCategoryGroup({
       if (fallback) writeStoredSubcategoryId(id, fallback);
     }
   }, [subReady, selectedId, subIdsKey, id, subcategories]);
+
+  useEffect(() => {
+    const tabs = nestedTabsFor(selected);
+    setNestedSelectedId(tabs[0]?.id ?? '');
+  }, [selected?.id]);
 
   useEffect(() => {
     const el = sectionRef.current;
@@ -564,15 +788,16 @@ export default function FeaturedCategoryGroup({
   }, []);
 
   useEffect(() => {
-    if (!inView || !subReady || !selected) return;
+    if (!inView || !subReady || !listingSource) return;
 
     let cancelled = false;
-    const query = selected.queryName || selected.slug || selected.name;
+    const query = listingSource.queryName || listingSource.slug || listingSource.name;
 
     async function load() {
       setLoading(true);
       setMerchants([]);
       setActiveFilters([]);
+      setFilterOpen(false);
       const result = await getBusinessesByCategory(query, {
         page: 1,
         pageSize: HOME_MERCHANT_PAGE_SIZE,
@@ -593,7 +818,14 @@ export default function FeaturedCategoryGroup({
     return () => {
       cancelled = true;
     };
-  }, [inView, subReady, selected?.id, selected?.slug, selected?.name, selected?.queryName]);
+  }, [
+    inView,
+    subReady,
+    listingSource?.id,
+    listingSource?.slug,
+    listingSource?.name,
+    listingSource?.queryName,
+  ]);
 
   useEffect(() => {
     const el = scrollRef.current;
@@ -614,30 +846,7 @@ export default function FeaturedCategoryGroup({
       el.removeEventListener('scroll', update);
       observer.disconnect();
     };
-  }, [visibleMerchants, loading, selectedId, activeFilters]);
-
-  useEffect(() => {
-    const el = tabsRef.current;
-    if (!el) return;
-
-    const update = () => {
-      const maxScroll = el.scrollWidth - el.clientWidth;
-      setCanScrollTabsLeft(el.scrollLeft > 2);
-      setCanScrollTabsRight(maxScroll > 2 && el.scrollLeft < maxScroll - 2);
-    };
-
-    update();
-    el.addEventListener('scroll', update, { passive: true });
-    const observer = new ResizeObserver(update);
-    observer.observe(el);
-    const raf = requestAnimationFrame(update);
-
-    return () => {
-      cancelAnimationFrame(raf);
-      el.removeEventListener('scroll', update);
-      observer.disconnect();
-    };
-  }, [subcategories]);
+  }, [visibleMerchants, loading, selectedId, nestedSelectedId, activeFilters]);
 
   const scrollByCards = (direction: 'left' | 'right') => {
     const el = scrollRef.current;
@@ -648,17 +857,7 @@ export default function FeaturedCategoryGroup({
     });
   };
 
-  const scrollTabs = (direction: 'left' | 'right') => {
-    const el = tabsRef.current;
-    if (!el) return;
-    const step = Math.max(el.clientWidth * 0.6, 140);
-    el.scrollBy({
-      left: direction === 'left' ? -step : step,
-      behavior: 'smooth',
-    });
-  };
-
-  if (!selected) return null;
+  if (!selected || !listingSource) return null;
 
   const isMuted = tone === 'muted';
   const showMerchantSkeleton = !inView || !subReady || loading;
@@ -675,149 +874,130 @@ export default function FeaturedCategoryGroup({
           <h3 className="min-w-0 truncate font-heading text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
             {title}
           </h3>
-          <Link
-            href={viewAllHref}
-            className="group inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-primary transition-colors hover:text-primary-600"
-          >
-            View all
-            <ArrowRight
-              size={14}
-              className="shrink-0 transition-transform duration-200 group-hover:translate-x-0.5"
-            />
-          </Link>
-        </div>
-
-        <div className="relative">
-          <div className="flex items-center gap-1 sm:gap-1.5">
-            {canScrollTabsLeft ? (
-              <button
-                type="button"
-                onClick={() => scrollTabs('left')}
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm transition-colors hover:border-primary/30 hover:text-primary"
-                aria-label="Scroll subcategories left"
-              >
-                <ChevronLeft size={16} strokeWidth={2} />
-              </button>
-            ) : null}
-
-            <div
-              ref={tabsRef}
-              className="scrollbar-hide min-w-0 flex-1 overflow-x-auto"
-              role="tablist"
-              aria-label={`${title} subcategories`}
+          <div className="flex shrink-0 items-center gap-2.5">
+            <Link
+              href={viewAllHref}
+              className="group inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-primary transition-colors hover:text-primary-600"
             >
-              <div className="flex gap-1.5 pb-0.5 pt-0.5 sm:gap-2">
-                {subcategories.map((sub) => {
-                  const isActive = sub.id === selected.id;
-                  return (
-                    <button
-                      key={sub.id}
-                      type="button"
-                      role="tab"
-                      data-sub-id={sub.id}
-                      aria-selected={isActive}
-                      onClick={() => selectSubcategory(sub.id)}
-                      className="group/tab relative flex w-[4rem] shrink-0 flex-col items-center gap-1 px-0.5 py-1 text-center transition-colors duration-200 sm:w-[4.35rem]"
-                    >
-                      <CategoryIcon
-                        icon={sub.icon}
-                        name={sub.name}
-                        size={24}
-                        className={`h-6 w-6 transition-colors duration-200 sm:h-[26px] sm:w-[26px] ${
-                          isActive
-                            ? 'text-primary'
-                            : 'text-slate-500 group-hover/tab:text-primary'
-                        }`}
-                        imageClassName="object-contain"
-                      />
-                      <span
-                        className={`line-clamp-2 w-full text-[9px] font-semibold leading-tight transition-colors duration-200 sm:text-[10px] ${
-                          isActive
-                            ? 'text-primary'
-                            : 'text-slate-500 group-hover/tab:text-slate-700'
-                        }`}
-                      >
-                        {sub.name}
-                      </span>
-                      <span
-                        className={`mt-0.5 h-0.5 w-4 rounded-full transition-colors duration-200 ${
-                          isActive ? 'bg-primary' : 'bg-transparent'
-                        }`}
-                      />
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {canScrollTabsRight ? (
+              View all
+              <ArrowRight
+                size={14}
+                className="shrink-0 transition-transform duration-200 group-hover:translate-x-0.5"
+              />
+            </Link>
+            <div ref={filterPanelRef} className="relative">
               <button
                 type="button"
-                onClick={() => scrollTabs('right')}
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm transition-colors hover:border-primary/30 hover:text-primary"
-                aria-label="Scroll subcategories right"
+                onClick={() => setFilterOpen((open) => !open)}
+                aria-expanded={filterOpen}
+                aria-haspopup="dialog"
+                aria-label="Filters"
+                className={`relative inline-flex h-8 w-8 items-center justify-center rounded-full transition-colors ${
+                  filterOpen || activeFilters.length > 0
+                    ? 'bg-slate-900 text-white'
+                    : 'bg-white text-slate-600 ring-1 ring-slate-200 hover:text-slate-900'
+                }`}
               >
-                <ChevronRight size={16} strokeWidth={2} />
+                <Filter size={14} />
+                {activeFilters.length > 0 ? (
+                  <span className="absolute -right-0.5 -top-0.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-primary px-0.5 text-[9px] font-bold text-white">
+                    {activeFilters.length}
+                  </span>
+                ) : null}
               </button>
-            ) : null}
-          </div>
-        </div>
 
-        <div className="mt-1 flex items-center gap-2 border-t border-slate-200/70 pt-1.5">
-          <span className="shrink-0 text-[10px] font-semibold text-slate-500">
-            Filters
-          </span>
-          <div
-            className="scrollbar-hide flex min-w-0 flex-1 gap-1 overflow-x-auto"
-            role="group"
-            aria-label="Listing filters"
-          >
-            {MERCHANT_FILTERS.map((filter) => {
-              const isActive = activeFilters.includes(filter.id);
-              const Icon = filter.icon;
-              const nearestDisabled = filter.id === 'nearest' && !userCoords;
-              return (
-                <button
-                  key={filter.id}
-                  type="button"
-                  disabled={nearestDisabled}
-                  aria-pressed={isActive}
-                  title={
-                    nearestDisabled
-                      ? 'Allow location to sort by nearest'
-                      : filter.label
-                  }
-                  onClick={() => toggleFilter(filter.id)}
-                  className={`inline-flex shrink-0 items-center gap-1 rounded-md border px-2 py-1 text-[10px] font-medium transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-40 ${
-                    isActive
-                      ? 'border-primary bg-primary text-white'
-                      : 'border-slate-200 bg-transparent text-slate-600 hover:border-primary/40 hover:bg-white hover:text-slate-900'
-                  }`}
+              {filterOpen ? (
+                <div
+                  role="dialog"
+                  aria-label="Listing filters"
+                  className="absolute right-0 z-20 mt-2 w-[min(18rem,calc(100vw-2rem))] rounded-xl border border-slate-200 bg-white p-3 shadow-[0_12px_32px_-16px_rgba(15,23,42,0.35)]"
                 >
-                  <Icon
-                    size={11}
-                    strokeWidth={2}
-                    className={isActive ? 'text-white' : 'text-slate-400'}
-                  />
-                  {filter.label}
-                </button>
-              );
-            })}
+                  <div className="mb-2 flex items-center justify-between gap-3">
+                    <h4 className="text-xs font-semibold text-slate-800">Filters</h4>
+                    <div className="flex items-center gap-3">
+                      {activeFilters.length > 0 ? (
+                        <button
+                          type="button"
+                          onClick={() => setActiveFilters([])}
+                          className="text-[11px] font-semibold text-primary"
+                        >
+                          Clear
+                        </button>
+                      ) : null}
+                      <button
+                        type="button"
+                        onClick={() => setFilterOpen(false)}
+                        className="text-[11px] font-semibold text-slate-500"
+                      >
+                        Done
+                      </button>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5" role="group">
+                    {MERCHANT_FILTERS.map((filter) => {
+                      const isActive = activeFilters.includes(filter.id);
+                      const Icon = filter.icon;
+                      const nearestDisabled = filter.id === 'nearest' && !userCoords;
+                      return (
+                        <button
+                          key={filter.id}
+                          type="button"
+                          disabled={nearestDisabled}
+                          aria-pressed={isActive}
+                          title={
+                            nearestDisabled
+                              ? 'Allow location to sort by nearest'
+                              : filter.label
+                          }
+                          onClick={() => toggleFilter(filter.id)}
+                          className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-40 ${
+                            isActive
+                              ? 'border-slate-900 bg-slate-900 text-white'
+                              : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900'
+                          }`}
+                        >
+                          <Icon
+                            size={11}
+                            strokeWidth={2}
+                            className={isActive ? 'text-white' : 'text-slate-400'}
+                          />
+                          {filter.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : null}
+            </div>
           </div>
-
-          {activeFilters.length > 0 ? (
-            <button
-              type="button"
-              onClick={() => setActiveFilters([])}
-              className="shrink-0 whitespace-nowrap text-[10px] font-semibold text-primary hover:underline"
-              title="Clear all filters"
-            >
-              {activeFilters.length} selected
-            </button>
-          ) : null}
         </div>
 
-        <div role="tabpanel" aria-label={selected.name} className="relative mt-3">
+        {!hideCategoryRow ? (
+          <CategoryTabsBar
+            items={subcategories}
+            selectedId={selected.id}
+            onSelect={selectSubcategory}
+            ariaLabel={`${title} categories`}
+          />
+        ) : null}
+
+        {nestedTabs.length > 0 ? (
+          <div className="mt-2 rounded-xl bg-slate-50/90 px-2 py-1.5 ring-1 ring-slate-200/70 sm:px-2.5">
+            <CategoryTabsBar
+              items={nestedTabs}
+              selectedId={nestedSelected?.id ?? nestedTabs[0].id}
+              onSelect={setNestedSelectedId}
+              ariaLabel={`${selected.name} subcategories`}
+              variant="subcategories"
+            />
+          </div>
+        ) : null}
+
+        <div
+          role="tabpanel"
+          aria-label={listingSource.name}
+          className={`relative ${hideCategoryRow && nestedTabs.length === 0 ? 'mt-1' : 'mt-3'}`}
+        >
           {canScrollLeft ? (
             <div
               className={`pointer-events-none absolute inset-y-0 left-0 z-[1] w-4 sm:w-5 ${
@@ -873,7 +1053,7 @@ export default function FeaturedCategoryGroup({
               </div>
               <p className="text-sm font-semibold text-slate-600">
                 {merchants.length === 0
-                  ? `No listings in ${selected.name} yet`
+                  ? `No listings in ${listingSource.name} yet`
                   : 'No listings match these filters'}
               </p>
               <p className="mt-1 max-w-sm text-xs text-slate-400">
@@ -949,7 +1129,7 @@ export default function FeaturedCategoryGroup({
                 <span className="px-2.5 text-[11px] font-semibold leading-snug text-slate-500 transition-colors group-hover:text-primary">
                   See all
                   <span className="mt-0.5 block font-medium text-slate-400 group-hover:text-primary/70">
-                    {selected.name}
+                    {listingSource.name}
                   </span>
                 </span>
               </Link>

@@ -69,8 +69,7 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
   const isCategoriesBrowse =
     isCategoriesIndex ||
     (pathname?.startsWith('/categories/') &&
-      !pathname.startsWith('/categories/job') &&
-      !pathname.startsWith('/categories/admissions'));
+      !pathname.startsWith('/categories/job'));
   const userDashboardRoute = isUserDashboardRoute(pathname);
   // Instant browse: no splash on home or categories (index + /categories/{slug}).
   const skipSplash =

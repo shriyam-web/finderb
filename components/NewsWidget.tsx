@@ -153,18 +153,13 @@ export default function NewsWidget() {
           if (localState) params.set('state', localState);
         }
         const res = await fetch(`/api/news?${params.toString()}`);
-        if (!res.ok) {
-          const text = await res.text();
-          throw new Error(`News API error ${res.status}: ${text.slice(0, 200)}`);
-        }
         const data = await res.json();
-        if (data.success) {
+        if (data?.success && Array.isArray(data.articles)) {
           setNews(data.articles);
         } else {
-          throw new Error(data.error || 'News API returned no articles');
+          setNews([]);
         }
-      } catch (error) {
-        console.error('Error fetching news:', error);
+      } catch {
         setNews([]);
       } finally {
         setLoading(false);

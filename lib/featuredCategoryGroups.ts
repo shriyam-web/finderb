@@ -1,8 +1,8 @@
 import { categoryBrowseHref, dbBanner, dbSymbol } from '@/lib/categoryDisplay';
 import { countBusinessesForCategoryTree } from '@/lib/categoryBusinessCounts';
 
-/** How many category sections to show on the homepage. */
-export const HOME_FEATURED_GROUP_LIMIT = 6;
+/** @deprecated Homepage shows every parent category; kept for callers that still pass a cap. */
+export const HOME_FEATURED_GROUP_LIMIT = Number.POSITIVE_INFINITY;
 
 export type FeaturedGroupParentRow = {
   id: string;
@@ -34,6 +34,8 @@ export type FeaturedGroupSubcategory = {
   href: string;
   /** Category label used for Business.category queries (defaults to name). */
   queryName?: string;
+  /** Level-2 subcategories shown after this category is selected. */
+  children?: FeaturedGroupSubcategory[];
 };
 
 export type FeaturedCategoryGroup = {
@@ -47,8 +49,9 @@ export type FeaturedCategoryGroup = {
 
 function mapChildSubcategory(
   child: FeaturedGroupChildRow,
-  parent: FeaturedGroupParentRow,
-  businessCount: number
+  browseAs: FeaturedGroupParentRow,
+  businessCount: number,
+  nested: FeaturedGroupSubcategory[] = []
 ): FeaturedGroupSubcategory {
   return {
     id: child.id,
@@ -57,9 +60,22 @@ function mapChildSubcategory(
     icon: dbSymbol(child.symbol) ?? '',
     image: dbBanner(child.banner) ?? '',
     businessCount,
-    href: categoryBrowseHref({ slug: parent.slug, name: parent.name }, child),
+    href: categoryBrowseHref({ slug: browseAs.slug, name: browseAs.name }, child),
     queryName: child.name,
+    children: nested,
   };
+}
+
+function sortByMerchantCount<T extends { name: string; businessCount?: number }>(items: T[]): T[] {
+  return [...items].sort((a, b) => {
+    const aCount = a.businessCount ?? 0;
+    const bCount = b.businessCount ?? 0;
+    const aHas = aCount > 0 ? 1 : 0;
+    const bHas = bCount > 0 ? 1 : 0;
+    if (bHas !== aHas) return bHas - aHas;
+    if (bCount !== aCount) return bCount - aCount;
+    return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+  });
 }
 
 function collectDescendantNames(
@@ -71,15 +87,15 @@ function collectDescendantNames(
 }
 
 /**
- * Build homepage featured category sections from category rows + live Business labels.
- * Includes parent-level and leaf categories (not only subcategory hits), sorted by
- * onboarded merchant count, capped at {@link HOME_FEATURED_GROUP_LIMIT}.
+ * Build homepage category sections: every parent, its categories, and nested
+ * subcategories for the selected category. Sorted by onboarded merchant count.
+ * Pass `limit` only when a caller still wants a cap.
  */
 export function buildFeaturedCategoryGroups(
   parents: FeaturedGroupParentRow[],
   children: FeaturedGroupChildRow[],
   businessLabels: string[],
-  limit = HOME_FEATURED_GROUP_LIMIT,
+  limit?: number,
   grandchildren: FeaturedGroupChildRow[] = []
 ): FeaturedCategoryGroup[] {
   const childrenByParent = new Map<string, FeaturedGroupChildRow[]>();
@@ -123,30 +139,40 @@ export function buildFeaturedCategoryGroups(
         } satisfies FeaturedCategoryGroup;
       }
 
-      const childSubs = subs
-        .map((child) =>
-          mapChildSubcategory(
+      const childSubs = sortByMerchantCount(
+        subs.map((child) => {
+          const nested = sortByMerchantCount(
+            (childrenByParent.get(child.id) ?? []).map((grand) =>
+              mapChildSubcategory(
+                grand,
+                {
+                  id: child.id,
+                  name: child.name,
+                  slug: child.slug,
+                  symbol: child.symbol,
+                  banner: child.banner,
+                },
+                countBusinessesForCategoryTree(
+                  grand.name,
+                  collectDescendantNames(grand.id, childrenByParent),
+                  businessLabels
+                )
+              )
+            )
+          );
+
+          return mapChildSubcategory(
             child,
             parent,
             countBusinessesForCategoryTree(
               child.name,
               collectDescendantNames(child.id, childrenByParent),
               businessLabels
-            )
-          )
-        )
-        .sort((a, b) => {
-          const aCount = a.businessCount ?? 0;
-          const bCount = b.businessCount ?? 0;
-          const aHas = aCount > 0 ? 1 : 0;
-          const bHas = bCount > 0 ? 1 : 0;
-          if (bHas !== aHas) return bHas - aHas;
-          if (bCount !== aCount) return bCount - aCount;
-          return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
-        });
-
-      const hasSubMerchants = childSubs.some((sub) => (sub.businessCount ?? 0) > 0);
-      if (merchantCount === 0 && !hasSubMerchants) return null;
+            ),
+            nested
+          );
+        })
+      );
 
       const subcategories: FeaturedGroupSubcategory[] = [
         {
@@ -173,10 +199,14 @@ export function buildFeaturedCategoryGroups(
     })
     .filter((g): g is FeaturedCategoryGroup => g !== null);
 
-  return groups
-    .sort(
-      (a, b) =>
-        b.merchantCount - a.merchantCount || a.title.localeCompare(b.title, undefined, { sensitivity: 'base' })
-    )
-    .slice(0, Math.max(1, limit));
+  const sorted = groups.sort(
+    (a, b) =>
+      b.merchantCount - a.merchantCount || a.title.localeCompare(b.title, undefined, { sensitivity: 'base' })
+  );
+
+  if (typeof limit === 'number' && Number.isFinite(limit) && limit > 0) {
+    return sorted.slice(0, Math.max(1, limit));
+  }
+
+  return sorted;
 }

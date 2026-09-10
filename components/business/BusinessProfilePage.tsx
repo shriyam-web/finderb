@@ -2,12 +2,16 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import Image from 'next/image';
 import Link from 'next/link';
 import {
-  ArrowLeft,
+  Briefcase,
   Building2,
-  Clock,
+  ChevronLeft,
+  Heart,
   MapPin,
+  MessageCircle,
+  Navigation,
   Phone,
   Share2,
   Star,
@@ -18,16 +22,15 @@ import type { Business } from '@/lib/mockData';
 import { findCategoryForBreadcrumb, type CategoryBreadcrumb } from '@/app/actions/category';
 import { getBusiness, getBusinessesByCategory, getBusinessSession } from '@/app/actions/business';
 import { submitBusinessReview } from '@/app/actions/reviews';
-import { getSession } from '@/app/actions/user';
+import { getSession, toggleFavorite } from '@/app/actions/user';
 import { recordDirectLead } from '@/app/actions/leads';
 import ConnectMerchantModal from '@/components/ConnectMerchantModal';
 import OpenInAppPrefer from '@/components/business/OpenInAppPrefer';
-import BusinessCard from '@/components/BusinessCard';
-import StackedPhotoGallery from '@/components/business/StackedPhotoGallery';
-import BusinessProfileBackdrop from '@/components/business/BusinessProfileBackdrop';
+import BusinessProfileHeroGallery, {
+  type BusinessProfileHeroGalleryHandle,
+} from '@/components/business/BusinessProfileHeroGallery';
 import BusinessProfileBreadcrumb from '@/components/business/BusinessProfileBreadcrumb';
 import BusinessProfileServicesSection from '@/components/business/BusinessProfileServicesSection';
-import BusinessProfileHeroBadges from '@/components/business/BusinessProfileHeroBadges';
 import { VerifiedNameTick } from '@/components/business/VerifiedMark';
 import BusinessProfileContactAside from '@/components/business/BusinessProfileContactAside';
 import BusinessProfileOfferBanner from '@/components/business/BusinessProfileOfferBanner';
@@ -35,11 +38,10 @@ import BusinessProfileAboutSection from '@/components/business/BusinessProfileAb
 import BusinessProfileJobsSection, {
   type ProfileJob,
 } from '@/components/business/BusinessProfileJobsSection';
-import BusinessProfileReviewCard from '@/components/business/BusinessProfileReviewCard';
 import BusinessProfileReviewItem from '@/components/business/BusinessProfileReviewItem';
-import DistanceBadge from '@/components/business/DistanceBadge';
+import BusinessProfileRelatedRail from '@/components/business/BusinessProfileRelatedRail';
 import { getBusinessLocationLabel } from '@/lib/businessBreadcrumb';
-import { getBusinessOpenStatus } from '@/lib/businessHours';
+import { getBusinessOpenStatus, getWeeklyHours } from '@/lib/businessHours';
 import {
   getPublicReviewRating,
   parseBusinessReviewReply,
@@ -53,8 +55,7 @@ import {
   shareBusinessPage,
   whatsAppHref,
 } from '@/lib/businessContact';
-import { formatEstablishmentYearsLabel } from '@/lib/establishmentYear';
-import { formatTimingRange12h } from '@/lib/formatBusinessHours';
+import { isValidEstablishmentYear } from '@/lib/establishmentYear';
 import { getBusinessGalleryImages } from '@/lib/businessMapping';
 import { buildLoginHref } from '@/lib/authRedirect';
 import {
@@ -73,43 +74,6 @@ import {
   shouldRecordProfileViewToday,
 } from '@/lib/profileViews';
 import { getActiveJobsByBusiness } from '@/app/actions/job';
-
-const WEEKDAYS = [
-  'Monday',
-  'Tuesday',
-  'Wednesday',
-  'Thursday',
-  'Friday',
-  'Saturday',
-  'Sunday',
-] as const;
-
-const BASE_SECTIONS = [
-  { id: 'services', label: 'Services' },
-  { id: 'contact', label: 'Contact' },
-  { id: 'hours', label: 'Hours' },
-  { id: 'reviews', label: 'Reviews' },
-  { id: 'about', label: 'About' },
-] as const;
-
-type SectionId = (typeof BASE_SECTIONS)[number]['id'] | 'jobs';
-
-type SessionUser = {
-  id: string;
-  fullName: string;
-  email: string;
-};
-
-type SessionBusiness = {
-  id: string;
-  name: string;
-  email: string;
-  phone: string | null;
-};
-
-function getGalleryImages(business: Business): string[] {
-  return getBusinessGalleryImages(business);
-}
 
 function StarPicker({
   value,
@@ -141,6 +105,33 @@ function StarPicker({
   );
 }
 
+function categoryYearsLine(category: string, year: number | null | undefined) {
+  const cat = category.trim() || 'Business';
+  if (!isValidEstablishmentYear(year)) return cat;
+  const years = new Date().getFullYear() - year;
+  if (years <= 0) return cat;
+  return `${cat} · ${years}+ yrs`;
+}
+
+type SessionUser = {
+  id: string;
+  fullName: string;
+  email: string;
+  favorites: string[];
+};
+
+type SessionBusiness = {
+  id: string;
+  name: string;
+  email: string;
+  phone: string | null;
+};
+
+function toFavoriteIds(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.map((id) => String(id || '').trim()).filter(Boolean);
+}
+
 export default function BusinessProfilePage({
   slugOrId,
   initialBusiness = null,
@@ -158,6 +149,8 @@ export default function BusinessProfilePage({
   const router = useRouter();
   const pathname = usePathname();
   const intentHandledRef = useRef(false);
+  const heroRef = useRef<HTMLDivElement>(null);
+  const galleryRef = useRef<BusinessProfileHeroGalleryHandle>(null);
   const [business, setBusiness] = useState<Business | null>(initialBusiness);
   const [related, setRelated] = useState<Business[]>(
     initialRelatedCategory.length > 0 ? initialRelatedCategory : initialRelatedCity
@@ -172,8 +165,6 @@ export default function BusinessProfilePage({
   const [connectModalOpen, setConnectModalOpen] = useState(false);
   const [connectModalInitialStep, setConnectModalInitialStep] = useState<'options' | 'form'>('options');
   const [clientSearchQuery, setClientSearchQuery] = useState('');
-  const [activeImage, setActiveImage] = useState(0);
-  const [activeSection, setActiveSection] = useState<SectionId>('services');
   const [shareMessage, setShareMessage] = useState<string | null>(null);
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewContent, setReviewContent] = useState('');
@@ -185,11 +176,14 @@ export default function BusinessProfilePage({
     initialCategoryBreadcrumb
   );
   const [jobs, setJobs] = useState<ProfileJob[]>([]);
+  const [hoursExpanded, setHoursExpanded] = useState(false);
+  const [compactVisible, setCompactVisible] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
   const userCoords = useUserCoords();
   const businessId = business?.id ?? slugOrId;
 
   useEffect(() => {
-    // Always open merchant profile from top unless an explicit hash is present.
     if (typeof window !== 'undefined' && !window.location.hash) {
       window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
     }
@@ -227,13 +221,13 @@ export default function BusinessProfilePage({
 
         const relatedResult = await getBusinessesByCategory(record.category, {
           page: 1,
-          pageSize: 5,
+          pageSize: 8,
         });
         if (relatedResult.success && relatedResult.businesses) {
           setRelated(
             relatedResult.businesses
               .filter((item) => item.id !== record.id)
-              .slice(0, 4) as Business[]
+              .slice(0, 6) as Business[]
           );
         } else {
           setRelated([]);
@@ -248,6 +242,7 @@ export default function BusinessProfilePage({
           id: sessionResult.user.id,
           fullName: sessionResult.user.fullName,
           email: sessionResult.user.email,
+          favorites: toFavoriteIds(sessionResult.user.favorites),
         });
       } else {
         setSessionUser(null);
@@ -284,6 +279,7 @@ export default function BusinessProfilePage({
           id: sessionResult.user.id,
           fullName: sessionResult.user.fullName,
           email: sessionResult.user.email,
+          favorites: toFavoriteIds(sessionResult.user.favorites),
         });
       } else {
         setSessionUser(null);
@@ -315,10 +311,10 @@ export default function BusinessProfilePage({
     setConnectModalOpen(false);
     setConnectModalInitialStep('options');
     intentHandledRef.current = false;
-    setActiveImage(0);
     setReviewError(null);
     setReviewSuccess(null);
     setReviewContent('');
+    setHoursExpanded(false);
   }, [slugOrId]);
 
   useEffect(() => {
@@ -373,28 +369,27 @@ export default function BusinessProfilePage({
     return () => window.clearTimeout(timer);
   }, [shareMessage]);
 
-  const navSections = useMemo(() => {
-    if (jobs.length === 0) return [...BASE_SECTIONS];
-    const sections: { id: SectionId; label: string }[] = [];
-    for (const section of BASE_SECTIONS) {
-      sections.push(section);
-      if (section.id === 'reviews') {
-        sections.push({ id: 'jobs', label: 'Jobs' });
-      }
-    }
-    return sections;
-  }, [jobs.length]);
+  useEffect(() => {
+    const node = heroRef.current;
+    if (!node) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setCompactVisible(!entry.isIntersecting),
+      { threshold: 0.12, rootMargin: '-72px 0px 0px 0px' }
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [business?.id, isLoading]);
 
-  const scrollToSection = useCallback((sectionId: SectionId) => {
-    setActiveSection(sectionId);
-    document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }, []);
-
-  const galleryImages = useMemo(() => (business ? getGalleryImages(business) : []), [business]);
+  const galleryImages = useMemo(() => (business ? getBusinessGalleryImages(business) : []), [business]);
   const openStatus = useMemo(
     () => (business ? getBusinessOpenStatus(business.timings) : null),
     [business]
   );
+  const weeklyHours = useMemo(
+    () => (business ? getWeeklyHours(business.timings) : []),
+    [business]
+  );
+  const todayHours = weeklyHours.find((row) => row.isToday);
   const ownerReply = useMemo(
     () => (business ? parseBusinessReviewReply(business.reviewReply) : null),
     [business]
@@ -408,6 +403,19 @@ export default function BusinessProfilePage({
     () => Boolean(sessionUser && reviews.some((review) => review.userId === sessionUser.id)),
     [reviews, sessionUser]
   );
+  const ratingBars = useMemo(() => {
+    const counts = [0, 0, 0, 0, 0];
+    for (const review of reviews) {
+      const star = Math.min(5, Math.max(1, Math.round(review.rating)));
+      counts[star - 1] += 1;
+    }
+    const total = Math.max(1, counts.reduce((sum, count) => sum + count, 0));
+    return [5, 4, 3, 2, 1].map((star) => ({
+      star,
+      ratio: counts[star - 1] / total,
+      count: counts[star - 1],
+    }));
+  }, [reviews]);
 
   const phoneLink = useMemo(
     () => (business?.contact ? phoneHref(business.contact) : null),
@@ -428,6 +436,14 @@ export default function BusinessProfilePage({
   const managesThisProfile = Boolean(sessionBusiness?.id && business?.id === sessionBusiness.id);
 
   useEffect(() => {
+    if (!sessionUser || !business?.id) {
+      setSaved(false);
+      return;
+    }
+    setSaved(sessionUser.favorites.includes(business.id));
+  }, [sessionUser, business?.id]);
+
+  useEffect(() => {
     if (!managesThisProfile || !business?.id) {
       setShowManageToast(false);
       return;
@@ -443,6 +459,14 @@ export default function BusinessProfilePage({
     }
     setShowManageToast(false);
   }, [business?.id]);
+
+  const handleBack = useCallback(() => {
+    if (typeof window !== 'undefined' && window.history.length > 1) {
+      router.back();
+      return;
+    }
+    router.push('/');
+  }, [router]);
 
   const handleRequestContact = useCallback(
     (intent: ContactIntent) => {
@@ -475,7 +499,7 @@ export default function BusinessProfilePage({
         setConnectModalOpen(true);
       }
     },
-    [business, sessionUser, phoneLink, whatsappLink, handleRequestContact],
+    [business, sessionUser, sessionBusiness, phoneLink, whatsappLink, handleRequestContact],
   );
 
   useEffect(() => {
@@ -518,13 +542,31 @@ export default function BusinessProfilePage({
       const url = getBusinessShareUrl(business, window.location.origin);
       const result = await shareBusinessPage(business.name, url);
 
-      if (result === 'copied') setShareMessage('Link copied to clipboard');
+      if (result === 'copied') setShareMessage('Link copied');
       else if (result === 'shared') setShareMessage('Shared successfully');
       else if (result === 'unsupported') {
         setShareMessage('Copy blocked — use your browser share menu');
       }
     } catch {
       setShareMessage('Could not share this listing');
+    }
+  };
+
+  const handleSave = async () => {
+    if (!business) return;
+    if (!sessionUser) {
+      router.push(buildLoginHref(getBusinessProfilePath(business)));
+      return;
+    }
+    if (saving) return;
+    setSaving(true);
+    const result = await toggleFavorite(business.id);
+    setSaving(false);
+    if (result.success) {
+      setSaved(result.saved);
+      setSessionUser((current) =>
+        current ? { ...current, favorites: result.favoriteIds } : current
+      );
     }
   };
 
@@ -580,7 +622,7 @@ export default function BusinessProfilePage({
     );
   }
 
-  const locationLabel = getBusinessLocationLabel(business);
+  const locationLabel = business.businessAddress?.trim() || getBusinessLocationLabel(business);
   const isVerified = Boolean(business.isFinderBVerified || business.hasVerifiedBadge);
   const directionsLink = directionsHref({
     latitude: business.latitude,
@@ -593,274 +635,374 @@ export default function BusinessProfilePage({
     business.latitude,
     business.longitude
   );
-  const todayName = new Date().toLocaleDateString('en-US', { weekday: 'long' });
-
   const socialLinks = [
     { label: 'Instagram', href: business.instagramUrl },
     { label: 'Facebook', href: business.facebookUrl },
     { label: 'YouTube', href: business.youtubeUrl },
   ].filter((item) => Boolean(item.href));
+  const showHoursStatus = Boolean(openStatus && openStatus.label !== 'Hours not listed');
+  const ratingValue = displayRating ?? (reviews.length === 0 ? 5 : null);
+  const avatarSrc = galleryImages[0];
 
   return (
-    <div className="relative min-h-screen bg-white pb-36 lg:pb-10 pt-[4.25rem] sm:pt-24">
-      <BusinessProfileBackdrop />
+    <div className="relative min-h-screen bg-[#fafaf9] pt-[4.25rem] sm:pt-24">
       <OpenInAppPrefer slug={slugOrId} />
 
-      <header className="sticky top-[4.25rem] z-40 border-b border-stone-200/80 bg-white/90 backdrop-blur-md sm:top-24">
-        {showManageToast && (
-          <div
-            className="mx-auto max-w-6xl px-4 pt-2 sm:px-6 lg:max-w-7xl"
-            role="status"
-            aria-live="polite"
-          >
-            <div className="flex w-full items-center justify-between gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3.5 py-2.5 text-sm text-emerald-800">
-              <p className="font-medium">You manage this profile</p>
-              <button
-                type="button"
-                onClick={dismissManageToast}
-                className="shrink-0 rounded-md p-1 text-emerald-700/80 hover:bg-emerald-100 hover:text-emerald-900"
-                aria-label="Dismiss notification"
-              >
-                <X size={16} />
-              </button>
-            </div>
-          </div>
-        )}
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-2.5 sm:px-6 lg:max-w-7xl">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-1.5 text-sm font-medium text-[#57534e] hover:text-[#215481]"
-          >
-            <ArrowLeft size={15} />
-            Back
-          </Link>
+      <div
+        className={`fixed inset-x-0 top-[4.25rem] z-40 border-b border-stone-200 bg-white/95 backdrop-blur-md transition-opacity sm:top-24 ${
+          compactVisible ? 'opacity-100' : 'pointer-events-none opacity-0'
+        }`}
+      >
+        <div className="mx-auto flex max-w-4xl items-center gap-2.5 px-3 py-2.5">
           <button
             type="button"
-            onClick={handleShare}
-            className="inline-flex items-center gap-1.5 text-sm font-medium text-[#57534e] hover:text-[#215481]"
+            onClick={handleBack}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-stone-200 bg-stone-50"
+            aria-label="Go back"
           >
-            <Share2 size={15} />
-            Share
+            <ChevronLeft size={18} />
+          </button>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-semibold text-[#153551]">{business.name}</p>
+            <p className="truncate text-[11px] text-stone-500">
+              {business.category || 'Business'}
+              {showHoursStatus ? ` · ${openStatus?.label}` : ''}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => void handleSave()}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-stone-200 bg-stone-50"
+            aria-label={saved ? 'Remove from favourites' : 'Save to favourites'}
+          >
+            <Heart size={16} className={saved ? 'fill-rose-600 text-rose-600' : ''} />
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleShare()}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-stone-200 bg-stone-50"
+            aria-label="Share"
+          >
+            <Share2 size={16} />
           </button>
         </div>
-      </header>
+      </div>
 
-      {shareMessage && (
-        <div className="fixed left-1/2 top-28 z-[70] -translate-x-1/2 rounded-md border border-stone-200 bg-white px-3 py-1.5 text-xs text-[#57534e] sm:top-32">
-          {shareMessage}
+      <div className="mx-auto max-w-3xl lg:max-w-4xl">
+        <div ref={heroRef}>
+          <BusinessProfileHeroGallery
+            ref={galleryRef}
+            images={galleryImages}
+            alt={business.name}
+            saved={saved}
+            onBack={handleBack}
+            onShare={() => void handleShare()}
+            onSave={() => void handleSave()}
+          />
         </div>
-      )}
 
-      <main className="relative z-10 mx-auto max-w-6xl px-4 sm:px-6 lg:max-w-7xl">
-        <section className="border-b border-stone-200/80 py-4 md:py-6">
-          <div className="md:grid md:grid-cols-2 md:items-start md:gap-10 lg:gap-14">
-            <StackedPhotoGallery
-              images={galleryImages}
-              alt={business.name}
-              activeIndex={activeImage}
-              onSelect={setActiveImage}
-            />
-
-            <div className="mt-5 flex flex-col gap-1.5 md:mt-0 md:border-l md:border-stone-200/70 md:pl-10 lg:gap-2 lg:pl-12">
-            <h1 className="flex items-start gap-2 text-[1.65rem] font-semibold leading-tight text-[#153551] sm:text-[1.85rem] lg:text-[2rem]">
-              <span className="min-w-0">{business.name}</span>
-              {isVerified ? <VerifiedNameTick size={22} className="mt-0.5 shrink-0 sm:mt-1" /> : null}
-            </h1>
-
-            {business.category && (
-              <p className="text-sm font-medium leading-tight text-[#215481]">{business.category}</p>
-            )}
-
-            <BusinessProfileHeroBadges
-              category={business.category}
-              hasActiveJobs={jobs.length > 0}
-              jobCount={jobs.length}
-              onJobBadgeClick={() => scrollToSection('jobs')}
-            />
-
-            {locationLabel && (
-              <p className="flex items-start gap-1.5 text-sm leading-tight text-stone-600">
-                <MapPin size={14} className="mt-px shrink-0 text-stone-400" aria-hidden />
-                <span>{locationLabel}</span>
-              </p>
-            )}
-
-            {distanceLabel && directionsLink && (
-              <DistanceBadge label={distanceLabel} mapsHref={directionsLink} />
-            )}
-
-            {(() => {
-              const label = formatEstablishmentYearsLabel(business.yearsInBusiness);
-              return label ? (
-                <p className="text-sm leading-tight text-stone-600">{label}</p>
-              ) : null;
-            })()}
-
-            {openStatus && (
-              <p className={`flex items-center gap-1.5 text-sm leading-tight ${openStatus.colorClass}`}>
-                <span className={`h-1.5 w-1.5 rounded-full ${openStatus.dotClass}`} />
-                {openStatus.label}
-              </p>
-            )}
-
-            <BusinessProfileReviewCard
-              displayRating={displayRating}
-              reviewCount={reviews.length}
-            />
-
-            {offerDisplay && (
-              <BusinessProfileOfferBanner
-                headline={offerDisplay.headline}
-                detail={offerDisplay.detail}
-                label={offerDisplay.label}
-              />
-            )}
-
-            <div className="mt-2 hidden gap-2 md:grid md:grid-cols-2">
-              {phoneLink && (
+        <div className="relative z-10 -mt-[18px] rounded-t-[22px] bg-[#fafaf9] pt-[18px]">
+          {showManageToast && (
+            <div className="px-4 pb-2" role="status" aria-live="polite">
+              <div className="flex items-center justify-between gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3.5 py-2.5 text-sm text-emerald-800">
+                <p className="font-medium">You manage this profile</p>
                 <button
                   type="button"
-                  onClick={() => {
-                    if (contactRevealed) void handleContactAction('call');
-                    else handleRequestContact('call');
-                  }}
-                  className="flex items-center justify-center gap-2 rounded-lg bg-[#215481] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#1a4367]"
+                  onClick={dismissManageToast}
+                  className="shrink-0 rounded-md p-1 text-emerald-700/80 hover:bg-emerald-100"
+                  aria-label="Dismiss notification"
                 >
-                  <Phone size={15} />
-                  Call
+                  <X size={16} />
                 </button>
-              )}
-              {whatsappLink && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (contactRevealed) void handleContactAction('whatsapp');
-                    else handleRequestContact('whatsapp');
-                  }}
-                  className="flex items-center justify-center gap-2 rounded-lg bg-[#25D366] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#1fa855]"
-                >
-                  <FaWhatsapp size={16} className="shrink-0" aria-hidden />
-                  WhatsApp
-                </button>
-              )}
+              </div>
             </div>
-            <button
-              type="button"
-              onClick={() => {
-                if (contactRevealed) void handleContactAction('enquire');
-                else handleRequestContact('enquire');
-              }}
-              className="hidden w-full rounded-lg border border-stone-200 bg-white px-4 py-2.5 text-sm font-semibold text-[#215481] hover:bg-[#fffdf8] md:block"
-            >
-              {contactRevealed ? 'Send enquiry' : 'Sign in to send enquiry'}
-            </button>
+          )}
+
+          <div className="relative px-4">
+            <div className="flex items-start gap-3">
+              <button
+                type="button"
+                disabled={!avatarSrc}
+                onClick={() => galleryRef.current?.openPhoto(0)}
+                className="relative -mt-8 h-[72px] w-[72px] shrink-0 overflow-hidden rounded-[20px] border-2 border-[#fafaf9] bg-stone-200 shadow-[0_4px_10px_rgba(0,0,0,0.12)]"
+                aria-label="View profile photo"
+              >
+                {avatarSrc ? (
+                  <Image src={avatarSrc} alt="" fill className="object-cover" sizes="72px" />
+                ) : (
+                  <span className="flex h-full w-full items-center justify-center bg-[#215481] text-2xl font-bold text-white">
+                    {business.name.slice(0, 1).toUpperCase()}
+                  </span>
+                )}
+              </button>
+
+              <div className="min-w-0 flex-1 pr-[108px]">
+                <h1 className="text-[22px] font-extrabold leading-7 tracking-tight text-[#153551]">
+                  {business.name}
+                  {isVerified ? (
+                    <VerifiedNameTick size={18} className="ml-1 inline-flex translate-y-[1px] align-text-bottom" />
+                  ) : null}
+                </h1>
+                <div className="mt-1 flex items-center gap-1.5">
+                  <span className="inline-flex items-center gap-0.5 rounded-[5px] bg-[#E6A800] px-1.5 py-0.5 text-[11px] font-semibold text-white">
+                    <Star size={11} className="fill-white text-white" />
+                    {ratingValue != null ? ratingValue.toFixed(1) : '5.0'}
+                  </span>
+                  {reviews.length > 0 ? (
+                    <span className="text-xs font-medium text-stone-400">({reviews.length})</span>
+                  ) : (
+                    <span className="text-[11px] font-semibold text-stone-400">New</span>
+                  )}
+                </div>
+              </div>
+
+              <div className="absolute right-0 top-0 flex w-[96px] flex-col gap-1.5">
+                {phoneLink ? (
+                  <button
+                    type="button"
+                    onClick={() => void handleContactAction('call')}
+                    className="inline-flex items-center justify-center gap-1 rounded-full bg-[#15803D] px-3 py-2 text-xs font-semibold text-white"
+                  >
+                    <Phone size={14} />
+                    Call
+                  </button>
+                ) : null}
+                {whatsappLink || business.contact ? (
+                  <button
+                    type="button"
+                    onClick={() => void handleContactAction('whatsapp')}
+                    className="inline-flex items-center justify-center gap-1 rounded-full bg-[#128C7E] px-3 py-2 text-xs font-semibold text-white"
+                  >
+                    <FaWhatsapp size={14} />
+                    WhatsApp
+                  </button>
+                ) : null}
+              </div>
+            </div>
+
+            <div className="mt-2.5 space-y-2">
+              <p className="text-[13px] font-medium text-stone-500">
+                {categoryYearsLine(business.category, business.yearsInBusiness)}
+              </p>
+
+              <p className="inline-flex items-center gap-1.5 text-xs font-semibold text-stone-500">
+                <span className="animate-fire-flicker" aria-hidden>🔥</span>
+                Best in Category
+              </p>
+
+              {locationLabel || distanceLabel || directionsLink ? (
+                <div>
+                  {locationLabel ? (
+                    <p className="flex items-start gap-1 text-xs leading-[17px] text-stone-500">
+                      <MapPin size={13} className="mt-px shrink-0 text-amber-800" />
+                      <span>{locationLabel}</span>
+                    </p>
+                  ) : null}
+                  {(distanceLabel || directionsLink) && (
+                    <div className="mt-1 flex flex-wrap items-center gap-1.5 pl-[17px] text-xs">
+                      {distanceLabel ? (
+                        <span className="font-medium text-stone-400">
+                          {distanceLabel.replace(/\s*away$/i, '')}
+                        </span>
+                      ) : null}
+                      {distanceLabel && directionsLink ? (
+                        <span className="text-stone-300">·</span>
+                      ) : null}
+                      {directionsLink ? (
+                        <a
+                          href={directionsLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 font-semibold text-blue-700"
+                        >
+                          <Navigation size={13} />
+                          Get Direction
+                        </a>
+                      ) : null}
+                    </div>
+                  )}
+                </div>
+              ) : null}
+
+              {showHoursStatus ? (
+                <p className="flex flex-wrap items-center gap-1.5 text-[13px]">
+                  <span className={`h-[7px] w-[7px] rounded-full ${openStatus?.dotClass}`} />
+                  <span className={`font-semibold ${openStatus?.colorClass}`}>
+                    {openStatus?.status === 'Open' ? 'Open now' : 'Closed'}
+                  </span>
+                  {todayHours?.hours || openStatus?.label ? (
+                    <>
+                      <span className="text-stone-300">·</span>
+                      <span className="font-medium text-stone-500">
+                        {todayHours?.hours || openStatus?.label}
+                      </span>
+                    </>
+                  ) : null}
+                </p>
+              ) : null}
+
+              <button
+                type="button"
+                onClick={() => void handleContactAction('enquire')}
+                className="inline-flex items-center gap-1.5 self-start rounded-full border border-stone-300 bg-white px-3 py-2 text-[13px] font-semibold text-stone-500"
+              >
+                <MessageCircle size={13} />
+                Make enquiry
+              </button>
+
+              {offerDisplay ? (
+                <BusinessProfileOfferBanner
+                  headline={offerDisplay.headline}
+                  detail={offerDisplay.detail}
+                  label={offerDisplay.label}
+                />
+              ) : null}
             </div>
           </div>
-        </section>
 
-        <nav className="sticky top-[calc(4.25rem+2.75rem)] z-30 -mx-4 flex gap-5 overflow-x-auto border-b border-stone-200/80 bg-white/90 px-4 backdrop-blur-md sm:top-[calc(6rem+2.75rem)] sm:-mx-6 sm:px-6">
-          {navSections.map((section) => (
-            <button
-              key={section.id}
-              type="button"
-              onClick={() => scrollToSection(section.id)}
-              className={`shrink-0 border-b-2 py-3 text-sm ${
-                activeSection === section.id
-                  ? 'border-[#215481] font-semibold text-[#215481]'
-                  : 'border-transparent text-[#78716c] hover:text-[#153551]'
-              }`}
-            >
-              {section.label}
-            </button>
-          ))}
-        </nav>
-
-        <div className="flex flex-col gap-5 py-5 lg:grid lg:grid-cols-[1fr_300px] lg:items-start lg:gap-8 xl:grid-cols-[1fr_340px]">
-            <section id="services" className="scroll-mt-40 order-1 lg:col-start-1 lg:row-start-1">
-              <h2 className="text-base font-semibold text-[#153551]">Services</h2>
-              <BusinessProfileServicesSection services={business.services ?? []} />
-            </section>
-
-          <section
-            id="contact"
-            className="scroll-mt-40 order-2 border-t border-stone-200/60 pt-5 lg:col-start-2 lg:row-start-1 lg:sticky lg:top-32 lg:self-start lg:border-t-0 lg:pt-0"
-          >
-            <BusinessProfileContactAside
-              contactRevealed={contactRevealed}
-              profileRedirectPath={profileRedirectPath}
-              phoneLink={phoneLink}
-              phone={business.contact}
-              email={business.email}
-              website={business.website}
-              paymentModes={business.paymentModes ?? []}
-              socialLinks={socialLinks}
-              onCall={() => void handleContactAction('call')}
-              onEnquire={() => {
-                if (contactRevealed) void handleContactAction('enquire');
-                else handleRequestContact('enquire');
-              }}
-            />
-          </section>
-
-            <section id="hours" className="scroll-mt-40 order-3 border-t border-stone-200/60 pt-5 lg:col-start-1 lg:row-start-3">
-              <h2 className="text-base font-semibold text-[#153551]">Hours</h2>
-
-              {business.timings ? (
-                <div className="mt-4 overflow-hidden rounded-lg border border-stone-200/80 bg-white">
-                  <div className="flex items-center gap-2 border-b border-stone-100 px-3.5 py-2.5">
-                    <Clock size={14} className="text-[#215481]" />
-                    <span className="text-xs font-semibold uppercase tracking-wide text-stone-500">
-                      Opening hours
-                    </span>
-                  </div>
-                  <ul className="divide-y divide-stone-100">
-                    {WEEKDAYS.map((day) => {
-                      const timing = business.timings?.[day];
-                      const isToday = day === todayName;
-                      const isClosed =
-                        !timing ||
-                        timing === 'Closed' ||
-                        (typeof timing === 'object' && timing.isClosed);
-                      return (
-                        <li
-                          key={day}
-                          className={`flex items-center justify-between gap-4 px-3.5 py-2.5 text-sm ${
-                            isToday ? 'bg-[#215481]/[0.04] font-medium text-stone-900' : 'text-stone-600'
-                          }`}
-                        >
-                          <span>
-                            {day}
-                            {isToday ? (
-                              <span className="ml-2 rounded-full border border-[#215481]/20 bg-[#215481]/8 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#215481]">
-                                Today
-                              </span>
-                            ) : null}
-                          </span>
-                          <span className={isClosed ? 'text-rose-600' : 'text-stone-700'}>
-                            {formatTimingRange12h(timing)}
-                          </span>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </div>
-              ) : (
-                <p className="mt-3 text-sm text-stone-400">Hours not listed.</p>
-              )}
-            </section>
-
-          <section id="reviews" className="scroll-mt-40 order-4 border-t border-stone-200/60 pt-5 lg:col-start-1 lg:row-start-2">
-            <div className="flex items-baseline justify-between gap-3">
-              <h2 className="text-base font-semibold text-[#153551]">Reviews</h2>
-              {displayRating != null ? (
-                <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800">
-                  <Star size={10} className="fill-amber-500 text-amber-500" />
-                  {displayRating} · {reviews.length} total
-                </span>
-              ) : (
-                <span className="text-xs text-stone-400">No reviews yet</span>
-              )}
+          {jobs.length > 0 ? (
+            <div className="mx-4 mt-3 flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5">
+              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-white text-amber-800">
+                <Briefcase size={14} />
+              </span>
+              <p className="min-w-0 flex-1 text-xs font-medium text-[#153551]">
+                Hiring now · {jobs.length} open role{jobs.length === 1 ? '' : 's'}
+              </p>
+              <button
+                type="button"
+                onClick={() => document.getElementById('jobs')?.scrollIntoView({ behavior: 'smooth' })}
+                className="text-xs font-semibold text-amber-800"
+              >
+                View
+              </button>
             </div>
+          ) : null}
+
+          {business.services?.length ? (
+            <section id="services" className="scroll-mt-40 px-4 pt-6">
+              <h2 className="text-[20px] font-extrabold tracking-tight text-[#153551]">Services</h2>
+              <BusinessProfileServicesSection services={business.services} />
+            </section>
+          ) : null}
+
+          <BusinessProfileContactAside
+            contactRevealed={contactRevealed}
+            profileRedirectPath={profileRedirectPath}
+            phoneLink={phoneLink}
+            phone={business.contact}
+            email={business.email}
+            website={business.website}
+            address={business.businessAddress}
+            paymentModes={business.paymentModes ?? []}
+            socialLinks={socialLinks}
+            onCall={() => void handleContactAction('call')}
+            onEnquire={() => {
+              if (contactRevealed) void handleContactAction('enquire');
+              else handleRequestContact('enquire');
+            }}
+          />
+
+          <BusinessProfileAboutSection
+            description={business.description || business.about || ''}
+            keywords={business.keywords}
+          />
+
+          {weeklyHours.length > 0 ? (
+            <section id="hours" className="scroll-mt-40 px-4 pt-6">
+              <div className="flex items-end justify-between gap-3">
+                <h2 className="text-[20px] font-extrabold tracking-tight text-[#153551]">Hours</h2>
+                <button
+                  type="button"
+                  onClick={() => setHoursExpanded((open) => !open)}
+                  className="pb-0.5 text-xs font-semibold text-[#215481]"
+                >
+                  {hoursExpanded ? 'Less' : 'Full week'}
+                </button>
+              </div>
+              <div className="mt-3 overflow-hidden rounded-2xl border border-stone-200/90 bg-white">
+                <div className="flex items-center justify-between gap-3 bg-stone-50 p-3.5">
+                  <div>
+                    <p className="text-[11px] font-medium text-stone-400">Today</p>
+                    <p className="mt-0.5 text-[15px] font-semibold text-[#153551]">
+                      {todayHours?.hours || openStatus?.label || 'See full week'}
+                    </p>
+                  </div>
+                  {showHoursStatus ? (
+                    <span
+                      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-[11px] font-semibold ${
+                        openStatus?.status === 'Open'
+                          ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                          : 'border-rose-200 bg-rose-50 text-rose-700'
+                      }`}
+                    >
+                      <span className={`h-1.5 w-1.5 rounded-full ${openStatus?.dotClass}`} />
+                      {openStatus?.label || openStatus?.status}
+                    </span>
+                  ) : null}
+                </div>
+                {hoursExpanded
+                  ? weeklyHours.map((row) => (
+                      <div
+                        key={row.day}
+                        className={`flex items-center justify-between border-t border-stone-100 px-3.5 py-2.5 text-[13px] ${
+                          row.isToday ? 'bg-amber-50 font-semibold text-amber-900' : 'text-stone-600'
+                        }`}
+                      >
+                        <span>{row.day}</span>
+                        <span>{row.hours}</span>
+                      </div>
+                    ))
+                  : null}
+              </div>
+            </section>
+          ) : null}
+
+          <section id="reviews" className="scroll-mt-40 px-4 pt-6">
+            <div className="flex items-baseline gap-2">
+              <h2 className="text-[20px] font-extrabold tracking-tight text-[#153551]">Reviews</h2>
+              {displayRating != null ? (
+                <span className="text-xs font-medium text-stone-400">{displayRating.toFixed(1)} avg</span>
+              ) : null}
+            </div>
+
+            {reviews.length > 0 ? (
+              <div className="mt-3 flex gap-3.5 rounded-2xl border border-stone-200/90 bg-stone-50 p-3.5">
+                <div className="flex w-[92px] shrink-0 flex-col items-center justify-center gap-1">
+                  <p className="text-[34px] font-extrabold leading-none tracking-tight text-[#153551]">
+                    {displayRating != null ? displayRating.toFixed(1) : '—'}
+                  </p>
+                  <div className="flex gap-0.5">
+                    {Array.from({ length: 5 }).map((_, index) => (
+                      <Star
+                        key={index}
+                        size={14}
+                        className={
+                          index < Math.round(displayRating || 0)
+                            ? 'fill-amber-500 text-amber-500'
+                            : 'text-stone-300'
+                        }
+                      />
+                    ))}
+                  </div>
+                  <p className="text-center text-[11px] font-medium text-stone-400">
+                    {reviews.length} reviews
+                  </p>
+                </div>
+                <div className="flex min-w-0 flex-1 flex-col justify-center gap-1.5">
+                  {ratingBars.map((row) => (
+                    <div key={row.star} className="flex items-center gap-1.5">
+                      <span className="w-2.5 text-[10px] font-medium text-stone-400">{row.star}</span>
+                      <div className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-stone-200">
+                        <div
+                          className="h-full rounded-full bg-amber-500"
+                          style={{ width: `${Math.round(row.ratio * 100)}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
 
             {!sessionUser ? (
               <div className="mt-4 rounded-lg border border-[#f9b864]/30 bg-[#fff8ef] px-4 py-3 text-sm text-stone-600">
@@ -875,7 +1017,7 @@ export default function BusinessProfilePage({
             ) : userHasReviewed ? (
               <p className="mt-4 text-sm text-stone-500">You have already reviewed this business.</p>
             ) : (
-              <form onSubmit={handleReviewSubmit} className="mt-4 rounded-lg border border-stone-200 bg-white p-4">
+              <form onSubmit={handleReviewSubmit} className="mt-4 rounded-2xl border border-stone-200 bg-white p-4">
                 <p className="text-sm text-stone-700">
                   Posting as <span className="font-medium text-stone-900">{sessionUser.fullName}</span>
                 </p>
@@ -903,11 +1045,15 @@ export default function BusinessProfilePage({
               </form>
             )}
 
-            <div className="mt-6 space-y-5">
+            <div className="mt-4 space-y-2.5">
               {reviews.length === 0 ? (
-                <p className="text-sm text-stone-400">No reviews yet.</p>
+                <div className="rounded-[14px] border border-stone-200 bg-stone-50 px-4 py-6 text-center">
+                  <p className="text-sm text-stone-500">
+                    No public reviews yet. Be the first to share your experience.
+                  </p>
+                </div>
               ) : (
-                reviews.map((review) => (
+                reviews.slice(0, 8).map((review) => (
                   <BusinessProfileReviewItem
                     key={review.id}
                     review={review}
@@ -922,67 +1068,23 @@ export default function BusinessProfilePage({
             </div>
           </section>
 
-          <div className="order-5 space-y-5 lg:col-start-2 lg:row-start-2">
+          <div className="px-4 pt-2">
             <BusinessProfileJobsSection jobs={jobs} />
-            <BusinessProfileAboutSection
-              description={business.description}
-              keywords={business.keywords}
-              withTopRule={jobs.length > 0}
-            />
           </div>
 
-          {related.length > 0 && (
-            <section className="order-6 scroll-mt-40 border-t border-stone-200/60 pt-5 lg:col-start-2 lg:row-start-3 lg:self-start lg:pt-4">
-              <h2 className="text-base font-semibold text-[#153551]">Similar listings</h2>
-              <div className="mt-3 grid items-start gap-3">
-                {related.map((item) => (
-                  <BusinessCard
-                    key={item.id}
-                    business={item}
-                    variant="profile"
-                    distanceLabel={formatDistanceFromUser(userCoords, item.latitude, item.longitude)}
-                  />
-                ))}
-              </div>
-            </section>
-          )}
-        </div>
+          <BusinessProfileRelatedRail businesses={related} userCoords={userCoords} />
 
-        <div className="border-t border-stone-200/80 pt-4">
-          <BusinessProfileBreadcrumb business={business} categoryBreadcrumb={categoryBreadcrumb} />
-        </div>
-      </main>
-
-      <div className="fixed inset-x-0 bottom-[5.75rem] z-[9990] border-t border-stone-200 bg-white px-4 py-2 md:hidden">
-        <div className="mx-auto flex max-w-lg gap-2">
-          {phoneLink && (
-            <button
-              type="button"
-              onClick={() => {
-                if (contactRevealed) void handleContactAction('call');
-                else handleRequestContact('call');
-              }}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-[#215481] py-2.5 text-sm font-semibold text-white"
-            >
-              <Phone size={15} />
-              Call
-            </button>
-          )}
-          {whatsappLink && (
-            <button
-              type="button"
-              onClick={() => {
-                if (contactRevealed) void handleContactAction('whatsapp');
-                else handleRequestContact('whatsapp');
-              }}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-[#25D366] py-2.5 text-sm font-semibold text-white"
-            >
-              <FaWhatsapp size={16} className="shrink-0" aria-hidden />
-              WhatsApp
-            </button>
-          )}
+          <div className="border-t border-stone-200/80 px-4 pb-8 pt-4">
+            <BusinessProfileBreadcrumb business={business} categoryBreadcrumb={categoryBreadcrumb} />
+          </div>
         </div>
       </div>
+
+      {shareMessage ? (
+        <div className="pointer-events-none fixed inset-x-6 bottom-24 z-[70] mx-auto flex max-w-sm items-center justify-center gap-2 rounded-full bg-black/90 px-4 py-3 text-sm font-semibold text-white">
+          {shareMessage}
+        </div>
+      ) : null}
 
       <ConnectMerchantModal
         business={{

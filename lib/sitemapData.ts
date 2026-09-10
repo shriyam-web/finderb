@@ -73,7 +73,7 @@ const STATIC_PAGES: Array<{
   { path: '/', changeFrequency: 'daily', priority: 1 },
   { path: '/categories', changeFrequency: 'daily', priority: 0.9 },
   { path: '/categories/job', changeFrequency: 'daily', priority: 0.7 },
-  { path: '/categories/admissions', changeFrequency: 'daily', priority: 0.75 },
+  { path: '/categories/education', changeFrequency: 'daily', priority: 0.75 },
   { path: '/movies', changeFrequency: 'daily', priority: 0.7 },
   { path: '/tourist-places', changeFrequency: 'weekly', priority: 0.7 },
   { path: '/blog', changeFrequency: 'daily', priority: 0.8 },
@@ -96,7 +96,7 @@ const STATIC_PAGES: Array<{
 ];
 
 /** Special /categories/* routes that are not DB category rows (or share a slug). */
-const RESERVED_CATEGORY_SLUGS = new Set(['job', 'admissions']);
+const RESERVED_CATEGORY_SLUGS = new Set(['job']);
 
 function dedupeSitemapEntries(entries: SitemapEntry[]): SitemapEntry[] {
   const byUrl = new Map<string, SitemapEntry>();

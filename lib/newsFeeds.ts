@@ -216,28 +216,60 @@ const NCR_CITY_SLUGS = new Set([
   'new-delhi',
 ]);
 
+/** The Hindu city RSS exists only for these segments — do not guess others (Noida 404s). */
+const HINDU_CITY_FEED_SEGMENTS = new Set([
+  'Delhi',
+  'Mumbai',
+  'Chennai',
+  'Kolkata',
+  'Bengaluru',
+  'Hyderabad',
+  'Kochi',
+  'Coimbatore',
+  'Madurai',
+  'Tiruchirapalli',
+  'Vijayawada',
+  'Visakhapatnam',
+  'Thiruvananthapuram',
+]);
+
+function isUttarPradesh(state: string | null): boolean {
+  if (!state) return false;
+  const key = toFeedSlug(state);
+  return key === 'uttar-pradesh' || key === 'up';
+}
+
 export function getLocalFeedUrls(location: LocalNewsLocation, lang: NewsLanguage): string[] {
   const urls: string[] = [];
   const city = location.city?.trim() || null;
+  const state = location.state?.trim() || null;
+
+  if (!city && !state) {
+    return getFeedUrlsForCategory('local', lang);
+  }
 
   if (city) {
     const slug = toFeedSlug(city);
+    if (slug && NCR_CITY_SLUGS.has(slug)) {
+      urls.push('https://www.amarujala.com/rss/noida.xml');
+      urls.push('https://www.amarujala.com/rss/delhi.xml');
+      urls.push('https://www.thehindu.com/news/cities/Delhi/feeder/default.rss');
+    }
     if (slug) {
       urls.push(`https://www.amarujala.com/rss/${slug}.xml`);
-      urls.push(`https://www.livehindustan.com/rss/cities/${slug}-news`);
     }
     const hinduCity = toHinduCitySegment(city);
-    if (hinduCity) {
+    if (hinduCity && HINDU_CITY_FEED_SEGMENTS.has(hinduCity)) {
       urls.push(`https://www.thehindu.com/news/cities/${hinduCity}/feeder/default.rss`);
     }
-    if (slug && NCR_CITY_SLUGS.has(slug)) {
-      urls.push('https://www.thehindu.com/news/cities/Delhi/feeder/default.rss');
-      urls.push('https://www.amarujala.com/rss/delhi.xml');
-    }
-    return [...new Set(urls)];
   }
 
-  return getFeedUrlsForCategory('local', lang);
+  if (isUttarPradesh(state)) {
+    urls.push('https://www.amarujala.com/rss/lucknow.xml');
+  }
+
+  urls.push(...getFeedUrlsForCategory('local', lang));
+  return [...new Set(urls)];
 }
 
 export function scoreLocalArticleRelevance(

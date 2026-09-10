@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
+import { getCategories } from '@/app/actions/category';
 import CategoriesPageClient from '@/components/categories/CategoriesPageClient';
 import CategoriesBrowseFallback from '@/components/categories/CategoriesBrowseFallback';
 import {
@@ -22,10 +23,14 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
   return buildCategoryIndexMetadata();
 }
 
-export default function CategoriesPage() {
+export default async function CategoriesPage() {
+  const catResult = await getCategories(false);
+  const initialCategories =
+    catResult.success && catResult.categories ? catResult.categories : [];
+
   return (
     <Suspense fallback={<CategoriesBrowseFallback />}>
-      <CategoriesPageClient />
+      <CategoriesPageClient initialCategories={initialCategories} />
     </Suspense>
   );
 }

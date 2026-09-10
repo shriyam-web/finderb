@@ -242,6 +242,25 @@ export async function getSession() {
   return { success: true, user: result.user };
 }
 
+export async function toggleFavorite(businessId: string) {
+  try {
+    const userId = await getSessionUserId();
+    if (!userId) {
+      return { success: false as const, unauthorized: true as const, error: 'Please log in.' };
+    }
+
+    const writeLimit = await enforceRateLimit('write', 'favorites');
+    if (!writeLimit.ok) {
+      return { success: false as const, error: writeLimit.error };
+    }
+
+    const { toggleFavoriteForUser } = await import('@/lib/userFavorites.server');
+    return toggleFavoriteForUser(userId, businessId);
+  } catch (error: unknown) {
+    return { success: false as const, error: handleError(error, 'Toggle Favorite') };
+  }
+}
+
 export async function deleteOwnAccount() {
   try {
     const userId = await getSessionUserId();

@@ -7,6 +7,10 @@ export type ExpoPushMessage = {
   data?: Record<string, string>;
   sound?: 'default';
   channelId?: string;
+  priority?: 'default' | 'normal' | 'high';
+  interruptionLevel?: 'passive' | 'active' | 'timeSensitive' | 'critical';
+  badge?: number;
+  ttl?: number;
 };
 
 const EXPO_PUSH_URL = 'https://exp.host/--/api/v2/push/send';
@@ -35,6 +39,7 @@ export async function sendExpoPushMessages(
   }
 
   let sent = 0;
+  const errors: string[] = [];
   try {
     for (let i = 0; i < valid.length; i += 100) {
       const chunk = valid.slice(i, i + 100);
@@ -43,16 +48,28 @@ export async function sendExpoPushMessages(
         headers,
         body: JSON.stringify(chunk),
       });
+      const payload = (await res.json().catch(() => null)) as {
+        data?: Array<{ status?: string; message?: string }>;
+        errors?: Array<{ message?: string }>;
+      } | null;
       if (!res.ok) {
-        const text = await res.text().catch(() => '');
+        const text = JSON.stringify(payload || {}).slice(0, 200);
         return {
           sent,
-          error: `Expo push failed (${res.status}): ${text.slice(0, 200)}`,
+          error: `Expo push failed (${res.status}): ${text}`,
         };
       }
-      sent += chunk.length;
+      const tickets = Array.isArray(payload?.data) ? payload.data : [];
+      for (const ticket of tickets) {
+        if (ticket.status === 'ok') sent += 1;
+        else if (ticket.message) errors.push(ticket.message);
+      }
+      if (!tickets.length) sent += chunk.length;
     }
-    return { sent };
+    return {
+      sent,
+      error: errors.length ? errors.slice(0, 3).join('; ') : undefined,
+    };
   } catch (error) {
     return {
       sent,

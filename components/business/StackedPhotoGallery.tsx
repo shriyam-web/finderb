@@ -51,7 +51,7 @@ function GalleryImage({
   );
 }
 
-function PhotoLightbox({
+export function PhotoLightbox({
   images,
   alt,
   startIndex,

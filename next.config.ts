@@ -101,6 +101,15 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  async redirects() {
+    return [
+      {
+        source: '/categories/admissions',
+        destination: '/categories/education',
+        permanent: true,
+      },
+    ];
+  },
   async headers() {
     return [
       {

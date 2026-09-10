@@ -25,6 +25,7 @@ import CategoryMerchantList from '@/components/category/CategoryMerchantList';
 import CategoryListingsLoading from '@/components/category/CategoryListingsLoading';
 import { getBusinessProfilePath } from '@/lib/businessSlug';
 import { categoryBrowseHref, slugifyCategoryName, subMatchesQueryParam } from '@/lib/categoryDisplay';
+import { inferCategoryLevel } from '@/lib/categoryTree';
 import { formatLocalityCityLabel } from '@/lib/businessAddress';
 import { formatDistanceFromUser } from '@/lib/geo';
 import { useUserCoords } from '@/hooks/useUserCoords';
@@ -32,7 +33,7 @@ import MerchantListingRating from '@/components/business/MerchantListingRating';
 import { VerifiedBusinessName } from '@/components/business/VerifiedMark';
 import BusinessListingImage from '@/components/business/BusinessListingImage';
 
-const RESERVED_CATEGORY_SEGMENTS = new Set(['job', 'admissions']);
+const RESERVED_CATEGORY_SEGMENTS = new Set(['job']);
 
 function categorySlugFromPath(pathname: string | null): string | null {
   if (!pathname) return null;
@@ -208,7 +209,7 @@ export default function CategoriesPage({
       // Don't blank the shell if we already have categories (SSR / soft nav remount-safe).
       if (categories.length === 0) setIsLoading(true);
       const [catResult, bizResult] = await Promise.all([
-        getCategories(),
+        getCategories(false),
         getFeaturedBusinesses(),
       ]);
 
@@ -385,6 +386,13 @@ export default function CategoriesPage({
   };
 
   const openCategorySearchHit = async (hit: CategorySearchHit) => {
+    const match = categories.find((c) => c.id === hit.id);
+    if (match && inferCategoryLevel(match, categories) !== 0) {
+      handleCategoryClick(match);
+      setSearchQuery('');
+      return;
+    }
+
     if (hit.parentId) {
       const parent =
         categories.find((c) => c.id === hit.parentId) ??
@@ -413,9 +421,8 @@ export default function CategoriesPage({
       return;
     }
 
-    const top = categories.find((c) => c.id === hit.id);
-    if (top) {
-      handleCategoryClick(top);
+    if (match) {
+      handleCategoryClick(match);
       setSearchQuery('');
     }
   };
@@ -649,15 +656,13 @@ export default function CategoriesPage({
           onClick={() => openCategorySearchHit(hit)}
           className="group flex flex-col items-center gap-2 rounded-2xl bg-white/95 p-2.5 text-center shadow-[0_1px_2px_rgba(15,23,42,0.04),0_10px_22px_-16px_rgba(15,23,42,0.2)] ring-1 ring-slate-200/70 transition-all duration-300 hover:-translate-y-0.5 hover:ring-primary/25 sm:p-3"
         >
-          <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-slate-50 to-primary/[0.08] ring-1 ring-slate-200/60 transition-transform duration-300 group-hover:scale-[1.04]">
-            <CategoryIcon
-              icon={hit.icon}
-              name={hit.name}
-              size={44}
-              className="h-9 w-9 text-slate-600 sm:h-10 sm:w-10"
-              imageClassName="object-contain"
-            />
-          </span>
+          <CategoryIcon
+            icon={hit.icon}
+            name={hit.name}
+            size={56}
+            className="h-14 w-14 text-slate-600 transition-transform duration-300 group-hover:scale-[1.04]"
+            imageClassName="object-contain"
+          />
           <span className="line-clamp-2 font-heading text-[11px] font-semibold leading-snug text-slate-800 group-hover:text-primary">
             {hit.name}
           </span>
@@ -766,7 +771,16 @@ export default function CategoriesPage({
     );
   };
 
-  const exploreCategories = categories.filter(
+  const browseCategories = useMemo(() => {
+    const visible = categories.filter((cat) => inferCategoryLevel(cat, categories) !== 0);
+    return [...visible].sort((a, b) => {
+      const countDiff = (b.businessCount ?? 0) - (a.businessCount ?? 0);
+      if (countDiff !== 0) return countDiff;
+      return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+    });
+  }, [categories]);
+
+  const exploreCategories = browseCategories.filter(
     (cat) => !searchQuery || textMatchesSearch(cat.name, searchQuery),
   );
 
@@ -909,7 +923,7 @@ export default function CategoriesPage({
       </header>
 
       <div className="relative z-[1] flex min-h-0 flex-1 overflow-hidden">
-        {/* Category rail — parents only */}
+        {/* Category rail — all browseable categories, not grouped by parent */}
         {viewMode !== 'categories' && viewMode !== 'global-search' && (
           <aside
             ref={asideScrollRef}
@@ -918,7 +932,7 @@ export default function CategoriesPage({
             <nav className="flex flex-col pb-24" aria-label="Categories">
               {[
                 ...(selectedCategory ? [selectedCategory] : []),
-                ...categories.filter((cat) => cat.id !== selectedCategory?.id),
+                ...browseCategories.filter((cat) => cat.id !== selectedCategory?.id),
               ].map((cat) => {
                 const isSelected = selectedCategory?.id === cat.id;
                 return (
@@ -986,7 +1000,7 @@ export default function CategoriesPage({
                     key={i}
                     className="flex animate-pulse flex-col items-center gap-2 rounded-xl bg-white p-3 ring-1 ring-slate-200/70"
                   >
-                    <div className="h-11 w-11 rounded-xl bg-slate-100" />
+                    <div className="h-14 w-14 bg-slate-100" />
                     <div className="h-2.5 w-14 rounded-full bg-slate-100" />
                   </div>
                 ))}
@@ -999,7 +1013,7 @@ export default function CategoriesPage({
                   Explore
                 </h1>
                 <p className="mt-0.5 font-categories text-[12px] font-normal leading-snug text-slate-500">
-                  Pick a category to see listings instantly.
+                  All categories in one list — pick any to see listings.
                 </p>
               </div>
               <div className="grid grid-cols-4 gap-2 sm:gap-2.5 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7">
@@ -1009,15 +1023,13 @@ export default function CategoriesPage({
                     onClick={() => handleCategoryClick(cat)}
                     className="group flex flex-col items-center gap-1.5 rounded-xl bg-white p-2 text-center ring-1 ring-slate-200/80 transition-colors active:bg-slate-50 sm:gap-2 sm:p-2.5"
                   >
-                    <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#f7f7f8] sm:h-12 sm:w-12">
-                      <CategoryIcon
-                        icon={cat.icon}
-                        name={cat.name}
-                        size={26}
-                        className="h-[26px] w-[26px] text-slate-700 sm:h-8 sm:w-8"
-                        imageClassName="object-contain"
-                      />
-                    </span>
+                    <CategoryIcon
+                      icon={cat.icon}
+                      name={cat.name}
+                      size={56}
+                      className="h-14 w-14 text-slate-700"
+                      imageClassName="object-contain"
+                    />
                     <div className="flex w-full flex-col items-center gap-0.5">
                       <span className="line-clamp-2 w-full font-categories text-[10px] font-medium leading-snug tracking-[-0.01em] text-slate-600 sm:text-[12px]">
                         {cat.name}

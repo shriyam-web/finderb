@@ -163,7 +163,11 @@ export async function dispatchBroadcastPush(broadcastId: string): Promise<{
       title,
       body,
       sound: 'default',
-      channelId: 'updates',
+      channelId: 'finderb_heads_up',
+      priority: 'high',
+      interruptionLevel: 'timeSensitive',
+      badge: 1,
+      ttl: 86400,
       data: { type: 'broadcast', broadcastId: row.id },
     }))
   );

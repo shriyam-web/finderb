@@ -190,7 +190,7 @@ function HomeClientView({
   useEffect(() => {
     async function fetchData() {
       // Refresh featured groups even when other SSR data is present — merchant
-      // coverage changes and we always want up to 6 sections with listings.
+      // coverage changes and we always want every parent category section.
       const refreshFeaturedGroups = async () => {
         const groupsResult = await getFeaturedGroups();
         if (groupsResult.success && groupsResult.groups) {
@@ -366,7 +366,7 @@ function HomeClientView({
     setActiveMobileTab(label);
   };
 
-  const excludedSlugs = ['real-estate', 'admissions', 'b2b', 'job'];
+  const excludedSlugs = ['real-estate', 'b2b', 'job'];
   const sortedCategories = [...realCategories]
     .filter(cat => !excludedSlugs.includes(cat.slug))
     .sort((a, b) => b.businessCount - a.businessCount);
@@ -836,7 +836,7 @@ function HomeClientView({
             popularSearches={heroPopularSearches}
           />
 
-      {/* Featured categories — Category → subcategory tabs → merchant profiles */}
+      {/* Featured categories — Parent → category tabs → subcategories → listings */}
       {featuredGroups.length > 0 && (
         <section className="relative bg-white pt-0 pb-0 lg:pt-3">
           <div>

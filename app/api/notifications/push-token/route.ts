@@ -15,13 +15,10 @@ export async function POST(request: Request) {
     }
 
     const token = getBearerToken(request);
-    if (!token) {
-      return NextResponse.json({ success: false, error: 'Please log in.' }, { status: 401 });
-    }
-
-    const user = await mobileGetUserFromToken(token);
-    if (!user) {
-      return NextResponse.json({ success: false, error: 'Please log in.' }, { status: 401 });
+    let userId = 'guest';
+    if (token) {
+      const user = await mobileGetUserFromToken(token);
+      if (user?.id) userId = user.id;
     }
 
     const body = (await request.json().catch(() => null)) as {
@@ -30,7 +27,7 @@ export async function POST(request: Request) {
     } | null;
 
     const result = await upsertUserPushToken({
-      userId: user.id,
+      userId,
       token: String(body?.token || ''),
       platform: String(body?.platform || ''),
     });

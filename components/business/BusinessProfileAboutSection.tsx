@@ -2,74 +2,58 @@
 
 import { useMemo, useState } from 'react';
 
-const COLLAPSED_LINE_COUNT = 4;
-
 type BusinessProfileAboutSectionProps = {
   description: string;
   keywords?: string[];
-  /** When true, keep a top rule on desktop (e.g. jobs sit above). */
   withTopRule?: boolean;
 };
 
 export default function BusinessProfileAboutSection({
   description,
   keywords = [],
-  withTopRule = false,
 }: BusinessProfileAboutSectionProps) {
   const [expanded, setExpanded] = useState(false);
-
   const trimmedDescription = description.trim();
-  const shouldCollapse = useMemo(() => {
-    if (!trimmedDescription) return false;
-    const lineBreaks = trimmedDescription.split('\n').length;
-    return trimmedDescription.length > 220 || lineBreaks > COLLAPSED_LINE_COUNT;
-  }, [trimmedDescription]);
+  const aboutLong = trimmedDescription.length > 180;
+  const shown =
+    expanded || !aboutLong ? trimmedDescription : `${trimmedDescription.slice(0, 180).trim()}…`;
+
+  const tags = useMemo(
+    () => keywords.map((keyword) => keyword.trim()).filter(Boolean).slice(0, 6),
+    [keywords]
+  );
+
+  if (!trimmedDescription && tags.length === 0) return null;
 
   return (
-    <section
-      id="about"
-      className={
-        withTopRule
-          ? 'scroll-mt-40 border-t border-stone-200/60 pt-5'
-          : 'scroll-mt-40 border-t border-stone-200/60 pt-5 lg:border-t-0 lg:pt-0'
-      }
-    >
-      <h2 className="text-base font-semibold text-[#153551]">About</h2>
-      {trimmedDescription ? (
-        <div className="mt-3">
-          <p
-            className="text-[15px] leading-7 text-stone-600 whitespace-pre-line"
-            style={
-              !expanded && shouldCollapse
-                ? {
-                    display: '-webkit-box',
-                    WebkitLineClamp: COLLAPSED_LINE_COUNT,
-                    WebkitBoxOrient: 'vertical',
-                    overflow: 'hidden',
-                  }
-                : undefined
-            }
-          >
-            {trimmedDescription}
-          </p>
-          {shouldCollapse ? (
-            <button
-              type="button"
-              onClick={() => setExpanded((open) => !open)}
-              className="mt-2 text-sm font-medium text-[#215481] hover:underline"
-            >
-              {expanded ? 'Show less' : '…read more'}
-            </button>
-          ) : null}
-        </div>
-      ) : (
-        <p className="mt-3 text-sm text-stone-400">No description added.</p>
-      )}
-      {keywords.length > 0 ? (
-        <p className="mt-4 text-sm text-stone-600">
-          <span className="font-medium text-stone-800">Known for:</span> {keywords.join(', ')}
-        </p>
-      ) : null}
+    <section id="about" className="scroll-mt-40 px-4 pt-6">
+      <h2 className="text-[20px] font-extrabold tracking-tight text-[#153551]">About</h2>
+      <div className="mt-3 rounded-2xl border border-stone-200/90 bg-stone-50 p-4">
+        {trimmedDescription ? (
+          <>
+            <p className="-mb-2 text-[42px] font-extrabold leading-none text-[#d4a017]">“</p>
+            <p className="whitespace-pre-line text-[15px] leading-6 text-stone-600">{shown}</p>
+            {aboutLong ? (
+              <button
+                type="button"
+                onClick={() => setExpanded((open) => !open)}
+                className="mt-2 text-sm font-semibold text-[#215481]"
+              >
+                {expanded ? 'Show less' : 'Continue reading'}
+              </button>
+            ) : null}
+          </>
+        ) : null}
+        {tags.length > 0 ? (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {tags.map((keyword) => (
+              <span key={keyword} className="text-xs font-medium text-amber-800">
+                #{keyword.replace(/\s+/g, '')}
+              </span>
+            ))}
+          </div>
+        ) : null}
+      </div>
     </section>
   );
 }

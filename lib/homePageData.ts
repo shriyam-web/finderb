@@ -66,6 +66,16 @@ export type HomePageData = {
       businessCount: number;
       href: string;
       queryName?: string;
+      children?: Array<{
+        id: string;
+        name: string;
+        slug: string | null;
+        icon: string;
+        image?: string;
+        businessCount: number;
+        href: string;
+        queryName?: string;
+      }>;
     }>;
   }>;
   tutorialPlaylists: FinderBTutorialPlaylist[];
@@ -329,7 +339,7 @@ async function fetchHomePageData(): Promise<HomePageData> {
   };
 }
 
-const getHomePageDataCached = unstable_cache(fetchHomePageData, ['homepage-data-trending-v3'], {
+const getHomePageDataCached = unstable_cache(fetchHomePageData, ['homepage-data-trending-v5'], {
   revalidate: HOME_PAGE_REVALIDATE_SECONDS,
   tags: [HOME_PAGE_CACHE_TAG],
 });

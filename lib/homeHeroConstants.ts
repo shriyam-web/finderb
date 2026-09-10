@@ -64,10 +64,10 @@ export const HERO_PINNED_SEARCHES: PopularSearchItem[] = [
     href: '/categories/b2b',
   },
   {
-    term: 'Admissions',
+    term: 'Education',
     icon: GraduationCap,
     iconColor: 'text-emerald-600',
-    href: '/categories/admissions',
+    href: '/categories/education',
   },
   {
     term: 'FinderB News',

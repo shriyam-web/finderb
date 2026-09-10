@@ -56,17 +56,6 @@ const TREES = [
     ],
   },
   {
-    name: 'Admissions',
-    slug: 'admissions',
-    kids: [
-      { name: 'Schools', slug: 'schools-admissions' },
-      { name: 'Colleges', slug: 'colleges-admissions' },
-      { name: 'Coaching Institutes', slug: 'coaching-institutes-admissions' },
-      { name: 'Admission Consultants', slug: 'admission-consultants' },
-      { name: 'Study Abroad Consultants', slug: 'study-abroad-consultants' },
-    ],
-  },
-  {
     name: 'Real Estate',
     slug: 'real-estate',
     kids: [
@@ -252,7 +241,93 @@ async function main() {
     }
   }
 
+  await ensureEducationKids();
+
   console.log('done');
+}
+
+async function ensureEducationKids() {
+  const { data: education } = await sb
+    .from('categories')
+    .select('id')
+    .eq('slug', 'education')
+    .is('parent_id', null)
+    .maybeSingle();
+  if (!education) {
+    console.log('education parent missing; skip extra kids');
+    return;
+  }
+
+  const extras = [
+    { name: 'Admission Consultants', slug: 'admission-consultants' },
+    { name: 'Study Abroad Consultants', slug: 'study-abroad-consultants' },
+  ];
+
+  const { data: existingKids } = await sb
+    .from('categories')
+    .select('id, slug, position')
+    .eq('parent_id', education.id);
+  const maxPos = (existingKids || []).reduce(
+    (max, row) => Math.max(max, Number(row.position) || 0),
+    0,
+  );
+  let nextPos = maxPos;
+
+  for (const kid of extras) {
+    const underEducation = (existingKids || []).find((row) => row.slug === kid.slug);
+    if (underEducation) {
+      await sb
+        .from('categories')
+        .update({
+          name: kid.name,
+          status: 'Active',
+          level: 2,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', underEducation.id);
+      console.log('  education child ok', kid.slug);
+      continue;
+    }
+
+    const { data: bySlug } = await sb
+      .from('categories')
+      .select('id')
+      .eq('slug', kid.slug)
+      .maybeSingle();
+    if (bySlug) {
+      nextPos += 1;
+      await sb
+        .from('categories')
+        .update({
+          name: kid.name,
+          parent_id: education.id,
+          level: 2,
+          status: 'Active',
+          position: nextPos,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', bySlug.id);
+      console.log('  education child moved', kid.slug);
+      continue;
+    }
+
+    nextPos += 1;
+    const { error } = await sb.from('categories').insert({
+      name: kid.name,
+      slug: kid.slug,
+      type: 'Merchant',
+      status: 'Active',
+      items_count: 0,
+      banner: 'Not Set',
+      symbol: 'Not Set',
+      parent_id: education.id,
+      level: 2,
+      position: nextPos,
+      keywords: [kid.name, kid.slug.replace(/-/g, ' ')],
+    });
+    if (error) throw new Error(`education child ${kid.slug}: ${error.message}`);
+    console.log('  education child created', kid.slug);
+  }
 }
 
 main().catch((err) => {

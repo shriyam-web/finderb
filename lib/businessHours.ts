@@ -1,4 +1,4 @@
-import { formatTime12h } from '@/lib/formatBusinessHours';
+import { formatTime12h, formatTimingRange12h } from '@/lib/formatBusinessHours';
 
 const WEEKDAYS = [
   'Sunday',
@@ -194,4 +194,44 @@ export function getBusinessOpenStatus(timings: unknown): BusinessOpenState {
   }
 
   return getStatusForSlot(record, todaySlot, now, currentMinutes);
+}
+
+const WEEKDAYS_MONDAY_FIRST = [
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
+  'Sunday',
+] as const;
+
+function dayTiming(timings: Record<string, unknown>, day: string): unknown {
+  return (
+    timings[day] ??
+    timings[day.toLowerCase()] ??
+    timings[day.toUpperCase()] ??
+    timings[day.slice(0, 3)] ??
+    timings[Object.keys(timings).find((key) => key.toLowerCase() === day.toLowerCase()) || ''] ??
+    null
+  );
+}
+
+export type WeekDayHours = {
+  day: string;
+  hours: string;
+  isToday: boolean;
+};
+
+export function getWeeklyHours(timings: unknown): WeekDayHours[] {
+  if (!timings || typeof timings !== 'object') return [];
+  const record = timings as Record<string, unknown>;
+  if (Object.keys(record).length === 0) return [];
+
+  const todayName = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+  return WEEKDAYS_MONDAY_FIRST.map((day) => ({
+    day,
+    hours: formatTimingRange12h(dayTiming(record, day)),
+    isToday: day === todayName,
+  }));
 }
