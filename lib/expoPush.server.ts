@@ -8,7 +8,8 @@ export type ExpoPushMessage = {
   sound?: 'default';
   channelId?: string;
   priority?: 'default' | 'normal' | 'high';
-  interruptionLevel?: 'passive' | 'active' | 'timeSensitive' | 'critical';
+  /** Expo Push API uses hyphenated iOS values, not the client `timeSensitive` spelling. */
+  interruptionLevel?: 'passive' | 'active' | 'time-sensitive' | 'critical';
   badge?: number;
   ttl?: number;
 };
@@ -44,10 +45,10 @@ export async function sendExpoPushMessages(
       const res = await fetch(EXPO_PUSH_URL, {
         method: 'POST',
         headers,
-        body: JSON.stringify(chunk),
+        body: JSON.stringify(chunk.length === 1 ? chunk[0] : chunk),
       });
       const payload = (await res.json().catch(() => null)) as {
-        data?: Array<{ status?: string; message?: string }>;
+        data?: { status?: string; message?: string } | Array<{ status?: string; message?: string }>;
         errors?: Array<{ message?: string }>;
       } | null;
       if (!res.ok) {
@@ -57,7 +58,12 @@ export async function sendExpoPushMessages(
           error: `Expo push failed (${res.status}): ${text}`,
         };
       }
-      const tickets = Array.isArray(payload?.data) ? payload.data : [];
+      const rawTickets = payload?.data;
+      const tickets = Array.isArray(rawTickets)
+        ? rawTickets
+        : rawTickets
+          ? [rawTickets]
+          : [];
       for (const ticket of tickets) {
         if (ticket.status === 'ok') sent += 1;
         else if (ticket.message) errors.push(ticket.message);

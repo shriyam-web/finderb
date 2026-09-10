@@ -238,7 +238,7 @@ export async function dispatchBroadcastPush(broadcastId: string): Promise<{
         sound: 'default',
         channelId: 'finderb_heads_up',
         priority: 'high',
-        interruptionLevel: 'timeSensitive',
+        interruptionLevel: 'time-sensitive',
         badge: 1,
         ttl: 86400,
         data: pushData,
@@ -255,16 +255,16 @@ export async function dispatchBroadcastPush(broadcastId: string): Promise<{
     ),
   ]);
 
-  await supabase
-    .from('broadcasts')
-    .update({ push_sent_at: new Date().toISOString() })
-    .eq('id', id);
-
   const sent = expoResult.sent + fcmResult.sent;
   const error = [expoResult.error, fcmResult.error].filter(Boolean).join('; ');
   if (error && sent === 0) {
     return { success: false, error };
   }
+
+  await supabase
+    .from('broadcasts')
+    .update({ push_sent_at: new Date().toISOString() })
+    .eq('id', id);
 
   return { success: true, sent };
 }

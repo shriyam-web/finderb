@@ -37,8 +37,15 @@ function loadServiceAccount(): ServiceAccount | null {
       cachedAccount = JSON.parse(inline) as ServiceAccount;
       return cachedAccount;
     } catch {
-      cachedAccount = null;
-      return null;
+      try {
+        cachedAccount = JSON.parse(
+          Buffer.from(inline, 'base64').toString('utf8'),
+        ) as ServiceAccount;
+        return cachedAccount;
+      } catch {
+        cachedAccount = null;
+        return null;
+      }
     }
   }
 
@@ -130,12 +137,6 @@ async function getAccessToken(account: ServiceAccount): Promise<string> {
 export async function sendFcmPushMessages(
   messages: FcmPushMessage[],
 ): Promise<{ sent: number; error?: string }> {
-  const account = loadServiceAccount();
-  const projectId = account?.project_id?.trim();
-  if (!account?.client_email || !account.private_key || !projectId) {
-    return { sent: 0, error: 'Firebase service account is not configured.' };
-  }
-
   const valid = messages
     .map((item) => ({
       ...item,
@@ -143,6 +144,12 @@ export async function sendFcmPushMessages(
     }))
     .filter((item) => isLikelyFcmToken(item.token));
   if (!valid.length) return { sent: 0 };
+
+  const account = loadServiceAccount();
+  const projectId = account?.project_id?.trim();
+  if (!account?.client_email || !account.private_key || !projectId) {
+    return { sent: 0, error: 'Firebase service account is not configured.' };
+  }
 
   let accessToken: string;
   try {
