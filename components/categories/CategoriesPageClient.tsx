@@ -25,7 +25,6 @@ import CategoryMerchantList from '@/components/category/CategoryMerchantList';
 import CategoryListingsLoading from '@/components/category/CategoryListingsLoading';
 import { getBusinessProfilePath } from '@/lib/businessSlug';
 import { categoryBrowseHref, slugifyCategoryName, subMatchesQueryParam } from '@/lib/categoryDisplay';
-import { inferCategoryLevel } from '@/lib/categoryTree';
 import { formatLocalityCityLabel } from '@/lib/businessAddress';
 import { formatDistanceFromUser } from '@/lib/geo';
 import { useUserCoords } from '@/hooks/useUserCoords';
@@ -387,7 +386,7 @@ export default function CategoriesPage({
 
   const openCategorySearchHit = async (hit: CategorySearchHit) => {
     const match = categories.find((c) => c.id === hit.id);
-    if (match && inferCategoryLevel(match, categories) !== 0) {
+    if (match) {
       handleCategoryClick(match);
       setSearchQuery('');
       return;
@@ -772,8 +771,7 @@ export default function CategoriesPage({
   };
 
   const browseCategories = useMemo(() => {
-    const visible = categories.filter((cat) => inferCategoryLevel(cat, categories) !== 0);
-    return [...visible].sort((a, b) => {
+    return [...categories].sort((a, b) => {
       const countDiff = (b.businessCount ?? 0) - (a.businessCount ?? 0);
       if (countDiff !== 0) return countDiff;
       return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
@@ -982,7 +980,7 @@ export default function CategoriesPage({
         {/* Right Panel */}
         <main
           ref={mainScrollRef}
-          className="scrollbar-hide h-full min-w-0 flex-1 overflow-y-auto bg-[#f7f7f8] pb-[6.75rem] lg:pb-4"
+          className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-y-contain bg-[#f7f7f8] pb-[6.75rem] lg:pb-4"
         >
           {isLoading ? (
             <div className="mx-auto w-full max-w-5xl p-3" aria-busy="true" aria-live="polite">
@@ -1013,24 +1011,24 @@ export default function CategoriesPage({
                   Explore
                 </h1>
                 <p className="mt-0.5 font-categories text-[12px] font-normal leading-snug text-slate-500">
-                  All categories in one list — pick any to see listings.
+                  {exploreCategories.length} categories
                 </p>
               </div>
-              <div className="grid grid-cols-4 gap-2 sm:gap-2.5 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7">
+              <div className="grid grid-cols-3 gap-2 min-[380px]:grid-cols-4 sm:gap-2.5 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7">
                 {exploreCategories.map((cat) => (
                   <button
                     key={cat.id}
                     onClick={() => handleCategoryClick(cat)}
-                    className="group flex flex-col items-center gap-1.5 rounded-xl bg-white p-2 text-center ring-1 ring-slate-200/80 transition-colors active:bg-slate-50 sm:gap-2 sm:p-2.5"
+                    className="group flex min-w-0 flex-col items-center gap-1.5 rounded-xl bg-white p-1.5 text-center ring-1 ring-slate-200/80 transition-colors active:bg-slate-50 sm:gap-2 sm:p-2.5"
                   >
                     <CategoryIcon
                       icon={cat.icon}
                       name={cat.name}
-                      size={56}
-                      className="h-14 w-14 text-slate-700"
+                      size={48}
+                      className="h-11 w-11 text-slate-700 sm:h-14 sm:w-14"
                       imageClassName="object-contain"
                     />
-                    <div className="flex w-full flex-col items-center gap-0.5">
+                    <div className="flex w-full min-w-0 flex-col items-center gap-0.5">
                       <span className="line-clamp-2 w-full font-categories text-[10px] font-medium leading-snug tracking-[-0.01em] text-slate-600 sm:text-[12px]">
                         {cat.name}
                       </span>
