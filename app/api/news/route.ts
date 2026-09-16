@@ -82,6 +82,16 @@ const FEED_FETCH_HEADERS = {
   Accept: 'application/rss+xml, application/xml, text/xml, */*',
 };
 
+/** Publishers that block or poorly support in-app reading. */
+function isBlockedNewsSource(link?: string | null, source?: string | null): boolean {
+  const hay = `${link || ''} ${source || ''}`.toLowerCase();
+  return (
+    hay.includes('amarujala.com') ||
+    hay.includes('amar ujala') ||
+    hay.includes('अमर उजाला')
+  );
+}
+
 async function parseFeed(url: string) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), FEED_TIMEOUT_MS);
@@ -373,7 +383,8 @@ async function buildNewsListPayload(
     };
   }
 
-  const articles = items.map((item, index) => {
+  const articles = items
+    .map((item, index) => {
     const rawItem = item as unknown as Record<string, unknown>;
     const image = imageFromRssItem(rawItem);
     const snippet = cleanNewsSnippet(
@@ -405,7 +416,8 @@ async function buildNewsListPayload(
       image: image || null,
       imageFromFeed: Boolean(image),
     };
-  });
+  })
+    .filter((article) => !isBlockedNewsSource(article.link, article.source));
 
   return {
     success: true,
@@ -426,7 +438,7 @@ function getCachedNewsList(
   return unstable_cache(
     async () => buildNewsListPayload(slug, lang, city, state, limit),
     [
-      'news-list-v3',
+      'news-list-v4-no-amarujala',
       slug,
       lang,
       city || '',

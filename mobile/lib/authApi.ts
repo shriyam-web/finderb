@@ -1,0 +1,546 @@
+import { AppState, Platform, type AppStateStatus } from 'react-native';
+import * as Linking from 'expo-linking';
+import * as QueryParams from 'expo-auth-session/build/QueryParams';
+import * as WebBrowser from 'expo-web-browser';
+import { SITE_URL, supabase } from './supabase';
+import type { AuthUser } from './session';
+
+WebBrowser.maybeCompleteAuthSession();
+
+type AuthSuccess = {
+  success: true;
+  token: string;
+  user: AuthUser;
+  isNewUser?: boolean;
+};
+
+type AuthFailure = {
+  success: false;
+  error: string;
+  suggestedLoginPath?: string;
+};
+
+export type AuthResult = AuthSuccess | AuthFailure;
+
+/**
+ * App deep-link AuthSession waits for.
+ * Host form (`finderb://auth/callback`) matches Supabase / Custom Tabs handoff.
+ * Triple-slash form is also accepted when the HTTPS bridge prefers it.
+ */
+const APP_CALLBACK = 'finderb://auth/callback';
+const APP_CALLBACK_ALT = 'finderb:///auth/callback';
+
+async function postJson<T>(path: string, body: Record<string, unknown>): Promise<T> {
+  try {
+    const res = await fetch(`${SITE_URL}${path}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+    const text = await res.text();
+    try {
+      return JSON.parse(text) as T;
+    } catch {
+      return {
+        success: false,
+        error: `Server error (${res.status}). Check EXPO_PUBLIC_SITE_URL.`,
+      } as T;
+    }
+  } catch (error) {
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : 'Network error. Check your connection.',
+    } as T;
+  }
+}
+
+export async function loginWithPassword(
+  email: string,
+  password: string,
+): Promise<AuthResult> {
+  return postJson('/api/auth/mobile/login', { email, password });
+}
+
+export type PasswordResetRequestResult =
+  | {
+      success: true;
+      message: string;
+      next: 'code' | 'oauth' | 'none';
+      provider?: string;
+    }
+  | { success: false; error: string };
+
+export async function requestPasswordReset(
+  email: string,
+): Promise<PasswordResetRequestResult> {
+  return postJson('/api/auth/forgot-password', { email });
+}
+
+export async function resetPasswordWithCode(input: {
+  email: string;
+  code: string;
+  password: string;
+}): Promise<{ success: true } | { success: false; error: string }> {
+  return postJson('/api/auth/reset-password', input);
+}
+
+export async function registerWithPassword(input: {
+  fullName: string;
+  email: string;
+  password: string;
+}): Promise<AuthResult> {
+  return postJson('/api/auth/mobile/register', input);
+}
+
+export async function fetchSessionUser(token: string): Promise<AuthUser | null> {
+  try {
+    const res = await fetch(`${SITE_URL}/api/auth/mobile/me`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/json',
+      },
+    });
+    const data = (await res.json()) as { success?: boolean; user?: AuthUser };
+    if (!data.success || !data.user) return null;
+    return data.user;
+  } catch {
+    return null;
+  }
+}
+
+export async function updateMobileProfile(patch: {
+  fullName?: string;
+  email?: string;
+  phone?: string;
+  avatarUrl?: string | null;
+}): Promise<AuthResult> {
+  try {
+    const { getStoredToken } = await import('./session');
+    const token = await getStoredToken();
+    if (!token) {
+      return { success: false, error: 'Please log in.' };
+    }
+    const res = await fetch(`${SITE_URL}/api/auth/mobile/profile`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(patch),
+    });
+    const text = await res.text();
+    try {
+      return JSON.parse(text) as AuthResult;
+    } catch {
+      return {
+        success: false,
+        error:
+          res.status === 404
+            ? 'Profile update is not available on the server yet. Please try again after the next deploy.'
+            : `Server error (${res.status}). Could not update profile.`,
+      };
+    }
+  } catch (error) {
+    return {
+      success: false,
+      error:
+        error instanceof Error ? error.message : 'Could not update profile.',
+    };
+  }
+}
+
+/**
+ * Prefer the app deep link so Google returns straight into FinderB
+ * without an intermediate website page. HTTPS bridge remains a fallback
+ * if the provider rejects the custom scheme.
+ */
+function googleAppRedirect(): string {
+  return APP_CALLBACK;
+}
+
+function googleHttpsRedirect(): string {
+  return `${SITE_URL}/auth/mobile-callback`;
+}
+
+function isGoogleCallbackUrl(url: string): boolean {
+  return (
+    url.startsWith(APP_CALLBACK) ||
+    url.startsWith(APP_CALLBACK_ALT) ||
+    url.includes('/auth/callback') ||
+    url.includes('/auth/mobile-callback') ||
+    url.includes('access_token=') ||
+    /[?&#]code=/.test(url)
+  );
+}
+
+async function exchangeGoogleUrlForAccessToken(url: string): Promise<AuthResult | string> {
+  if (!supabase) {
+    return { success: false, error: 'Supabase is not configured in the app.' };
+  }
+
+  const { params, errorCode } = QueryParams.getQueryParams(url);
+  if (errorCode) {
+    return {
+      success: false,
+      error:
+        typeof errorCode === 'string'
+          ? errorCode
+          : 'Google sign-in failed. Please try again.',
+    };
+  }
+
+  let accessToken = params.access_token || '';
+  const refreshToken = params.refresh_token || '';
+
+  if (accessToken && refreshToken) {
+    const sessionResult = await supabase.auth.setSession({
+      access_token: accessToken,
+      refresh_token: refreshToken,
+    });
+    if (sessionResult.data.session?.access_token) {
+      accessToken = sessionResult.data.session.access_token;
+    }
+  } else if (!accessToken && params.code) {
+    const exchanged = await supabase.auth.exchangeCodeForSession(params.code);
+    if (exchanged.error || !exchanged.data.session?.access_token) {
+      // Another hop (callback screen / AuthSession) may have already exchanged the code.
+      const { data } = await supabase.auth.getSession();
+      if (data.session?.access_token) {
+        accessToken = data.session.access_token;
+      } else {
+        const msg = exchanged.error?.message || 'Could not finish Google sign-in.';
+        return {
+          success: false,
+          error: /code verifier|pkce/i.test(msg)
+            ? 'Sign-in session expired. Close other FinderB tabs and try Google again.'
+            : msg,
+        };
+      }
+    } else {
+      accessToken = exchanged.data.session.access_token;
+    }
+  }
+
+  if (!accessToken) {
+    // Last resort: session may already be in AsyncStorage from detect/set
+    const { data } = await supabase.auth.getSession();
+    accessToken = data.session?.access_token || '';
+  }
+
+  if (!accessToken) {
+    return {
+      success: false,
+      error:
+        'Google did not return a session. Add https://finderb.com/auth/mobile-callback and finderb://auth/callback to Supabase Redirect URLs.',
+    };
+  }
+
+  return accessToken;
+}
+
+async function waitForGoogleCallback(authUrl: string): Promise<{ type: string; url?: string }> {
+  let settled = false;
+  let resolveLink: ((value: { type: string; url?: string }) => void) | null = null;
+
+  const linkingPromise = new Promise<{ type: string; url?: string }>((resolve) => {
+    resolveLink = resolve;
+  });
+
+  const sub = Linking.addEventListener('url', ({ url }) => {
+    if (!settled && isGoogleCallbackUrl(url)) {
+      settled = true;
+      resolveLink?.({ type: 'success', url });
+    }
+  });
+
+  try {
+    // Wait on the app scheme — HTTPS alone never returns to Expo AuthSession on Android.
+    const browserResult = await WebBrowser.openAuthSessionAsync(authUrl, APP_CALLBACK, {
+      showInRecents: true,
+      preferEphemeralSession: false,
+      createTask: false,
+    });
+
+    if (
+      browserResult.type === 'success' &&
+      browserResult.url &&
+      isGoogleCallbackUrl(browserResult.url)
+    ) {
+      settled = true;
+      return browserResult;
+    }
+
+    // Custom Tabs often dismiss after the finderb:// bounce — Linking may still win.
+    const late = await Promise.race([
+      linkingPromise,
+      sleep(2800).then(() => null),
+    ]);
+
+    if (late?.type === 'success' && late.url) {
+      return late;
+    }
+
+    const initial = await Linking.getInitialURL();
+    if (initial && isGoogleCallbackUrl(initial)) {
+      return { type: 'success', url: initial };
+    }
+
+    return browserResult;
+  } finally {
+    sub.remove();
+    if (settled) {
+      WebBrowser.dismissAuthSession();
+    }
+  }
+}
+
+export async function loginWithGoogle(): Promise<AuthResult> {
+  if (!supabase) {
+    return { success: false, error: 'Supabase is not configured in the app.' };
+  }
+
+  // Try native app scheme first (no intermediate website page).
+  const redirectCandidates = [googleAppRedirect(), googleHttpsRedirect()];
+
+  await WebBrowser.warmUpAsync().catch(() => undefined);
+
+  try {
+    let authUrl: string | null = null;
+    let lastError: string | null = null;
+
+    for (const redirectTo of redirectCandidates) {
+      if (__DEV__) {
+        console.log('[auth] Google redirect try:', redirectTo);
+      }
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo,
+          skipBrowserRedirect: true,
+          queryParams: {
+            access_type: 'online',
+            prompt: 'select_account',
+          },
+        },
+      });
+      if (error || !data.url) {
+        lastError = error?.message || 'Could not start Google sign-in.';
+        continue;
+      }
+      authUrl = data.url;
+      break;
+    }
+
+    if (!authUrl) {
+      return {
+        success: false,
+        error: lastError || 'Could not start Google sign-in.',
+      };
+    }
+
+    const result = await waitForGoogleCallback(authUrl);
+
+    if (result.type !== 'success' || !result.url) {
+      // Deep-link may have already completed via /auth/callback screen.
+      return { success: false, error: 'Google sign-in was cancelled.' };
+    }
+
+    const tokenOrError = await exchangeGoogleUrlForAccessToken(result.url);
+    if (typeof tokenOrError !== 'string') {
+      return tokenOrError;
+    }
+
+    const auth = await postJson<AuthResult>('/api/auth/mobile/oauth', {
+      accessToken: tokenOrError,
+    });
+    await supabase.auth.signOut({ scope: 'local' }).catch(() => undefined);
+    return auth;
+  } finally {
+    await WebBrowser.coolDownAsync().catch(() => undefined);
+  }
+}
+
+function createRequestId(): string {
+  const bytes = new Uint8Array(24);
+  for (let i = 0; i < bytes.length; i += 1) {
+    bytes[i] = Math.floor(Math.random() * 256);
+  }
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, '0'))
+    .join('')
+    .slice(0, 32);
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/** Same deep-link shape as the website — partner key is NEXT_PUBLIC / EXPO_PUBLIC. */
+function buildTruecallerDeepLink(requestId: string): string | null {
+  const partnerKey = process.env.EXPO_PUBLIC_TRUECALLER_PARTNER_KEY?.trim();
+  if (!partnerKey) return null;
+
+  const partnerName =
+    process.env.EXPO_PUBLIC_TRUECALLER_PARTNER_NAME?.trim() || 'FinderB';
+  const origin = SITE_URL.replace(/\/$/, '');
+
+  const params = new URLSearchParams({
+    type: 'btmsheet',
+    requestNonce: requestId,
+    partnerKey,
+    partnerName,
+    lang: 'en',
+    privacyUrl: `${origin}/privacy`,
+    termsUrl: `${origin}/terms`,
+    loginPrefix: 'continue',
+    loginSuffix: 'login',
+    ctaPrefix: 'continuewith',
+    ctaColor: '%230087FF',
+    ctaTextColor: '%23ffffff',
+    btnShape: 'round',
+    ttl: '600000',
+  });
+
+  return `truecallersdk://truesdk/web_verify?${params.toString()}`;
+}
+
+async function pollTruecallerStatus(requestId: string): Promise<AuthResult> {
+  const started = Date.now();
+  const maxMs = 120_000;
+
+  const checkOnce = async (): Promise<AuthResult | 'pending'> => {
+    try {
+      const res = await fetch(
+        `${SITE_URL}/api/auth/truecaller/status?requestId=${encodeURIComponent(
+          requestId,
+        )}&client=mobile`,
+        { headers: { Accept: 'application/json' } },
+      );
+      const data = (await res.json()) as {
+        status?: string;
+        token?: string;
+        user?: AuthUser;
+        error?: string;
+        isNewUser?: boolean;
+      };
+
+      if (data.status === 'completed' && data.token && data.user) {
+        return {
+          success: true,
+          token: data.token,
+          user: data.user,
+          isNewUser: data.isNewUser,
+        };
+      }
+      if (data.status === 'user_rejected') {
+        return {
+          success: false,
+          error: data.error || 'You declined Truecaller verification.',
+        };
+      }
+      if (data.status === 'error') {
+        return {
+          success: false,
+          error: data.error || 'Truecaller verification failed.',
+        };
+      }
+      return 'pending';
+    } catch {
+      return 'pending';
+    }
+  };
+
+  if (AppState.currentState !== 'active') {
+    await new Promise<void>((resolve) => {
+      const sub = AppState.addEventListener('change', (next: AppStateStatus) => {
+        if (next === 'active') {
+          sub.remove();
+          resolve();
+        }
+      });
+      setTimeout(() => {
+        sub.remove();
+        resolve();
+      }, 2500);
+    });
+  } else {
+    await sleep(1200);
+  }
+
+  while (Date.now() - started < maxMs) {
+    const result = await checkOnce();
+    if (result !== 'pending') return result;
+    const delay = AppState.currentState === 'active' ? 1500 : 3000;
+    await sleep(delay);
+  }
+
+  return { success: false, error: 'Verification timed out. Please try again.' };
+}
+
+export async function loginWithTruecaller(): Promise<AuthResult> {
+  if (Platform.OS !== 'android') {
+    return {
+      success: false,
+      error:
+        'Truecaller one-tap works on Android with the Truecaller app installed.',
+    };
+  }
+
+  const enabled = process.env.EXPO_PUBLIC_TRUECALLER_ENABLED === 'true';
+  const deepLinkFromEnv = (requestId: string) => buildTruecallerDeepLink(requestId);
+
+  if (!enabled && !process.env.EXPO_PUBLIC_TRUECALLER_PARTNER_KEY?.trim()) {
+    return {
+      success: false,
+      error:
+        'Truecaller is not configured in the app. Set EXPO_PUBLIC_TRUECALLER_* in mobile/.env.',
+    };
+  }
+
+  const requestId = createRequestId();
+
+  const init = await postJson<{
+    ok?: boolean;
+    deepLink?: string;
+    error?: string;
+    success?: boolean;
+  }>('/api/auth/truecaller/init', {
+    requestId,
+    redirectPath: '/dashboard',
+  });
+
+  if (init.error && !init.ok) {
+    return {
+      success: false,
+      error:
+        init.error ||
+        'Truecaller is not available on the FinderB server.',
+    };
+  }
+
+  const deepLink = init.deepLink || deepLinkFromEnv(requestId);
+  if (!deepLink) {
+    return {
+      success: false,
+      error:
+        'Truecaller partner key missing. Add EXPO_PUBLIC_TRUECALLER_PARTNER_KEY to mobile/.env (same as website).',
+    };
+  }
+
+  try {
+    await Linking.openURL(deepLink);
+  } catch {
+    return {
+      success: false,
+      error: 'Install the Truecaller app to continue with Truecaller.',
+    };
+  }
+
+  return pollTruecallerStatus(requestId);
+}

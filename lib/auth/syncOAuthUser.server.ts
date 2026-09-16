@@ -71,7 +71,8 @@ export async function syncOAuthUserToAppSession(
   const hasUserAccount = accountTypes.includes('user');
   const alternateType = accountTypes.find((type) => type !== 'user');
 
-  if (alternateType && !hasUserAccount) {
+  // Merchants may use the consumer app — create/link a User row instead of blocking.
+  if (alternateType === 'admin' && !hasUserAccount) {
     return {
       success: false,
       error: formatWrongPortalLoginMessage(alternateType, 'user'),

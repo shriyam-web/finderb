@@ -49,29 +49,21 @@ export async function syncTruecallerUserToAppSession(
   const phone = identity.phone;
 
   const merchantExists = await lookupMerchantByPhone(db, phone);
-  if (merchantExists) {
-    const accountTypes = await lookupEmailAccountTypes(lookupClient, email);
-    const hasUserAccount = accountTypes.includes('user');
-    if (!hasUserAccount) {
-      return {
-        success: false,
-        error: formatWrongPortalLoginMessage('merchant', 'user'),
-        suggestedLoginPath: LOGIN_PATHS.merchant,
-      };
-    }
-  }
+  // Merchants can still use the consumer app — do not block Truecaller.
 
   const accountTypes = await lookupEmailAccountTypes(lookupClient, email);
   const hasUserAccount = accountTypes.includes('user');
   const alternateType = accountTypes.find((type) => type !== 'user');
 
-  if (alternateType && !hasUserAccount) {
+  if (alternateType === 'admin' && !hasUserAccount) {
     return {
       success: false,
       error: formatWrongPortalLoginMessage(alternateType, 'user'),
       suggestedLoginPath: LOGIN_PATHS[alternateType],
     };
   }
+
+  void merchantExists;
 
   const now = new Date().toISOString();
   const authProvider = 'truecaller';

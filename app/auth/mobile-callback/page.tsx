@@ -4,13 +4,9 @@ import { useEffect, useState } from 'react';
 
 /**
  * OAuth landing for the FinderB mobile app.
- * Supabase redirects here (HTTPS — reliable in Chrome Custom Tabs).
- * We immediately bounce to finderb:// so Expo AuthSession / Linking
- * can finish the PKCE exchange inside the app.
- *
- * Use `finderb://auth/callback` (AuthSession return URL). Expo Router
- * maps it via `+native-intent` because URL parsing treats `auth` as host.
- * Also emit `finderb:///auth/callback` which already has pathname `/auth/callback`.
+ * Supabase may redirect here (HTTPS). We bounce to finderb:// immediately
+ * so Expo AuthSession / Linking can finish PKCE inside the app — keep this
+ * page visually empty to avoid a jarring website mid-step.
  */
 export default function MobileAuthCallbackPage() {
   const [deepLink, setDeepLink] = useState('finderb://auth/callback');
@@ -20,9 +16,7 @@ export default function MobileAuthCallbackPage() {
     if (typeof window === 'undefined') return;
     const { search, hash } = window.location;
     const qs = `${search}${hash}`;
-    // Host-form matches AuthSession return URL (finderb://auth/callback).
     const hostForm = `finderb://auth/callback${qs}`;
-    // Path-form opens Expo route /auth/callback even if intent rewrite fails.
     const pathForm = `finderb:///auth/callback${qs}`;
     setDeepLink(hostForm);
 
@@ -30,13 +24,13 @@ export default function MobileAuthCallbackPage() {
 
     const retry = window.setTimeout(() => {
       window.location.href = hostForm;
-    }, 300);
+    }, 250);
 
     const retryPath = window.setTimeout(() => {
       window.location.href = pathForm;
-    }, 800);
+    }, 700);
 
-    const failTimer = window.setTimeout(() => setFailed(true), 1800);
+    const failTimer = window.setTimeout(() => setFailed(true), 1600);
 
     return () => {
       window.clearTimeout(retry);
@@ -45,15 +39,27 @@ export default function MobileAuthCallbackPage() {
     };
   }, []);
 
+  if (!failed) {
+    return (
+      <main
+        style={{
+          minHeight: '100vh',
+          margin: 0,
+          background: '#0B1F2A',
+        }}
+        aria-busy="true"
+        aria-label="Returning to FinderB"
+      />
+    );
+  }
+
   return (
     <main className="flex min-h-[60vh] flex-col items-center justify-center gap-3 px-6 text-center">
       <p className="text-base font-medium text-neutral-800">
-        {failed ? 'Couldn’t open the app automatically' : 'Returning to FinderB…'}
+        Couldn’t open the app automatically
       </p>
       <p className="max-w-sm text-sm text-neutral-500">
-        {failed
-          ? 'Tap below to finish signing in in the FinderB app.'
-          : 'You can close this tab if the app already opened.'}
+        Tap below to finish signing in in the FinderB app.
       </p>
       <a
         href={deepLink}

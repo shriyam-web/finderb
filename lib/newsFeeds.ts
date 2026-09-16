@@ -31,21 +31,37 @@ export const NEWS_CATEGORIES: NewsCategory[] = [
   { slug: 'startups', labelHi: 'स्टार्टअप', labelEn: 'Startups' },
 ];
 
-/** Hindi RSS feeds — one primary topic feed per category (no shared national feeds) */
+/** Hindi RSS feeds — prefer sources that extract cleanly for in-app reading */
 const HINDI_CATEGORY_FEEDS: Record<NewsCategorySlug, string[]> = {
   politics: [
-    'https://www.amarujala.com/rss/india-news.xml',
+    'https://feeds.bbci.co.uk/hindi/rss.xml',
+    'https://www.thehindu.com/news/national/feeder/default.rss',
+  ],
+  business: [
+    'https://feeds.feedburner.com/ndtvprofit-latest',
+    'https://economictimes.indiatimes.com/rssfeedsdefault.cms',
+  ],
+  sports: [
+    'https://www.hindustantimes.com/feeds/rss/sports/rssfeed.xml',
     'https://feeds.bbci.co.uk/hindi/rss.xml',
   ],
-  business: ['https://www.amarujala.com/rss/business.xml'],
-  sports: ['https://www.amarujala.com/rss/sports.xml'],
-  cricket: ['https://www.amarujala.com/rss/cricket.xml'],
-  bollywood: ['https://www.amarujala.com/rss/entertainment.xml'],
-  technology: ['https://www.amarujala.com/rss/technology.xml'],
-  'real-estate': ['https://www.hindustantimes.com/feeds/rss/real-estate/rssfeed.xml'],
+  cricket: [
+    'https://www.thehindu.com/sport/cricket/feeder/default.rss',
+    'https://www.hindustantimes.com/feeds/rss/sports/rssfeed.xml',
+  ],
+  bollywood: [
+    'https://www.hindustantimes.com/feeds/rss/entertainment/bollywood/rssfeed.xml',
+  ],
+  technology: [
+    'https://www.hindustantimes.com/feeds/rss/technology/rssfeed.xml',
+    'https://feeds.bbci.co.uk/hindi/rss.xml',
+  ],
+  'real-estate': [
+    'https://www.hindustantimes.com/feeds/rss/real-estate/rssfeed.xml',
+  ],
   local: [
-    'https://www.amarujala.com/rss/delhi.xml',
-    'https://www.amarujala.com/rss/lucknow.xml',
+    'https://www.thehindu.com/news/cities/Delhi/feeder/default.rss',
+    'https://feeds.bbci.co.uk/hindi/rss.xml',
   ],
   startups: ['https://inc42.com/feed/'],
 };
@@ -251,12 +267,8 @@ export function getLocalFeedUrls(location: LocalNewsLocation, lang: NewsLanguage
   if (city) {
     const slug = toFeedSlug(city);
     if (slug && NCR_CITY_SLUGS.has(slug)) {
-      urls.push('https://www.amarujala.com/rss/noida.xml');
-      urls.push('https://www.amarujala.com/rss/delhi.xml');
       urls.push('https://www.thehindu.com/news/cities/Delhi/feeder/default.rss');
-    }
-    if (slug) {
-      urls.push(`https://www.amarujala.com/rss/${slug}.xml`);
+      urls.push('https://www.hindustantimes.com/feeds/rss/cities/delhi-news/rssfeed.xml');
     }
     const hinduCity = toHinduCitySegment(city);
     if (hinduCity && HINDU_CITY_FEED_SEGMENTS.has(hinduCity)) {
@@ -265,7 +277,7 @@ export function getLocalFeedUrls(location: LocalNewsLocation, lang: NewsLanguage
   }
 
   if (isUttarPradesh(state)) {
-    urls.push('https://www.amarujala.com/rss/lucknow.xml');
+    urls.push('https://www.thehindu.com/news/national/feeder/default.rss');
   }
 
   urls.push(...getFeedUrlsForCategory('local', lang));
@@ -293,8 +305,9 @@ export function scoreLocalArticleRelevance(
     if (link.includes(stateKey)) score += 3;
   }
 
-  if (link.includes('amarujala.com') || link.includes('livehindustan.com')) score += 6;
-  if (link.includes('thehindu.com/news/cities')) score += 8;
+  if (link.includes('thehindu.com/news/cities') || link.includes('hindustantimes.com')) score += 8;
+  if (link.includes('bbci.co.uk') || link.includes('bbc.com')) score += 5;
+  if (link.includes('inc42.com')) score += 4;
   if (link.includes('news.google.com')) score -= 4;
 
   return score;

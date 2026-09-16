@@ -22,18 +22,24 @@ import { syncOAuthUserToAppSession } from '@/lib/auth/syncOAuthUser.server';
 import { createClient as createSupabaseJsClient } from '@supabase/supabase-js';
 
 export const MOBILE_USER_FIELDS =
-  'id, fullName, email, favorites, searchHistory, createdAt, updatedAt, avatarUrl, authProvider';
+  'id, fullName, email, favorites, searchHistory, createdAt, updatedAt, avatarUrl, authProvider, phone';
 
 export type MobileAuthUser = {
   id: string;
   fullName: string;
   email: string;
+  phone?: string | null;
   favorites?: unknown;
   searchHistory?: unknown;
   createdAt?: string;
   updatedAt?: string;
   avatarUrl?: string | null;
   authProvider?: string | null;
+  /** True when this login is linked to a Business row (merchant credentials / email). */
+  isBusinessAccount?: boolean;
+  businessId?: string | null;
+  businessName?: string | null;
+  businessSlug?: string | null;
 };
 
 export type MobileAuthSuccess = {
@@ -62,7 +68,131 @@ async function loadPublicUser(userId: string): Promise<MobileAuthUser | null> {
     .select(MOBILE_USER_FIELDS)
     .eq('id', userId)
     .maybeSingle();
-  return (data as MobileAuthUser | null) ?? null;
+  if (!data) return null;
+  return enrichWithBusinessLink(data as MobileAuthUser);
+}
+
+async function enrichWithBusinessLink(user: MobileAuthUser): Promise<MobileAuthUser> {
+  const email = user.email?.toLowerCase().trim();
+  if (!email) return { ...user, isBusinessAccount: false };
+
+  const service = dbClient();
+  const supabase = service ?? createClient(await cookies());
+  const { data: rows } = await supabase
+    .from('Business')
+    .select('id, businessName, slug, workEmail, email')
+    .or(`workEmail.eq.${email},email.eq.${email}`)
+    .limit(1);
+
+  const business = rows?.[0] as
+    | {
+        id: string;
+        businessName?: string | null;
+        slug?: string | null;
+      }
+    | undefined;
+
+  if (!business?.id) {
+    return { ...user, isBusinessAccount: false, businessId: null, businessName: null, businessSlug: null };
+  }
+
+  return {
+    ...user,
+    isBusinessAccount: true,
+    businessId: business.id,
+    businessName: business.businessName || null,
+    businessSlug: business.slug || null,
+  };
+}
+
+/** Create or reuse a consumer User row for a merchant so they can use the app. */
+async function ensureUserFromMerchantEmail(
+  email: string,
+  password: string,
+  extras?: { fullName?: string | null; phone?: string | null; avatarUrl?: string | null }
+): Promise<MobileAuthUser | null> {
+  const normalizedEmail = email.toLowerCase().trim();
+  const service = dbClient();
+  const supabase = service ?? createClient(await cookies());
+
+  const { data: businesses } = await supabase
+    .from('Business')
+    .select('id, password, businessName, mobile, profilePictureUrl, workEmail, email')
+    .or(`workEmail.eq.${normalizedEmail},email.eq.${normalizedEmail}`)
+    .limit(8);
+
+  const rows = (businesses || []) as Array<{
+    id: string;
+    password: string;
+    businessName?: string | null;
+    mobile?: string | null;
+    profilePictureUrl?: string | null;
+  }>;
+
+  let matched: (typeof rows)[number] | null = null;
+  for (const row of rows) {
+    const verification = await verifyPassword(password, row.password);
+    if (verification.valid) {
+      matched = row;
+      break;
+    }
+  }
+  if (!matched) return null;
+
+  const hashedPassword = await hashPassword(password);
+  const now = new Date().toISOString();
+
+  const { data: existing } = await supabase
+    .from('User')
+    .select(MOBILE_USER_FIELDS)
+    .eq('email', normalizedEmail)
+    .maybeSingle();
+
+  if (existing) {
+    await supabase
+      .from('User')
+      .update({
+        password: hashedPassword,
+        phone: extras?.phone || matched.mobile || (existing as MobileAuthUser).phone || null,
+        avatarUrl:
+          extras?.avatarUrl ||
+          matched.profilePictureUrl ||
+          (existing as MobileAuthUser).avatarUrl ||
+          null,
+        updatedAt: now,
+      })
+      .eq('id', (existing as MobileAuthUser).id);
+    const refreshed = await loadPublicUser((existing as MobileAuthUser).id);
+    return refreshed;
+  }
+
+  const fullName =
+    (extras?.fullName || matched.businessName || normalizedEmail.split('@')[0] || 'FinderB User').trim();
+
+  const { data: created, error } = await supabase
+    .from('User')
+    .insert({
+      id: crypto.randomUUID(),
+      fullName,
+      email: normalizedEmail,
+      password: hashedPassword,
+      phone: extras?.phone || matched.mobile || null,
+      avatarUrl: extras?.avatarUrl || matched.profilePictureUrl || null,
+      authProvider: 'password',
+      favorites: [],
+      searchHistory: [],
+      createdAt: now,
+      updatedAt: now,
+    })
+    .select(MOBILE_USER_FIELDS)
+    .single();
+
+  if (error || !created) {
+    console.error('[mobile] ensureUserFromMerchantEmail', error);
+    return null;
+  }
+
+  return enrichWithBusinessLink(created as MobileAuthUser);
 }
 
 export async function mobileLoginWithPassword(
@@ -79,36 +209,47 @@ export async function mobileLoginWithPassword(
   }
 
   const normalizedEmail = email.toLowerCase().trim();
-  const supabase = dbClient() ?? createClient(await cookies());
+  const service = dbClient();
+  const supabase = service ?? createClient(await cookies());
 
   const { data: user, error } = await supabase
     .from('User')
     .select('id, password, authProvider')
     .eq('email', normalizedEmail)
-    .single();
+    .maybeSingle();
 
-  if (error || !user) {
-    if (error?.code === 'PGRST116' || !user) {
-      const accountTypes = await lookupEmailAccountTypes(
-        createClient(await cookies()),
-        normalizedEmail
-      );
-      const alternateType = getAlternateAccountType(accountTypes, 'user');
-      if (alternateType) {
-        return {
-          success: false,
-          error: formatWrongPortalLoginMessage(alternateType, 'user'),
-          suggestedLoginPath: LOGIN_PATHS[alternateType],
-          registeredAs: alternateType,
-        };
+  if (user && !error) {
+    const verification = await verifyPassword(password, user.password);
+    if (verification.valid) {
+      if (verification.needsRehash) {
+        const hashedPassword = await hashPassword(password);
+        await supabase
+          .from('User')
+          .update({ password: hashedPassword, updatedAt: new Date().toISOString() })
+          .eq('id', user.id);
       }
-      return { success: false, error: 'No User account found with this email.' };
+      const publicUser = await loadPublicUser(user.id);
+      if (!publicUser) {
+        return { success: false, error: 'Could not load your account.' };
+      }
+      return {
+        success: true,
+        token: createMobileSessionToken(user.id),
+        user: publicUser,
+      };
     }
-    return { success: false, error: 'Login failed. Please try again.' };
-  }
 
-  const verification = await verifyPassword(password, user.password);
-  if (!verification.valid) {
+    // Consumer password failed — accept Business password and sync the User row.
+    const linked = await ensureUserFromMerchantEmail(normalizedEmail, password);
+    if (linked) {
+      return {
+        success: true,
+        token: createMobileSessionToken(linked.id),
+        user: linked,
+        isNewUser: false,
+      };
+    }
+
     if (user.authProvider) {
       const providerLabel =
         user.authProvider === 'google'
@@ -124,24 +265,31 @@ export async function mobileLoginWithPassword(
     return { success: false, error: 'Incorrect password.' };
   }
 
-  if (verification.needsRehash) {
-    const hashedPassword = await hashPassword(password);
-    await supabase
-      .from('User')
-      .update({ password: hashedPassword, updatedAt: new Date().toISOString() })
-      .eq('id', user.id);
+  // No User row — try merchant bridge, then classify remaining failures.
+  const linked = await ensureUserFromMerchantEmail(normalizedEmail, password);
+  if (linked) {
+    return {
+      success: true,
+      token: createMobileSessionToken(linked.id),
+      user: linked,
+      isNewUser: false,
+    };
   }
 
-  const publicUser = await loadPublicUser(user.id);
-  if (!publicUser) {
-    return { success: false, error: 'Could not load your account.' };
+  const accountTypes = await lookupEmailAccountTypes(supabase, normalizedEmail);
+  const alternateType = getAlternateAccountType(accountTypes, 'user');
+  if (alternateType === 'merchant') {
+    return { success: false, error: 'Incorrect password.' };
   }
-
-  return {
-    success: true,
-    token: createMobileSessionToken(user.id),
-    user: publicUser,
-  };
+  if (alternateType === 'admin') {
+    return {
+      success: false,
+      error: formatWrongPortalLoginMessage(alternateType, 'user'),
+      suggestedLoginPath: LOGIN_PATHS[alternateType],
+      registeredAs: alternateType,
+    };
+  }
+  return { success: false, error: 'No account found with this email.' };
 }
 
 export async function mobileRegisterWithPassword(formData: {
@@ -275,4 +423,66 @@ export async function mobileAuthSuccessForUserId(
     user: publicUser,
     isNewUser,
   };
+}
+
+export async function mobileUpdateProfile(
+  userId: string,
+  patch: {
+    fullName?: string;
+    email?: string;
+    phone?: string;
+    avatarUrl?: string | null;
+  }
+): Promise<MobileAuthSuccess | MobileAuthFailure> {
+  const service = dbClient();
+  const supabase = service ?? createClient(await cookies());
+
+  const updates: Record<string, unknown> = {
+    updatedAt: new Date().toISOString(),
+  };
+
+  if (typeof patch.fullName === 'string') {
+    const name = patch.fullName.trim();
+    if (name.length < 2) {
+      return { success: false, error: 'Name must be at least 2 characters.' };
+    }
+    updates.fullName = name;
+  }
+
+  if (typeof patch.email === 'string') {
+    const email = patch.email.toLowerCase().trim();
+    if (!email.includes('@')) {
+      return { success: false, error: 'Enter a valid email address.' };
+    }
+    const { data: clash } = await supabase
+      .from('User')
+      .select('id')
+      .eq('email', email)
+      .neq('id', userId)
+      .maybeSingle();
+    if (clash?.id) {
+      return { success: false, error: 'That email is already used by another account.' };
+    }
+    updates.email = email;
+  }
+
+  if (typeof patch.phone === 'string') {
+    const phone = patch.phone.replace(/[^\d+]/g, '').trim();
+    if (phone && phone.length < 8) {
+      return { success: false, error: 'Enter a valid phone number.' };
+    }
+    updates.phone = phone || null;
+  }
+
+  if (patch.avatarUrl !== undefined) {
+    updates.avatarUrl = patch.avatarUrl;
+  }
+
+  const { error } = await supabase.from('User').update(updates).eq('id', userId);
+  if (error) {
+    console.error('[mobile profile]', error);
+    return { success: false, error: 'Could not update your profile.' };
+  }
+
+  return mobileAuthSuccessForUserId(userId, false);
 }

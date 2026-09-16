@@ -45,8 +45,19 @@ next-env.d.ts
 
 .env*.local
 
-# Separate Expo app — not part of the Next.js site build
-/mobile
+# Mobile Expo app — track source; ignore local/heavy/secret artifacts
+/mobile/node_modules
+/mobile/.expo
+/mobile/dist
+/mobile/android/app/build
+/mobile/android/.gradle
+/mobile/android/build
+/mobile/android/.cxx
+/mobile/.env
+/mobile/.env.*
+/mobile/**/*.keystore
+/mobile/**/keystore.properties
+/mobile/**/google-services.json
 
 # Local editor rules
 /.cursor
