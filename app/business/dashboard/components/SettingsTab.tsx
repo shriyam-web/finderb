@@ -357,7 +357,11 @@ export default function SettingsTab({
       return keywords.length ? keywords.join(', ') : 'Not set';
     }
     if (field.key === 'category') {
-      const base = profileData.category || 'Not set';
+      const labels = (profileData.category || '')
+        .split(/\s*\|\|\|\s*/)
+        .map((part) => part.trim())
+        .filter(Boolean);
+      const base = labels.length ? labels.join(' · ') : 'Not set';
       return pendingCategoryRequest ? `${base} · change pending` : base;
     }
     if (field.key === 'businessName') {
@@ -501,7 +505,10 @@ export default function SettingsTab({
 
   const validatePhoneField = (fieldKey: string): boolean => {
     const required = fieldKey === 'publicPhone';
-    const error = indianMobileValidationError(String(profileData[fieldKey] ?? ''), { required });
+    const error = indianMobileValidationError(String(profileData[fieldKey] ?? ''), {
+      required,
+      allowLandline: fieldKey === 'publicPhone',
+    });
     if (error) {
       setFieldError(error);
       return false;

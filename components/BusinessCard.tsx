@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import Link from 'next/link';
 import { Star, MapPin } from 'lucide-react';
@@ -7,6 +7,7 @@ import { getBusinessOpenStatus } from '@/lib/businessHours';
 import { getBusinessProfilePath } from '@/lib/businessSlug';
 import { VerifiedNameTick } from '@/components/business/VerifiedMark';
 import BusinessListingImage from '@/components/business/BusinessListingImage';
+import { primaryBusinessCategory } from '@/lib/categoryTree';
 
 interface BusinessCardProps {
   business: Business;
@@ -20,12 +21,17 @@ interface BusinessCardProps {
   distanceLabel?: string | null;
 }
 
+function categoryLabel(business: Business): string {
+  return primaryBusinessCategory(business.category) || business.category || '';
+}
+
 function getShortDescription(business: Business): string {
   const text = business.description?.trim();
   if (text && text.length > 10 && text !== business.location) {
     return text;
   }
-  return `Trusted ${business.category} services in your area.`;
+  const category = categoryLabel(business) || 'local';
+  return `Trusted ${category} services in your area.`;
 }
 
 export default function BusinessCard({
@@ -71,8 +77,8 @@ export default function BusinessCard({
             {showVerified ? <VerifiedNameTick size={13} className="shrink-0" /> : null}
           </p>
 
-          {business.category ? (
-            <p className="mt-0.5 line-clamp-1 text-xs text-stone-500">{business.category}</p>
+          {categoryLabel(business) ? (
+            <p className="mt-0.5 line-clamp-1 text-xs text-stone-500">{categoryLabel(business)}</p>
           ) : null}
 
           {openStatus ? (

@@ -7,6 +7,38 @@ export type CategoryTreeRef = {
   level?: number | null;
 };
 
+/** Delimiter for multi category mappings on Business.category. */
+export const BUSINESS_CATEGORY_SEP = ' ||| ';
+
+export function splitBusinessCategories(
+  label: string | null | undefined,
+): string[] {
+  return (label || '')
+    .split(/\s*\|\|\|\s*/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
+export function joinBusinessCategories(labels: string[]): string {
+  const unique: string[] = [];
+  const seen = new Set<string>();
+  for (const raw of labels) {
+    const trimmed = raw.trim();
+    if (!trimmed) continue;
+    const key = trimmed.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    unique.push(trimmed);
+  }
+  return unique.join(BUSINESS_CATEGORY_SEP);
+}
+
+export function primaryBusinessCategory(
+  label: string | null | undefined,
+): string {
+  return splitBusinessCategories(label)[0] || '';
+}
+
 export function inferCategoryLevel(
   cat: CategoryTreeRef,
   all: CategoryTreeRef[]

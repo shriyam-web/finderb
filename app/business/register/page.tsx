@@ -30,6 +30,10 @@ import { combineBusinessAddress } from '@/lib/businessAddress';
 import { markNewBusinessOnboarding } from '@/lib/businessOnboarding';
 import AuthRedirectScreen from '@/components/auth/AuthRedirectScreen';
 import { useAlreadyLoggedInRedirect } from '@/hooks/useAlreadyLoggedInRedirect';
+import {
+  joinBusinessCategories,
+  splitBusinessCategories,
+} from '@/lib/categoryTree';
 
 type LiveCategory = {
   id: string;
@@ -107,6 +111,7 @@ function RegisterFormContent() {
     businessName: '',
     displayName: '',
     category: '',
+    mappedCategories: '',
     categoryId: '',
     subcategory: '',
     subcategoryId: '',
@@ -212,6 +217,16 @@ function RegisterFormContent() {
       const res = await getSubCategories(categoryId);
       if (res.success && res.subCategories) {
         setSubCategories(res.subCategories);
+        // Leaf category with no children — keep draft label for Add / auto-map.
+        if (res.subCategories.length === 0 && parent?.name) {
+          patchFormData({
+            categoryId,
+            category: parent.name,
+            subcategoryId: '',
+            nestedSubcategoryId: '',
+            subcategory: '',
+          });
+        }
       }
     } finally {
       setLoadingSubcategories(false);
@@ -222,15 +237,16 @@ function RegisterFormContent() {
     const sub = subCategories.find((c) => c.id === subcategoryId);
     const parent = liveCategories.find((c) => c.id === formData.categoryId);
     const rootIsGroup = parent?.level === 0;
+    const draftLabel = rootIsGroup
+      ? sub?.name || ''
+      : sub && parent
+        ? `${parent.name} › ${sub.name}`
+        : formData.category;
     patchFormData({
       subcategoryId,
       subcategory: sub?.name || '',
       nestedSubcategoryId: '',
-      category: rootIsGroup
-        ? sub?.name || formData.category
-        : sub && parent
-          ? `${parent.name} › ${sub.name}`
-          : formData.category,
+      category: draftLabel,
     });
     setNestedSubCategories([]);
     if (!subcategoryId || !rootIsGroup) return;
@@ -252,6 +268,35 @@ function RegisterFormContent() {
       nestedSubcategoryId,
       category:
         leaf && mid ? `${mid.name} › ${leaf.name}` : mid?.name || formData.category,
+    });
+  };
+
+  const addMappedCategory = () => {
+    const draft = formData.category.trim();
+    if (!draft) return;
+    const next = joinBusinessCategories([
+      ...splitBusinessCategories(formData.mappedCategories),
+      draft,
+    ]);
+    patchFormData({
+      mappedCategories: next,
+      categoryId: '',
+      subcategoryId: '',
+      nestedSubcategoryId: '',
+      subcategory: '',
+      category: '',
+    });
+    setSubCategories([]);
+    setNestedSubCategories([]);
+  };
+
+  const removeMappedCategory = (label: string) => {
+    patchFormData({
+      mappedCategories: joinBusinessCategories(
+        splitBusinessCategories(formData.mappedCategories).filter(
+          (item) => item.toLowerCase() !== label.toLowerCase(),
+        ),
+      ),
     });
   };
   const stepLabels = ['Basic Details', 'Business Info', 'Success'];
@@ -291,6 +336,8 @@ function RegisterFormContent() {
         categoryId: formData.categoryId,
         subcategoryId: formData.subcategoryId,
         nestedSubcategoryId: formData.nestedSubcategoryId,
+        mappedCategories: formData.mappedCategories,
+        draftCategory: formData.category,
         city: formData.city,
         state: formData.state,
         country: formData.country,
@@ -360,7 +407,7 @@ function RegisterFormContent() {
       const parent = liveCategories.find((c) => c.id === formData.categoryId);
       const sub = subCategories.find((c) => c.id === formData.subcategoryId);
       const leaf = nestedSubCategories.find((c) => c.id === formData.nestedSubcategoryId);
-      const categoryLabel =
+      const draftLabel =
         parent?.level === 0
           ? leaf && sub
             ? `${sub.name} › ${leaf.name}`
@@ -368,6 +415,11 @@ function RegisterFormContent() {
           : sub && parent
             ? `${parent.name} › ${sub.name}`
             : parent?.name || formData.category;
+      const categoryLabel =
+        joinBusinessCategories([
+          ...splitBusinessCategories(formData.mappedCategories),
+          draftLabel,
+        ]) || draftLabel;
 
       const registrationData = {
         ...formData,
@@ -568,6 +620,8 @@ function RegisterFormContent() {
         onCategoryChange={handleCategoryChange}
         onSubcategoryChange={handleSubcategoryChange}
         onNestedSubcategoryChange={handleNestedSubcategoryChange}
+        onAddMappedCategory={addMappedCategory}
+        onRemoveMappedCategory={removeMappedCategory}
         subcategoryLabel={rootIsGroup ? 'Category' : 'Subcategory'}
         nestedSubcategoryLabel="Subcategory"
         countryOptions={countryOptions}

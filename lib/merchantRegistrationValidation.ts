@@ -95,6 +95,10 @@ export type RegistrationStep2Input = {
   categoryId: string;
   subcategoryId: string;
   nestedSubcategoryId?: string;
+  /** Joined multi-category labels already added via "Add category". */
+  mappedCategories?: string;
+  /** Current draft label from the cascading selects. */
+  draftCategory?: string;
   city: string;
   state: string;
   country: string;
@@ -171,10 +175,18 @@ function validatePassword(value: string): string | null {
 function validateMobile(value: string, fieldLabel = 'mobile number'): string | null {
   const error = indianMobileValidationError(value, { required: true });
   if (!error) return null;
-  if (error === 'Enter your 10-digit mobile number.') {
+  if (error === 'Enter your mobile number.') {
     return `Please enter a valid 10-digit ${fieldLabel}.`;
   }
   return error;
+}
+
+function validatePublicPhone(value: string): string | null {
+  return indianMobileValidationError(value, {
+    required: true,
+    allowLandline: true,
+    label: 'display phone number',
+  });
 }
 
 export function validateRegistrationMobile(mobile: string): string | null {
@@ -226,7 +238,7 @@ export function validateRegistrationBusinessFields(data: {
     (!data.country.trim() ? 'Please select your country.' : null) ??
     (!data.state.trim() ? 'Please select your state.' : null) ??
     (!data.city.trim() ? 'Please select your city.' : null) ??
-    validateMobile(data.publicPhone, 'display phone number')
+    validatePublicPhone(data.publicPhone)
   );
 }
 
@@ -235,15 +247,22 @@ export function validateRegistrationStep2Fields(
 ): RegistrationFieldErrors {
   const errors: RegistrationFieldErrors = {};
 
-  if (!input.categoryId) {
-    errors.categoryId = 'Please select a business category.';
-  }
+  const hasMapped = Boolean((input.mappedCategories || '').trim());
+  const hasDraft = Boolean((input.draftCategory || '').trim() || input.categoryId);
 
-  if (input.hasSubcategories && !input.subcategoryId) {
-    errors.subcategoryId = 'Please select a subcategory.';
-  }
-  if (input.hasNestedSubcategories && !input.nestedSubcategoryId) {
-    errors.nestedSubcategoryId = 'Please select a subcategory.';
+  if (!hasMapped && !hasDraft) {
+    errors.categoryId = 'Please add at least one business category.';
+  } else if (!hasMapped) {
+    // Still completing the first mapping via cascading selects
+    if (!input.categoryId) {
+      errors.categoryId = 'Please select a business category.';
+    }
+    if (input.hasSubcategories && !input.subcategoryId) {
+      errors.subcategoryId = 'Please select a subcategory.';
+    }
+    if (input.hasNestedSubcategories && !input.nestedSubcategoryId) {
+      errors.nestedSubcategoryId = 'Please select a subcategory.';
+    }
   }
 
   const businessNameError = validateBusinessName(input.businessName);
@@ -259,7 +278,7 @@ export function validateRegistrationStep2Fields(
   if (!input.state.trim()) errors.state = 'Please select your state.';
   if (!input.city.trim()) errors.city = 'Please select your city.';
 
-  const publicPhoneError = validateMobile(input.publicPhone, 'display phone number');
+  const publicPhoneError = validatePublicPhone(input.publicPhone);
   if (publicPhoneError) errors.publicPhone = publicPhoneError;
 
   return errors;

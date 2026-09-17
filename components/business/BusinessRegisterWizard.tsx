@@ -37,6 +37,7 @@ type FormData = {
   businessName: string;
   displayName: string;
   category: string;
+  mappedCategories: string;
   categoryId: string;
   subcategory: string;
   subcategoryId: string;
@@ -72,6 +73,8 @@ type BusinessRegisterWizardProps = {
   onCategoryChange: (categoryId: string) => void;
   onSubcategoryChange: (subcategoryId: string) => void;
   onNestedSubcategoryChange?: (nestedSubcategoryId: string) => void;
+  onAddMappedCategory?: () => void;
+  onRemoveMappedCategory?: (label: string) => void;
   subcategoryLabel?: string;
   nestedSubcategoryLabel?: string;
   countryOptions: SelectOption[];
@@ -166,7 +169,9 @@ export default function BusinessRegisterWizard({
   onCategoryChange,
   onSubcategoryChange,
   onNestedSubcategoryChange,
-  subcategoryLabel = 'Subcategory',
+  onAddMappedCategory,
+  onRemoveMappedCategory,
+  subcategoryLabel = 'Category',
   nestedSubcategoryLabel = 'Subcategory',
   countryOptions,
   stateOptions,
@@ -358,6 +363,55 @@ export default function BusinessRegisterWizard({
                       loading={loadingNestedSubcategories}
                       error={fieldErrors.nestedSubcategoryId}
                     />
+                  )}
+                  {formData.mappedCategories ? (
+                    <div className="flex flex-wrap gap-2">
+                      {formData.mappedCategories
+                        .split(/\s*\|\|\|\s*/)
+                        .filter(Boolean)
+                        .map((label) => (
+                          <span
+                            key={label}
+                            className="inline-flex max-w-full items-center gap-1 rounded-full border border-[#cfe0ef] bg-[#f3f8fc] px-2.5 py-1 text-xs font-semibold text-[#153551]"
+                          >
+                            <span className="truncate">{label}</span>
+                            {onRemoveMappedCategory ? (
+                              <button
+                                type="button"
+                                onClick={() => onRemoveMappedCategory(label)}
+                                className="text-[#64748b] hover:text-[#153551]"
+                                aria-label={`Remove ${label}`}
+                              >
+                                ×
+                              </button>
+                            ) : null}
+                          </span>
+                        ))}
+                    </div>
+                  ) : null}
+                  {formData.category.trim() ? (
+                    <div className="flex items-center justify-between gap-3 rounded-xl border border-[#d4dde8] bg-white px-3 py-2.5">
+                      <p className="min-w-0 truncate text-xs text-[#475569]">
+                        Ready to add:{' '}
+                        <span className="font-semibold text-[#153551]">
+                          {formData.category}
+                        </span>
+                      </p>
+                      {onAddMappedCategory ? (
+                        <button
+                          type="button"
+                          onClick={onAddMappedCategory}
+                          className="shrink-0 rounded-lg bg-[#153551] px-3 py-1.5 text-xs font-semibold text-white"
+                        >
+                          Add category
+                        </button>
+                      ) : null}
+                    </div>
+                  ) : (
+                    <p className="text-xs leading-relaxed text-[#64748b]">
+                      Select a category (and subcategory if shown), then tap Add
+                      category. You can map multiple categories.
+                    </p>
                   )}
                   <MerchantAuthField
                     id="addressLine1"

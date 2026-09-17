@@ -1239,7 +1239,10 @@ export async function updateBusinessProfile(id: string, profileData: any) {
     }
 
     profileData.publicPhone = normalizeIndianPhoneForStorage(profileData.publicPhone ?? '');
-    const publicPhoneError = indianMobileValidationError(profileData.publicPhone);
+    const publicPhoneError = indianMobileValidationError(profileData.publicPhone, {
+      allowLandline: true,
+      label: 'display phone number',
+    });
     if (publicPhoneError) {
       return { success: false, error: publicPhoneError };
     }

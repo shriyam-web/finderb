@@ -103,6 +103,7 @@ export default function MoreScreen() {
               subtitle="Open roles near you"
               tone={TONES.jobs}
               isDark={isDark}
+              icon="briefcase-outline"
               onOpen={() => router.push('/(tabs)/jobs' as Href)}
               loading={jobsLoading}
               empty={!jobsLoading && jobs.length === 0}
@@ -173,6 +174,7 @@ export default function MoreScreen() {
               subtitle="Nearby spots to explore"
               tone={TONES.tourist}
               isDark={isDark}
+              icon="map-outline"
               onOpen={() => router.push('/(tabs)/tourist-places' as Href)}
               loading={placesLoading}
               empty={!placesLoading && places.length === 0}
@@ -232,6 +234,7 @@ export default function MoreScreen() {
               subtitle="Stories you can read here"
               tone={TONES.news}
               isDark={isDark}
+              icon="newspaper-outline"
               onOpen={() => router.push('/(tabs)/news' as Href)}
               loading={newsLoading}
               empty={!newsLoading && articles.length === 0}
@@ -277,6 +280,7 @@ export default function MoreScreen() {
               subtitle="Guides from FinderB"
               tone={TONES.blogs}
               isDark={isDark}
+              icon="book-outline"
               onOpen={() => router.push('/(tabs)/blog' as Href)}
               loading={blogsLoading}
               empty={!blogsLoading && blogs.length === 0}
@@ -329,6 +333,7 @@ function Section({
   subtitle,
   tone,
   isDark,
+  icon,
   onOpen,
   loading,
   empty,
@@ -338,6 +343,7 @@ function Section({
   subtitle: string;
   tone: SectionTone;
   isDark: boolean;
+  icon: keyof typeof Ionicons.glyphMap;
   onOpen: () => void;
   loading?: boolean;
   empty?: boolean;
@@ -356,7 +362,7 @@ function Section({
         accessibilityLabel={`Open ${title}`}
       >
         <View style={[styles.sectionAccent, { backgroundColor: soft }]}>
-          <View style={[styles.sectionDot, { backgroundColor: accent }]} />
+          <Ionicons name={icon} size={18} color={accent} />
         </View>
         <View style={styles.sectionCopy}>
           <Text style={styles.sectionTitle}>{title}</Text>
@@ -427,11 +433,6 @@ const useStyles = createThemedStyles((colors) => ({
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  sectionDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
   },
   sectionCopy: {
     flex: 1,

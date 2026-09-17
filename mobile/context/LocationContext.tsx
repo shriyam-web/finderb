@@ -8,6 +8,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import { AppState, type AppStateStatus } from 'react-native';
 import * as Location from 'expo-location';
 import { lookupCityCoords } from '../lib/cityCoords';
 import { geocodePlaceQuery } from '../lib/geocodePlace';
@@ -244,6 +245,12 @@ export function LocationProvider({ children }: { children: ReactNode }) {
         setSource('manual');
         setStatus('ready');
         setHydrated(true);
+        // Still prompt for location permission on first install / if missing,
+        // so nearby features work when the user later switches to GPS.
+        const perm = await Location.getForegroundPermissionsAsync();
+        if (!cancelled && !perm.granted && perm.canAskAgain !== false) {
+          await Location.requestForegroundPermissionsAsync();
+        }
         return;
       }
 
@@ -257,12 +264,24 @@ export function LocationProvider({ children }: { children: ReactNode }) {
       }
 
       setHydrated(true);
+      // Always (re)fetch GPS on open — core discovery depends on fresh location.
       await detectGps();
     })();
 
     return () => {
       cancelled = true;
     };
+  }, [detectGps]);
+
+  // Refetch GPS whenever the app returns to the foreground (unless manual city).
+  useEffect(() => {
+    const onChange = (next: AppStateStatus) => {
+      if (next !== 'active') return;
+      if (sourceRef.current === 'manual') return;
+      void detectGps();
+    };
+    const sub = AppState.addEventListener('change', onChange);
+    return () => sub.remove();
   }, [detectGps]);
 
   const setManualLocation = useCallback(

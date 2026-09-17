@@ -12,6 +12,10 @@ import {
 } from '@/app/actions/businessChangeRequests';
 import { CATEGORY_CHANGE_FIELD } from '@/lib/businessChangeRequest';
 import type { BusinessChangeRequest } from '@/lib/businessChangeRequest';
+import {
+  joinBusinessCategories,
+  splitBusinessCategories,
+} from '@/lib/categoryTree';
 import { dashboard } from './dashboard-ui';
 
 type LiveCategory = { id: string; name: string; icon?: string | null };
@@ -40,6 +44,7 @@ export default function CategoryChangeRequestPanel({
   const [pendingRequest, setPendingRequest] = useState<BusinessChangeRequest | null>(null);
   const [categoryId, setCategoryId] = useState('');
   const [subcategoryId, setSubcategoryId] = useState('');
+  const [requestedLabels, setRequestedLabels] = useState<string[]>([]);
   const [merchantNote, setMerchantNote] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -127,22 +132,54 @@ export default function CategoryChangeRequestPanel({
 
   const selectedParent = categories.find((item) => item.id === categoryId);
   const selectedSub = subCategories.find((item) => item.id === subcategoryId);
-  const requestedCategory = selectedParent
+  const showSubcategory = Boolean(categoryId && subCategories.length > 0);
+  const draftCategory = selectedParent
     ? buildCategoryLabel(selectedParent.name, selectedSub?.name)
     : '';
-  const showSubcategory = Boolean(categoryId && subCategories.length > 0);
+  const requestedCategory = joinBusinessCategories([
+    ...requestedLabels,
+    ...(draftCategory &&
+    (!showSubcategory || subcategoryId) &&
+    !requestedLabels.some((l) => l.toLowerCase() === draftCategory.toLowerCase())
+      ? [draftCategory]
+      : []),
+  ]);
+
+  const addDraftCategory = () => {
+    if (!draftCategory) {
+      setError('Please select a category.');
+      return;
+    }
+    if (showSubcategory && !subcategoryId) {
+      setError('Please select a subcategory.');
+      return;
+    }
+    setRequestedLabels((prev) =>
+      splitBusinessCategories(joinBusinessCategories([...prev, draftCategory])),
+    );
+    setCategoryId('');
+    setSubcategoryId('');
+    setError('');
+  };
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setError('');
     setSuccess('');
 
-    if (!requestedCategory) {
-      setError('Please select a new category.');
+    const finalRequested = joinBusinessCategories([
+      ...requestedLabels,
+      ...(draftCategory && (!showSubcategory || subcategoryId)
+        ? [draftCategory]
+        : []),
+    ]);
+
+    if (!finalRequested) {
+      setError('Please add at least one category.');
       return;
     }
 
-    if (showSubcategory && !subcategoryId) {
+    if (draftCategory && showSubcategory && !subcategoryId && requestedLabels.length === 0) {
       setError('Please select a subcategory.');
       return;
     }
@@ -150,7 +187,7 @@ export default function CategoryChangeRequestPanel({
     setSubmitting(true);
     const result = await submitCategoryChangeRequest({
       businessId,
-      requestedCategory,
+      requestedCategory: finalRequested,
       merchantNote,
     });
     setSubmitting(false);
@@ -164,6 +201,7 @@ export default function CategoryChangeRequestPanel({
     onPendingChange?.(result.request);
     setCategoryId('');
     setSubcategoryId('');
+    setRequestedLabels([]);
     setMerchantNote('');
     setSuccess('Your category change request was submitted. We will review it shortly.');
   };
@@ -180,13 +218,27 @@ export default function CategoryChangeRequestPanel({
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-3">
-        <p className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">Current category</p>
-        <p className="mt-1 flex items-center gap-2 text-sm font-semibold text-[#153551]">
-          <HiOutlineTag size={16} className="shrink-0 text-zinc-400" />
-          {currentCategory || 'Not set'}
-        </p>
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">Current categories</p>
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {splitBusinessCategories(currentCategory).length ? (
+            splitBusinessCategories(currentCategory).map((label) => (
+              <span
+                key={label}
+                className="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-white px-2 py-0.5 text-xs font-medium text-[#153551]"
+              >
+                <HiOutlineTag size={12} className="text-zinc-400" />
+                {label}
+              </span>
+            ))
+          ) : (
+            <p className="flex items-center gap-2 text-sm font-semibold text-[#153551]">
+              <HiOutlineTag size={16} className="shrink-0 text-zinc-400" />
+              Not set
+            </p>
+          )}
+        </div>
         <p className="mt-2 text-xs leading-relaxed text-zinc-500">
-          Your category cannot be changed directly. Submit a request and our team will review it from the admin panel.
+          Your categories cannot be changed directly. Submit a request and our team will review it from the admin panel. You can request multiple categories.
         </p>
       </div>
 
@@ -226,9 +278,53 @@ export default function CategoryChangeRequestPanel({
             />
           )}
 
+          {requestedLabels.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {requestedLabels.map((label) => (
+                <span
+                  key={label}
+                  className="inline-flex items-center gap-1 rounded-full border border-[#215481]/20 bg-[#215481]/[0.06] px-2 py-0.5 text-xs font-medium text-[#153551]"
+                >
+                  {label}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setRequestedLabels((prev) =>
+                        prev.filter((item) => item.toLowerCase() !== label.toLowerCase()),
+                      )
+                    }
+                    className="text-zinc-500 hover:text-[#153551]"
+                    aria-label={`Remove ${label}`}
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+
+          {draftCategory ? (
+            <div className="flex items-center justify-between gap-3 rounded-lg border border-[#215481]/15 bg-[#215481]/[0.04] px-3 py-2.5 text-xs text-zinc-700">
+              <span className="min-w-0 truncate">
+                Ready to add:{' '}
+                <span className="font-semibold text-[#153551]">{draftCategory}</span>
+              </span>
+              <button
+                type="button"
+                onClick={addDraftCategory}
+                className="shrink-0 rounded-md bg-[#215481] px-2.5 py-1 text-[11px] font-semibold text-white"
+              >
+                Add
+              </button>
+            </div>
+          ) : null}
+
           {requestedCategory && (
             <div className="rounded-lg border border-[#215481]/15 bg-[#215481]/[0.04] px-3 py-2.5 text-xs text-zinc-700">
-              You are requesting: <span className="font-semibold text-[#153551]">{requestedCategory}</span>
+              Request will include:{' '}
+              <span className="font-semibold text-[#153551]">
+                {splitBusinessCategories(requestedCategory).join(' · ')}
+              </span>
             </div>
           )}
 
@@ -251,7 +347,7 @@ export default function CategoryChangeRequestPanel({
 
           <button
             type="submit"
-            disabled={submitting || !requestedCategory || (showSubcategory && !subcategoryId)}
+            disabled={submitting || !requestedCategory}
             className={`w-full ${dashboard.btnPrimary} disabled:opacity-50`}
           >
             {submitting ? 'Submitting…' : 'Submit change request'}

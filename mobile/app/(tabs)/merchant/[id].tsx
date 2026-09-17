@@ -1184,15 +1184,6 @@ export default function MerchantProfileScreen() {
                     </Text>
                   </Pressable>
                 ) : null}
-                {merchant.keywords.length ? (
-                  <View style={styles.keywordRow}>
-                    {merchant.keywords.slice(0, 6).map((keyword) => (
-                      <Text key={keyword} style={styles.keyword}>
-                        #{keyword.replace(/\s+/g, '')}
-                      </Text>
-                    ))}
-                  </View>
-                ) : null}
               </View>
             </View>
           ) : null}

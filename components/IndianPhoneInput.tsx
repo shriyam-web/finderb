@@ -91,4 +91,4 @@ export default function IndianPhoneInput({
 }
 
 export const INDIAN_PHONE_FIELD_HINT =
-  'Enter only the 10-digit mobile number. Do not add 0, +91, or country code — +91 is added automatically.';
+  'Enter a 10-digit mobile (or landline for public phone). Leading 0 or +91 is removed automatically.';

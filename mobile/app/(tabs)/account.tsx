@@ -82,13 +82,22 @@ export default function AccountScreen() {
     setEditing(true);
   };
 
+  const provider = providerMeta(user?.authProvider);
+  const providerKey = (user?.authProvider || '').toLowerCase();
+  const emailLocked = providerKey === 'google';
+  const phoneLocked = providerKey === 'truecaller';
+
   const saveProfile = async () => {
     if (!user) return;
     setSaving(true);
     const result = await updateProfile({
       fullName: nameDraft.trim(),
-      email: emailDraft.trim() || undefined,
-      phone: phoneDraft.trim() || undefined,
+      email: emailLocked
+        ? user.email || undefined
+        : emailDraft.trim() || undefined,
+      phone: phoneLocked
+        ? user.phone || undefined
+        : phoneDraft.trim() || undefined,
     });
     setSaving(false);
     if (!result.success) {
@@ -97,8 +106,6 @@ export default function AccountScreen() {
     }
     setEditing(false);
   };
-
-  const provider = providerMeta(user?.authProvider);
 
   const menu: MenuItem[] = [
     {
@@ -220,19 +227,38 @@ export default function AccountScreen() {
                       onChangeText={setEmailDraft}
                       autoCapitalize="none"
                       keyboardType="email-address"
-                      style={styles.editInput}
+                      editable={!emailLocked}
+                      style={[
+                        styles.editInput,
+                        emailLocked && styles.editInputLocked,
+                      ]}
                       placeholder="Add your email"
                       placeholderTextColor={colors.textSoft}
                     />
+                    {emailLocked ? (
+                      <Text style={styles.editHint}>
+                        Email comes from Google and can&apos;t be changed here.
+                      </Text>
+                    ) : null}
                     <Text style={styles.editLabel}>Phone</Text>
                     <TextInput
                       value={phoneDraft}
                       onChangeText={setPhoneDraft}
                       keyboardType="phone-pad"
-                      style={styles.editInput}
+                      editable={!phoneLocked}
+                      style={[
+                        styles.editInput,
+                        phoneLocked && styles.editInputLocked,
+                      ]}
                       placeholder="Add your phone"
                       placeholderTextColor={colors.textSoft}
                     />
+                    {phoneLocked ? (
+                      <Text style={styles.editHint}>
+                        Phone comes from Truecaller and can&apos;t be changed
+                        here.
+                      </Text>
+                    ) : null}
                     <View style={styles.editActions}>
                       <Pressable
                         onPress={() => setEditing(false)}
@@ -512,6 +538,17 @@ const useStyles = createThemedStyles((colors) => ({
     fontFamily: fonts.regular,
     fontSize: 15,
     color: colors.ink,
+  },
+  editInputLocked: {
+    opacity: 0.65,
+    backgroundColor: colors.canvas,
+  },
+  editHint: {
+    fontFamily: fonts.regular,
+    fontSize: 11,
+    color: colors.textSoft,
+    marginTop: -2,
+    marginBottom: 2,
   },
   editActions: {
     flexDirection: 'row',

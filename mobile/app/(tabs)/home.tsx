@@ -331,7 +331,7 @@ export default function HomeScreen() {
           </Text>
           <Ionicons
             name="chevron-down"
-            size={12}
+            size={10}
             color={stickyChrome.inkMuted}
           />
         </Pressable>
@@ -361,14 +361,14 @@ export default function HomeScreen() {
           }
         >
           <WeatherChipOrb night={weatherChip.night} size={15} />
-          <Text
-            style={[styles.weatherChipText, { color: stickyChrome.ink }]}
-            numberOfLines={1}
-          >
-            {weatherChip.temp
-              ? `${weatherChip.temp} ${weatherChip.climate}`
-              : weatherChip.climate}
-          </Text>
+          {weatherChip.temp ? (
+            <Text
+              style={[styles.weatherChipText, { color: stickyChrome.ink }]}
+              numberOfLines={1}
+            >
+              {weatherChip.temp}
+            </Text>
+          ) : null}
         </Pressable>
         <Pressable
           style={styles.notifBtn}
@@ -600,7 +600,7 @@ const useStyles = createThemedStyles((colors) => ({
   locationText: {
     flexShrink: 1,
     fontFamily: fonts.semiBold,
-    fontSize: 12,
+    fontSize: 10,
     letterSpacing: -0.1,
   },
   topBarSideRight: {
@@ -614,10 +614,10 @@ const useStyles = createThemedStyles((colors) => ({
   weatherChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    maxWidth: 108,
-    paddingLeft: 7,
-    paddingRight: 8,
+    gap: 3,
+    maxWidth: 64,
+    paddingLeft: 6,
+    paddingRight: 7,
     paddingVertical: 4,
     borderRadius: 999,
     borderWidth: StyleSheet.hairlineWidth,
