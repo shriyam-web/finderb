@@ -359,7 +359,7 @@ export default function SettingsTab({
     if (field.key === 'category') {
       const labels = (profileData.category || '')
         .split(/\s*\|\|\|\s*/)
-        .map((part) => part.trim())
+        .map((part: string) => part.trim())
         .filter(Boolean);
       const base = labels.length ? labels.join(' · ') : 'Not set';
       return pendingCategoryRequest ? `${base} · change pending` : base;
