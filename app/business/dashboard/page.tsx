@@ -13,7 +13,13 @@ import { HiOutlineSquares2X2,
   HiOutlineStar,
 } from 'react-icons/hi2';
 import { RiDashboardFill, RiListCheck, RiMessage3Line, RiSettings4Line, RiStarFill } from 'react-icons/ri';
-import { getBusinessSession, updateBusinessImages, logoutBusiness, updateBusinessProfile } from '@/app/actions/business';
+import {
+  getBusinessSession,
+  touchBusinessSupportSession,
+  updateBusinessImages,
+  logoutBusiness,
+  updateBusinessProfile,
+} from '@/app/actions/business';
 import { getBusinessLeads } from '@/app/actions/leads';
 import SettingsTab from './components/SettingsTab';
 import JobPostingTab from './components/JobPostingTab';
@@ -261,25 +267,82 @@ function DashboardContent() {
     fetchBusiness();
   }, [router]);
 
-  // Keep support sessions alive while the dashboard is used; expire on idle.
+  // Reset idle timer on real activity; poll only to detect expiry.
   useEffect(() => {
     if (!supportSession) return;
-    const touch = async () => {
-      const sessionRes = await getBusinessSession();
-      if (!sessionRes?.success || !sessionRes.business) {
-        router.push('/business/login?error=support_session_expired');
-        return;
-      }
-      setSupportIdleDeadline(
-        typeof sessionRes.supportIdleDeadline === 'number'
-          ? sessionRes.supportIdleDeadline
-          : null,
-      );
+
+    let disposed = false;
+    let lastTouchAt = 0;
+    let touchInFlight = false;
+    const TOUCH_THROTTLE_MS = 15_000;
+
+    const expire = () => {
+      if (disposed) return;
+      router.push('/business/login?error=support_session_expired');
     };
+
+    const touch = async (force = false) => {
+      const now = Date.now();
+      if (!force && now - lastTouchAt < TOUCH_THROTTLE_MS) return;
+      if (touchInFlight) return;
+      touchInFlight = true;
+      lastTouchAt = now;
+      try {
+        const result = await touchBusinessSupportSession();
+        if (disposed) return;
+        if (!result.ok) {
+          expire();
+          return;
+        }
+        setSupportIdleDeadline(result.idleDeadlineMs);
+      } finally {
+        touchInFlight = false;
+      }
+    };
+
+    const checkStillValid = async () => {
+      const sessionRes = await getBusinessSession();
+      if (disposed) return;
+      if (!sessionRes?.success || !sessionRes.business || !sessionRes.supportSession) {
+        expire();
+      }
+    };
+
+    const onActivity = () => {
+      void touch(false);
+    };
+
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') void touch(true);
+    };
+
+    const activityEvents: Array<keyof WindowEventMap> = [
+      'pointerdown',
+      'keydown',
+      'scroll',
+      'touchstart',
+      'mousemove',
+      'wheel',
+    ];
+    for (const eventName of activityEvents) {
+      window.addEventListener(eventName, onActivity, { passive: true });
+    }
+    document.addEventListener('visibilitychange', onVisibility);
+
+    // Immediate touch so opening the panel starts a clean 15m window.
+    void touch(true);
     const id = window.setInterval(() => {
-      void touch();
+      void checkStillValid();
     }, 60_000);
-    return () => window.clearInterval(id);
+
+    return () => {
+      disposed = true;
+      window.clearInterval(id);
+      for (const eventName of activityEvents) {
+        window.removeEventListener(eventName, onActivity);
+      }
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
   }, [supportSession, router]);
 
   useEffect(() => {

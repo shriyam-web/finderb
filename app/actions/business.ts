@@ -831,6 +831,17 @@ export async function getBusinessSession() {
   }
 }
 
+/** Slide support-session idle window after real admin activity in the merchant panel. */
+export async function touchBusinessSupportSession() {
+  try {
+    const { touchSupportSessionActivity } = await import('@/lib/security/session');
+    return await touchSupportSessionActivity();
+  } catch (error) {
+    console.error('Touch Business Support Session Error:', error);
+    return { ok: false as const };
+  }
+}
+
 export async function getBusinessSummariesByIds(ids: string[]) {
   try {
     const uniqueIds = [...new Set(ids.filter(Boolean))];

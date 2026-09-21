@@ -32,6 +32,7 @@ export default function SupportSessionBanner({ idleDeadlineMs, onExpired }: Prop
 
   const mins = Math.floor(remainingSec / 60);
   const secs = remainingSec % 60;
+  const timerLabel = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
 
   return (
     <div className="mb-4 flex items-start gap-3 rounded-2xl border border-amber-300/80 bg-amber-50 px-4 py-3 text-amber-950">
@@ -41,9 +42,7 @@ export default function SupportSessionBanner({ idleDeadlineMs, onExpired }: Prop
         <p className="mt-0.5 text-amber-900/80">
           This merchant panel was opened by FinderB Admin. It ends after{' '}
           <strong>15 minutes of inactivity</strong>. Idle timer:{' '}
-          <span className="font-mono font-semibold tabular-nums">
-            {mins}:{String(secs).padStart(2, '0')}
-          </span>
+          <span className="font-mono font-semibold tabular-nums">{timerLabel}</span>
         </p>
       </div>
     </div>

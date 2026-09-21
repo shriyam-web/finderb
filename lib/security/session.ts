@@ -30,7 +30,8 @@ export async function getSessionBusinessId(): Promise<string | null> {
   const businessId = jar.get(BUSINESS_ID_COOKIE)?.value ?? null;
   if (!businessId) return null;
 
-  const supportOk = await enforceSupportSessionIdle(businessId);
+  // Read-only expiry check — do not slide idle window here.
+  const supportOk = await enforceSupportSessionIdle(businessId, { touch: false });
   if (!supportOk) return null;
   return businessId;
 }
@@ -50,9 +51,12 @@ export async function getBusinessSupportIdleDeadline(): Promise<number | null> {
 
 /**
  * If this is a support session, expire after 15 minutes of inactivity.
- * Any successful check slides the activity window forward.
+ * Pass touch:true only when the admin is actively using the panel.
  */
-async function enforceSupportSessionIdle(businessId: string): Promise<boolean> {
+async function enforceSupportSessionIdle(
+  businessId: string,
+  options?: { touch?: boolean },
+): Promise<boolean> {
   const jar = await cookies();
   if (jar.get(SUPPORT_FLAG_COOKIE)?.value !== '1') return true;
 
@@ -65,12 +69,38 @@ async function enforceSupportSessionIdle(businessId: string): Promise<boolean> {
     return false;
   }
 
-  // Slide inactivity window on activity.
-  const opts = getSessionCookieOptions(SUPPORT_SESSION_COOKIE_MAX_AGE);
-  jar.set(BUSINESS_ID_COOKIE, businessId, opts);
-  jar.set(SUPPORT_FLAG_COOKIE, '1', opts);
-  jar.set(SUPPORT_ACTIVE_COOKIE, String(now), opts);
+  if (options?.touch) {
+    const opts = getSessionCookieOptions(SUPPORT_SESSION_COOKIE_MAX_AGE);
+    jar.set(BUSINESS_ID_COOKIE, businessId, opts);
+    jar.set(SUPPORT_FLAG_COOKIE, '1', opts);
+    jar.set(SUPPORT_ACTIVE_COOKIE, String(now), opts);
+  }
+
   return true;
+}
+
+/**
+ * Slide the support idle window after real user activity.
+ * Returns a fresh deadline from Date.now() (do not re-read request cookies —
+ * cookies().get still reflects the incoming request, not the Set-Cookie we just wrote).
+ */
+export async function touchSupportSessionActivity(): Promise<
+  | { ok: true; idleDeadlineMs: number; businessId: string }
+  | { ok: false }
+> {
+  const jar = await cookies();
+  const businessId = jar.get(BUSINESS_ID_COOKIE)?.value ?? null;
+  if (!businessId) return { ok: false };
+  if (jar.get(SUPPORT_FLAG_COOKIE)?.value !== '1') return { ok: false };
+
+  const ok = await enforceSupportSessionIdle(businessId, { touch: true });
+  if (!ok) return { ok: false };
+
+  return {
+    ok: true,
+    businessId,
+    idleDeadlineMs: Date.now() + SUPPORT_SESSION_IDLE_MS,
+  };
 }
 
 export async function assertUserSession(userId: string): Promise<
