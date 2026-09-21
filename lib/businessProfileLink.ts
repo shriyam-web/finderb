@@ -50,4 +50,5 @@ export const RESERVED_BUSINESS_ROUTE_SEGMENTS = new Set([
   'list',
   'kyc',
   'payment',
+  'support-login',
 ]);

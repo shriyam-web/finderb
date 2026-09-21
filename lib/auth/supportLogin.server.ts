@@ -94,17 +94,21 @@ export async function mintSupportLoginToken(
   });
 
   if (insertError) {
-    // Table may not exist yet — still allow signed short-lived token.
-    console.warn('[support-login] token table insert failed', insertError.message);
+    console.error('[support-login] token table insert failed', insertError.message);
+    return {
+      success: false,
+      error: 'Could not create support login token. Try again.',
+    };
   }
 
   const site =
     process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || 'https://finderb.com';
 
+  // Short code URL (jti only) — avoids long tokens being dropped by popups/extensions.
   return {
     success: true,
     token,
-    redeemUrl: `${site}/business/support-login?token=${encodeURIComponent(token)}`,
+    redeemUrl: `${site}/business/support-login?code=${encodeURIComponent(jti)}`,
     expiresAt: new Date(exp).toISOString(),
     business: {
       id: String(business.id),
@@ -121,6 +125,56 @@ export async function mintSupportLoginToken(
 export type RedeemSupportLoginResult =
   | { success: true; businessId: string }
   | { success: false; error: string };
+
+/** Redeem by short one-time code (jti) from the support_login_tokens table. */
+export async function redeemSupportLoginCode(
+  rawCode: string,
+): Promise<RedeemSupportLoginResult> {
+  const code = String(rawCode || '').trim();
+  if (!code) return { success: false, error: 'Missing support login code' };
+
+  const supabase = createServiceClient();
+  if (!supabase) {
+    return { success: false, error: 'Service client unavailable' };
+  }
+
+  const { data: row, error } = await supabase
+    .from('support_login_tokens')
+    .select('jti, consumed_at, expires_at, business_id')
+    .eq('jti', code)
+    .maybeSingle();
+
+  if (error || !row) {
+    return { success: false, error: 'Invalid or expired support login link.' };
+  }
+  if (row.consumed_at) {
+    return { success: false, error: 'Support login link already used.' };
+  }
+  const expiresAt = new Date(String(row.expires_at)).getTime();
+  if (!Number.isFinite(expiresAt) || Date.now() > expiresAt) {
+    return { success: false, error: 'Support login link expired. Generate a new one.' };
+  }
+
+  const { data: consumed, error: consumeError } = await supabase
+    .from('support_login_tokens')
+    .update({ consumed_at: new Date().toISOString() })
+    .eq('jti', code)
+    .is('consumed_at', null)
+    .select('business_id')
+    .maybeSingle();
+
+  if (consumeError || !consumed) {
+    return { success: false, error: 'Support login link already used.' };
+  }
+
+  const businessId = String(consumed.business_id || row.business_id);
+  await setBusinessSessionCookie(businessId, {
+    maxAge: SUPPORT_SESSION_COOKIE_MAX_AGE,
+    supportSession: true,
+  });
+
+  return { success: true, businessId };
+}
 
 export async function redeemSupportLoginToken(
   rawToken: string,
@@ -149,36 +203,20 @@ export async function redeemSupportLoginToken(
     return { success: false, error: 'Invalid support login token' };
   }
 
-  const [, businessId, adminId, jti, expRaw] = parts;
+  const [, businessId, , jti, expRaw] = parts;
   const exp = Number(expRaw);
-  if (!businessId || !adminId || !jti || !Number.isFinite(exp) || Date.now() > exp) {
+  if (!businessId || !jti || !Number.isFinite(exp) || Date.now() > exp) {
     return { success: false, error: 'Support login token expired. Generate a new one.' };
   }
 
-  const supabase = createServiceClient();
-  if (supabase) {
-    const { data: row } = await supabase
-      .from('support_login_tokens')
-      .select('jti, consumed_at, expires_at, business_id')
-      .eq('jti', jti)
-      .maybeSingle();
-
-    if (row) {
-      if (row.consumed_at) {
-        return { success: false, error: 'Support login token already used.' };
-      }
-      if (String(row.business_id) !== businessId) {
-        return { success: false, error: 'Support login token mismatch.' };
-      }
-      const { error: consumeError } = await supabase
-        .from('support_login_tokens')
-        .update({ consumed_at: new Date().toISOString() })
-        .eq('jti', jti)
-        .is('consumed_at', null);
-      if (consumeError) {
-        console.warn('[support-login] consume failed', consumeError.message);
-      }
-    }
+  // Prefer DB one-time consume when available; fall back to signed token alone.
+  const byCode = await redeemSupportLoginCode(jti);
+  if (byCode.success) return byCode;
+  if (
+    byCode.error !== 'Invalid or expired support login link.' &&
+    byCode.error !== 'Service client unavailable'
+  ) {
+    return byCode;
   }
 
   await setBusinessSessionCookie(businessId, {

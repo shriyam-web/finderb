@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Mail, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { loginBusiness } from '@/app/actions/business';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import AuthRedirectScreen from '@/components/auth/AuthRedirectScreen';
 import { useAlreadyLoggedInRedirect } from '@/hooks/useAlreadyLoggedInRedirect';
 import { MerchantAuthMain, MerchantAuthPage } from '@/components/business/MerchantAuthShell';
@@ -21,6 +21,18 @@ import {
   markNewBusinessOnboarding,
 } from '@/lib/businessOnboarding';
 
+function supportLoginErrorMessage(raw: string): string {
+  const value = raw.trim();
+  if (!value) return '';
+  if (value === 'support_token_missing') {
+    return 'Support login link is missing or incomplete. Open the merchant panel again from FinderB Admin.';
+  }
+  if (value === 'support_session_expired') {
+    return 'Support session expired after inactivity. Generate a new link from FinderB Admin.';
+  }
+  return value;
+}
+
 export default function BusinessLoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -29,7 +41,13 @@ export default function BusinessLoginPage() {
   const [error, setError] = useState('');
   const [suggestedLoginPath, setSuggestedLoginPath] = useState('');
   const router = useRouter();
+  const searchParams = useSearchParams();
   const authRedirect = useAlreadyLoggedInRedirect({ kind: 'business' });
+
+  useEffect(() => {
+    const fromQuery = supportLoginErrorMessage(searchParams.get('error') || '');
+    if (fromQuery) setError(fromQuery);
+  }, [searchParams]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
