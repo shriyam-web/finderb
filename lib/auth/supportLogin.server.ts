@@ -2,12 +2,7 @@ import 'server-only';
 
 import { createHmac, randomUUID, timingSafeEqual } from 'crypto';
 import { createServiceClient } from '@/lib/supabase/service';
-import {
-  SUPPORT_SESSION_COOKIE_MAX_AGE,
-  setBusinessSessionCookie,
-} from '@/lib/security/session';
-
-const REDEEM_TTL_MS = 2 * 60 * 1000;
+const REDEEM_TTL_MS = 5 * 60 * 1000;
 
 function supportSecret(): string {
   const secret =
@@ -168,11 +163,7 @@ export async function redeemSupportLoginCode(
   }
 
   const businessId = String(consumed.business_id || row.business_id);
-  await setBusinessSessionCookie(businessId, {
-    maxAge: SUPPORT_SESSION_COOKIE_MAX_AGE,
-    supportSession: true,
-  });
-
+  // Cookie must be set by the Route Handler on the redirect response.
   return { success: true, businessId };
 }
 
@@ -219,11 +210,7 @@ export async function redeemSupportLoginToken(
     return byCode;
   }
 
-  await setBusinessSessionCookie(businessId, {
-    maxAge: SUPPORT_SESSION_COOKIE_MAX_AGE,
-    supportSession: true,
-  });
-
+  // Cookie must be set by the Route Handler on the redirect response.
   return { success: true, businessId };
 }
 

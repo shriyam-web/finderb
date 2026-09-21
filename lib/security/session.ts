@@ -1,4 +1,5 @@
 import { cookies } from 'next/headers';
+import type { NextResponse } from 'next/server';
 
 export const SESSION_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
 /** Support impersonation sessions expire after this much idle time. */
@@ -126,4 +127,28 @@ export async function setBusinessSessionCookie(
     jar.set(SUPPORT_FLAG_COOKIE, '1', cookieOpts);
     jar.set(SUPPORT_ACTIVE_COOKIE, String(Date.now()), cookieOpts);
   }
+}
+
+/** Attach merchant (+ optional support) session cookies onto a Route Handler response. */
+export function applyBusinessSessionCookies(
+  response: NextResponse,
+  businessId: string,
+  options?: { maxAge?: number; supportSession?: boolean },
+) {
+  const maxAge = options?.maxAge ?? SESSION_COOKIE_MAX_AGE;
+  const cookieOpts = getSessionCookieOptions(maxAge);
+  const clearOpts = { ...cookieOpts, maxAge: 0 };
+
+  response.cookies.set(USER_ID_COOKIE, '', clearOpts);
+  response.cookies.set(BUSINESS_ID_COOKIE, businessId, cookieOpts);
+
+  if (options?.supportSession) {
+    response.cookies.set(SUPPORT_FLAG_COOKIE, '1', cookieOpts);
+    response.cookies.set(SUPPORT_ACTIVE_COOKIE, String(Date.now()), cookieOpts);
+  } else {
+    response.cookies.set(SUPPORT_FLAG_COOKIE, '', clearOpts);
+    response.cookies.set(SUPPORT_ACTIVE_COOKIE, '', clearOpts);
+  }
+
+  return response;
 }
