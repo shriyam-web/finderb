@@ -17,6 +17,11 @@ import CategoryIcon from '@/components/CategoryIcon';
 import { MerchantAuthPage } from '@/components/business/MerchantAuthShell';
 import { registerBusiness } from '@/app/actions/business';
 import {
+  confirmMerchantRegisterEmailOtp,
+  getMerchantEmailOtpRequirement,
+  sendMerchantRegisterEmailOtp,
+} from '@/app/actions/emailOtp';
+import {
   validateRegistrationMobile,
   validateRegistrationStep1Fields,
   validateRegistrationStep2Fields,
@@ -80,6 +85,12 @@ function RegisterFormContent() {
   }, []);
 
   useEffect(() => {
+    void getMerchantEmailOtpRequirement()
+      .then((res) => setEmailOtpRequired(Boolean(res.required)))
+      .catch(() => setEmailOtpRequired(false));
+  }, []);
+
+  useEffect(() => {
     const m = searchParams.get('mobile');
     if (m) {
       setMobile(m);
@@ -103,6 +114,13 @@ function RegisterFormContent() {
   const [fieldErrors, setFieldErrors] = useState<RegistrationFieldErrors>({});
   const [landingMobileError, setLandingMobileError] = useState('');
   const [registeredBusiness, setRegisteredBusiness] = useState<any>(null);
+  const [emailOtpCode, setEmailOtpCode] = useState('');
+  const [emailVerified, setEmailVerified] = useState(false);
+  const [emailVerificationToken, setEmailVerificationToken] = useState('');
+  const [emailOtpSending, setEmailOtpSending] = useState(false);
+  const [emailOtpVerifying, setEmailOtpVerifying] = useState(false);
+  const [emailOtpHint, setEmailOtpHint] = useState('');
+  const [emailOtpRequired, setEmailOtpRequired] = useState(false);
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -180,6 +198,16 @@ function RegisterFormContent() {
   };
 
   const patchFormData = (patch: Partial<typeof formData>) => {
+    if (
+      typeof patch.email === 'string' &&
+      patch.email.trim().toLowerCase() !== formData.email.trim().toLowerCase()
+    ) {
+      setEmailVerified(false);
+      setEmailVerificationToken('');
+      setEmailOtpCode('');
+      setEmailOtpHint('');
+      clearFieldErrors('emailOtp');
+    }
     setFormData((prev) => ({ ...prev, ...patch }));
     const keys = new Set<RegistrationFieldKey>(Object.keys(patch) as RegistrationFieldKey[]);
     if ('countryCode' in patch) {
@@ -196,6 +224,71 @@ function RegisterFormContent() {
       keys.add('subcategoryId');
     }
     clearFieldErrors(...keys);
+  };
+
+  const handleSendEmailOtp = async () => {
+    const email = formData.email.trim();
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setFieldErrors({ email: 'Please enter a valid email address.' });
+      scrollToFirstRegistrationError({ email: 'Please enter a valid email address.' });
+      return;
+    }
+
+    setEmailOtpSending(true);
+    clearFieldErrors('email', 'emailOtp', '_form');
+    setEmailOtpHint('');
+    try {
+      const result = await sendMerchantRegisterEmailOtp(email);
+      if (!result.success) {
+        const mapped = mapRegistrationServerError(result.error);
+        setFieldErrors(mapped);
+        scrollToFirstRegistrationError(mapped);
+        return;
+      }
+      setFieldErrors({});
+      setEmailOtpHint(result.message);
+    } catch (error) {
+      setFieldErrors({
+        emailOtp:
+          error instanceof Error
+            ? error.message
+            : 'Could not send verification code. Please try again.',
+      });
+    } finally {
+      setEmailOtpSending(false);
+    }
+  };
+
+  const handleVerifyEmailOtp = async () => {
+    if (emailOtpCode.replace(/\D/g, '').length !== 6) {
+      setFieldErrors({ emailOtp: 'Enter the 6-digit code from your email.' });
+      return;
+    }
+    setEmailOtpVerifying(true);
+    clearFieldErrors('emailOtp', '_form');
+    setEmailOtpHint('');
+    try {
+      const result = await confirmMerchantRegisterEmailOtp(formData.email, emailOtpCode);
+      if (!result.success) {
+        setEmailVerified(false);
+        setEmailVerificationToken('');
+        setFieldErrors({ emailOtp: result.error });
+        return;
+      }
+      setEmailVerified(true);
+      setEmailVerificationToken(result.emailVerificationToken);
+      setEmailOtpHint('');
+      setFieldErrors({});
+    } catch (error) {
+      setFieldErrors({
+        emailOtp:
+          error instanceof Error
+            ? error.message
+            : 'Could not verify the code. Please try again.',
+      });
+    } finally {
+      setEmailOtpVerifying(false);
+    }
   };
 
   const handleCategoryChange = async (categoryId: string) => {
@@ -315,6 +408,9 @@ function RegisterFormContent() {
         password: formData.password,
         mobile,
       });
+      if (emailOtpRequired && (!emailVerified || !emailVerificationToken)) {
+        errors.emailOtp = 'Verify your email with the OTP before continuing.';
+      }
       if (Object.keys(errors).length > 0) {
         setFieldErrors(errors);
         scrollToFirstRegistrationError(errors);
@@ -380,6 +476,16 @@ function RegisterFormContent() {
       return;
     }
 
+    if (emailOtpRequired && (!emailVerified || !emailVerificationToken)) {
+      const otpError = {
+        emailOtp: 'Verify your email with the OTP before submitting.',
+      };
+      setFieldErrors(otpError);
+      setStep(1);
+      scrollToFirstRegistrationError(otpError);
+      return;
+    }
+
     const step2Errors = validateRegistrationStep2Fields({
       businessName: formData.businessName,
       displayName: formData.displayName,
@@ -431,6 +537,7 @@ function RegisterFormContent() {
         businessAddress: combineBusinessAddress(formData.addressLine1, formData.addressLine2),
         selectedPlan,
         billingCycle,
+        emailVerificationToken,
       };
 
       console.log('Sending registration data:', {
@@ -640,6 +747,22 @@ function RegisterFormContent() {
         onClose={() => setShowForm(false)}
         onPrev={prevStep}
         onNext={nextStep}
+        emailOtpCode={emailOtpCode}
+        onEmailOtpCodeChange={(value) => {
+          setEmailOtpCode(value);
+          clearFieldErrors('emailOtp');
+        }}
+        emailVerified={emailVerified}
+        emailOtpRequired={emailOtpRequired}
+        emailOtpSending={emailOtpSending}
+        emailOtpVerifying={emailOtpVerifying}
+        emailOtpHint={emailOtpHint}
+        onSendEmailOtp={() => {
+          void handleSendEmailOtp();
+        }}
+        onVerifyEmailOtp={() => {
+          void handleVerifyEmailOtp();
+        }}
       />
     );
   }

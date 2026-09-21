@@ -80,6 +80,10 @@ import {
   getCategoryFixedSlotIds,
   type CategoryFixedSlotRow,
 } from '@/lib/categoryFixedSlots';
+import {
+  assertEmailVerificationProof,
+  MERCHANT_REGISTER_EMAIL_PURPOSE,
+} from '@/lib/auth/emailOtp.server';
 
 // Safe error handler wrapper
 function handleError(error: any, context: string): string {
@@ -131,6 +135,15 @@ export async function registerBusiness(formData: any) {
     const regNo = `FINDERB-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
 
     const normalizedEmail = normalized.email;
+
+    const emailProof = assertEmailVerificationProof(
+      MERCHANT_REGISTER_EMAIL_PURPOSE,
+      normalizedEmail,
+      formData?.emailVerificationToken,
+    );
+    if (!emailProof.ok) {
+      return { success: false, error: emailProof.error };
+    }
 
     const ipLimit = await enforceRateLimit('register');
     if (!ipLimit.ok) return { success: false, error: ipLimit.error };
@@ -657,7 +670,8 @@ export async function loginBusiness(email: string, password: string) {
 
 export async function logoutBusiness() {
   try {
-    (await cookies()).delete('business_id');
+    const { clearBusinessSessionCookies } = await import('@/lib/security/session');
+    await clearBusinessSessionCookies();
     revalidatePath('/business/dashboard');
     return { success: true };
   } catch (error: any) {
@@ -793,9 +807,24 @@ export async function changeBusinessPassword(
 
 export async function getBusinessSession() {
   try {
-    const businessId = (await cookies()).get('business_id')?.value;
+    const {
+      getSessionBusinessId,
+      isBusinessSupportSession,
+      getBusinessSupportIdleDeadline,
+    } = await import('@/lib/security/session');
+    const businessId = await getSessionBusinessId();
     if (!businessId) return null;
-    return await getOwnedBusiness(businessId);
+    const owned = await getOwnedBusiness(businessId);
+    if (!owned?.success || !owned.business) return null;
+    const supportSession = await isBusinessSupportSession();
+    const supportIdleDeadline = supportSession
+      ? await getBusinessSupportIdleDeadline()
+      : null;
+    return {
+      ...owned,
+      supportSession,
+      supportIdleDeadline,
+    };
   } catch (error) {
     console.error('Get Business Session Error:', error);
     return null;

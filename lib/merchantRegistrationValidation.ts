@@ -9,7 +9,7 @@ import {
 
 export const REGISTRATION_EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-export type RegistrationStep1Field = 'fullName' | 'email' | 'password' | 'mobile';
+export type RegistrationStep1Field = 'fullName' | 'email' | 'emailOtp' | 'password' | 'mobile';
 export type RegistrationStep2Field =
   | 'businessName'
   | 'displayName'
@@ -32,6 +32,9 @@ export function firstRegistrationFieldError(errors: RegistrationFieldErrors): st
 
 export function mapRegistrationServerError(error: string): RegistrationFieldErrors {
   const lower = error.toLowerCase();
+  if (lower.includes('email') && (lower.includes('otp') || lower.includes('verif') || lower.includes('code'))) {
+    return { emailOtp: error };
+  }
   if (lower.includes('email')) return { email: error };
   if (lower.includes('mobile') || lower.includes('phone')) return { mobile: error };
   if (lower.includes('password')) return { password: error };
@@ -49,6 +52,7 @@ export function mapRegistrationServerError(error: string): RegistrationFieldErro
 const REGISTRATION_FIELD_SCROLL_ORDER: RegistrationFieldKey[] = [
   'fullName',
   'email',
+  'emailOtp',
   'password',
   'mobile',
   'businessName',

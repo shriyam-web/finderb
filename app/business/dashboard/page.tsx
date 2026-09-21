@@ -21,6 +21,7 @@ import MessagesTab from './components/MessagesTab';
 import LeadsSection from './components/LeadsSection';
 import DashboardSidebar from './components/DashboardSidebar';
 import DashboardTopBar from './components/DashboardTopBar';
+import SupportSessionBanner from '@/components/business/SupportSessionBanner';
 import AccountHealthPanel from './components/AccountHealthPanel';
 import DashboardKpiRow, { buildDefaultKpis } from './components/DashboardKpiRow';
 import DashboardQuickActions from './components/DashboardQuickActions';
@@ -69,6 +70,8 @@ function DashboardContent() {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [business, setBusiness] = useState<any>(null);
+  const [supportSession, setSupportSession] = useState(false);
+  const [supportIdleDeadline, setSupportIdleDeadline] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [images, setImages] = useState<string[]>([]);
@@ -200,6 +203,12 @@ function DashboardContent() {
       const sessionRes = await getBusinessSession();
       if (sessionRes?.success && sessionRes.business) {
         const resBusiness = sessionRes.business;
+        setSupportSession(Boolean(sessionRes.supportSession));
+        setSupportIdleDeadline(
+          typeof sessionRes.supportIdleDeadline === 'number'
+            ? sessionRes.supportIdleDeadline
+            : null,
+        );
         const cover = resBusiness.profilePictureUrl || null;
         const syncedImages = syncBusinessImagesWithCover(resBusiness.images, cover);
         setBusiness(resBusiness);
@@ -251,6 +260,27 @@ function DashboardContent() {
     };
     fetchBusiness();
   }, [router]);
+
+  // Keep support sessions alive while the dashboard is used; expire on idle.
+  useEffect(() => {
+    if (!supportSession) return;
+    const touch = async () => {
+      const sessionRes = await getBusinessSession();
+      if (!sessionRes?.success || !sessionRes.business) {
+        router.push('/business/login?error=support_session_expired');
+        return;
+      }
+      setSupportIdleDeadline(
+        typeof sessionRes.supportIdleDeadline === 'number'
+          ? sessionRes.supportIdleDeadline
+          : null,
+      );
+    };
+    const id = window.setInterval(() => {
+      void touch();
+    }, 60_000);
+    return () => window.clearInterval(id);
+  }, [supportSession, router]);
 
   useEffect(() => {
     const tab = searchParams.get('tab');
@@ -586,6 +616,16 @@ function DashboardContent() {
       />
 
       <main className="min-h-screen px-4 pb-[calc(5rem+env(safe-area-inset-bottom))] pt-4 md:px-8 md:pt-6 lg:ml-72 lg:max-w-[1200px] lg:px-10 lg:pb-8 lg:pt-8 xl:max-w-[1280px]">
+        {supportSession ? (
+          <SupportSessionBanner
+            idleDeadlineMs={supportIdleDeadline}
+            onExpired={() => {
+              void logoutBusiness().then(() => {
+                router.push('/business/login?error=support_session_expired');
+              });
+            }}
+          />
+        ) : null}
         {businessId && subscriptionStatus.alertLevel !== 'none' && (
           <SubscriptionExpiryAlert
             businessId={businessId}

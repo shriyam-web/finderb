@@ -97,6 +97,15 @@ type BusinessRegisterWizardProps = {
   onClose: () => void;
   onPrev: () => void;
   onNext: () => void;
+  emailOtpCode: string;
+  onEmailOtpCodeChange: (value: string) => void;
+  emailVerified: boolean;
+  emailOtpRequired?: boolean;
+  emailOtpSending: boolean;
+  emailOtpVerifying: boolean;
+  emailOtpHint?: string;
+  onSendEmailOtp: () => void;
+  onVerifyEmailOtp: () => void;
 };
 
 function MerchantRegisterStepBar({
@@ -186,6 +195,15 @@ export default function BusinessRegisterWizard({
   onClose,
   onPrev,
   onNext,
+  emailOtpCode,
+  onEmailOtpCodeChange,
+  emailVerified,
+  emailOtpRequired = false,
+  emailOtpSending,
+  emailOtpVerifying,
+  emailOtpHint,
+  onSendEmailOtp,
+  onVerifyEmailOtp,
 }: BusinessRegisterWizardProps) {
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
@@ -262,6 +280,69 @@ export default function BusinessRegisterWizard({
                     autoComplete="email"
                     error={fieldErrors.email}
                   />
+                  <div id="field-emailOtp" className="rounded-2xl border border-[#d7e0ea] bg-[#f8fbfe] p-3.5 sm:p-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p className="text-sm font-semibold text-[#153551]">
+                        {emailVerified
+                          ? 'Email verified'
+                          : emailOtpRequired
+                            ? 'Verify email with OTP'
+                            : 'Email OTP (optional for now)'}
+                      </p>
+                      {emailVerified ? (
+                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600">
+                          <CheckCircle2 size={14} strokeWidth={2.5} />
+                          Verified
+                        </span>
+                      ) : !emailOtpRequired ? (
+                        <span className="text-xs font-semibold text-[#64748b]">
+                          Skipped until email is configured
+                        </span>
+                      ) : null}
+                    </div>
+                    {!emailVerified && emailOtpRequired ? (
+                      <div className="mt-3 space-y-3">
+                        <div className="flex flex-col gap-2 sm:flex-row">
+                          <input
+                            id="emailOtp"
+                            inputMode="numeric"
+                            autoComplete="one-time-code"
+                            maxLength={6}
+                            value={emailOtpCode}
+                            onChange={(e) =>
+                              onEmailOtpCodeChange(e.target.value.replace(/\D/g, '').slice(0, 6))
+                            }
+                            placeholder="6-digit code"
+                            className="min-w-0 flex-1 rounded-xl border border-[#cfd8e3] bg-white px-3.5 py-3 text-[16px] font-semibold tracking-[0.2em] text-[#0f273b] outline-none focus:border-[#153551]"
+                          />
+                          <button
+                            type="button"
+                            onClick={onVerifyEmailOtp}
+                            disabled={emailOtpVerifying || emailOtpCode.length !== 6}
+                            className="rounded-xl bg-[#153551] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#0f2840] disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {emailOtpVerifying ? 'Verifying…' : 'Verify'}
+                          </button>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={onSendEmailOtp}
+                          disabled={emailOtpSending || !formData.email.trim()}
+                          className="text-sm font-semibold text-[#153551] underline-offset-2 hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {emailOtpSending ? 'Sending code…' : 'Send / resend code'}
+                        </button>
+                        {emailOtpHint ? (
+                          <p className="text-[13px] font-medium text-emerald-700">{emailOtpHint}</p>
+                        ) : null}
+                        <MerchantFieldError message={fieldErrors.emailOtp} />
+                      </div>
+                    ) : !emailVerified && !emailOtpRequired ? (
+                      <p className="mt-2 text-[13px] leading-relaxed text-[#64748b]">
+                        Registration can continue without OTP until Resend email is configured.
+                      </p>
+                    ) : null}
+                  </div>
                   <MerchantPasswordField
                     id="password"
                     label="Password"
