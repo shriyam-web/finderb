@@ -405,9 +405,6 @@ export async function getBusinessBySlugOrId(slugOrId: string) {
           city: business.city ? String(business.city) : null,
           status: listingStatus,
           slug: business.slug ? String(business.slug) : null,
-          registrationNumber: business.registrationNumber
-            ? String(business.registrationNumber)
-            : null,
         },
       };
     }

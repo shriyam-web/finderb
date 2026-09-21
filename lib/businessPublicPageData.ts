@@ -29,7 +29,6 @@ type PublicBusinessResult =
         city: string | null;
         status: string;
         slug: string | null;
-        registrationNumber: string | null;
       };
     };
 
@@ -81,9 +80,6 @@ async function fetchBusinessBySlugOrId(slugOrId: string): Promise<PublicBusiness
         city: business.city ? String(business.city) : null,
         status: listingStatus,
         slug: business.slug ? String(business.slug) : null,
-        registrationNumber: business.registrationNumber
-          ? String(business.registrationNumber)
-          : null,
       },
     };
   }

@@ -34,8 +34,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   if (result.reason === 'inactive' && result.listing) {
     const name = result.listing.displayName || result.listing.businessName;
     return buildPageMetadata({
-      title: `${name} isn’t active yet`,
-      description: `${name} is registered on FinderB, but this public listing is not live yet.`,
+      title: `${name} — listing not public yet`,
+      description: `${name} is under review on FinderB and will go live after activation.`,
       canonicalPath: result.listing.slug
         ? `/business/${result.listing.slug}`
         : `/business/${id}`,
