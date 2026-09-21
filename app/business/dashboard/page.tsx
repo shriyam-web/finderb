@@ -15,7 +15,6 @@ import { HiOutlineSquares2X2,
 import { RiDashboardFill, RiListCheck, RiMessage3Line, RiSettings4Line, RiStarFill } from 'react-icons/ri';
 import {
   getBusinessSession,
-  touchBusinessSupportSession,
   updateBusinessImages,
   logoutBusiness,
   updateBusinessProfile,
@@ -288,13 +287,23 @@ function DashboardContent() {
       touchInFlight = true;
       lastTouchAt = now;
       try {
-        const result = await touchBusinessSupportSession();
+        const res = await fetch('/api/business/support-session/touch', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { Accept: 'application/json' },
+        });
+        const result = (await res.json().catch(() => null)) as
+          | { ok: true; idleDeadlineMs: number }
+          | { ok: false }
+          | null;
         if (disposed) return;
-        if (!result.ok) {
+        if (!res.ok || !result?.ok || typeof (result as { idleDeadlineMs?: number }).idleDeadlineMs !== 'number') {
           expire();
           return;
         }
-        setSupportIdleDeadline(result.idleDeadlineMs);
+        setSupportIdleDeadline((result as { idleDeadlineMs: number }).idleDeadlineMs);
+      } catch {
+        if (!disposed) expire();
       } finally {
         touchInFlight = false;
       }
