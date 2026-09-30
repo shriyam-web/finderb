@@ -23,14 +23,19 @@ type OAuthButtonGroupProps = {
   mode: 'login' | 'signup';
   redirectPath?: string;
   onError?: (message: string) => void;
+  /** Limit which configured providers render. User auth shows Google only. */
+  only?: OAuthProviderId[];
 };
 
 export default function OAuthButtonGroup({
   mode,
   redirectPath = '/dashboard',
   onError,
+  only,
 }: OAuthButtonGroupProps) {
-  const providers = getEnabledOAuthProviders();
+  const providers = getEnabledOAuthProviders().filter((provider) =>
+    only ? only.includes(provider.id) : true,
+  );
   const [loadingProvider, setLoadingProvider] = useState<OAuthProviderId | null>(null);
 
   if (!providers.length) return null;

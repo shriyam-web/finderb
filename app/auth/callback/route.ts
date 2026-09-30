@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createClient } from '@/utils/supabase/server';
 import { syncOAuthUserToAppSession } from '@/lib/auth/syncOAuthUser.server';
+import { openMerchantPortalForUser } from '@/lib/auth/merchantPortal.server';
 import { getSafeRedirectPath } from '@/lib/authRedirect';
 
 export const dynamic = 'force-dynamic';
@@ -42,6 +43,18 @@ export async function GET(request: Request) {
       params.set('suggested', syncResult.suggestedLoginPath);
     }
     return NextResponse.redirect(`${origin}/login?${params.toString()}`);
+  }
+
+  if (next.startsWith('/business')) {
+    const linked = await openMerchantPortalForUser(syncResult.userId);
+    if (!linked) {
+      const message =
+        'This Google account is not linked to a FinderB business. Register your business, or sign in with your work email.';
+      return NextResponse.redirect(
+        `${origin}/business/login?error=${encodeURIComponent(message)}`,
+      );
+    }
+    return NextResponse.redirect(`${origin}/business/dashboard`);
   }
 
   const redirectUrl = new URL(next, origin);

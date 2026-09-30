@@ -18,6 +18,11 @@ import {
   verifyPassword,
 } from '@/lib/security/password';
 import { createMobileSessionToken } from '@/lib/auth/mobileToken';
+import {
+  indianMobileValidationError,
+  normalizeIndianPhoneForStorage,
+} from '@/lib/indianPhone';
+import { findBusinessForIdentity } from '@/lib/auth/merchantPortal.server';
 import { syncOAuthUserToAppSession } from '@/lib/auth/syncOAuthUser.server';
 import { createClient as createSupabaseJsClient } from '@supabase/supabase-js';
 
@@ -73,24 +78,10 @@ async function loadPublicUser(userId: string): Promise<MobileAuthUser | null> {
 }
 
 async function enrichWithBusinessLink(user: MobileAuthUser): Promise<MobileAuthUser> {
-  const email = user.email?.toLowerCase().trim();
-  if (!email) return { ...user, isBusinessAccount: false };
-
-  const service = dbClient();
-  const supabase = service ?? createClient(await cookies());
-  const { data: rows } = await supabase
-    .from('Business')
-    .select('id, businessName, slug, workEmail, email')
-    .or(`workEmail.eq.${email},email.eq.${email}`)
-    .limit(1);
-
-  const business = rows?.[0] as
-    | {
-        id: string;
-        businessName?: string | null;
-        slug?: string | null;
-      }
-    | undefined;
+  const business = await findBusinessForIdentity({
+    email: user.email,
+    phone: user.phone,
+  });
 
   if (!business?.id) {
     return { ...user, isBusinessAccount: false, businessId: null, businessName: null, businessSlug: null };
@@ -467,11 +458,31 @@ export async function mobileUpdateProfile(
   }
 
   if (typeof patch.phone === 'string') {
-    const phone = patch.phone.replace(/[^\d+]/g, '').trim();
-    if (phone && phone.length < 8) {
-      return { success: false, error: 'Enter a valid phone number.' };
+    const raw = patch.phone.trim();
+    if (!raw) {
+      updates.phone = null;
+    } else {
+      const phoneError = indianMobileValidationError(raw, {
+        required: true,
+        allowLandline: true,
+        label: 'mobile number',
+      });
+      if (phoneError) return { success: false, error: phoneError };
+      const phone = normalizeIndianPhoneForStorage(raw);
+      const { data: clash } = await supabase
+        .from('User')
+        .select('id')
+        .eq('phone', phone)
+        .neq('id', userId)
+        .maybeSingle();
+      if (clash?.id) {
+        return {
+          success: false,
+          error: 'This mobile number is already linked to another account.',
+        };
+      }
+      updates.phone = phone;
     }
-    updates.phone = phone || null;
   }
 
   if (patch.avatarUrl !== undefined) {
@@ -481,6 +492,14 @@ export async function mobileUpdateProfile(
   const { error } = await supabase.from('User').update(updates).eq('id', userId);
   if (error) {
     console.error('[mobile profile]', error);
+    const code = (error as { code?: string }).code;
+    const message = String((error as { message?: string }).message || '');
+    if (code === '23505' || /phone/i.test(message)) {
+      return {
+        success: false,
+        error: 'This mobile number is already linked to another account.',
+      };
+    }
     return { success: false, error: 'Could not update your profile.' };
   }
 

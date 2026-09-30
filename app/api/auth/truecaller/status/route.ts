@@ -5,6 +5,7 @@ import { mobileAuthSuccessForUserId } from '@/lib/auth/mobileAuth.server';
 import { isValidTruecallerRequestId } from '@/lib/auth/truecallerConfig';
 import { getTruecallerAuthRequest } from '@/lib/auth/truecallerPendingStore.server';
 import { setUserSessionCookie } from '@/lib/security/session';
+import { openMerchantPortalForUser } from '@/lib/auth/merchantPortal.server';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -49,8 +50,24 @@ export async function GET(request: Request) {
         });
       }
 
-      await setUserSessionCookie(record.userId);
       const redirectPath = getSafeRedirectPath(record.redirectPath);
+      if (redirectPath.startsWith('/business')) {
+        const linked = await openMerchantPortalForUser(record.userId);
+        if (!linked) {
+          return NextResponse.json({
+            status: 'error',
+            error:
+              'This Truecaller number is not linked to a FinderB business. Use your work email, or register the business first.',
+          });
+        }
+        return NextResponse.json({
+          status: 'completed',
+          redirectUrl: '/business/dashboard',
+          isNewUser: Boolean(record.isNewUser),
+        });
+      }
+
+      await setUserSessionCookie(record.userId);
       const redirectUrl = new URL(redirectPath, request.url);
       if (record.isNewUser) {
         redirectUrl.searchParams.set('welcome', '1');

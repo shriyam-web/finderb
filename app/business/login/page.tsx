@@ -6,6 +6,7 @@ import { Mail, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { loginBusiness } from '@/app/actions/business';
 import { useRouter, useSearchParams } from 'next/navigation';
 import AuthRedirectScreen from '@/components/auth/AuthRedirectScreen';
+import SocialAuthButtons from '@/components/auth/SocialAuthButtons';
 import { useAlreadyLoggedInRedirect } from '@/hooks/useAlreadyLoggedInRedirect';
 import { MerchantAuthMain, MerchantAuthPage } from '@/components/business/MerchantAuthShell';
 import {
@@ -162,9 +163,19 @@ export default function BusinessLoginPage() {
               <MerchantAuthFormCard>
                 <MerchantAuthFormHeader
                   title="Partner sign in"
-                  subtitle="Use the email and password from your business registration."
+                  subtitle="Google, Truecaller, WhatsApp, or the email from your business registration."
                 />
                 <MerchantAuthFormBody>
+                  <SocialAuthButtons
+                    mode="login"
+                    redirectPath="/business/dashboard"
+                    onError={setError}
+                  />
+                  <div className="my-5 flex items-center gap-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+                    <span className="h-px flex-1 bg-slate-200" />
+                    or work email
+                    <span className="h-px flex-1 bg-slate-200" />
+                  </div>
 
                   {error && (
                     <div className="mb-6 flex items-start gap-2.5 rounded-xl border border-red-200/80 bg-red-50 px-4 py-3.5 text-sm text-red-700">
