@@ -1,28 +1,29 @@
-import { NextResponse } from 'next/server';
+import { mobileApiJson, mobileApiOptions } from '@/lib/mobileApiCors';
 import { mobileGetUserFromToken } from '@/lib/auth/mobileAuth.server';
 import { getBearerToken } from '@/lib/auth/mobileToken';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
+export function OPTIONS() {
+  return mobileApiOptions();
+}
+
 export async function GET(request: Request) {
   try {
     const token = getBearerToken(request);
     if (!token) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+      return mobileApiJson({ success: false, error: 'Unauthorized' }, 401);
     }
 
     const user = await mobileGetUserFromToken(token);
     if (!user) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+      return mobileApiJson({ success: false, error: 'Unauthorized' }, 401);
     }
 
-    return NextResponse.json({ success: true, user });
+    return mobileApiJson({ success: true, user });
   } catch (error) {
     console.error('[mobile me]', error);
-    return NextResponse.json(
-      { success: false, error: 'Could not load session.' },
-      { status: 500 }
-    );
+    return mobileApiJson({ success: false, error: 'Could not load session.' }, 500);
   }
 }

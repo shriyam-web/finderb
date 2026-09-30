@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { mobileApiJson, mobileApiOptions } from '@/lib/mobileApiCors';
 import {
   mobileGetUserFromToken,
   mobileUpdateProfile,
@@ -9,30 +9,25 @@ import { enforceRateLimit } from '@/lib/security/enforceRateLimit.server';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
+export function OPTIONS() {
+  return mobileApiOptions();
+}
+
 export async function PATCH(request: Request) {
   try {
     const writeLimit = await enforceRateLimit('write', 'profile-update');
     if (!writeLimit.ok) {
-      return NextResponse.json(
-        { success: false, error: writeLimit.error },
-        { status: 429 },
-      );
+      return mobileApiJson({ success: false, error: writeLimit.error }, 429);
     }
 
     const token = getBearerToken(request);
     if (!token) {
-      return NextResponse.json(
-        { success: false, error: 'Please log in.' },
-        { status: 401 },
-      );
+      return mobileApiJson({ success: false, error: 'Please log in.' }, 401);
     }
 
     const user = await mobileGetUserFromToken(token);
     if (!user) {
-      return NextResponse.json(
-        { success: false, error: 'Please log in.' },
-        { status: 401 },
-      );
+      return mobileApiJson({ success: false, error: 'Please log in.' }, 401);
     }
 
     const body = (await request.json()) as {
@@ -43,12 +38,9 @@ export async function PATCH(request: Request) {
     };
 
     const result = await mobileUpdateProfile(user.id, body);
-    return NextResponse.json(result, { status: result.success ? 200 : 400 });
+    return mobileApiJson(result, result.success ? 200 : 400);
   } catch (error) {
     console.error('[mobile profile patch]', error);
-    return NextResponse.json(
-      { success: false, error: 'Could not update profile.' },
-      { status: 500 },
-    );
+    return mobileApiJson({ success: false, error: 'Could not update profile.' }, 500);
   }
 }

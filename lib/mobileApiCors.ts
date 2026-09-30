@@ -3,8 +3,8 @@ import { NextResponse } from 'next/server';
 /** Expo web calls these routes from another origin, so the browser requires CORS. */
 export const MOBILE_API_CORS = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Accept',
+  'Access-Control-Allow-Methods': 'GET, POST, PATCH, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Accept, Authorization',
   'Access-Control-Max-Age': '86400',
 } as const;
 
