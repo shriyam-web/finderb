@@ -25,6 +25,7 @@ import {
 import { findBusinessForIdentity } from '@/lib/auth/merchantPortal.server';
 import { syncOAuthUserToAppSession } from '@/lib/auth/syncOAuthUser.server';
 import { createClient as createSupabaseJsClient } from '@supabase/supabase-js';
+import { escapeIlikePattern } from '@/lib/searchMatch';
 
 export const MOBILE_USER_FIELDS =
   'id, fullName, email, favorites, searchHistory, createdAt, updatedAt, avatarUrl, authProvider, phone';
@@ -45,6 +46,10 @@ export type MobileAuthUser = {
   businessId?: string | null;
   businessName?: string | null;
   businessSlug?: string | null;
+  selectedPlan?: string | null;
+  paymentStatus?: string | null;
+  planExpiresAt?: string | null;
+  billingCycle?: string | null;
 };
 
 export type MobileAuthSuccess = {
@@ -84,7 +89,17 @@ async function enrichWithBusinessLink(user: MobileAuthUser): Promise<MobileAuthU
   });
 
   if (!business?.id) {
-    return { ...user, isBusinessAccount: false, businessId: null, businessName: null, businessSlug: null };
+    return {
+      ...user,
+      isBusinessAccount: false,
+      businessId: null,
+      businessName: null,
+      businessSlug: null,
+      selectedPlan: null,
+      paymentStatus: null,
+      planExpiresAt: null,
+      billingCycle: null,
+    };
   }
 
   return {
@@ -93,6 +108,10 @@ async function enrichWithBusinessLink(user: MobileAuthUser): Promise<MobileAuthU
     businessId: business.id,
     businessName: business.businessName || null,
     businessSlug: business.slug || null,
+    selectedPlan: business.selectedPlan,
+    paymentStatus: business.paymentStatus,
+    planExpiresAt: business.planExpiresAt,
+    billingCycle: business.billingCycle,
   };
 }
 
@@ -105,11 +124,13 @@ async function ensureUserFromMerchantEmail(
   const normalizedEmail = email.toLowerCase().trim();
   const service = dbClient();
   const supabase = service ?? createClient(await cookies());
+  // PostgREST `or` values: double-quoted, with `\` and `"` escaped on top of the LIKE escapes.
+  const quotedEmailPattern = `"${escapeIlikePattern(normalizedEmail).replace(/[\\"]/g, '\\$&')}"`;
 
   const { data: businesses } = await supabase
     .from('Business')
     .select('id, password, businessName, mobile, profilePictureUrl, workEmail, email')
-    .or(`workEmail.eq.${normalizedEmail},email.eq.${normalizedEmail}`)
+    .or(`workEmail.ilike.${quotedEmailPattern},email.ilike.${quotedEmailPattern}`)
     .limit(8);
 
   const rows = (businesses || []) as Array<{
@@ -136,7 +157,7 @@ async function ensureUserFromMerchantEmail(
   const { data: existing } = await supabase
     .from('User')
     .select(MOBILE_USER_FIELDS)
-    .eq('email', normalizedEmail)
+    .ilike('email', escapeIlikePattern(normalizedEmail))
     .maybeSingle();
 
   if (existing) {
@@ -190,11 +211,12 @@ export async function mobileLoginWithPassword(
   email: string,
   password: string
 ): Promise<MobileAuthSuccess | MobileAuthFailure> {
-  if (!email || !password) {
+  const normalizedPassword = password.trim();
+  if (!email.trim() || !normalizedPassword) {
     return { success: false, error: 'Email and password are required' };
   }
 
-  const passwordCheck = validatePasswordLength(password, 1);
+  const passwordCheck = validatePasswordLength(normalizedPassword, 1);
   if (!passwordCheck.ok) {
     return { success: false, error: passwordCheck.error || 'Invalid password' };
   }
@@ -206,14 +228,14 @@ export async function mobileLoginWithPassword(
   const { data: user, error } = await supabase
     .from('User')
     .select('id, password, authProvider')
-    .eq('email', normalizedEmail)
+    .ilike('email', escapeIlikePattern(normalizedEmail))
     .maybeSingle();
 
   if (user && !error) {
-    const verification = await verifyPassword(password, user.password);
+    const verification = await verifyPassword(normalizedPassword, user.password);
     if (verification.valid) {
       if (verification.needsRehash) {
-        const hashedPassword = await hashPassword(password);
+        const hashedPassword = await hashPassword(normalizedPassword);
         await supabase
           .from('User')
           .update({ password: hashedPassword, updatedAt: new Date().toISOString() })
@@ -231,7 +253,7 @@ export async function mobileLoginWithPassword(
     }
 
     // Consumer password failed — accept Business password and sync the User row.
-    const linked = await ensureUserFromMerchantEmail(normalizedEmail, password);
+    const linked = await ensureUserFromMerchantEmail(normalizedEmail, normalizedPassword);
     if (linked) {
       return {
         success: true,
@@ -257,7 +279,7 @@ export async function mobileLoginWithPassword(
   }
 
   // No User row — try merchant bridge, then classify remaining failures.
-  const linked = await ensureUserFromMerchantEmail(normalizedEmail, password);
+  const linked = await ensureUserFromMerchantEmail(normalizedEmail, normalizedPassword);
   if (linked) {
     return {
       success: true,
@@ -428,6 +450,16 @@ export async function mobileUpdateProfile(
   const service = dbClient();
   const supabase = service ?? createClient(await cookies());
 
+  const { data: current } = await supabase
+    .from('User')
+    .select('authProvider, email, phone')
+    .eq('id', userId)
+    .maybeSingle();
+  const provider = String(current?.authProvider || '').toLowerCase();
+  const emailLocked =
+    provider === 'google' || provider === 'password' || provider === 'email';
+  const phoneLocked = provider === 'truecaller' || provider.includes('whatsapp');
+
   const updates: Record<string, unknown> = {
     updatedAt: new Date().toISOString(),
   };
@@ -442,13 +474,17 @@ export async function mobileUpdateProfile(
 
   if (typeof patch.email === 'string') {
     const email = patch.email.toLowerCase().trim();
+    const currentEmail = String(current?.email || '').toLowerCase().trim();
+    if (emailLocked && email !== currentEmail) {
+      return { success: false, error: 'This email is tied to your sign-in and cannot be changed.' };
+    }
     if (!email.includes('@')) {
       return { success: false, error: 'Enter a valid email address.' };
     }
     const { data: clash } = await supabase
       .from('User')
       .select('id')
-      .eq('email', email)
+      .ilike('email', escapeIlikePattern(email))
       .neq('id', userId)
       .maybeSingle();
     if (clash?.id) {
@@ -459,6 +495,14 @@ export async function mobileUpdateProfile(
 
   if (typeof patch.phone === 'string') {
     const raw = patch.phone.trim();
+    const currentPhone = String(current?.phone || '').replace(/\D/g, '');
+    const nextDigits = raw.replace(/\D/g, '');
+    if (phoneLocked && nextDigits !== currentPhone && !(nextDigits.length >= 10 && currentPhone.endsWith(nextDigits.slice(-10)))) {
+      return {
+        success: false,
+        error: 'This mobile number is tied to your sign-in and cannot be changed.',
+      };
+    }
     if (!raw) {
       updates.phone = null;
     } else {

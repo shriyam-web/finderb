@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
   Briefcase,
@@ -205,6 +205,9 @@ export default function BusinessRegisterWizard({
   onSendEmailOtp,
   onVerifyEmailOtp,
 }: BusinessRegisterWizardProps) {
+  const [accuracyAccepted, setAccuracyAccepted] = useState(false);
+  const [accuracyError, setAccuracyError] = useState('');
+
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
   }, [step]);
@@ -575,6 +578,24 @@ export default function BusinessRegisterWizard({
                     <p className="mt-2 text-xs leading-relaxed text-[#64748b]">{INDIAN_PHONE_FIELD_HINT}</p>
                   </div>
                 </div>
+                <label className="mt-4 flex items-start gap-3 rounded-xl border border-[#e8edf2] bg-white px-3.5 py-3">
+                  <input
+                    type="checkbox"
+                    checked={accuracyAccepted}
+                    onChange={(event) => {
+                      setAccuracyAccepted(event.target.checked);
+                      if (event.target.checked) setAccuracyError('');
+                    }}
+                    className="mt-0.5 h-4 w-4 shrink-0 accent-[#215481]"
+                  />
+                  <span className="text-xs leading-relaxed text-[#3d4f63]">
+                    I confirm that the business particulars submitted here are true, complete, and not
+                    misleading. I accept responsibility for their accuracy, and I agree that FinderB may
+                    suspend or remove this listing if any particular is found to be false, incomplete, or
+                    misleading.
+                  </span>
+                </label>
+                {accuracyError ? <p className="mt-2 text-xs text-red-600">{accuracyError}</p> : null}
             </div>
 
             {step === 3 && registeredBusiness && (
@@ -651,7 +672,18 @@ export default function BusinessRegisterWizard({
                 <ChevronLeft size={16} />
                 Back
               </button>
-              <MerchantAuthSubmitButton type="button" onClick={onNext} disabled={loading} loading={loading}>
+              <MerchantAuthSubmitButton
+                type="button"
+                onClick={() => {
+                  if (step === 2 && !accuracyAccepted) {
+                    setAccuracyError('Confirm that these particulars are accurate before submitting.');
+                    return;
+                  }
+                  onNext();
+                }}
+                disabled={loading}
+                loading={loading}
+              >
                 {step === 3 ? 'Go to dashboard' : step === 2 ? 'Submit listing' : 'Continue'}
               </MerchantAuthSubmitButton>
             </div>

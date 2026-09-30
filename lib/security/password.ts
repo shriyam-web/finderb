@@ -23,8 +23,9 @@ const SALT_BYTES = 16;
 const KEY_BYTES = 64;
 
 export async function hashPassword(password: string): Promise<string> {
+  const trimmed = password.trim();
   const salt = randomBytes(SALT_BYTES);
-  const derived = (await scryptAsync(password, salt, KEY_BYTES)) as Buffer;
+  const derived = (await scryptAsync(trimmed, salt, KEY_BYTES)) as Buffer;
   return `${HASH_PREFIX}${salt.toString('hex')}:${derived.toString('hex')}`;
 }
 

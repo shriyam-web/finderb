@@ -424,7 +424,7 @@ export const FOOTER_SECTION_INTROS = {
   professional:
     'Find chartered accountants, lawyers, consultants, and other professional service providers in your city.',
   b2b: 'Discover B2B suppliers, wholesalers, distributors, and commercial vendors for business needs.',
-  cities: 'Explore local business listings, shops, and service providers in major Indian cities and towns.',
+  cities: 'Explore local business listings and service providers in major Indian cities and towns.',
   searches: 'Popular “near me” and local intent searches that users look for on FinderB every day.',
   local: 'City-wise category links for faster local business discovery and long-tail search coverage.',
 } as const;

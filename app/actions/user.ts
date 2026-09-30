@@ -16,6 +16,7 @@ import {
   validatePasswordLength,
   verifyPassword,
 } from '@/lib/security/password';
+import { escapeIlikePattern } from '@/lib/searchMatch';
 import {
   getSessionUserId,
   setUserSessionCookie,
@@ -116,16 +117,16 @@ export async function registerUser(formData: { fullName?: string; email?: string
 
 export async function loginUser(email: string, password: string) {
   try {
-    if (!email || !password) {
+    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedPassword = password.trim();
+    if (!normalizedEmail || !normalizedPassword) {
       return { success: false, error: 'Email and password are required' };
     }
 
-    const passwordCheck = validatePasswordLength(password, 1);
+    const passwordCheck = validatePasswordLength(normalizedPassword, 1);
     if (!passwordCheck.ok) {
       return { success: false, error: passwordCheck.error };
     }
-
-    const normalizedEmail = email.toLowerCase().trim();
 
     const ipLimit = await enforceRateLimit('auth');
     if (!ipLimit.ok) return { success: false, error: ipLimit.error };
@@ -138,7 +139,7 @@ export async function loginUser(email: string, password: string) {
     const { data: user, error } = await supabase
       .from('User')
       .select('id, password, authProvider')
-      .eq('email', normalizedEmail)
+      .ilike('email', escapeIlikePattern(normalizedEmail))
       .single();
 
     if (error) {
@@ -160,7 +161,7 @@ export async function loginUser(email: string, password: string) {
       throw error;
     }
 
-    const verification = await verifyPassword(password, user.password);
+    const verification = await verifyPassword(normalizedPassword, user.password);
     if (!verification.valid) {
       if (user.authProvider) {
         const providerLabel =
@@ -178,7 +179,7 @@ export async function loginUser(email: string, password: string) {
     }
 
     if (verification.needsRehash) {
-      const hashedPassword = await hashPassword(password);
+      const hashedPassword = await hashPassword(normalizedPassword);
       await supabase
         .from('User')
         .update({ password: hashedPassword, updatedAt: new Date().toISOString() })

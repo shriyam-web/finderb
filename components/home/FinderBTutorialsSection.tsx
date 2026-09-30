@@ -17,7 +17,7 @@ type FinderBTutorialsSectionProps = {
 
 const STUDIO_TOPICS = [
   'Discover local businesses',
-  'List your shop on FinderB',
+  'List your business on FinderB',
   'Get verified & grow leads',
   'Search smarter every day',
 ];

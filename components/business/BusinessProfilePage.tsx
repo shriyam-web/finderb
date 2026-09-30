@@ -15,7 +15,6 @@ import {
   Phone,
   Share2,
   Star,
-  X,
 } from 'lucide-react';
 import { FaWhatsapp } from 'react-icons/fa';
 import type { Business } from '@/lib/mockData';
@@ -171,7 +170,6 @@ export default function BusinessProfilePage({
   const [reviewSubmitting, setReviewSubmitting] = useState(false);
   const [reviewError, setReviewError] = useState<string | null>(null);
   const [reviewSuccess, setReviewSuccess] = useState<string | null>(null);
-  const [showManageToast, setShowManageToast] = useState(false);
   const [categoryBreadcrumb, setCategoryBreadcrumb] = useState<CategoryBreadcrumb | null>(
     initialCategoryBreadcrumb
   );
@@ -443,23 +441,6 @@ export default function BusinessProfilePage({
     setSaved(sessionUser.favorites.includes(business.id));
   }, [sessionUser, business?.id]);
 
-  useEffect(() => {
-    if (!managesThisProfile || !business?.id) {
-      setShowManageToast(false);
-      return;
-    }
-
-    const dismissed = sessionStorage.getItem(`finderb-manage-profile-toast-${business.id}`) === '1';
-    setShowManageToast(!dismissed);
-  }, [managesThisProfile, business?.id]);
-
-  const dismissManageToast = useCallback(() => {
-    if (business?.id) {
-      sessionStorage.setItem(`finderb-manage-profile-toast-${business.id}`, '1');
-    }
-    setShowManageToast(false);
-  }, [business?.id]);
-
   const handleBack = useCallback(() => {
     if (typeof window !== 'undefined' && window.history.length > 1) {
       router.back();
@@ -689,6 +670,13 @@ export default function BusinessProfilePage({
       </div>
 
       <div className="mx-auto max-w-3xl lg:max-w-4xl">
+        {managesThisProfile ? (
+          <div className="border-b border-emerald-200 bg-emerald-50 px-4 py-2.5" role="status">
+            <p className="text-center text-sm font-semibold text-emerald-800">
+              You manage this profile
+            </p>
+          </div>
+        ) : null}
         <div ref={heroRef}>
           <BusinessProfileHeroGallery
             ref={galleryRef}
@@ -702,22 +690,6 @@ export default function BusinessProfilePage({
         </div>
 
         <div className="relative z-10 -mt-[18px] rounded-t-[22px] bg-[#fafaf9] pt-[18px]">
-          {showManageToast && (
-            <div className="px-4 pb-2" role="status" aria-live="polite">
-              <div className="flex items-center justify-between gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3.5 py-2.5 text-sm text-emerald-800">
-                <p className="font-medium">You manage this profile</p>
-                <button
-                  type="button"
-                  onClick={dismissManageToast}
-                  className="shrink-0 rounded-md p-1 text-emerald-700/80 hover:bg-emerald-100"
-                  aria-label="Dismiss notification"
-                >
-                  <X size={16} />
-                </button>
-              </div>
-            </div>
-          )}
-
           <div className="relative px-4">
             <div className="flex items-start gap-3">
               <button

@@ -150,7 +150,11 @@ export default function PricingPlansSection({
                   disabled={loadingPlan !== null}
                   onClick={() => handlePro('monthly')}
                 >
-                  {loadingPlan === 'monthly' ? 'Please wait…' : PRICING_PLANS.monthly.cta}
+                  {loadingPlan === 'monthly'
+                    ? 'Please wait…'
+                    : hideStarter
+                      ? 'Upgrade'
+                      : PRICING_PLANS.monthly.cta}
                 </PricingCtaButton>
               }
             />
@@ -190,7 +194,11 @@ export default function PricingPlansSection({
                     disabled={loadingPlan !== null}
                     onClick={() => handlePro('annual')}
                   >
-                    {loadingPlan === 'annual' ? 'Please wait…' : PRICING_PLANS.annual.cta}
+                    {loadingPlan === 'annual'
+                      ? 'Please wait…'
+                      : hideStarter
+                        ? 'Upgrade'
+                        : PRICING_PLANS.annual.cta}
                   </PricingCtaButton>
                 }
               />

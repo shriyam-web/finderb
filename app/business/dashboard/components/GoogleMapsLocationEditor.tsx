@@ -29,7 +29,7 @@ type GoogleMapsLocationEditorProps = {
 };
 
 const STEPS = [
-  'Open Google Maps, find your shop, and drop the pin on your exact location.',
+  'Open Google Maps, find your business, and drop the pin on your exact location.',
   'Tap Share → Copy link.',
   'Paste that link below and click Verify.',
 ];

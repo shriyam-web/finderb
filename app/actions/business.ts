@@ -594,20 +594,20 @@ export async function getOwnedBusiness(id: string) {
 
 export async function loginBusiness(email: string, password: string) {
   try {
-    if (!email || !password) {
+    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedPassword = password.trim();
+    if (!normalizedEmail || !normalizedPassword) {
       return { success: false, error: 'Email and password are required' };
     }
 
-    const passwordCheck = validatePasswordLength(password, 1);
+    const passwordCheck = validatePasswordLength(normalizedPassword, 1);
     if (!passwordCheck.ok) {
       return { success: false, error: passwordCheck.error };
     }
 
-    if (!email.includes('@')) {
+    if (!normalizedEmail.includes('@')) {
       return { success: false, error: 'Please enter a valid email address' };
     }
-
-    const normalizedEmail = email.toLowerCase().trim();
 
     const ipLimit = await enforceRateLimit('auth');
     if (!ipLimit.ok) return { success: false, error: ipLimit.error };
@@ -619,8 +619,8 @@ export async function loginBusiness(email: string, password: string) {
     const loginFields = 'id, password, createdAt';
 
     const [{ data: byWorkEmail }, { data: byEmail }] = await Promise.all([
-      supabase.from('Business').select(loginFields).eq('workEmail', normalizedEmail),
-      supabase.from('Business').select(loginFields).eq('email', normalizedEmail),
+      supabase.from('Business').select(loginFields).ilike('workEmail', escapeIlikePattern(normalizedEmail)),
+      supabase.from('Business').select(loginFields).ilike('email', escapeIlikePattern(normalizedEmail)),
     ]);
 
     const seen = new Set<string>();
@@ -656,11 +656,11 @@ export async function loginBusiness(email: string, password: string) {
 
     let matchedBusiness: (typeof businesses)[number] | null = null;
     for (const row of businesses) {
-      const verification = await verifyPassword(password, row.password);
+      const verification = await verifyPassword(normalizedPassword, row.password);
       if (verification.valid) {
         matchedBusiness = row;
         if (verification.needsRehash) {
-          const hashedPassword = await hashPassword(password);
+          const hashedPassword = await hashPassword(normalizedPassword);
           await supabase
             .from('Business')
             .update({ password: hashedPassword, updatedAt: new Date().toISOString() })

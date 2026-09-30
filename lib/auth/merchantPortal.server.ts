@@ -11,6 +11,10 @@ export type LinkedBusiness = {
   id: string;
   businessName: string | null;
   slug: string | null;
+  selectedPlan: string | null;
+  paymentStatus: string | null;
+  planExpiresAt: string | null;
+  billingCycle: string | null;
 };
 
 async function db() {
@@ -43,18 +47,30 @@ export async function findBusinessForIdentity(input: {
 
   const { data } = await (await db())
     .from('Business')
-    .select('id, businessName, slug')
+    .select('id, businessName, slug, selectedPlan, paymentStatus, planExpiresAt, billingCycle')
     .or(filters.join(','))
     .limit(1);
 
   const row = data?.[0] as
-    | { id?: string; businessName?: string | null; slug?: string | null }
+    | {
+        id?: string;
+        businessName?: string | null;
+        slug?: string | null;
+        selectedPlan?: string | null;
+        paymentStatus?: string | null;
+        planExpiresAt?: string | null;
+        billingCycle?: string | null;
+      }
     | undefined;
   if (!row?.id) return null;
   return {
     id: row.id,
     businessName: row.businessName ?? null,
     slug: row.slug ?? null,
+    selectedPlan: row.selectedPlan ?? null,
+    paymentStatus: row.paymentStatus ?? null,
+    planExpiresAt: row.planExpiresAt ?? null,
+    billingCycle: row.billingCycle ?? null,
   };
 }
 

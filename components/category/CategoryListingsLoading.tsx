@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 
 const LOADING_MESSAGES = [
   'Finding nearby businesses…',
-  'Sorting open shops first…',
+  'Sorting open businesses first…',
   'Checking the best matches…',
   'Almost ready…',
 ];

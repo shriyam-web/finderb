@@ -24,7 +24,7 @@ const HERO_STATS = [
   { value: `${GROWTH_PRO_ANNUAL_DISCOUNT_PERCENT}%`, label: 'Max savings' },
 ] as const;
 
-export default function PricingHero() {
+export default function PricingHero({ alreadyOnStarter = false }: { alreadyOnStarter?: boolean }) {
   const scrollToPlans = () => {
     document.getElementById('pricing-plans')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
@@ -68,13 +68,24 @@ export default function PricingHero() {
             </ul>
 
             <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center">
-              <Link
-                href="/business/register"
-                className="register-hero-cta-btn inline-flex items-center justify-center gap-2 px-7 py-3.5 text-sm font-bold text-[#153551]"
-              >
-                Start for free
-                <ArrowRight size={16} strokeWidth={2.5} />
-              </Link>
+              {alreadyOnStarter ? (
+                <button
+                  type="button"
+                  onClick={scrollToPlans}
+                  className="register-hero-cta-btn inline-flex items-center justify-center gap-2 px-7 py-3.5 text-sm font-bold text-[#153551]"
+                >
+                  Upgrade
+                  <ArrowRight size={16} strokeWidth={2.5} />
+                </button>
+              ) : (
+                <Link
+                  href="/business/register"
+                  className="register-hero-cta-btn inline-flex items-center justify-center gap-2 px-7 py-3.5 text-sm font-bold text-[#153551]"
+                >
+                  Start for free
+                  <ArrowRight size={16} strokeWidth={2.5} />
+                </Link>
+              )}
               <button
                 type="button"
                 onClick={scrollToPlans}

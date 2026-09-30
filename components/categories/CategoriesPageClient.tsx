@@ -1066,6 +1066,17 @@ export default function CategoriesPage({
                 </p>
               </div>
 
+              {!isSearchCategoriesLoading &&
+              globalSearchCategoryPartitions.best.length === 0 &&
+              globalSearchBusinessPartitions.best.length === 0 &&
+              (globalSearchCategoryPartitions.related.length > 0 ||
+                globalSearchBusinessPartitions.related.length > 0) ? (
+                <p className="rounded-xl bg-amber-50 px-3 py-2.5 text-sm leading-5 text-amber-950">
+                  No exact match for “{searchQuery.trim()}”. Here are relevant options you can
+                  look through.
+                </p>
+              ) : null}
+
               <section className="space-y-2">
                 <h2 className="text-[12px] font-semibold text-slate-800">Categories</h2>
                 {isSearchCategoriesLoading ? (

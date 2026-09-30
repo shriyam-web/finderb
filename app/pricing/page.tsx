@@ -13,7 +13,7 @@ import {
   GROWTH_PRO_OFFER_MONTHLY,
 } from '@/lib/pricing/growthPro';
 import { getBusinessSession } from '@/app/actions/business';
-import { isStarterPlan } from '@/lib/subscription/merchantSubscription';
+import { getMerchantSubscriptionStatus } from '@/lib/subscription/merchantSubscription';
 
 function merchantPaymentUrl(businessId: string, billing: 'monthly' | 'annual') {
   return `/business/payment/${encodeURIComponent(businessId)}?billing=${billing}&checkout=1`;
@@ -30,8 +30,21 @@ function PricingPageContent() {
     let cancelled = false;
     void getBusinessSession().then((result) => {
       if (cancelled || !result?.success || !result.business) return;
-      const plan = String(result.business.selectedPlan || 'free');
-      if (isStarterPlan(plan)) setHideStarter(true);
+      const business = result.business as {
+        selectedPlan?: string | null;
+        paymentStatus?: string | null;
+        billingCycle?: string | null;
+        planStartedAt?: string | null;
+        planExpiresAt?: string | null;
+        updatedAt?: string | null;
+        createdAt?: string | null;
+        autoRenewEnabled?: boolean | null;
+        mandateStatus?: string | null;
+        subscriptionStatus?: string | null;
+        razorpaySubscriptionId?: string | null;
+      };
+      const subscription = getMerchantSubscriptionStatus(business);
+      if (!subscription.isActive) setHideStarter(true);
     });
     return () => {
       cancelled = true;
@@ -68,7 +81,7 @@ function PricingPageContent() {
         </div>
       )}
 
-      <PricingHero />
+      <PricingHero alreadyOnStarter={hideStarter} />
 
       <PricingPlansSection
         mode="pricing"
@@ -84,7 +97,9 @@ function PricingPageContent() {
             Ready to grow?
           </h2>
           <p className="mx-auto mt-3 max-w-md text-sm text-white/75 sm:text-base">
-            Start free today — upgrade when you want leads at{' '}
+            {hideStarter
+              ? 'You are on Starter. Upgrade when you want leads at '
+              : 'Start free today — upgrade when you want leads at '}
             <span className="font-bold text-[#f9b864]">{formatInr(GROWTH_PRO_OFFER_MONTHLY)}/mo</span> or{' '}
             <span className="font-bold text-[#f9b864]">{formatInr(GROWTH_PRO_EFFECTIVE_MONTHLY_ANNUAL)}/mo</span>{' '}
             annual.
@@ -96,15 +111,26 @@ function PricingPageContent() {
               disabled={loadingPlan !== null}
               className="register-hero-cta-btn inline-flex items-center gap-2 px-8 py-4 text-sm font-bold text-[#153551] disabled:opacity-60"
             >
-              Claim annual plan
+              {hideStarter ? 'Upgrade to Pro' : 'Claim annual plan'}
               <ArrowRight size={16} strokeWidth={2.5} />
             </button>
-            <Link
-              href="/business/register"
-              className="inline-flex items-center justify-center rounded-xl border-2 border-white/25 px-8 py-4 text-sm font-bold text-white hover:bg-white/10"
-            >
-              List free first
-            </Link>
+            {hideStarter ? (
+              <button
+                type="button"
+                onClick={() => handlePayment('monthly')}
+                disabled={loadingPlan !== null}
+                className="inline-flex items-center justify-center rounded-xl border-2 border-white/25 px-8 py-4 text-sm font-bold text-white hover:bg-white/10 disabled:opacity-60"
+              >
+                Upgrade to Growth
+              </button>
+            ) : (
+              <Link
+                href="/business/register"
+                className="inline-flex items-center justify-center rounded-xl border-2 border-white/25 px-8 py-4 text-sm font-bold text-white hover:bg-white/10"
+              >
+                List free first
+              </Link>
+            )}
           </div>
         </MerchantAuthMain>
       </section>

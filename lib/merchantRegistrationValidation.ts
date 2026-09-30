@@ -173,7 +173,7 @@ function validateEmail(value: string): string | null {
 }
 
 function validatePassword(value: string): string | null {
-  return validateRegistrationPassword(value);
+  return validateRegistrationPassword(value.trim());
 }
 
 function validateMobile(value: string, fieldLabel = 'mobile number'): string | null {
@@ -296,7 +296,7 @@ export function normalizeRegistrationStep1(input: RegistrationStep1Input) {
   return {
     fullName: input.fullName.trim(),
     email: input.email.trim().toLowerCase(),
-    password: input.password,
+    password: input.password.trim(),
     mobile: normalizeIndianPhoneForStorage(input.mobile),
   };
 }
