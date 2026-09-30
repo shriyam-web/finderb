@@ -1,22 +1,26 @@
-import { NextResponse } from 'next/server';
 import {
   isMerchantEmailOtpConfigured,
   requestMerchantRegisterEmailOtp,
   verifyMerchantRegisterEmailOtp,
 } from '@/lib/auth/emailOtp.server';
+import { mobileApiJson, mobileApiOptions } from '@/lib/mobileApiCors';
 import { enforceRateLimit } from '@/lib/security/enforceRateLimit.server';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
+export function OPTIONS() {
+  return mobileApiOptions();
+}
+
 export async function GET() {
-  return NextResponse.json({ required: isMerchantEmailOtpConfigured() });
+  return mobileApiJson({ required: isMerchantEmailOtpConfigured() });
 }
 
 export async function POST(request: Request) {
   const limit = await enforceRateLimit('auth');
   if (!limit.ok) {
-    return NextResponse.json({ success: false, error: limit.error }, { status: 429 });
+    return mobileApiJson({ success: false, error: limit.error }, 429);
   }
 
   try {
@@ -26,12 +30,9 @@ export async function POST(request: Request) {
     const result = code
       ? await verifyMerchantRegisterEmailOtp(email, code)
       : await requestMerchantRegisterEmailOtp(email);
-    return NextResponse.json(result, { status: result.success ? 200 : 400 });
+    return mobileApiJson(result, result.success ? 200 : 400);
   } catch (error) {
     console.error('[business otp]', error);
-    return NextResponse.json(
-      { success: false, error: 'Could not verify that email.' },
-      { status: 500 },
-    );
+    return mobileApiJson({ success: false, error: 'Could not verify that email.' }, 500);
   }
 }

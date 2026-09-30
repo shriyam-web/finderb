@@ -127,6 +127,20 @@ export async function registerBusiness(formData: any) {
     }
 
     const normalized = validated.data;
+    const latitude = parseCoordinate(formData?.latitude);
+    const longitude = parseCoordinate(formData?.longitude);
+    const hasMapPin =
+      latitude != null && longitude != null && (latitude !== 0 || longitude !== 0);
+    if (hasMapPin) {
+      const pinCheck = await validateMapPinAgainstAddress(latitude, longitude, {
+        city: normalized.city,
+        state: normalized.state,
+        country: normalized.country,
+      });
+      if (!pinCheck.ok) {
+        return { success: false, error: pinCheck.error };
+      }
+    }
 
     console.log('✓ [REGISTER] Validation passed');
     console.log('[REGISTER] Attempting database operation...');
@@ -189,6 +203,7 @@ export async function registerBusiness(formData: any) {
         country: normalized.country,
         publicPhone: normalized.publicPhone,
         businessAddress: normalized.businessAddress,
+        ...(hasMapPin ? { latitude, longitude } : {}),
         selectedPlan: normalized.selectedPlan || 'free',
         billingCycle: normalized.billingCycle || 'monthly',
         status: 'Pending',
