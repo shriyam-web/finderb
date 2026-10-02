@@ -15,7 +15,7 @@ import BusinessRegisterLanding from '@/components/business/BusinessRegisterLandi
 import BusinessRegisterWizard from '@/components/business/BusinessRegisterWizard';
 import CategoryIcon from '@/components/CategoryIcon';
 import { MerchantAuthPage } from '@/components/business/MerchantAuthShell';
-import { registerBusiness } from '@/app/actions/business';
+import { checkBusinessMobileAvailable, registerBusiness } from '@/app/actions/business';
 import {
   confirmMerchantRegisterEmailOtp,
   getMerchantEmailOtpRequirement,
@@ -414,6 +414,13 @@ function RegisterFormContent() {
       if (Object.keys(errors).length > 0) {
         setFieldErrors(errors);
         scrollToFirstRegistrationError(errors);
+        return;
+      }
+      const mobileCheck = await checkBusinessMobileAvailable(mobile);
+      if (!mobileCheck.success) {
+        const mobileErrors = { mobile: mobileCheck.error };
+        setFieldErrors(mobileErrors);
+        scrollToFirstRegistrationError(mobileErrors);
         return;
       }
       setFieldErrors({});

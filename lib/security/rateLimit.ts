@@ -10,6 +10,8 @@ export const RATE_LIMITS = {
   authEmail: { limit: 5, windowMs: 15 * 60 * 1000 },
   /** Account creation per IP */
   register: { limit: 5, windowMs: 60 * 60 * 1000 },
+  /** "Is this email / mobile already registered?" checks per IP */
+  lookup: { limit: 40, windowMs: 10 * 60 * 1000 },
   /** Lead forms, reviews, job applications */
   write: { limit: 20, windowMs: 60 * 60 * 1000 },
   /** Category / search queries */

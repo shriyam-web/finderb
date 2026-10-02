@@ -1,8 +1,17 @@
 import type { createClient } from '@/utils/supabase/server';
+import { createServiceClient } from '@/lib/supabase/service';
 
 export type AccountType = 'user' | 'merchant' | 'admin';
 
 type SupabaseServerClient = ReturnType<typeof createClient>;
+
+/**
+ * Row-level security hides pending and unapproved businesses from the public key,
+ * so "already registered?" lookups need the service client to see every account.
+ */
+function lookupClient(fallback: SupabaseServerClient): SupabaseServerClient {
+  return (createServiceClient() as unknown as SupabaseServerClient | null) ?? fallback;
+}
 
 const ACCOUNT_LABELS: Record<AccountType, string> = {
   user: 'User',
@@ -28,19 +37,18 @@ export async function lookupEmailAccountTypes(
   const normalizedEmail = email.toLowerCase().trim();
   if (!normalizedEmail) return [];
 
-  const [userRes, businessRes, adminRes] = await Promise.all([
-    supabase.from('User').select('id').eq('email', normalizedEmail).maybeSingle(),
-    supabase
-      .from('Business')
-      .select('id')
-      .or(`workEmail.eq.${normalizedEmail},email.eq.${normalizedEmail}`)
-      .limit(1),
-    supabase.from('admins').select('id').eq('email', normalizedEmail).maybeSingle(),
+  const db = lookupClient(supabase);
+  const emailPattern = normalizedEmail.replace(/[%_\\]/g, '\\$&');
+  const [userRes, businessEmailRes, businessWorkRes, adminRes] = await Promise.all([
+    db.from('User').select('id').ilike('email', emailPattern).limit(1),
+    db.from('Business').select('id').ilike('email', emailPattern).limit(1),
+    db.from('Business').select('id').ilike('workEmail', emailPattern).limit(1),
+    db.from('admins').select('id').eq('email', normalizedEmail).maybeSingle(),
   ]);
 
   const types: AccountType[] = [];
-  if (userRes.data) types.push('user');
-  if (businessRes.data?.length) types.push('merchant');
+  if (userRes.data?.length) types.push('user');
+  if (businessEmailRes.data?.length || businessWorkRes.data?.length) types.push('merchant');
   if (adminRes.data) types.push('admin');
   return types;
 }
@@ -81,6 +89,49 @@ export async function getRegistrationConflict(
   const types = await lookupEmailAccountTypes(supabase, email);
   if (!types.length) return null;
   return types.find((type) => type === registeringAs) ?? types[0];
+}
+
+export const BUSINESS_MOBILE_TAKEN_MESSAGE =
+  'This mobile number is already registered with FinderB Business. Log in instead, or use another number.';
+
+export const USER_MOBILE_TAKEN_MESSAGE =
+  'This mobile number is linked to a FinderB user account. Use a different number for your business.';
+
+/**
+ * Mobile is a login identifier for both merchants and users, so one number belongs to one account.
+ * Matches the last 10 digits in the business mobile columns and the user phone column,
+ * so `+91…`, `91…` and `0…` forms count. Throws if a lookup fails.
+ */
+export async function lookupMobileAccountTypes(
+  supabase: SupabaseServerClient,
+  mobile: string
+): Promise<Array<'merchant' | 'user'>> {
+  const digits = mobile.replace(/\D/g, '').slice(-10);
+  if (digits.length !== 10) return [];
+  const db = lookupClient(supabase);
+  const pattern = `%${digits}`;
+  const [mobileRes, ownerRes, userRes] = await Promise.all([
+    db.from('Business').select('id').ilike('mobile', pattern).limit(1),
+    db.from('Business').select('id').ilike('owner_mobile', pattern).limit(1),
+    db.from('User').select('id').ilike('phone', pattern).limit(1),
+  ]);
+  const failed = mobileRes.error ?? ownerRes.error ?? userRes.error;
+  if (failed) throw failed;
+  const types: Array<'merchant' | 'user'> = [];
+  if (mobileRes.data?.length || ownerRes.data?.length) types.push('merchant');
+  if (userRes.data?.length) types.push('user');
+  return types;
+}
+
+/** Null when the number is free; otherwise the message to show the merchant. */
+export async function businessMobileConflictMessage(
+  supabase: SupabaseServerClient,
+  mobile: string
+): Promise<string | null> {
+  const types = await lookupMobileAccountTypes(supabase, mobile);
+  if (types.includes('merchant')) return BUSINESS_MOBILE_TAKEN_MESSAGE;
+  if (types.includes('user')) return USER_MOBILE_TAKEN_MESSAGE;
+  return null;
 }
 
 export function getAlternateAccountType(

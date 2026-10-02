@@ -6,10 +6,12 @@ import { revalidatePath } from 'next/cache';
 import { sortBusinessesByProfileCompleteness } from '@/lib/businessProfileCompleteness';
 import { getBusinessPublicRatingStats } from '@/lib/businessReviews';
 import {
+  BUSINESS_MOBILE_TAKEN_MESSAGE,
   formatRegistrationConflictMessage,
   formatWrongPortalLoginMessage,
   getRegistrationConflict,
   getAlternateAccountType,
+  businessMobileConflictMessage,
   LOGIN_PATHS,
   lookupEmailAccountTypes,
 } from '@/lib/emailAccountLookup';
@@ -177,6 +179,17 @@ export async function registerBusiness(formData: any) {
       };
     }
 
+    const mobileConflict = await businessMobileConflictMessage(supabase, normalized.mobile);
+    if (mobileConflict) {
+      const registeredAs = mobileConflict === BUSINESS_MOBILE_TAKEN_MESSAGE ? 'merchant' : 'user';
+      return {
+        success: false,
+        error: mobileConflict,
+        suggestedLoginPath: LOGIN_PATHS[registeredAs],
+        registeredAs,
+      };
+    }
+
     console.log('[REGISTER] Creating business record...');
 
     const now = new Date().toISOString();
@@ -236,6 +249,27 @@ export async function registerBusiness(formData: any) {
     console.error(`[REGISTER] ✗ Failed after ${duration}ms:`, error);
     const errorMessage = handleError(error, 'Registration');
     return { success: false, error: errorMessage };
+  }
+}
+
+/** Step 1 check so a taken owner mobile is flagged before the rest of the form. */
+export async function checkBusinessMobileAvailable(
+  mobile: string
+): Promise<{ success: true } | { success: false; error: string }> {
+  const digits = normalizeIndianPhoneForStorage(mobile);
+  if (digits.length !== 10) return { success: true };
+
+  const limit = await enforceRateLimit('lookup', 'business-mobile');
+  if (!limit.ok) return { success: false, error: limit.error };
+
+  try {
+    const supabase = createClient(await cookies());
+    const conflict = await businessMobileConflictMessage(supabase, digits);
+    if (conflict) return { success: false, error: conflict };
+    return { success: true };
+  } catch (error) {
+    console.error('[REGISTER] mobile availability check failed', error);
+    return { success: true };
   }
 }
 
