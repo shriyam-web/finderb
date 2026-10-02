@@ -3,12 +3,8 @@ import 'server-only';
 import { createClient } from '@/utils/supabase/server';
 import { createServiceClient } from '@/lib/supabase/service';
 import { cookies } from 'next/headers';
-import {
-  formatWrongPortalLoginMessage,
-  LOGIN_PATHS,
-  lookupEmailAccountTypes,
-} from '@/lib/emailAccountLookup';
 import { hashPassword } from '@/lib/security/password';
+import { escapeIlikePattern } from '@/lib/searchMatch';
 import { setUserSessionCookie } from '@/lib/security/session';
 
 const USER_PUBLIC_FIELDS =
@@ -63,33 +59,23 @@ export async function syncOAuthUserToAppSession(
     return { success: false, error: 'Your sign-in provider did not share an email address.' };
   }
 
-  const supabase = createClient(await cookies());
+  // Merchants and FinderB admins may use the customer side with the same verified email;
+  // a User row grants no merchant or admin rights by itself.
   const service = createServiceClient();
-  const db = service ?? supabase;
-
-  const accountTypes = await lookupEmailAccountTypes(supabase, email);
-  const hasUserAccount = accountTypes.includes('user');
-  const alternateType = accountTypes.find((type) => type !== 'user');
-
-  // Merchants may use the consumer app — create/link a User row instead of blocking.
-  if (alternateType === 'admin' && !hasUserAccount) {
-    return {
-      success: false,
-      error: formatWrongPortalLoginMessage(alternateType, 'user'),
-      suggestedLoginPath: LOGIN_PATHS[alternateType],
-    };
-  }
+  const db = service ?? createClient(await cookies());
 
   const now = new Date().toISOString();
   const fullName = resolveDisplayName(authUser, email);
   const avatarUrl = resolveAvatarUrl(authUser);
   const authProvider = resolveProvider(authUser);
 
-  const { data: existingByAuthId } = await db
+  const { data: byAuthIdRows } = await db
     .from('User')
     .select('id')
     .eq('supabaseAuthId', authUser.id)
-    .maybeSingle();
+    .order('createdAt', { ascending: true })
+    .limit(1);
+  const existingByAuthId = byAuthIdRows?.[0];
 
   if (existingByAuthId?.id) {
     await db
@@ -106,11 +92,13 @@ export async function syncOAuthUserToAppSession(
     return { success: true, userId: existingByAuthId.id, isNewUser: false };
   }
 
-  const { data: existingByEmail } = await db
+  const { data: byEmailRows } = await db
     .from('User')
     .select('id, supabaseAuthId')
-    .eq('email', email)
-    .maybeSingle();
+    .ilike('email', escapeIlikePattern(email))
+    .order('createdAt', { ascending: true })
+    .limit(1);
+  const existingByEmail = byEmailRows?.[0];
 
   if (existingByEmail?.id) {
     await db

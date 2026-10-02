@@ -3,7 +3,11 @@ import { cookies } from 'next/headers';
 import { createClient } from '@/utils/supabase/server';
 import { syncOAuthUserToAppSession } from '@/lib/auth/syncOAuthUser.server';
 import { openMerchantPortalForUser } from '@/lib/auth/merchantPortal.server';
-import { getSafeRedirectPath } from '@/lib/authRedirect';
+import {
+  getSafeRedirectPath,
+  isMerchantPortalPath,
+  MERCHANT_HOME_PATH,
+} from '@/lib/authRedirect';
 
 export const dynamic = 'force-dynamic';
 
@@ -45,16 +49,18 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${origin}/login?${params.toString()}`);
   }
 
-  if (next.startsWith('/business')) {
-    const linked = await openMerchantPortalForUser(syncResult.userId);
-    if (!linked) {
-      const message =
-        'This Google account is not linked to a FinderB business. Register your business, or sign in with your work email.';
-      return NextResponse.redirect(
-        `${origin}/business/login?error=${encodeURIComponent(message)}`,
-      );
-    }
-    return NextResponse.redirect(`${origin}/business/dashboard`);
+  const merchantLogin = isMerchantPortalPath(next);
+  const linked = await openMerchantPortalForUser(syncResult.userId);
+  if (merchantLogin && !linked) {
+    const message =
+      'This Google account is not linked to a FinderB business. Register your business, or sign in with your work email.';
+    return NextResponse.redirect(
+      `${origin}/business/login?error=${encodeURIComponent(message)}`,
+    );
+  }
+  // Business owners signing in from the customer page land in their panel too.
+  if (linked && (merchantLogin || next === '/dashboard')) {
+    return NextResponse.redirect(`${origin}${MERCHANT_HOME_PATH}`);
   }
 
   const redirectUrl = new URL(next, origin);

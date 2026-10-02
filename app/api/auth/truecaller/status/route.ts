@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
 import { enforceRateLimit } from '@/lib/security/enforceRateLimit.server';
-import { getSafeRedirectPath } from '@/lib/authRedirect';
+import {
+  getSafeRedirectPath,
+  isMerchantPortalPath,
+  MERCHANT_HOME_PATH,
+} from '@/lib/authRedirect';
 import { mobileAuthSuccessForUserId } from '@/lib/auth/mobileAuth.server';
 import { isValidTruecallerRequestId } from '@/lib/auth/truecallerConfig';
 import { getTruecallerAuthRequest } from '@/lib/auth/truecallerPendingStore.server';
@@ -11,7 +15,7 @@ export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 export async function GET(request: Request) {
-  const ipLimit = await enforceRateLimit('auth');
+  const ipLimit = await enforceRateLimit('authPoll');
   if (!ipLimit.ok) {
     return NextResponse.json({ error: ipLimit.error }, { status: 429 });
   }
@@ -51,23 +55,25 @@ export async function GET(request: Request) {
       }
 
       const redirectPath = getSafeRedirectPath(record.redirectPath);
-      if (redirectPath.startsWith('/business')) {
-        const linked = await openMerchantPortalForUser(record.userId);
-        if (!linked) {
-          return NextResponse.json({
-            status: 'error',
-            error:
-              'This Truecaller number is not linked to a FinderB business. Use your work email, or register the business first.',
-          });
-        }
+      const merchantLogin = isMerchantPortalPath(redirectPath);
+      if (!merchantLogin) await setUserSessionCookie(record.userId);
+      const linked = await openMerchantPortalForUser(record.userId);
+      if (merchantLogin && !linked) {
+        return NextResponse.json({
+          status: 'error',
+          error:
+            'This Truecaller number is not linked to a FinderB business. Use your work email, or register the business first.',
+        });
+      }
+      // Business owners signing in from the customer page land in their panel too.
+      if (linked && (merchantLogin || redirectPath === '/dashboard')) {
         return NextResponse.json({
           status: 'completed',
-          redirectUrl: '/business/dashboard',
+          redirectUrl: MERCHANT_HOME_PATH,
           isNewUser: Boolean(record.isNewUser),
         });
       }
 
-      await setUserSessionCookie(record.userId);
       const redirectUrl = new URL(redirectPath, request.url);
       if (record.isNewUser) {
         redirectUrl.searchParams.set('welcome', '1');

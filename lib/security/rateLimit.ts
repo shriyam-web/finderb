@@ -4,8 +4,10 @@ export type RateLimitConfig = {
 };
 
 export const RATE_LIMITS = {
-  /** Login attempts per IP */
-  auth: { limit: 10, windowMs: 15 * 60 * 1000 },
+  /** Login attempts per IP (mobile carriers put many phones behind one IP) */
+  auth: { limit: 30, windowMs: 15 * 60 * 1000 },
+  /** Sign-in status polling while Truecaller verifies (about one request a second) */
+  authPoll: { limit: 300, windowMs: 10 * 60 * 1000 },
   /** Login/register per email */
   authEmail: { limit: 5, windowMs: 15 * 60 * 1000 },
   /** Account creation per IP */
