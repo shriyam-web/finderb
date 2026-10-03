@@ -47,6 +47,7 @@ yarn-error.*
 # Release signing (do not commit)
 android/app/finderb-release.keystore
 android/keystore.properties
+/credentials/
 *.keystore
 !android/app/debug.keystore
 

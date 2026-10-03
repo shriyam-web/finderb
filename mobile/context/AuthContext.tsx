@@ -44,6 +44,7 @@ type AuthContextValue = {
     email?: string;
     phone?: string;
     avatarUrl?: string | null;
+    emailVerificationToken?: string;
   }) => Promise<AuthResult>;
   signOut: () => Promise<void>;
   refresh: () => Promise<void>;
@@ -122,16 +123,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const applySuccess = useCallback(async (result: AuthResult) => {
-    if (result.success) {
-      await clearGuestMode();
+  const applySuccess = useCallback(async (result: AuthResult): Promise<AuthResult> => {
+    if (!result.success) return result;
+    try {
       await saveSession(result.token, result.user);
-      setUser(result.user);
-      if (result.isNewUser) {
-        await stampNotificationSince(result.user.id, result.user.createdAt);
-      }
-      void registerDevicePushToken();
+    } catch {
+      return { success: false, error: 'Could not save your sign-in on this phone. Please try again.' };
     }
+    setUser(result.user);
+    await clearGuestMode().catch(() => undefined);
+    if (result.isNewUser) {
+      await stampNotificationSince(result.user.id, result.user.createdAt).catch(() => undefined);
+    }
+    void registerDevicePushToken();
     return result;
   }, []);
 
@@ -140,8 +144,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       loading,
       signIn: async (email, password) =>
-        applySuccess(await loginWithPassword(email, password)),
-      signUp: async (input) => applySuccess(await registerWithPassword(input)),
+        applySuccess(
+          await loginWithPassword(email.trim().toLowerCase(), password.trim()),
+        ),
+      signUp: async (input) =>
+        applySuccess(
+          await registerWithPassword({
+            ...input,
+            email: input.email.trim().toLowerCase(),
+            password: input.password.trim(),
+          }),
+        ),
       signInWithGoogle: async () => applySuccess(await loginWithGoogle()),
       signInWithTruecaller: async () => applySuccess(await loginWithTruecaller()),
       applyAuthResult: applySuccess,

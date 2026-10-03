@@ -11,15 +11,21 @@ type BusinessRegisterBannerProps = {
   style?: object;
 };
 
+const PERSON = require('../assets/indian-businessman-banner.png');
+const PERSON_ASPECT = 427 / 640;
+const PERSON_TOP_GAP = 10;
+
 export function BusinessRegisterBanner({ style }: BusinessRegisterBannerProps) {
   const router = useRouter();
   const { colors, gradients } = useTheme();
   const styles = useStyles();
   const { width } = useWindowDimensions();
   const compact = width < 380;
-  const tiny = width < 340;
-  const personW = tiny ? 64 : compact ? 84 : 118;
-  const padRight = Math.round(personW * 0.82);
+  const cardH = compact ? 124 : 136;
+
+  const personH = cardH - PERSON_TOP_GAP;
+  const personW = Math.round(personH * PERSON_ASPECT);
+  const glow = Math.round(personH * 1.05);
 
   return (
     <Pressable
@@ -35,21 +41,35 @@ export function BusinessRegisterBanner({ style }: BusinessRegisterBannerProps) {
         style={[styles.card, compact && styles.cardCompact]}
       >
         <View
+          pointerEvents="none"
+          style={[
+            styles.glow,
+            {
+              width: glow,
+              height: glow,
+              borderRadius: glow / 2,
+              right: Math.round(personW / 2 - glow / 2) + 8,
+              bottom: -Math.round(glow * 0.28),
+            },
+          ]}
+        />
+
+        <View
           style={[
             styles.left,
-            { paddingRight: padRight },
             compact && styles.leftCompact,
+            { marginRight: personW + 4 },
           ]}
         >
           <Text
             style={[styles.title, compact && styles.titleCompact]}
             numberOfLines={2}
           >
-            Your shop, discovered daily
+            Your business, discovered daily
           </Text>
           <Text
             style={[styles.body, compact && styles.bodyCompact]}
-            numberOfLines={compact ? 3 : 2}
+            numberOfLines={3}
           >
             Free listing. Show up when nearby customers are ready to buy.
           </Text>
@@ -65,18 +85,14 @@ export function BusinessRegisterBanner({ style }: BusinessRegisterBannerProps) {
           </View>
         </View>
 
-        <View
-          style={[styles.personSlot, { width: personW }]}
+        <Image
+          source={PERSON}
           pointerEvents="none"
-        >
-          <Image
-            source={require('../assets/indian-businessman.png')}
-            style={styles.person}
-            contentFit="cover"
-            contentPosition={{ top: 0, right: 0 }}
-            transition={120}
-          />
-        </View>
+          style={[styles.person, { width: personW, height: personH }]}
+          contentFit="contain"
+          contentPosition="bottom"
+          transition={0}
+        />
       </LinearGradient>
     </Pressable>
   );
@@ -93,12 +109,17 @@ const useStyles = createThemedStyles((colors) => ({
   card: {
     flexDirection: 'row',
     alignItems: 'stretch',
-    minHeight: 128,
+    minHeight: 136,
     overflow: 'hidden',
     position: 'relative',
+    borderRadius: 16,
   },
   cardCompact: {
-    minHeight: 112,
+    minHeight: 124,
+  },
+  glow: {
+    position: 'absolute',
+    backgroundColor: 'rgba(255,255,255,0.14)',
   },
   left: {
     flex: 1,
@@ -106,22 +127,25 @@ const useStyles = createThemedStyles((colors) => ({
     gap: 7,
     paddingVertical: 16,
     paddingLeft: 16,
+    paddingRight: 4,
     minWidth: 0,
     zIndex: 1,
   },
   leftCompact: {
     gap: 5,
     paddingVertical: 12,
-    paddingLeft: 12,
+    paddingLeft: 14,
   },
   title: {
     fontFamily: fonts.extraBold,
     fontSize: 17,
+    lineHeight: 21,
     letterSpacing: -0.3,
     color: colors.onDark,
   },
   titleCompact: {
     fontSize: 15,
+    lineHeight: 19,
     letterSpacing: -0.2,
   },
   body: {
@@ -129,7 +153,7 @@ const useStyles = createThemedStyles((colors) => ({
     fontSize: 13,
     lineHeight: 18,
     color: colors.onDark,
-    opacity: 0.88,
+    opacity: 0.9,
   },
   bodyCompact: {
     fontSize: 12,
@@ -159,14 +183,9 @@ const useStyles = createThemedStyles((colors) => ({
   ctaTextCompact: {
     fontSize: 12,
   },
-  personSlot: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    bottom: 0,
-  },
   person: {
-    width: '100%',
-    height: '100%',
+    position: 'absolute',
+    right: 4,
+    bottom: 0,
   },
 }));

@@ -8,16 +8,21 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { fonts } from '../constants/typography';
+import { bizColors } from '../constants/businessColors';
 import { useTheme } from '../context/ThemeContext';
 import { createThemedStyles } from '../hooks/useThemedStyles';
 
 type FieldProps = TextInputProps & {
   label: string;
   error?: string;
+  leftSlot?: ReactNode;
   rightSlot?: ReactNode;
+  footer?: ReactNode;
+  fontFamily?: string;
+  dimmed?: boolean;
 };
 
-export function AuthField({ label, error, rightSlot, style, ...props }: FieldProps) {
+export function AuthField({ label, error, leftSlot, rightSlot, footer, style, fontFamily, dimmed, ...props }: FieldProps) {
   const { colors } = useTheme();
   const styles = useStyles();
   const [focused, setFocused] = useState(false);
@@ -27,37 +32,43 @@ export function AuthField({ label, error, rightSlot, style, ...props }: FieldPro
     <View style={styles.wrap}>
       <View
         style={[
-          styles.inputRow,
+          styles.shell,
           focused && styles.inputFocused,
           !!error && styles.inputError,
+          dimmed && styles.shellDimmed,
         ]}
       >
-        <View style={styles.fieldCol}>
-          <Text
-            style={[
-              styles.label,
-              (focused || filled) && styles.labelActive,
-            ]}
-          >
-            {label}
-          </Text>
-          <TextInput
-            {...props}
-            style={[styles.input, style]}
-            placeholderTextColor={colors.textSoft}
-            onFocus={(e) => {
-              setFocused(true);
-              props.onFocus?.(e);
-            }}
-            onBlur={(e) => {
-              setFocused(false);
-              props.onBlur?.(e);
-            }}
-          />
+        <View style={styles.inputRow}>
+          {leftSlot ? <View style={styles.leftSlot}>{leftSlot}</View> : null}
+          <View style={styles.fieldCol}>
+            <Text
+              style={[
+                styles.label,
+                (focused || filled) && styles.labelActive,
+                fontFamily ? { fontFamily } : null,
+              ]}
+            >
+              {label}
+            </Text>
+            <TextInput
+              {...props}
+              style={[styles.input, fontFamily ? { fontFamily } : null, style]}
+              placeholderTextColor={colors.textSoft}
+              onFocus={(e) => {
+                setFocused(true);
+                props.onFocus?.(e);
+              }}
+              onBlur={(e) => {
+                setFocused(false);
+                props.onBlur?.(e);
+              }}
+            />
+          </View>
+          {rightSlot}
         </View>
-        {rightSlot}
       </View>
       {error ? <Text style={styles.error}>{error}</Text> : null}
+      {footer ? <View style={[styles.footer, dimmed && styles.shellDimmed]}>{footer}</View> : null}
     </View>
   );
 }
@@ -120,27 +131,44 @@ export function AuthAlert({
   );
 }
 
-const useStyles = createThemedStyles((colors) => ({
+const useStyles = createThemedStyles((colors) => {
+  const b = bizColors(colors);
+  return {
   wrap: {
     marginBottom: 10,
+  },
+  shell: {
+    borderBottomWidth: 1.5,
+    borderBottomColor: b.lineStrong,
+    backgroundColor: 'transparent',
+    marginBottom: 4,
+  },
+  shellDimmed: {
+    opacity: 0.45,
   },
   inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 12,
-    backgroundColor: colors.canvasDeep,
-    paddingHorizontal: 12,
     minHeight: 52,
+    paddingBottom: 6,
+  },
+  footer: {
+    paddingTop: 6,
   },
   inputFocused: {
-    borderColor: colors.ink,
-    backgroundColor: colors.white,
+    borderBottomColor: b.blue,
+    borderBottomWidth: 2,
   },
   inputError: {
-    borderColor: colors.danger,
-    backgroundColor: colors.dangerBg,
+    borderBottomColor: colors.danger,
+  },
+  leftSlot: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 10,
+    paddingRight: 10,
+    borderRightWidth: 1,
+    borderRightColor: colors.border,
   },
   fieldCol: {
     flex: 1,
@@ -201,4 +229,5 @@ const useStyles = createThemedStyles((colors) => ({
   alertTextSuccess: {
     color: colors.success,
   },
-}));
+};
+});

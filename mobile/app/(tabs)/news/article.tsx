@@ -40,7 +40,7 @@ function wrapArticleHtml(
 ): string {
   const fg = opts.isDark ? '#F5F5F4' : '#1C1917';
   const muted = opts.isDark ? '#A8A29E' : '#57534E';
-  const bg = opts.isDark ? '#0C0A09' : '#FAFAF9';
+  const bg = opts.isDark ? '#1F1C1A' : '#FAFAF9';
   return `<!DOCTYPE html>
 <html>
 <head>

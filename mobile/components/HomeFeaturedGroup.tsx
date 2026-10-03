@@ -18,11 +18,8 @@ import {
 } from './MerchantFilterSheet';
 import { fetchBusinessesByCategory, peekBusinessesByCategory, type HomeCategory } from '../lib/api';
 import { getBusinessOpenStatus } from '../lib/businessHours';
-import {
-  formatDistanceFromUser,
-  sortByUserLocation,
-  type Coords,
-} from '../lib/geo';
+import { sortByUserLocation, type Coords } from '../lib/geo';
+import { useDrivingDistanceLabel, useRoadDistanceOrder } from '../lib/drivingDistance';
 import {
   DEFAULT_FILTERS,
   applyFilters,
@@ -113,20 +110,25 @@ const webTabScroll = {
   overflowY: 'hidden',
 } as const;
 
-const webTabOn = {
-  boxShadow:
-    'inset 0 1px 0 rgba(255,255,255,0.95), inset 0 -1px 0 rgba(28,25,23,0.06), 0 3px 8px rgba(28,25,23,0.08), 0 1px 2px rgba(28,25,23,0.05)',
-} as const;
+function webSelectedTabShadow(isDark: boolean) {
+  return {
+    boxShadow: isDark
+      ? 'inset 0 1px 0 rgba(255,255,255,0.14), inset 0 -1px 0 rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.16), 0 4px 14px rgba(0,0,0,0.45)'
+      : 'inset 0 1px 0 rgba(255,255,255,0.95), inset 0 -1px 0 rgba(28,25,23,0.1), 0 0 0 1px rgba(28,25,23,0.14), 0 3px 10px rgba(28,25,23,0.12)',
+  } as const;
+}
 
 function MerchantCard({
   merchant,
   compact,
+  fill,
   wash,
   userCoords,
   onPress,
 }: {
   merchant: Merchant;
   compact?: boolean;
+  fill?: boolean;
   wash: string;
   userCoords?: Coords | null;
   onPress: () => void;
@@ -136,19 +138,17 @@ function MerchantCard({
   const hasReviews = merchant.reviewsCount > 0;
   const rating = ratingValue(merchant).toFixed(1);
   const open = getBusinessOpenStatus(merchant.timings);
-  const distanceLabel = formatDistanceFromUser(
-    userCoords,
-    merchant.latitude,
-    merchant.longitude,
-  );
+  const distanceLabel = useDrivingDistanceLabel(merchant.latitude, merchant.longitude);
   const place = (merchant.location || merchant.city || '').trim();
+  const showLocation = Boolean(distanceLabel || place);
 
   return (
     <Pressable
       onPress={onPress}
       style={({ pressed }) => [
         styles.card,
-        compact && styles.cardCompact,
+        compact && !fill && styles.cardCompact,
+        fill && styles.cardFill,
         pressed && styles.pressed,
       ]}
       accessibilityLabel={
@@ -157,7 +157,13 @@ function MerchantCard({
           : merchant.name
       }
     >
-      <View style={[styles.photo, compact && styles.photoCompact]}>
+      <View
+        style={[
+          styles.photo,
+          compact && styles.photoCompact,
+          fill && styles.photoFill,
+        ]}
+      >
         {merchant.image ? (
           <Image
             source={{ uri: merchant.image }}
@@ -186,7 +192,13 @@ function MerchantCard({
           style={[styles.photoFade, compact && styles.photoFadeCompact]}
         />
       </View>
-      <View style={[styles.body, compact && styles.bodyCompact]}>
+      <View
+        style={[
+          styles.body,
+          compact && styles.bodyCompact,
+          fill && styles.bodyFill,
+        ]}
+      >
         <View
           style={[styles.nameRow, Platform.OS === 'web' && webNameRow]}
         >
@@ -238,7 +250,7 @@ function MerchantCard({
             </Text>
           ) : null}
         </View>
-        {!compact && (distanceLabel || place) ? (
+        {showLocation ? (
           <View style={styles.locRow}>
             <Ionicons
               name="location-outline"
@@ -259,9 +271,11 @@ function MerchantCard({
 
 function SeeAllCard({
   compact,
+  fill,
   onPress,
 }: {
   compact?: boolean;
+  fill?: boolean;
   onPress: () => void;
 }) {
   const { colors } = useTheme();
@@ -272,6 +286,7 @@ function SeeAllCard({
       style={({ pressed }) => [
         styles.seeAllCard,
         compact && styles.seeAllCardCompact,
+        fill && styles.seeAllCardFill,
         pressed && styles.pressed,
       ]}
     >
@@ -361,7 +376,7 @@ export function HomeFeaturedGroup({
   onOpenMerchant,
   onExpand,
 }: Props) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const styles = useStyles();
   const categoryTabs = group.children ?? [];
   const hideCategoryRow = realCategoriesOf(group).length <= 1;
@@ -433,7 +448,6 @@ export function HomeFeaturedGroup({
   }, [nestedId, nestedTabs]);
 
   const folderOpen = !hideCategoryRow && orderedCategoryTabs.length > 0;
-  const hasNestedPanel = nestedTabs.length > 0;
   const pageWash = muted ? colors.surfaceSoft : colors.canvas;
   const panelWash = folderOpen ? colors.surface : pageWash;
 
@@ -506,25 +520,11 @@ export function HomeFeaturedGroup({
       });
   }, [active, listingQuery, listingSource.id, reloadToken, city, group.id, group.name, group.queryName]);
 
-  const visibleMerchants = useMemo(
-    () =>
-      applyFilters(merchants, filters, userCoords).slice(
-        0,
-        hasNestedPanel ? 10 : 8,
-      ),
-    [filters, hasNestedPanel, merchants, userCoords],
+  const nearestEight = useMemo(
+    () => applyFilters(merchants, filters, userCoords).slice(0, 8),
+    [filters, merchants, userCoords],
   );
-
-  const nestedRows = useMemo(() => {
-    if (!hasNestedPanel) {
-      return { top: visibleMerchants, bottom: [] as Merchant[] };
-    }
-    const mid = Math.ceil(visibleMerchants.length / 2);
-    return {
-      top: visibleMerchants.slice(0, mid),
-      bottom: visibleMerchants.slice(mid),
-    };
-  }, [hasNestedPanel, visibleMerchants]);
+  const visibleMerchants = useRoadDistanceOrder(nearestEight);
 
   const filterMatchCount = useMemo(
     () => applyFilters(merchants, filters, userCoords).length,
@@ -605,55 +605,80 @@ export function HomeFeaturedGroup({
                 const afterSelected =
                   index > 0 &&
                   orderedCategoryTabs[index - 1].id === selectedCategory.id;
+                const showSplit = index > 0 && !selected && !afterSelected;
                 const showSymbol =
                   !isAllCategory(cat) && Boolean(cat.icon?.trim());
                 return (
-                  <View key={cat.id} style={[styles.tabSlot, selected && styles.tabSlotOn]}>
-                    {index > 0 && !afterSelected ? (
-                      <View style={styles.tabSplit} />
-                    ) : null}
-                    <Pressable
-                      onPress={() => setCategoryId(cat.id)}
-                      style={[
-                        styles.tab,
-                        selected && styles.tabOn,
-                        selected && Platform.OS === 'web' && webTabOn,
-                      ]}
-                    >
+                  <View key={cat.id} style={styles.tabSlot}>
+                    {showSplit ? <View style={styles.tabSplit} /> : null}
+                    <View style={selected ? styles.tabSlotOn : undefined}>
+                      <Pressable
+                        onPress={() => setCategoryId(cat.id)}
+                        style={[
+                          styles.tab,
+                          selected && styles.tabOn,
+                          selected &&
+                            Platform.OS === 'web' &&
+                            webSelectedTabShadow(isDark),
+                        ]}
+                      >
                       {selected ? (
                         <>
                           <LinearGradient
                             pointerEvents="none"
-                            colors={[
-                              colors.white,
-                              colors.surfaceSoft,
-                              colors.muted,
-                            ]}
-                            locations={[0, 0.4, 1]}
+                            colors={
+                              isDark
+                                ? [
+                                    colors.surfaceSoft,
+                                    colors.surface,
+                                    colors.muted,
+                                  ]
+                                : [
+                                    colors.surface,
+                                    colors.surfaceSoft,
+                                    colors.muted,
+                                  ]
+                            }
+                            locations={[0, 0.45, 1]}
                             start={{ x: 0.12, y: 0 }}
                             end={{ x: 0.88, y: 1 }}
                             style={styles.tabOnFill}
                           />
                           <LinearGradient
                             pointerEvents="none"
-                            colors={[
-                              hexAlpha(colors.frost, 0.9),
-                              hexAlpha(colors.frost, 0),
-                            ]}
+                            colors={
+                              isDark
+                                ? [
+                                    hexAlpha('#FFFFFF', 0.16),
+                                    hexAlpha('#FFFFFF', 0),
+                                  ]
+                                : [
+                                    hexAlpha(colors.frost, 0.92),
+                                    hexAlpha(colors.frost, 0),
+                                  ]
+                            }
                             start={{ x: 0.5, y: 0 }}
                             end={{ x: 0.5, y: 1 }}
                             style={styles.tabOnShine}
                           />
                           <LinearGradient
                             pointerEvents="none"
-                            colors={[
-                              hexAlpha(colors.frost, 0.45),
-                              hexAlpha(colors.frost, 0),
-                            ]}
+                            colors={
+                              isDark
+                                ? [
+                                    hexAlpha('#FFFFFF', 0.1),
+                                    hexAlpha('#FFFFFF', 0),
+                                  ]
+                                : [
+                                    hexAlpha(colors.frost, 0.4),
+                                    hexAlpha(colors.frost, 0),
+                                  ]
+                            }
                             start={{ x: 0, y: 0.5 }}
                             end={{ x: 1, y: 0.5 }}
                             style={styles.tabOnBevel}
                           />
+                          <View pointerEvents="none" style={styles.tabOnEdge} />
                         </>
                       ) : null}
                       <View style={styles.tabInner} pointerEvents="none">
@@ -672,6 +697,7 @@ export function HomeFeaturedGroup({
                         </Text>
                       </View>
                     </Pressable>
+                    </View>
                   </View>
                 );
               })}
@@ -740,132 +766,70 @@ export function HomeFeaturedGroup({
           </View>
         ) : null}
 
-        <View
-          style={[
-            folderOpen && styles.folderPanel,
-            folderOpen && hasNestedPanel && styles.folderPanelSplit,
-          ]}
-        >
-          <View style={hasNestedPanel ? styles.split : undefined}>
-            {hasNestedPanel ? (
-              <View style={styles.subList}>
-                <ScrollView
-                  style={styles.subListScroll}
-                  contentContainerStyle={styles.subListRail}
-                  showsVerticalScrollIndicator={false}
-                  nestedScrollEnabled
-                >
-                  {nestedTabs.map((cat, index) => {
-                    const selected = nestedSelected?.id === cat.id;
-                    const showSymbol =
-                      !isAllCategory(cat) && Boolean(cat.icon?.trim());
-                    return (
-                      <View key={cat.id}>
-                        <Pressable
-                          onPress={() => setNestedId(cat.id)}
-                          style={[
-                            styles.subItem,
-                            selected && styles.subItemOn,
-                          ]}
-                        >
-                          {showSymbol ? (
-                            <CategorySymbol
-                              category={cat}
-                              size={16}
-                              color={
-                                selected ? colors.heading : colors.textMuted
-                              }
-                            />
-                          ) : null}
-                          <Text
-                            style={[
-                              styles.subItemText,
-                              selected && styles.subItemTextOn,
-                            ]}
-                          >
-                            {cat.name}
-                          </Text>
-                          {selected ? (
-                            <View
-                              pointerEvents="none"
-                              style={styles.subItemCaret}
-                            />
-                          ) : null}
-                        </Pressable>
-                        {index < nestedTabs.length - 1 ? (
-                          <View style={styles.subSplit} />
-                        ) : null}
-                      </View>
-                    );
-                  })}
-                </ScrollView>
-              </View>
-            ) : null}
+        <View style={folderOpen ? styles.folderPanel : undefined}>
+          {nestedTabs.length > 0 ? (
+            <ScrollView
+              horizontal
+              nestedScrollEnabled
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.pillRail}
+            >
+              {nestedTabs.map((cat) => {
+                const selected = nestedSelected?.id === cat.id;
+                return (
+                  <Pressable
+                    key={cat.id}
+                    onPress={() => setNestedId(cat.id)}
+                    style={[styles.pill, selected && styles.pillOn]}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected }}
+                  >
+                    {!isAllCategory(cat) && cat.icon?.trim() ? (
+                      <CategorySymbol
+                        category={cat}
+                        size={14}
+                        color={selected ? colors.frost : colors.textMuted}
+                      />
+                    ) : null}
+                    <Text
+                      style={[styles.pillText, selected && styles.pillTextOn]}
+                      numberOfLines={1}
+                    >
+                      {cat.name}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          ) : null}
 
-            <View style={hasNestedPanel ? styles.splitMain : undefined}>
-              {loading ? (
-                <View
-                  style={[
-                    styles.loadingRow,
-                    folderOpen && styles.loadingInFolder,
-                    hasNestedPanel && styles.loadingInSplit,
-                  ]}
-                >
-                  <ActivityIndicator color={colors.ink} />
-                  <Text style={styles.loadingText}>Finding places…</Text>
-                </View>
-              ) : visibleMerchants.length === 0 ? (
-                <Text
-                  style={[
-                    styles.empty,
-                    folderOpen && styles.emptyInFolder,
-                    hasNestedPanel && styles.emptyInSplit,
-                  ]}
-                >
-                  {filtersIdle
-                    ? 'No places found in this category'
-                    : 'No places match these filters'}
-                </Text>
-              ) : hasNestedPanel ? (
-                <View style={styles.splitStack}>
-                  <MerchantRow
-                    merchants={nestedRows.top}
-                    compact
-                    nested
-                    folderOpen={folderOpen}
-                    wash={panelWash}
-                    userCoords={userCoords}
-                    showSeeAll={nestedRows.bottom.length === 0}
-                    onOpenMerchant={onOpenMerchant}
-                    onSeeAll={() => onOpenCategory(seeAllTarget)}
-                  />
-                  {nestedRows.bottom.length > 0 ? (
-                    <MerchantRow
-                      merchants={nestedRows.bottom}
-                      compact
-                      nested
-                      folderOpen={folderOpen}
-                      wash={panelWash}
-                      userCoords={userCoords}
-                      showSeeAll
-                      onOpenMerchant={onOpenMerchant}
-                      onSeeAll={() => onOpenCategory(seeAllTarget)}
-                    />
-                  ) : null}
-                </View>
-              ) : (
-                <MerchantRow
-                  merchants={visibleMerchants}
-                  folderOpen={folderOpen}
-                  wash={panelWash}
-                  userCoords={userCoords}
-                  showSeeAll
-                  onOpenMerchant={onOpenMerchant}
-                  onSeeAll={() => onOpenCategory(seeAllTarget)}
-                />
-              )}
+          {loading ? (
+            <View
+              style={[
+                styles.loadingRow,
+                folderOpen && styles.loadingInFolder,
+              ]}
+            >
+              <ActivityIndicator color={colors.ink} />
+              <Text style={styles.loadingText}>Finding places…</Text>
             </View>
-          </View>
+          ) : visibleMerchants.length === 0 ? (
+            <Text style={[styles.empty, folderOpen && styles.emptyInFolder]}>
+              {filtersIdle
+                ? 'No places found in this category'
+                : 'No places match these filters'}
+            </Text>
+          ) : (
+            <MerchantRow
+              merchants={visibleMerchants}
+              folderOpen={folderOpen}
+              wash={panelWash}
+              userCoords={userCoords}
+              showSeeAll
+              onOpenMerchant={onOpenMerchant}
+              onSeeAll={() => onOpenCategory(seeAllTarget)}
+            />
+          )}
         </View>
       </View>
 
@@ -884,8 +848,8 @@ export function HomeFeaturedGroup({
 
 const useStyles = createThemedStyles((colors) => ({
   section: {
-    paddingTop: 16,
-    paddingBottom: 7,
+    paddingTop: 12,
+    paddingBottom: 5,
     backgroundColor: colors.canvas,
   },
   sectionMuted: {
@@ -896,7 +860,7 @@ const useStyles = createThemedStyles((colors) => ({
     alignItems: 'center',
     gap: 8,
     paddingHorizontal: 16,
-    marginBottom: 9,
+    marginBottom: 8,
   },
   titleRow: {
     flex: 1,
@@ -926,7 +890,7 @@ const useStyles = createThemedStyles((colors) => ({
     transform: [{ rotate: '45deg' }],
   },
   folder: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 0,
     minWidth: 0,
     alignSelf: 'stretch',
   },
@@ -949,7 +913,10 @@ const useStyles = createThemedStyles((colors) => ({
   tabRail: {
     flexDirection: 'row',
     alignItems: 'flex-end',
+    paddingLeft: 12,
     paddingRight: 40,
+    paddingTop: 6,
+    paddingBottom: 0,
   },
   tabMoreLeft: {
     position: 'absolute',
@@ -960,6 +927,7 @@ const useStyles = createThemedStyles((colors) => ({
     alignItems: 'flex-start',
     justifyContent: 'center',
     paddingLeft: 2,
+    paddingTop: 6,
     zIndex: 4,
   },
   tabMoreRight: {
@@ -971,6 +939,7 @@ const useStyles = createThemedStyles((colors) => ({
     alignItems: 'flex-end',
     justifyContent: 'center',
     paddingRight: 2,
+    paddingTop: 6,
     zIndex: 4,
   },
   tabMoreFade: {
@@ -996,17 +965,16 @@ const useStyles = createThemedStyles((colors) => ({
   },
   tabSlotOn: {
     zIndex: 4,
-    elevation: 6,
-    shadowColor: '#1C1917',
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
+    elevation: 5,
+    shadowColor: '#000000',
+    shadowOpacity: colors.statusBarStyle === 'light' ? 0.5 : 0.14,
+    shadowRadius: 7,
+    shadowOffset: { width: 0, height: 2 },
   },
   tabSplit: {
     width: StyleSheet.hairlineWidth * 2,
     height: 14,
     marginHorizontal: 4,
-    marginBottom: 8,
     borderRadius: 1,
     backgroundColor: colors.borderStrong,
     opacity: 0.45,
@@ -1026,12 +994,23 @@ const useStyles = createThemedStyles((colors) => ({
     zIndex: 3,
     paddingTop: 10,
     paddingBottom: 9,
-    backgroundColor: colors.white,
-    borderTopWidth: 1,
-    borderLeftWidth: 1,
-    borderRightWidth: 1,
-    borderColor: colors.border,
-    borderTopColor: hexAlpha(colors.frost, 0.85),
+    backgroundColor: colors.surface,
+    borderTopWidth: StyleSheet.hairlineWidth * 2,
+    borderLeftWidth: StyleSheet.hairlineWidth * 2,
+    borderRightWidth: StyleSheet.hairlineWidth * 2,
+    borderColor: colors.borderStrong,
+    borderTopColor:
+      colors.statusBarStyle === 'light'
+        ? hexAlpha('#FFFFFF', 0.28)
+        : hexAlpha(colors.ink, 0.16),
+    borderLeftColor:
+      colors.statusBarStyle === 'light'
+        ? hexAlpha('#FFFFFF', 0.18)
+        : hexAlpha(colors.ink, 0.12),
+    borderRightColor:
+      colors.statusBarStyle === 'light'
+        ? hexAlpha('#FFFFFF', 0.18)
+        : hexAlpha(colors.ink, 0.12),
     overflow: 'hidden',
   },
   tabInner: {
@@ -1051,7 +1030,7 @@ const useStyles = createThemedStyles((colors) => ({
     top: 0,
     left: 0,
     right: 0,
-    height: 14,
+    height: 13,
     borderTopLeftRadius: 12,
     borderTopRightRadius: 12,
   },
@@ -1060,8 +1039,19 @@ const useStyles = createThemedStyles((colors) => ({
     top: 0,
     bottom: 0,
     left: 0,
-    width: 10,
+    width: 9,
     borderTopLeftRadius: 12,
+  },
+  tabOnEdge: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: StyleSheet.hairlineWidth * 2,
+    backgroundColor:
+      colors.statusBarStyle === 'light'
+        ? hexAlpha('#000000', 0.45)
+        : hexAlpha(colors.ink, 0.1),
   },
   tabText: {
     fontFamily: fonts.medium,
@@ -1072,14 +1062,47 @@ const useStyles = createThemedStyles((colors) => ({
     fontFamily: fonts.semiBold,
     color: colors.heading,
   },
-  folderPanel: {
+  pillRail: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingTop: 10,
+    paddingBottom: 16,
+  },
+  pill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    maxWidth: 168,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 999,
     backgroundColor: colors.surface,
     borderWidth: 1,
+    borderColor: colors.border,
+  },
+  pillOn: {
+    backgroundColor: colors.ink,
+    borderColor: colors.ink,
+  },
+  pillText: {
+    flexShrink: 1,
+    fontFamily: fonts.semiBold,
+    fontSize: 12,
+    color: colors.textMuted,
+  },
+  pillTextOn: {
+    color: colors.frost,
+  },
+  folderPanel: {
+    backgroundColor: colors.surface,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderLeftWidth: 0,
+    borderRightWidth: 0,
     borderColor: colors.borderStrong,
-    borderTopLeftRadius: 0,
-    borderTopRightRadius: 14,
-    borderBottomLeftRadius: 14,
-    borderBottomRightRadius: 14,
+    borderRadius: 0,
     paddingTop: 8,
     paddingBottom: 12,
     overflow: 'hidden',
@@ -1170,6 +1193,15 @@ const useStyles = createThemedStyles((colors) => ({
     paddingTop: 6,
     paddingBottom: 6,
   },
+  nestedGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    columnGap: 10,
+    rowGap: 16,
+    paddingHorizontal: 8,
+    paddingTop: 4,
+    paddingBottom: 10,
+  },
   loadingRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1193,10 +1225,11 @@ const useStyles = createThemedStyles((colors) => ({
     paddingVertical: 8,
   },
   railInFolder: {
-    paddingHorizontal: 12,
+    paddingLeft: 12,
+    paddingRight: 16,
   },
   railInSplit: {
-    paddingHorizontal: 8,
+    paddingLeft: 8,
     paddingRight: 10,
     paddingBottom: 0,
     gap: 8,
@@ -1215,7 +1248,8 @@ const useStyles = createThemedStyles((colors) => ({
     color: colors.textMuted,
   },
   rail: {
-    paddingHorizontal: 16,
+    paddingLeft: 12,
+    paddingRight: 16,
     gap: 12,
     paddingBottom: 6,
   },
@@ -1224,6 +1258,11 @@ const useStyles = createThemedStyles((colors) => ({
   },
   cardCompact: {
     width: 156,
+  },
+  cardFill: {
+    width: '47%',
+    flexGrow: 1,
+    minWidth: 0,
   },
   photo: {
     height: 142,
@@ -1235,12 +1274,20 @@ const useStyles = createThemedStyles((colors) => ({
     height: 108,
     borderRadius: 12,
   },
+  photoFill: {
+    height: 118,
+    borderRadius: 12,
+  },
   photoFadeCompact: {
     height: 36,
   },
   bodyCompact: {
     paddingTop: 5,
     gap: 2,
+  },
+  bodyFill: {
+    paddingTop: 6,
+    gap: 3,
   },
   nameCompact: {
     fontSize: 13,
@@ -1357,6 +1404,13 @@ const useStyles = createThemedStyles((colors) => ({
   },
   seeAllCardCompact: {
     alignSelf: 'center',
+  },
+  seeAllCardFill: {
+    width: '47%',
+    flexGrow: 1,
+    minWidth: 0,
+    minHeight: 140,
+    alignSelf: 'stretch',
   },
   seeAllCircle: {
     width: 40,

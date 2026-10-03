@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import * as Location from 'expo-location';
+import { requestLocationPermission } from '../lib/permissionGate';
 
 export type UserCoords = {
   lat: number;
@@ -52,12 +53,7 @@ export function useUserLocation(auto = true): UserLocationState {
 
     try {
       const current = await Location.getForegroundPermissionsAsync();
-      let granted = current.granted;
-
-      if (!granted) {
-        const asked = await Location.requestForegroundPermissionsAsync();
-        granted = asked.granted;
-      }
+      const granted = current.granted || (await requestLocationPermission());
 
       if (!granted) {
         if (id !== requestId.current) return;

@@ -292,12 +292,19 @@ export function whatsAppHref(phone: string, message?: string): string | null {
   return `${base}?text=${encodeURIComponent(message)}`;
 }
 
-export function directionsHref(merchant: Pick<
-  Merchant,
-  'latitude' | 'longitude' | 'businessAddress' | 'location' | 'city' | 'name'
->): string | null {
+export function directionsHref(
+  merchant: Pick<
+    Merchant,
+    'latitude' | 'longitude' | 'businessAddress' | 'location' | 'city' | 'name'
+  >,
+  origin?: { lat: number; lng: number } | null,
+): string | null {
   if (merchant.latitude != null && merchant.longitude != null) {
-    return `https://www.google.com/maps/dir/?api=1&destination=${merchant.latitude},${merchant.longitude}`;
+    const from =
+      origin && Number.isFinite(origin.lat) && Number.isFinite(origin.lng)
+        ? `&origin=${origin.lat},${origin.lng}`
+        : '';
+    return `https://www.google.com/maps/dir/?api=1&destination=${merchant.latitude},${merchant.longitude}${from}&travelmode=driving`;
   }
   const query =
     merchant.businessAddress ||

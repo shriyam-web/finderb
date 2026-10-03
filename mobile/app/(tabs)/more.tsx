@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import { Href, useRouter } from 'expo-router';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { Href, useRouter, useScrollToTop } from 'expo-router';
 import { Image } from 'expo-image';
 import {
   ActivityIndicator,
@@ -52,6 +52,8 @@ export default function MoreScreen() {
   const router = useRouter();
   const location = useAppLocation();
   const pad = useTabScrollPadding(28);
+  const scrollRef = useRef<ScrollView>(null);
+  useScrollToTop(scrollRef);
 
   const cachedJobs = peekActiveJobs();
   const [jobs, setJobs] = useState<JobListing[]>(cachedJobs?.jobs ?? []);
@@ -95,6 +97,7 @@ export default function MoreScreen() {
         <SafeAreaView style={styles.safe} edges={['top']}>
           <ScreenHeader title="More Services" variant="bar" />
           <ScrollView
+            ref={scrollRef}
             contentContainerStyle={[styles.scroll, { paddingBottom: pad }]}
             showsVerticalScrollIndicator={false}
           >

@@ -6,7 +6,7 @@ import 'server-only';
 export async function sendEmailOtpEmail(
   to: string,
   code: string,
-  purposeLabel: 'registration' | 'account' | string = 'registration',
+  purposeLabel: 'registration' | 'account' | 'user' | string = 'registration',
 ): Promise<boolean> {
   const key = process.env.RESEND_API_KEY?.trim();
   const from =
@@ -20,7 +20,12 @@ export async function sendEmailOtpEmail(
   }
   if (digits.length !== 6) return false;
 
-  const account = purposeLabel === 'account';
+  const userFacing = purposeLabel === 'user';
+  const account = userFacing || purposeLabel === 'account';
+  const logoSrc = userFacing
+    ? 'https://finderb.com/logo1.png'
+    : 'https://finderb.com/businesslogo.png';
+  const logoAlt = userFacing ? 'FinderB' : 'FinderB Business';
   const headline = account ? 'Confirm your email' : 'Confirm your business email';
   const lead = account
     ? 'Enter this code in FinderB to save this address on your account.'
@@ -62,8 +67,8 @@ export async function sendEmailOtpEmail(
       <td align="center">
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#ffffff;border:1px solid #e2e8f0;border-radius:16px;">
           <tr>
-            <td align="center" style="padding:32px 32px 8px;font-family:${font};">
-              <img src="https://finderb.com/businesslogo.png" width="196" alt="FinderB Business" style="display:block;width:196px;max-width:196px;height:auto;border:0;outline:none;text-decoration:none;" />
+            <td align="center" style="padding:${userFacing ? '22px 32px' : '32px 32px 8px'};font-family:${font};${userFacing ? 'background:#0b1220;border-radius:16px 16px 0 0;' : ''}">
+              <img src="${logoSrc}" width="${userFacing ? '220' : '196'}" alt="${logoAlt}" style="display:block;width:${userFacing ? '220' : '196'}px;max-width:${userFacing ? '220' : '196'}px;height:auto;border:0;outline:none;text-decoration:none;" />
             </td>
           </tr>
           <tr>

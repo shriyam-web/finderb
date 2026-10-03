@@ -30,7 +30,33 @@ export type AuthResult = AuthSuccess | AuthFailure;
 const APP_CALLBACK = 'finderb://auth/callback';
 const APP_CALLBACK_ALT = 'finderb:///auth/callback';
 
-async function postJson<T>(path: string, body: Record<string, unknown>): Promise<T> {
+/** Each Google sign-in step gets this long; a stalled step must never leave the loader spinning. */
+const STEP_TIMEOUT_MS = 20000;
+const SERVER_TIMEOUT_MS = 25000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => resolve(null), ms);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      () => {
+        clearTimeout(timer);
+        resolve(null);
+      },
+    );
+  });
+}
+
+async function postJson<T>(
+  path: string,
+  body: Record<string, unknown>,
+  timeoutMs?: number,
+): Promise<T> {
+  const controller = timeoutMs ? new AbortController() : null;
+  const timer = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
   try {
     const res = await fetch(`${SITE_URL}${path}`, {
       method: 'POST',
@@ -39,6 +65,7 @@ async function postJson<T>(path: string, body: Record<string, unknown>): Promise
         Accept: 'application/json',
       },
       body: JSON.stringify(body),
+      signal: controller?.signal,
     });
     const text = await res.text();
     try {
@@ -52,12 +79,32 @@ async function postJson<T>(path: string, body: Record<string, unknown>): Promise
   } catch (error) {
     return {
       success: false,
-      error:
-        error instanceof Error
+      error: controller?.signal.aborted
+        ? 'FinderB took too long to answer. Check your internet and try again.'
+        : error instanceof Error
           ? error.message
           : 'Network error. Check your connection.',
     } as T;
+  } finally {
+    if (timer) clearTimeout(timer);
   }
+}
+
+export type WhatsAppAudience = 'user' | 'business';
+
+export async function requestWhatsAppOtp(
+  phone: string,
+  audience: WhatsAppAudience,
+): Promise<{ success: true; message: string } | AuthFailure> {
+  return postJson('/api/auth/whatsapp/otp', { phone, audience, client: 'mobile' });
+}
+
+export async function verifyWhatsAppOtp(
+  phone: string,
+  code: string,
+  audience: WhatsAppAudience,
+): Promise<AuthResult> {
+  return postJson('/api/auth/whatsapp/otp', { phone, code, audience, client: 'mobile' });
 }
 
 export async function loginWithPassword(
@@ -114,11 +161,31 @@ export async function fetchSessionUser(token: string): Promise<AuthUser | null> 
   }
 }
 
+export async function requestUserEmailOtp(
+  email: string,
+): Promise<{ success: true; message: string } | AuthFailure> {
+  return postJson('/api/auth/email-otp', { email: email.trim().toLowerCase() });
+}
+
+export async function verifyUserEmailOtp(
+  email: string,
+  code: string,
+): Promise<
+  | { success: true; emailVerificationToken: string; message: string }
+  | AuthFailure
+> {
+  return postJson('/api/auth/email-otp', {
+    email: email.trim().toLowerCase(),
+    code,
+  });
+}
+
 export async function updateMobileProfile(patch: {
   fullName?: string;
   email?: string;
   phone?: string;
   avatarUrl?: string | null;
+  emailVerificationToken?: string;
 }): Promise<AuthResult> {
   try {
     const { getStoredToken } = await import('./session');
@@ -200,26 +267,33 @@ async function exchangeGoogleUrlForAccessToken(url: string): Promise<AuthResult 
   const refreshToken = params.refresh_token || '';
 
   if (accessToken && refreshToken) {
-    const sessionResult = await supabase.auth.setSession({
-      access_token: accessToken,
-      refresh_token: refreshToken,
-    });
-    if (sessionResult.data.session?.access_token) {
+    const sessionResult = await withTimeout(
+      supabase.auth.setSession({
+        access_token: accessToken,
+        refresh_token: refreshToken,
+      }),
+      STEP_TIMEOUT_MS,
+    );
+    if (sessionResult?.data.session?.access_token) {
       accessToken = sessionResult.data.session.access_token;
     }
   } else if (!accessToken && params.code) {
-    const exchanged = await supabase.auth.exchangeCodeForSession(params.code);
-    if (exchanged.error || !exchanged.data.session?.access_token) {
-      // Another hop (callback screen / AuthSession) may have already exchanged the code.
-      const { data } = await supabase.auth.getSession();
-      if (data.session?.access_token) {
-        accessToken = data.session.access_token;
+    const exchanged = await withTimeout(
+      supabase.auth.exchangeCodeForSession(params.code),
+      STEP_TIMEOUT_MS,
+    );
+    if (!exchanged || exchanged.error || !exchanged.data.session?.access_token) {
+      const existing = await withTimeout(supabase.auth.getSession(), 5000);
+      if (existing?.data.session?.access_token) {
+        accessToken = existing.data.session.access_token;
       } else {
-        const msg = exchanged.error?.message || 'Could not finish Google sign-in.';
+        const msg = !exchanged
+          ? 'Google sign-in is taking too long. Check your internet and try again.'
+          : exchanged.error?.message || 'Could not finish Google sign-in.';
         return {
           success: false,
-          error: /code verifier|pkce/i.test(msg)
-            ? 'Sign-in session expired. Close other FinderB tabs and try Google again.'
+          error: /code verifier|pkce|flow state/i.test(msg)
+            ? 'Google sign-in took too long to come back. Please tap Continue with Google again.'
             : msg,
         };
       }
@@ -229,9 +303,8 @@ async function exchangeGoogleUrlForAccessToken(url: string): Promise<AuthResult 
   }
 
   if (!accessToken) {
-    // Last resort: session may already be in AsyncStorage from detect/set
-    const { data } = await supabase.auth.getSession();
-    accessToken = data.session?.access_token || '';
+    const existing = await withTimeout(supabase.auth.getSession(), 5000);
+    accessToken = existing?.data.session?.access_token || '';
   }
 
   if (!accessToken) {
@@ -243,6 +316,51 @@ async function exchangeGoogleUrlForAccessToken(url: string): Promise<AuthResult 
   }
 
   return accessToken;
+}
+
+/**
+ * Android hands the Google redirect both to AuthSession and to the router (which opens
+ * `/auth/callback`). The one-time code can only be exchanged once, so every receiver shares
+ * this single completion per code.
+ */
+const googleCompletions = new Map<string, Promise<AuthResult>>();
+let latestGoogleCompletion: Promise<AuthResult> | null = null;
+let googleLoginActive = false;
+/** Hands a completion started by the router to the login flow that is waiting on the browser. */
+let notifyGoogleCompletion: ((task: Promise<AuthResult>) => void) | null = null;
+
+/** True while the login screen's own Google flow is waiting on the browser. */
+export function isGoogleLoginActive(): boolean {
+  return googleLoginActive;
+}
+
+export function completeGoogleRedirect(url: string): Promise<AuthResult> {
+  const { params } = QueryParams.getQueryParams(url);
+  const key = params.code || params.access_token || url;
+  const running = googleCompletions.get(key);
+  if (running) return running;
+
+  const task = (async (): Promise<AuthResult> => {
+    const tokenOrError = await exchangeGoogleUrlForAccessToken(url);
+    if (typeof tokenOrError !== 'string') return tokenOrError;
+    const auth = await postJson<AuthResult>(
+      '/api/auth/mobile/oauth',
+      { accessToken: tokenOrError },
+      SERVER_TIMEOUT_MS,
+    );
+    // Only the FinderB token is kept; the Supabase session is dropped in the background.
+    if (supabase) void withTimeout(supabase.auth.signOut({ scope: 'local' }), 5000);
+    return auth;
+  })().catch(
+    (error): AuthResult => ({
+      success: false,
+      error: error instanceof Error ? error.message : 'Could not finish Google sign-in.',
+    }),
+  );
+  googleCompletions.set(key, task);
+  latestGoogleCompletion = task;
+  notifyGoogleCompletion?.(task);
+  return task;
 }
 
 async function waitForGoogleCallback(authUrl: string): Promise<{ type: string; url?: string }> {
@@ -287,21 +405,37 @@ async function waitForGoogleCallback(authUrl: string): Promise<{ type: string; u
       return late;
     }
 
-    const initial = await Linking.getInitialURL();
-    if (initial && isGoogleCallbackUrl(initial)) {
-      return { type: 'success', url: initial };
-    }
-
     return browserResult;
   } finally {
     sub.remove();
-    if (settled) {
-      WebBrowser.dismissAuthSession();
-    }
+    if (settled) closeAuthBrowser();
   }
 }
 
+/** Android has no API to close a Custom Tab (the call throws); the app simply comes to front. */
+function closeAuthBrowser() {
+  if (Platform.OS === 'android') return;
+  try {
+    WebBrowser.dismissAuthSession();
+  } catch {
+    // Already closed.
+  }
+}
+
+function failedResult(error: unknown, fallback: string): AuthResult {
+  return { success: false, error: error instanceof Error && error.message ? error.message : fallback };
+}
+
+/** Never throws: a thrown error would leave the login button spinning. */
 export async function loginWithGoogle(): Promise<AuthResult> {
+  try {
+    return await runGoogleLogin();
+  } catch (error) {
+    return failedResult(error, 'Could not finish Google sign-in. Please try again.');
+  }
+}
+
+async function runGoogleLogin(): Promise<AuthResult> {
   if (!supabase) {
     return { success: false, error: 'Supabase is not configured in the app.' };
   }
@@ -309,7 +443,9 @@ export async function loginWithGoogle(): Promise<AuthResult> {
   // Try native app scheme first (no intermediate website page).
   const redirectCandidates = [googleAppRedirect(), googleHttpsRedirect()];
 
-  await WebBrowser.warmUpAsync().catch(() => undefined);
+  await withTimeout(WebBrowser.warmUpAsync(), 3000);
+  googleLoginActive = true;
+  latestGoogleCompletion = null;
 
   try {
     let authUrl: string | null = null;
@@ -345,25 +481,33 @@ export async function loginWithGoogle(): Promise<AuthResult> {
       };
     }
 
-    const result = await waitForGoogleCallback(authUrl);
-
-    if (result.type !== 'success' || !result.url) {
-      // Deep-link may have already completed via /auth/callback screen.
-      return { success: false, error: 'Google sign-in was cancelled.' };
-    }
-
-    const tokenOrError = await exchangeGoogleUrlForAccessToken(result.url);
-    if (typeof tokenOrError !== 'string') {
-      return tokenOrError;
-    }
-
-    const auth = await postJson<AuthResult>('/api/auth/mobile/oauth', {
-      accessToken: tokenOrError,
+    // Whichever receives Google's redirect first wins: AuthSession, or the router opening
+    // `/auth/callback`. On some phones AuthSession never reports back at all.
+    const viaRouter = new Promise<{ task: Promise<AuthResult> }>((resolve) => {
+      notifyGoogleCompletion = (task) => resolve({ task });
     });
-    await supabase.auth.signOut({ scope: 'local' }).catch(() => undefined);
-    return auth;
+    const first = await Promise.race([
+      waitForGoogleCallback(authUrl).then((result) => ({ kind: 'browser' as const, result })),
+      viaRouter.then(({ task }) => ({ kind: 'router' as const, task })),
+    ]);
+
+    if (first.kind === 'router') {
+      closeAuthBrowser();
+      return await first.task;
+    }
+    if (first.result.type === 'success' && first.result.url) {
+      return await completeGoogleRedirect(first.result.url);
+    }
+    const started = latestGoogleCompletion as Promise<AuthResult> | null;
+    if (started) return await started;
+    // The browser closed; give a late deep link a moment before calling it cancelled.
+    const late = await Promise.race([viaRouter, sleep(3000).then(() => null)]);
+    if (late) return await late.task;
+    return { success: false, error: 'Google sign-in was cancelled.' };
   } finally {
-    await WebBrowser.coolDownAsync().catch(() => undefined);
+    googleLoginActive = false;
+    notifyGoogleCompletion = null;
+    void withTimeout(WebBrowser.coolDownAsync(), 3000);
   }
 }
 
@@ -422,6 +566,8 @@ async function pollTruecallerStatus(requestId: string): Promise<AuthResult> {
         )}&client=mobile`,
         { headers: { Accept: 'application/json' } },
       );
+      // Busy or rate-limited server: keep waiting rather than failing the sign-in.
+      if (res.status === 429 || res.status >= 500) return 'pending';
       const data = (await res.json()) as {
         status?: string;
         token?: string;
@@ -483,7 +629,16 @@ async function pollTruecallerStatus(requestId: string): Promise<AuthResult> {
   return { success: false, error: 'Verification timed out. Please try again.' };
 }
 
+/** Never throws: a thrown error would leave the login button spinning. */
 export async function loginWithTruecaller(): Promise<AuthResult> {
+  try {
+    return await runTruecallerLogin();
+  } catch (error) {
+    return failedResult(error, 'Could not finish Truecaller sign-in. Please try again.');
+  }
+}
+
+async function runTruecallerLogin(): Promise<AuthResult> {
   if (Platform.OS !== 'android') {
     return {
       success: false,

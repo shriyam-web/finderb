@@ -17,6 +17,10 @@ export type AuthUser = {
   businessId?: string | null;
   businessName?: string | null;
   businessSlug?: string | null;
+  selectedPlan?: string | null;
+  paymentStatus?: string | null;
+  planExpiresAt?: string | null;
+  billingCycle?: string | null;
 };
 
 const memory = new Map<string, string>();

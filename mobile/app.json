@@ -2,7 +2,7 @@
   "expo": {
     "name": "FinderB",
     "slug": "finderb",
-    "version": "1.0.0",
+    "version": "1.0.7",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "finderb",
@@ -16,14 +16,16 @@
       ],
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "FinderB uses your location to show trusted businesses near you.",
-        "UIBackgroundModes": ["remote-notification"]
+        "UIBackgroundModes": [
+          "remote-notification"
+        ]
       }
     },
     "android": {
       "package": "com.finderb.app",
+      "versionCode": 8,
       "googleServicesFile": "./google-services.json",
       "softwareKeyboardLayoutMode": "pan",
-      "edgeToEdgeEnabled": true,
       "permissions": [
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION",
@@ -42,7 +44,10 @@
         {
           "action": "VIEW",
           "autoVerify": true,
-          "category": ["BROWSABLE", "DEFAULT"],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ],
           "data": [
             {
               "scheme": "https",
@@ -68,7 +73,10 @@
         },
         {
           "action": "VIEW",
-          "category": ["BROWSABLE", "DEFAULT"],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ],
           "data": [
             {
               "scheme": "finderb",
@@ -78,11 +86,6 @@
           ]
         }
       ]
-    },
-    "androidNavigationBar": {
-      "backgroundColor": "#0C0A09",
-      "barStyle": "light-content",
-      "enforceContrast": false
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -148,7 +151,9 @@
           ]
         }
       ],
-      "./plugins/withTruecallerQueries.js"
+      "./plugins/withTruecallerQueries.js",
+      "./plugins/withReleaseSigning.js",
+      "expo-status-bar"
     ],
     "experiments": {
       "typedRoutes": true

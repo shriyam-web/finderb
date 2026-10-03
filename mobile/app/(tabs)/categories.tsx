@@ -1,4 +1,4 @@
-import { Href, useLocalSearchParams, useRouter } from 'expo-router';
+import { Href, useLocalSearchParams, useRouter, useScrollToTop } from 'expo-router';
 import { Image } from 'expo-image';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -30,12 +30,12 @@ import {
   fetchSubCategories,
   peekAllCategories,
   peekBusinessesByCategory,
-  searchCategoriesByQuery,
-  searchMerchantsByQuery,
+  searchDirectory,
   type HomeCategory,
   type SubCategory,
 } from '../../lib/api';
 import { getBusinessOpenStatus } from '../../lib/businessHours';
+import { compareText } from '../../lib/compareText';
 import { formatDistanceFromUser, sortByUserLocation } from '../../lib/geo';
 import type { Merchant } from '../../lib/merchants';
 import { resolveMerchantSlug } from '../../lib/merchants';
@@ -154,14 +154,19 @@ export default function CategoriesScreen() {
   const [filterOpen, setFilterOpen] = useState(false);
   const [searchCats, setSearchCats] = useState<HomeCategory[]>([]);
   const [searchMerchants, setSearchMerchants] = useState<Merchant[]>([]);
+  const [searchNotice, setSearchNotice] = useState<string | null>(null);
+  const [searchExact, setSearchExact] = useState(true);
   const [searchLoading, setSearchLoading] = useState(false);
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const listRef = useRef<FlatList>(null);
+  const exploreScrollRef = useRef<ScrollView>(null);
+  const searchScrollRef = useRef<ScrollView>(null);
+  useScrollToTop(listRef);
+  useScrollToTop(exploreScrollRef);
+  useScrollToTop(searchScrollRef);
 
   const browseCategories = useMemo(() => {
-    return [...categories].sort((a, b) =>
-      a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }),
-    );
+    return [...categories].sort((a, b) => compareText(a.name, b.name));
   }, [categories]);
 
   const railCategories = useMemo(() => {
@@ -332,6 +337,8 @@ export default function CategoriesScreen() {
     if (!q) {
       setSearchCats([]);
       setSearchMerchants([]);
+      setSearchNotice(null);
+      setSearchExact(true);
       setSearchLoading(false);
       setViewMode((prev) =>
         prev === 'search' ? (selected ? 'merchants' : 'explore') : prev,
@@ -342,12 +349,11 @@ export default function CategoriesScreen() {
     setViewMode('search');
     setSearchLoading(true);
     searchTimer.current = setTimeout(async () => {
-      const [catResult, merchantResult] = await Promise.all([
-        searchCategoriesByQuery(q),
-        searchMerchantsByQuery(q, 24),
-      ]);
-      setSearchCats(catResult.categories.slice(0, 12));
-      setSearchMerchants(merchantResult.merchants.slice(0, 24));
+      const result = await searchDirectory(q);
+      setSearchCats(result.categories.slice(0, 12));
+      setSearchMerchants(result.merchants.slice(0, 24));
+      setSearchNotice(result.notice);
+      setSearchExact(result.exactMatch);
       setSearchLoading(false);
     }, 350);
 
@@ -368,7 +374,7 @@ export default function CategoriesScreen() {
 
     if (sortOrder === 'asc' || sortOrder === 'desc') {
       list.sort((a, b) => {
-        const cmp = a.name.localeCompare(b.name);
+        const cmp = compareText(a.name, b.name);
         return sortOrder === 'asc' ? cmp : -cmp;
       });
       return list;
@@ -506,6 +512,7 @@ export default function CategoriesScreen() {
         <View style={styles.body}>
           {viewMode === 'explore' ? (
             <ScrollView
+              ref={exploreScrollRef}
               style={styles.flex}
               contentContainerStyle={[
                 styles.explorePad,
@@ -666,19 +673,28 @@ export default function CategoriesScreen() {
 
           {viewMode === 'search' ? (
             <ScrollView
+              ref={searchScrollRef}
               style={styles.flex}
               contentContainerStyle={[styles.searchPad, { paddingBottom: listPad }]}
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
             >
               <Text style={styles.searchTitle}>Results for “{query.trim()}”</Text>
+              {searchNotice ? (
+                <View style={styles.searchNotice}>
+                  <Text style={styles.searchNoticeTitle}>Exact match not found</Text>
+                  <Text style={styles.searchNoticeText}>{searchNotice}</Text>
+                </View>
+              ) : null}
               {searchLoading ? (
                 <ActivityIndicator style={{ marginTop: 24 }} color={colors.brand} />
               ) : (
                 <>
                   {searchCats.length > 0 ? (
                     <>
-                      <Text style={styles.sectionLabel}>Categories</Text>
+                      <Text style={styles.sectionLabel}>
+                        {searchExact ? 'Categories' : 'Relevant categories'}
+                      </Text>
                       <View
                         style={styles.searchCatGrid}
                         onLayout={(e) => {
@@ -712,7 +728,9 @@ export default function CategoriesScreen() {
                     </>
                   ) : null}
 
-                  <Text style={[styles.sectionLabel, { marginTop: 18 }]}>Businesses</Text>
+                  <Text style={[styles.sectionLabel, { marginTop: 18 }]}>
+                    {searchExact ? 'Businesses' : 'Relevant businesses'}
+                  </Text>
                   {searchMerchants.length === 0 ? (
                     <Text style={styles.emptyText}>No matching businesses</Text>
                   ) : (
@@ -1093,6 +1111,28 @@ const useStyles = createThemedStyles((colors) => ({
     fontSize: 16,
     color: colors.ink,
     marginBottom: 14,
+  },
+  searchNotice: {
+    marginTop: -6,
+    marginBottom: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  searchNoticeTitle: {
+    fontFamily: fonts.semiBold,
+    fontSize: 13,
+    color: colors.heading,
+    marginBottom: 3,
+  },
+  searchNoticeText: {
+    fontFamily: fonts.regular,
+    fontSize: 12,
+    lineHeight: 17,
+    color: colors.textMuted,
   },
   sectionLabel: {
     fontFamily: fonts.medium,

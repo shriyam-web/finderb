@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { getBusinessOpenStatus } from '../lib/businessHours';
+import { useDrivingDistanceLabel } from '../lib/drivingDistance';
 import type { Merchant } from '../lib/merchants';
 import { fonts } from '../constants/typography';
 import { useTheme } from '../context/ThemeContext';
@@ -26,11 +27,11 @@ function maskPhone(value?: string | null): string {
 
 export function CategoryMerchantRow({
   merchant,
-  distanceLabel,
   contactRevealed = false,
   onRequestLogin,
   onPress,
 }: Props) {
+  const distanceLabel = useDrivingDistanceLabel(merchant.latitude, merchant.longitude);
   const { colors } = useTheme();
   const styles = useStyles();
   const rating =

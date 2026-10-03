@@ -1,5 +1,5 @@
 import { StatusBar } from 'expo-status-bar';
-import { Href, useRouter } from 'expo-router';
+import { Href, useRouter, useScrollToTop } from 'expo-router';
 import { Image } from 'expo-image';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -16,7 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AnimatedBrandMark } from '../../components/AnimatedBrandMark';
 import { BusinessRegisterBanner } from '../../components/BusinessRegisterBanner';
-import { WeatherChipOrb } from '../../components/ClimateHeaderBackdrop';
+import { HeaderWeatherChip } from '../../components/HeaderWeatherChip';
 import { HourlyForecastSheet } from '../../components/HourlyForecastSheet';
 import { HomeAiTeaser } from '../../components/HomeAiTeaser';
 import { HomeFeaturedGroup } from '../../components/HomeFeaturedGroup';
@@ -51,6 +51,8 @@ function weatherChipMeta(weather: LocalWeather): {
   climate: string;
   temp: string | null;
   night: boolean;
+  skyWeather: LocalWeather['skyWeather'];
+  dayPart: LocalWeather['dayPart'];
 } {
   const temp =
     weather.temperatureC != null && Number.isFinite(weather.temperatureC)
@@ -58,27 +60,31 @@ function weatherChipMeta(weather: LocalWeather): {
       : null;
 
   const night = !weather.isDay;
+  const skyWeather = weather.skyWeather;
+  const dayPart = weather.dayPart;
 
-  switch (weather.skyWeather) {
+  switch (skyWeather) {
     case 'rain':
-      return { climate: 'Rain', temp, night };
+      return { climate: 'Rain', temp, night, skyWeather, dayPart };
     case 'storm':
-      return { climate: 'Storm', temp, night };
+      return { climate: 'Storm', temp, night, skyWeather, dayPart };
     case 'cloudy':
-      return { climate: 'Cloudy', temp, night };
+      return { climate: 'Cloudy', temp, night, skyWeather, dayPart };
     case 'fog':
-      return { climate: 'Fog', temp, night };
+      return { climate: 'Fog', temp, night, skyWeather, dayPart };
     case 'snow':
-      return { climate: 'Snow', temp, night };
+      return { climate: 'Snow', temp, night, skyWeather, dayPart };
     case 'heat':
-      return { climate: 'Hot', temp, night: false };
+      return { climate: 'Hot', temp, night: false, skyWeather, dayPart };
     case 'clear':
     default:
-      if (night) return { climate: 'Clear', temp, night: true };
-      if (weather.dayPart === 'afternoon') {
-        return { climate: 'Sunny', temp, night: false };
+      if (night) {
+        return { climate: 'Clear', temp, night: true, skyWeather, dayPart };
       }
-      return { climate: 'Clear', temp, night: false };
+      if (dayPart === 'afternoon') {
+        return { climate: 'Sunny', temp, night: false, skyWeather, dayPart };
+      }
+      return { climate: 'Clear', temp, night: false, skyWeather, dayPart };
   }
 }
 
@@ -111,6 +117,7 @@ export default function HomeScreen() {
   const [showDevCredit, setShowDevCredit] = useState(false);
   const scrollBottomPad = useTabScrollPadding(24);
   const scrollRef = useRef<ScrollView>(null);
+  useScrollToTop(scrollRef);
   const selectedParentIdRef = useRef<string | null>(null);
   const madeInIndiaTaps = useRef(0);
   const madeInIndiaTapAt = useRef(0);
@@ -183,10 +190,8 @@ export default function HomeScreen() {
     clearHomeSessionCaches();
     setEmptySectionIds(new Set());
     setReloadToken((n) => n + 1);
-    await Promise.all([
-      loadHomeData(true),
-      location.refresh(),
-    ]);
+    void location.refresh();
+    await loadHomeData(true).catch(() => undefined);
     setRefreshing(false);
     prefetchAppBackground();
   }, [loadHomeData, location, refreshing]);
@@ -267,9 +272,11 @@ export default function HomeScreen() {
 
   const city = location.city;
   const insets = useSafeAreaInsets();
-  // Top bar chrome height (paddingTop 6 + minHeight 44 + paddingBottom 8)
-  const stickyBarH = 58;
+  // Top bar chrome height — leave a little air above the search pill
+  const stickyBarH = 50;
   const stickyPadTop = Math.max(insets.top, 0);
+  // Top row only — less top padding (search inset stays full)
+  const topRowPadTop = Math.max(0, stickyPadTop - Math.round(stickyPadTop * 0.1 + 2));
   const stickyHeaderInset = stickyPadTop + stickyBarH;
   const [stickySolid, setStickySolid] = useState(false);
 
@@ -344,32 +351,22 @@ export default function HomeScreen() {
       </View>
 
       <View style={styles.topBarSideRight}>
-        <Pressable
-          style={[
-            styles.weatherChip,
-            {
-              backgroundColor: stickyChrome.chipBg,
-              borderColor: stickyChrome.chipBorder,
-            },
-          ]}
+        <HeaderWeatherChip
+          temp={weatherChip.temp}
+          night={weatherChip.night}
+          skyWeather={weatherChip.skyWeather}
+          dayPart={weatherChip.dayPart}
+          onLight={stickySolid && !isDark}
+          ink={stickyChrome.ink}
+          background={stickyChrome.chipBg}
+          border={stickyChrome.chipBorder}
           onPress={() => setHourlyOpen(true)}
-          accessibilityRole="button"
           accessibilityLabel={
             weatherChip.temp
               ? `${weatherChip.temp} ${weatherChip.climate}. Hourly forecast`
               : `${weatherChip.climate}. Hourly forecast`
           }
-        >
-          <WeatherChipOrb night={weatherChip.night} size={15} />
-          {weatherChip.temp ? (
-            <Text
-              style={[styles.weatherChipText, { color: stickyChrome.ink }]}
-              numberOfLines={1}
-            >
-              {weatherChip.temp}
-            </Text>
-          ) : null}
-        </Pressable>
+        />
         <Pressable
           style={styles.notifBtn}
           onPress={() => router.push('/(tabs)/notifications' as Href)}
@@ -436,7 +433,7 @@ export default function HomeScreen() {
           >
             <View>
               <InteractiveCategoryDeck
-                categories={visibleGroups}
+                categories={featuredGroups}
                 userCoords={location.coords}
                 city={city}
                 reloadToken={reloadToken}
@@ -521,7 +518,7 @@ export default function HomeScreen() {
             style={[
               styles.stickyHero,
               {
-                paddingTop: stickyPadTop,
+                paddingTop: topRowPadTop,
                 // Theme canvas when scrolled — not climate blue (stays dark in light mode)
                 backgroundColor: stickySolid ? colors.canvas : 'transparent',
               },
@@ -566,8 +563,8 @@ const useStyles = createThemedStyles((colors) => ({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 12,
-    paddingTop: 6,
-    paddingBottom: 8,
+    paddingTop: 4,
+    paddingBottom: 4,
     backgroundColor: 'transparent',
     zIndex: 10,
     minHeight: 44,
@@ -600,7 +597,7 @@ const useStyles = createThemedStyles((colors) => ({
   locationText: {
     flexShrink: 1,
     fontFamily: fonts.semiBold,
-    fontSize: 10,
+    fontSize: 11,
     letterSpacing: -0.1,
   },
   topBarSideRight: {
@@ -610,24 +607,6 @@ const useStyles = createThemedStyles((colors) => ({
     gap: 4,
     zIndex: 2,
     flexShrink: 0,
-  },
-  weatherChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    maxWidth: 64,
-    paddingLeft: 6,
-    paddingRight: 7,
-    paddingVertical: 4,
-    borderRadius: 999,
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  weatherChipText: {
-    flexShrink: 1,
-    fontFamily: fonts.semiBold,
-    fontSize: 11,
-    lineHeight: 13,
-    letterSpacing: -0.1,
   },
   brandCenter: {
     position: 'absolute',
@@ -655,13 +634,13 @@ const useStyles = createThemedStyles((colors) => ({
     borderColor: 'rgba(255,255,255,0.95)',
   },
   bannerWrap: {
-    marginTop: 9,
+    marginTop: 8,
     paddingHorizontal: 16,
     backgroundColor: colors.canvas,
   },
   section: {
-    marginTop: 7,
-    paddingTop: 5,
+    marginTop: 6,
+    paddingTop: 4,
     backgroundColor: colors.canvas,
   },
   madeInIndia: {

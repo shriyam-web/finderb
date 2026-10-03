@@ -1,5 +1,6 @@
 import { PermissionsAndroid, Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
+import { afterLocationPermission, queuePermissionRequest } from './permissionGate';
 
 /** New channel id so Android can heads-up. Existing `updates` was DEFAULT and cannot be upgraded. */
 export const UPDATES_CHANNEL = 'finderb_heads_up';
@@ -51,17 +52,32 @@ export async function ensureAndroidNotificationChannels(): Promise<void> {
   CHANNELS_READY.current = true;
 }
 
-export async function ensureNotificationPermission(): Promise<boolean> {
-  if (Platform.OS === 'web') return false;
+let permissionInFlight: Promise<boolean> | null = null;
 
+/**
+ * Several startup tasks ask at once; they share one request, which waits for the location
+ * dialog and then takes its turn in the permission queue.
+ */
+export function ensureNotificationPermission(): Promise<boolean> {
+  if (Platform.OS === 'web') return Promise.resolve(false);
+  permissionInFlight ??= askNotificationPermission().finally(() => {
+    permissionInFlight = null;
+  });
+  return permissionInFlight;
+}
+
+async function askNotificationPermission(): Promise<boolean> {
   await ensureAndroidNotificationChannels();
 
-  if (Platform.OS === 'android' && Number(Platform.Version) >= 33) {
-    const granted = await PermissionsAndroid.check(
-      PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
-    );
-    if (!granted) {
-      await PermissionsAndroid.request(
+  const current = await Notifications.getPermissionsAsync();
+  if (current.granted || current.ios?.status === Notifications.IosAuthorizationStatus.PROVISIONAL) {
+    return true;
+  }
+
+  await afterLocationPermission();
+  return queuePermissionRequest(async () => {
+    if (Platform.OS === 'android' && Number(Platform.Version) >= 33) {
+      const result = await PermissionsAndroid.request(
         PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
         {
           title: 'FinderB notifications',
@@ -70,14 +86,8 @@ export async function ensureNotificationPermission(): Promise<boolean> {
           buttonNegative: 'Not now',
         },
       );
+      return result === PermissionsAndroid.RESULTS.GRANTED;
     }
-  }
-
-  const current = await Notifications.getPermissionsAsync();
-  let ok =
-    current.granted ||
-    current.ios?.status === Notifications.IosAuthorizationStatus.PROVISIONAL;
-  if (!ok) {
     const asked = await Notifications.requestPermissionsAsync({
       ios: {
         allowAlert: true,
@@ -86,11 +96,8 @@ export async function ensureNotificationPermission(): Promise<boolean> {
       },
       android: {},
     });
-    ok =
-      asked.granted ||
-      asked.ios?.status === Notifications.IosAuthorizationStatus.PROVISIONAL;
-  }
-  return ok;
+    return asked.granted || asked.ios?.status === Notifications.IosAuthorizationStatus.PROVISIONAL;
+  });
 }
 
 export function broadcastIdFromNotificationData(

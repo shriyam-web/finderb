@@ -133,6 +133,11 @@ function normalizeCityKey(value: string): string {
     .replace(/[.]/g, '');
 }
 
+/** Coords for a known city name only; no partial matching. */
+export function lookupCityCoordsExact(city: string): UserCoords | null {
+  return INDIA_CITY_COORDS[normalizeCityKey(city)] ?? null;
+}
+
 /** Resolve coords from a freeform place/city string using the static map. */
 export function lookupCityCoords(locationOrCity: string): UserCoords | null {
   const raw = normalizeCityKey(locationOrCity);

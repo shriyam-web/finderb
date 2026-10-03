@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Animated,
   Easing,
@@ -15,53 +15,33 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { AuthAlert, AuthField, PasswordToggle } from '../components/AuthField';
+import { AuthAlert } from '../components/AuthField';
 import { LoginHeroArt } from '../components/LoginHeroArt';
-import { PrimaryButton } from '../components/PrimaryButton';
-import { AuthDivider, SocialAuthButtons } from '../components/SocialAuthButtons';
+import { SocialAuthButtons } from '../components/SocialAuthButtons';
 import { useAuth } from '../context/AuthContext';
 import { fonts } from '../constants/typography';
 import { useBottomInset } from '../hooks/useAppSafeArea';
 import { createThemedStyles } from '../hooks/useThemedStyles';
 import { markGuestMode } from '../lib/onboarding';
 import { SITE_URL } from '../lib/supabase';
+import { getStoredToken, getStoredUser, type AuthUser } from '../lib/session';
 
 const HERO_BLUE = ['#1478C8', '#1E8ADB', '#3AA0E8'] as const;
-
-function passwordStrength(password: string): { label: string; level: 0 | 1 | 2 | 3 } {
-  if (!password) return { label: '', level: 0 };
-  let score = 0;
-  if (password.length >= 6) score += 1;
-  if (password.length >= 10) score += 1;
-  if (/[0-9]/.test(password) || /[^A-Za-z0-9]/.test(password)) score += 1;
-  if (score <= 1) return { label: 'Basic', level: 1 };
-  if (score === 2) return { label: 'Good', level: 2 };
-  return { label: 'Strong', level: 3 };
-}
 
 export default function SignupScreen() {
   const styles = useStyles();
   const router = useRouter();
   const bottomInset = useBottomInset(18);
-  const { signUp, signInWithGoogle, signInWithTruecaller, user, refresh } = useAuth();
+  const { signInWithGoogle, signInWithTruecaller, user, refresh } = useAuth();
 
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [showEmailForm, setShowEmailForm] = useState(false);
   const [agreed, setAgreed] = useState(true);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  const [loading, setLoading] = useState(false);
   const [socialLoading, setSocialLoading] = useState<'google' | 'truecaller' | null>(
     null,
   );
 
   const sheetRise = useRef(new Animated.Value(40)).current;
   const sheetFade = useRef(new Animated.Value(0)).current;
-  const strength = useMemo(() => passwordStrength(password), [password]);
-
   useEffect(() => {
     Animated.parallel([
       Animated.timing(sheetFade, {
@@ -79,14 +59,19 @@ export default function SignupScreen() {
     ]).start();
   }, [sheetFade, sheetRise]);
 
-  const finishOk = () => {
+  const finishOk = (account?: AuthUser | null) => {
+    const signedIn = account ?? user;
+    if (signedIn?.isBusinessAccount) {
+      router.replace('/merchant-welcome' as never);
+      return;
+    }
     router.replace('/(tabs)/home');
   };
 
   useEffect(() => {
     if (!user) return;
     setSocialLoading(null);
-    finishOk();
+    finishOk(user);
   }, [user]);
 
   const skipAsGuest = async () => {
@@ -102,87 +87,38 @@ export default function SignupScreen() {
     return true;
   };
 
-  const handleSignup = async () => {
+  const runSocial = async (kind: 'google' | 'truecaller') => {
     if (!requireAgreement()) return;
-    if (!name.trim() || !email.trim() || !password) {
-      setError('Fill in name, email, and password.');
-      setSuccess('');
-      return;
-    }
-    if (password.length < 6) {
-      setError('Password needs at least 6 characters.');
-      setSuccess('');
-      return;
-    }
-
     setError('');
-    setSuccess('');
-    setLoading(true);
-    const result = await signUp({
-      fullName: name.trim(),
-      email: email.trim(),
-      password,
-    });
-    setLoading(false);
-    if (!result.success) {
+    setSocialLoading(kind);
+    try {
+      const result = kind === 'google' ? await signInWithGoogle() : await signInWithTruecaller();
+      if (result.success) {
+        finishOk(result.user);
+        return;
+      }
+      // The deep-link screen may have finished sign-in while this flow reported a failure.
+      await refresh();
+      if (await getStoredToken()) {
+        finishOk(await getStoredUser());
+        return;
+      }
       setError(result.error);
-      return;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Sign-in failed. Please try again.');
+    } finally {
+      setSocialLoading(null);
     }
-    setSuccess('Account ready. Taking you in…');
-    finishOk();
   };
 
-  const handleGoogle = async () => {
-    if (!requireAgreement()) return;
-    setError('');
-    setSocialLoading('google');
-    const result = await signInWithGoogle();
-    if (result.success) {
-      setSocialLoading(null);
-      finishOk();
-      return;
-    }
-    await refresh();
-    const { getStoredToken } = await import('../lib/session');
-    if (await getStoredToken()) {
-      setSocialLoading(null);
-      finishOk();
-      return;
-    }
-    setSocialLoading(null);
-    setError(result.error);
-  };
-
-  const handleTruecaller = async () => {
-    if (!requireAgreement()) return;
-    setError('');
-    setSocialLoading('truecaller');
-    const result = await signInWithTruecaller();
-    if (result.success) {
-      setSocialLoading(null);
-      finishOk();
-      return;
-    }
-    await refresh();
-    const { getStoredToken } = await import('../lib/session');
-    if (await getStoredToken()) {
-      setSocialLoading(null);
-      finishOk();
-      return;
-    }
-    setSocialLoading(null);
-    setError(result.error);
-  };
+  const handleGoogle = () => runSocial('google');
+  const handleTruecaller = () => runSocial('truecaller');
 
   const openLink = (path: string) => {
     void Linking.openURL(`${SITE_URL}${path}`);
   };
 
-  const busy = Boolean(socialLoading) || loading;
-  const truecallerHint =
-    Platform.OS !== 'android'
-      ? 'Truecaller one-tap is available on Android'
-      : 'Uses the Truecaller app on this phone';
+  const busy = Boolean(socialLoading);
 
   return (
     <View style={styles.root}>
@@ -206,7 +142,7 @@ export default function SignupScreen() {
           </Pressable>
         </View>
         <View style={styles.hero}>
-          <LoginHeroArt />
+          <LoginHeroArt tone="blue" />
         </View>
       </SafeAreaView>
 
@@ -233,9 +169,9 @@ export default function SignupScreen() {
             automaticallyAdjustKeyboardInsets
             contentInsetAdjustmentBehavior="automatic"
           >
-            <Text style={styles.headline}>Create your FinderB account</Text>
+            <Text style={styles.headline}>Join FinderB</Text>
             <Text style={styles.subhead}>
-              Save favourites, write reviews, and get local picks
+              Save places, follow offers, and search your city in one tap.
             </Text>
 
             {error ? (
@@ -243,123 +179,40 @@ export default function SignupScreen() {
                 <AuthAlert message={error} />
               </View>
             ) : null}
-            {success ? (
-              <View style={styles.alertWrap}>
-                <AuthAlert message={success} tone="success" />
-              </View>
-            ) : null}
-
             <SocialAuthButtons
               mode="signup"
+              audience="user"
               loading={socialLoading}
               disabled={busy}
               onGoogle={() => void handleGoogle()}
               onTruecaller={() => void handleTruecaller()}
+              onBeforeWhatsApp={requireAgreement}
+              onWhatsAppSuccess={(account) => finishOk(account)}
             />
 
-            <Text style={styles.hint}>{truecallerHint}</Text>
-
-            <Pressable
-              style={styles.termsRow}
-              onPress={() => setAgreed((v) => !v)}
-              hitSlop={4}
-            >
-              <View style={[styles.checkbox, agreed && styles.checkboxOn]}>
-                {agreed ? <Text style={styles.checkMark}>✓</Text> : null}
-              </View>
-              <Text style={styles.termsText}>I Agree to Terms and Conditions</Text>
-            </Pressable>
-
-            <View style={styles.linksRow}>
-              <Pressable onPress={() => openLink('/terms')} hitSlop={6}>
-                <Text style={styles.link}>{"T&C's"}</Text>
+            <View style={styles.termsRow}>
+              <Pressable
+                onPress={() => setAgreed((v) => !v)}
+                hitSlop={8}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: agreed }}
+                accessibilityLabel="Agree to the Terms and Conditions and Privacy Policy"
+              >
+                <View style={[styles.checkbox, agreed && styles.checkboxOn]}>
+                  {agreed ? <Text style={styles.checkMark}>✓</Text> : null}
+                </View>
               </Pressable>
-              <Pressable onPress={() => openLink('/privacy')} hitSlop={6}>
-                <Text style={styles.link}>Privacy policy</Text>
-              </Pressable>
-            </View>
-
-            <AuthDivider />
-
-            <Pressable
-              onPress={() => setShowEmailForm((v) => !v)}
-              style={styles.emailToggle}
-            >
-              <Text style={styles.emailToggleText}>
-                {showEmailForm ? 'Hide email signup' : 'Or sign up with email'}
+              <Text style={styles.termsText} onPress={() => setAgreed((v) => !v)}>
+                I agree to the{' '}
+                <Text style={styles.link} onPress={() => openLink('/terms')}>
+                  Terms and Conditions
+                </Text>{' '}
+                and{' '}
+                <Text style={styles.link} onPress={() => openLink('/privacy')}>
+                  Privacy Policy
+                </Text>
               </Text>
-            </Pressable>
-
-            {showEmailForm ? (
-              <View style={styles.emailBlock}>
-                <AuthField
-                  label="Full name"
-                  value={name}
-                  onChangeText={setName}
-                  placeholder="Your name"
-                  autoCapitalize="words"
-                  textContentType="name"
-                  autoComplete="name"
-                />
-                <AuthField
-                  label="Email"
-                  value={email}
-                  onChangeText={setEmail}
-                  placeholder="you@example.com"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  keyboardType="email-address"
-                  textContentType="emailAddress"
-                  autoComplete="email"
-                />
-                <AuthField
-                  label="Password"
-                  value={password}
-                  onChangeText={setPassword}
-                  placeholder="At least 6 characters"
-                  secureTextEntry={!showPassword}
-                  textContentType="newPassword"
-                  autoComplete="password-new"
-                  rightSlot={
-                    <PasswordToggle
-                      visible={showPassword}
-                      onToggle={() => setShowPassword((v) => !v)}
-                    />
-                  }
-                />
-                {password ? (
-                  <View style={styles.strengthWrap}>
-                    <View style={styles.strengthBars}>
-                      {[1, 2, 3].map((level) => (
-                        <View
-                          key={level}
-                          style={[
-                            styles.strengthBar,
-                            level <= strength.level &&
-                              strength.level === 1 &&
-                              styles.strengthWeak,
-                            level <= strength.level &&
-                              strength.level === 2 &&
-                              styles.strengthMid,
-                            level <= strength.level &&
-                              strength.level === 3 &&
-                              styles.strengthStrong,
-                          ]}
-                        />
-                      ))}
-                    </View>
-                    <Text style={styles.strengthLabel}>{strength.label}</Text>
-                  </View>
-                ) : null}
-                <PrimaryButton
-                  label="Create account"
-                  onPress={() => void handleSignup()}
-                  loading={loading}
-                  disabled={Boolean(socialLoading)}
-                  style={styles.submit}
-                />
-              </View>
-            ) : null}
+            </View>
 
             <View style={styles.footerRow}>
               <Text style={styles.footerText}>Have an account? </Text>
@@ -401,6 +254,7 @@ const useStyles = createThemedStyles((colors) => ({
   hero: {
     flex: 1,
     justifyContent: 'center',
+    paddingBottom: 8,
   },
   sheetFlex: {
     flex: 0.62,
@@ -439,20 +293,14 @@ const useStyles = createThemedStyles((colors) => ({
     textAlign: 'center',
   },
   alertWrap: { marginBottom: 10 },
-  hint: {
-    marginTop: 10,
-    marginBottom: 14,
-    fontFamily: fonts.regular,
-    fontSize: 12,
-    color: colors.textSoft,
-    textAlign: 'center',
-  },
   termsRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
     justifyContent: 'center',
-    marginBottom: 10,
+    marginTop: 18,
+    marginBottom: 14,
+    paddingHorizontal: 4,
   },
   checkbox: {
     width: 20,
@@ -475,22 +323,16 @@ const useStyles = createThemedStyles((colors) => ({
     lineHeight: 14,
   },
   termsText: {
+    flexShrink: 1,
     fontFamily: fonts.medium,
-    fontSize: 13,
+    fontSize: 12.5,
+    lineHeight: 18,
     color: colors.textMuted,
-  },
-  linksRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 22,
-    marginBottom: 4,
   },
   link: {
-    fontFamily: fonts.medium,
-    fontSize: 12,
-    color: colors.textMuted,
+    fontFamily: fonts.semiBold,
+    color: colors.heading,
     textDecorationLine: 'underline',
-    textDecorationStyle: 'dotted',
   },
   emailToggle: {
     alignItems: 'center',

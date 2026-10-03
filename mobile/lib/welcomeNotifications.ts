@@ -11,7 +11,7 @@ const WELCOME_FLAG = '@finderb/welcome-notifs-v1';
 const WELCOME_NOTES = [
   {
     title: 'Welcome to FinderB 👋',
-    body: "India's trusted local guide — find shops, services & stories near you.",
+    body: "India's trusted local guide — find businesses, services & stories near you.",
     delaySec: 45,
   },
   {

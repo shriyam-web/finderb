@@ -50,7 +50,7 @@ import { SITE_URL } from '../../../lib/supabase';
 import { useTabScrollPadding } from '../../../hooks/useAppSafeArea';
 import { createThemedStyles } from '../../../hooks/useThemedStyles';
 import { useUserLocation } from '../../../hooks/useUserLocation';
-import { formatDistanceFromUser } from '../../../lib/geo';
+import { useDrivingDistanceLabel } from '../../../lib/drivingDistance';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 const HERO_H = Math.round(SCREEN_W * 0.638);
@@ -173,6 +173,17 @@ function Stars({ rating, size = 13 }: { rating: number; size?: number }) {
   );
 }
 
+function RelatedMeta({ item }: { item: Merchant }) {
+  const styles = useStyles();
+  const label = useDrivingDistanceLabel(item.latitude, item.longitude);
+  return (
+    <Text style={styles.relatedMeta} numberOfLines={1}>
+      {item.category}
+      {label ? ` · ${label}` : ''}
+    </Text>
+  );
+}
+
 export default function MerchantProfileScreen() {
   const { colors, gradients } = useTheme();
   const styles = useStyles();
@@ -234,7 +245,13 @@ export default function MerchantProfileScreen() {
         return;
       }
       setLoading(true);
-      const result = await fetchMerchantBySlugOrId(String(id));
+      const key = String(id);
+      const ownsKey =
+        Boolean(user?.isBusinessAccount) &&
+        (user?.businessId === key || user?.businessSlug === key);
+      const result = await fetchMerchantBySlugOrId(key, {
+        allowUnlisted: ownsKey,
+      });
       if (cancelled) return;
       if (result.merchant) {
         setMerchant(result.merchant);
@@ -267,7 +284,7 @@ export default function MerchantProfileScreen() {
     return () => {
       cancelled = true;
     };
-  }, [id]);
+  }, [id, user?.isBusinessAccount, user?.businessId, user?.businessSlug]);
 
   const openStatus = useMemo(
     () => getBusinessOpenStatus(merchant?.timings),
@@ -341,15 +358,9 @@ export default function MerchantProfileScreen() {
     [merchant],
   );
 
-  const distanceLabel = merchant
-    ? formatDistanceFromUser(
-        location.coords,
-        merchant.latitude,
-        merchant.longitude,
-      )
-    : null;
+  const distanceLabel = useDrivingDistanceLabel(merchant?.latitude, merchant?.longitude);
 
-  const mapsUrl = merchant ? directionsHref(merchant) : null;
+  const mapsUrl = merchant ? directionsHref(merchant, location.coords) : null;
   const waUrl = merchant
     ? whatsAppHref(
         merchant.whatsappNumber || merchant.contact,
@@ -392,6 +403,9 @@ export default function MerchantProfileScreen() {
     Boolean(user?.isBusinessAccount) &&
     Boolean(merchant) &&
     (user?.businessId === merchant?.id ||
+      (!!user?.businessSlug &&
+        !!merchant?.slug &&
+        user.businessSlug === merchant.slug) ||
       (!!user?.email &&
         !!merchant?.email &&
         user.email.toLowerCase() === merchant.email.toLowerCase()));
@@ -399,12 +413,12 @@ export default function MerchantProfileScreen() {
   const openBusinessEdit = () => {
     Alert.alert(
       'Manage this business',
-      'Edit listing details in the FinderB Business app for the best experience.',
+      'Business tools will be in this same app. To manage this listing right now, open the web panel.',
       [
         { text: 'Not now', style: 'cancel' },
         {
-          text: 'Open Business app',
-          onPress: () => router.push('/business-app' as Href),
+          text: 'Open web panel',
+          onPress: () => void Linking.openURL(`${SITE_URL}/business/login`),
         },
       ],
     );
@@ -587,6 +601,14 @@ export default function MerchantProfileScreen() {
           },
         )}
       >
+        {isOwnBusiness ? (
+          <SafeAreaView edges={['top']} style={styles.manageBannerSafe}>
+            <View style={styles.manageBanner}>
+              <Ionicons name="storefront-outline" size={16} color="#047857" />
+              <Text style={styles.manageBannerText}>You manage this profile</Text>
+            </View>
+          </SafeAreaView>
+        ) : null}
         <View style={[styles.hero, { height: HERO_H }]}>
           {photos.length ? (
             <ScrollView
@@ -1438,11 +1460,6 @@ export default function MerchantProfileScreen() {
                 decelerationRate="fast"
               >
                 {related.map((item) => {
-                  const dist = formatDistanceFromUser(
-                    location.coords,
-                    item.latitude,
-                    item.longitude,
-                  );
                   const cover = item.images[0] || item.image;
                   return (
                     <Pressable
@@ -1479,10 +1496,7 @@ export default function MerchantProfileScreen() {
                           <Text style={styles.relatedName} numberOfLines={2}>
                             {item.name}
                           </Text>
-                          <Text style={styles.relatedMeta} numberOfLines={1}>
-                            {item.category}
-                            {dist ? ` · ${dist}` : ''}
-                          </Text>
+                          <RelatedMeta item={item} />
                         </View>
                       </View>
                     </Pressable>
@@ -1682,6 +1696,25 @@ const useStyles = createThemedStyles((colors, gradients) => ({
     fontFamily: fonts.semiBold,
     fontSize: 13,
     color: colors.frost,
+  },
+  manageBannerSafe: {
+    backgroundColor: '#ECFDF5',
+  },
+  manageBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: '#ECFDF5',
+    borderBottomWidth: 1,
+    borderBottomColor: '#A7F3D0',
+  },
+  manageBannerText: {
+    fontFamily: fonts.semiBold,
+    fontSize: 14,
+    color: '#047857',
   },
   sheet: {
     marginTop: -18,

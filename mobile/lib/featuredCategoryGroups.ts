@@ -1,3 +1,5 @@
+import { compareText } from './compareText';
+
 type HomeCategory = {
   id: string;
   name: string;
@@ -21,7 +23,7 @@ function sortByMerchantCount<T extends { name: string; businessCount?: number }>
     const bHas = bCount > 0 ? 1 : 0;
     if (bHas !== aHas) return bHas - aHas;
     if (bCount !== aCount) return bCount - aCount;
-    return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+    return compareText(a.name, b.name);
   });
 }
 

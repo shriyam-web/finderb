@@ -112,7 +112,7 @@ async function ensureWelcomeInboxItem(
     id: `welcome-${userId}`,
     title: 'Welcome to FinderB 👋',
     message:
-      "Glad you're here. We'll only show notifications from today onward — explore nearby shops, jobs, and stories anytime.",
+      "Glad you're here. We'll only show notifications from today onward — explore nearby businesses, jobs, and stories anytime.",
     created_at: new Date(sinceMs).toISOString(),
     cta_url: null,
     cta_label: null,

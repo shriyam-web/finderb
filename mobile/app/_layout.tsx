@@ -107,6 +107,10 @@ function RootNavigator() {
             options={{ animation: 'slide_from_bottom' }}
           />
           <Stack.Screen
+            name="merchant-welcome"
+            options={{ animation: 'fade' }}
+          />
+          <Stack.Screen
             name="notifications"
             options={{ animation: 'slide_from_right' }}
           />

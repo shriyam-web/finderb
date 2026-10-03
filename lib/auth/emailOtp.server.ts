@@ -216,7 +216,7 @@ async function requestPurposeEmailOtp(
   purpose: string,
   email: string,
   registeringAs: 'user' | 'merchant',
-  kind: 'registration' | 'account',
+  kind: 'registration' | 'account' | 'user',
 ): Promise<RequestEmailOtpResult> {
   const normalized = normalizeEmail(email);
   if (!normalized || !REGISTRATION_EMAIL_REGEX.test(normalized)) {
@@ -290,7 +290,7 @@ async function verifyPurposeEmailOtp(
 }
 
 export function requestUserEmailOtp(email: string) {
-  return requestPurposeEmailOtp(USER_EMAIL_PURPOSE, email, 'user', 'account');
+  return requestPurposeEmailOtp(USER_EMAIL_PURPOSE, email, 'user', 'user');
 }
 
 export function verifyUserEmailOtp(email: string, code: string) {

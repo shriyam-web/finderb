@@ -31,6 +31,7 @@ import { useAppLocation } from '../../context/LocationContext';
 import { getBusinessOpenStatus } from '../../lib/businessHours';
 import {
   fetchExploreCategories,
+  parseAiSearchIntents,
   runAiSearch,
   type AiSearchIntent,
   type HomeCategory,
@@ -135,6 +136,8 @@ const MODIFIERS: Array<{
   { id: 'offers', label: 'Offers', icon: 'pricetag-outline' },
 ];
 
+const CHIP_INTENTS = new Set(MODIFIERS.map((mod) => mod.id));
+
 function merchantHasOffer(m: Merchant) {
   return (
     Boolean(m.discountRange) &&
@@ -162,6 +165,8 @@ export default function AiScreen() {
   const [error, setError] = useState('');
   const [categories, setCategories] = useState<HomeCategory[]>([]);
   const [merchants, setMerchants] = useState<Merchant[]>([]);
+  const [exactMatch, setExactMatch] = useState(true);
+  const [searchNotice, setSearchNotice] = useState<string | null>(null);
   const [popular, setPopular] = useState<HomeCategory[]>([]);
   const [recent, setRecent] = useState<string[]>([]);
   const [hintIndex, setHintIndex] = useState(0);
@@ -280,7 +285,10 @@ export default function AiScreen() {
       setSearched(true);
       setQuery(q);
 
-      const activeIntents = forceIntents ?? modifiers;
+      const spoken = parseAiSearchIntents(q);
+      const activeIntents =
+        forceIntents ??
+        spoken;
       const result = await runAiSearch(q, {
         coords: location.coords,
         city: location.city,
@@ -289,7 +297,10 @@ export default function AiScreen() {
 
       setCategories(result.categories);
       setMerchants(result.merchants);
+      setExactMatch(result.exactMatch);
+      setSearchNotice(result.notice);
       setDetectedIntents(result.intents);
+      setModifiers(result.intents.filter((id) => CHIP_INTENTS.has(id)));
       setError(
         result.error && result.merchants.length === 0 && result.categories.length === 0
           ? result.error
@@ -298,7 +309,7 @@ export default function AiScreen() {
       setLoading(false);
       void rememberRecent(q);
     },
-    [location.city, location.coords, modifiers, rememberRecent],
+    [location.city, location.coords, rememberRecent],
   );
 
   useEffect(() => {
@@ -313,6 +324,8 @@ export default function AiScreen() {
     setSearched(false);
     setCategories([]);
     setMerchants([]);
+    setExactMatch(true);
+    setSearchNotice(null);
     setDetectedIntents([]);
     setError('');
     inputRef.current?.focus();
@@ -358,27 +371,25 @@ export default function AiScreen() {
       list = list.filter(merchantHasOffer);
     }
 
-    const dist = (m: Merchant) => {
-      if (
-        !location.coords ||
-        m.latitude == null ||
-        m.longitude == null ||
-        (m.latitude === 0 && m.longitude === 0)
-      ) {
-        return Number.POSITIVE_INFINITY;
-      }
-      return getDistanceKm(
-        location.coords.lat,
-        location.coords.lng,
-        m.latitude,
-        m.longitude,
-      );
-    };
-
-    // Keep API relevance order unless user explicitly wants nearest
     if (active.includes('nearest') && location.coords) {
+      const dist = (merchant: Merchant) => {
+        if (
+          merchant.latitude == null ||
+          merchant.longitude == null ||
+          (merchant.latitude === 0 && merchant.longitude === 0)
+        ) {
+          return Number.POSITIVE_INFINITY;
+        }
+        return getDistanceKm(
+          location.coords!.lat,
+          location.coords!.lng,
+          merchant.latitude,
+          merchant.longitude,
+        );
+      };
       list.sort((a, b) => dist(a) - dist(b));
     }
+
     return list;
   }, [detectedIntents, location.coords, merchants, modifiers]);
 
@@ -410,7 +421,8 @@ export default function AiScreen() {
     !loading &&
     !error &&
     categories.length === 0 &&
-    visibleMerchants.length === 0;
+    visibleMerchants.length === 0 &&
+    !searchNotice;
 
   const scanStyle = {
     transform: [
@@ -768,9 +780,18 @@ export default function AiScreen() {
                       </View>
                     ) : null}
 
+                    {!loading && searchNotice ? (
+                      <View style={styles.noticeBox}>
+                        <Text style={styles.noticeTitle}>Exact match not found</Text>
+                        <Text style={styles.noticeText}>{searchNotice}</Text>
+                      </View>
+                    ) : null}
+
                     {!loading && categories.length > 0 ? (
                       <View style={styles.resultBlock}>
-                        <Text style={styles.sectionLabel}>Matched categories</Text>
+                        <Text style={styles.sectionLabel}>
+                          {exactMatch ? 'Matching categories' : 'Relevant categories'}
+                        </Text>
                         <ScrollView
                           horizontal
                           showsHorizontalScrollIndicator={false}
@@ -1334,6 +1355,27 @@ const useStyles = createThemedStyles((colors, gradients) => ({
     color: colors.textSoft,
   },
   resultBlock: { marginBottom: 14 },
+  noticeBox: {
+    marginBottom: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 14,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  noticeTitle: {
+    fontFamily: fonts.semiBold,
+    fontSize: 14,
+    color: colors.heading,
+    marginBottom: 4,
+  },
+  noticeText: {
+    fontFamily: fonts.regular,
+    fontSize: 13,
+    lineHeight: 18,
+    color: colors.textMuted,
+  },
   catChip: {
     flexDirection: 'row',
     alignItems: 'center',

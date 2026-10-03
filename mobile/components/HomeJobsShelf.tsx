@@ -12,6 +12,7 @@ import {
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { compareText } from '../lib/compareText';
 import type { JobListing } from '../lib/jobs';
 import {
   formatJobPosted,
@@ -144,7 +145,7 @@ function filterAndSortJobs(jobs: JobListing[], filters: JobFilters): JobListing[
 
   rows = [...rows].sort((a, b) => {
     if (filters.sort === 'title') {
-      return a.title.localeCompare(b.title);
+      return compareText(a.title, b.title);
     }
     if (filters.sort === 'salary') {
       const aPay = a.salary?.trim() ? 0 : 1;

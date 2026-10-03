@@ -3,7 +3,6 @@ import { useEffect, useRef, useState } from 'react';
 import {
   Animated,
   Easing,
-  Keyboard,
   KeyboardAvoidingView,
   Linking,
   Platform,
@@ -16,10 +15,9 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { AuthAlert, AuthField, PasswordToggle } from '../components/AuthField';
+import { AuthAlert } from '../components/AuthField';
 import { LoginHeroArt } from '../components/LoginHeroArt';
-import { PrimaryButton } from '../components/PrimaryButton';
-import { AuthDivider, SocialAuthButtons } from '../components/SocialAuthButtons';
+import { SocialAuthButtons } from '../components/SocialAuthButtons';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { fonts } from '../constants/typography';
@@ -27,23 +25,21 @@ import { useBottomInset } from '../hooks/useAppSafeArea';
 import { createThemedStyles } from '../hooks/useThemedStyles';
 import { markGuestMode } from '../lib/onboarding';
 import { SITE_URL } from '../lib/supabase';
+import { getStoredToken, getStoredUser, type AuthUser } from '../lib/session';
 
 export default function LoginScreen() {
   const { colors, gradients, isDark } = useTheme();
   const styles = useStyles();
   const router = useRouter();
-  const { returnTo } = useLocalSearchParams<{ returnTo?: string }>();
+  const { returnTo, fromPrompt } = useLocalSearchParams<{
+    returnTo?: string;
+    fromPrompt?: string;
+  }>();
   const bottomInset = useBottomInset(18);
-  const { signIn, signInWithGoogle, signInWithTruecaller, user, refresh } =
-    useAuth();
+  const { signInWithGoogle, signInWithTruecaller, user, refresh } = useAuth();
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [showEmailForm, setShowEmailForm] = useState(false);
   const [agreed, setAgreed] = useState(true);
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
   const [socialLoading, setSocialLoading] = useState<'google' | 'truecaller' | null>(
     null,
   );
@@ -69,27 +65,12 @@ export default function LoginScreen() {
     ]).start();
   }, [sheetFade, sheetRise]);
 
-  useEffect(() => {
-    if (!showEmailForm) return;
-    const t = setTimeout(() => {
-      formScrollRef.current?.scrollToEnd({ animated: true });
-    }, 180);
-    return () => clearTimeout(t);
-  }, [showEmailForm]);
-
-  useEffect(() => {
-    const show = Keyboard.addListener(
-      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
-      () => {
-        setTimeout(() => {
-          formScrollRef.current?.scrollToEnd({ animated: true });
-        }, Platform.OS === 'ios' ? 50 : 120);
-      },
-    );
-    return () => show.remove();
-  }, []);
-
-  const finishOk = () => {
+  const finishOk = (account?: AuthUser | null) => {
+    const signedIn = account ?? user;
+    if (signedIn?.isBusinessAccount) {
+      router.replace('/merchant-welcome' as never);
+      return;
+    }
     if (typeof returnTo === 'string' && returnTo.startsWith('/')) {
       router.replace(returnTo as never);
       return;
@@ -101,12 +82,16 @@ export default function LoginScreen() {
   useEffect(() => {
     if (!user) return;
     setSocialLoading(null);
-    finishOk();
+    finishOk(user);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- navigate once when session appears
   }, [user]);
 
   const skipAsGuest = async () => {
     await markGuestMode();
+    if (fromPrompt === '1' && router.canGoBack()) {
+      router.back();
+      return;
+    }
     router.replace('/(tabs)/home');
   };
 
@@ -118,75 +103,38 @@ export default function LoginScreen() {
     return true;
   };
 
-  const handleEmailLogin = async () => {
+  const runSocial = async (kind: 'google' | 'truecaller') => {
     if (!requireAgreement()) return;
-    if (!email.trim() || !password) {
-      setError('Enter your email and password.');
-      return;
-    }
     setError('');
-    setLoading(true);
-    const result = await signIn(email.trim(), password);
-    setLoading(false);
-    if (!result.success) {
+    setSocialLoading(kind);
+    try {
+      const result = kind === 'google' ? await signInWithGoogle() : await signInWithTruecaller();
+      if (result.success) {
+        finishOk(result.user);
+        return;
+      }
+      // The deep-link screen may have finished sign-in while this flow reported a failure.
+      await refresh();
+      if (await getStoredToken()) {
+        finishOk(await getStoredUser());
+        return;
+      }
       setError(result.error);
-      return;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Sign-in failed. Please try again.');
+    } finally {
+      setSocialLoading(null);
     }
-    finishOk();
   };
 
-  const handleGoogle = async () => {
-    if (!requireAgreement()) return;
-    setError('');
-    setSocialLoading('google');
-    const result = await signInWithGoogle();
-    if (result.success) {
-      setSocialLoading(null);
-      finishOk();
-      return;
-    }
-    // Deep-link callback may have already signed us in while AuthSession reported cancel.
-    await refresh();
-    const { getStoredToken } = await import('../lib/session');
-    if (await getStoredToken()) {
-      setSocialLoading(null);
-      finishOk();
-      return;
-    }
-    setSocialLoading(null);
-    setError(result.error);
-  };
-
-  const handleTruecaller = async () => {
-    if (!requireAgreement()) return;
-    setError('');
-    setSocialLoading('truecaller');
-    const result = await signInWithTruecaller();
-    if (result.success) {
-      setSocialLoading(null);
-      finishOk();
-      return;
-    }
-    await refresh();
-    const { getStoredToken } = await import('../lib/session');
-    if (await getStoredToken()) {
-      setSocialLoading(null);
-      finishOk();
-      return;
-    }
-    setSocialLoading(null);
-    setError(result.error);
-  };
+  const handleGoogle = () => runSocial('google');
+  const handleTruecaller = () => runSocial('truecaller');
 
   const openLink = (path: string) => {
     void Linking.openURL(`${SITE_URL}${path}`);
   };
 
-  const busy = Boolean(socialLoading) || loading;
-  const truecallerHint =
-    Platform.OS !== 'android'
-      ? 'Truecaller one-tap is available on Android'
-      : 'Uses the Truecaller app on this phone';
+  const busy = Boolean(socialLoading);
 
   return (
     <View style={styles.root}>
@@ -222,19 +170,13 @@ export default function LoginScreen() {
             <Text style={styles.skipText}>Skip</Text>
           </Pressable>
         </View>
-        {!showEmailForm ? (
-          <View style={styles.hero}>
-            <LoginHeroArt />
-          </View>
-        ) : (
-          <View style={styles.heroCompact}>
-            <Text style={styles.heroCompactTitle}>Sign in with email</Text>
-          </View>
-        )}
+        <View style={styles.hero}>
+          <LoginHeroArt />
+        </View>
       </SafeAreaView>
 
       <KeyboardAvoidingView
-        style={[styles.sheetFlex, showEmailForm && styles.sheetFlexExpanded]}
+        style={styles.sheetFlex}
         behavior="padding"
         keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 20}
       >
@@ -255,14 +197,15 @@ export default function LoginScreen() {
             keyboardDismissMode="interactive"
             contentContainerStyle={[
               styles.sheetScroll,
-              showEmailForm && styles.sheetScrollForm,
             ]}
             automaticallyAdjustKeyboardInsets
             contentInsetAdjustmentBehavior="automatic"
           >
             <View style={styles.sheetHandle} />
-            <Text style={styles.headline}>{"India's trusted local guide"}</Text>
-            <Text style={styles.subhead}>Sign in to save favourites and reviews</Text>
+            <Text style={styles.headline}>Welcome back</Text>
+            <Text style={styles.subhead}>
+              Pick up your saved places, reviews, and local searches.
+            </Text>
 
             {error ? (
               <View style={styles.alertWrap}>
@@ -272,106 +215,38 @@ export default function LoginScreen() {
 
             <SocialAuthButtons
               mode="login"
+              audience="user"
               loading={socialLoading}
               disabled={busy}
               onGoogle={() => void handleGoogle()}
               onTruecaller={() => void handleTruecaller()}
+              onBeforeWhatsApp={requireAgreement}
+              onWhatsAppSuccess={(account) => finishOk(account)}
             />
 
-            <Text style={styles.hint}>{truecallerHint}</Text>
-
-            <Pressable
-              style={styles.termsRow}
-              onPress={() => setAgreed((v) => !v)}
-              hitSlop={4}
-            >
-              <View style={[styles.checkbox, agreed && styles.checkboxOn]}>
-                {agreed ? <Text style={styles.checkMark}>✓</Text> : null}
-              </View>
-              <Text style={styles.termsText}>I Agree to Terms and Conditions</Text>
-            </Pressable>
-
-            <View style={styles.linksRow}>
-              <Pressable onPress={() => openLink('/terms')} hitSlop={6}>
-                <Text style={styles.link}>{"T&C's"}</Text>
+            <View style={styles.termsRow}>
+              <Pressable
+                onPress={() => setAgreed((v) => !v)}
+                hitSlop={8}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: agreed }}
+                accessibilityLabel="Agree to the Terms and Conditions and Privacy Policy"
+              >
+                <View style={[styles.checkbox, agreed && styles.checkboxOn]}>
+                  {agreed ? <Text style={styles.checkMark}>✓</Text> : null}
+                </View>
               </Pressable>
-              <Pressable onPress={() => openLink('/privacy')} hitSlop={6}>
-                <Text style={styles.link}>Privacy policy</Text>
-              </Pressable>
-            </View>
-
-            <AuthDivider />
-
-            <Pressable
-              onPress={() => setShowEmailForm((v) => !v)}
-              style={styles.emailToggle}
-            >
-              <Text style={styles.emailToggleText}>
-                {showEmailForm ? 'Hide email sign in' : 'Or sign in with email'}
+              <Text style={styles.termsText} onPress={() => setAgreed((v) => !v)}>
+                I agree to the{' '}
+                <Text style={styles.link} onPress={() => openLink('/terms')}>
+                  Terms and Conditions
+                </Text>{' '}
+                and{' '}
+                <Text style={styles.link} onPress={() => openLink('/privacy')}>
+                  Privacy Policy
+                </Text>
               </Text>
-            </Pressable>
-
-            {showEmailForm ? (
-              <View style={styles.emailBlock}>
-                <AuthField
-                  label="Email"
-                  value={email}
-                  onChangeText={setEmail}
-                  placeholder="you@example.com"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  keyboardType="email-address"
-                  textContentType="emailAddress"
-                  autoComplete="email"
-                  onFocus={() =>
-                    setTimeout(
-                      () => formScrollRef.current?.scrollToEnd({ animated: true }),
-                      100,
-                    )
-                  }
-                />
-                <AuthField
-                  label="Password"
-                  value={password}
-                  onChangeText={setPassword}
-                  placeholder="Your password"
-                  secureTextEntry={!showPassword}
-                  textContentType="password"
-                  autoComplete="password"
-                  onFocus={() =>
-                    setTimeout(
-                      () => formScrollRef.current?.scrollToEnd({ animated: true }),
-                      100,
-                    )
-                  }
-                  rightSlot={
-                    <PasswordToggle
-                      visible={showPassword}
-                      onToggle={() => setShowPassword((v) => !v)}
-                    />
-                  }
-                />
-                <Pressable
-                  onPress={() =>
-                    router.push({
-                      pathname: '/forgot-password',
-                      params: email.trim() ? { email: email.trim() } : {},
-                    })
-                  }
-                  hitSlop={8}
-                  style={styles.forgotBtn}
-                >
-                  <Text style={styles.forgotText}>Forgot password?</Text>
-                </Pressable>
-                <PrimaryButton
-                  label="Sign in with email"
-                  onPress={() => void handleEmailLogin()}
-                  loading={loading}
-                  disabled={Boolean(socialLoading)}
-                  style={styles.submit}
-                />
-              </View>
-            ) : null}
+            </View>
 
             <View style={styles.footerRow}>
               <Text style={styles.footerText}>New here? </Text>
@@ -415,6 +290,7 @@ const useStyles = createThemedStyles((colors) => ({
   hero: {
     flex: 1,
     justifyContent: 'center',
+    paddingBottom: 8,
   },
   heroCompact: {
     paddingHorizontal: 22,
@@ -483,20 +359,14 @@ const useStyles = createThemedStyles((colors) => ({
   alertWrap: {
     marginBottom: 12,
   },
-  hint: {
-    marginTop: 10,
-    marginBottom: 16,
-    fontFamily: fonts.regular,
-    fontSize: 12,
-    color: colors.textSoft,
-    textAlign: 'center',
-  },
   termsRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
     justifyContent: 'center',
-    marginBottom: 10,
+    marginTop: 18,
+    marginBottom: 14,
+    paddingHorizontal: 4,
   },
   checkbox: {
     width: 20,
@@ -519,22 +389,16 @@ const useStyles = createThemedStyles((colors) => ({
     lineHeight: 14,
   },
   termsText: {
+    flexShrink: 1,
     fontFamily: fonts.medium,
-    fontSize: 13,
+    fontSize: 12.5,
+    lineHeight: 18,
     color: colors.textMuted,
-  },
-  linksRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 22,
-    marginBottom: 4,
   },
   link: {
-    fontFamily: fonts.medium,
-    fontSize: 12,
-    color: colors.textMuted,
+    fontFamily: fonts.semiBold,
+    color: colors.heading,
     textDecorationLine: 'underline',
-    textDecorationStyle: 'dotted',
   },
   emailToggle: {
     alignItems: 'center',

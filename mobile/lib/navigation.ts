@@ -9,19 +9,30 @@ type BackCapableRouter = {
   replace: (href: Href) => void;
 };
 
+type TabRouter = BackCapableRouter & {
+  navigate?: (href: Href) => void;
+};
+
 /** Safe back — avoids GO_BACK warning when the stack is empty. */
 export function goBackOrHome(
-  router: BackCapableRouter,
+  router: TabRouter,
   fallback: Href = FALLBACK,
 ) {
   if (router.canGoBack()) {
     router.back();
     return;
   }
+  if (router.navigate) {
+    router.navigate(fallback);
+    return;
+  }
   router.replace(fallback);
 }
 
-/** Hidden More services (Jobs / News / Blogs / Tourist) should return to More. */
-export function backToMore(router: { replace: (href: Href) => void }) {
-  router.replace(MORE_TAB);
+/**
+ * Jobs, news, blogs, and destinations live as hidden tab screens.
+ * `replace` resets the tab group to Home, so switch back with `navigate`.
+ */
+export function backToMore(router: { navigate: (href: Href) => void }) {
+  router.navigate(MORE_TAB);
 }

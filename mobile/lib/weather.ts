@@ -211,22 +211,17 @@ function remainingHourlyForecast(
   if (times.length === 0) return [];
 
   const now = new Date();
-  const currentHour = now.getHours();
+  const nowMs = now.getTime();
   const rows: HourlyForecastHour[] = [];
 
   for (let i = 0; i < times.length; i += 1) {
     const at = parseOpenMeteoLocal(times[i] ?? '');
     if (!at) continue;
-    if (
-      at.getFullYear() !== now.getFullYear() ||
-      at.getMonth() !== now.getMonth() ||
-      at.getDate() !== now.getDate()
-    ) {
-      continue;
-    }
-    const hour = at.getHours();
-    if (hour < currentHour) continue;
+    // Keep from ~current hour forward (next ~18 slots), not calendar-"today"
+    // only — timezone mismatches were wiping the rail empty.
+    if (at.getTime() < nowMs - 45 * 60 * 1000) continue;
 
+    const hour = at.getHours();
     const temperatureC = hourly?.temperature_2m?.[i];
     const weatherCode = Number(hourly?.weather_code?.[i] ?? 0);
     const isDay = Number(hourly?.is_day?.[i] ?? 1) === 1;
@@ -245,9 +240,13 @@ function remainingHourlyForecast(
         ? Math.round(precipRaw)
         : null;
 
+    const isNow =
+      Math.abs(at.getTime() - nowMs) < 35 * 60 * 1000 &&
+      hour === now.getHours();
+
     rows.push({
       hour,
-      label: formatHourLabel(at, hour === currentHour),
+      label: formatHourLabel(at, isNow),
       temperatureC: temp,
       weatherCode,
       skyWeather,
@@ -255,6 +254,8 @@ function remainingHourlyForecast(
       precipChance,
       isDay,
     });
+
+    if (rows.length >= 18) break;
   }
 
   return rows;
@@ -288,7 +289,7 @@ const cache = new Map<string, LocalWeather>();
 const CACHE_MS = 15 * 60 * 1000;
 
 function cacheKey(lat: number, lng: number, dayPart: DayPart): string {
-  return `${lat.toFixed(2)},${lng.toFixed(2)}|${dayPart}`;
+  return `v2|${lat.toFixed(2)},${lng.toFixed(2)}|${dayPart}`;
 }
 
 function buildWeather(input: {
@@ -351,7 +352,7 @@ export async function fetchLocalWeather(
     `&longitude=${encodeURIComponent(String(lng))}` +
     `&current=temperature_2m,weather_code,is_day` +
     `&hourly=temperature_2m,weather_code,is_day,precipitation_probability` +
-    `&forecast_days=1` +
+    `&forecast_days=2` +
     `&timezone=auto`;
 
   try {

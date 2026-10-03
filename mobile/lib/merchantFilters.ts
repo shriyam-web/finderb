@@ -173,6 +173,9 @@ export function applyFilters(
     rows = rows.filter(hasOffer);
   }
 
+  // Listings arrive ranked nearest-first; keep that whenever the user is located.
+  if (userCoords) return rows;
+
   rows.sort((a, b) => {
     if (a.isVerified !== b.isVerified) {
       return Number(b.isVerified) - Number(a.isVerified);

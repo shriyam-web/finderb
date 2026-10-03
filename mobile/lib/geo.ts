@@ -41,8 +41,15 @@ export function formatDistanceFromUser(
   }
 
   const km = getDistanceKm(user.lat, user.lng, businessLat, businessLng);
+  return formatRoadDistanceKm(km);
+}
+
+/** Label a road distance. Short trips stay in metres, longer ones in kilometres. */
+export function formatRoadDistanceKm(km: number): string | null {
+  if (!Number.isFinite(km) || km < 0) return null;
   if (km < 1) {
-    return `${Math.max(100, Math.round(km * 1000))} m`;
+    const meters = Math.max(10, Math.round((km * 1000) / 10) * 10);
+    return `${meters} m`;
   }
   if (km < 10) return `${km.toFixed(1)} km`;
   return `${Math.round(km)} km`;
@@ -68,7 +75,13 @@ function cityMatchScore(item: Locatable, city?: string | null): number {
   return 1;
 }
 
-/** Prefer same city, then nearer distance. */
+/** Where an unpinned business in the user's own city slots into the distance order. */
+const SAME_CITY_UNPINNED_KM = 15;
+
+/**
+ * Nearest first when the user's position is known; businesses without a pin
+ * rank by city. With only a city, same-city businesses lead. Ties keep order.
+ */
 export function sortByUserLocation<T extends Locatable>(
   items: T[],
   opts: { coords?: Coords | null; city?: string | null },
@@ -76,29 +89,28 @@ export function sortByUserLocation<T extends Locatable>(
   const { coords, city } = opts;
   if (!coords && !city?.trim()) return items;
 
-  return [...items].sort((a, b) => {
-    const cityDiff = cityMatchScore(a, city) - cityMatchScore(b, city);
-    if (cityDiff !== 0) return cityDiff;
-
-    if (!coords) return 0;
-
-    const aOk =
-      a.latitude != null &&
-      a.longitude != null &&
-      !(a.latitude === 0 && a.longitude === 0);
-    const bOk =
-      b.latitude != null &&
-      b.longitude != null &&
-      !(b.latitude === 0 && b.longitude === 0);
-
-    if (!aOk && !bOk) return 0;
-    if (!aOk) return 1;
-    if (!bOk) return -1;
-
-    return (
-      getDistanceKm(coords.lat, coords.lng, a.latitude!, a.longitude!) -
-      getDistanceKm(coords.lat, coords.lng, b.latitude!, b.longitude!)
-    );
+  const keys = items.map((item, index) => {
+    const pinned =
+      item.latitude != null &&
+      item.longitude != null &&
+      Number.isFinite(item.latitude) &&
+      Number.isFinite(item.longitude) &&
+      !(item.latitude === 0 && item.longitude === 0);
+    let rank: number;
+    if (coords && pinned) {
+      rank = getDistanceKm(coords.lat, coords.lng, item.latitude!, item.longitude!);
+    } else if (coords) {
+      rank = cityMatchScore(item, city) === 0 ? SAME_CITY_UNPINNED_KM : Infinity;
+    } else {
+      rank = cityMatchScore(item, city);
+    }
+    return { item, index, rank };
   });
+
+  keys.sort((a, b) => {
+    if (a.rank !== b.rank) return a.rank < b.rank ? -1 : 1;
+    return a.index - b.index;
+  });
+  return keys.map((k) => k.item);
 }
 

@@ -4,11 +4,13 @@ import {
   Easing,
   Platform,
   StyleSheet,
+  Text,
   useWindowDimensions,
   View,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getClimateTheme } from '../lib/climateThemes';
 import type { DayPart, LocalWeather, SkyWeather } from '../lib/weather';
 
@@ -42,6 +44,7 @@ type StarSpec = {
   baseOpacity: number;
   duration: number;
   delay: number;
+  glow?: boolean;
 };
 
 type CloudSpec = {
@@ -61,27 +64,28 @@ const X_SEEDS = [
   0.06, 0.14, 0.22, 0.3, 0.38, 0.46, 0.54, 0.62, 0.7, 0.78, 0.86, 0.94, 0.1,
   0.18, 0.26, 0.34, 0.42, 0.5, 0.58, 0.66, 0.74, 0.82, 0.9, 0.04, 0.28, 0.52,
   0.76, 0.12, 0.44, 0.68, 0.88, 0.2, 0.48, 0.72, 0.96, 0.08, 0.36, 0.6, 0.84,
-  0.16,
+  0.16, 0.24, 0.4, 0.56, 0.64, 0.8, 0.92, 0.02, 0.32, 0.48, 0.7, 0.85,
 ];
 const Y_SEEDS = [
   0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.12, 0.18, 0.24, 0.32,
   0.38, 0.08, 0.16, 0.28, 0.36, 0.42, 0.06, 0.14, 0.22, 0.34, 0.44, 0.09, 0.19,
   0.29, 0.39, 0.11, 0.21, 0.31, 0.41, 0.07, 0.17, 0.27, 0.37, 0.13, 0.23, 0.33,
-  0.43,
+  0.43, 0.04, 0.26, 0.48, 0.02, 0.18, 0.36, 0.5, 0.12, 0.3, 0.46,
 ];
 
 function buildStars(width: number, density: 'full' | 'sparse' | 'few'): StarSpec[] {
-  const count = density === 'full' ? 44 : density === 'sparse' ? 20 : 10;
+  const count = density === 'full' ? 28 : density === 'sparse' ? 16 : 10;
   return Array.from({ length: count }, (_, i) => {
-    const size = i % 8 === 0 ? 2.5 : i % 3 === 0 ? 1.7 : 1.15;
+    const size = i % 7 === 0 ? 1.35 : 0.9;
     return {
       id: `st-${i}`,
-      left: Math.round(X_SEEDS[i % X_SEEDS.length]! * (width - 12)) + 4,
-      top: Math.round(Y_SEEDS[i % Y_SEEDS.length]! * 215) + 4,
+      left: Math.round(X_SEEDS[i % X_SEEDS.length]! * (width - 10)) + 3,
+      top: Math.round(Y_SEEDS[(i * 2) % Y_SEEDS.length]! * 220) + 6,
       size,
-      baseOpacity: size > 2 ? 0.9 : 0.32 + (i % 5) * 0.08,
-      duration: 2100 + (i % 7) * 650,
-      delay: (i % 10) * 160,
+      baseOpacity: size > 1.2 ? 0.55 : 0.28 + (i % 4) * 0.05,
+      duration: 2000,
+      delay: 0,
+      glow: false,
     };
   });
 }
@@ -159,10 +163,10 @@ function buildClouds(
       ...s,
       id: `cl-${i}`,
       opacity: s.opacity * tintOpacity,
-      duration: 7600 + i * 700,
-      delay: i * 280,
-      driftY: 3 + (i % 3),
-      driftX: i % 2 === 0 ? 5 : -4,
+      duration: 9200 + i * 900,
+      delay: i * 320,
+      driftY: 5 + (i % 4) * 2,
+      driftX: (i % 2 === 0 ? 1 : -1) * (10 + (i % 3) * 3),
     }));
 
   if (skyWeather === 'fog') {
@@ -198,6 +202,13 @@ function buildClouds(
     ]);
   }
   if (skyWeather === 'clear' || skyWeather === 'heat') {
+    if (night) {
+      return bank([
+        { size: 130, top: 48, left: -18, opacity: 0.18 },
+        { size: 110, top: 88, right: 40, opacity: 0.14 },
+        { size: 120, top: 130, left: mid - 8, opacity: 0.12 },
+      ]);
+    }
     if (dayPart === 'morning') {
       return bank([
         { size: 120, top: 118, left: -16, opacity: 0.16 },
@@ -218,42 +229,8 @@ function buildClouds(
 }
 
 function TwinkleStar({ star }: { star: StarSpec }) {
-  const anim = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(anim, {
-          toValue: 1,
-          duration: star.duration,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-        }),
-        Animated.timing(anim, {
-          toValue: 0,
-          duration: star.duration * 1.1,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-        }),
-      ]),
-    );
-    const t = setTimeout(() => loop.start(), star.delay);
-    return () => {
-      clearTimeout(t);
-      loop.stop();
-    };
-  }, [anim, star.delay, star.duration]);
-
-  const opacity = anim.interpolate({
-    inputRange: [0, 0.5, 1],
-    outputRange: [
-      star.baseOpacity * 0.3,
-      star.baseOpacity,
-      star.baseOpacity * 0.5,
-    ],
-  });
-
   return (
-    <Animated.View
+    <View
       pointerEvents="none"
       style={{
         position: 'absolute',
@@ -262,10 +239,81 @@ function TwinkleStar({ star }: { star: StarSpec }) {
         width: star.size,
         height: star.size,
         borderRadius: star.size,
-        backgroundColor: '#F4F7FF',
-        opacity,
+        backgroundColor: '#F7F9FF',
+        opacity: star.baseOpacity,
       }}
     />
+  );
+}
+
+/** Occasional soft shooting star for clear nights. */
+function ShootingStar({ width }: { width: number }) {
+  const anim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    let cancelled = false;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    const run = () => {
+      if (cancelled) return;
+      anim.setValue(0);
+      Animated.timing(anim, {
+        toValue: 1,
+        duration: 1100,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
+      }).start(({ finished }) => {
+        if (!finished || cancelled) return;
+        timeoutId = setTimeout(run, 5200 + Math.random() * 4200);
+      });
+    };
+    timeoutId = setTimeout(run, 1800);
+    return () => {
+      cancelled = true;
+      if (timeoutId) clearTimeout(timeoutId);
+      anim.stopAnimation();
+    };
+  }, [anim]);
+
+  const startLeft = Math.max(24, width * 0.18);
+  const translateX = anim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, width * 0.42],
+  });
+  const translateY = anim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 78],
+  });
+  const opacity = anim.interpolate({
+    inputRange: [0, 0.12, 0.7, 1],
+    outputRange: [0, 0.9, 0.55, 0],
+  });
+
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={{
+        position: 'absolute',
+        left: startLeft,
+        top: 28,
+        width: 54,
+        height: 2,
+        borderRadius: 2,
+        backgroundColor: 'rgba(255,255,255,0.92)',
+        opacity,
+        transform: [{ translateX }, { translateY }, { rotate: '28deg' }],
+      }}
+    >
+      <LinearGradient
+        colors={[
+          'rgba(255,255,255,0)',
+          'rgba(255,255,255,0.95)',
+          'rgba(180,210,255,0.4)',
+          'rgba(255,255,255,0)',
+        ]}
+        start={{ x: 0, y: 0.5 }}
+        end={{ x: 1, y: 0.5 }}
+        style={StyleSheet.absoluteFill}
+      />
+    </Animated.View>
   );
 }
 
@@ -348,6 +396,7 @@ function DriftParticle({ p }: { p: Particle }) {
 }
 
 function SoftMoon({ dimmed = false }: { dimmed?: boolean }) {
+  const insets = useSafeAreaInsets();
   const breathe = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     const loop = Animated.loop(
@@ -376,21 +425,41 @@ function SoftMoon({ dimmed = false }: { dimmed?: boolean }) {
   });
   const glowOpacity = breathe.interpolate({
     inputRange: [0, 1],
-    outputRange: dimmed ? [0.28, 0.42] : [0.55, 0.85],
+    outputRange: dimmed ? [0.28, 0.42] : [0.7, 1],
   });
 
   return (
     <Animated.View
       pointerEvents="none"
-      style={[styles.moonRoot, { top: 12, right: 14, transform: [{ translateY }] }]}
+      style={[
+        styles.moonRoot,
+        {
+          // Sit in the top bar row, just left of the weather chip
+          top: Math.max(insets.top, 0) + 2,
+          right: 102,
+          transform: [{ translateY }],
+        },
+      ]}
     >
       <Animated.View
         style={[
           styles.moonBloomOuter,
-          { opacity: glowOpacity, backgroundColor: 'rgba(180,200,255,0.18)' },
+          {
+            opacity: glowOpacity,
+            backgroundColor: dimmed
+              ? 'rgba(180,200,255,0.16)'
+              : 'rgba(200,215,255,0.34)',
+          },
         ]}
       />
-      <View style={[styles.moonBloomMid, dimmed && { opacity: 0.55 }]} />
+      <View
+        style={[
+          styles.moonBloomMid,
+          dimmed
+            ? { opacity: 0.55 }
+            : { opacity: 0.95, backgroundColor: 'rgba(220,230,255,0.32)' },
+        ]}
+      />
       <View style={[styles.moonDisc, dimmed && { opacity: 0.7 }]}>
         <View style={styles.moonHighlight} />
         <View style={styles.moonShade} />
@@ -408,6 +477,7 @@ function SoftSun({
   tone: SunTone;
   veiled?: boolean;
 }) {
+  const insets = useSafeAreaInsets();
   const breathe = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     const loop = Animated.loop(
@@ -439,14 +509,15 @@ function SoftSun({
     outputRange: veiled ? [0.25, 0.4] : [0.55, 0.9],
   });
 
+  // Anchor just left of the weather chip in the sticky top bar
   const layout =
     tone === 'dawn'
-      ? { top: 28, right: 28, size: 132 }
+      ? { top: Math.max(insets.top, 0), right: 112, size: 78 }
       : tone === 'dusk'
-        ? { top: 22, right: 18, size: 148 }
+        ? { top: Math.max(insets.top, 0) - 2, right: 108, size: 82 }
         : tone === 'heat'
-          ? { top: -8, right: -4, size: 168 }
-          : { top: -4, right: 2, size: 150 };
+          ? { top: Math.max(insets.top, 0) - 4, right: 104, size: 88 }
+          : { top: Math.max(insets.top, 0) - 2, right: 110, size: 80 };
 
   const outer =
     tone === 'dawn'
@@ -473,7 +544,7 @@ function SoftSun({
           ? '#FFE8A0'
           : '#FFF4C8';
 
-  const discSize = tone === 'heat' ? 52 : tone === 'dusk' ? 46 : 42;
+  const discSize = tone === 'heat' ? 36 : tone === 'dusk' ? 34 : 32;
 
   return (
     <Animated.View
@@ -531,6 +602,7 @@ function SoftSun({
 }
 
 function SunRays({ tone }: { tone: SunTone }) {
+  const insets = useSafeAreaInsets();
   const anim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     const loop = Animated.loop(
@@ -571,7 +643,14 @@ function SunRays({ tone }: { tone: SunTone }) {
   return (
     <Animated.View
       pointerEvents="none"
-      style={[styles.rayStage, { opacity, top: tone === 'dawn' ? 10 : -6, right: -10 }]}
+      style={[
+        styles.rayStage,
+        {
+          opacity,
+          top: Math.max(insets.top, 0) - 8,
+          right: 94,
+        },
+      ]}
     >
       {rays.map((deg) => (
         <View
@@ -581,7 +660,7 @@ function SunRays({ tone }: { tone: SunTone }) {
             {
               backgroundColor: color,
               transform: [{ rotate: `${deg}deg` }],
-              height: tone === 'heat' ? 130 : 110,
+              height: tone === 'heat' ? 72 : 58,
             },
           ]}
         />
@@ -645,6 +724,175 @@ function FloatingCloud({ cloud }: { cloud: CloudSpec }) {
         contentFit="contain"
       />
     </Animated.View>
+  );
+}
+
+/**
+ * Natural breeze pass — soft atmospheric haze, not cartoon ribbons.
+ * Runs about every 4s across every weather.
+ */
+function WindFlow({ night, width }: { night: boolean; width: number }) {
+  const progress = useRef(new Animated.Value(0)).current;
+  const veil = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    let cancelled = false;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+    const run = () => {
+      if (cancelled) return;
+      progress.setValue(0);
+      veil.setValue(0);
+      Animated.parallel([
+        Animated.timing(progress, {
+          toValue: 1,
+          duration: 4800,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+        Animated.sequence([
+          Animated.timing(veil, {
+            toValue: 1,
+            duration: 1400,
+            easing: Easing.out(Easing.quad),
+            useNativeDriver: true,
+          }),
+          Animated.timing(veil, {
+            toValue: 0,
+            duration: 2800,
+            easing: Easing.inOut(Easing.quad),
+            useNativeDriver: true,
+          }),
+        ]),
+      ]).start(({ finished }) => {
+        if (!finished || cancelled) return;
+        timeoutId = setTimeout(run, 4000);
+      });
+    };
+
+    timeoutId = setTimeout(run, 1600);
+    return () => {
+      cancelled = true;
+      if (timeoutId) clearTimeout(timeoutId);
+      progress.stopAnimation();
+      veil.stopAnimation();
+    };
+  }, [progress, veil]);
+
+  // Irregular wisps — thin, staggered, slightly different paths
+  const wisps = useMemo(
+    () =>
+      [
+        { top: 0.04, h: 56, lag: 0.0, driftY: 6, w: 0.9, op: 0.09 },
+        { top: 0.14, h: 38, lag: 0.06, driftY: -4, w: 0.72, op: 0.07 },
+        { top: 0.26, h: 48, lag: 0.03, driftY: 8, w: 0.95, op: 0.08 },
+        { top: 0.4, h: 32, lag: 0.1, driftY: -5, w: 0.65, op: 0.06 },
+        { top: 0.52, h: 52, lag: 0.05, driftY: 7, w: 0.88, op: 0.085 },
+        { top: 0.66, h: 36, lag: 0.12, driftY: -3, w: 0.7, op: 0.065 },
+        { top: 0.78, h: 44, lag: 0.08, driftY: 5, w: 0.82, op: 0.07 },
+        { top: 0.9, h: 40, lag: 0.14, driftY: -6, w: 0.75, op: 0.06 },
+      ].map((w, i) => ({
+        ...w,
+        id: `wisp-${i}`,
+        topPx: Math.round(w.top * 250),
+        opacity: night ? w.op * 0.85 : w.op,
+      })),
+    [night],
+  );
+
+  const veilOpacity = veil.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, night ? 0.05 : 0.07],
+  });
+
+  return (
+    <View style={styles.windLayer} pointerEvents="none">
+      <Animated.View
+        style={[
+          StyleSheet.absoluteFill,
+          {
+            opacity: veilOpacity,
+            backgroundColor: night
+              ? 'rgba(180,200,240,0.35)'
+              : 'rgba(255,255,255,0.45)',
+          },
+        ]}
+      />
+      {wisps.map((wisp) => {
+        const start = 0.02 + wisp.lag;
+        const mid = Math.min(0.72, start + 0.42);
+        const end = Math.min(0.96, start + 0.72);
+        const bandW = width * wisp.w;
+        const translateX = progress.interpolate({
+          inputRange: [0, start, mid, end, 1],
+          outputRange: [
+            -bandW * 0.35,
+            -bandW * 0.35,
+            width * 0.35,
+            width * 0.85,
+            width * 0.85,
+          ],
+        });
+        const translateY = progress.interpolate({
+          inputRange: [0, 0.5, 1],
+          outputRange: [0, wisp.driftY, wisp.driftY * 0.4],
+        });
+        const opacity = progress.interpolate({
+          inputRange: [0, start, start + 0.12, mid, end, 1],
+          outputRange: [0, 0, wisp.opacity, wisp.opacity * 0.7, 0, 0],
+        });
+        return (
+          <Animated.View
+            key={wisp.id}
+            style={{
+              position: 'absolute',
+              top: wisp.topPx,
+              left: 0,
+              width: bandW,
+              height: wisp.h,
+              opacity,
+              transform: [
+                { translateX },
+                { translateY },
+                { rotate: `${wisp.driftY > 0 ? -2.5 : 2}deg` },
+              ],
+              overflow: 'hidden',
+            }}
+          >
+            <LinearGradient
+              colors={
+                night
+                  ? [
+                      'rgba(190,210,245,0)',
+                      'rgba(200,220,255,0.35)',
+                      'rgba(175,200,240,0.12)',
+                      'rgba(190,210,245,0)',
+                    ]
+                  : [
+                      'rgba(255,255,255,0)',
+                      'rgba(255,255,255,0.4)',
+                      'rgba(255,255,255,0.12)',
+                      'rgba(255,255,255,0)',
+                    ]
+              }
+              start={{ x: 0, y: 0.5 }}
+              end={{ x: 1, y: 0.5 }}
+              style={StyleSheet.absoluteFill}
+            />
+            <LinearGradient
+              colors={[
+                'rgba(255,255,255,0)',
+                'rgba(255,255,255,0.15)',
+                'rgba(255,255,255,0)',
+              ]}
+              start={{ x: 0.5, y: 0 }}
+              end={{ x: 0.5, y: 1 }}
+              style={StyleSheet.absoluteFill}
+            />
+          </Animated.View>
+        );
+      })}
+    </View>
   );
 }
 
@@ -724,42 +972,67 @@ function AtmosphereLayers({
   if (night) {
     return (
       <>
+        {/* Deep black crown — reads as true night */}
         <LinearGradient
           colors={[
-            'rgba(2,4,14,0.55)',
-            'rgba(20,30,70,0.2)',
-            'rgba(70,50,110,0.18)',
-            'rgba(2,4,14,0)',
+            'rgba(0,0,0,0.72)',
+            'rgba(0,0,0,0.35)',
+            'rgba(8,12,28,0.12)',
+            'rgba(0,0,0,0)',
           ]}
-          locations={[0, 0.35, 0.72, 1]}
+          locations={[0, 0.28, 0.58, 1]}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+          style={styles.fill}
+        />
+        <LinearGradient
+          colors={[
+            'rgba(0,0,0,0.4)',
+            'rgba(18,28,70,0.16)',
+            'rgba(50,40,90,0.12)',
+            'rgba(0,0,0,0)',
+          ]}
+          locations={[0, 0.34, 0.7, 1]}
           start={{ x: 1, y: 0 }}
           end={{ x: 0, y: 1 }}
           style={styles.fill}
         />
         <LinearGradient
           colors={[
-            'rgba(200,215,255,0.2)',
-            'rgba(140,160,230,0.07)',
-            'rgba(40,50,100,0)',
+            'rgba(160,185,240,0.14)',
+            'rgba(110,140,210,0.05)',
+            'rgba(40,50,90,0)',
           ]}
           locations={[0, 0.4, 1]}
-          start={{ x: 0.92, y: 0 }}
+          start={{ x: 0.9, y: 0 }}
           end={{ x: 0.15, y: 0.85 }}
           style={styles.fill}
         />
         {skyWeather === 'clear' ? (
-          <LinearGradient
-            colors={[
-              'rgba(160,170,255,0)',
-              'rgba(150,160,230,0.07)',
-              'rgba(180,150,220,0.05)',
-              'rgba(160,170,255,0)',
-            ]}
-            locations={[0, 0.35, 0.55, 1]}
-            start={{ x: 0, y: 0.35 }}
-            end={{ x: 1, y: 0.55 }}
-            style={styles.fill}
-          />
+          <>
+            <LinearGradient
+              colors={[
+                'rgba(255,255,255,0)',
+                'rgba(180,195,240,0.07)',
+                'rgba(255,255,255,0)',
+              ]}
+              locations={[0, 0.48, 1]}
+              start={{ x: 0.08, y: 0.12 }}
+              end={{ x: 0.92, y: 0.7 }}
+              style={styles.fill}
+            />
+            <LinearGradient
+              colors={[
+                'rgba(0,0,0,0)',
+                'rgba(0,0,0,0)',
+                'rgba(70,55,110,0.14)',
+              ]}
+              locations={[0, 0.55, 1]}
+              start={{ x: 0.5, y: 0.3 }}
+              end={{ x: 0.5, y: 1 }}
+              style={styles.fill}
+            />
+          </>
         ) : null}
       </>
     );
@@ -920,7 +1193,6 @@ export function ClimateHeaderBackdrop({ weather }: Props) {
   const clouds = useMemo(() => buildClouds(weather, W), [weather, W]);
   const stars = useMemo(() => {
     if (!night) return [];
-    if (Platform.OS === 'web') return buildStars(W, 'few');
     if (skyWeather === 'clear') return buildStars(W, 'full');
     if (skyWeather === 'cloudy') return buildStars(W, 'sparse');
     if (skyWeather === 'rain' || skyWeather === 'storm') {
@@ -982,6 +1254,8 @@ export function ClimateHeaderBackdrop({ weather }: Props) {
 
       <AtmosphereLayers weather={weather} washEnd={washEnd} />
 
+      <WindFlow night={night} width={W} />
+
       {skyWeather === 'fog' ? (
         <>
           <LinearGradient
@@ -1013,6 +1287,7 @@ export function ClimateHeaderBackdrop({ weather }: Props) {
         {stars.map((star) => (
           <TwinkleStar key={`${weather.mood}-${star.id}`} star={star} />
         ))}
+        {night && skyWeather === 'clear' ? <ShootingStar width={W} /> : null}
         {showRays ? <SunRays tone={sunTone} /> : null}
         {showMoon ? <SoftMoon dimmed={moonDimmed} /> : null}
         {showSun ? <SoftSun tone={sunTone} veiled={sunVeiled} /> : null}
@@ -1037,40 +1312,66 @@ export function ClimateHeaderBackdrop({ weather }: Props) {
   );
 }
 
-/** Tiny sun/moon for the header weather chip. */
+/** Single colorful weather emoji for the header chip / hourly sheet. */
 export function WeatherChipOrb({
   night,
   size = 16,
+  skyWeather = 'clear',
+  dayPart,
 }: {
   night: boolean;
   size?: number;
+  skyWeather?: SkyWeather;
+  dayPart?: DayPart;
+  color?: string;
 }) {
-  if (night) {
-    return (
-      <View
-        style={{
-          width: size,
-          height: size,
-          borderRadius: size / 2,
-          backgroundColor: '#E8EEFF',
-          borderWidth: StyleSheet.hairlineWidth,
-          borderColor: 'rgba(255,255,255,0.55)',
-        }}
-      />
-    );
-  }
+  const symbol = resolveWeatherSymbol({ night, skyWeather, dayPart });
+
   return (
-    <View
+    <Text
       style={{
-        width: size,
-        height: size,
-        borderRadius: size / 2,
-        backgroundColor: '#FFE8A8',
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: 'rgba(255,220,140,0.8)',
+        fontSize: size,
+        lineHeight: size + 2,
+        includeFontPadding: false,
+        textAlign: 'center',
       }}
-    />
+      accessibilityElementsHidden
+      importantForAccessibility="no"
+    >
+      {symbol}
+    </Text>
   );
+}
+
+function resolveWeatherSymbol({
+  night,
+  skyWeather,
+  dayPart,
+}: {
+  night: boolean;
+  skyWeather: SkyWeather;
+  dayPart?: DayPart;
+}): string {
+  switch (skyWeather) {
+    case 'storm':
+      return '⛈️';
+    case 'rain':
+      return '🌧️';
+    case 'snow':
+      return '🌨️';
+    case 'fog':
+      return '🌫️';
+    case 'cloudy':
+      return night ? '☁️' : '⛅';
+    case 'heat':
+      return '🌞';
+    case 'clear':
+    default:
+      if (night) return '🌙';
+      if (dayPart === 'morning') return '🌅';
+      if (dayPart === 'evening') return '🌇';
+      return '☀️';
+  }
 }
 
 const styles = StyleSheet.create({
@@ -1081,6 +1382,11 @@ const styles = StyleSheet.create({
   },
   fill: {
     ...StyleSheet.absoluteFill,
+  },
+  windLayer: {
+    ...StyleSheet.absoluteFill,
+    zIndex: 3,
+    overflow: 'hidden',
   },
   stage: {
     ...StyleSheet.absoluteFill,
@@ -1117,28 +1423,28 @@ const styles = StyleSheet.create({
   },
   moonRoot: {
     position: 'absolute',
-    width: 120,
-    height: 120,
+    width: 72,
+    height: 72,
     alignItems: 'center',
     justifyContent: 'center',
   },
   moonBloomOuter: {
     position: 'absolute',
-    width: 120,
-    height: 120,
-    borderRadius: 60,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
   },
   moonBloomMid: {
     position: 'absolute',
-    width: 78,
-    height: 78,
-    borderRadius: 39,
-    backgroundColor: 'rgba(210,220,255,0.22)',
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: 'rgba(210,220,255,0.18)',
   },
   moonDisc: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     backgroundColor: '#E8EEF8',
     overflow: 'hidden',
     borderWidth: StyleSheet.hairlineWidth,
@@ -1164,15 +1470,15 @@ const styles = StyleSheet.create({
   },
   rayStage: {
     position: 'absolute',
-    width: 160,
-    height: 160,
+    width: 100,
+    height: 100,
     alignItems: 'center',
     justifyContent: 'flex-start',
   },
   ray: {
     position: 'absolute',
-    top: 55,
-    width: 3,
+    top: 36,
+    width: 2,
     borderRadius: 2,
   },
 });

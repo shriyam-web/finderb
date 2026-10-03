@@ -23,41 +23,20 @@ import { useNotificationInbox } from '../../context/NotificationInboxContext';
 import { fonts } from '../../constants/typography';
 import { useTheme } from '../../context/ThemeContext';
 import { useTabScrollPadding } from '../../hooks/useAppSafeArea';
+import { otpSendLabel, useOtpCooldown } from '../../hooks/useOtpCooldown';
 import { createThemedStyles } from '../../hooks/useThemedStyles';
+import { requestUserEmailOtp, verifyUserEmailOtp } from '../../lib/authApi';
+import { displayAccountEmail } from '../../lib/syntheticEmail';
 import { SITE_URL } from '../../lib/supabase';
 import { getAppVersionLabel } from '../../lib/appVersion';
 import { TabSwipeHost } from '../../lib/tabSwipe';
 
 type MenuItem = {
   title: string;
-  subtitle?: string;
-  icon: keyof typeof Ionicons.glyphMap;
-  tint: string;
-  ink: string;
   onPress: () => void;
 };
 
 const SUPPORT_EMAIL = 'support@finderb.com';
-
-function providerMeta(provider?: string | null) {
-  const p = (provider || '').toLowerCase();
-  if (p === 'google') {
-    return { label: 'Google', icon: 'logo-google' as const };
-  }
-  if (p === 'truecaller') {
-    return { label: 'Truecaller', icon: 'call' as const };
-  }
-  if (p === 'password' || p === 'email') {
-    return { label: 'Email', icon: 'mail-outline' as const };
-  }
-  if (p) {
-    return {
-      label: p.charAt(0).toUpperCase() + p.slice(1),
-      icon: 'person-outline' as const,
-    };
-  }
-  return { label: 'Email', icon: 'mail-outline' as const };
-}
 
 export default function AccountScreen() {
   const { colors, isDark, toggleDark } = useTheme();
@@ -70,37 +49,62 @@ export default function AccountScreen() {
 
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
   const [nameDraft, setNameDraft] = useState('');
   const [emailDraft, setEmailDraft] = useState('');
   const [phoneDraft, setPhoneDraft] = useState('');
+  const [emailCode, setEmailCode] = useState('');
+  const [emailProof, setEmailProof] = useState('');
+  const [emailProofFor, setEmailProofFor] = useState('');
+  const [emailHint, setEmailHint] = useState('');
+  const [emailSending, setEmailSending] = useState(false);
+  const [emailVerifying, setEmailVerifying] = useState(false);
+  const emailOtp = useOtpCooldown();
 
   const startEdit = () => {
     if (!user) return;
     setNameDraft(user.fullName || '');
-    setEmailDraft(user.email || '');
-    setPhoneDraft(user.phone || '');
+    setEmailDraft(displayAccountEmail(user.email));
+    setEmailCode('');
+    setEmailProof('');
+    setEmailProofFor('');
+    setEmailHint('');
+    emailOtp.clearSent();
+    setPhoneDraft((user.phone || '').replace(/\D/g, '').replace(/^91/, '').slice(-10));
+    setSaveError('');
     setEditing(true);
   };
 
-  const provider = providerMeta(user?.authProvider);
   const providerKey = (user?.authProvider || '').toLowerCase();
   const emailLocked = providerKey === 'google';
-  const phoneLocked = providerKey === 'truecaller';
+  const savedEmail = displayAccountEmail(user?.email);
+  const nextEmail = emailDraft.trim().toLowerCase();
+  const emailChanging = !emailLocked && Boolean(nextEmail) && nextEmail !== savedEmail.toLowerCase();
+  const emailVerified = emailChanging && emailProofFor === nextEmail && Boolean(emailProof);
+  const phoneLocked = providerKey === 'truecaller' || providerKey.includes('whatsapp');
 
   const saveProfile = async () => {
     if (!user) return;
+    const digits = phoneDraft.replace(/\D/g, '');
+    if (!phoneLocked && digits && !/^[6-9]\d{9}$/.test(digits)) {
+      setSaveError('Enter a valid 10-digit Indian mobile number.');
+      return;
+    }
+    if (emailChanging && !emailVerified) {
+      setSaveError('Verify this email with the code we send you.');
+      return;
+    }
     setSaving(true);
+    setSaveError('');
     const result = await updateProfile({
       fullName: nameDraft.trim(),
-      email: emailLocked
-        ? user.email || undefined
-        : emailDraft.trim() || undefined,
-      phone: phoneLocked
-        ? user.phone || undefined
-        : phoneDraft.trim() || undefined,
+      email: emailLocked ? undefined : emailDraft.trim() || undefined,
+      phone: phoneLocked ? undefined : digits,
+      emailVerificationToken: emailChanging ? emailProof : undefined,
     });
     setSaving(false);
     if (!result.success) {
+      setSaveError(result.error);
       Alert.alert('Could not save', result.error);
       return;
     }
@@ -110,42 +114,22 @@ export default function AccountScreen() {
   const menu: MenuItem[] = [
     {
       title: 'Favourites',
-      subtitle: 'Places you saved',
-      icon: 'heart',
-      tint: '#FDECEC',
-      ink: '#C2410C',
       onPress: () => (user ? router.push('/favorites' as Href) : requestLogin('/favorites')),
     },
     {
       title: 'Saved blogs',
-      subtitle: 'Articles you bookmarked',
-      icon: 'bookmark',
-      tint: '#EEF2FF',
-      ink: '#4338CA',
       onPress: () => router.push('/saved-blogs' as Href),
     },
     {
       title: 'Notifications',
-      subtitle: 'FinderB updates',
-      icon: 'notifications',
-      tint: '#FFF4E5',
-      ink: '#C1621A',
       onPress: () => router.push('/(tabs)/notifications' as Href),
     },
     {
       title: 'For businesses',
-      subtitle: 'List and grow on FinderB',
-      icon: 'storefront',
-      tint: '#ECFDF5',
-      ink: '#047857',
       onPress: () => router.push('/business-app' as Href),
     },
     {
       title: 'Help & support',
-      subtitle: 'Email the FinderB team',
-      icon: 'chatbubbles',
-      tint: '#F0F9FF',
-      ink: '#0369A1',
       onPress: () => {
         void Linking.openURL(
           `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent('FinderB app support')}`,
@@ -158,7 +142,7 @@ export default function AccountScreen() {
     <TabSwipeHost>
       <View style={styles.root}>
         <SafeAreaView style={styles.safe} edges={['top']}>
-          <ScreenHeader title="Your Account" variant="bar" />
+          <ScreenHeader title="Your Account" variant="bar" style={styles.header} />
 
           <ScrollView
             contentContainerStyle={[styles.scroll, { paddingBottom: scrollBottomPad }]}
@@ -185,31 +169,21 @@ export default function AccountScreen() {
                     <Text style={styles.profileName} numberOfLines={1}>
                       {user.fullName}
                     </Text>
-                    <View style={styles.providerPill}>
-                      <Ionicons name={provider.icon} size={12} color={colors.teal} />
-                      <Text style={styles.providerText}>
-                        Signed in with {provider.label}
-                      </Text>
-                    </View>
+                    <Text style={styles.profileMeta} numberOfLines={1}>
+                      {displayAccountEmail(user.email) || 'No email'}
+                    </Text>
+                    <Text style={styles.profileMeta} numberOfLines={1}>
+                      {user.phone?.trim() || 'No mobile'}
+                    </Text>
                   </View>
-                  <Pressable style={styles.editBtn} onPress={startEdit} hitSlop={8}>
-                    <Ionicons name="create-outline" size={18} color={colors.ink} />
+                  <Pressable
+                    style={styles.editBtn}
+                    onPress={startEdit}
+                    hitSlop={8}
+                    accessibilityLabel="Edit profile"
+                  >
+                    <Ionicons name="create-outline" size={16} color={colors.ink} />
                   </Pressable>
-                </View>
-
-                <View style={styles.detailRows}>
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Email</Text>
-                    <Text style={styles.detailValue} numberOfLines={1}>
-                      {user.email?.trim() || 'Not added'}
-                    </Text>
-                  </View>
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Phone</Text>
-                    <Text style={styles.detailValue} numberOfLines={1}>
-                      {user.phone?.trim() || 'Not added'}
-                    </Text>
-                  </View>
                 </View>
 
                 {editing ? (
@@ -222,42 +196,144 @@ export default function AccountScreen() {
                       placeholderTextColor={colors.textSoft}
                     />
                     <Text style={styles.editLabel}>Email</Text>
-                    <TextInput
-                      value={emailDraft}
-                      onChangeText={setEmailDraft}
-                      autoCapitalize="none"
-                      keyboardType="email-address"
-                      editable={!emailLocked}
-                      style={[
-                        styles.editInput,
-                        emailLocked && styles.editInputLocked,
-                      ]}
-                      placeholder="Add your email"
-                      placeholderTextColor={colors.textSoft}
-                    />
+                    {emailLocked ? (
+                      <Text style={styles.lockedValue}>{displayAccountEmail(user.email) || 'Not added'}</Text>
+                    ) : (
+                      <View style={styles.emailRow}>
+                        <TextInput
+                          value={emailDraft}
+                          onChangeText={(value) => {
+                            const next = value.trim().toLowerCase();
+                            if (next !== nextEmail) setEmailCode('');
+                            setEmailDraft(value);
+                            setEmailHint('');
+                            setSaveError('');
+                          }}
+                          autoCapitalize="none"
+                          keyboardType="email-address"
+                          style={[styles.editInput, styles.emailInput]}
+                          placeholder="Add your email"
+                          placeholderTextColor={colors.textSoft}
+                        />
+                        {emailChanging && !emailVerified ? (
+                          <Pressable
+                            style={[
+                              styles.otpInline,
+                              (emailSending || emailOtp.isWaiting(nextEmail)) && styles.disabled,
+                            ]}
+                            disabled={emailSending || emailOtp.isWaiting(nextEmail)}
+                            onPress={() => {
+                              void (async () => {
+                                if (emailOtp.isWaiting(nextEmail)) return;
+                                setEmailCode('');
+                                setSaveError('');
+                                setEmailHint('');
+                                setEmailSending(true);
+                                const result = await requestUserEmailOtp(nextEmail);
+                                setEmailSending(false);
+                                if (!result.success) {
+                                  setSaveError(result.error);
+                                  return;
+                                }
+                                emailOtp.markSent(nextEmail);
+                                setEmailHint(result.message);
+                              })();
+                            }}
+                          >
+                            <Text style={styles.otpInlineText}>
+                              {emailSending
+                                ? '…'
+                                : otpSendLabel(
+                                    emailOtp.isSentTo(nextEmail),
+                                    emailOtp.isWaiting(nextEmail),
+                                    emailOtp.secondsLeft,
+                                  )}
+                            </Text>
+                          </Pressable>
+                        ) : null}
+                      </View>
+                    )}
                     {emailLocked ? (
                       <Text style={styles.editHint}>
-                        Email comes from Google and can&apos;t be changed here.
+                        This email comes from Google and stays as it is.
                       </Text>
-                    ) : null}
-                    <Text style={styles.editLabel}>Phone</Text>
-                    <TextInput
-                      value={phoneDraft}
-                      onChangeText={setPhoneDraft}
-                      keyboardType="phone-pad"
-                      editable={!phoneLocked}
-                      style={[
-                        styles.editInput,
-                        phoneLocked && styles.editInputLocked,
-                      ]}
-                      placeholder="Add your phone"
-                      placeholderTextColor={colors.textSoft}
-                    />
+                    ) : emailChanging ? (
+                      <View style={styles.otpBlock}>
+                        <Text style={styles.editHint}>
+                          {emailVerified
+                            ? 'Email verified. You can save it now.'
+                            : emailOtp.isSentTo(nextEmail)
+                              ? 'Enter the 6-digit code from your email.'
+                              : 'Send a code to this address before it is saved.'}
+                        </Text>
+                        {emailOtp.isSentTo(nextEmail) && !emailVerified ? (
+                          <>
+                            <TextInput
+                              value={emailCode}
+                              onChangeText={(value) => setEmailCode(value.replace(/\D/g, '').slice(0, 6))}
+                              keyboardType="number-pad"
+                              style={styles.editInput}
+                              placeholder="6-digit code"
+                              placeholderTextColor={colors.textSoft}
+                              maxLength={6}
+                            />
+                            <Pressable
+                              style={styles.otpBtnPrimary}
+                              disabled={emailVerifying || emailCode.length !== 6}
+                              onPress={() => {
+                                void (async () => {
+                                  setSaveError('');
+                                  setEmailVerifying(true);
+                                  const result = await verifyUserEmailOtp(nextEmail, emailCode);
+                                  setEmailVerifying(false);
+                                  if (!result.success || !result.emailVerificationToken) {
+                                    setSaveError(result.success ? 'Could not verify that email.' : result.error);
+                                    return;
+                                  }
+                                  setEmailProof(result.emailVerificationToken);
+                                  setEmailProofFor(nextEmail);
+                                  setEmailHint(result.message);
+                                })();
+                              }}
+                            >
+                              <Text style={styles.otpBtnPrimaryText}>{emailVerifying ? 'Checking…' : 'Verify'}</Text>
+                            </Pressable>
+                          </>
+                        ) : null}
+                        {emailHint ? <Text style={styles.emailHint}>{emailHint}</Text> : null}
+                      </View>
+                    ) : (
+                      <Text style={styles.editHint}>Add or change your email, then verify it with a code.</Text>
+                    )}
+                    <Text style={styles.editLabel}>Mobile number</Text>
                     {phoneLocked ? (
-                      <Text style={styles.editHint}>
-                        Phone comes from Truecaller and can&apos;t be changed
-                        here.
-                      </Text>
+                      <Text style={styles.lockedValue}>{user.phone?.trim() || 'Not added'}</Text>
+                    ) : (
+                      <View style={styles.phoneRow}>
+                        <Text style={styles.phonePrefix}>+91</Text>
+                        <TextInput
+                          value={phoneDraft}
+                          onChangeText={(value) => {
+                            setSaveError('');
+                            setPhoneDraft(value.replace(/\D/g, '').slice(0, 10));
+                          }}
+                          keyboardType="number-pad"
+                          style={[styles.editInput, styles.phoneInput]}
+                          placeholder="10-digit mobile"
+                          placeholderTextColor={colors.textSoft}
+                          maxLength={10}
+                        />
+                      </View>
+                    )}
+                    <Text style={styles.editHint}>
+                      {phoneLocked
+                        ? providerKey === 'truecaller'
+                          ? 'This number comes from Truecaller and stays as it is.'
+                          : 'This number comes from WhatsApp and stays as it is.'
+                        : 'Used for your FinderB account. A leading 0 or +91 is removed automatically.'}
+                    </Text>
+                    {saveError ? (
+                      <Text style={styles.saveError}>{saveError}</Text>
                     ) : null}
                     <View style={styles.editActions}>
                       <Pressable
@@ -274,27 +350,6 @@ export default function AccountScreen() {
                       />
                     </View>
                   </View>
-                ) : null}
-
-                {user.isBusinessAccount ? (
-                  <Pressable
-                    style={styles.bizBanner}
-                    onPress={() => router.push('/business-app' as Href)}
-                  >
-                    <Ionicons name="storefront-outline" size={18} color="#F2B45A" />
-                    <View style={styles.bizCopy}>
-                      <Text style={styles.bizTitle}>Business account</Text>
-                      <Text style={styles.bizBody}>
-                        You can use FinderB as usual. To manage{' '}
-                        {user.businessName || 'your shop'}, download FinderB Business.
-                      </Text>
-                    </View>
-                    <Ionicons
-                      name="chevron-forward"
-                      size={16}
-                      color="rgba(255,255,255,0.7)"
-                    />
-                  </Pressable>
                 ) : null}
               </View>
             ) : (
@@ -325,71 +380,77 @@ export default function AccountScreen() {
               </View>
             )}
 
-            <View style={styles.themeCard}>
-              <View style={styles.themeIcon}>
-                <Ionicons name="moon-outline" size={20} color={colors.accent} />
-              </View>
-              <View style={styles.menuCopy}>
-                <Text style={styles.menuTitle}>Dark mode</Text>
-                <Text style={styles.menuSub}>Easier on the eyes at night</Text>
-              </View>
-              <Switch
-                value={isDark}
-                onValueChange={() => toggleDark()}
-                trackColor={{ false: colors.borderStrong, true: colors.accent }}
-                thumbColor={isDark ? '#FAFAF9' : '#FFFFFF'}
-                ios_backgroundColor={colors.borderStrong}
-                accessibilityLabel="Dark mode"
-              />
-            </View>
+            {user?.isBusinessAccount ? (
+              <Pressable
+                style={styles.bizBanner}
+                onPress={() => void Linking.openURL(`${SITE_URL}/business/login`)}
+              >
+                <Ionicons name="storefront-outline" size={18} color="#F2B45A" />
+                <View style={styles.bizCopy}>
+                  <Text style={styles.bizTitle}>Business account</Text>
+                  <Text style={styles.bizBody}>
+                    You can use FinderB as usual. Business tools will be in this same app. To manage{' '}
+                    {user.businessName || 'your business'} right now, open the web panel.
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.7)" />
+              </Pressable>
+            ) : null}
 
             <View style={styles.menuCard}>
-              {menu.map((item, index) => (
+              <View style={styles.menuItem}>
+                <Text style={styles.menuTitle}>Dark mode</Text>
+                <Switch
+                  value={isDark}
+                  onValueChange={() => toggleDark()}
+                  trackColor={{ false: colors.borderStrong, true: '#2563EB' }}
+                  thumbColor="#FFFFFF"
+                  ios_backgroundColor={colors.borderStrong}
+                  accessibilityLabel="Dark mode"
+                />
+              </View>
+              {menu.map((item) => (
                 <Pressable
                   key={item.title}
                   style={({ pressed }) => [
                     styles.menuItem,
-                    index < menu.length - 1 && styles.menuItemBorder,
+                    styles.menuItemBorder,
                     pressed && styles.menuPressed,
                   ]}
                   onPress={item.onPress}
                 >
-                  <View style={[styles.menuIcon, { backgroundColor: item.tint }]}>
-                    <Ionicons name={item.icon} size={18} color={item.ink} />
-                    {item.title === 'Notifications' && unreadCount > 0 ? (
-                      <View style={styles.menuDot} />
-                    ) : null}
-                  </View>
-                  <View style={styles.menuCopy}>
-                    <Text style={styles.menuTitle}>{item.title}</Text>
-                    {item.subtitle ? (
-                      <Text style={styles.menuSub}>{item.subtitle}</Text>
-                    ) : null}
-                  </View>
-                  <Ionicons
-                    name="chevron-forward"
-                    size={16}
-                    color={colors.textSoft}
-                  />
+                  <Text style={styles.menuTitle}>{item.title}</Text>
+                  {item.title === 'Notifications' && unreadCount > 0 ? (
+                    <View style={styles.menuCount}>
+                      <Text style={styles.menuCountText}>
+                        {unreadCount > 9 ? '9+' : String(unreadCount)}
+                      </Text>
+                    </View>
+                  ) : null}
+                  <Ionicons name="chevron-forward" size={16} color={colors.textSoft} />
                 </Pressable>
               ))}
+              {user ? (
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.menuItem,
+                    styles.menuItemBorder,
+                    pressed && styles.menuPressed,
+                  ]}
+                  onPress={() => void signOut()}
+                >
+                  <Text style={[styles.menuTitle, styles.signOutTitle]}>Sign out</Text>
+                </Pressable>
+              ) : null}
             </View>
 
             {user ? (
-              <>
-                <PrimaryButton
-                  label="Sign out"
-                  variant="secondary"
-                  onPress={() => void signOut()}
-                  style={styles.signOut}
-                />
-                <Pressable
-                  onPress={() => router.push('/delete-account' as Href)}
-                  style={styles.deleteLink}
-                >
-                  <Text style={styles.deleteLinkText}>Delete account</Text>
-                </Pressable>
-              </>
+              <Pressable
+                onPress={() => router.push('/delete-account' as Href)}
+                style={styles.deleteLink}
+              >
+                <Text style={styles.deleteLinkText}>Delete account</Text>
+              </Pressable>
             ) : null}
 
             <View style={styles.legalRow}>
@@ -419,33 +480,38 @@ export default function AccountScreen() {
 
 const useStyles = createThemedStyles((colors) => ({
   root: { flex: 1, backgroundColor: colors.canvas },
-  safe: { flex: 1, backgroundColor: colors.canvas, paddingTop: 8 },
+  safe: { flex: 1, backgroundColor: colors.canvas },
+  header: {
+    paddingTop: 8,
+    paddingBottom: 8,
+  },
   scroll: {
     paddingHorizontal: 16,
-    paddingTop: 14,
+    paddingTop: 12,
   },
   loadingBox: {
     paddingVertical: 28,
     alignItems: 'center',
   },
   profileCard: {
-    padding: 16,
-    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    borderRadius: 18,
     backgroundColor: colors.white,
     borderWidth: 1,
     borderColor: colors.border,
-    marginBottom: 16,
-    gap: 14,
+    marginBottom: 12,
+    gap: 12,
   },
   profileTop: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
+    gap: 12,
   },
   avatar: {
-    width: 64,
-    height: 64,
-    borderRadius: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 18,
     backgroundColor: colors.muted,
   },
   avatarFallback: {
@@ -455,66 +521,32 @@ const useStyles = createThemedStyles((colors) => ({
   },
   avatarInitial: {
     fontFamily: fonts.bold,
-    fontSize: 24,
+    fontSize: 22,
     color: colors.white,
   },
   profileCopy: {
     flex: 1,
-    gap: 6,
+    gap: 2,
     minWidth: 0,
   },
   profileName: {
-    fontFamily: fonts.bold,
+    fontFamily: fonts.semiBold,
     fontSize: 18,
     color: colors.heading,
   },
-  providerPill: {
-    alignSelf: 'flex-start',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 999,
-    backgroundColor: colors.tealSoft,
-  },
-  providerText: {
-    fontFamily: fonts.medium,
-    fontSize: 12,
-    color: colors.teal,
+  profileMeta: {
+    fontFamily: fonts.regular,
+    fontSize: 13,
+    lineHeight: 18,
+    color: colors.textMuted,
   },
   editBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
+    width: 32,
+    height: 32,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.surfaceSoft,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  detailRows: {
-    gap: 10,
-    paddingTop: 2,
-  },
-  detailRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  detailLabel: {
-    fontFamily: fonts.medium,
-    fontSize: 12,
-    color: colors.textSoft,
-    width: 52,
-  },
-  detailValue: {
-    flex: 1,
-    textAlign: 'right',
-    fontFamily: fonts.semiBold,
-    fontSize: 14,
-    color: colors.heading,
   },
   editBlock: {
     gap: 8,
@@ -528,6 +560,12 @@ const useStyles = createThemedStyles((colors) => ({
     color: colors.textMuted,
     marginTop: 4,
   },
+  emailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  emailInput: { flex: 1 },
   editInput: {
     minHeight: 46,
     borderRadius: 12,
@@ -539,9 +577,31 @@ const useStyles = createThemedStyles((colors) => ({
     fontSize: 15,
     color: colors.ink,
   },
-  editInputLocked: {
-    opacity: 0.65,
-    backgroundColor: colors.canvas,
+  lockedValue: {
+    fontFamily: fonts.medium,
+    fontSize: 15,
+    lineHeight: 22,
+    color: colors.textMuted,
+    paddingVertical: 8,
+  },
+  phoneRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  phonePrefix: {
+    fontFamily: fonts.semiBold,
+    fontSize: 15,
+    color: colors.heading,
+    paddingHorizontal: 4,
+  },
+  phoneInput: {
+    flex: 1,
+  },
+  saveError: {
+    fontFamily: fonts.medium,
+    fontSize: 12,
+    color: colors.heat,
   },
   editHint: {
     fontFamily: fonts.regular,
@@ -550,6 +610,43 @@ const useStyles = createThemedStyles((colors) => ({
     marginTop: -2,
     marginBottom: 2,
   },
+  disabled: { opacity: 0.45 },
+  otpInline: {
+    minWidth: 76,
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 8,
+  },
+  otpInlineText: {
+    fontFamily: fonts.semiBold,
+    fontSize: 12,
+    color: '#FFFFFF',
+  },
+  otpBlock: { gap: 8, marginBottom: 4 },
+  otpActions: { flexDirection: 'row', gap: 8 },
+  otpBtn: {
+    flex: 1,
+    minHeight: 40,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  otpBtnText: { fontFamily: fonts.semiBold, fontSize: 13, color: colors.ink },
+  otpBtnPrimary: {
+    flex: 1,
+    minHeight: 40,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.ink,
+  },
+  otpBtnPrimaryText: { fontFamily: fonts.semiBold, fontSize: 13, color: colors.surface },
+  emailHint: { fontFamily: fonts.medium, fontSize: 12, color: colors.success },
   editActions: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -572,9 +669,11 @@ const useStyles = createThemedStyles((colors) => ({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    padding: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     borderRadius: 16,
     backgroundColor: '#12324A',
+    marginBottom: 12,
   },
   bizCopy: {
     flex: 1,
@@ -644,50 +743,31 @@ const useStyles = createThemedStyles((colors) => ({
     color: colors.success,
   },
   menuCard: {
-    borderRadius: 18,
+    borderRadius: 16,
     backgroundColor: colors.white,
     borderWidth: 1,
     borderColor: colors.border,
     overflow: 'hidden',
-    marginBottom: 16,
-  },
-  themeCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    padding: 14,
-    borderRadius: 18,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    marginBottom: 12,
-  },
-  themeIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: colors.accentSoft,
-    alignItems: 'center',
-    justifyContent: 'center',
+    marginBottom: 8,
   },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    paddingVertical: 13,
+    paddingVertical: 12,
     paddingHorizontal: 12,
   },
   menuItemBorder: {
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
   },
   menuPressed: {
     backgroundColor: colors.surfaceSoft,
   },
   menuIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 11,
+    width: 34,
+    height: 34,
+    borderRadius: 10,
     backgroundColor: colors.surfaceSoft,
     alignItems: 'center',
     justifyContent: 'center',
@@ -708,22 +788,38 @@ const useStyles = createThemedStyles((colors) => ({
     gap: 1,
   },
   menuTitle: {
-    fontFamily: fonts.semiBold,
+    flex: 1,
+    fontFamily: fonts.medium,
     fontSize: 15,
     color: colors.ink,
+  },
+  signOutTitle: {
+    color: colors.heat,
+  },
+  menuCount: {
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    paddingHorizontal: 5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#2563EB',
+    marginRight: 6,
+  },
+  menuCountText: {
+    fontFamily: fonts.medium,
+    fontSize: 11,
+    color: '#FFFFFF',
   },
   menuSub: {
     fontFamily: fonts.regular,
     fontSize: 12,
     color: colors.textSoft,
   },
-  signOut: {
-    marginBottom: 10,
-  },
   deleteLink: {
     alignItems: 'center',
-    paddingVertical: 8,
-    marginBottom: 16,
+    paddingVertical: 6,
+    marginBottom: 8,
   },
   deleteLinkText: {
     fontFamily: fonts.regular,

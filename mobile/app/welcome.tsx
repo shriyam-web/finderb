@@ -30,7 +30,7 @@ const SLIDES = [
     key: 'explore',
     icon: 'compass-outline' as const,
     title: 'Explore local categories',
-    body: 'Open Explore to browse shops, doctors, repairs, and more — then tap a listing for full details.',
+    body: 'Open Explore to browse businesses, doctors, repairs, and more — then tap a listing for full details.',
   },
   {
     key: 'contact',

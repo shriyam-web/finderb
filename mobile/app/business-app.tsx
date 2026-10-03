@@ -1,10 +1,9 @@
 import { useEffect, useRef } from 'react';
 import {
-  Alert,
   Animated,
   Easing,
   Image,
-  Platform,
+  Linking,
   Pressable,
   StyleSheet,
   Text,
@@ -19,6 +18,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { FinderBLogo } from '../components/BrandMark';
 import { fonts } from '../constants/typography';
 import { createThemedStyles } from '../hooks/useThemedStyles';
+import { SITE_URL } from '../lib/supabase';
 
 const NAVY = '#102C42';
 const GOLD = '#F2B45A';
@@ -36,7 +36,6 @@ export default function BusinessRegisterScreen() {
   const compact = height < 720 || width < 360;
   const fade = useRef(new Animated.Value(0)).current;
   const rise = useRef(new Animated.Value(24)).current;
-  const pulse = useRef(new Animated.Value(0.4)).current;
 
   useEffect(() => {
     Animated.parallel([
@@ -52,30 +51,10 @@ export default function BusinessRegisterScreen() {
         useNativeDriver: true,
       }),
     ]).start();
+  }, [fade, rise]);
 
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulse, {
-          toValue: 1,
-          duration: 1400,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulse, {
-          toValue: 0.4,
-          duration: 1400,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-        }),
-      ]),
-    ).start();
-  }, [fade, pulse, rise]);
-
-  const onDownload = () => {
-    Alert.alert(
-      'Coming soon',
-      'FinderB Business opens on the Play Store at launch.',
-    );
+  const openWebPanel = () => {
+    void Linking.openURL(`${SITE_URL}/business/login`);
   };
 
   return (
@@ -106,10 +85,6 @@ export default function BusinessRegisterScreen() {
           >
             <Ionicons name="arrow-back" size={20} color="#fff" />
           </Pressable>
-          <View style={styles.liveChip}>
-            <Animated.View style={[styles.liveDot, { opacity: pulse }]} />
-            <Text style={styles.liveText}>Coming soon</Text>
-          </View>
         </View>
 
         <Animated.View
@@ -124,10 +99,10 @@ export default function BusinessRegisterScreen() {
               <FinderBLogo size={compact ? 34 : 42} />
             </View>
             <Text style={[styles.brand, compact && styles.brandCompact]}>
-              FinderB Business
+              Business
             </Text>
             <Text style={[styles.line, compact && styles.lineCompact]}>
-              Run your shop. Reach your city.
+              Business tools will be in this same app. That side is not ready yet, so manage your listing on the web panel for now.
             </Text>
           </View>
 
@@ -147,21 +122,19 @@ export default function BusinessRegisterScreen() {
         <Animated.View style={[styles.footer, { opacity: fade }]}>
           <Pressable
             style={({ pressed }) => [styles.cta, pressed && styles.pressed]}
-            onPress={onDownload}
+            onPress={() => router.push('/(tabs)/business-register' as Href)}
             accessibilityRole="button"
-            accessibilityLabel="Get FinderB Business on Play Store"
+            accessibilityLabel="Register now"
           >
-            <Ionicons name="logo-google-playstore" size={18} color={NAVY} />
-            <Text style={styles.ctaText}>Get on Play Store</Text>
+            <Text style={styles.ctaText}>Register now</Text>
           </Pressable>
           <Pressable
-            onPress={() => router.replace('/(tabs)/home' as Href)}
-            hitSlop={8}
-            style={styles.skip}
+            style={({ pressed }) => [styles.secondary, pressed && styles.pressed]}
+            onPress={openWebPanel}
+            accessibilityRole="button"
+            accessibilityLabel="Manage on the web panel"
           >
-            <Text style={styles.skipText}>
-              {Platform.OS === 'ios' ? 'Continue exploring' : 'Keep exploring'}
-            </Text>
+            <Text style={styles.secondaryText}>Manage on web panel</Text>
           </Pressable>
         </Animated.View>
       </SafeAreaView>
@@ -184,7 +157,6 @@ const useStyles = createThemedStyles(() => ({
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingTop: 4,
   },
@@ -195,30 +167,6 @@ const useStyles = createThemedStyles(() => ({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(255,255,255,0.12)',
-  },
-  liveChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 7,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 999,
-    backgroundColor: 'rgba(242,180,90,0.18)',
-    borderWidth: 1,
-    borderColor: 'rgba(242,180,90,0.35)',
-  },
-  liveDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-    backgroundColor: GOLD,
-  },
-  liveText: {
-    fontFamily: fonts.semiBold,
-    fontSize: 11,
-    letterSpacing: 0.4,
-    textTransform: 'uppercase',
-    color: GOLD,
   },
   stage: {
     flex: 1,
@@ -260,7 +208,7 @@ const useStyles = createThemedStyles(() => ({
     lineHeight: 24,
     letterSpacing: -0.2,
     color: 'rgba(255,255,255,0.82)',
-    maxWidth: 300,
+    maxWidth: 340,
   },
   lineCompact: {
     fontSize: 15,
@@ -313,14 +261,19 @@ const useStyles = createThemedStyles(() => ({
     fontSize: 15,
     color: NAVY,
   },
-  skip: {
+  secondary: {
     alignItems: 'center',
-    paddingVertical: 6,
+    justifyContent: 'center',
+    minHeight: 48,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.28)',
+    paddingHorizontal: 18,
   },
-  skipText: {
-    fontFamily: fonts.medium,
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.65)',
+  secondaryText: {
+    fontFamily: fonts.semiBold,
+    fontSize: 14,
+    color: '#FFFFFF',
   },
   pressed: { opacity: 0.9 },
 }));

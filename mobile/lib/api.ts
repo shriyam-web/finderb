@@ -1,10 +1,19 @@
 import { SITE_URL, isSupabaseConfigured, supabase } from './supabase';
 import { getBusinessOpenStatus } from './businessHours';
 import { lookupCityCoords, INDIA_CITY_COORDS } from './cityCoords';
-import { getDistanceKm } from './geo';
+import { getDistanceKm, sortByUserLocation, type Coords } from './geo';
 import { mapMerchantRow, merchantHasPublicPhoto, rankMerchants, type Merchant } from './merchants';
 import { applyFixedSlotOrder, getCategoryFixedSlotIds } from './categoryFixedSlots';
-import { inferCategoryLevel } from './categoryTree';
+import {
+  EXACT_CATEGORY_SCORE,
+  categoryMatchScore,
+  exactMissNotice,
+  merchantMatchTier,
+  detectSearchIntents,
+  parseDirectoryQuery,
+  relatedSearchTerms,
+  searchDisplayLabel,
+} from './searchPrecision';
 import { buildHomeFeaturedGroups } from './featuredCategoryGroups';
 import { createSessionMemo } from './sessionMemo';
 
@@ -59,6 +68,29 @@ function resolveMediaUrl(value: string): string {
 
 function escapeIlikePattern(value: string): string {
   return value.replace(/[%_\\]/g, '\\$&');
+}
+
+/** Short words must match a whole token. "ca" must not fetch every "car". */
+function ilikeClauses(column: string, needle: string): string[] {
+  const escaped = escapeIlikePattern(needle.trim());
+  if (!escaped) return [];
+  if (escaped.length <= 2) {
+    return [
+      `${column}.ilike.${escaped}`,
+      `${column}.ilike.${escaped} %`,
+      `${column}.ilike.% ${escaped}`,
+      `${column}.ilike.% ${escaped} %`,
+    ];
+  }
+  if (escaped.length === 3) {
+    return [
+      `${column}.ilike.${escaped}`,
+      `${column}.ilike.${escaped}%`,
+      `${column}.ilike.% ${escaped}%`,
+      `${column}.ilike.%-${escaped}%`,
+    ];
+  }
+  return [`${column}.ilike.%${escaped}%`];
 }
 
 function toCategoryLookupSlug(raw: string): string {
@@ -480,12 +512,39 @@ function merchantListKey(categoryQuery: string) {
   return categoryQuery.trim().toLowerCase();
 }
 
+let listingOrigin: { coords: Coords | null; city: string | null } = {
+  coords: null,
+  city: null,
+};
+let listingOriginKey = '';
+const nearestFirstMemo = new WeakMap<Merchant[], { key: string; list: Merchant[] }>();
+
+/** Where the user is; category listings are ranked nearest-first from here. */
+export function setListingOrigin(coords: Coords | null, city: string | null) {
+  listingOrigin = { coords, city: city?.trim() || null };
+  listingOriginKey = [
+    coords ? `${coords.lat.toFixed(4)},${coords.lng.toFixed(4)}` : '',
+    listingOrigin.city?.toLowerCase() ?? '',
+  ].join('|');
+}
+
+/** Ranks the whole category before paging, so page 1 really holds the closest businesses. */
+function nearestFirst(list: Merchant[]): Merchant[] {
+  if (!listingOrigin.coords && !listingOrigin.city) return list;
+  const hit = nearestFirstMemo.get(list);
+  if (hit && hit.key === listingOriginKey) return hit.list;
+  const sorted = sortByUserLocation(list, listingOrigin);
+  nearestFirstMemo.set(list, { key: listingOriginKey, list: sorted });
+  return sorted;
+}
+
 function paginateMerchants(
-  list: Merchant[],
+  rawList: Merchant[],
   page: number,
   pageSize: number,
   error?: string,
 ): BusinessPage {
+  const list = nearestFirst(rawList);
   const total = list.length;
   return {
     merchants: list.slice((page - 1) * pageSize, page * pageSize),
@@ -771,12 +830,11 @@ export async function searchCategoriesByQuery(query: string): Promise<{
   const q = query.trim();
   if (!q) return { categories: [] };
 
-  const escaped = escapeIlikePattern(q);
   const { data, error } = await supabase
     .from('categories')
     .select(CATEGORY_SELECT)
     .eq('status', 'Active')
-    .or(`name.ilike.%${escaped}%,slug.ilike.%${escaped}%`)
+    .or([...ilikeClauses('name', q), ...ilikeClauses('slug', q)].join(','))
     .limit(40);
 
   if (error) {
@@ -786,9 +844,20 @@ export async function searchCategoriesByQuery(query: string): Promise<{
   const mapped = (data ?? [])
     .map((row) => mapCategoryRow(row as Record<string, unknown>))
     .filter((cat) => cat.name);
+  const required = parseDirectoryQuery(q).required;
 
   return {
-    categories: mapped.filter((cat) => inferCategoryLevel(cat, mapped) !== 0),
+    categories: mapped
+      .map((cat) => ({
+        cat,
+        score: categoryMatchScore(cat.name, cat.slug, required),
+      }))
+      .filter((row) => row.score >= EXACT_CATEGORY_SCORE)
+      .sort(
+        (a, b) =>
+          b.score - a.score || (b.cat.businessCount || 0) - (a.cat.businessCount || 0),
+      )
+      .map((row) => row.cat),
   };
 }
 
@@ -798,7 +867,7 @@ export function normalizeAiQuery(raw: string): string {
     .trim()
     .replace(/\s+/g, ' ')
     .replace(
-      /\b(near me|nearby|around me|closest|nearest|best|top|good|open now|currently open|cheap|budget|affordable|in my area|verified|finder.?b verified|with reviews|highly rated|top rated|emergency|urgent|please|looking for|find me|show me|i need|i want)\b/gi,
+      /\b(near me|nearby|near by|around me|around here|close by|close to me|closest|nearest|best|top|popular|good|open now|currently open|open today|open late|open|cheap|budget|affordable|in my area|verified|finder.?b verified|with reviews|reviews|highly rated|top rated|best rated|good rating|high rating|well reviewed|emergency|urgent|please|looking for|find me|show me|i need|i want|offers?|discounts?|high discount|deals?|sale|promo|coupon)\b/gi,
       ' ',
     )
     .replace(/\b(in|near|around|at)\s+[A-Za-z][A-Za-z\s.'-]{1,28}/gi, ' ')
@@ -820,115 +889,8 @@ export type AiSearchOptions = {
   forceIntents?: AiSearchIntent[];
 };
 
-const AI_STOPWORDS = new Set([
-  'the',
-  'and',
-  'for',
-  'with',
-  'from',
-  'that',
-  'this',
-  'some',
-  'any',
-  'near',
-  'area',
-  'shop',
-  'store',
-  'place',
-  'places',
-  'local',
-  'india',
-]);
-
-const AI_SYNONYMS: Array<{ match: RegExp; needles: string[] }> = [
-  {
-    match: /\b(dentist|dental|tooth|teeth|orthodont)/i,
-    needles: ['dentist', 'dental', 'orthodontist'],
-  },
-  {
-    match: /\b(restaurant|cafe|café|food|dining|dosa|bakery|eatery|dhaba|biryani)\b/i,
-    needles: ['restaurant', 'cafe', 'bakery', 'food'],
-  },
-  {
-    match: /\b(salon|parlour|parlor|hair|beauty|spa|makeup|mehndi)\b/i,
-    needles: ['salon', 'beauty', 'spa'],
-  },
-  {
-    match: /\b(plumber|plumbing|pipe|leak|tap|drain)\b/i,
-    needles: ['plumber', 'plumbing'],
-  },
-  {
-    match: /\b(gym|fitness|workout|yoga|crossfit)\b/i,
-    needles: ['gym', 'fitness', 'yoga'],
-  },
-  {
-    match: /\b(ca|chartered accountant|accountant|tax|gst|auditor)\b/i,
-    needles: ['accountant', 'CA', 'tax'],
-  },
-  {
-    match: /\b(doctor|clinic|hospital|physician|medico|mbbs|specialist)\b/i,
-    needles: ['doctor', 'clinic', 'hospital'],
-  },
-  {
-    match: /\b(electrician|electric|wiring|inverter)\b/i,
-    needles: ['electrician', 'electric'],
-  },
-  {
-    match: /\b(lawyer|advocate|attorney|legal)\b/i,
-    needles: ['lawyer', 'advocate', 'legal'],
-  },
-  {
-    match: /\b(pg|hostel|paying guest|co-?living)\b/i,
-    needles: ['PG', 'hostel'],
-  },
-  {
-    match: /\b(hotel|stay|lodging|resort|guest house)\b/i,
-    needles: ['hotel', 'resort'],
-  },
-  {
-    match: /\b(pharmacy|chemist|medical store|medicine)\b/i,
-    needles: ['pharmacy', 'chemist'],
-  },
-  {
-    match: /\b(car|auto|garage|mechanic|puncture|tyre|tire)\b/i,
-    needles: ['mechanic', 'garage', 'auto'],
-  },
-  {
-    match: /\b(tuition|coaching|classes|tutor|academy)\b/i,
-    needles: ['tuition', 'coaching', 'tutor'],
-  },
-  {
-    match: /\b(electronics|mobile|laptop|repair|service centre|service center)\b/i,
-    needles: ['electronics', 'mobile', 'repair'],
-  },
-  {
-    match: /\b(sweet|mithai|namkeen)\b/i,
-    needles: ['sweet', 'mithai', 'bakery'],
-  },
-];
-
 export function parseAiSearchIntents(raw: string): AiSearchIntent[] {
-  const text = raw.toLowerCase();
-  const intents: AiSearchIntent[] = [];
-  if (/\b(open now|currently open|open late|24\s*hours?|emergency|urgent)\b/.test(text)) {
-    intents.push('open-now');
-  }
-  if (/\b(best|top|good reviews?|highly rated|top rated|rating|rated)\b/.test(text)) {
-    intents.push('top-rated');
-  }
-  if (/\b(verified|trusted|finder.?b verified)\b/.test(text)) {
-    intents.push('verified');
-  }
-  if (/\b(near me|nearby|around me|closest|nearest|in my area)\b/.test(text)) {
-    intents.push('nearest');
-  }
-  if (/\b(offer|offers|discount|deal|deals|sale)\b/.test(text)) {
-    intents.push('offers');
-  }
-  if (/\b(cheap|budget|affordable|low cost|inexpensive)\b/.test(text)) {
-    intents.push('budget');
-  }
-  return intents;
+  return detectSearchIntents(raw);
 }
 
 /** Pull "in Indore" / city names from the query for geo-aware ranking. */
@@ -953,42 +915,6 @@ export function extractAiPlaceHint(raw: string): string | null {
     }
   }
   return null;
-}
-
-function expandAiNeedles(normalized: string): string[] {
-  const base = normalized.trim();
-  if (!base) return [];
-  const needles = new Set<string>([base]);
-
-  const words = base
-    .split(/[\s,/|]+/)
-    .map((w) => w.trim())
-    .filter(
-      (w) =>
-        w.length > 2 &&
-        !AI_STOPWORDS.has(w.toLowerCase()) &&
-        !/^\d+$/.test(w),
-    );
-
-  // Prefer bigrams before single noisy tokens
-  for (let i = 0; i < words.length - 1; i++) {
-    needles.add(`${words[i]} ${words[i + 1]}`);
-  }
-  for (const word of words) needles.add(word);
-
-  for (const rule of AI_SYNONYMS) {
-    if (rule.match.test(base)) {
-      for (const n of rule.needles) needles.add(n);
-    }
-  }
-
-  // Keep phrase first, then unique expansions
-  const ordered = [...needles].sort((a, b) => {
-    if (a === base) return -1;
-    if (b === base) return 1;
-    return b.length - a.length;
-  });
-  return ordered.slice(0, 8);
 }
 
 function merchantHasOfferLabel(merchant: Merchant): boolean {
@@ -1024,74 +950,11 @@ function effectiveRating(merchant: Merchant): number | null {
   return null;
 }
 
-/** How well a merchant matches the user's actual words — drives accuracy. */
-function aiRelevanceScore(
-  merchant: Merchant,
-  needles: string[],
-  normalizedQuery: string,
-  placeHint: string | null,
-): number {
-  const q = normalizedQuery.toLowerCase().trim();
-  const name = merchant.name.toLowerCase();
-  const category = (merchant.category || '').toLowerCase();
-  const services = (merchant.services || []).join(' ').toLowerCase();
-  const keywords = (merchant.keywords || []).join(' ').toLowerCase();
-  const about = (merchant.about || '').toLowerCase();
-  const city = `${merchant.city || ''} ${merchant.location || ''} ${merchant.businessAddress || ''}`.toLowerCase();
-  const haystack = `${name} ${category} ${services} ${keywords} ${about}`;
-
-  let score = 0;
-
-  if (q) {
-    if (name === q) score += 120;
-    else if (name.startsWith(q)) score += 90;
-    else if (name.includes(q)) score += 70;
-    if (category === q) score += 55;
-    else if (category.includes(q)) score += 40;
-    if (keywords.includes(q)) score += 45;
-    if (services.includes(q)) score += 35;
-  }
-
-  for (const needle of needles) {
-    const n = needle.toLowerCase().trim();
-    if (!n || n === q) continue;
-    if (name.includes(n)) score += n.includes(' ') ? 38 : 28;
-    if (category.includes(n)) score += 32;
-    if (keywords.split(/\s+/).some((k) => k === n) || keywords.includes(n)) {
-      score += 30;
-    }
-    if (services.includes(n)) score += 22;
-    if (about.includes(n)) score += 6;
-  }
-
-  // Token coverage — reward merchants that hit more query words
-  const tokens = q.split(/\s+/).filter((t) => t.length > 2);
-  if (tokens.length > 1) {
-    const hits = tokens.filter((t) => haystack.includes(t)).length;
-    score += hits * 12;
-  }
-
-  if (placeHint) {
-    const place = placeHint.toLowerCase();
-    if (city.includes(place)) score += 50;
-  }
-
-  if (merchant.isVerified) score += 8;
-  const rating = effectiveRating(merchant);
-  if (rating != null) {
-    score += rating * 2;
-    score += Math.min(merchant.reviewsCount || 0, 40) * 0.15;
-  }
-
-  return score;
-}
-
 function applyAiIntents(
   merchants: Merchant[],
   intents: AiSearchIntent[],
   coords?: { lat: number; lng: number } | null,
-  needles: string[] = [],
-  normalizedQuery = '',
+  terms: string[] = [],
   placeHint: string | null = null,
 ): Merchant[] {
   let rows = [...merchants];
@@ -1121,9 +984,9 @@ function applyAiIntents(
   const preferBudget = intents.includes('budget');
 
   rows.sort((a, b) => {
-    const relA = aiRelevanceScore(a, needles, normalizedQuery, placeHint);
-    const relB = aiRelevanceScore(b, needles, normalizedQuery, placeHint);
-    if (relB !== relA) return relB - relA;
+    const tierA = merchantMatchTier(a, terms);
+    const tierB = merchantMatchTier(b, terms);
+    if (tierA !== tierB) return tierA - tierB;
 
     if (preferOpen) {
       const aOpen = getBusinessOpenStatus(a.timings).status === 'Open' ? 1 : 0;
@@ -1182,6 +1045,7 @@ function applyAiIntents(
 export async function searchMerchantsByQuery(
   query: string,
   limit = 24,
+  scope: 'identity' | 'mention' = 'identity',
 ): Promise<{ merchants: Merchant[]; error?: string }> {
   if (!isSupabaseConfigured || !supabase) {
     return { merchants: [], error: 'Supabase is not configured' };
@@ -1190,23 +1054,19 @@ export async function searchMerchantsByQuery(
   const q = query.trim();
   if (!q) return { merchants: [] };
 
-  const escaped = escapeIlikePattern(q);
+  const columns = [
+    ...ilikeClauses('businessName', q),
+    ...ilikeClauses('displayName', q),
+    ...ilikeClauses('category', q),
+    ...ilikeClauses('serviceCategory', q),
+    ...(scope === 'mention' ? ilikeClauses('about', q) : []),
+  ];
+
   const { data, error } = await supabase
     .from('Business')
     .select(MERCHANT_SELECT)
     .eq('status', 'Active')
-    .or(
-      [
-        `businessName.ilike.%${escaped}%`,
-        `displayName.ilike.%${escaped}%`,
-        `category.ilike.%${escaped}%`,
-        `location.ilike.%${escaped}%`,
-        `city.ilike.%${escaped}%`,
-        `about.ilike.%${escaped}%`,
-        `serviceCategory.ilike.%${escaped}%`,
-        `businessAddress.ilike.%${escaped}%`,
-      ].join(','),
-    )
+    .or(columns.join(','))
     .order('createdAt', { ascending: false })
     .limit(Math.min(Math.max(limit * 4, 48), 140));
 
@@ -1214,11 +1074,17 @@ export async function searchMerchantsByQuery(
     return { merchants: [], error: error.message };
   }
 
+  const required = parseDirectoryQuery(normalizeAiQuery(q) || q).required;
+  const maxTier = scope === 'mention' ? 3 : 1;
   const ranked = rankMerchants(
     (data ?? [])
       .map((row) => mapMerchantRow(row as Record<string, unknown>))
       .filter(merchantHasPublicPhoto),
-  );
+  )
+    .filter((merchant) => merchantMatchTier(merchant, required) <= maxTier)
+    .sort(
+      (a, b) => merchantMatchTier(a, required) - merchantMatchTier(b, required),
+    );
 
   return { merchants: ranked.slice(0, limit) };
 }
@@ -1257,12 +1123,200 @@ export async function fetchMerchantsByIds(ids: string[]): Promise<{
   };
 }
 
+export type DirectorySearchResult = {
+  query: string;
+  label: string;
+  terms: string[];
+  categories: HomeCategory[];
+  merchants: Merchant[];
+  exactMatch: boolean;
+  notice: string | null;
+  error?: string;
+};
+
+function usableCategories(categories: HomeCategory[]): HomeCategory[] {
+  const byId = new Map<string, HomeCategory>();
+  for (const cat of categories) {
+    if (EXCLUDED_HOME_CATEGORY_SLUGS.has(cat.slug) || cat.slug === 'job') continue;
+    if (!byId.has(cat.id)) byId.set(cat.id, cat);
+  }
+  return [...byId.values()].sort(
+    (a, b) => (b.businessCount || 0) - (a.businessCount || 0),
+  );
+}
+
+function usableMerchants(merchants: Merchant[]): Merchant[] {
+  const byId = new Map<string, Merchant>();
+  for (const merchant of merchants) {
+    if (!byId.has(merchant.id)) byId.set(merchant.id, merchant);
+  }
+  return [...byId.values()];
+}
+
+/** Category + business lookup. Exact categories stay above everything else. */
+export async function searchDirectory(rawQuery: string): Promise<DirectorySearchResult> {
+  const query = rawQuery.trim();
+  const label = searchDisplayLabel(query);
+  const normalized = normalizeAiQuery(query) || label;
+  const parsed = parseDirectoryQuery(normalized);
+  const blank: DirectorySearchResult = {
+    query,
+    label,
+    terms: parsed.required,
+    categories: [],
+    merchants: [],
+    exactMatch: !query,
+    notice: query ? exactMissNotice(label) : null,
+  };
+  if (!query) return blank;
+
+  const collect = async (needles: string[]) => {
+    const [categoryBatches, merchantBatches] = await Promise.all([
+      Promise.all(needles.map((needle) => searchCategoriesByQuery(needle))),
+      Promise.all(needles.map((needle) => searchMerchantsByQuery(needle, 24, 'identity'))),
+    ]);
+    return {
+      categories: usableCategories(categoryBatches.flatMap((batch) => batch.categories)),
+      merchants: usableMerchants(merchantBatches.flatMap((batch) => batch.merchants)),
+      error:
+        categoryBatches.find((batch) => batch.error)?.error ||
+        merchantBatches.find((batch) => batch.error)?.error,
+      failed:
+        categoryBatches.every((batch) => batch.error) &&
+        merchantBatches.every((batch) => batch.error),
+    };
+  };
+
+  const needles = parsed.primaryNeedles.length > 0 ? parsed.primaryNeedles : [normalized];
+  let found = await collect(needles);
+  if (found.failed) {
+    return { ...blank, exactMatch: true, notice: null, error: found.error };
+  }
+
+  let exactCategories = found.categories.slice(0, 8);
+  let tier0 = found.merchants.filter(
+    (merchant) => merchantMatchTier(merchant, parsed.required) === 0,
+  );
+  const tier1 = found.merchants.filter(
+    (merchant) => merchantMatchTier(merchant, parsed.required) === 1,
+  );
+
+  if (
+    exactCategories.length === 0 &&
+    tier0.length === 0 &&
+    tier1.length === 0 &&
+    parsed.phrase.includes(' ')
+  ) {
+    found = await collect(parsed.required);
+    exactCategories = found.categories.slice(0, 8);
+    tier0 = found.merchants.filter(
+      (merchant) => merchantMatchTier(merchant, parsed.required) === 0,
+    );
+  }
+
+  if (exactCategories[0] && tier0.length < 12) {
+    const extra = await fetchBusinessesByCategory(exactCategories[0].name, {
+      page: 1,
+      pageSize: 24,
+    });
+    const seen = new Set(tier0.map((merchant) => merchant.id));
+    for (const merchant of extra.merchants) {
+      if (seen.has(merchant.id)) continue;
+      if (merchantMatchTier(merchant, parsed.required) !== 0) continue;
+      tier0.push(merchant);
+      seen.add(merchant.id);
+    }
+  }
+
+  if (exactCategories.length > 0 || tier0.length > 0) {
+    return {
+      query,
+      label,
+      terms: parsed.required,
+      categories: exactCategories,
+      merchants: tier0.slice(0, 36),
+      exactMatch: true,
+      notice: null,
+      error: found.error,
+    };
+  }
+
+  const nameHits =
+    tier1.length > 0
+      ? tier1
+      : found.merchants.filter(
+          (merchant) => merchantMatchTier(merchant, parsed.required) === 1,
+        );
+  if (nameHits.length > 0) {
+    return {
+      query,
+      label,
+      terms: parsed.required,
+      categories: [],
+      merchants: nameHits.slice(0, 36),
+      exactMatch: true,
+      notice: null,
+      error: found.error,
+    };
+  }
+
+  const relatedTerms = relatedSearchTerms(parsed.required);
+  const relatedCategories: HomeCategory[] = [];
+  const relatedMerchants: Merchant[] = [];
+  if (relatedTerms.length > 0) {
+    const related = await collect(relatedTerms);
+    const seenCats = new Set<string>();
+    for (const cat of related.categories) {
+      if (seenCats.has(cat.id)) continue;
+      seenCats.add(cat.id);
+      relatedCategories.push(cat);
+    }
+    const seenMerchants = new Set<string>();
+    for (const merchant of related.merchants) {
+      if (seenMerchants.has(merchant.id)) continue;
+      const matchesRelated = relatedTerms.some(
+        (term) => merchantMatchTier(merchant, [term]) <= 1,
+      );
+      if (!matchesRelated) continue;
+      seenMerchants.add(merchant.id);
+      relatedMerchants.push(merchant);
+    }
+  }
+
+  if (relatedMerchants.length < 8 && parsed.required[0]) {
+    const mentions = await searchMerchantsByQuery(parsed.required[0], 8, 'mention');
+    const seen = new Set(relatedMerchants.map((merchant) => merchant.id));
+    for (const merchant of mentions.merchants) {
+      if (seen.has(merchant.id)) continue;
+      if (merchantMatchTier(merchant, parsed.required) > 3) continue;
+      relatedMerchants.push(merchant);
+      seen.add(merchant.id);
+    }
+  }
+
+  return {
+    query,
+    label,
+    terms: parsed.required,
+    categories: relatedCategories.slice(0, 8),
+    merchants: relatedMerchants.slice(0, 24),
+    exactMatch: false,
+    notice:
+      relatedCategories.length > 0 || relatedMerchants.length > 0
+        ? exactMissNotice(label)
+        : `No exact match for “${label}”.`,
+    error: found.error,
+  };
+}
+
 export type AiSearchResult = {
   query: string;
   normalizedQuery: string;
   intents: AiSearchIntent[];
   categories: HomeCategory[];
   merchants: Merchant[];
+  exactMatch: boolean;
+  notice: string | null;
   error?: string;
 };
 
@@ -1274,12 +1328,9 @@ export async function runAiSearch(
   const query = rawQuery.trim();
   const placeHint = extractAiPlaceHint(query);
   const normalizedQuery = normalizeAiQuery(query) || query;
-  const intents = [
-    ...new Set([
-      ...parseAiSearchIntents(query),
-      ...(options?.forceIntents ?? []),
-    ]),
-  ];
+  const intents = options?.forceIntents
+    ? [...new Set(options.forceIntents)]
+    : parseAiSearchIntents(query);
 
   if (!query) {
     return {
@@ -1288,105 +1339,24 @@ export async function runAiSearch(
       intents,
       categories: [],
       merchants: [],
+      exactMatch: true,
+      notice: null,
     };
   }
 
-  const needles = expandAiNeedles(normalizedQuery);
-  const searchNeedles =
-    needles.length > 0 ? needles : [normalizedQuery || query];
-
-  // Prefer phrase + synonym needles for DB; skip tiny fragments first
-  const dbNeedles = searchNeedles.filter(
-    (n, i) => i === 0 || n.length >= 3,
-  ).slice(0, 6);
-
-  const [categoryBatches, merchantBatches] = await Promise.all([
-    Promise.all(dbNeedles.map((n) => searchCategoriesByQuery(n))),
-    Promise.all(dbNeedles.map((n) => searchMerchantsByQuery(n, 20))),
-  ]);
-
-  const categoryError = categoryBatches.find((b) => b.error)?.error;
-  const merchantError = merchantBatches.find((b) => b.error)?.error;
-
-  if (
-    categoryBatches.every((b) => b.error) &&
-    merchantBatches.every((b) => b.error)
-  ) {
-    return {
-      query,
-      normalizedQuery,
-      intents,
-      categories: [],
-      merchants: [],
-      error: categoryError || merchantError,
-    };
-  }
-
-  const categoryById = new Map<string, HomeCategory>();
-  for (const batch of categoryBatches) {
-    for (const cat of batch.categories) {
-      if (!categoryById.has(cat.id)) categoryById.set(cat.id, cat);
-    }
-  }
-
-  const categories = [...categoryById.values()]
-    .filter((cat) => !EXCLUDED_HOME_CATEGORY_SLUGS.has(cat.slug) && cat.slug !== 'job')
-    .sort((a, b) => (b.businessCount || 0) - (a.businessCount || 0))
-    .slice(0, 8);
-
-  const byId = new Map<string, Merchant>();
-  for (const batch of merchantBatches) {
-    for (const merchant of batch.merchants) {
-      if (!byId.has(merchant.id)) byId.set(merchant.id, merchant);
-    }
-  }
-
-  // Pull live listings from the best category match when direct hits are thin.
-  if (categories[0] && byId.size < 12) {
-    const byCategory = await fetchBusinessesByCategory(categories[0].name, {
-      page: 1,
-      pageSize: 20,
-    });
-    for (const merchant of byCategory.merchants) {
-      if (!byId.has(merchant.id)) byId.set(merchant.id, merchant);
-    }
-  }
-
-  // Resolve place from query ("dentists in Indore") for ranking / nearest.
-  const placeCoords =
-    placeHint != null ? lookupCityCoords(placeHint) : null;
+  const directory = await searchDirectory(query);
+  const placeCoords = placeHint != null ? lookupCityCoords(placeHint) : null;
   const rankCoords = placeCoords ?? options?.coords ?? null;
-  const cityBoost = (placeHint || options?.city || '').trim().toLowerCase();
-
-  let merchants = [...byId.values()];
-  if (cityBoost) {
-    merchants.sort((a, b) => {
-      const aHit = `${a.city || ''} ${a.location || ''}`
-        .toLowerCase()
-        .includes(cityBoost)
-        ? 1
-        : 0;
-      const bHit = `${b.city || ''} ${b.location || ''}`
-        .toLowerCase()
-        .includes(cityBoost)
-        ? 1
-        : 0;
-      return bHit - aHit;
-    });
-  }
-
-  // If user named a city, treat as nearest-to-that-city when no explicit nearest
   const rankIntents =
     placeCoords && !intents.includes('nearest')
       ? ([...intents, 'nearest'] as AiSearchIntent[])
       : intents;
 
-  merchants = applyAiIntents(
-    merchants,
+  const merchants = applyAiIntents(
+    directory.merchants,
     rankIntents,
     rankCoords,
-    searchNeedles,
-    normalizedQuery,
+    directory.exactMatch ? directory.terms : [],
     placeHint || options?.city || null,
   ).slice(0, 36);
 
@@ -1394,13 +1364,18 @@ export async function runAiSearch(
     query,
     normalizedQuery,
     intents,
-    categories,
+    categories: directory.categories,
     merchants,
-    error: categoryError || merchantError,
+    exactMatch: directory.exactMatch,
+    notice: directory.notice,
+    error: directory.error,
   };
 }
 
-export async function fetchMerchantBySlugOrId(slugOrId: string): Promise<{
+export async function fetchMerchantBySlugOrId(
+  slugOrId: string,
+  options?: { allowUnlisted?: boolean },
+): Promise<{
   merchant: Merchant | null;
   error?: string;
 }> {
@@ -1431,6 +1406,25 @@ export async function fetchMerchantBySlugOrId(slugOrId: string): Promise<{
 
   if (byId.data) {
     return { merchant: mapMerchantRow(byId.data as Record<string, unknown>) };
+  }
+
+  if (options?.allowUnlisted) {
+    const ownBySlug = await supabase
+      .from('Business')
+      .select(MERCHANT_SELECT)
+      .eq('slug', key)
+      .maybeSingle();
+    if (ownBySlug.data) {
+      return { merchant: mapMerchantRow(ownBySlug.data as Record<string, unknown>) };
+    }
+    const ownById = await supabase
+      .from('Business')
+      .select(MERCHANT_SELECT)
+      .eq('id', key)
+      .maybeSingle();
+    if (ownById.data) {
+      return { merchant: mapMerchantRow(ownById.data as Record<string, unknown>) };
+    }
   }
 
   return {

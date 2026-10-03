@@ -21,8 +21,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { fetchBusinessesByCategory, type HomeCategory } from '../lib/api';
 import { getBusinessOpenStatus } from '../lib/businessHours';
+import { compareText } from '../lib/compareText';
+import { useDrivingDistanceLabel } from '../lib/drivingDistance';
 import {
-  formatDistanceFromUser,
   getDistanceKm,
   sortByUserLocation,
   type Coords,
@@ -51,36 +52,43 @@ if (
 const BLUE = '#44403C';
 export const HEADER_GRADIENT = ['#1C1917', '#292524', '#44403C'] as const;
 
-const GRID_ROWS_COLLAPSED = 2;
+const GRID_ROWS_COLLAPSED = 3;
+
+function columnsForWidth(width: number): number {
+  if (width < 340) return 3;
+  if (width < 520) return 4;
+  if (width < 700) return 5;
+  if (width < 900) return 6;
+  if (width < 1100) return 7;
+  return Math.min(10, Math.max(8, Math.floor((width - 48) / 112)));
+}
 
 function categoryGridMetrics(width: number, height: number) {
-  // Columns adapt to width; short phones keep 4 so cells stay tappable.
-  const cols = width < 360 ? 4 : width >= 520 ? 6 : 5;
-  const gap = width < 360 ? 2 : width >= 430 ? 6 : 4;
-  const hPad = width < 360 ? 6 : width >= 430 ? 14 : 8;
+  const cols = columnsForWidth(width);
+  const gap = width < 340 ? 4 : width >= 768 ? 10 : 6;
+  const hPad = width < 340 ? 8 : width >= 768 ? 20 : 12;
   const usable = Math.max(0, width - hPad * 2 - gap * (cols - 1));
   const cellW = Math.floor((usable / cols) * 1000) / 1000;
 
-  // Height budget: keep the collapsed 2-row rail within ~22–30% of screen.
   const short = height < 700;
-  const tall = height >= 860;
+  const tall = height >= 900;
   const targetRailH = Math.round(
-    Math.min(tall ? height * 0.28 : height * 0.24, short ? 132 : 180),
+    Math.min(tall ? height * 0.34 : short ? height * 0.3 : height * 0.32, short ? 210 : 268),
   );
-  const rowBudget = Math.max(48, Math.floor(targetRailH / GRID_ROWS_COLLAPSED));
+  const rowBudget = Math.max(56, Math.floor(targetRailH / GRID_ROWS_COLLAPSED));
 
   const wScale = Math.min(1.25, Math.max(0.72, cellW / 70));
   const hScale = Math.min(1.22, Math.max(0.68, rowBudget / 68));
   const scale = Math.min(wScale, hScale);
   const compact = width < 360 || short;
 
-  const iconBox = Math.round(Math.min(rowBudget * 0.42, (compact ? 28 : 34) * scale));
-  const iconImg = Math.round(iconBox * 0.86);
+  const iconBox = Math.round(Math.min(rowBudget * 0.42, (compact ? 22 : 25) * scale));
+  const iconImg = Math.round(iconBox * 0.88);
   const ionSize = Math.round(iconBox * 0.78);
   const fontSize = Math.max(8, Math.min(12, Math.round(9.2 * scale * 10) / 10));
-  const lineHeight = Math.round(fontSize + 2.5);
-  const cellPadV = Math.max(2, Math.round((compact ? 3 : 5) * scale));
-  const cellGap = Math.max(2, Math.round(4 * scale));
+  const lineHeight = Math.round(fontSize + 2);
+  const cellPadV = Math.max(1, Math.round(1.5 * scale));
+  const cellGap = Math.max(1, Math.round(1.5 * scale));
   const cellH = Math.min(
     rowBudget,
     iconBox + cellGap + lineHeight + cellPadV * 2,
@@ -89,6 +97,7 @@ function categoryGridMetrics(width: number, height: number) {
   return {
     cols,
     gap,
+    rowGap: 2,
     hPad,
     cellW,
     cellH,
@@ -103,7 +112,7 @@ function categoryGridMetrics(width: number, height: number) {
     cellGap,
     cellRadius: Math.round((compact ? 10 : 14) * Math.min(scale, 1.08)),
     searchZonePadH: width < 360 ? 12 : width >= 430 ? 18 : 16,
-    searchZonePadBottom: short ? 4 : 10,
+    searchZonePadBottom: short ? 6 : 8,
     searchMinH: short ? 42 : width >= 430 ? 52 : 48,
     searchFont: short ? 14 : width >= 430 ? 16 : 15,
   };
@@ -244,7 +253,7 @@ function applyShelfFilters(
   const preferOpen = activeFilters.includes('open-now');
 
   if (sort === 'name') {
-    rows.sort((a, b) => a.name.localeCompare(b.name));
+    rows.sort((a, b) => compareText(a.name, b.name));
     return rows;
   }
 
@@ -566,30 +575,118 @@ function ActiveCategoryDrop({
   );
 }
 
-/** Always-visible expand control with a light bounce. */
+const VOICE_RING_COLORS = [
+  '#4285F4',
+  '#EA4335',
+  '#FBBC04',
+  '#34A853',
+  '#A142F4',
+  '#4285F4',
+] as const;
+
+/** Colorful rotating outline while voice search is listening. */
+function VoiceListeningShell({
+  active,
+  minHeight,
+  children,
+}: {
+  active: boolean;
+  minHeight: number;
+  children: ReactNode;
+}) {
+  const styles = useStyles();
+  const spin = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (!active) {
+      spin.stopAnimation();
+      spin.setValue(0);
+      return;
+    }
+    const loop = Animated.loop(
+      Animated.timing(spin, {
+        toValue: 1,
+        duration: 2000,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      }),
+    );
+    loop.start();
+    return () => {
+      loop.stop();
+      spin.setValue(0);
+    };
+  }, [active, spin]);
+
+  const rotate = spin.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg'],
+  });
+
+  return (
+    <View
+      style={[
+        styles.voiceShell,
+        active && styles.voiceShellActive,
+        { minHeight: active ? minHeight + 5 : minHeight },
+      ]}
+    >
+      {active ? (
+        <Animated.View
+          pointerEvents="none"
+          style={[styles.voiceSpinWrap, { transform: [{ rotate }] }]}
+        >
+          <LinearGradient
+            colors={[...VOICE_RING_COLORS]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.voiceSpinFill}
+          />
+        </Animated.View>
+      ) : null}
+      <View style={styles.voiceShellInner}>{children}</View>
+    </View>
+  );
+}
+
+function countCatalog(items: HomeCategory[]): number {
+  let total = 0;
+  const walk = (nodes: HomeCategory[]) => {
+    for (const node of nodes) {
+      if (!node.id.startsWith('all:')) total += 1;
+      if (node.children?.length) walk(node.children);
+    }
+  };
+  walk(items);
+  return total;
+}
+
+/** Always-visible expand control with a clear blink. */
 function PulsingExpandArrow({
   expanded,
+  total,
   onPress,
 }: {
   expanded: boolean;
+  total: number;
   onPress: () => void;
 }) {
   const styles = useStyles();
-  const pulse = useRef(new Animated.Value(0)).current;
+  const blink = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     const loop = Animated.loop(
       Animated.sequence([
-        Animated.timing(pulse, {
-          toValue: 1,
-          duration: 750,
-          easing: Easing.inOut(Easing.sin),
+        Animated.timing(blink, {
+          toValue: 0.55,
+          duration: 520,
+          easing: Easing.inOut(Easing.quad),
           useNativeDriver: true,
         }),
-        Animated.timing(pulse, {
-          toValue: 0,
-          duration: 750,
-          easing: Easing.inOut(Easing.sin),
+        Animated.timing(blink, {
+          toValue: 1,
+          duration: 520,
+          easing: Easing.inOut(Easing.quad),
           useNativeDriver: true,
         }),
       ]),
@@ -597,17 +694,13 @@ function PulsingExpandArrow({
     loop.start();
     return () => {
       loop.stop();
-      pulse.setValue(0);
+      blink.setValue(1);
     };
-  }, [pulse]);
+  }, [blink]);
 
-  const bounceY = pulse.interpolate({
-    inputRange: [0, 1],
-    outputRange: expanded ? [0, -4] : [0, 4],
-  });
-  const pulseOpacity = pulse.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0.55, 0.85],
+  const bounceY = blink.interpolate({
+    inputRange: [0.55, 1],
+    outputRange: expanded ? [-3, 0] : [3, 0],
   });
 
   return (
@@ -617,52 +710,26 @@ function PulsingExpandArrow({
       hitSlop={10}
       accessibilityRole="button"
       accessibilityLabel={
-        expanded ? 'Show fewer categories' : 'View more'
+        expanded ? 'Show fewer categories' : `View all ${total} categories`
       }
     >
       <Animated.View
         style={[
           styles.expandRow,
           {
-            opacity: pulseOpacity,
+            opacity: blink,
             transform: [{ translateY: bounceY }],
           },
         ]}
       >
         <Text style={styles.expandLabel}>
-          {expanded ? 'Show less' : 'View more'}
+          {expanded ? 'Show less' : `View all ${total} categories`}
         </Text>
-        <View style={styles.expandArrows}>
-          {expanded ? (
-            <>
-              <Ionicons
-                name="chevron-up"
-                size={16}
-                color="rgba(255,255,255,0.95)"
-                style={styles.chevronStack}
-              />
-              <Ionicons
-                name="chevron-up"
-                size={16}
-                color="rgba(255,255,255,0.95)"
-              />
-            </>
-          ) : (
-            <>
-              <Ionicons
-                name="chevron-down"
-                size={16}
-                color="rgba(255,255,255,0.95)"
-                style={styles.chevronStack}
-              />
-              <Ionicons
-                name="chevron-down"
-                size={16}
-                color="rgba(255,255,255,0.95)"
-              />
-            </>
-          )}
-        </View>
+        <Ionicons
+          name={expanded ? 'chevron-up' : 'chevron-down'}
+          size={14}
+          color="#FFFFFF"
+        />
       </Animated.View>
     </Pressable>
   );
@@ -676,13 +743,12 @@ function leafCategory(raw: string): string {
 
 function BusinessCard({
   merchant,
-  distanceLabel,
   onPress,
 }: {
   merchant: Merchant;
-  distanceLabel?: string | null;
   onPress: () => void;
 }) {
+  const distanceLabel = useDrivingDistanceLabel(merchant.latitude, merchant.longitude);
   const { colors, gradients } = useTheme();
   const styles = useStyles();
   const rating =
@@ -882,17 +948,20 @@ export function InteractiveCategoryDeck({
     const ordered = selected ? [selected, ...rest] : pool;
     return ordered.slice(0, grid.railLimit);
   }, [activeId, allItems, grid.railLimit, populatedItems]);
+  const expandPool =
+    populatedItems.length > 0 ? populatedItems : allItems;
   const visibleCats = catsExpanded
-    ? pinSelectedFirst(
-        populatedItems.length > 0 ? populatedItems : allItems,
-        activeId,
-      )
+    ? pinSelectedFirst(expandPool, activeId)
     : railItems;
-  const canExpand =
-    (populatedItems.length > 0 ? populatedItems : allItems).length >
-    railItems.length;
+  const hasMoreLocal = expandPool.length > grid.railLimit;
+  const catalogCount = useMemo(() => countCatalog(categories), [categories]);
+  const canExpand = catalogCount > 0 && (hasMoreLocal || catsExpanded || Boolean(onSeeAll));
 
   const toggleCategoriesExpanded = () => {
+    if (!hasMoreLocal && !catsExpanded) {
+      onSeeAll?.();
+      return;
+    }
     LayoutAnimation.configureNext({
       duration: 280,
       create: { type: 'easeInEaseOut', property: 'opacity' },
@@ -1088,13 +1157,14 @@ export function InteractiveCategoryDeck({
               },
             ]}
           >
-            <View
-              style={[
-                styles.searchBar,
-                { minHeight: grid.searchMinH },
-                listening && styles.searchBarListening,
-              ]}
-            >
+            <VoiceListeningShell active={listening} minHeight={grid.searchMinH}>
+              <View
+                style={[
+                  styles.searchBar,
+                  { minHeight: grid.searchMinH },
+                  listening && styles.searchBarListening,
+                ]}
+              >
               <Ionicons
                 name="search"
                 size={Math.round(grid.searchFont + 3)}
@@ -1136,10 +1206,11 @@ export function InteractiveCategoryDeck({
                   color={listening ? '#EA4335' : '#4285F4'}
                 />
               </Pressable>
-            </View>
+              </View>
+            </VoiceListeningShell>
           </View>
 
-          {/* Category grid — 10 on home (5×2); expand for the rest */}
+          {/* Category grid — always 3 rows; columns follow the screen width */}
           <View style={styles.topBlue}>
             <View
               style={[
@@ -1147,7 +1218,7 @@ export function InteractiveCategoryDeck({
                 { paddingHorizontal: grid.hPad },
               ]}
             >
-              <View style={[styles.grid, { gap: grid.gap }]}>
+              <View style={[styles.grid, { columnGap: grid.gap, rowGap: grid.rowGap }]}>
                 {visibleCats.map((cat) => (
                   <CategoryGridCell
                     key={cat.id}
@@ -1163,6 +1234,7 @@ export function InteractiveCategoryDeck({
             {canExpand ? (
               <PulsingExpandArrow
                 expanded={catsExpanded}
+                total={catalogCount}
                 onPress={toggleCategoriesExpanded}
               />
             ) : null}
@@ -1226,11 +1298,6 @@ export function InteractiveCategoryDeck({
                 <BusinessCard
                   key={merchant.id}
                   merchant={merchant}
-                  distanceLabel={formatDistanceFromUser(
-                    userCoords,
-                    merchant.latitude,
-                    merchant.longitude,
-                  )}
                   onPress={() => onOpenMerchant(merchant)}
                 />
               ))}
@@ -1473,12 +1540,14 @@ const useStyles = createThemedStyles((colors) => ({
   searchZone: {
     backgroundColor: 'transparent',
     paddingHorizontal: 16,
-    paddingTop: 4,
-    paddingBottom: 10,
+    paddingTop: 0,
+    paddingBottom: 14,
+    marginTop: 0,
   },
   topBlue: {
     backgroundColor: 'transparent',
     paddingTop: 0,
+    paddingBottom: 2,
   },
   searchBar: {
     flexDirection: 'row',
@@ -1498,10 +1567,35 @@ const useStyles = createThemedStyles((colors) => ({
     elevation: 2,
   },
   searchBarListening: {
-    borderColor: lightColors.borderStrong,
-    shadowOpacity: 0.16,
-    shadowRadius: 12,
-    elevation: 4,
+    borderWidth: 0,
+    borderColor: 'transparent',
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  voiceShell: {
+    borderRadius: 999,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  voiceShellActive: {
+    padding: 2.5,
+  },
+  voiceShellInner: {
+    borderRadius: 999,
+    overflow: 'hidden',
+  },
+  voiceSpinWrap: {
+    position: 'absolute',
+    width: 420,
+    height: 420,
+    left: '50%',
+    top: '50%',
+    marginLeft: -210,
+    marginTop: -210,
+  },
+  voiceSpinFill: {
+    width: '100%',
+    height: '100%',
   },
   searchLeadingIcon: {
     marginRight: 12,
@@ -1535,33 +1629,35 @@ const useStyles = createThemedStyles((colors) => ({
     alignSelf: 'center',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingTop: 4,
-    paddingBottom: 8,
-    paddingHorizontal: 12,
-    minHeight: 36,
+    paddingTop: 6,
+    paddingBottom: 3,
+    paddingHorizontal: 10,
+    minHeight: 18,
   },
   expandRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 4,
   },
   expandLabel: {
     fontFamily: fonts.semiBold,
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.55)',
+    fontSize: 10,
+    color: '#FFFFFF',
     letterSpacing: -0.1,
+    textShadowColor: 'rgba(0,0,0,0.55)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
   expandArrows: {
     alignItems: 'center',
     justifyContent: 'center',
-    opacity: 0.55,
   },
   chevronStack: {
-    marginBottom: -10,
+    marginBottom: -8,
   },
   expandedBlock: {
-    paddingTop: 2,
-    paddingBottom: 2,
+    paddingTop: 0,
+    paddingBottom: 0,
   },
   expandedHint: {
     fontFamily: fonts.semiBold,

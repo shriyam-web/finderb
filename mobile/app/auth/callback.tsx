@@ -1,161 +1,112 @@
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Linking from 'expo-linking';
-import * as QueryParams from 'expo-auth-session/build/QueryParams';
 import { fonts } from '../../constants/typography';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { createThemedStyles } from '../../hooks/useThemedStyles';
-import { SITE_URL, supabase } from '../../lib/supabase';
-import type { AuthResult } from '../../lib/authApi';
-import type { AuthUser } from '../../lib/session';
+import { supabase } from '../../lib/supabase';
+import { completeGoogleRedirect, isGoogleLoginActive } from '../../lib/authApi';
+import { getStoredToken, getStoredUser } from '../../lib/session';
+
+const CALLBACK_PARAMS = ['code', 'access_token', 'refresh_token', 'error', 'error_description'] as const;
 
 /**
  * Deep-link landing for Google OAuth (`finderb://auth/callback`).
- * Completes PKCE / session exchange then hits FinderB mobile oauth API.
+ * Shares the single code exchange with the login screen's own Google flow.
  */
 export default function AuthCallbackScreen() {
   const { colors } = useTheme();
   const styles = useStyles();
   const router = useRouter();
-  const routeParams = useLocalSearchParams<{
-    code?: string;
-    access_token?: string;
-    refresh_token?: string;
-    error?: string;
-    error_description?: string;
-  }>();
+  const routeParams = useLocalSearchParams<Record<(typeof CALLBACK_PARAMS)[number], string>>();
   const { applyAuthResult } = useAuth();
   const [message, setMessage] = useState('Finishing sign-in…');
+  const started = useRef(false);
+  const mounted = useRef(true);
 
   useEffect(() => {
-    let cancelled = false;
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    // Runs once: the screen re-renders as sign-in updates auth state, and a second run
+    // would try to reuse the one-time code.
+    if (started.current) return;
+    started.current = true;
+
+    const leave = (path: '/login' | '/(tabs)/home' | '/merchant-welcome', delay = 0) => {
+      setTimeout(() => {
+        if (mounted.current) router.replace(path);
+      }, delay);
+    };
+
+    const fail = async (text: string) => {
+      // The login screen's flow may have finished sign-in through the same code.
+      if (await getStoredToken()) {
+        const user = await getStoredUser();
+        leave(user?.isBusinessAccount ? '/merchant-welcome' : '/(tabs)/home');
+        return;
+      }
+      if (mounted.current) setMessage(text);
+      leave('/login', 1400);
+    };
 
     (async () => {
       try {
         if (!supabase) {
-          setMessage('Sign-in is not configured.');
-          setTimeout(() => router.replace('/login'), 900);
+          await fail('Sign-in is not configured.');
           return;
         }
 
-        const href =
-          (await Linking.getInitialURL()) || Linking.getLinkingURL() || '';
+        // Route params belong to this very link; the launch URL can be an older one.
+        const query = new URLSearchParams();
+        for (const key of CALLBACK_PARAMS) {
+          const value = routeParams[key];
+          if (typeof value === 'string' && value) query.set(key, value);
+        }
+        const href = Linking.getLinkingURL() || (await Linking.getInitialURL()) || '';
+        const url = query.toString()
+          ? `finderb://auth/callback?${query.toString()}`
+          : href;
 
-        const fromUrl = href ? QueryParams.getQueryParams(href) : null;
-        const code =
-          (typeof routeParams.code === 'string' && routeParams.code) ||
-          fromUrl?.params.code ||
-          '';
-        const accessFromRoute =
-          (typeof routeParams.access_token === 'string' &&
-            routeParams.access_token) ||
-          fromUrl?.params.access_token ||
-          '';
-        const refreshFromRoute =
-          (typeof routeParams.refresh_token === 'string' &&
-            routeParams.refresh_token) ||
-          fromUrl?.params.refresh_token ||
-          '';
-        const errorCode =
-          routeParams.error_description ||
-          routeParams.error ||
-          fromUrl?.errorCode;
+        const fromLoginScreen = isGoogleLoginActive();
+        const result = await completeGoogleRedirect(url);
 
-        if (errorCode) {
-          setMessage(
-            typeof errorCode === 'string'
-              ? errorCode
-              : 'Google sign-in failed.',
-          );
-          setTimeout(() => router.replace('/login'), 1200);
+        if (fromLoginScreen) {
+          // The login screen (user or Business tab) applies the result and navigates, which
+          // replaces this screen. If it is still here afterwards, follow what it decided.
+          setTimeout(() => {
+            void (async () => {
+              if (!mounted.current) return;
+              if (await getStoredToken()) {
+                const user = await getStoredUser();
+                leave(user?.isBusinessAccount ? '/merchant-welcome' : '/(tabs)/home');
+              } else if (router.canGoBack()) {
+                router.back();
+              } else {
+                leave('/login');
+              }
+            })();
+          }, 2500);
           return;
         }
 
-        let accessToken = accessFromRoute;
-        if (accessToken && refreshFromRoute) {
-          await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshFromRoute,
-          });
-        } else if (code) {
-          const exchanged =
-            await supabase.auth.exchangeCodeForSession(code);
-          if (exchanged.error) {
-            const { data: existing } = await supabase.auth.getSession();
-            accessToken = existing.session?.access_token || '';
-            if (!accessToken) {
-              setMessage(
-                /code verifier|pkce/i.test(exchanged.error.message || '')
-                  ? 'Sign-in session expired. Please try Google again.'
-                  : exchanged.error.message || 'Could not finish Google sign-in.',
-              );
-              setTimeout(() => router.replace('/login'), 1200);
-              return;
-            }
-          } else {
-            accessToken = exchanged.data.session?.access_token || '';
-          }
-        }
-
-        if (!accessToken) {
-          const { data } = await supabase.auth.getSession();
-          accessToken = data.session?.access_token || '';
-        }
-
-        if (!accessToken) {
-          setMessage('Google did not return a session. Please try again.');
-          setTimeout(() => router.replace('/login'), 1200);
+        if (!result.success) {
+          await fail(result.error || 'Could not complete sign-in.');
           return;
         }
 
-        const res = await fetch(`${SITE_URL}/api/auth/mobile/oauth`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Accept: 'application/json',
-          },
-          body: JSON.stringify({ accessToken }),
-        });
-        const data = (await res.json()) as AuthResult & {
-          token?: string;
-          user?: AuthUser;
-        };
-
-        await supabase.auth.signOut({ scope: 'local' }).catch(() => undefined);
-
-        if (!data.success || !data.token || !data.user) {
-          setMessage(
-            data.success === false ? data.error : 'Could not complete sign-in.',
-          );
-          setTimeout(() => router.replace('/login'), 1200);
-          return;
-        }
-
-        await applyAuthResult({
-          success: true,
-          token: data.token,
-          user: data.user,
-          isNewUser: data.isNewUser,
-        });
-
-        if (!cancelled) router.replace('/(tabs)/home');
+        await applyAuthResult(result);
+        leave(result.user.isBusinessAccount ? '/merchant-welcome' : '/(tabs)/home');
       } catch (error) {
-        if (!cancelled) {
-          setMessage(
-            error instanceof Error
-              ? error.message
-              : 'Could not complete sign-in.',
-          );
-          setTimeout(() => router.replace('/login'), 1200);
-        }
+        await fail(error instanceof Error ? error.message : 'Could not complete sign-in.');
       }
     })();
-
-    return () => {
-      cancelled = true;
-    };
   }, [applyAuthResult, routeParams, router]);
 
   return (

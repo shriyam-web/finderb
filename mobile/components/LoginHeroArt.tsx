@@ -1,7 +1,9 @@
 import { useEffect, useRef } from 'react';
-import { Animated, Easing, StyleSheet, View } from 'react-native';
+import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import Svg, {
   Circle,
+  ClipPath,
   Defs,
   Ellipse,
   G,
@@ -9,409 +11,413 @@ import Svg, {
   Path,
   Rect,
   Stop,
+  Text as SvgText,
 } from 'react-native-svg';
 import { FinderBLogo } from './BrandMark';
-import { useTheme } from '../context/ThemeContext';
-import { createThemedStyles } from '../hooks/useThemedStyles';
+import { fonts } from '../constants/typography';
+
+const CATEGORIES = [
+  { label: 'Cafe', icon: 'cup', fill: '#FEF3C7', mark: '#B45309' },
+  { label: 'Care', icon: 'plus', fill: '#D1FAE5', mark: '#047857' },
+  { label: 'Fix', icon: 'tool', fill: '#DBEAFE', mark: '#1D4ED8' },
+  { label: 'Stay', icon: 'bed', fill: '#FCE7F3', mark: '#BE185D' },
+] as const;
+
+type Tone = 'warm' | 'blue';
 
 /**
- * Login hero illustration — transparent backdrop, token-driven fills.
- * Works on light & dark auth surfaces without a fixed blue plate.
+ * Phone scene on user login and registration.
+ * The handset shows a nearby search. Cards around it show distance, a save, and a rating.
  */
-export function LoginHeroArt() {
-  const { colors, isDark } = useTheme();
-  const styles = useStyles();
-
+export function LoginHeroArt({ tone = 'warm' }: { tone?: Tone }) {
   const float = useRef(new Animated.Value(0)).current;
-  const pinA = useRef(new Animated.Value(0)).current;
-  const pinB = useRef(new Animated.Value(0)).current;
-  const pulse = useRef(new Animated.Value(0)).current;
-  const sparkle = useRef(new Animated.Value(0)).current;
+  const drift = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    const loop = (
-      value: Animated.Value,
-      duration: number,
-      delay = 0,
-    ) =>
-      Animated.loop(
-        Animated.sequence([
-          Animated.delay(delay),
-          Animated.timing(value, {
-            toValue: 1,
-            duration,
-            easing: Easing.inOut(Easing.sin),
-            useNativeDriver: true,
-          }),
-          Animated.timing(value, {
-            toValue: 0,
-            duration,
-            easing: Easing.inOut(Easing.sin),
-            useNativeDriver: true,
-          }),
-        ]),
-      );
-
-    const floatAnim = loop(float, 2600);
-    const pinAAnim = loop(pinA, 1800, 120);
-    const pinBAnim = loop(pinB, 2000, 400);
-    const pulseAnim = Animated.loop(
-      Animated.timing(pulse, {
-        toValue: 1,
-        duration: 2400,
-        easing: Easing.out(Easing.quad),
-        useNativeDriver: true,
-      }),
+    const phone = Animated.loop(
+      Animated.sequence([
+        Animated.timing(float, {
+          toValue: 1,
+          duration: 2800,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+        Animated.timing(float, {
+          toValue: 0,
+          duration: 2800,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+      ]),
     );
-    const sparkleAnim = loop(sparkle, 1400, 200);
-
-    floatAnim.start();
-    pinAAnim.start();
-    pinBAnim.start();
-    pulseAnim.start();
-    sparkleAnim.start();
-
+    const cards = Animated.loop(
+      Animated.sequence([
+        Animated.timing(drift, {
+          toValue: 1,
+          duration: 3200,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+        Animated.timing(drift, {
+          toValue: 0,
+          duration: 3200,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+    phone.start();
+    cards.start();
     return () => {
-      floatAnim.stop();
-      pinAAnim.stop();
-      pinBAnim.stop();
-      pulseAnim.stop();
-      sparkleAnim.stop();
+      phone.stop();
+      cards.stop();
     };
-  }, [float, pinA, pinB, pulse, sparkle]);
+  }, [drift, float]);
 
-  const phoneY = float.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0, -9],
-  });
-  const phoneScale = float.interpolate({
-    inputRange: [0, 1],
-    outputRange: [1, 1.015],
-  });
-  const pinAY = pinA.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0, -7],
-  });
-  const pinBY = pinB.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0, -9],
-  });
-  const ringScale = pulse.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0.72, 1.18],
-  });
-  const ringOpacity = pulse.interpolate({
-    inputRange: [0, 0.35, 1],
-    outputRange: [0.35, 0.18, 0],
-  });
-  const sparkleOpacity = sparkle.interpolate({
-    inputRange: [0, 0.5, 1],
-    outputRange: [0.45, 1, 0.45],
-  });
-
-  const phoneStroke = isDark ? colors.borderStrong : colors.border;
-  const screenFill = colors.surface;
-  const chromeFill = isDark ? colors.canvasDeep : colors.ink;
-  const rowThumb = isDark ? colors.primary200 : colors.primary100;
-  const lineMuted = isDark ? colors.primary300 : colors.borderStrong;
-  const ambient = isDark ? colors.muted : colors.surface;
-  const mapTop = isDark ? colors.surfaceSoft : colors.secondary100;
-  const mapBot = isDark ? colors.muted : colors.muted;
-  const gridStroke = isDark ? colors.secondary : colors.accent;
-  const glowAmber = colors.secondary;
-  const glowTeal = colors.teal;
+  const phoneY = float.interpolate({ inputRange: [0, 1], outputRange: [0, -6] });
+  const leftY = drift.interpolate({ inputRange: [0, 1], outputRange: [0, 5] });
+  const rightY = drift.interpolate({ inputRange: [0, 1], outputRange: [0, -5] });
+  const onBlue = tone === 'blue';
+  const ink = onBlue ? 'rgba(255,255,255,0.34)' : 'rgba(28,25,23,0.14)';
+  const pin = onBlue ? '#F9B864' : '#E8811E';
 
   return (
     <View style={styles.wrap} pointerEvents="none">
-      {/* Soft atmosphere — no solid plate; parent owns the background */}
-      <Svg width="100%" height="100%" viewBox="0 0 360 300" style={styles.svg}>
-        <Defs>
-          <LinearGradient id="mapPlate" x1="0" y1="0" x2="0" y2="1">
-            <Stop offset="0" stopColor={mapTop} stopOpacity="0.95" />
-            <Stop offset="1" stopColor={mapBot} stopOpacity="0.9" />
-          </LinearGradient>
-          <LinearGradient id="orbAmber" x1="0" y1="0" x2="1" y2="1">
-            <Stop offset="0" stopColor={glowAmber} stopOpacity="0.28" />
-            <Stop offset="1" stopColor={glowAmber} stopOpacity="0" />
-          </LinearGradient>
-          <LinearGradient id="orbTeal" x1="0" y1="0" x2="1" y2="1">
-            <Stop offset="0" stopColor={glowTeal} stopOpacity="0.22" />
-            <Stop offset="1" stopColor={glowTeal} stopOpacity="0" />
-          </LinearGradient>
-        </Defs>
-
-        <Circle cx="72" cy="78" r="54" fill="url(#orbTeal)" />
-        <Circle cx="292" cy="92" r="62" fill="url(#orbAmber)" />
-        <Ellipse cx="180" cy="248" rx="132" ry="22" fill={colors.ink} opacity={isDark ? 0.28 : 0.08} />
-
-        {/* Soft clouds */}
-        <Ellipse cx="58" cy="52" rx="36" ry="14" fill={ambient} opacity={isDark ? 0.45 : 0.7} />
-        <Ellipse cx="84" cy="48" rx="20" ry="10" fill={ambient} opacity={isDark ? 0.3 : 0.5} />
-        <Ellipse cx="304" cy="56" rx="40" ry="15" fill={ambient} opacity={isDark ? 0.4 : 0.65} />
-        <Ellipse cx="330" cy="50" rx="18" ry="9" fill={ambient} opacity={isDark ? 0.28 : 0.45} />
-
-        {/* Map disc */}
-        <Ellipse cx="180" cy="214" rx="108" ry="46" fill="url(#mapPlate)" />
-        <Ellipse
-          cx="180"
-          cy="214"
-          rx="108"
-          ry="46"
-          fill="none"
-          stroke={colors.border}
-          strokeWidth="1"
-          opacity={0.7}
-        />
-        {/* Streets */}
+      <Svg width="100%" height="100%" viewBox="0 0 390 230" style={styles.backdrop}>
+        <Ellipse cx="195" cy="118" rx="132" ry="86" fill="none" stroke={ink} strokeWidth="1.25" />
+        <Ellipse cx="195" cy="118" rx="92" ry="58" fill="none" stroke={ink} strokeWidth="1" />
         <Path
-          d="M95 214 H265 M180 178 V248 M120 190 C145 205 155 225 180 214 C205 203 215 230 240 218"
-          stroke={gridStroke}
+          d="M42 124 C 70 116, 96 122, 118 114"
+          fill="none"
+          stroke={pin}
           strokeWidth="1.6"
-          opacity={0.28}
-          fill="none"
+          strokeDasharray="3 4"
           strokeLinecap="round"
+          opacity={0.9}
         />
         <Path
-          d="M110 228 C140 218 160 238 190 222 C215 208 235 232 255 220"
-          stroke={gridStroke}
-          strokeWidth="1.2"
-          opacity={0.18}
-          fill="none"
-          strokeLinecap="round"
+          d="M42 112 C39.2 112 37 114.1 37 116.8 C37 120.6 42 125 42 125 C42 125 47 120.6 47 116.8 C47 114.1 44.8 112 42 112 Z"
+          fill={pin}
         />
-        <Circle cx="148" cy="200" r="2.2" fill={colors.teal} opacity={0.7} />
-        <Circle cx="214" cy="226" r="2" fill={colors.secondary} opacity={0.8} />
-        <Circle cx="192" cy="196" r="1.6" fill={colors.accent} opacity={0.65} />
+        <Circle cx="42" cy="116.6" r="1.5" fill="#FFFFFF" />
+        <Circle cx="318" cy="58" r="3.5" fill={onBlue ? '#FFFFFF' : '#0F766E'} opacity={0.55} />
+        <Circle cx="78" cy="52" r="2.5" fill={pin} opacity={0.7} />
+        <Circle cx="330" cy="156" r="2.2" fill={onBlue ? '#FFFFFF' : '#1D4ED8'} opacity={0.4} />
       </Svg>
 
-      {/* Search-radius pulse under phone */}
-      <Animated.View
-        style={[
-          styles.pulseRing,
-          {
-            opacity: ringOpacity,
-            transform: [{ scale: ringScale }],
-            borderColor: colors.secondary,
-          },
-        ]}
-      />
+      <Animated.View style={[styles.rateChip, { transform: [{ translateY: leftY }] }]}>
+        <Ionicons name="star" size={11} color="#B45309" />
+        <Text style={styles.rateText}>4.8 nearby</Text>
+      </Animated.View>
 
-      <Animated.View
-        style={[
-          styles.phoneWrap,
-          { transform: [{ translateY: phoneY }, { scale: phoneScale }] },
-        ]}
-      >
-        <Svg width={148} height={214} viewBox="0 0 148 214">
-          <Defs>
-            <LinearGradient id="bezel" x1="0" y1="0" x2="0" y2="1">
-              <Stop offset="0" stopColor={chromeFill} />
-              <Stop offset="1" stopColor={isDark ? colors.muted : colors.nightSoft} />
-            </LinearGradient>
-            <LinearGradient id="glass" x1="0" y1="0" x2="0" y2="1">
-              <Stop offset="0" stopColor={screenFill} />
-              <Stop offset="1" stopColor={isDark ? colors.surfaceSoft : colors.surfaceSoft} />
-            </LinearGradient>
-            <LinearGradient id="shine" x1="0" y1="0" x2="1" y2="0">
-              <Stop offset="0" stopColor={colors.frost} stopOpacity="0.14" />
-              <Stop offset="0.45" stopColor={colors.frost} stopOpacity="0" />
-              <Stop offset="1" stopColor={colors.frost} stopOpacity="0.06" />
-            </LinearGradient>
-          </Defs>
-
-          {/* Device shadow */}
-          <Ellipse cx="74" cy="206" rx="46" ry="6" fill={colors.ink} opacity={isDark ? 0.35 : 0.12} />
-
-          {/* Bezel */}
-          <Rect x="10" y="4" width="128" height="198" rx="28" fill="url(#bezel)" />
-          <Rect
-            x="10"
-            y="4"
-            width="128"
-            height="198"
-            rx="28"
-            fill="none"
-            stroke={phoneStroke}
-            strokeWidth="1.25"
-            opacity={0.9}
-          />
-          {/* Side highlight */}
-          <Path
-            d="M18 28 C18 18 26 10 38 10 L42 10"
-            stroke={colors.frost}
-            strokeWidth="1.5"
-            opacity={0.22}
-            fill="none"
-            strokeLinecap="round"
-          />
-
-          {/* Screen */}
-          <Rect x="18" y="16" width="112" height="174" rx="20" fill="url(#glass)" />
-          <Rect x="18" y="16" width="112" height="174" rx="20" fill="url(#shine)" />
-
-          {/* Status / notch */}
-          <Rect x="56" y="22" width="36" height="5" rx="2.5" fill={chromeFill} opacity={0.35} />
-
-          {/* Search pill */}
-          <Rect x="28" y="36" width="92" height="24" rx="12" fill={isDark ? colors.muted : colors.muted} />
-          <Circle cx="40" cy="48" r="6.5" fill={colors.secondary} opacity={0.95} />
-          <Rect x="52" y="44" width="48" height="4.5" rx="2.25" fill={lineMuted} opacity={0.75} />
-          <Rect x="52" y="51" width="28" height="3.5" rx="1.75" fill={lineMuted} opacity={0.4} />
-
-          {/* Listing cards */}
-          {[0, 1, 2].map((i) => {
-            const y = 72 + i * 34;
-            return (
-              <G key={i}>
-                <Rect
-                  x="28"
-                  y={y}
-                  width="92"
-                  height="28"
-                  rx="9"
-                  fill={isDark ? colors.canvasDeep : colors.canvasWarm}
-                  opacity={0.95}
-                />
-                <Rect x="34" y={y + 5} width="18" height="18" rx="5" fill={rowThumb} />
-                <Rect
-                  x="34"
-                  y={y + 5}
-                  width="18"
-                  height="18"
-                  rx="5"
-                  fill={i === 1 ? colors.secondary : colors.teal}
-                  opacity={0.22}
-                />
-                <Rect x="58" y={y + 7} width="46" height="4.5" rx="2.25" fill={lineMuted} />
-                <Rect
-                  x="58"
-                  y={y + 15}
-                  width={34 - i * 6}
-                  height="4"
-                  rx="2"
-                  fill={colors.secondary}
-                  opacity={0.9}
-                />
-                {/* tiny stars */}
-                <Circle cx="108" cy={y + 10} r="1.6" fill={colors.star} />
-                <Circle cx="113" cy={y + 10} r="1.6" fill={colors.star} opacity={0.7} />
-              </G>
-            );
-          })}
-
-          {/* Home indicator */}
-          <Rect x="58" y="176" width="32" height="4" rx="2" fill={lineMuted} opacity={0.55} />
-        </Svg>
-
-        <View style={styles.logoOnPhone}>
-          <FinderBLogo size={13} />
+      <Animated.View style={[styles.phoneWrap, { transform: [{ translateY: phoneY }] }]}>
+        <PhoneScreen />
+        <View style={styles.logoOnScreen}>
+          <FinderBLogo size={18} />
         </View>
       </Animated.View>
 
-      <Animated.View
-        style={[
-          styles.pinLeft,
-          { transform: [{ translateY: pinAY }], opacity: sparkleOpacity },
-        ]}
-      >
-        <Svg width={52} height={66} viewBox="0 0 52 66">
-          <Ellipse cx="26" cy="60" rx="12" ry="3.5" fill={colors.ink} opacity={isDark ? 0.35 : 0.12} />
-          <Circle cx="26" cy="24" r="18" fill={glowTeal} opacity={0.18} />
-          <Path
-            d="M26 4 C14.5 4 6 13 6 24.5 C6 38 26 58 26 58 C26 58 46 38 46 24.5 C46 13 37.5 4 26 4 Z"
-            fill={colors.success}
-          />
-          <Circle cx="26" cy="24" r="9" fill={colors.surface} />
-          <Circle cx="26" cy="24" r="4.5" fill={colors.tealDeep} />
-        </Svg>
+      <Animated.View style={[styles.distanceCard, { transform: [{ translateY: leftY }] }]}>
+        <View style={styles.navIcon}>
+          <Ionicons name="navigate" size={13} color="#1D4ED8" />
+        </View>
+        <View>
+          <Text style={styles.cardTitle}>1.2 km</Text>
+          <Text style={styles.cardMeta}>By road</Text>
+        </View>
       </Animated.View>
 
-      <Animated.View style={[styles.pinRight, { transform: [{ translateY: pinBY }] }]}>
-        <Svg width={48} height={62} viewBox="0 0 48 62">
-          <Ellipse cx="24" cy="56" rx="11" ry="3" fill={colors.ink} opacity={isDark ? 0.35 : 0.12} />
-          <Circle cx="24" cy="22" r="16" fill={glowAmber} opacity={0.2} />
-          <Path
-            d="M24 3 C13.5 3 6 12 6 22.5 C6 35 24 54 24 54 C24 54 42 35 42 22.5 C42 12 34.5 3 24 3 Z"
-            fill={colors.secondary}
-          />
-          <Circle cx="24" cy="22" r="8.5" fill={colors.surface} />
-          <Circle cx="24" cy="22" r="4" fill={colors.accentDeep} />
-        </Svg>
-      </Animated.View>
-
-      <Animated.View style={[styles.starLeft, { opacity: sparkleOpacity }]}>
-        <Svg width={18} height={18} viewBox="0 0 18 18">
-          <Path
-            d="M9 1 L10.8 6.2 L16.2 6.4 L12 9.8 L13.4 15 L9 12.2 L4.6 15 L6 9.8 L1.8 6.4 L7.2 6.2 Z"
-            fill={colors.star}
-          />
-        </Svg>
-      </Animated.View>
-      <Animated.View style={[styles.starRight, { opacity: sparkleOpacity }]}>
-        <Svg width={14} height={14} viewBox="0 0 14 14">
-          <Path
-            d="M7 0.8 L8.2 4.6 L12.2 4.8 L9 7.4 L10 11.2 L7 9.2 L4 11.2 L5 7.4 L1.8 4.8 L5.8 4.6 Z"
-            fill={colors.secondary}
-          />
-        </Svg>
+      <Animated.View style={[styles.savedCard, { transform: [{ translateY: rightY }] }]}>
+        <View style={styles.savedHead}>
+          <Ionicons name="heart" size={12} color="#BE185D" />
+          <Text style={styles.savedLabel}>Saved</Text>
+        </View>
+        <Text style={styles.cardTitle}>Blue Door</Text>
+        <Text style={styles.openMeta}>Open now</Text>
       </Animated.View>
     </View>
   );
 }
 
-const useStyles = createThemedStyles(() => ({
+function PhoneScreen() {
+  return (
+    <Svg width={156} height={208} viewBox="0 0 156 208">
+      <Defs>
+        <LinearGradient id="shopPhoto" x1="0" y1="0" x2="1" y2="1">
+          <Stop offset="0" stopColor="#F8D7A8" />
+          <Stop offset="0.48" stopColor="#E8894A" />
+          <Stop offset="1" stopColor="#C2410C" />
+        </LinearGradient>
+        <LinearGradient id="clinicPhoto" x1="0" y1="0" x2="1" y2="1">
+          <Stop offset="0" stopColor="#99F6E4" />
+          <Stop offset="1" stopColor="#0F766E" />
+        </LinearGradient>
+        <LinearGradient id="bezelShine" x1="0" y1="0" x2="1" y2="1">
+          <Stop offset="0" stopColor="#3F3F46" />
+          <Stop offset="0.42" stopColor="#18181B" />
+          <Stop offset="1" stopColor="#09090B" />
+        </LinearGradient>
+        <ClipPath id="photoClip">
+          <Path d="M30 122 H114 Q128 122 128 132 V142 H18 V132 Q18 122 30 122 Z" />
+        </ClipPath>
+      </Defs>
+
+      <Ellipse cx="78" cy="204" rx="44" ry="3" fill="#0F172A" opacity={0.16} />
+      <Rect x="3" y="1" width="150" height="200" rx="30" fill="url(#bezelShine)" />
+      <Rect x="10" y="8" width="136" height="186" rx="24" fill="#F8FAFC" />
+      <Rect x="58" y="14" width="40" height="7" rx="3.5" fill="#18181B" />
+
+      <SvgText x="42" y="40" fill="#0F172A" fontSize="11" fontWeight="700">
+        FinderB
+      </SvgText>
+      <SvgText x="42" y="51" fill="#64748B" fontSize="7" fontWeight="600">
+        Indiranagar
+      </SvgText>
+      <Circle cx="126" cy="40" r="8" fill="#FFFFFF" />
+      <Path
+        d="M126 35.4 C124.3 35.4 123 36.6 123 38.2 C123 40.4 126 43.2 126 43.2 C126 43.2 129 40.4 129 38.2 C129 36.6 127.7 35.4 126 35.4 Z"
+        fill="#1D4ED8"
+      />
+      <Circle cx="126" cy="38.1" r="1.1" fill="#FFFFFF" />
+
+      <Rect x="18" y="58" width="120" height="20" rx="10" fill="#FFFFFF" stroke="#E2E8F0" strokeWidth="1" />
+      <Circle cx="30" cy="68" r="2.6" fill="none" stroke="#1D4ED8" strokeWidth="1.2" />
+      <Path d="M31.9 69.9 L33.4 71.4" stroke="#1D4ED8" strokeWidth="1.2" strokeLinecap="round" />
+      <SvgText x="38" y="71" fill="#94A3B8" fontSize="8" fontWeight="500">
+        Cafes, clinics
+      </SvgText>
+      <Path d="M122 65 H128 M122 68 H126 M122 71 H124" stroke="#94A3B8" strokeWidth="1.1" strokeLinecap="round" />
+
+      {CATEGORIES.map((item, index) => {
+        const x = 33 + index * 30;
+        return (
+          <G key={item.label}>
+            <Circle cx={x} cy="94" r="10" fill={item.fill} />
+            <CategoryMark kind={item.icon} cx={x} cy={94} color={item.mark} />
+            <SvgText x={x} y="112" fill="#475569" fontSize="6.5" fontWeight="600" textAnchor="middle">
+              {item.label}
+            </SvgText>
+          </G>
+        );
+      })}
+
+      <Rect x="18" y="118" width="120" height="44" rx="10" fill="#FFFFFF" stroke="#E2E8F0" strokeWidth="1" />
+      <G clipPath="url(#photoClip)">
+        <Rect x="18" y="118" width="120" height="20" fill="url(#shopPhoto)" />
+      </G>
+      <Rect x="24" y="122" width="26" height="9" rx="4.5" fill="#FFFFFF" />
+      <SvgText x="28" y="128.5" fill="#C2410C" fontSize="6" fontWeight="700">
+        Open
+      </SvgText>
+      <SvgText x="24" y="148" fill="#0F172A" fontSize="8" fontWeight="700">
+        Blue Door Cafe
+      </SvgText>
+      <Path
+        d="M26 154.2 L27.1 156.4 L29.5 156.6 L27.7 158.1 L28.3 160.4 L26 159.2 L23.7 160.4 L24.3 158.1 L22.5 156.6 L24.9 156.4 Z"
+        fill="#F59E0B"
+      />
+      <SvgText x="32" y="158" fill="#B45309" fontSize="6.5" fontWeight="700">
+        4.8
+      </SvgText>
+      <SvgText x="46" y="158" fill="#64748B" fontSize="6.5" fontWeight="500">
+        · 1.2 km · Cafe
+      </SvgText>
+
+      <Rect x="18" y="166" width="120" height="22" rx="8" fill="#FFFFFF" stroke="#E2E8F0" strokeWidth="1" />
+      <Rect x="22" y="170" width="14" height="14" rx="4" fill="url(#clinicPhoto)" />
+      <SvgText x="40" y="176" fill="#0F172A" fontSize="7" fontWeight="700">
+        City Clinic
+      </SvgText>
+      <SvgText x="40" y="184" fill="#64748B" fontSize="6" fontWeight="500">
+        Health · 2.4 km
+      </SvgText>
+      <SvgText x="112" y="178" fill="#047857" fontSize="6" fontWeight="700">
+        Open
+      </SvgText>
+    </Svg>
+  );
+}
+
+function CategoryMark({
+  kind,
+  cx,
+  cy,
+  color,
+}: {
+  kind: (typeof CATEGORIES)[number]['icon'];
+  cx: number;
+  cy: number;
+  color: string;
+}) {
+  if (kind === 'cup') {
+    return (
+      <G>
+        <Path
+          d={`M${cx - 3.4} ${cy - 2.4} H${cx + 2} V${cy + 1.2} C${cx + 2} ${cy + 3.2} ${cx - 3.4} ${cy + 3.2} ${cx - 3.4} ${cy + 1.2} Z`}
+          fill="none"
+          stroke={color}
+          strokeWidth="1.2"
+        />
+        <Path
+          d={`M${cx + 2} ${cy - 1} H${cx + 3.5} V${cy + 0.4}`}
+          fill="none"
+          stroke={color}
+          strokeWidth="1.2"
+          strokeLinecap="round"
+        />
+      </G>
+    );
+  }
+  if (kind === 'plus') {
+    return (
+      <Path
+        d={`M${cx} ${cy - 3.6} V${cy + 3.6} M${cx - 3.6} ${cy} H${cx + 3.6}`}
+        stroke={color}
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+    );
+  }
+  if (kind === 'tool') {
+    return (
+      <G>
+        <Path d={`M${cx - 3.4} ${cy - 2.6} H${cx + 1} L${cx + 0.2} ${cy - 1} H${cx - 2.6} Z`} fill={color} />
+        <Path
+          d={`M${cx - 0.8} ${cy - 1} L${cx + 2.8} ${cy + 2.8}`}
+          stroke={color}
+          strokeWidth="1.4"
+          strokeLinecap="round"
+        />
+      </G>
+    );
+  }
+  return (
+    <G>
+      <Path d={`M${cx - 4} ${cy + 2} H${cx + 4}`} stroke={color} strokeWidth="1.2" strokeLinecap="round" />
+      <Path
+        d={`M${cx - 2.8} ${cy + 2} V${cy - 1.2} H${cx + 2.8} V${cy + 2}`}
+        fill="none"
+        stroke={color}
+        strokeWidth="1.2"
+        strokeLinejoin="round"
+      />
+    </G>
+  );
+}
+
+const styles = StyleSheet.create({
   wrap: {
     width: '100%',
-    height: 280,
+    height: 236,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  svg: {
+  logoOnScreen: {
+    position: 'absolute',
+    left: 20,
+    top: 26,
+    width: 18,
+    height: 18,
+  },
+  backdrop: {
     ...StyleSheet.absoluteFill,
   },
-  pulseRing: {
-    position: 'absolute',
-    bottom: 46,
-    width: 150,
-    height: 58,
-    borderRadius: 999,
-    borderWidth: 2,
-  },
   phoneWrap: {
-    position: 'absolute',
-    top: 18,
-    alignItems: 'center',
-  },
-  logoOnPhone: {
-    position: 'absolute',
-    top: 42,
-    left: 34,
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    overflow: 'hidden',
+    zIndex: 2,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'transparent',
   },
-  pinLeft: {
+  rateChip: {
     position: 'absolute',
-    left: '12%',
-    bottom: 58,
+    left: 14,
+    top: 22,
+    zIndex: 3,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    shadowColor: '#0F172A',
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
   },
-  pinRight: {
+  rateText: {
+    fontFamily: fonts.semiBold,
+    fontSize: 11,
+    color: '#1C1917',
+  },
+  distanceCard: {
     position: 'absolute',
-    right: '11%',
-    bottom: 72,
+    left: 6,
+    top: 70,
+    zIndex: 3,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    shadowColor: '#0F172A',
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 5,
   },
-  starLeft: {
+  navIcon: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: '#EFF6FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  savedCard: {
     position: 'absolute',
-    left: '22%',
-    top: 86,
+    right: 12,
+    top: 36,
+    zIndex: 3,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    minWidth: 92,
+    shadowColor: '#0F172A',
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 5,
   },
-  starRight: {
-    position: 'absolute',
-    right: '20%',
-    top: 72,
+  savedHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 2,
   },
-}));
+  savedLabel: {
+    fontFamily: fonts.semiBold,
+    fontSize: 10,
+    color: '#BE185D',
+  },
+  cardTitle: {
+    fontFamily: fonts.bold,
+    fontSize: 13,
+    color: '#0F172A',
+  },
+  cardMeta: {
+    marginTop: 1,
+    fontFamily: fonts.medium,
+    fontSize: 10,
+    color: '#64748B',
+  },
+  openMeta: {
+    marginTop: 2,
+    fontFamily: fonts.semiBold,
+    fontSize: 10,
+    color: '#047857',
+  },
+});

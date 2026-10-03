@@ -1,7 +1,7 @@
 import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { WeatherChipOrb } from './ClimateHeaderBackdrop';
+import { AnimatedWeatherGlyph } from './AnimatedWeatherGlyph';
 import { fonts } from '../constants/typography';
 import { useTheme } from '../context/ThemeContext';
 import { createThemedStyles } from '../hooks/useThemedStyles';
@@ -15,7 +15,7 @@ type Props = {
 };
 
 function HourColumn({ hour }: { hour: HourlyForecastHour }) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const styles = useStyles();
   const temp =
     hour.temperatureC != null && Number.isFinite(hour.temperatureC)
@@ -27,7 +27,21 @@ function HourColumn({ hour }: { hour: HourlyForecastHour }) {
       <Text style={styles.hourLabel} numberOfLines={1}>
         {hour.label}
       </Text>
-      <WeatherChipOrb night={!hour.isDay} size={18} />
+      <AnimatedWeatherGlyph
+        night={!hour.isDay}
+        size={22}
+        onLight={!isDark}
+        skyWeather={hour.skyWeather}
+        dayPart={
+          !hour.isDay
+            ? 'night'
+            : hour.hour < 11
+              ? 'morning'
+              : hour.hour < 16
+                ? 'afternoon'
+                : 'evening'
+        }
+      />
       <Text style={styles.hourTemp}>{temp}</Text>
       <Text style={styles.hourSky} numberOfLines={1}>
         {hour.skyLabel}
