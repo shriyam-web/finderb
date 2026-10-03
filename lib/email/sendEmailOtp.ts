@@ -6,51 +6,95 @@ import 'server-only';
 export async function sendEmailOtpEmail(
   to: string,
   code: string,
-  purposeLabel = 'verification',
+  _purposeLabel = 'verification',
 ): Promise<boolean> {
   const key = process.env.RESEND_API_KEY?.trim();
   const from =
     process.env.EMAIL_FROM?.trim() || 'FinderB <support@finderb.com>';
+  const digits = String(code || '').replace(/\D/g, '').slice(0, 6);
 
   if (!key) {
     console.warn('[email-otp] RESEND_API_KEY is not set; email not sent');
     return false;
   }
+  if (digits.length !== 6) return false;
 
-  const subject = `Your FinderB ${purposeLabel} code: ${code}`;
+  const subject = `${digits} is your FinderB verification code`;
   const text = [
-    `Your FinderB ${purposeLabel} code is ${code}.`,
+    'Welcome to FinderB.',
+    '',
+    'Use this code to confirm your business email:',
+    '',
+    digits,
+    '',
     'It expires in 15 minutes.',
     '',
-    'If you did not request this, you can ignore this email.',
+    'Enter it in the FinderB app, on the business registration screen, and your listing can continue.',
     '',
-    '— Team FinderB',
+    'If you did not start a FinderB registration, you can ignore this email. No business will be created.',
+    '',
+    'With care,',
+    'Team FinderB',
+    'https://finderb.com',
   ].join('\n');
 
   const html = `
 <!DOCTYPE html>
-<html>
-<body style="margin:0;padding:0;background:#f6f3ee;font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f6f3ee;padding:28px 12px;">
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Your FinderB verification code</title>
+</head>
+<body style="margin:0;padding:0;background:#f4f0e8;">
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;">
+    Confirm your business email with FinderB. This code expires in 15 minutes.
+  </div>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f0e8;padding:32px 12px;">
     <tr>
       <td align="center">
-        <table role="presentation" width="100%" style="max-width:480px;background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #e2d8cb;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#ffffff;border-radius:20px;overflow:hidden;border:1px solid #e6dccb;">
           <tr>
-            <td style="padding:20px 24px;background:#153551;color:#fff;">
-              <p style="margin:0;font-size:12px;letter-spacing:0.16em;text-transform:uppercase;opacity:0.85;">FinderB</p>
-              <h1 style="margin:8px 0 0;font-size:20px;">Email verification</h1>
+            <td style="padding:28px 32px 22px;background:#153551;">
+              <p style="margin:0;font-family:Georgia,'Times New Roman',serif;font-size:13px;letter-spacing:0.22em;text-transform:uppercase;color:#f9b864;">FinderB</p>
+              <h1 style="margin:12px 0 0;font-family:Georgia,'Times New Roman',serif;font-size:28px;line-height:1.25;font-weight:normal;color:#ffffff;">Your business email, confirmed.</h1>
             </td>
           </tr>
           <tr>
-            <td style="padding:24px;">
-              <p style="margin:0 0 12px;font-size:15px;line-height:1.5;color:#5f564a;">
-                Use this code to verify your email for merchant registration:
+            <td style="padding:32px 32px 8px;font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
+              <p style="margin:0 0 16px;font-size:16px;line-height:1.6;color:#3d4a3a;">
+                Welcome. Someone — we hope it was you — began listing a business on FinderB with this address.
               </p>
-              <p style="margin:0;font-size:32px;letter-spacing:0.28em;font-weight:700;color:#153551;text-align:center;">
-                ${code}
+              <p style="margin:0 0 22px;font-size:16px;line-height:1.6;color:#3d4a3a;">
+                Enter the code below in the app. It keeps this inbox as the one we trust for your listing.
               </p>
-              <p style="margin:16px 0 0;font-size:13px;color:#8a7b68;text-align:center;">
-                Expires in 15 minutes
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f8f4ec;border:1px solid #eadfcb;border-radius:16px;">
+                <tr>
+                  <td align="center" style="padding:22px 16px 8px;font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:12px;letter-spacing:0.16em;text-transform:uppercase;color:#8a7356;">
+                    Verification code
+                  </td>
+                </tr>
+                <tr>
+                  <td align="center" style="padding:0 16px 8px;font-family:Georgia,'Times New Roman',serif;font-size:36px;letter-spacing:0.28em;color:#153551;">
+                    ${digits}
+                  </td>
+                </tr>
+                <tr>
+                  <td align="center" style="padding:0 16px 22px;font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:13px;line-height:1.5;color:#8a7356;">
+                    Expires in 15 minutes
+                  </td>
+                </tr>
+              </table>
+              <p style="margin:22px 0 0;font-size:14px;line-height:1.6;color:#5c6b5a;">
+                If you did not start this registration, you can leave the email unread. Nothing is created until the code is entered.
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:8px 32px 28px;font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
+              <p style="margin:18px 0 0;font-size:14px;line-height:1.6;color:#153551;">With care,<br />Team FinderB</p>
+              <p style="margin:18px 0 0;font-size:12px;line-height:1.5;color:#9a8b76;">
+                FinderB · <a href="https://finderb.com" style="color:#153551;text-decoration:none;">finderb.com</a>
               </p>
             </td>
           </tr>
