@@ -12,6 +12,7 @@ export async function sendEmailOtpEmail(
   const from =
     process.env.EMAIL_FROM?.trim() || 'FinderB <support@finderb.com>';
   const digits = String(code || '').replace(/\D/g, '').slice(0, 6);
+  const font = "Arial, Helvetica, sans-serif";
 
   if (!key) {
     console.warn('[email-otp] RESEND_API_KEY is not set; email not sent');
@@ -19,22 +20,22 @@ export async function sendEmailOtpEmail(
   }
   if (digits.length !== 6) return false;
 
-  const subject = `${digits} is your FinderB verification code`;
+  const subject = `${digits} is your FinderB code`;
   const text = [
-    'Welcome to FinderB.',
+    'FinderB',
     '',
-    'Use this code to confirm your business email:',
+    'Confirm your business email',
+    '',
+    'Thank you for registering your business with FinderB.',
+    'Enter this code in the app to verify your email and continue:',
     '',
     digits,
     '',
-    'It expires in 15 minutes.',
+    'This code expires in 15 minutes.',
     '',
-    'Enter it in the FinderB app, on the business registration screen, and your listing can continue.',
+    'If you did not start this registration, you can ignore this email. Nothing is created until the code is entered.',
     '',
-    'If you did not start a FinderB registration, you can ignore this email. No business will be created.',
-    '',
-    'With care,',
-    'Team FinderB',
+    'The FinderB team',
     'https://finderb.com',
   ].join('\n');
 
@@ -44,58 +45,65 @@ export async function sendEmailOtpEmail(
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Your FinderB verification code</title>
+  <title>Your FinderB code</title>
 </head>
-<body style="margin:0;padding:0;background:#f4f0e8;">
-  <div style="display:none;max-height:0;overflow:hidden;opacity:0;">
-    Confirm your business email with FinderB. This code expires in 15 minutes.
+<body style="margin:0;padding:0;background:#eef2f6;">
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;mso-hide:all;">
+    Your FinderB verification code is ${digits}. It expires in 15 minutes.
   </div>
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f0e8;padding:32px 12px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#eef2f6;padding:28px 12px;">
     <tr>
       <td align="center">
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#ffffff;border-radius:20px;overflow:hidden;border:1px solid #e6dccb;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#ffffff;border:1px solid #e2e8f0;border-radius:16px;">
           <tr>
-            <td style="padding:28px 32px 22px;background:#153551;">
-              <p style="margin:0;font-family:Georgia,'Times New Roman',serif;font-size:13px;letter-spacing:0.22em;text-transform:uppercase;color:#f9b864;">FinderB</p>
-              <h1 style="margin:12px 0 0;font-family:Georgia,'Times New Roman',serif;font-size:28px;line-height:1.25;font-weight:normal;color:#ffffff;">Your business email, confirmed.</h1>
+            <td align="center" style="padding:32px 32px 8px;font-family:${font};">
+              <img src="https://finderb.com/businesslogo.png" width="196" alt="FinderB Business" style="display:block;width:196px;max-width:196px;height:auto;border:0;outline:none;text-decoration:none;" />
             </td>
           </tr>
           <tr>
-            <td style="padding:32px 32px 8px;font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
-              <p style="margin:0 0 16px;font-size:16px;line-height:1.6;color:#3d4a3a;">
-                Welcome. Someone — we hope it was you — began listing a business on FinderB with this address.
-              </p>
-              <p style="margin:0 0 22px;font-size:16px;line-height:1.6;color:#3d4a3a;">
-                Enter the code below in the app. It keeps this inbox as the one we trust for your listing.
-              </p>
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f8f4ec;border:1px solid #eadfcb;border-radius:16px;">
+            <td align="center" style="padding:20px 32px 0;font-family:${font};font-size:22px;line-height:1.3;font-weight:700;color:#153551;">
+              Confirm your business email
+            </td>
+          </tr>
+          <tr>
+            <td align="center" style="padding:12px 36px 0;font-family:${font};font-size:15px;line-height:1.6;color:#4b5563;">
+              Thank you for registering with FinderB. Enter this code in the app to verify your email and continue.
+            </td>
+          </tr>
+          <tr>
+            <td align="center" style="padding:24px 32px 0;">
+              <table role="presentation" cellpadding="0" cellspacing="0" style="background:#f4f7fb;border:1px solid #d7e2ee;border-radius:12px;">
                 <tr>
-                  <td align="center" style="padding:22px 16px 8px;font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:12px;letter-spacing:0.16em;text-transform:uppercase;color:#8a7356;">
-                    Verification code
-                  </td>
-                </tr>
-                <tr>
-                  <td align="center" style="padding:0 16px 8px;font-family:Georgia,'Times New Roman',serif;font-size:36px;letter-spacing:0.28em;color:#153551;">
+                  <td align="center" style="padding:18px 36px;font-family:${font};font-size:32px;line-height:1;font-weight:700;letter-spacing:8px;color:#153551;">
                     ${digits}
                   </td>
                 </tr>
-                <tr>
-                  <td align="center" style="padding:0 16px 22px;font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:13px;line-height:1.5;color:#8a7356;">
-                    Expires in 15 minutes
-                  </td>
-                </tr>
               </table>
-              <p style="margin:22px 0 0;font-size:14px;line-height:1.6;color:#5c6b5a;">
-                If you did not start this registration, you can leave the email unread. Nothing is created until the code is entered.
-              </p>
             </td>
           </tr>
           <tr>
-            <td style="padding:8px 32px 28px;font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
-              <p style="margin:18px 0 0;font-size:14px;line-height:1.6;color:#153551;">With care,<br />Team FinderB</p>
-              <p style="margin:18px 0 0;font-size:12px;line-height:1.5;color:#9a8b76;">
-                FinderB · <a href="https://finderb.com" style="color:#153551;text-decoration:none;">finderb.com</a>
-              </p>
+            <td align="center" style="padding:12px 32px 0;font-family:${font};font-size:13px;line-height:1.5;color:#64748b;">
+              Expires in 15 minutes
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:22px 32px 0;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="border-top:1px solid #e6edf4;font-size:0;line-height:0;">&nbsp;</td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td align="center" style="padding:16px 36px 0;font-family:${font};font-size:13px;line-height:1.6;color:#64748b;">
+              If you did not start this registration, you can ignore this email. Nothing is created until the code is entered.
+            </td>
+          </tr>
+          <tr>
+            <td align="center" style="padding:20px 32px 28px;font-family:${font};font-size:13px;line-height:1.5;color:#153551;">
+              The FinderB team<br />
+              <a href="https://finderb.com" style="font-family:${font};color:#215481;text-decoration:none;">finderb.com</a>
             </td>
           </tr>
         </table>
