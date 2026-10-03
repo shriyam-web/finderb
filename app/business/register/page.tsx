@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useOtpCooldown } from '@/hooks/useOtpCooldown';
 import { useSearchParams } from 'next/navigation';
 import {
   CheckCircle2,
@@ -121,6 +122,7 @@ function RegisterFormContent() {
   const [emailOtpVerifying, setEmailOtpVerifying] = useState(false);
   const [emailOtpHint, setEmailOtpHint] = useState('');
   const [emailOtpRequired, setEmailOtpRequired] = useState(false);
+  const emailOtpCooldown = useOtpCooldown();
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -234,6 +236,10 @@ function RegisterFormContent() {
       return;
     }
 
+    const emailKey = email.toLowerCase();
+    if (emailOtpCooldown.isWaiting(emailKey)) return;
+
+    setEmailOtpCode('');
     setEmailOtpSending(true);
     clearFieldErrors('email', 'emailOtp', '_form');
     setEmailOtpHint('');
@@ -245,6 +251,7 @@ function RegisterFormContent() {
         scrollToFirstRegistrationError(mapped);
         return;
       }
+      emailOtpCooldown.markSent(emailKey);
       setFieldErrors({});
       setEmailOtpHint(result.message);
     } catch (error) {
@@ -764,6 +771,12 @@ function RegisterFormContent() {
         emailOtpSending={emailOtpSending}
         emailOtpVerifying={emailOtpVerifying}
         emailOtpHint={emailOtpHint}
+        emailOtpSent={emailOtpCooldown.isSentTo(formData.email.trim().toLowerCase())}
+        emailOtpWait={
+          emailOtpCooldown.isWaiting(formData.email.trim().toLowerCase())
+            ? emailOtpCooldown.secondsLeft
+            : 0
+        }
         onSendEmailOtp={() => {
           void handleSendEmailOtp();
         }}

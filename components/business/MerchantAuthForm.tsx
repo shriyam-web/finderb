@@ -174,6 +174,7 @@ export function MerchantAuthField({
   placeholder,
   icon: Icon,
   trailing,
+  endAction,
   autoComplete,
   hideLabel,
   error,
@@ -186,6 +187,7 @@ export function MerchantAuthField({
   placeholder?: string;
   icon: React.ComponentType<{ size?: number; className?: string; strokeWidth?: number }>;
   trailing?: ReactNode;
+  endAction?: ReactNode;
   autoComplete?: string;
   hideLabel?: boolean;
   error?: string;
@@ -214,9 +216,13 @@ export function MerchantAuthField({
           autoComplete={autoComplete}
           aria-invalid={Boolean(error)}
           aria-describedby={error ? `${id}-error` : undefined}
-          className={`${merchantAuthFieldClass} ${trailing ? 'pr-11' : ''} ${error ? 'merchant-auth-field-invalid' : ''}`}
+          className={`${merchantAuthFieldClass} ${endAction ? '!pr-28' : trailing ? 'pr-11' : ''} ${error ? 'merchant-auth-field-invalid' : ''}`}
         />
-        {trailing}
+        {endAction ? (
+          <div className="absolute right-1.5 top-1/2 -translate-y-1/2">{endAction}</div>
+        ) : (
+          trailing
+        )}
       </div>
       <MerchantFieldError id={error ? `${id}-error` : undefined} message={error} />
     </div>

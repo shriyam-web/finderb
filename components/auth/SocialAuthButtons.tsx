@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { otpSendLabel, useOtpCooldown } from '@/hooks/useOtpCooldown';
 import TruecallerButton from '@/components/auth/TruecallerButton';
 import OAuthButtonGroup from '@/components/auth/OAuthButtonGroup';
 import { isMerchantPortalPath } from '@/lib/authRedirect';
@@ -36,8 +37,8 @@ function WhatsAppAuthButton({
   const [open, setOpen] = useState(false);
   const [phone, setPhone] = useState('');
   const [code, setCode] = useState('');
-  const [sent, setSent] = useState(false);
   const [hint, setHint] = useState('');
+  const otp = useOtpCooldown();
   const [busy, setBusy] = useState(false);
 
   const digits = phone.replace(/\D/g, '').slice(0, 10);
@@ -52,6 +53,8 @@ function WhatsAppAuthButton({
       fail('Enter a 10-digit Indian mobile number.');
       return;
     }
+    if (otp.isWaiting(digits)) return;
+    setCode('');
     setBusy(true);
     onError?.('');
     try {
@@ -65,7 +68,7 @@ function WhatsAppAuthButton({
         fail(data.error || 'Could not send the WhatsApp code.');
         return;
       }
-      setSent(true);
+      otp.markSent(digits);
       setHint(data.message || 'We sent a 6-digit code on WhatsApp.');
     } catch {
       fail('Could not send the WhatsApp code. Check your connection.');
@@ -143,50 +146,54 @@ function WhatsAppAuthButton({
           ? 'Use the mobile number on your FinderB business. We send the code on WhatsApp.'
           : 'Enter your WhatsApp number. We send a 6-digit code to sign you in.'}
       </p>
-      <input
-        inputMode="numeric"
-        autoComplete="tel"
-        maxLength={10}
-        value={digits}
-        onChange={(event) => {
-          setPhone(event.target.value.replace(/\D/g, '').slice(0, 10));
-          setSent(false);
-          setCode('');
-          setHint('');
-        }}
-        placeholder="10-digit WhatsApp number"
-        className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-[#128C7E]"
-      />
-      {sent ? (
+      <div className="flex items-center gap-2">
         <input
           inputMode="numeric"
-          autoComplete="one-time-code"
-          maxLength={6}
-          value={code}
-          onChange={(event) => setCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
-          placeholder="6-digit code"
-          className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm tracking-[0.3em] text-slate-900 outline-none focus:border-[#128C7E]"
+          autoComplete="tel"
+          maxLength={10}
+          value={digits}
+          onChange={(event) => {
+            const next = event.target.value.replace(/\D/g, '').slice(0, 10);
+            if (next !== digits) setCode('');
+            setPhone(next);
+            setHint('');
+          }}
+          placeholder="10-digit WhatsApp number"
+          className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-[#128C7E]"
         />
-      ) : null}
-      {hint ? <p className="text-[13px] font-medium text-emerald-700">{hint}</p> : null}
-      <button
-        type="button"
-        disabled={busy}
-        onClick={() => void (sent ? verify() : send())}
-        className="flex w-full items-center justify-center rounded-lg bg-[#128C7E] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
-      >
-        {busy ? 'Please wait…' : sent ? 'Verify and continue' : 'Send WhatsApp code'}
-      </button>
-      {sent ? (
         <button
           type="button"
-          disabled={busy}
+          disabled={busy || otp.isWaiting(digits) || !/^[6-9]\d{9}$/.test(digits)}
           onClick={() => void send()}
-          className="w-full text-center text-sm font-semibold text-[#128C7E] disabled:opacity-60"
+          className="h-10 shrink-0 rounded-lg bg-[#128C7E] px-3 text-xs font-bold text-white disabled:opacity-45"
         >
-          Resend code
+          {busy && code.length < 6
+            ? 'Sending…'
+            : otpSendLabel(otp.isSentTo(digits), otp.isWaiting(digits), otp.secondsLeft)}
         </button>
+      </div>
+      {otp.isSentTo(digits) ? (
+        <div className="flex items-center gap-2">
+          <input
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            maxLength={6}
+            value={code}
+            onChange={(event) => setCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
+            placeholder="6-digit code"
+            className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm tracking-[0.3em] text-slate-900 outline-none focus:border-[#128C7E]"
+          />
+          <button
+            type="button"
+            disabled={busy || code.length !== 6}
+            onClick={() => void verify()}
+            className="h-10 shrink-0 rounded-lg bg-[#128C7E] px-3 text-xs font-bold text-white disabled:opacity-45"
+          >
+            {busy ? '…' : 'Verify'}
+          </button>
+        </div>
       ) : null}
+      {hint ? <p className="text-[13px] font-medium text-emerald-700">{hint}</p> : null}
     </div>
   );
 }

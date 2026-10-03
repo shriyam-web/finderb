@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { createHmac, timingSafeEqual } from 'crypto';
+import { consumeOtpChallenge, discardOtpChallenge, issueOtpChallenge } from '@/lib/auth/otpChallenge.server';
 import { sendEmailOtpEmail } from '@/lib/email/sendEmailOtp';
 import { REGISTRATION_EMAIL_REGEX } from '@/lib/merchantRegistrationValidation';
 import { enforceRateLimit } from '@/lib/security/enforceRateLimit.server';
@@ -12,7 +13,6 @@ import {
   LOGIN_PATHS,
 } from '@/lib/emailAccountLookup';
 
-const OTP_WINDOW_MS = 15 * 60 * 1000;
 const PROOF_TTL_MS = 45 * 60 * 1000;
 export const MERCHANT_REGISTER_EMAIL_PURPOSE = 'merchant-register';
 export const USER_EMAIL_PURPOSE = 'user-email';
@@ -29,10 +29,6 @@ function otpSecret(): string {
   return secret;
 }
 
-function windowIndex(at = Date.now()): number {
-  return Math.floor(at / OTP_WINDOW_MS);
-}
-
 function normalizeEmail(email: string): string {
   return String(email || '').trim().toLowerCase();
 }
@@ -42,29 +38,6 @@ function codesMatch(a: string, b: string): boolean {
   const right = Buffer.from(b);
   if (left.length !== right.length) return false;
   return timingSafeEqual(left, right);
-}
-
-function otpFor(purpose: string, email: string, window: number): string {
-  const hmac = createHmac('sha256', otpSecret())
-    .update(`email-otp:${purpose}:${email}:${window}`)
-    .digest('hex');
-  const n = parseInt(hmac.slice(0, 8), 16) % 1_000_000;
-  return String(n).padStart(6, '0');
-}
-
-export function verifyEmailOtpCode(
-  purpose: string,
-  email: string,
-  code: string,
-): boolean {
-  const normalized = normalizeEmail(email);
-  const digits = String(code || '').replace(/\D/g, '');
-  if (digits.length !== 6) return false;
-  const current = windowIndex();
-  return (
-    codesMatch(digits, otpFor(purpose, normalized, current)) ||
-    codesMatch(digits, otpFor(purpose, normalized, current - 1))
-  );
 }
 
 export function issueEmailVerificationProof(
@@ -180,13 +153,18 @@ export async function requestMerchantRegisterEmailOtp(
     };
   }
 
-  const code = otpFor(
-    MERCHANT_REGISTER_EMAIL_PURPOSE,
-    normalized,
-    windowIndex(),
-  );
+  let code = '';
+  try {
+    code = await issueOtpChallenge(MERCHANT_REGISTER_EMAIL_PURPOSE, normalized);
+  } catch {
+    return {
+      success: false,
+      error: 'Could not prepare the verification code. Please try again shortly.',
+    };
+  }
   const sent = await sendEmailOtpEmail(normalized, code, 'registration');
   if (!sent) {
+    await discardOtpChallenge(MERCHANT_REGISTER_EMAIL_PURPOSE, normalized);
     return {
       success: false,
       error: 'Could not send the verification email. Please try again shortly.',
@@ -215,7 +193,7 @@ export async function verifyMerchantRegisterEmailOtp(
   const verifyLimit = await enforceRateLimit('authEmail', `email-otp-verify:${normalized}`);
   if (!verifyLimit.ok) return { success: false, error: verifyLimit.error };
 
-  if (!verifyEmailOtpCode(MERCHANT_REGISTER_EMAIL_PURPOSE, normalized, code)) {
+  if (!(await consumeOtpChallenge(MERCHANT_REGISTER_EMAIL_PURPOSE, normalized, code))) {
     return {
       success: false,
       error: 'Invalid or expired code. Check the email and try again.',
@@ -269,9 +247,15 @@ async function requestPurposeEmailOtp(
     };
   }
 
-  const code = otpFor(purpose, normalized, windowIndex());
+  let code = '';
+  try {
+    code = await issueOtpChallenge(purpose, normalized);
+  } catch {
+    return { success: false, error: 'Could not prepare the verification code. Please try again shortly.' };
+  }
   const sent = await sendEmailOtpEmail(normalized, code, kind);
   if (!sent) {
+    await discardOtpChallenge(purpose, normalized);
     return { success: false, error: 'Could not send the verification email. Please try again shortly.' };
   }
 
@@ -294,7 +278,7 @@ async function verifyPurposeEmailOtp(
   const verifyLimit = await enforceRateLimit('authEmail', `email-otp-verify:${purpose}:${normalized}`);
   if (!verifyLimit.ok) return { success: false, error: verifyLimit.error };
 
-  if (!verifyEmailOtpCode(purpose, normalized, code)) {
+  if (!(await consumeOtpChallenge(purpose, normalized, code))) {
     return { success: false, error: 'Invalid or expired code. Check the email and try again.' };
   }
 

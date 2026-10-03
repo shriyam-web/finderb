@@ -30,6 +30,7 @@ import {
 } from 'react-icons/hi2';
 import { FaInstagram, FaFacebook, FaYoutube, FaWhatsapp } from 'react-icons/fa';
 import { useState, useEffect } from 'react';
+import { otpSendLabel, useOtpCooldown } from '@/hooks/useOtpCooldown';
 import { createPortal } from 'react-dom';
 import Image from 'next/image';
 import { CldUploadWidget } from 'next-cloudinary';
@@ -267,6 +268,7 @@ export default function SettingsTab({
   const [emailProofFor, setEmailProofFor] = useState('');
   const [emailHint, setEmailHint] = useState('');
   const [emailBusy, setEmailBusy] = useState(false);
+  const emailOtp = useOtpCooldown();
   const [pendingCategoryRequest, setPendingCategoryRequest] = useState<BusinessChangeRequest | null>(null);
   const [pendingLegalNameRequest, setPendingLegalNameRequest] = useState<BusinessChangeRequest | null>(null);
 
@@ -1155,76 +1157,86 @@ export default function SettingsTab({
                       )}
                     </div>
                   ) : activeModal === 'email' ? (
-                    <div className="space-y-3">
-                      <input
-                        type="email"
-                        value={profileData.email ?? ''}
-                        onChange={(e) => {
-                          updateField('email', e.target.value);
-                          updateField('emailVerificationToken', '');
-                          setEmailProof('');
-                          setEmailProofFor('');
-                          setEmailHint('');
-                          if (fieldError) setFieldError('');
-                        }}
-                        className="w-full rounded-lg border border-zinc-200 px-3 py-2.5 text-sm outline-none focus:border-[#215481] focus:ring-2 focus:ring-[#215481]/10"
-                        autoFocus
-                      />
-                      {(() => {
-                        const next = String(profileData.email || '').trim().toLowerCase();
-                        const known = new Set(
-                          [business?.email, business?.workEmail]
-                            .map((value) => String(value || '').trim().toLowerCase())
-                            .filter(Boolean),
-                        );
-                        const needsCode = Boolean(next) && !known.has(next);
-                        if (!needsCode) {
-                          return (
+                    (() => {
+                      const next = String(profileData.email || '').trim().toLowerCase();
+                      const known = new Set(
+                        [business?.email, business?.workEmail]
+                          .map((value) => String(value || '').trim().toLowerCase())
+                          .filter(Boolean),
+                      );
+                      const needsCode = Boolean(next) && !known.has(next);
+                      const verified = emailProofFor === next && Boolean(emailProof);
+                      const sent = emailOtp.isSentTo(next);
+                      const waiting = emailOtp.isWaiting(next);
+                      return (
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="email"
+                              value={profileData.email ?? ''}
+                              onChange={(e) => {
+                                const typed = e.target.value.trim().toLowerCase();
+                                if (typed !== next) setEmailCode('');
+                                updateField('email', e.target.value);
+                                updateField('emailVerificationToken', '');
+                                setEmailProof('');
+                                setEmailProofFor('');
+                                setEmailHint('');
+                                if (fieldError) setFieldError('');
+                              }}
+                              className="min-w-0 flex-1 rounded-lg border border-zinc-200 px-3 py-2.5 text-sm outline-none focus:border-[#215481] focus:ring-2 focus:ring-[#215481]/10"
+                              autoFocus
+                            />
+                            {needsCode && !verified ? (
+                              <button
+                                type="button"
+                                disabled={emailBusy || waiting}
+                                onClick={() => {
+                                  void (async () => {
+                                    setEmailCode('');
+                                    setFieldError('');
+                                    setEmailHint('');
+                                    setEmailBusy(true);
+                                    const result = await sendBusinessEmailChangeOtp(next);
+                                    setEmailBusy(false);
+                                    if (!result.success) {
+                                      setFieldError(result.error);
+                                      return;
+                                    }
+                                    emailOtp.markSent(next);
+                                    setEmailHint(result.message);
+                                  })();
+                                }}
+                                className="h-10 shrink-0 rounded-lg bg-[#153551] px-3 text-xs font-bold text-white disabled:opacity-45"
+                              >
+                                {emailBusy ? 'Sending…' : otpSendLabel(sent, waiting, emailOtp.secondsLeft)}
+                              </button>
+                            ) : null}
+                          </div>
+                          {!needsCode ? (
                             <p className="text-xs text-zinc-500">
                               A new address has to be confirmed with a code before it is saved.
                             </p>
-                          );
-                        }
-                        const verified = emailProofFor === next && Boolean(emailProof);
-                        return (
-                          <div className="space-y-2 rounded-lg border border-zinc-200 bg-zinc-50 p-3">
-                            <p className="text-xs leading-relaxed text-zinc-600">
-                              {verified
-                                ? 'Email verified. Save to keep this address.'
-                                : 'We will email a 6-digit code. Enter it before saving.'}
-                            </p>
-                            {verified ? null : (
-                              <>
-                                <input
-                                  inputMode="numeric"
-                                  maxLength={6}
-                                  value={emailCode}
-                                  onChange={(e) => setEmailCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                                  placeholder="6-digit code"
-                                  className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-[#215481]"
-                                />
+                          ) : (
+                            <div className="space-y-2">
+                              <p className="text-xs leading-relaxed text-zinc-600">
+                                {verified
+                                  ? 'Email verified. Save to keep this address.'
+                                  : sent
+                                    ? 'Enter the 6-digit code from your email.'
+                                    : 'Send a code to this address, then enter it before saving.'}
+                              </p>
+                              {sent && !verified ? (
                                 <div className="flex gap-2">
-                                  <button
-                                    type="button"
-                                    disabled={emailBusy}
-                                    onClick={() => {
-                                      void (async () => {
-                                        setFieldError('');
-                                        setEmailHint('');
-                                        setEmailBusy(true);
-                                        const result = await sendBusinessEmailChangeOtp(next);
-                                        setEmailBusy(false);
-                                        if (!result.success) {
-                                          setFieldError(result.error);
-                                          return;
-                                        }
-                                        setEmailHint(result.message);
-                                      })();
-                                    }}
-                                    className="flex-1 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-[#153551] disabled:opacity-50"
-                                  >
-                                    {emailBusy ? 'Sending…' : 'Send code'}
-                                  </button>
+                                  <input
+                                    inputMode="numeric"
+                                    autoComplete="one-time-code"
+                                    maxLength={6}
+                                    value={emailCode}
+                                    onChange={(e) => setEmailCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                                    placeholder="6-digit code"
+                                    className="min-w-0 flex-1 rounded-lg border border-zinc-200 bg-white px-3 py-2.5 text-sm tracking-[0.2em] outline-none focus:border-[#215481]"
+                                  />
                                   <button
                                     type="button"
                                     disabled={emailBusy || emailCode.length !== 6}
@@ -1244,19 +1256,19 @@ export default function SettingsTab({
                                         setEmailHint(result.message);
                                       })();
                                     }}
-                                    className="flex-1 rounded-lg bg-[#153551] px-3 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                                    className="rounded-lg bg-[#153551] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
                                   >
                                     Verify
                                   </button>
                                 </div>
-                              </>
-                            )}
-                            {emailHint ? <p className="text-xs font-medium text-emerald-700">{emailHint}</p> : null}
-                          </div>
-                        );
-                      })()}
-                      {fieldError ? <p className="text-xs text-rose-600">{fieldError}</p> : null}
-                    </div>
+                              ) : null}
+                              {emailHint ? <p className="text-xs font-medium text-emerald-700">{emailHint}</p> : null}
+                            </div>
+                          )}
+                          {fieldError ? <p className="text-xs text-rose-600">{fieldError}</p> : null}
+                        </div>
+                      );
+                    })()
                   ) : (
                     <input
                       type={activeField.type === 'number' ? 'number' : 'text'}

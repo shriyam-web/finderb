@@ -84,6 +84,7 @@ import {
 } from '@/lib/categoryFixedSlots';
 import {
   assertEmailVerificationProof,
+  isMerchantEmailOtpConfigured,
   MERCHANT_EMAIL_UPDATE_PURPOSE,
   MERCHANT_REGISTER_EMAIL_PURPOSE,
 } from '@/lib/auth/emailOtp.server';
@@ -222,6 +223,7 @@ export async function registerBusiness(formData: any) {
         billingCycle: normalized.billingCycle || 'monthly',
         status: 'Pending',
         kycStatus: 'pending',
+        emailVerified: isMerchantEmailOtpConfigured(),
         registrationNumber: regNo,
         ...(passwordValue ? { password: passwordValue } : {}),
         createdAt: now,
@@ -1376,6 +1378,7 @@ export async function updateBusinessProfile(id: string, profileData: any) {
     // blank submit erase the login email. Only write when a real one is given.
     const submittedEmail =
       typeof profileData.email === 'string' ? profileData.email.trim().toLowerCase() : '';
+    let emailJustVerified = false;
     if (submittedEmail && !REGISTRATION_EMAIL_REGEX.test(submittedEmail)) {
       return { success: false, error: 'Please enter a valid email address.' };
     }
@@ -1400,6 +1403,7 @@ export async function updateBusinessProfile(id: string, profileData: any) {
         if (!emailProof.ok) {
           return { success: false, error: emailProof.error };
         }
+        emailJustVerified = true;
       }
     }
 
@@ -1410,6 +1414,7 @@ export async function updateBusinessProfile(id: string, profileData: any) {
         owner_name: profileData.ownerName?.trim() || null,
         owner_mobile: profileData.ownerMobile || null,
         ...(submittedEmail ? { email: submittedEmail, workEmail: submittedEmail } : {}),
+        ...(emailJustVerified ? { emailVerified: true } : {}),
         publicPhone: profileData.publicPhone,
         businessAddress: profileData.businessAddress,
         city: profileData.city,

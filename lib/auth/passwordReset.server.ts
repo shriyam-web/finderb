@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { createHmac, timingSafeEqual } from 'crypto';
+import { consumeOtpChallenge, discardOtpChallenge, issueOtpChallenge } from '@/lib/auth/otpChallenge.server';
 import { createServiceClient } from '@/lib/supabase/service';
 import { createClient } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';
@@ -12,7 +12,7 @@ import {
 import { sendPasswordResetEmail } from '@/lib/email/sendPasswordResetEmail';
 import { SITE_ORIGIN } from '@/lib/siteSeo';
 
-const OTP_WINDOW_MS = 15 * 60 * 1000;
+const PASSWORD_RESET_PURPOSE = 'password-reset';
 const GENERIC_OK =
   'If an account exists for this email, we sent a reset code.';
 
@@ -32,47 +32,6 @@ export type PasswordResetFailure = {
 
 function dbClient() {
   return createServiceClient();
-}
-
-function resetSecret(): string {
-  const secret =
-    process.env.PASSWORD_RESET_SECRET?.trim() ||
-    process.env.MOBILE_SESSION_SECRET?.trim() ||
-    process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
-  if (!secret) {
-    throw new Error('Missing PASSWORD_RESET_SECRET for password reset');
-  }
-  return secret;
-}
-
-function windowIndex(at = Date.now()): number {
-  return Math.floor(at / OTP_WINDOW_MS);
-}
-
-function otpForEmail(email: string, window: number): string {
-  const hmac = createHmac('sha256', resetSecret())
-    .update(`pw-reset:${email}:${window}`)
-    .digest('hex');
-  const n = parseInt(hmac.slice(0, 8), 16) % 1_000_000;
-  return String(n).padStart(6, '0');
-}
-
-function codesMatch(a: string, b: string): boolean {
-  const left = Buffer.from(a);
-  const right = Buffer.from(b);
-  if (left.length !== right.length) return false;
-  return timingSafeEqual(left, right);
-}
-
-export function verifyPasswordResetCode(email: string, code: string): boolean {
-  const normalized = email.toLowerCase().trim();
-  const digits = String(code || '').replace(/\D/g, '');
-  if (digits.length !== 6) return false;
-  const current = windowIndex();
-  return (
-    codesMatch(digits, otpForEmail(normalized, current)) ||
-    codesMatch(digits, otpForEmail(normalized, current - 1))
-  );
 }
 
 function providerLabel(provider: string): string {
@@ -112,12 +71,19 @@ export async function requestPasswordReset(
     };
   }
 
-  const code = otpForEmail(normalized, windowIndex());
+  let code = '';
+  try {
+    code = await issueOtpChallenge(PASSWORD_RESET_PURPOSE, normalized);
+  } catch (error) {
+    console.error('[password-reset] could not store code', error);
+    return { success: false, error: 'Could not send a reset code. Please try again.' };
+  }
   const resetUrl = `${SITE_ORIGIN}/reset-password?email=${encodeURIComponent(normalized)}`;
   const sent = await sendPasswordResetEmail(normalized, code, resetUrl);
 
   if (!sent) {
-    console.warn('[password-reset] Email was not sent for', normalized);
+    await discardOtpChallenge(PASSWORD_RESET_PURPOSE, normalized);
+    console.warn('[password-reset] Email was not sent');
   }
 
   return {
@@ -146,7 +112,7 @@ export async function completePasswordReset(input: {
     return { success: false, error: passwordCheck.error || 'Invalid password' };
   }
 
-  if (!verifyPasswordResetCode(email, code)) {
+  if (!(await consumeOtpChallenge(PASSWORD_RESET_PURPOSE, email, code))) {
     return {
       success: false,
       error: 'That code is invalid or expired. Request a new one.',

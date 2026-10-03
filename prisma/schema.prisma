@@ -10,6 +10,7 @@ model Business {
   id                                                     String       @id @default(cuid())
   fullName                                               String
   workEmail                                              String
+  emailVerified                                          Boolean      @default(false)
   mobile                                                 String       @unique
   businessName                                           String
   category                                               String

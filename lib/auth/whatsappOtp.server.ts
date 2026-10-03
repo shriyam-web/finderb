@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { createHmac, timingSafeEqual } from 'crypto';
+import { consumeOtpChallenge, discardOtpChallenge, issueOtpChallenge } from '@/lib/auth/otpChallenge.server';
 import { createServiceClient } from '@/lib/supabase/service';
 import { mobileAuthSuccessForUserId } from '@/lib/auth/mobileAuth.server';
 import {
@@ -22,56 +22,14 @@ import { setUserSessionCookie } from '@/lib/security/session';
 import { WHATSAPP_PHONE_EMAIL_DOMAIN } from '@/lib/auth/whatsappConfig';
 import { sendWhatsAppOtp } from '@/lib/whatsapp/sendWhatsAppOtp';
 
-const OTP_WINDOW_MS = 15 * 60 * 1000;
-
 export type WhatsAppAudience = 'user' | 'business';
 export type WhatsAppClient = 'web' | 'mobile';
 
 type Failure = { success: false; error: string };
 type SendOk = { success: true; message: string };
 
-function otpSecret(): string {
-  const secret =
-    process.env.PASSWORD_RESET_SECRET?.trim() ||
-    process.env.MOBILE_SESSION_SECRET?.trim() ||
-    process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
-  if (!secret) {
-    throw new Error('Missing secret for WhatsApp OTP signing');
-  }
-  return secret;
-}
-
-function windowIndex(at = Date.now()): number {
-  return Math.floor(at / OTP_WINDOW_MS);
-}
-
-function codesMatch(a: string, b: string): boolean {
-  const left = Buffer.from(a);
-  const right = Buffer.from(b);
-  if (left.length !== right.length) return false;
-  return timingSafeEqual(left, right);
-}
-
-function otpFor(phone: string, audience: WhatsAppAudience, window: number): string {
-  const hmac = createHmac('sha256', otpSecret())
-    .update(`whatsapp-otp:${audience}:${phone}:${window}`)
-    .digest('hex');
-  const n = parseInt(hmac.slice(0, 8), 16) % 1_000_000;
-  return String(n).padStart(6, '0');
-}
-
-export function verifyWhatsAppOtpCode(
-  phone: string,
-  audience: WhatsAppAudience,
-  code: string,
-): boolean {
-  const digits = String(code || '').replace(/\D/g, '');
-  if (digits.length !== 6) return false;
-  const current = windowIndex();
-  return (
-    codesMatch(digits, otpFor(phone, audience, current)) ||
-    codesMatch(digits, otpFor(phone, audience, current - 1))
-  );
+function whatsAppPurpose(audience: WhatsAppAudience) {
+  return `whatsapp:${audience}`;
 }
 
 function syntheticEmail(phone: string) {
@@ -299,9 +257,17 @@ export async function requestWhatsAppLoginOtp(input: {
     }
   }
 
-  const code = otpFor(phone, audience, windowIndex());
+  let code = '';
+  try {
+    code = await issueOtpChallenge(whatsAppPurpose(audience), phone);
+  } catch {
+    return { success: false, error: 'Could not prepare the verification code. Please try again shortly.' };
+  }
   const sent = await sendWhatsAppOtp(`91${phone}`, code);
-  if (!sent.ok) return { success: false, error: sent.error };
+  if (!sent.ok) {
+    await discardOtpChallenge(whatsAppPurpose(audience), phone);
+    return { success: false, error: sent.error };
+  }
 
   return {
     success: true,
@@ -331,7 +297,7 @@ export async function completeWhatsAppLogin(input: {
   const verifyLimit = await enforceRateLimit('authEmail', `whatsapp-otp-verify:${phone}`);
   if (!verifyLimit.ok) return { success: false, error: verifyLimit.error };
 
-  if (!verifyWhatsAppOtpCode(phone, audience, input.code)) {
+  if (!(await consumeOtpChallenge(whatsAppPurpose(audience), phone, input.code))) {
     return {
       success: false,
       error: 'Invalid or expired code. Check WhatsApp and try again.',
