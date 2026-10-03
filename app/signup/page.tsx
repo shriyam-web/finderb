@@ -80,7 +80,7 @@ function SignupContent() {
       />
 
       <p className="mt-4 text-center text-[11px] leading-relaxed text-slate-400">
-        WhatsApp sign-up is coming soon. By continuing, you agree to FinderB&apos;s{' '}
+        By continuing, you agree to FinderB&apos;s{' '}
         <Link href="/terms" className="underline underline-offset-2 hover:text-slate-600">
           Terms
         </Link>{' '}

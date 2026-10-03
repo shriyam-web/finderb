@@ -269,7 +269,9 @@ export async function mobileLoginWithPassword(
           ? 'Google'
           : user.authProvider === 'truecaller'
             ? 'Truecaller'
-            : user.authProvider.charAt(0).toUpperCase() + user.authProvider.slice(1);
+            : user.authProvider === 'whatsapp'
+              ? 'WhatsApp'
+              : user.authProvider.charAt(0).toUpperCase() + user.authProvider.slice(1);
       return {
         success: false,
         error: `This account uses ${providerLabel} sign-in. Please continue with ${providerLabel}.`,

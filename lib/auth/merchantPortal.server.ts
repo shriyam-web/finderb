@@ -6,6 +6,7 @@ import { createServiceClient } from '@/lib/supabase/service';
 import { extractIndianMobileDigits } from '@/lib/indianPhone';
 import { setBusinessSessionCookie } from '@/lib/security/session';
 import { TRUECALLER_PHONE_EMAIL_DOMAIN } from '@/lib/auth/truecallerConfig';
+import { WHATSAPP_PHONE_EMAIL_DOMAIN } from '@/lib/auth/whatsappConfig';
 
 export type LinkedBusiness = {
   id: string;
@@ -30,7 +31,9 @@ export async function findBusinessForIdentity(input: {
 }): Promise<LinkedBusiness | null> {
   const email = input.email?.toLowerCase().trim() || '';
   const phone = extractIndianMobileDigits(input.phone || '');
-  const synthetic = email.endsWith(`@${TRUECALLER_PHONE_EMAIL_DOMAIN}`);
+  const synthetic =
+    email.endsWith(`@${TRUECALLER_PHONE_EMAIL_DOMAIN}`) ||
+    email.endsWith(`@${WHATSAPP_PHONE_EMAIL_DOMAIN}`);
   const filters: string[] = [];
 
   if (email && !synthetic && !email.includes(',')) {

@@ -1,6 +1,5 @@
 import { registerBusiness } from '@/app/actions/business';
 import { mobileApiJson, mobileApiOptions } from '@/lib/mobileApiCors';
-import { enforceRateLimit } from '@/lib/security/enforceRateLimit.server';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -10,11 +9,6 @@ export function OPTIONS() {
 }
 
 export async function POST(request: Request) {
-  const limit = await enforceRateLimit('register');
-  if (!limit.ok) {
-    return mobileApiJson({ success: false, error: limit.error }, 429);
-  }
-
   try {
     const body = await request.json();
     const result = await registerBusiness(body);
