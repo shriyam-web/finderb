@@ -15,6 +15,8 @@ import {
 const OTP_WINDOW_MS = 15 * 60 * 1000;
 const PROOF_TTL_MS = 45 * 60 * 1000;
 export const MERCHANT_REGISTER_EMAIL_PURPOSE = 'merchant-register';
+export const USER_EMAIL_PURPOSE = 'user-email';
+export const MERCHANT_EMAIL_UPDATE_PURPOSE = 'merchant-email-update';
 
 function otpSecret(): string {
   const secret =
@@ -230,4 +232,91 @@ export async function verifyMerchantRegisterEmailOtp(
     emailVerificationToken,
     message: 'Email verified successfully.',
   };
+}
+
+async function requestPurposeEmailOtp(
+  purpose: string,
+  email: string,
+  registeringAs: 'user' | 'merchant',
+  kind: 'registration' | 'account',
+): Promise<RequestEmailOtpResult> {
+  const normalized = normalizeEmail(email);
+  if (!normalized || !REGISTRATION_EMAIL_REGEX.test(normalized)) {
+    return { success: false, error: 'Please enter a valid email address.' };
+  }
+
+  const ipLimit = await enforceRateLimit('auth', `email-otp-send:${purpose}`);
+  if (!ipLimit.ok) return { success: false, error: ipLimit.error };
+
+  const emailLimit = await enforceRateLimit('authEmail', `email-otp:${purpose}:${normalized}`);
+  if (!emailLimit.ok) return { success: false, error: emailLimit.error };
+
+  const supabase = createClient(await cookies());
+  const existingAccount = await getRegistrationConflict(supabase, normalized, registeringAs);
+  if (existingAccount) {
+    return {
+      success: false,
+      error: formatRegistrationConflictMessage(existingAccount, registeringAs),
+      suggestedLoginPath: LOGIN_PATHS[existingAccount],
+      registeredAs: existingAccount,
+    };
+  }
+
+  if (!process.env.RESEND_API_KEY?.trim()) {
+    return {
+      success: false,
+      error: 'Email OTP is not configured yet. Add RESEND_API_KEY on the server and try again.',
+    };
+  }
+
+  const code = otpFor(purpose, normalized, windowIndex());
+  const sent = await sendEmailOtpEmail(normalized, code, kind);
+  if (!sent) {
+    return { success: false, error: 'Could not send the verification email. Please try again shortly.' };
+  }
+
+  return {
+    success: true,
+    message: 'We sent a 6-digit code to your email. It expires in 15 minutes.',
+  };
+}
+
+async function verifyPurposeEmailOtp(
+  purpose: string,
+  email: string,
+  code: string,
+): Promise<VerifyEmailOtpResult> {
+  const normalized = normalizeEmail(email);
+  if (!normalized || !REGISTRATION_EMAIL_REGEX.test(normalized)) {
+    return { success: false, error: 'Please enter a valid email address.' };
+  }
+
+  const verifyLimit = await enforceRateLimit('authEmail', `email-otp-verify:${purpose}:${normalized}`);
+  if (!verifyLimit.ok) return { success: false, error: verifyLimit.error };
+
+  if (!verifyEmailOtpCode(purpose, normalized, code)) {
+    return { success: false, error: 'Invalid or expired code. Check the email and try again.' };
+  }
+
+  return {
+    success: true,
+    emailVerificationToken: issueEmailVerificationProof(purpose, normalized),
+    message: 'Email verified successfully.',
+  };
+}
+
+export function requestUserEmailOtp(email: string) {
+  return requestPurposeEmailOtp(USER_EMAIL_PURPOSE, email, 'user', 'account');
+}
+
+export function verifyUserEmailOtp(email: string, code: string) {
+  return verifyPurposeEmailOtp(USER_EMAIL_PURPOSE, email, code);
+}
+
+export function requestMerchantEmailUpdateOtp(email: string) {
+  return requestPurposeEmailOtp(MERCHANT_EMAIL_UPDATE_PURPOSE, email, 'merchant', 'account');
+}
+
+export function verifyMerchantEmailUpdateOtp(email: string, code: string) {
+  return verifyPurposeEmailOtp(MERCHANT_EMAIL_UPDATE_PURPOSE, email, code);
 }

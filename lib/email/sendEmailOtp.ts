@@ -6,7 +6,7 @@ import 'server-only';
 export async function sendEmailOtpEmail(
   to: string,
   code: string,
-  _purposeLabel = 'verification',
+  purposeLabel: 'registration' | 'account' | string = 'registration',
 ): Promise<boolean> {
   const key = process.env.RESEND_API_KEY?.trim();
   const from =
@@ -20,20 +20,26 @@ export async function sendEmailOtpEmail(
   }
   if (digits.length !== 6) return false;
 
+  const account = purposeLabel === 'account';
+  const headline = account ? 'Confirm your email' : 'Confirm your business email';
+  const lead = account
+    ? 'Enter this code in FinderB to save this address on your account.'
+    : 'Thank you for registering your business with FinderB. Enter this code in the app to verify your email and continue.';
   const subject = `${digits} is your FinderB code`;
   const text = [
     'FinderB',
     '',
-    'Confirm your business email',
+    headline,
     '',
-    'Thank you for registering your business with FinderB.',
-    'Enter this code in the app to verify your email and continue:',
+    lead,
     '',
     digits,
     '',
     'This code expires in 15 minutes.',
     '',
-    'If you did not start this registration, you can ignore this email. Nothing is created until the code is entered.',
+    account
+      ? 'If you did not ask to save this email, you can ignore this message. The address will not be added.'
+      : 'If you did not start this registration, you can ignore this email. Nothing is created until the code is entered.',
     '',
     'The FinderB team',
     'https://finderb.com',
@@ -62,12 +68,12 @@ export async function sendEmailOtpEmail(
           </tr>
           <tr>
             <td align="center" style="padding:20px 32px 0;font-family:${font};font-size:22px;line-height:1.3;font-weight:700;color:#153551;">
-              Confirm your business email
+              ${headline}
             </td>
           </tr>
           <tr>
             <td align="center" style="padding:12px 36px 0;font-family:${font};font-size:15px;line-height:1.6;color:#4b5563;">
-              Thank you for registering with FinderB. Enter this code in the app to verify your email and continue.
+              ${lead}
             </td>
           </tr>
           <tr>
@@ -97,7 +103,9 @@ export async function sendEmailOtpEmail(
           </tr>
           <tr>
             <td align="center" style="padding:16px 36px 0;font-family:${font};font-size:13px;line-height:1.6;color:#64748b;">
-              If you did not start this registration, you can ignore this email. Nothing is created until the code is entered.
+              ${account
+                ? 'If you did not ask to save this email, you can ignore this message. The address will not be added.'
+                : 'If you did not start this registration, you can ignore this email. Nothing is created until the code is entered.'}
             </td>
           </tr>
           <tr>

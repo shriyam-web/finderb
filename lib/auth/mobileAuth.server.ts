@@ -26,6 +26,11 @@ import { findBusinessForIdentity } from '@/lib/auth/merchantPortal.server';
 import { syncOAuthUserToAppSession } from '@/lib/auth/syncOAuthUser.server';
 import { createClient as createSupabaseJsClient } from '@supabase/supabase-js';
 import { escapeIlikePattern } from '@/lib/searchMatch';
+import {
+  assertEmailVerificationProof,
+  USER_EMAIL_PURPOSE,
+} from '@/lib/auth/emailOtp.server';
+import { isSyntheticLoginEmail } from '@/lib/syntheticLoginEmail';
 
 export const MOBILE_USER_FIELDS =
   'id, fullName, email, favorites, searchHistory, createdAt, updatedAt, avatarUrl, authProvider, phone';
@@ -447,6 +452,7 @@ export async function mobileUpdateProfile(
     email?: string;
     phone?: string;
     avatarUrl?: string | null;
+    emailVerificationToken?: string;
   }
 ): Promise<MobileAuthSuccess | MobileAuthFailure> {
   const service = dbClient();
@@ -458,8 +464,7 @@ export async function mobileUpdateProfile(
     .eq('id', userId)
     .maybeSingle();
   const provider = String(current?.authProvider || '').toLowerCase();
-  const emailLocked =
-    provider === 'google' || provider === 'password' || provider === 'email';
+  const emailLocked = provider === 'google';
   const phoneLocked = provider === 'truecaller' || provider.includes('whatsapp');
 
   const updates: Record<string, unknown> = {
@@ -478,10 +483,19 @@ export async function mobileUpdateProfile(
     const email = patch.email.toLowerCase().trim();
     const currentEmail = String(current?.email || '').toLowerCase().trim();
     if (emailLocked && email !== currentEmail) {
-      return { success: false, error: 'This email is tied to your sign-in and cannot be changed.' };
+      return { success: false, error: 'This email comes from Google and cannot be changed.' };
     }
-    if (!email.includes('@')) {
+    if (!email.includes('@') || !email.includes('.')) {
       return { success: false, error: 'Enter a valid email address.' };
+    }
+    const currentReal = isSyntheticLoginEmail(currentEmail) ? '' : currentEmail;
+    if (email !== currentReal) {
+      const proof = assertEmailVerificationProof(
+        USER_EMAIL_PURPOSE,
+        email,
+        patch.emailVerificationToken,
+      );
+      if (!proof.ok) return { success: false, error: proof.error };
     }
     const { data: clash } = await supabase
       .from('User')

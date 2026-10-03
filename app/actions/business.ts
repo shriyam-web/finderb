@@ -84,6 +84,7 @@ import {
 } from '@/lib/categoryFixedSlots';
 import {
   assertEmailVerificationProof,
+  MERCHANT_EMAIL_UPDATE_PURPOSE,
   MERCHANT_REGISTER_EMAIL_PURPOSE,
 } from '@/lib/auth/emailOtp.server';
 
@@ -237,7 +238,19 @@ export async function registerBusiness(formData: any) {
     const businessWithSlug = { ...business, slug };
 
     console.log('[REGISTER] ✓ Success:', businessWithSlug.id);
-    
+
+    try {
+      const { sendBusinessWelcomeEmail } = await import('@/lib/email/sendBusinessWelcomeEmail');
+      await sendBusinessWelcomeEmail({
+        to: normalizedEmail,
+        ownerName: normalized.fullName,
+        businessName: normalized.displayName || normalized.businessName,
+        city: normalized.city,
+      });
+    } catch (welcomeError) {
+      console.error('[REGISTER] welcome email failed', welcomeError);
+    }
+
     // Set a cookie for the business ID to maintain session
     await setBusinessSessionCookie(businessWithSlug.id);
 
@@ -1365,6 +1378,29 @@ export async function updateBusinessProfile(id: string, profileData: any) {
       typeof profileData.email === 'string' ? profileData.email.trim().toLowerCase() : '';
     if (submittedEmail && !REGISTRATION_EMAIL_REGEX.test(submittedEmail)) {
       return { success: false, error: 'Please enter a valid email address.' };
+    }
+
+    if (submittedEmail) {
+      const { data: currentBusiness } = await supabase
+        .from('Business')
+        .select('email, workEmail')
+        .eq('id', id)
+        .maybeSingle();
+      const knownEmails = new Set(
+        [currentBusiness?.email, currentBusiness?.workEmail]
+          .map((value) => String(value || '').trim().toLowerCase())
+          .filter(Boolean),
+      );
+      if (!knownEmails.has(submittedEmail)) {
+        const emailProof = assertEmailVerificationProof(
+          MERCHANT_EMAIL_UPDATE_PURPOSE,
+          submittedEmail,
+          profileData?.emailVerificationToken,
+        );
+        if (!emailProof.ok) {
+          return { success: false, error: emailProof.error };
+        }
+      }
     }
 
     const { data: business, error } = await supabase
