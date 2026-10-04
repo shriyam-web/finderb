@@ -78,7 +78,9 @@ export function assertEmailVerificationProof(
 
   try {
     const decoded = Buffer.from(raw, 'base64url').toString('utf8');
-    const [payload, sig] = decoded.split('.');
+    const dot = decoded.lastIndexOf('.');
+    const payload = dot > 0 ? decoded.slice(0, dot) : '';
+    const sig = dot > 0 ? decoded.slice(dot + 1) : '';
     if (!payload || !sig) {
       return { ok: false, error: 'Email verification expired. Request a new code.' };
     }
