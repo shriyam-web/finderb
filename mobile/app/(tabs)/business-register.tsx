@@ -229,24 +229,14 @@ export default function BusinessRegisterScreen() {
     return list.slice(0, 8);
   }, [categoryQuery, parents]);
 
-  const stateMatches = useMemo(() => {
-    const q = stateQuery.trim().toLowerCase();
-    if (!q || form.state === stateQuery.trim()) return [];
-    return INDIAN_STATES.filter((state) => state.toLowerCase().includes(q)).slice(0, 6);
-  }, [form.state, stateQuery]);
-
   const cityChoices = useMemo(() => citiesInState(form.state), [form.state]);
 
-  const cityMatches = useMemo(() => {
-    if (!form.state) return [];
-    const typed = cityQuery.trim();
-    if (typed && form.city === typed) return [];
-    const q = typed.toLowerCase();
-    const list = q
-      ? cityChoices.filter((city) => city.toLowerCase().includes(q))
-      : cityChoices;
-    return list.slice(0, 8);
-  }, [cityChoices, cityQuery, form.city, form.state]);
+  const placeOptions = useMemo(() => {
+    const source = placeMenu === 'city' ? cityChoices : INDIAN_STATES;
+    const q = placeQuery.trim().toLowerCase();
+    if (!q) return source;
+    return source.filter((name) => name.toLowerCase().includes(q));
+  }, [cityChoices, placeMenu, placeQuery]);
 
   const clearPin = () => {
     setPin(null);
@@ -254,6 +244,17 @@ export default function BusinessRegisterScreen() {
     setPinOk(null);
     setPinChecking(false);
   };
+
+  const placePin = (next: MapPin | null) => {
+    setPin(next);
+    setPinOk(null);
+    setPinNote('');
+    setPinChecking(Boolean(next));
+  };
+
+  const pickState = (name: string) => {
+    set('state', name);
+    set('city', '');
     setPlaceMenu(null);
     setPlaceQuery('');
     clearPin();
@@ -484,16 +485,6 @@ export default function BusinessRegisterScreen() {
       key: 'Place',
       title: 'Where is it?',
       line: 'Choose the state and city from the lists. A map pin is optional.',
-    },
-    {
-      key: 'Business',
-      title: 'Name the business',
-      line: 'People search this name and category.',
-    },
-    {
-      key: 'Place',
-      title: 'Where is it?',
-      line: 'State first, then a city from that state. A map pin is optional, and it has to sit inside that city.',
     },
   ];
   return (
@@ -855,6 +846,16 @@ export default function BusinessRegisterScreen() {
                 </>
               ) : null}
               <Pressable
+                style={({ pressed }) => [styles.primaryBtn, pressed && styles.pressed]}
+                onPress={continueShop}
+              >
+                <Text style={styles.primaryText}>Continue</Text>
+              </Pressable>
+            </>
+          ) : null}
+
+          {step === 3 ? (
+            <>
               <PlaceSelect
                 label="State"
                 value={form.state}
@@ -868,16 +869,6 @@ export default function BusinessRegisterScreen() {
                 disabled={!form.state}
                 onPress={() => openPlaceMenu('city')}
               />
-                  state={form.state}
-                  pin={pin}
-                  note={pinNote}
-                  noteOk={pinOk}
-                  checking={pinChecking}
-                  onPin={placePin}
-                />
-              ) : (
-                <Text style={styles.mapWait}>Choose a city to drop a pin on the map.</Text>
-              )}
               <AuthField fontFamily={UI}
                 label="Building"
                 value={form.building}
@@ -895,6 +886,16 @@ export default function BusinessRegisterScreen() {
                 value={form.landmark}
                 onChangeText={(v) => set('landmark', v)}
                 placeholder="Near Metro station"
+              />
+              <AuthField fontFamily={UI}
+                label="PIN code"
+                value={form.pin}
+                onChangeText={(v) => set('pin', v.replace(/\D/g, '').slice(0, 6))}
+                placeholder="560038"
+                keyboardType="number-pad"
+                maxLength={6}
+              />
+              <Pressable
                 style={[styles.mapLaunch, !form.city && styles.mapLaunchOff]}
                 onPress={() => form.city && setMapOpen(true)}
                 disabled={!form.city}
@@ -914,16 +915,6 @@ export default function BusinessRegisterScreen() {
                 </View>
                 <Ionicons name="chevron-forward" size={18} color={biz.faint} />
               </Pressable>
-              <Pressable
-              />
-              <AuthField fontFamily={UI}
-                label="PIN code"
-                value={form.pin}
-                onChangeText={(v) => set('pin', v.replace(/\D/g, '').slice(0, 6))}
-                placeholder="560038"
-                keyboardType="number-pad"
-                maxLength={6}
-              />
               <Pressable
                 style={styles.toggle}
                 onPress={() => {
@@ -992,6 +983,16 @@ export default function BusinessRegisterScreen() {
                 {form.businessName} is registered. To manage the listing, photos, and leads, sign in on the FinderB website with {form.email.trim()}.
               </Text>
               <Pressable
+                style={({ pressed }) => [styles.primaryBtn, pressed && styles.pressed]}
+                onPress={() => void Linking.openURL(`${SITE_URL}/business/login`)}
+              >
+                <Text style={styles.primaryText}>Manage on the website</Text>
+              </Pressable>
+            </View>
+          ) : null}
+        </ScrollView>
+      </KeyboardAvoidingView>
+      <Modal
         visible={placeMenu !== null}
         transparent
         animationType="fade"
@@ -1060,16 +1061,6 @@ export default function BusinessRegisterScreen() {
         </SafeAreaView>
       </Modal>
       <Modal
-                style={({ pressed }) => [styles.primaryBtn, pressed && styles.pressed]}
-                onPress={() => void Linking.openURL(`${SITE_URL}/business/login`)}
-              >
-                <Text style={styles.primaryText}>Manage on the website</Text>
-              </Pressable>
-            </View>
-          ) : null}
-        </ScrollView>
-      </KeyboardAvoidingView>
-      <Modal
         visible={countryOpen}
         transparent
         animationType="fade"
@@ -1102,6 +1093,16 @@ export default function BusinessRegisterScreen() {
                   <Text style={styles.countryName}>{item.name}</Text>
                   <Text style={styles.countryDial}>+{item.dial}</Text>
                   {selected ? <Ionicons name="checkmark" size={18} color={biz.blue} /> : null}
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </View>
+      </Modal>
+    </SafeAreaView>
+  );
+}
+
 function PlaceSelect({
   label,
   value,
@@ -1135,16 +1136,6 @@ function PlaceSelect({
       </View>
       <Ionicons name="chevron-down" size={18} color={disabled ? biz.faint : biz.body} />
     </Pressable>
-  );
-}
-
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-        </View>
-      </Modal>
-    </SafeAreaView>
   );
 }
 
@@ -1503,6 +1494,8 @@ const useStyles = createThemedStyles((colors) => {
     marginBottom: 10,
     fontFamily: UI,
     fontSize: 13,
+    color: b.danger,
+  },
   placeSelect: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1608,8 +1601,6 @@ const useStyles = createThemedStyles((colors) => {
     fontFamily: UI,
     fontSize: 16,
     color: b.blue,
-  },
-    color: b.danger,
   },
   mapWait: {
     marginTop: -2,
