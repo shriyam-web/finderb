@@ -256,8 +256,12 @@ export async function registerBusiness(formData: any) {
     // Set a cookie for the business ID to maintain session
     await setBusinessSessionCookie(businessWithSlug.id);
 
-    revalidatePath('/business');
-    revalidateSitemap();
+    try {
+      revalidatePath('/business');
+      revalidateSitemap();
+    } catch (revalidateError) {
+      console.error('[REGISTER] cache refresh failed', revalidateError);
+    }
     return { success: true, business: businessWithSlug };
   } catch (error: any) {
     const duration = Date.now() - startTime;

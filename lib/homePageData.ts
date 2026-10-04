@@ -1,5 +1,5 @@
 import { unstable_cache } from 'next/cache';
-import { revalidatePath, updateTag } from 'next/cache';
+import { revalidatePath, revalidateTag } from 'next/cache';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { sortBusinessesByProfileCompleteness } from '@/lib/businessProfileCompleteness';
 import { mapBusinessRecord, filterBusinessesWithPublicPhotos } from '@/lib/businessMapping';
@@ -349,6 +349,6 @@ export async function getCachedHomePageData(): Promise<HomePageData> {
 }
 
 export function revalidateHomePage() {
-  updateTag(HOME_PAGE_CACHE_TAG);
+  revalidateTag(HOME_PAGE_CACHE_TAG, { expire: 0 });
   revalidatePath('/');
 }
