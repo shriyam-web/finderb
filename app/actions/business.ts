@@ -114,8 +114,11 @@ function handleError(error: any, context: string): string {
     return 'Database connection failed. Please check your configuration.';
   }
 
-  if (msg.includes('Server Components render')) {
-    return 'Server error occurred. Please check Vercel logs for details.';
+  if (
+    msg.includes('Server Components render') ||
+    /updateTag|revalidateTag|Server Action|Invariant:/i.test(msg)
+  ) {
+    return 'Could not finish saving. Please try again.';
   }
 
   return msg;
@@ -236,7 +239,12 @@ export async function registerBusiness(formData: any) {
       throw error;
     }
 
-    const slug = await ensureBusinessSlug(business);
+    let slug = String(business.slug || '');
+    try {
+      slug = await ensureBusinessSlug(business);
+    } catch (slugError) {
+      console.error('[REGISTER] slug failed', slugError);
+    }
     const businessWithSlug = { ...business, slug };
 
     console.log('[REGISTER] ✓ Success:', businessWithSlug.id);
@@ -253,8 +261,11 @@ export async function registerBusiness(formData: any) {
       console.error('[REGISTER] welcome email failed', welcomeError);
     }
 
-    // Set a cookie for the business ID to maintain session
-    await setBusinessSessionCookie(businessWithSlug.id);
+    try {
+      await setBusinessSessionCookie(businessWithSlug.id);
+    } catch (sessionError) {
+      console.error('[REGISTER] session cookie failed', sessionError);
+    }
 
     try {
       revalidatePath('/business');

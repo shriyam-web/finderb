@@ -119,8 +119,9 @@ export default function BusinessRegisterScreen() {
   const [parent, setParent] = useState<HomeCategory | null>(null);
   const [sub, setSub] = useState<SubCategory | null>(null);
   const [categoryQuery, setCategoryQuery] = useState('');
-  const [stateQuery, setStateQuery] = useState('');
-  const [cityQuery, setCityQuery] = useState('');
+  const [placeMenu, setPlaceMenu] = useState<null | 'state' | 'city'>(null);
+  const [placeQuery, setPlaceQuery] = useState('');
+  const [mapOpen, setMapOpen] = useState(false);
   const [pin, setPin] = useState<MapPin | null>(null);
   const [pinNote, setPinNote] = useState('');
   const [pinOk, setPinOk] = useState<boolean | null>(null);
@@ -253,27 +254,24 @@ export default function BusinessRegisterScreen() {
     setPinOk(null);
     setPinChecking(false);
   };
-
-  const placePin = (next: MapPin | null) => {
-    setPin(next);
-    setPinOk(null);
-    setPinNote('');
-    setPinChecking(Boolean(next));
-  };
-
-  const pickState = (name: string) => {
-    setForm((prev) => ({ ...prev, state: name, city: '' }));
-    setStateQuery(name);
-    setCityQuery('');
+    setPlaceMenu(null);
+    setPlaceQuery('');
     clearPin();
     setError('');
   };
 
   const pickCity = (name: string) => {
     set('city', name);
-    setCityQuery(name);
+    setPlaceMenu(null);
+    setPlaceQuery('');
     clearPin();
     setError('');
+  };
+
+  const openPlaceMenu = (which: 'state' | 'city') => {
+    if (which === 'city' && !form.state) return;
+    setPlaceQuery('');
+    setPlaceMenu(which);
   };
 
   useEffect(() => {
@@ -476,6 +474,16 @@ export default function BusinessRegisterScreen() {
       key: 'You',
       title: 'Who runs this business?',
       line: 'Your name and mobile, so FinderB can reach the owner. The password stays private.',
+    },
+    {
+      key: 'Business',
+      title: 'Name the business',
+      line: 'People search this name and category.',
+    },
+    {
+      key: 'Place',
+      title: 'Where is it?',
+      line: 'Choose the state and city from the lists. A map pin is optional.',
     },
     {
       key: 'Business',
@@ -847,80 +855,19 @@ export default function BusinessRegisterScreen() {
                 </>
               ) : null}
               <Pressable
-                style={({ pressed }) => [styles.primaryBtn, pressed && styles.pressed]}
-                onPress={continueShop}
-              >
-                <Text style={styles.primaryText}>Continue</Text>
-              </Pressable>
-            </>
-          ) : null}
-
-          {step === 3 ? (
-            <>
-              <AuthField
-                fontFamily={UI}
+              <PlaceSelect
                 label="State"
-                value={stateQuery}
-                onChangeText={(value) => {
-                  setStateQuery(value);
-                  const exact = INDIAN_STATES.find(
-                    (state) => state.toLowerCase() === value.trim().toLowerCase(),
-                  );
-                  if (exact) pickState(exact);
-                  else if (form.state) {
-                    setForm((prev) => ({ ...prev, state: '', city: '' }));
-                    setCityQuery('');
-                    clearPin();
-                  }
-                }}
-                placeholder="Search your state"
+                value={form.state}
+                placeholder="Select state"
+                onPress={() => openPlaceMenu('state')}
               />
-              {form.state ? <Status ok show label={form.state} /> : null}
-              {stateMatches.length > 0 ? (
-                <View style={styles.stateList}>
-                  {stateMatches.map((state) => (
-                    <Pressable key={state} onPress={() => pickState(state)} style={styles.stateRow}>
-                      <Text style={styles.stateRowText}>{state}</Text>
-                    </Pressable>
-                  ))}
-                </View>
-              ) : null}
-              <AuthField
-                fontFamily={UI}
+              <PlaceSelect
                 label="City"
-                value={cityQuery}
-                editable={Boolean(form.state)}
-                dimmed={!form.state}
-                onChangeText={(value) => {
-                  setCityQuery(value);
-                  const exact = cityChoices.find(
-                    (city) => city.toLowerCase() === value.trim().toLowerCase(),
-                  );
-                  if (exact) pickCity(exact);
-                  else if (form.city) {
-                    set('city', '');
-                    clearPin();
-                  }
-                }}
-                placeholder={form.state ? `Search cities in ${form.state}` : 'Pick a state first'}
+                value={form.city}
+                placeholder={form.state ? 'Select city' : 'Select a state first'}
+                disabled={!form.state}
+                onPress={() => openPlaceMenu('city')}
               />
-              {form.city ? <Status ok show label={form.city} /> : null}
-              {cityMatches.length > 0 ? (
-                <View style={styles.stateList}>
-                  {cityMatches.map((city) => (
-                    <Pressable
-                      key={city}
-                      onPress={() => pickCity(city)}
-                      style={styles.stateRow}
-                    >
-                      <Text style={styles.stateRowText}>{city}</Text>
-                    </Pressable>
-                  ))}
-                </View>
-              ) : null}
-              {form.city ? (
-                <ShopMapPicker
-                  city={form.city}
                   state={form.state}
                   pin={pin}
                   note={pinNote}
@@ -948,6 +895,26 @@ export default function BusinessRegisterScreen() {
                 value={form.landmark}
                 onChangeText={(v) => set('landmark', v)}
                 placeholder="Near Metro station"
+                style={[styles.mapLaunch, !form.city && styles.mapLaunchOff]}
+                onPress={() => form.city && setMapOpen(true)}
+                disabled={!form.city}
+              >
+                <Ionicons name="map-outline" size={22} color={form.city ? biz.blue : biz.faint} />
+                <View style={styles.mapLaunchCopy}>
+                  <Text style={styles.mapLaunchTitle}>Set location on map</Text>
+                  <Text style={styles.mapLaunchSub}>
+                    {!form.city
+                      ? 'Select a city first. This step is optional.'
+                      : pin && pinOk === true
+                        ? `Pin set in ${form.city}. Tap to change.`
+                        : pin
+                          ? pinNote || 'Pin needs to sit inside the city, or clear it.'
+                          : 'Optional. The written address is enough.'}
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={biz.faint} />
+              </Pressable>
+              <Pressable
               />
               <AuthField fontFamily={UI}
                 label="PIN code"
@@ -1025,6 +992,74 @@ export default function BusinessRegisterScreen() {
                 {form.businessName} is registered. To manage the listing, photos, and leads, sign in on the FinderB website with {form.email.trim()}.
               </Text>
               <Pressable
+        visible={placeMenu !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setPlaceMenu(null)}
+      >
+        <Pressable style={styles.countryBackdrop} onPress={() => setPlaceMenu(null)} />
+        <View style={styles.placeSheet}>
+          <Text style={styles.countryTitle}>{placeMenu === 'city' ? 'City' : 'State'}</Text>
+          <TextInput
+            value={placeQuery}
+            onChangeText={setPlaceQuery}
+            placeholder={placeMenu === 'city' ? 'Search city' : 'Search state'}
+            placeholderTextColor={biz.faint}
+            style={styles.countrySearch}
+          />
+          <ScrollView keyboardShouldPersistTaps="handled" style={styles.placeList}>
+            {placeOptions.map((name) => {
+              const selected = placeMenu === 'city' ? form.city === name : form.state === name;
+              return (
+                <Pressable
+                  key={name}
+                  style={styles.placeRow}
+                  onPress={() => (placeMenu === 'city' ? pickCity(name) : pickState(name))}
+                >
+                  <Text style={styles.placeRowText}>{name}</Text>
+                  {selected ? <Ionicons name="checkmark" size={18} color={biz.blue} /> : null}
+                </Pressable>
+              );
+            })}
+            {placeOptions.length === 0 ? (
+              <Text style={styles.quiet}>Nothing matches that.</Text>
+            ) : null}
+          </ScrollView>
+        </View>
+      </Modal>
+      <Modal
+        visible={mapOpen}
+        animationType="slide"
+        onRequestClose={() => setMapOpen(false)}
+      >
+        <SafeAreaView style={styles.mapScreen} edges={['top', 'bottom']}>
+          <View style={styles.mapBar}>
+            <Pressable onPress={() => setMapOpen(false)} hitSlop={10} accessibilityLabel="Close map">
+              <Ionicons name="close" size={24} color={biz.ink} />
+            </Pressable>
+            <View style={styles.mapBarCopy}>
+              <Text style={styles.mapBarTitle}>Location on map</Text>
+              <Text style={styles.mapBarSub}>Optional. A pin has to sit inside {form.city}.</Text>
+            </View>
+            <Pressable onPress={() => setMapOpen(false)} hitSlop={10}>
+              <Text style={styles.mapDone}>Done</Text>
+            </Pressable>
+          </View>
+          {form.city ? (
+            <ShopMapPicker
+              fill
+              city={form.city}
+              state={form.state}
+              pin={pin}
+              note={pinNote}
+              noteOk={pinOk}
+              checking={pinChecking}
+              onPin={placePin}
+            />
+          ) : null}
+        </SafeAreaView>
+      </Modal>
+      <Modal
                 style={({ pressed }) => [styles.primaryBtn, pressed && styles.pressed]}
                 onPress={() => void Linking.openURL(`${SITE_URL}/business/login`)}
               >
@@ -1067,6 +1102,42 @@ export default function BusinessRegisterScreen() {
                   <Text style={styles.countryName}>{item.name}</Text>
                   <Text style={styles.countryDial}>+{item.dial}</Text>
                   {selected ? <Ionicons name="checkmark" size={18} color={biz.blue} /> : null}
+function PlaceSelect({
+  label,
+  value,
+  placeholder,
+  disabled,
+  onPress,
+}: {
+  label: string;
+  value: string;
+  placeholder: string;
+  disabled?: boolean;
+  onPress: () => void;
+}) {
+  const styles = useStyles();
+  const biz = useBizColors();
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      style={[styles.placeSelect, disabled && styles.placeSelectOff]}
+      accessibilityRole="button"
+    >
+      <View style={styles.placeSelectCopy}>
+        <Text style={styles.placeSelectLabel}>{label}</Text>
+        <Text
+          style={value ? styles.placeSelectValue : styles.placeSelectPlaceholder}
+          numberOfLines={1}
+        >
+          {value || placeholder}
+        </Text>
+      </View>
+      <Ionicons name="chevron-down" size={18} color={disabled ? biz.faint : biz.body} />
+    </Pressable>
+  );
+}
+
                 </Pressable>
               );
             })}
@@ -1432,6 +1503,112 @@ const useStyles = createThemedStyles((colors) => {
     marginBottom: 10,
     fontFamily: UI,
     fontSize: 13,
+  placeSelect: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    minHeight: 52,
+    marginBottom: 10,
+    paddingBottom: 6,
+    borderBottomWidth: 1.5,
+    borderBottomColor: b.lineStrong,
+  },
+  placeSelectOff: { opacity: 0.45 },
+  placeSelectCopy: { flex: 1, paddingVertical: 7 },
+  placeSelectLabel: {
+    fontFamily: UI,
+    fontSize: 11,
+    color: colors.textSoft,
+    marginBottom: 1,
+  },
+  placeSelectValue: {
+    fontFamily: UI,
+    fontSize: 15,
+    color: colors.ink,
+  },
+  placeSelectPlaceholder: {
+    fontFamily: UI,
+    fontSize: 15,
+    color: colors.textSoft,
+  },
+  placeSheet: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    top: 72,
+    bottom: 72,
+    borderRadius: 16,
+    backgroundColor: b.card,
+    padding: 14,
+  },
+  placeList: { flex: 1 },
+  placeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    paddingVertical: 13,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: b.line,
+  },
+  placeRowText: {
+    flex: 1,
+    fontFamily: UI,
+    fontSize: 15,
+    color: colors.heading,
+  },
+  mapLaunch: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 6,
+    marginBottom: 8,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: b.line,
+    backgroundColor: b.card,
+  },
+  mapLaunchOff: { opacity: 0.55 },
+  mapLaunchCopy: { flex: 1 },
+  mapLaunchTitle: {
+    fontFamily: UI,
+    fontSize: 15,
+    color: colors.heading,
+  },
+  mapLaunchSub: {
+    marginTop: 2,
+    fontFamily: UI,
+    fontSize: 12,
+    lineHeight: 16,
+    color: b.slate,
+  },
+  mapScreen: { flex: 1, backgroundColor: b.page },
+  mapBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  mapBarCopy: { flex: 1 },
+  mapBarTitle: {
+    fontFamily: UI,
+    fontSize: 16,
+    color: colors.heading,
+  },
+  mapBarSub: {
+    marginTop: 2,
+    fontFamily: UI,
+    fontSize: 12,
+    lineHeight: 16,
+    color: b.slate,
+  },
+  mapDone: {
+    fontFamily: UI,
+    fontSize: 16,
+    color: b.blue,
+  },
     color: b.danger,
   },
   mapWait: {

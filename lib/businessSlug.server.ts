@@ -80,6 +80,10 @@ export async function ensureBusinessSlug(business: {
     throw error;
   }
 
-  revalidateBusinessProfilePaths({ id: business.id, slug, businessName: name, city: business.city });
+  try {
+    revalidateBusinessProfilePaths({ id: business.id, slug, businessName: name, city: business.city });
+  } catch (revalidateError) {
+    console.error('[ensureBusinessSlug] cache refresh failed', revalidateError);
+  }
   return slug;
 }

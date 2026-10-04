@@ -19,20 +19,22 @@ type Props = {
   noteOk: boolean | null;
   checking: boolean;
   onPin: (pin: MapPin | null) => void;
+  fill?: boolean;
 };
 
 const MAPS_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY?.trim() || '';
 const QUICK_PIN_MAX_AGE_MS = 5 * 60 * 1000;
 
-function mapDocument(center: MapPin, apiKey: string) {
+function mapDocument(center: MapPin, apiKey: string, fill: boolean) {
   const key = encodeURIComponent(apiKey);
+  const height = fill ? '100%' : '230px';
   return `<!DOCTYPE html>
 <html>
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <style>
-  html, body, #map { margin: 0; width: 100%; height: 230px; background: #e8eef6; }
+  html, body, #map { margin: 0; width: 100%; height: ${height}; background: #e8eef6; }
   .hint {
     position: absolute; left: 12px; right: 12px; bottom: 12px; z-index: 5;
     background: rgba(15, 23, 42, 0.82); color: white; border-radius: 999px;
@@ -127,7 +129,7 @@ function mapDocument(center: MapPin, apiKey: string) {
 </html>`;
 }
 
-export function ShopMapPicker({ city, state, pin, note, noteOk, checking, onPin }: Props) {
+export function ShopMapPicker({ city, state, pin, note, noteOk, checking, onPin, fill = false }: Props) {
   const styles = useStyles();
   const biz = useBizColors();
   const frameRef = useRef<HTMLIFrameElement | null>(null);
@@ -141,8 +143,8 @@ export function ShopMapPicker({ city, state, pin, note, noteOk, checking, onPin 
   const [localNote, setLocalNote] = useState('');
   const [docCenter, setDocCenter] = useState<MapPin | null>(null);
   const mapHtml = useMemo(
-    () => (docCenter && MAPS_KEY ? mapDocument(docCenter, MAPS_KEY) : ''),
-    [docCenter],
+    () => (docCenter && MAPS_KEY ? mapDocument(docCenter, MAPS_KEY, fill) : ''),
+    [docCenter, fill],
   );
 
   useEffect(() => {
@@ -257,12 +259,14 @@ export function ShopMapPicker({ city, state, pin, note, noteOk, checking, onPin 
   const statusOk = !localNote && noteOk === true;
 
   return (
-    <View style={styles.card}>
-      <View style={styles.head}>
-        <Text style={styles.title}>Business on the map</Text>
-        <Text style={styles.optional}>Optional</Text>
-      </View>
-      <View style={styles.mapWrap}>
+    <View style={fill ? styles.cardFill : styles.card}>
+      {fill ? null : (
+        <View style={styles.head}>
+          <Text style={styles.title}>Business on the map</Text>
+          <Text style={styles.optional}>Optional</Text>
+        </View>
+      )}
+      <View style={fill ? styles.mapWrapFill : styles.mapWrap}>
         {mapHtml ? (
           Platform.OS === 'web' ? (
             createElement('iframe', {
@@ -346,6 +350,11 @@ const useStyles = createThemedStyles((colors) => {
     backgroundColor: b.card,
     overflow: 'hidden',
   },
+  cardFill: {
+    flex: 1,
+    backgroundColor: b.card,
+    overflow: 'hidden',
+  },
   head: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -371,6 +380,10 @@ const useStyles = createThemedStyles((colors) => {
   },
   mapWrap: {
     height: 230,
+    backgroundColor: b.cardMuted,
+  },
+  mapWrapFill: {
+    flex: 1,
     backgroundColor: b.cardMuted,
   },
   map: { flex: 1, backgroundColor: b.cardMuted },
