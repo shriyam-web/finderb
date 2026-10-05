@@ -81,16 +81,6 @@ export function buildTouristPlaceJsonLd(place: TouristPlaceSeoInput) {
         addressLocality: place.location,
         addressCountry: 'IN',
       },
-      ...(place.rating != null
-        ? {
-            aggregateRating: {
-              '@type': 'AggregateRating',
-              ratingValue: place.rating,
-              bestRating: 5,
-              worstRating: 1,
-            },
-          }
-        : {}),
     },
     buildBreadcrumbJsonLd([
       { name: 'Home', path: '/' },

@@ -76,13 +76,17 @@ export function timingsToOpeningHoursSchema(timings: unknown): OpeningHoursSpec[
   return specs;
 }
 
-export function reviewsToSchemaReviews(reviews: BusinessReview[]) {
+export function reviewsToSchemaReviews(
+  reviews: BusinessReview[],
+  itemReviewed: { '@type': string; '@id': string },
+) {
   return reviews.slice(0, 10).map((review) => ({
     '@type': 'Review',
     author: {
       '@type': 'Person',
       name: review.author || 'Customer',
     },
+    itemReviewed,
     reviewRating: {
       '@type': 'Rating',
       ratingValue: review.rating,
@@ -90,6 +94,27 @@ export function reviewsToSchemaReviews(reviews: BusinessReview[]) {
       worstRating: 1,
     },
     reviewBody: review.content,
-    ...(review.date ? { datePublished: review.date } : {}),
+    ...(isSchemaDate(review.date) ? { datePublished: review.date } : {}),
   }));
+}
+
+export function aggregateRatingJsonLd(rating: number, count: number) {
+  if (!Number.isFinite(rating) || rating < 1 || rating > 5 || count < 1) {
+    return null;
+  }
+
+  return {
+    '@type': 'AggregateRating',
+    ratingValue: Number(rating.toFixed(1)),
+    bestRating: 5,
+    worstRating: 1,
+    ratingCount: count,
+    reviewCount: count,
+  };
+}
+
+function isSchemaDate(value: string): boolean {
+  if (!value.trim()) return false;
+  const time = Date.parse(value);
+  return Number.isFinite(time);
 }

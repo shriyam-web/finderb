@@ -3,7 +3,7 @@ import type { Business } from '@/lib/mockData';
 import { buildFaqJsonLd, buildBusinessSeoContent } from '@/lib/businessContent';
 import { getBusinessLocationLabel } from '@/lib/businessBreadcrumb';
 import { getPublicReviewRating, parseBusinessReviews } from '@/lib/businessReviews';
-import { reviewsToSchemaReviews, timingsToOpeningHoursSchema } from '@/lib/businessHoursSchema';
+import { reviewsToSchemaReviews, timingsToOpeningHoursSchema, aggregateRatingJsonLd } from '@/lib/businessHoursSchema';
 import { getBusinessIndexDecision } from '@/lib/businessIndexation';
 import { categoryHref } from '@/lib/categoryDisplay';
 import { categoryCityHref, slugifyCity } from '@/lib/categoryCity';
@@ -209,15 +209,13 @@ export function buildBusinessJsonLd(
     localBusiness.openingHoursSpecification = openingHours;
   }
 
-  if (rating != null && reviews.length > 0) {
-    localBusiness.aggregateRating = {
-      '@type': 'AggregateRating',
-      ratingValue: rating,
-      reviewCount: reviews.length,
-      bestRating: 5,
-      worstRating: 1,
-    };
-    localBusiness.review = reviewsToSchemaReviews(reviews);
+  const aggregateRating = aggregateRatingJsonLd(rating ?? 0, reviews.length);
+  if (aggregateRating) {
+    localBusiness.aggregateRating = aggregateRating;
+    localBusiness.review = reviewsToSchemaReviews(reviews, {
+      '@type': 'LocalBusiness',
+      '@id': url,
+    });
   }
 
   const breadcrumbs = buildBreadcrumbJsonLd([
