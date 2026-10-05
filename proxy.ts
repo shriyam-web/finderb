@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { redirectLegacyBusinessProfile } from '@/lib/businessProfileRedirect';
+import { businessSubdomainDestination } from '@/lib/businessSubdomain';
 import { redirectLegacyTouristPlaceProfile } from '@/lib/touristPlaceProfileRedirect';
 import {
   enforceRateLimitForKey,
@@ -50,6 +51,14 @@ function requireCookie(
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const businessHostUrl = businessSubdomainDestination(
+    request.headers.get('x-forwarded-host') || request.headers.get('host'),
+    pathname,
+    request.nextUrl.search,
+  );
+  if (businessHostUrl) {
+    return NextResponse.redirect(businessHostUrl, 308);
+  }
 
   const legacyBusinessRedirect = await redirectLegacyBusinessProfile(request);
   if (legacyBusinessRedirect) return legacyBusinessRedirect;
@@ -82,15 +91,6 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/api/news',
-    '/api/news/:path*',
-    '/dashboard',
-    '/dashboard/:path*',
-    '/business/dashboard',
-    '/business/dashboard/:path*',
-    '/business/kyc/:path*',
-    '/business/payment/:path*',
-    '/business/:segment',
-    '/tourist-places/:segment',
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)',
   ],
 };
