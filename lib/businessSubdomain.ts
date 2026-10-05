@@ -33,7 +33,7 @@ export function isBusinessSubdomainHost(hostHeader: string | null): boolean {
 /** Map a business.finderb.com path onto the main FinderB business site. */
 export function businessSubdomainPath(pathname: string): string {
   const path = pathname.replace(/\/+$/, '') || '/';
-  if (path === '/' || path === '/business') return '/business/list';
+  if (path === '/' || path === '/business') return '/business/register';
   if (keepSamePath(path) || path.startsWith('/business/')) return path;
   return `/business${path.startsWith('/') ? path : `/${path}`}`;
 }
