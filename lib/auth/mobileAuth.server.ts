@@ -4,12 +4,10 @@ import { createClient } from '@/utils/supabase/server';
 import { createServiceClient } from '@/lib/supabase/service';
 import { cookies } from 'next/headers';
 import {
-  formatRegistrationConflictMessage,
-  formatWrongPortalLoginMessage,
   getRegistrationConflict,
   getAlternateAccountType,
-  LOGIN_PATHS,
   lookupEmailAccountTypes,
+  registrationConflictFailure,
 } from '@/lib/emailAccountLookup';
 import {
   hashPassword,
@@ -303,14 +301,6 @@ export async function mobileLoginWithPassword(
   if (alternateType === 'merchant') {
     return { success: false, error: 'Incorrect password.' };
   }
-  if (alternateType === 'admin') {
-    return {
-      success: false,
-      error: formatWrongPortalLoginMessage(alternateType, 'user'),
-      suggestedLoginPath: LOGIN_PATHS[alternateType],
-      registeredAs: alternateType,
-    };
-  }
   return { success: false, error: 'No account found with this email.' };
 }
 
@@ -340,14 +330,7 @@ export async function mobileRegisterWithPassword(formData: {
     normalizedEmail,
     'user'
   );
-  if (existingAccount) {
-    return {
-      success: false,
-      error: formatRegistrationConflictMessage(existingAccount, 'user'),
-      suggestedLoginPath: LOGIN_PATHS[existingAccount],
-      registeredAs: existingAccount,
-    };
-  }
+  if (existingAccount) return registrationConflictFailure(existingAccount, 'user');
 
   const hashedPassword = await hashPassword(formData.password);
   const now = new Date().toISOString();

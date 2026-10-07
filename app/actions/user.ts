@@ -3,12 +3,12 @@
 import { createClient } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';
 import {
-  formatRegistrationConflictMessage,
   formatWrongPortalLoginMessage,
   getRegistrationConflict,
   getAlternateAccountType,
   LOGIN_PATHS,
   lookupEmailAccountTypes,
+  registrationConflictFailure,
 } from '@/lib/emailAccountLookup';
 import {
   hashPassword,
@@ -75,14 +75,7 @@ export async function registerUser(formData: { fullName?: string; email?: string
     const supabase = createClient(await cookies());
 
     const existingAccount = await getRegistrationConflict(supabase, normalizedEmail, 'user');
-    if (existingAccount) {
-      return {
-        success: false,
-        error: formatRegistrationConflictMessage(existingAccount, 'user'),
-        suggestedLoginPath: LOGIN_PATHS[existingAccount],
-        registeredAs: existingAccount,
-      };
-    }
+    if (existingAccount) return registrationConflictFailure(existingAccount, 'user');
 
     const hashedPassword = await hashPassword(formData.password);
     const now = new Date().toISOString();

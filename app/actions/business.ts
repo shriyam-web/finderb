@@ -6,8 +6,8 @@ import { revalidatePath } from 'next/cache';
 import { sortBusinessesByProfileCompleteness } from '@/lib/businessProfileCompleteness';
 import { getBusinessPublicRatingStats } from '@/lib/businessReviews';
 import {
-  formatRegistrationConflictMessage,
   formatWrongPortalLoginMessage,
+  registrationConflictFailure,
   getRegistrationConflict,
   getAlternateAccountType,
   businessMobileConflictMessage,
@@ -73,8 +73,10 @@ import {
 } from '@/lib/security/password';
 import {
   assertBusinessSession,
+  getSessionUserId,
   setBusinessSessionCookie,
 } from '@/lib/security/session';
+import { removeUserAccountsMovedToBusiness } from '@/lib/accountDeletion.server';
 import { enforceRateLimit } from '@/lib/security/enforceRateLimit.server';
 import { redactPublicBusinessFields } from '@/lib/security/businessFields';
 import { type CategoryTreeRef } from '@/lib/categoryTree';
@@ -190,14 +192,7 @@ export async function registerBusiness(formData: any) {
     const supabase = createClient(await cookies());
 
     const existingAccount = await getRegistrationConflict(supabase, normalizedEmail, 'merchant');
-    if (existingAccount) {
-      return {
-        success: false,
-        error: formatRegistrationConflictMessage(existingAccount, 'merchant'),
-        suggestedLoginPath: LOGIN_PATHS[existingAccount],
-        registeredAs: existingAccount,
-      };
-    }
+    if (existingAccount) return registrationConflictFailure(existingAccount, 'merchant');
 
     const mobileConflict = await businessMobileConflictMessage(supabase, normalized.mobile);
     if (mobileConflict) {
@@ -263,6 +258,16 @@ export async function registerBusiness(formData: any) {
     const businessWithSlug = { ...business, slug };
 
     console.log('[REGISTER] ✓ Success:', businessWithSlug.id);
+
+    try {
+      const removedUserIds = await removeUserAccountsMovedToBusiness(normalizedEmail, normalized.mobile);
+      const signedInUserId = await getSessionUserId();
+      if (signedInUserId && removedUserIds.includes(signedInUserId)) {
+        (await cookies()).delete('user_id');
+      }
+    } catch (moveError) {
+      console.error('[REGISTER] user account move failed', moveError);
+    }
 
     const welcomeName = normalized.displayName || normalized.businessName;
     await Promise.all([

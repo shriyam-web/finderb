@@ -12,11 +12,7 @@ import { REGISTRATION_EMAIL_REGEX } from '@/lib/merchantRegistrationValidation';
 import { enforceRateLimit } from '@/lib/security/enforceRateLimit.server';
 import { createClient } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';
-import {
-  formatRegistrationConflictMessage,
-  getRegistrationConflict,
-  LOGIN_PATHS,
-} from '@/lib/emailAccountLookup';
+import { getRegistrationConflict, registrationConflictFailure } from '@/lib/emailAccountLookup';
 
 const PROOF_TTL_MS = 45 * 60 * 1000;
 export const MERCHANT_REGISTER_EMAIL_PURPOSE = 'merchant-register';
@@ -134,14 +130,7 @@ export async function requestMerchantRegisterEmailOtp(
     normalized,
     'merchant',
   );
-  if (existingAccount) {
-    return {
-      success: false,
-      error: formatRegistrationConflictMessage(existingAccount, 'merchant'),
-      suggestedLoginPath: LOGIN_PATHS[existingAccount],
-      registeredAs: existingAccount,
-    };
-  }
+  if (existingAccount) return registrationConflictFailure(existingAccount, 'merchant');
 
   if (!process.env.RESEND_API_KEY?.trim()) {
     return {
@@ -229,14 +218,7 @@ async function requestPurposeEmailOtp(
 
   const supabase = createClient(await cookies());
   const existingAccount = await getRegistrationConflict(supabase, normalized, registeringAs);
-  if (existingAccount) {
-    return {
-      success: false,
-      error: formatRegistrationConflictMessage(existingAccount, registeringAs),
-      suggestedLoginPath: LOGIN_PATHS[existingAccount],
-      registeredAs: existingAccount,
-    };
-  }
+  if (existingAccount) return registrationConflictFailure(existingAccount, registeringAs);
 
   if (!process.env.RESEND_API_KEY?.trim()) {
     return {

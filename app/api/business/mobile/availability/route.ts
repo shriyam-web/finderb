@@ -42,14 +42,15 @@ export async function POST(request: Request) {
       checkMobile ? lookupMobileAccountTypes(supabase, mobile) : Promise.resolve([]),
     ]);
     // Values on a FinderB user account stay usable; the app asks the owner to confirm and verify them.
+    // Staff accounts only ever show up as "taken", never by name.
     const emailBlockedBy = emailTypes.find((type) => type !== 'user') ?? null;
     const mobileBlockedBy = mobileTypes.find((type) => type !== 'user') ?? null;
     return mobileApiJson({
       emailTaken: Boolean(emailBlockedBy),
-      emailRegisteredAs: emailBlockedBy,
+      emailRegisteredAs: emailBlockedBy === 'merchant' ? 'merchant' : null,
       emailOnUserAccount: !emailBlockedBy && emailTypes.includes('user'),
       mobileTaken: Boolean(mobileBlockedBy),
-      mobileRegisteredAs: mobileBlockedBy,
+      mobileRegisteredAs: mobileBlockedBy === 'merchant' ? 'merchant' : null,
       mobileOnUserAccount: !mobileBlockedBy && mobileTypes.includes('user'),
     });
   } catch (error) {

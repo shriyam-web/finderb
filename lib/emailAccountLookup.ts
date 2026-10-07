@@ -16,7 +16,7 @@ function lookupClient(fallback: SupabaseServerClient): SupabaseServerClient {
 const ACCOUNT_LABELS: Record<AccountType, string> = {
   user: 'User',
   merchant: 'Merchant',
-  admin: 'Admin',
+  admin: '',
 };
 
 export const LOGIN_PATHS: Record<AccountType, string> = {
@@ -53,6 +53,10 @@ export async function lookupEmailAccountTypes(
   return types;
 }
 
+/** Shown for an email held by a staff account; never say which kind of account holds it. */
+export const EMAIL_UNAVAILABLE_MESSAGE =
+  'This email is already registered. Please use a different email.';
+
 export function formatWrongPortalLoginMessage(
   registeredAs: AccountType,
   attemptingAs: AccountType
@@ -60,6 +64,9 @@ export function formatWrongPortalLoginMessage(
   const registeredLabel = getAccountTypeLabel(registeredAs);
   const attemptingLabel = getAccountTypeLabel(attemptingAs);
 
+  if (registeredAs === 'admin') {
+    return `No ${attemptingLabel} account found with this email.`;
+  }
   if (registeredAs === attemptingAs) {
     return `No ${registeredLabel} account found with this email.`;
   }
@@ -74,6 +81,7 @@ export function formatRegistrationConflictMessage(
   const existingLabel = getAccountTypeLabel(existingType);
   const registeringLabel = getAccountTypeLabel(registeringAs);
 
+  if (existingType === 'admin') return EMAIL_UNAVAILABLE_MESSAGE;
   if (existingType === registeringAs) {
     return `This email is already registered as a ${existingLabel} account. Please sign in instead.`;
   }
@@ -92,6 +100,19 @@ export async function getRegistrationConflict(
   );
   if (!types.length) return null;
   return types.find((type) => type === registeringAs) ?? types[0];
+}
+
+/** Failure payload for a taken email. Staff accounts are never named or linked to. */
+export function registrationConflictFailure(existing: AccountType, registeringAs: AccountType) {
+  if (existing === 'admin') {
+    return { success: false as const, error: EMAIL_UNAVAILABLE_MESSAGE };
+  }
+  return {
+    success: false as const,
+    error: formatRegistrationConflictMessage(existing, registeringAs),
+    suggestedLoginPath: LOGIN_PATHS[existing],
+    registeredAs: existing,
+  };
 }
 
 export const BUSINESS_MOBILE_TAKEN_MESSAGE =
@@ -135,9 +156,10 @@ export async function businessMobileConflictMessage(
   return types.includes('merchant') ? BUSINESS_MOBILE_TAKEN_MESSAGE : null;
 }
 
+/** The other public portal holding this email; staff accounts are deliberately never reported. */
 export function getAlternateAccountType(
   types: AccountType[],
   currentPortal: AccountType
 ): AccountType | null {
-  return types.find((type) => type !== currentPortal) ?? null;
+  return types.find((type) => type !== currentPortal && type !== 'admin') ?? null;
 }

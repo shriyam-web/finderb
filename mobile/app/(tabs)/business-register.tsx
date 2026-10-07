@@ -45,6 +45,7 @@ import { checkPinInsideCity, type MapPin } from '../../lib/mapPlace';
 import { ShopMapPicker } from '../../components/ShopMapPicker';
 import { OtpCodeBoxes } from '../../components/OtpCodeBoxes';
 import { SITE_URL } from '../../lib/supabase';
+import { useAuth } from '../../context/AuthContext';
 
 const UI = fonts.medium;
 const METER_LABEL = ['', 'Risky', 'Fair', 'Good', 'Strong'];
@@ -107,6 +108,7 @@ function passwordMeter(password: string) {
 export default function BusinessRegisterScreen() {
   const styles = useStyles();
   const biz = useBizColors();
+  const { user: signedInUser, signOut } = useAuth();
   const meterColors = [biz.meterOff, biz.danger, biz.warn, biz.successBright, biz.success];
   const router = useRouter();
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
@@ -220,7 +222,7 @@ export default function BusinessRegisterScreen() {
     return new Promise<boolean>((resolve) => {
       Alert.alert(
         `This ${label} is already in use`,
-        `${shown} is already used by a FinderB user account. Do you want to use the same ${label} for your business?\n\nYour user account stays as it is. You will verify it with an OTP first.`,
+        `${shown} is already used by a FinderB user account. Do you want to use the same ${label} for your business?\n\nOne ${label} can only have one FinderB account. Your user account will be converted into this business account, and its saved items will be removed. You will verify it with an OTP first.`,
         [
           {
             text: `Use a different ${label}`,
@@ -580,6 +582,12 @@ export default function BusinessRegisterScreen() {
       setError(result.error || 'Registration failed.');
       return;
     }
+    // The server removes a user account that shares these details, so drop its session too.
+    const sameEmail = signedInUser?.email?.trim().toLowerCase() === form.email.trim().toLowerCase();
+    const samePhone = (signedInUser?.phone || '').replace(/\D/g, '').slice(-10) === form.mobile.replace(/\D/g, '').slice(-10);
+    if (signedInUser && !signedInUser.isBusinessAccount && (sameEmail || samePhone)) {
+      await signOut();
+    }
     setStep(4);
   };
 
@@ -721,7 +729,7 @@ export default function BusinessRegisterScreen() {
                     : mobileTaken === 'taken'
                       ? 'This number is already registered.'
                       : mobileTaken === 'user'
-                        ? 'Your FinderB user account uses this number. You can use it for your business too.'
+                        ? 'This number is on a FinderB user account. Using it will convert that account into your business.'
                         : mobileTaken === 'checking'
                           ? 'Checking this number…'
                           : mobileTaken === 'free'
@@ -820,7 +828,7 @@ export default function BusinessRegisterScreen() {
                     : emailTaken === 'taken'
                       ? 'This email is already registered.'
                       : emailTaken === 'user'
-                        ? 'Your FinderB user account uses this email. You can use it for your business too.'
+                        ? 'This email is on a FinderB user account. Using it will convert that account into your business.'
                         : emailTaken === 'checking'
                           ? 'Checking this email…'
                           : emailTaken === 'free'

@@ -46,8 +46,8 @@ export default function UserContactReuseDialog({
               account. Do you want to use the same {label} for your business?
             </p>
             <p className="mt-2 text-xs leading-relaxed text-[#64748b]">
-              Your user account stays as it is. You will verify this {label} with an OTP before it is linked to your
-              business.
+              One {label} can only have one FinderB account. Your user account will be converted into this business
+              account, and its saved items will be removed. You will verify this {label} with an OTP first.
             </p>
           </div>
         </div>
