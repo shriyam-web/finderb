@@ -10,13 +10,7 @@ import { getSession, logoutUser } from '@/app/actions/user';
 import { getBusinessSession, logoutBusiness } from '@/app/actions/business';
 import { useRouter } from 'next/navigation';
 import { getBusinessProfilePath } from '@/lib/businessSlug';
-import { Plus_Jakarta_Sans } from 'next/font/google';
-
-const mobileMenuFont = Plus_Jakarta_Sans({
-  subsets: ['latin'],
-  weight: ['500', '600', '700'],
-  display: 'swap',
-});
+import { plusJakarta } from '@/lib/fonts';
 
 function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: boolean }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -293,7 +287,7 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
       />
 
       <div
-        className={`lg:hidden fixed inset-y-0 right-0 z-[10051] flex w-[min(78vw,18.5rem)] flex-col overflow-hidden border-l border-stone-200/80 bg-[#fafaf9] shadow-[-12px_0_28px_rgba(28,25,23,0.12)] transition-transform duration-300 ease-out ${mobileMenuFont.className} ${
+        className={`lg:hidden fixed inset-y-0 right-0 z-[10051] flex w-[min(78vw,18.5rem)] flex-col overflow-hidden border-l border-stone-200/80 bg-[#fafaf9] shadow-[-12px_0_28px_rgba(28,25,23,0.12)] transition-transform duration-300 ease-out ${plusJakarta.className} ${
           isOpen ? 'translate-x-0' : 'pointer-events-none translate-x-full'
         }`}
       >

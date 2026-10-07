@@ -1,23 +1,11 @@
 import type { Metadata } from "next";
-import { Inter, Outfit } from "next/font/google";
 import "./globals.css";
 import LayoutClient from "@/components/LayoutClient";
 import MaintenanceScreen from "@/components/MaintenanceScreen";
 import ServiceWorkerRegister from "@/components/pwa/ServiceWorkerRegister";
+import { inter, outfit } from "@/lib/fonts";
 import { effectiveSiteMode, getSiteRuntime } from "@/lib/siteRuntime";
 import { getRootStructuredData, rootSiteMetadata } from "@/lib/siteSeo";
-
-const inter = Inter({
-  subsets: ['latin'],
-  variable: '--font-inter',
-  display: 'swap',
-});
-
-const outfit = Outfit({
-  subsets: ['latin'],
-  variable: '--font-outfit',
-  display: 'swap',
-});
 
 const googleSiteVerification = process.env.GOOGLE_SITE_VERIFICATION?.trim();
 
@@ -55,7 +43,7 @@ export default async function RootLayout({
   const mode = effectiveSiteMode(runtime);
   const htmlClass = [
     inter.variable,
-    mode === "maintenance" ? "" : outfit.variable,
+    outfit.variable,
     "h-full antialiased",
     mode === "text_only" ? "site-text-only" : "",
   ]
