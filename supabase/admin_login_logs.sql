@@ -14,6 +14,8 @@ CREATE TABLE IF NOT EXISTS admin_login_logs (
 ALTER TABLE admin_login_logs ADD COLUMN IF NOT EXISTS ip_address TEXT;
 ALTER TABLE admin_login_logs ADD COLUMN IF NOT EXISTS user_agent TEXT;
 ALTER TABLE admin_login_logs ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT now();
+ALTER TABLE admin_login_logs ADD COLUMN IF NOT EXISTS logout_at TIMESTAMPTZ;
+ALTER TABLE admin_login_logs ADD COLUMN IF NOT EXISTS last_seen_at TIMESTAMPTZ;
 
 CREATE INDEX IF NOT EXISTS idx_admin_login_logs_admin_id ON admin_login_logs(admin_id);
 CREATE INDEX IF NOT EXISTS idx_admin_login_logs_created_at ON admin_login_logs(created_at DESC);

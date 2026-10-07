@@ -240,6 +240,26 @@ export function subscriptionPeriodFromEntity(
   return { planStartedAt, planExpiresAt };
 }
 
+export type RazorpayInvoiceEntity = {
+  id: string;
+  payment_id?: string | null;
+  amount?: number;
+  status?: string;
+  subscription_id?: string | null;
+  date?: number;
+};
+
+export async function listRazorpaySubscriptionInvoices(
+  subscriptionId: string,
+): Promise<RazorpayInvoiceEntity[]> {
+  if (!subscriptionId) return [];
+  const result = await razorpayRequest<{ items?: RazorpayInvoiceEntity[] }>(
+    `/invoices?subscription_id=${encodeURIComponent(subscriptionId)}&count=100`,
+  );
+  if (!result.ok) return [];
+  return result.data.items ?? [];
+}
+
 export const ACTIVE_RAZORPAY_SUBSCRIPTION_STATUSES = new Set([
   'authenticated',
   'active',

@@ -12,6 +12,7 @@ import {
 } from '@/lib/razorpay/plans';
 import { getRazorpayPayment, verifyRazorpayPaymentSignature } from '@/lib/razorpay/server';
 import { computeRenewalDates } from '@/lib/subscription/merchantSubscription';
+import { upsertMerchantPaymentTrail } from '@/lib/razorpay/merchantPaymentTrail';
 
 export type FinalizeMerchantPaymentInput = {
   businessId: string;
@@ -169,59 +170,21 @@ export async function finalizeMerchantPayment(
     return { success: false, error: 'Failed to activate subscription' };
   }
 
-  const paymentPayload = {
-    business_id: businessId,
+  const trail = await upsertMerchantPaymentTrail({
+    businessId,
     plan,
-    billing_cycle: billingCycle,
-    amount_paise: amountPaise,
-    currency: 'INR',
+    billingCycle,
+    amountPaise,
     status: 'completed',
-    order_id: orderId,
-    payment_id: paymentId,
-    payment_type: 'one_time',
+    paymentType: 'one_time',
+    orderId,
+    paymentId,
     source,
-    plan_started_at: planStartedAt.toISOString(),
-    plan_expires_at: planExpiresAt.toISOString(),
-    updated_at: nowIso,
-  };
-
-  if (existingPayment?.id) {
-    const { error: paymentUpdateError } = await supabase
-      .from('merchant_payments')
-      .update(paymentPayload)
-      .eq('id', existingPayment.id);
-
-    if (paymentUpdateError) {
-      console.error('[razorpay] payment record update failed:', paymentUpdateError);
-    }
-  } else {
-    const { data: pendingByOrder } = await supabase
-      .from('merchant_payments')
-      .select('id')
-      .eq('business_id', businessId)
-      .eq('order_id', orderId)
-      .eq('status', 'pending')
-      .maybeSingle();
-
-    if (pendingByOrder?.id) {
-      const { error: paymentUpdateError } = await supabase
-        .from('merchant_payments')
-        .update(paymentPayload)
-        .eq('id', pendingByOrder.id);
-
-      if (paymentUpdateError) {
-        console.error('[razorpay] pending payment update failed:', paymentUpdateError);
-      }
-    } else {
-      const { error: paymentInsertError } = await supabase.from('merchant_payments').insert({
-        ...paymentPayload,
-        created_at: nowIso,
-      });
-
-      if (paymentInsertError) {
-        console.error('[razorpay] payment record insert failed:', paymentInsertError);
-      }
-    }
+    planStartedAt: planStartedAt.toISOString(),
+    planExpiresAt: planExpiresAt.toISOString(),
+  });
+  if (!trail.ok) {
+    console.error('[razorpay] payment trail write failed:', trail.error);
   }
 
   await revalidateMerchantPaymentPaths(businessId);

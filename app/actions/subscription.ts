@@ -180,9 +180,8 @@ function mergePaymentHistory(
 
   const alreadyRecorded = history.some(
     (item) =>
-      (legacy.paymentId && item.paymentId === legacy.paymentId) ||
-      (legacy.orderId && item.orderId === legacy.orderId) ||
-      (legacy.subscriptionId && item.subscriptionId === legacy.subscriptionId),
+      Boolean(legacy.paymentId && item.paymentId === legacy.paymentId) ||
+      Boolean(legacy.orderId && item.orderId === legacy.orderId),
   );
 
   if (alreadyRecorded) return normalizePaymentHistory(history);

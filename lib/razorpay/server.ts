@@ -148,7 +148,32 @@ export type RazorpayPaymentEntity = {
   currency: string;
   captured: boolean;
   notes?: Record<string, string>;
+  created_at?: number;
 };
+
+export async function listRazorpayPaymentsPage(
+  skip = 0,
+  count = 100,
+): Promise<RazorpayPaymentEntity[]> {
+  const auth = getRazorpayBasicAuth();
+  if (!auth) return [];
+
+  const response = await fetch(
+    `https://api.razorpay.com/v1/payments?count=${count}&skip=${skip}`,
+    {
+      headers: { Authorization: `Basic ${auth}` },
+      cache: 'no-store',
+    },
+  );
+
+  if (!response.ok) {
+    console.error('[razorpay] list payments failed:', response.status);
+    return [];
+  }
+
+  const data = (await response.json()) as { items?: RazorpayPaymentEntity[] };
+  return data.items ?? [];
+}
 
 export async function getRazorpayPayment(
   paymentId: string

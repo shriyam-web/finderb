@@ -19,6 +19,10 @@ import {
 } from '@/lib/razorpay/subscriptions';
 import { getRazorpayPayment, ensureRazorpayPaymentCaptured, verifyRazorpayPaymentSignature } from '@/lib/razorpay/server';
 import { addBillingCycle } from '@/lib/subscription/merchantSubscription';
+import {
+  syncSubscriptionInvoiceTrails,
+  upsertMerchantPaymentTrail,
+} from '@/lib/razorpay/merchantPaymentTrail';
 
 export type FinalizeSubscriptionAuthInput = {
   businessId: string;
@@ -280,43 +284,50 @@ export async function finalizeSubscriptionAuthorization(
     }
   }
 
-  const paymentPayload = {
-    business_id: businessId,
+  const trail = await upsertMerchantPaymentTrail({
+    businessId,
     plan,
-    billing_cycle: billingCycle,
-    amount_paise: expectedAmount,
-    currency: 'INR',
+    billingCycle,
+    amountPaise: expectedAmount,
     status: 'completed',
-    payment_id: paymentId,
-    order_id: orderIdFromPayment,
-    razorpay_subscription_id: subscriptionId,
-    payment_type: 'subscription_auth',
+    paymentType: 'subscription_auth',
+    orderId: orderIdFromPayment,
+    paymentId,
+    subscriptionId,
     source,
-    plan_started_at: planStartedAt.toISOString(),
-    plan_expires_at: planExpiresAt.toISOString(),
-    updated_at: nowIso,
-  };
-
-  const { data: pending } = await supabase
-    .from('merchant_payments')
-    .select('id')
-    .eq('business_id', businessId)
-    .eq('razorpay_subscription_id', subscriptionId)
-    .eq('status', 'pending')
-    .maybeSingle();
-
-  if (pending?.id) {
-    await supabase.from('merchant_payments').update(paymentPayload).eq('id', pending.id);
-  } else if (!alreadyCompleted) {
-    await supabase.from('merchant_payments').insert({ ...paymentPayload, created_at: nowIso });
-  } else {
+    planStartedAt: planStartedAt.toISOString(),
+    planExpiresAt: planExpiresAt.toISOString(),
+  });
+  if (!trail.ok) {
+    console.error('[razorpay] subscription auth trail write failed:', trail.error);
     await completePendingAuthPaymentRecord(supabase, {
       businessId,
       subscriptionId,
       paymentId,
-      paymentPayload,
+      paymentPayload: {
+        business_id: businessId,
+        plan,
+        billing_cycle: billingCycle,
+        amount_paise: expectedAmount,
+        currency: 'INR',
+        status: 'completed',
+        payment_id: paymentId,
+        order_id: orderIdFromPayment,
+        razorpay_subscription_id: subscriptionId,
+        payment_type: 'subscription_auth',
+        source,
+        plan_started_at: planStartedAt.toISOString(),
+        plan_expires_at: planExpiresAt.toISOString(),
+        updated_at: nowIso,
+      },
     });
   }
+  await syncSubscriptionInvoiceTrails({
+    businessId,
+    subscriptionId,
+    plan,
+    billingCycle,
+  });
 
   await revalidateMerchantPaths(businessId);
   return { success: true, alreadyCompleted };
@@ -397,22 +408,28 @@ export async function finalizeSubscriptionRenewal(
     return { success: false, error: 'Failed to record renewal' };
   }
 
-  await supabase.from('merchant_payments').insert({
-    business_id: businessId,
+  const trail = await upsertMerchantPaymentTrail({
+    businessId,
     plan,
-    billing_cycle: billingCycle,
-    amount_paise: amountPaise,
-    currency: 'INR',
+    billingCycle,
+    amountPaise,
     status: 'completed',
-    payment_id: paymentId,
-    order_id: remotePayment.order_id?.trim() || null,
-    razorpay_subscription_id: subscriptionId,
-    payment_type: 'subscription_renewal',
+    paymentType: 'subscription_renewal',
+    orderId: remotePayment.order_id?.trim() || null,
+    paymentId,
+    subscriptionId,
     source,
-    plan_started_at: planStartedAt.toISOString(),
-    plan_expires_at: planExpiresAt.toISOString(),
-    created_at: nowIso,
-    updated_at: nowIso,
+    planStartedAt: planStartedAt.toISOString(),
+    planExpiresAt: planExpiresAt.toISOString(),
+  });
+  if (!trail.ok) {
+    console.error('[razorpay] subscription renewal trail write failed:', trail.error);
+  }
+  await syncSubscriptionInvoiceTrails({
+    businessId,
+    subscriptionId,
+    plan,
+    billingCycle,
   });
 
   await revalidateMerchantPaths(businessId);
