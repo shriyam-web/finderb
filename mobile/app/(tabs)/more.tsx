@@ -29,8 +29,6 @@ import {
 } from '../../lib/touristPlaces';
 
 const GUTTER = 20;
-const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-
 type IndexItem = {
   label: string;
   icon: keyof typeof Ionicons.glyphMap;
@@ -118,8 +116,6 @@ export default function MoreScreen() {
     };
   }, [location.city, location.coords, location.region]);
 
-  const city = location.city?.trim() || '';
-  const today = WEEKDAYS[new Date().getDay()];
   const featuredWidth = width - GUTTER * 2;
   const [featured, ...morePlaces] = places;
   const open = (href: Href) => router.push(href);
@@ -144,10 +140,13 @@ export default function MoreScreen() {
                 >
                   <Ionicons name="chevron-back" size={20} color={colors.heading} />
                 </Pressable>
-                <Text style={styles.eyebrow}>{city ? `${city} · ${today}` : today}</Text>
+                <View style={styles.titleCopy}>
+                  <Text style={styles.headline}>Discover</Text>
+                  <Text style={styles.lede} numberOfLines={1}>
+                    Places, stories and work around you.
+                  </Text>
+                </View>
               </View>
-              <Text style={styles.headline}>Discover</Text>
-              <Text style={styles.lede}>Places, stories and work around you.</Text>
             </View>
 
             <View style={styles.index}>
@@ -416,13 +415,16 @@ const useStyles = createThemedStyles((colors) => ({
   masthead: {
     paddingHorizontal: GUTTER,
     paddingTop: 10,
-    paddingBottom: 22,
+    paddingBottom: 18,
   },
   topRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    marginBottom: 12,
+  },
+  titleCopy: {
+    flex: 1,
+    minWidth: 0,
   },
   back: {
     width: 38,
@@ -434,26 +436,18 @@ const useStyles = createThemedStyles((colors) => ({
     borderColor: colors.borderStrong,
     backgroundColor: colors.surface,
   },
-  eyebrow: {
-    fontFamily: fonts.semiBold,
-    fontSize: 11,
-    letterSpacing: 1.4,
-    textTransform: 'uppercase',
-    color: colors.textSoft,
-  },
   headline: {
-    marginTop: 6,
     fontFamily: fonts.bold,
-    fontSize: 34,
-    lineHeight: 40,
-    letterSpacing: -1.1,
+    fontSize: 26,
+    lineHeight: 31,
+    letterSpacing: -0.8,
     color: colors.heading,
   },
   lede: {
-    marginTop: 4,
+    marginTop: 1,
     fontFamily: fonts.regular,
-    fontSize: 15,
-    lineHeight: 21,
+    fontSize: 13.5,
+    lineHeight: 18,
     color: colors.textMuted,
   },
   index: {
