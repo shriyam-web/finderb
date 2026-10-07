@@ -5,9 +5,14 @@ import {
   parseTruecallerProfile,
 } from '@/lib/auth/truecallerProfile';
 import {
+  getTruecallerAuthRequest,
   updateTruecallerAuthRequest,
 } from '@/lib/auth/truecallerPendingStore.server';
 import { syncTruecallerUserToAppSession } from '@/lib/auth/syncTruecallerUser.server';
+import {
+  parseTruecallerPhoneVerifyPath,
+  truecallerPhoneVerifiedPath,
+} from '@/lib/auth/phoneVerify.server';
 
 function toPublicError(error: unknown): string {
   const message = error instanceof Error ? error.message : String(error);
@@ -48,6 +53,17 @@ export async function processTruecallerAccessToken(
     await updateTruecallerAuthRequest(requestId, {
       status: 'error',
       errorMessage: 'Truecaller did not share a valid Indian mobile number.',
+    });
+    return;
+  }
+
+  const record = await getTruecallerAuthRequest(requestId);
+  const phoneVerify = parseTruecallerPhoneVerifyPath(record?.redirectPath);
+  if (phoneVerify) {
+    await updateTruecallerAuthRequest(requestId, {
+      status: 'completed',
+      redirectPath: truecallerPhoneVerifiedPath(phoneVerify.userId, identity.phone),
+      errorMessage: null,
     });
     return;
   }

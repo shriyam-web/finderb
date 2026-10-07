@@ -5,7 +5,7 @@ import { createServiceClient } from '@/lib/supabase/service';
 
 const OTP_TTL_MS = 15 * 60 * 1000;
 
-function otpSecret(): string {
+export function otpSecret(): string {
   const secret =
     process.env.PASSWORD_RESET_SECRET?.trim() ||
     process.env.MOBILE_SESSION_SECRET?.trim() ||

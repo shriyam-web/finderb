@@ -107,6 +107,174 @@ export async function verifyWhatsAppOtp(
   return postJson('/api/auth/whatsapp/otp', { phone, code, audience, client: 'mobile' });
 }
 
+export type WhatsAppInboundRequest = {
+  ref: string;
+  requestId: string;
+  waNumber: string;
+  text: string;
+};
+
+/** Returns null when the server only supports typing the number. */
+export async function startWhatsAppInbound(
+  audience: WhatsAppAudience,
+): Promise<WhatsAppInboundRequest | null> {
+  const data = await postJson<
+    Partial<WhatsAppInboundRequest> & { success?: boolean; enabled?: boolean }
+  >('/api/auth/whatsapp/inbound', { action: 'start', audience }, SERVER_TIMEOUT_MS);
+  if (!data.success || !data.enabled || !data.ref || !data.requestId || !data.waNumber || !data.text) {
+    return null;
+  }
+  return { ref: data.ref, requestId: data.requestId, waNumber: data.waNumber, text: data.text };
+}
+
+export async function checkWhatsAppInbound(
+  request: WhatsAppInboundRequest,
+): Promise<{ status: 'pending' } | { status: 'sent'; message: string } | { status: 'error'; error: string }> {
+  try {
+    const res = await fetch(
+      `${SITE_URL}/api/auth/whatsapp/inbound?ref=${encodeURIComponent(request.ref)}&requestId=${encodeURIComponent(request.requestId)}`,
+      { headers: { Accept: 'application/json' } },
+    );
+    if (!res.ok) return { status: 'pending' };
+    const data = (await res.json()) as { status?: string; message?: string; error?: string };
+    if (data.status === 'sent') {
+      return { status: 'sent', message: data.message || 'We sent a 6-digit code on WhatsApp.' };
+    }
+    if (data.status === 'error') {
+      return { status: 'error', error: data.error || 'Could not send the WhatsApp code.' };
+    }
+    return { status: 'pending' };
+  } catch {
+    return { status: 'pending' };
+  }
+}
+
+export async function verifyWhatsAppInbound(
+  request: WhatsAppInboundRequest,
+  code: string,
+): Promise<AuthResult> {
+  return postJson('/api/auth/whatsapp/inbound', {
+    action: 'verify',
+    ref: request.ref,
+    requestId: request.requestId,
+    code,
+    client: 'mobile',
+  });
+}
+
+/**
+ * `whatsapp://` is claimed by both WhatsApp and WhatsApp Business, so Android lets the
+ * user pick one when both are installed. wa.me covers phones where neither handles the scheme.
+ */
+export async function openWhatsAppChat(waNumber: string, text: string): Promise<boolean> {
+  const encoded = encodeURIComponent(text);
+  const urls = [
+    `whatsapp://send?phone=${waNumber}&text=${encoded}`,
+    `https://wa.me/${waNumber}?text=${encoded}`,
+  ];
+  for (const url of urls) {
+    try {
+      await Linking.openURL(url);
+      return true;
+    } catch {
+      // Try the next form.
+    }
+  }
+  return false;
+}
+
+async function authedJson<T>(
+  path: string,
+  init: { method: 'GET' | 'POST'; body?: Record<string, unknown> },
+): Promise<T | null> {
+  try {
+    const { getStoredToken } = await import('./session');
+    const token = await getStoredToken();
+    if (!token) return null;
+    const res = await fetch(`${SITE_URL}${path}`, {
+      method: init.method,
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Bearer ${token}`,
+        ...(init.body ? { 'Content-Type': 'application/json' } : {}),
+      },
+      body: init.body ? JSON.stringify(init.body) : undefined,
+    });
+    return (await res.json()) as T;
+  } catch {
+    return null;
+  }
+}
+
+export type PhoneVerifyResult =
+  | { success: true; phone: string; phoneVerificationToken: string; message: string }
+  | { success: false; error: string };
+
+export async function requestPhoneVerifyCode(
+  phone: string,
+): Promise<{ success: true; message: string } | { success: false; error: string }> {
+  return (
+    (await authedJson<{ success: true; message: string } | { success: false; error: string }>(
+      '/api/auth/mobile/phone-verify',
+      { method: 'POST', body: { method: 'whatsapp', phone } },
+    )) ?? { success: false, error: 'Could not reach FinderB. Check your connection.' }
+  );
+}
+
+export async function verifyPhoneCode(phone: string, code: string): Promise<PhoneVerifyResult> {
+  return (
+    (await authedJson<PhoneVerifyResult>('/api/auth/mobile/phone-verify', {
+      method: 'POST',
+      body: { method: 'whatsapp', phone, code },
+    })) ?? { success: false, error: 'Could not reach FinderB. Check your connection.' }
+  );
+}
+
+/** Opens Truecaller and waits for it to confirm the SIM number. Never throws. */
+export async function verifyPhoneWithTruecaller(): Promise<PhoneVerifyResult> {
+  if (Platform.OS !== 'android') {
+    return { success: false, error: 'Truecaller verification works on Android with the Truecaller app.' };
+  }
+  const requestId = createRequestId();
+  const start = await authedJson<{ success: boolean; deepLink?: string; error?: string }>(
+    '/api/auth/mobile/phone-verify',
+    { method: 'POST', body: { method: 'truecaller', requestId } },
+  );
+  if (!start?.success || !start.deepLink) {
+    return { success: false, error: start?.error || 'Could not start Truecaller verification.' };
+  }
+  try {
+    await Linking.openURL(start.deepLink);
+  } catch {
+    return { success: false, error: 'Install the Truecaller app to verify with Truecaller.' };
+  }
+
+  const started = Date.now();
+  await sleep(1500);
+  while (Date.now() - started < 120_000) {
+    const status = await authedJson<{
+      status?: string;
+      phone?: string;
+      phoneVerificationToken?: string;
+      message?: string;
+      error?: string;
+    }>(`/api/auth/mobile/phone-verify?requestId=${encodeURIComponent(requestId)}`, { method: 'GET' });
+    if (status?.status === 'completed' && status.phone && status.phoneVerificationToken) {
+      return {
+        success: true,
+        phone: status.phone,
+        phoneVerificationToken: status.phoneVerificationToken,
+        message: status.message || 'Mobile number verified with Truecaller.',
+      };
+    }
+    if (status?.status === 'error') {
+      return { success: false, error: status.error || 'Truecaller verification did not finish.' };
+    }
+    await sleep(AppState.currentState === 'active' ? 1500 : 3000);
+  }
+  return { success: false, error: 'Truecaller verification timed out. Please try again.' };
+}
+
 export async function loginWithPassword(
   email: string,
   password: string,
@@ -186,6 +354,7 @@ export async function updateMobileProfile(patch: {
   phone?: string;
   avatarUrl?: string | null;
   emailVerificationToken?: string;
+  phoneVerificationToken?: string;
 }): Promise<AuthResult> {
   try {
     const { getStoredToken } = await import('./session');

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { otpSendLabel, useOtpCooldown } from '@/hooks/useOtpCooldown';
 import TruecallerButton from '@/components/auth/TruecallerButton';
 import OAuthButtonGroup from '@/components/auth/OAuthButtonGroup';
@@ -10,6 +10,13 @@ type SocialAuthButtonsProps = {
   mode: 'login' | 'signup';
   redirectPath?: string;
   onError?: (message: string) => void;
+};
+
+type InboundRequest = {
+  ref: string;
+  requestId: string;
+  waNumber: string;
+  text: string;
 };
 
 function WhatsAppMark() {
@@ -40,12 +47,117 @@ function WhatsAppAuthButton({
   const [hint, setHint] = useState('');
   const otp = useOtpCooldown();
   const [busy, setBusy] = useState(false);
+  const [flow, setFlow] = useState<'starting' | 'inbound' | 'manual'>('starting');
+  const [inbound, setInbound] = useState<InboundRequest | null>(null);
+  const [waiting, setWaiting] = useState(false);
+  const [inboundSent, setInboundSent] = useState(false);
 
   const digits = phone.replace(/\D/g, '').slice(0, 10);
+  const onErrorRef = useRef(onError);
+
+  useEffect(() => {
+    onErrorRef.current = onError;
+  }, [onError]);
 
   const fail = (message: string) => {
     setHint('');
     onError?.(message);
+  };
+
+  const startInbound = async () => {
+    setFlow('starting');
+    setInbound(null);
+    setWaiting(false);
+    setInboundSent(false);
+    setCode('');
+    setHint('');
+    try {
+      const res = await fetch('/api/auth/whatsapp/inbound', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ action: 'start', audience }),
+      });
+      const data = (await res.json()) as Partial<InboundRequest> & {
+        success?: boolean;
+        enabled?: boolean;
+      };
+      if (data.success && data.enabled && data.ref && data.requestId && data.waNumber && data.text) {
+        setInbound({
+          ref: data.ref,
+          requestId: data.requestId,
+          waNumber: data.waNumber,
+          text: data.text,
+        });
+        setFlow('inbound');
+        return;
+      }
+    } catch {
+      // Typing the number still works.
+    }
+    setFlow('manual');
+  };
+
+  useEffect(() => {
+    if (!inbound || !waiting || inboundSent) return;
+    let cancelled = false;
+    const timer = window.setInterval(async () => {
+      try {
+        const res = await fetch(
+          `/api/auth/whatsapp/inbound?ref=${encodeURIComponent(inbound.ref)}&requestId=${encodeURIComponent(inbound.requestId)}`,
+          { headers: { Accept: 'application/json' }, cache: 'no-store' },
+        );
+        if (!res.ok) return;
+        const data = (await res.json()) as { status?: string; message?: string; error?: string };
+        if (cancelled) return;
+        if (data.status === 'sent') {
+          setInboundSent(true);
+          setHint(data.message || 'We sent a 6-digit code on WhatsApp.');
+        } else if (data.status === 'error') {
+          setWaiting(false);
+          setHint('');
+          onErrorRef.current?.(data.error || 'Could not send the WhatsApp code.');
+        }
+      } catch {
+        // Keep waiting through brief network drops.
+      }
+    }, 2000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [inbound, waiting, inboundSent]);
+
+  const verifyInbound = async () => {
+    if (!inbound || code.replace(/\D/g, '').length !== 6) {
+      fail('Enter the 6-digit code from WhatsApp.');
+      return;
+    }
+    setBusy(true);
+    onError?.('');
+    try {
+      const res = await fetch('/api/auth/whatsapp/inbound', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({
+          action: 'verify',
+          ref: inbound.ref,
+          requestId: inbound.requestId,
+          code,
+          client: 'web',
+          redirectPath,
+        }),
+      });
+      const data = (await res.json()) as { success?: boolean; error?: string; redirectUrl?: string };
+      if (!data.success || !data.redirectUrl) {
+        fail(data.error || 'Could not verify that code.');
+        return;
+      }
+      window.location.assign(data.redirectUrl);
+    } catch {
+      fail('Could not verify that code. Check your connection.');
+    } finally {
+      setBusy(false);
+    }
   };
 
   const send = async () => {
@@ -120,6 +232,7 @@ function WhatsAppAuthButton({
         onClick={() => {
           onError?.('');
           setOpen(true);
+          void startInbound();
         }}
         className="flex w-full items-center justify-center gap-3 rounded-xl border border-[#25D366] bg-[#25D366] px-4 py-3 text-sm font-semibold text-white"
       >
@@ -141,59 +254,125 @@ function WhatsAppAuthButton({
           Close
         </button>
       </div>
-      <p className="text-[13px] leading-5 text-slate-600">
-        {audience === 'business'
-          ? 'Use the mobile number on your FinderB business. We send the code on WhatsApp.'
-          : 'Enter your WhatsApp number. We send a 6-digit code to sign you in.'}
-      </p>
-      <div className="flex items-center gap-2">
-        <input
-          inputMode="numeric"
-          autoComplete="tel"
-          maxLength={10}
-          value={digits}
-          onChange={(event) => {
-            const next = event.target.value.replace(/\D/g, '').slice(0, 10);
-            if (next !== digits) setCode('');
-            setPhone(next);
-            setHint('');
-          }}
-          placeholder="10-digit WhatsApp number"
-          className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-[#128C7E]"
-        />
-        <button
-          type="button"
-          disabled={busy || otp.isWaiting(digits) || !/^[6-9]\d{9}$/.test(digits)}
-          onClick={() => void send()}
-          className="h-10 shrink-0 rounded-lg bg-[#128C7E] px-3 text-xs font-bold text-white disabled:opacity-45"
-        >
-          {busy && code.length < 6
-            ? 'Sending…'
-            : otpSendLabel(otp.isSentTo(digits), otp.isWaiting(digits), otp.secondsLeft)}
-        </button>
-      </div>
-      {otp.isSentTo(digits) ? (
-        <div className="flex items-center gap-2">
-          <input
-            inputMode="numeric"
-            autoComplete="one-time-code"
-            maxLength={6}
-            value={code}
-            onChange={(event) => setCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
-            placeholder="6-digit code"
-            className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm tracking-[0.3em] text-slate-900 outline-none focus:border-[#128C7E]"
-          />
+      {flow === 'starting' ? (
+        <p className="text-[13px] text-slate-500">Getting WhatsApp ready…</p>
+      ) : flow === 'inbound' && inbound ? (
+        <div className="space-y-3">
+          <p className="text-[13px] leading-5 text-slate-600">
+            {inboundSent
+              ? 'Enter the code we sent to the WhatsApp number that messaged us.'
+              : 'Open WhatsApp and press Send on the message we fill in. Your code comes back on that same WhatsApp number, so you do not need to type it.'}
+          </p>
+          {!inboundSent ? (
+            <a
+              href={`https://wa.me/${inbound.waNumber}?text=${encodeURIComponent(inbound.text)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => {
+                onError?.('');
+                setWaiting(true);
+              }}
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#128C7E] px-3 py-2.5 text-sm font-bold text-white"
+            >
+              <WhatsAppMark />
+              <span>{waiting ? 'Open WhatsApp again' : 'Open WhatsApp'}</span>
+            </a>
+          ) : null}
+          {waiting && !inboundSent ? (
+            <p className="text-[13px] text-slate-500">Waiting for your WhatsApp message…</p>
+          ) : null}
+          {inboundSent ? (
+            <div className="flex items-center gap-2">
+              <input
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                maxLength={6}
+                value={code}
+                onChange={(event) => setCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
+                placeholder="6-digit code"
+                className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm tracking-[0.3em] text-slate-900 outline-none focus:border-[#128C7E]"
+              />
+              <button
+                type="button"
+                disabled={busy || code.length !== 6}
+                onClick={() => void verifyInbound()}
+                className="h-10 shrink-0 rounded-lg bg-[#128C7E] px-3 text-xs font-bold text-white disabled:opacity-45"
+              >
+                {busy ? '…' : 'Verify'}
+              </button>
+            </div>
+          ) : null}
+          {hint ? <p className="text-[13px] font-medium text-emerald-700">{hint}</p> : null}
           <button
             type="button"
-            disabled={busy || code.length !== 6}
-            onClick={() => void verify()}
-            className="h-10 shrink-0 rounded-lg bg-[#128C7E] px-3 text-xs font-bold text-white disabled:opacity-45"
+            className="text-xs font-semibold text-[#128C7E] underline-offset-2 hover:underline"
+            onClick={() => {
+              onError?.('');
+              setHint('');
+              setCode('');
+              setFlow('manual');
+            }}
           >
-            {busy ? '…' : 'Verify'}
+            Enter number instead
           </button>
         </div>
-      ) : null}
-      {hint ? <p className="text-[13px] font-medium text-emerald-700">{hint}</p> : null}
+      ) : (
+        <>
+          <p className="text-[13px] leading-5 text-slate-600">
+            {audience === 'business'
+              ? 'Use the mobile number on your FinderB business. We send the code on WhatsApp.'
+              : 'Enter your WhatsApp number. We send a 6-digit code to sign you in.'}
+          </p>
+          <div className="flex items-center gap-2">
+            <input
+              inputMode="numeric"
+              autoComplete="tel"
+              maxLength={10}
+              value={digits}
+              onChange={(event) => {
+                const next = event.target.value.replace(/\D/g, '').slice(0, 10);
+                if (next !== digits) setCode('');
+                setPhone(next);
+                setHint('');
+              }}
+              placeholder="10-digit WhatsApp number"
+              className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-[#128C7E]"
+            />
+            <button
+              type="button"
+              disabled={busy || otp.isWaiting(digits) || !/^[6-9]\d{9}$/.test(digits)}
+              onClick={() => void send()}
+              className="h-10 shrink-0 rounded-lg bg-[#128C7E] px-3 text-xs font-bold text-white disabled:opacity-45"
+            >
+              {busy && code.length < 6
+                ? 'Sending…'
+                : otpSendLabel(otp.isSentTo(digits), otp.isWaiting(digits), otp.secondsLeft)}
+            </button>
+          </div>
+          {otp.isSentTo(digits) ? (
+            <div className="flex items-center gap-2">
+              <input
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                maxLength={6}
+                value={code}
+                onChange={(event) => setCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
+                placeholder="6-digit code"
+                className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm tracking-[0.3em] text-slate-900 outline-none focus:border-[#128C7E]"
+              />
+              <button
+                type="button"
+                disabled={busy || code.length !== 6}
+                onClick={() => void verify()}
+                className="h-10 shrink-0 rounded-lg bg-[#128C7E] px-3 text-xs font-bold text-white disabled:opacity-45"
+              >
+                {busy ? '…' : 'Verify'}
+              </button>
+            </div>
+          ) : null}
+          {hint ? <p className="text-[13px] font-medium text-emerald-700">{hint}</p> : null}
+        </>
+      )}
     </div>
   );
 }

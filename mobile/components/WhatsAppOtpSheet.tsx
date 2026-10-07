@@ -14,7 +14,16 @@ import { fonts } from '../constants/typography';
 import { useAuth } from '../context/AuthContext';
 import { createThemedStyles } from '../hooks/useThemedStyles';
 import { otpSendLabel, useOtpCooldown } from '../hooks/useOtpCooldown';
-import { requestWhatsAppOtp, verifyWhatsAppOtp, type WhatsAppAudience } from '../lib/authApi';
+import {
+  checkWhatsAppInbound,
+  openWhatsAppChat,
+  requestWhatsAppOtp,
+  startWhatsAppInbound,
+  verifyWhatsAppInbound,
+  verifyWhatsAppOtp,
+  type WhatsAppAudience,
+  type WhatsAppInboundRequest,
+} from '../lib/authApi';
 import type { AuthUser } from '../lib/session';
 
 type Props = {
@@ -34,9 +43,14 @@ export function WhatsAppOtpSheet({ visible, audience, onClose, onSuccess }: Prop
   const [error, setError] = useState('');
   const [sending, setSending] = useState(false);
   const [verifying, setVerifying] = useState(false);
+  const [flow, setFlow] = useState<'starting' | 'inbound' | 'manual'>('starting');
+  const [inbound, setInbound] = useState<WhatsAppInboundRequest | null>(null);
+  const [waiting, setWaiting] = useState(false);
+  const [inboundSent, setInboundSent] = useState(false);
 
   useEffect(() => {
     if (!visible) return;
+    let cancelled = false;
     setPhone('');
     setCode('');
     otp.clearSent();
@@ -44,7 +58,69 @@ export function WhatsAppOtpSheet({ visible, audience, onClose, onSuccess }: Prop
     setError('');
     setSending(false);
     setVerifying(false);
-  }, [visible]);
+    setFlow('starting');
+    setInbound(null);
+    setWaiting(false);
+    setInboundSent(false);
+    void startWhatsAppInbound(audience).then((request) => {
+      if (cancelled) return;
+      setInbound(request);
+      setFlow(request ? 'inbound' : 'manual');
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [visible, audience]);
+
+  useEffect(() => {
+    if (!inbound || !waiting || inboundSent) return;
+    let cancelled = false;
+    const timer = setInterval(() => {
+      void checkWhatsAppInbound(inbound).then((status) => {
+        if (cancelled) return;
+        if (status.status === 'sent') {
+          setInboundSent(true);
+          setHint(status.message);
+        } else if (status.status === 'error') {
+          setWaiting(false);
+          setError(status.error);
+        }
+      });
+    }, 2000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [inbound, waiting, inboundSent]);
+
+  const openWhatsApp = async () => {
+    if (!inbound) return;
+    setError('');
+    const opened = await openWhatsAppChat(inbound.waNumber, inbound.text);
+    if (!opened) {
+      setError('WhatsApp is not installed on this phone. Enter your number instead.');
+      setFlow('manual');
+      return;
+    }
+    setWaiting(true);
+  };
+
+  const verifyInbound = async () => {
+    if (!inbound) return;
+    if (code.replace(/\D/g, '').length !== 6) {
+      setError('Enter the 6-digit code from WhatsApp.');
+      return;
+    }
+    setError('');
+    setVerifying(true);
+    const result = await applyAuthResult(await verifyWhatsAppInbound(inbound, code));
+    setVerifying(false);
+    if (!result.success) {
+      setError(result.error);
+      return;
+    }
+    onSuccess(result.user);
+  };
 
   const digits = phone.replace(/\D/g, '').slice(-10);
   const phoneOk = /^[6-9]\d{9}$/.test(digits);
@@ -103,67 +179,142 @@ export function WhatsAppOtpSheet({ visible, audience, onClose, onSuccess }: Prop
               <Ionicons name="close" size={22} color="#5C6B7A" />
             </Pressable>
           </View>
-          <Text style={styles.lead}>
-            {audience === 'business'
-              ? 'Use the mobile number on your FinderB business. We will send a code on WhatsApp.'
-              : 'Enter your WhatsApp number. We will send a 6-digit code to sign you in.'}
-          </Text>
-          {error ? (
-            <View style={styles.alert}>
-              <AuthAlert message={error} />
+          {flow === 'starting' ? (
+            <View style={styles.starting}>
+              <ActivityIndicator color="#128C7E" />
             </View>
-          ) : null}
-          <AuthField
-            label="WhatsApp number"
-            value={phone}
-            onChangeText={(value) => {
-              const next = value.replace(/\D/g, '').slice(0, 10);
-              if (next !== phone) setCode('');
-              setPhone(next);
-              setHint('');
-              setError('');
-            }}
-            placeholder="10-digit mobile"
-            keyboardType="number-pad"
-            maxLength={10}
-            autoComplete="tel"
-            rightSlot={
+          ) : flow === 'inbound' && inbound ? (
+            <>
+              <Text style={styles.lead}>
+                {inboundSent
+                  ? 'Enter the code we sent to the WhatsApp number that messaged us.'
+                  : audience === 'business'
+                    ? 'Choose WhatsApp and press Send on the message we fill in. Use the WhatsApp on your business mobile. Your code comes back on that same number.'
+                    : 'Choose WhatsApp and press Send on the message we fill in. Your code comes back on that same number, so you do not need to type it.'}
+              </Text>
+              {error ? (
+                <View style={styles.alert}>
+                  <AuthAlert message={error} />
+                </View>
+              ) : null}
+              {!inboundSent ? (
+                <Pressable
+                  style={({ pressed }) => [styles.primary, styles.openBtn, pressed && styles.pressed]}
+                  onPress={() => void openWhatsApp()}
+                >
+                  <Ionicons name="logo-whatsapp" size={20} color="#FFFFFF" />
+                  <Text style={styles.primaryText}>{waiting ? 'Open WhatsApp again' : 'Open WhatsApp'}</Text>
+                </Pressable>
+              ) : null}
+              {waiting && !inboundSent ? (
+                <View style={styles.waitingRow}>
+                  <ActivityIndicator size="small" color="#128C7E" />
+                  <Text style={styles.waitingText}>Waiting for your WhatsApp message…</Text>
+                </View>
+              ) : null}
+              {inboundSent ? (
+                <>
+                  <AuthField
+                    label="WhatsApp code"
+                    value={code}
+                    onChangeText={(value) => setCode(value.replace(/\D/g, '').slice(0, 6))}
+                    placeholder="6-digit code"
+                    keyboardType="number-pad"
+                    maxLength={6}
+                    autoComplete="one-time-code"
+                  />
+                  {hint ? <Text style={styles.hint}>{hint}</Text> : null}
+                  <Pressable
+                    style={({ pressed }) => [styles.primary, pressed && styles.pressed, busy && styles.disabled]}
+                    onPress={() => void verifyInbound()}
+                    disabled={busy || code.length !== 6}
+                  >
+                    {verifying ? (
+                      <ActivityIndicator color="#FFFFFF" />
+                    ) : (
+                      <Text style={styles.primaryText}>Verify and continue</Text>
+                    )}
+                  </Pressable>
+                </>
+              ) : null}
               <Pressable
-                onPress={() => void send()}
-                disabled={busy || otp.isWaiting(digits) || !phoneOk}
-                style={[styles.sendBtn, (busy || otp.isWaiting(digits) || !phoneOk) && styles.disabled]}
+                style={styles.switchLink}
+                onPress={() => {
+                  setError('');
+                  setHint('');
+                  setCode('');
+                  setFlow('manual');
+                }}
+                hitSlop={8}
               >
-                <Text style={styles.sendBtnText}>
-                  {sending ? '…' : otpSendLabel(otp.isSentTo(digits), otp.isWaiting(digits), otp.secondsLeft)}
-                </Text>
+                <Text style={styles.switchText}>Enter number instead</Text>
               </Pressable>
-            }
-          />
-          {otp.isSentTo(digits) ? (
-            <AuthField
-              label="WhatsApp code"
-              value={code}
-              onChangeText={(value) => setCode(value.replace(/\D/g, '').slice(0, 6))}
-              placeholder="6-digit code"
-              keyboardType="number-pad"
-              maxLength={6}
-              autoComplete="one-time-code"
-            />
-          ) : null}
-          {hint ? <Text style={styles.hint}>{hint}</Text> : null}
-          {otp.isSentTo(digits) ? (
-            <Pressable
-              style={({ pressed }) => [styles.primary, pressed && styles.pressed, busy && styles.disabled]}
-              onPress={() => void verify()}
-              disabled={busy || code.length !== 6}
-            >
-              {verifying ? (
-                <ActivityIndicator color="#FFFFFF" />
-              ) : (
-                <Text style={styles.primaryText}>Verify and continue</Text>
-              )}
-            </Pressable>
-          ) : null}
+            </>
+          ) : (
+            <>
+              <Text style={styles.lead}>
+                {audience === 'business'
+                  ? 'Use the mobile number on your FinderB business. We will send a code on WhatsApp.'
+                  : 'Enter your WhatsApp number. We will send a 6-digit code to sign you in.'}
+              </Text>
+              {error ? (
+                <View style={styles.alert}>
+                  <AuthAlert message={error} />
+                </View>
+              ) : null}
+              <AuthField
+                label="WhatsApp number"
+                value={phone}
+                onChangeText={(value) => {
+                  const next = value.replace(/\D/g, '').slice(0, 10);
+                  if (next !== phone) setCode('');
+                  setPhone(next);
+                  setHint('');
+                  setError('');
+                }}
+                placeholder="10-digit mobile"
+                keyboardType="number-pad"
+                maxLength={10}
+                autoComplete="tel"
+                rightSlot={
+                  <Pressable
+                    onPress={() => void send()}
+                    disabled={busy || otp.isWaiting(digits) || !phoneOk}
+                    style={[styles.sendBtn, (busy || otp.isWaiting(digits) || !phoneOk) && styles.disabled]}
+                  >
+                    <Text style={styles.sendBtnText}>
+                      {sending ? '…' : otpSendLabel(otp.isSentTo(digits), otp.isWaiting(digits), otp.secondsLeft)}
+                    </Text>
+                  </Pressable>
+                }
+              />
+              {otp.isSentTo(digits) ? (
+                <AuthField
+                  label="WhatsApp code"
+                  value={code}
+                  onChangeText={(value) => setCode(value.replace(/\D/g, '').slice(0, 6))}
+                  placeholder="6-digit code"
+                  keyboardType="number-pad"
+                  maxLength={6}
+                  autoComplete="one-time-code"
+                />
+              ) : null}
+              {hint ? <Text style={styles.hint}>{hint}</Text> : null}
+              {otp.isSentTo(digits) ? (
+                <Pressable
+                  style={({ pressed }) => [styles.primary, pressed && styles.pressed, busy && styles.disabled]}
+                  onPress={() => void verify()}
+                  disabled={busy || code.length !== 6}
+                >
+                  {verifying ? (
+                    <ActivityIndicator color="#FFFFFF" />
+                  ) : (
+                    <Text style={styles.primaryText}>Verify and continue</Text>
+                  )}
+                </Pressable>
+              ) : null}
+            </>
+          )}
         </View>
       </KeyboardAvoidingView>
     </Modal>
@@ -238,6 +389,37 @@ const useStyles = createThemedStyles((colors) => ({
     fontFamily: fonts.semiBold,
     fontSize: 12,
     color: '#FFFFFF',
+  },
+  starting: {
+    minHeight: 96,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  openBtn: {
+    marginTop: 4,
+    flexDirection: 'row',
+    gap: 8,
+  },
+  waitingRow: {
+    marginTop: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  waitingText: {
+    fontFamily: fonts.medium,
+    fontSize: 13,
+    color: colors.textSoft,
+  },
+  switchLink: {
+    alignSelf: 'center',
+    marginTop: 14,
+    paddingVertical: 4,
+  },
+  switchText: {
+    fontFamily: fonts.semiBold,
+    fontSize: 13,
+    color: '#128C7E',
   },
   pressed: { opacity: 0.9 },
   disabled: { opacity: 0.6 },

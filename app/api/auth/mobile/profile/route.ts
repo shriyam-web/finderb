@@ -36,6 +36,7 @@ export async function PATCH(request: Request) {
       phone?: string;
       avatarUrl?: string | null;
       emailVerificationToken?: string;
+      phoneVerificationToken?: string;
     };
 
     const result = await mobileUpdateProfile(user.id, body);

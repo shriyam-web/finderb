@@ -19,9 +19,11 @@ import {
 } from '@/lib/security/password';
 import { createMobileSessionToken } from '@/lib/auth/mobileToken';
 import {
+  extractIndianMobileDigits,
   indianMobileValidationError,
   normalizeIndianPhoneForStorage,
 } from '@/lib/indianPhone';
+import { assertPhoneProof } from '@/lib/auth/phoneVerify.server';
 import { findBusinessForIdentity } from '@/lib/auth/merchantPortal.server';
 import { syncOAuthUserToAppSession } from '@/lib/auth/syncOAuthUser.server';
 import { createClient as createSupabaseJsClient } from '@supabase/supabase-js';
@@ -453,6 +455,7 @@ export async function mobileUpdateProfile(
     phone?: string;
     avatarUrl?: string | null;
     emailVerificationToken?: string;
+    phoneVerificationToken?: string;
   }
 ): Promise<MobileAuthSuccess | MobileAuthFailure> {
   const service = dbClient();
@@ -511,24 +514,24 @@ export async function mobileUpdateProfile(
 
   if (typeof patch.phone === 'string') {
     const raw = patch.phone.trim();
-    const currentPhone = String(current?.phone || '').replace(/\D/g, '');
-    const nextDigits = raw.replace(/\D/g, '');
-    if (phoneLocked && nextDigits !== currentPhone && !(nextDigits.length >= 10 && currentPhone.endsWith(nextDigits.slice(-10)))) {
-      return {
-        success: false,
-        error: 'This mobile number is tied to your sign-in and cannot be changed.',
-      };
-    }
+    const currentPhone = extractIndianMobileDigits(current?.phone || '');
     if (!raw) {
+      if (phoneLocked && currentPhone) {
+        return {
+          success: false,
+          error: 'You sign in with this mobile number, so it cannot be removed. Change it to another verified number instead.',
+        };
+      }
       updates.phone = null;
-    } else {
+    } else if (normalizeIndianPhoneForStorage(raw) !== currentPhone) {
       const phoneError = indianMobileValidationError(raw, {
         required: true,
-        allowLandline: true,
         label: 'mobile number',
       });
       if (phoneError) return { success: false, error: phoneError };
       const phone = normalizeIndianPhoneForStorage(raw);
+      const proof = assertPhoneProof(userId, phone, patch.phoneVerificationToken);
+      if (!proof.ok) return { success: false, error: proof.error };
       const { data: clash } = await supabase
         .from('User')
         .select('id')

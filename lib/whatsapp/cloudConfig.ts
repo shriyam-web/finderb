@@ -11,6 +11,7 @@ export const WHATSAPP_DEFAULT_TEMPLATE_LANG = 'en';
 export const WHATSAPP_DEFAULT_BUTTON = 'url';
 export const WHATSAPP_DEFAULT_GRAPH_VERSION = 'v22.0';
 export const WHATSAPP_DEFAULT_WEBHOOK_VERIFY_TOKEN = 'finderb-wa-otp';
+export const WHATSAPP_DEFAULT_BUSINESS_NUMBER = '919990222346';
 
 export type WhatsAppOtpButton = 'url' | 'copy_code' | 'none';
 
@@ -22,6 +23,9 @@ export type WhatsAppCloudConfig = {
   button: WhatsAppOtpButton;
   version: string;
   webhookVerifyToken: string;
+  /** FinderB's own WhatsApp number in wa.me form (country code, digits only). */
+  businessNumber: string;
+  appSecret: string;
 };
 
 function firstEnv(...keys: string[]) {
@@ -48,10 +52,21 @@ export function getWhatsAppCloudConfig(): WhatsAppCloudConfig {
     version: firstEnv('WHATSAPP_GRAPH_VERSION') || WHATSAPP_DEFAULT_GRAPH_VERSION,
     webhookVerifyToken:
       firstEnv('WHATSAPP_WEBHOOK_VERIFY_TOKEN') || WHATSAPP_DEFAULT_WEBHOOK_VERIFY_TOKEN,
+    businessNumber:
+      firstEnv('WHATSAPP_BUSINESS_NUMBER').replace(/\D/g, '') || WHATSAPP_DEFAULT_BUSINESS_NUMBER,
+    appSecret: firstEnv('WHATSAPP_APP_SECRET', 'META_APP_SECRET'),
   };
 }
 
 export function isWhatsAppOtpConfigured(): boolean {
   const config = getWhatsAppCloudConfig();
   return Boolean(config.token && config.phoneNumberId);
+}
+
+/**
+ * "Message us first" login needs Meta to deliver incoming messages to
+ * /api/auth/whatsapp/webhook, so it stays off until WHATSAPP_INBOUND_LOGIN=1.
+ */
+export function isWhatsAppInboundLoginEnabled(): boolean {
+  return /^(1|true|yes)$/i.test(firstEnv('WHATSAPP_INBOUND_LOGIN')) && isWhatsAppOtpConfigured();
 }

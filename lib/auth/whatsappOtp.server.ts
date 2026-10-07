@@ -243,6 +243,15 @@ export async function requestWhatsAppLoginOtp(input: {
 
   const ipLimit = await enforceRateLimit('auth', 'whatsapp-otp-send');
   if (!ipLimit.ok) return { success: false, error: ipLimit.error };
+
+  return sendWhatsAppLoginCode(phone, audience);
+}
+
+/** Sends a login code to a phone that is already validated. Also used when the user messages FinderB first. */
+export async function sendWhatsAppLoginCode(
+  phone: string,
+  audience: WhatsAppAudience,
+): Promise<SendOk | Failure> {
   const phoneLimit = await enforceRateLimit('authEmail', `whatsapp-otp:${phone}`);
   if (!phoneLimit.ok) return { success: false, error: phoneLimit.error };
 

@@ -91,7 +91,7 @@ export async function updateTruecallerAuthRequest(
   patch: Partial<
     Pick<
       TruecallerAuthRecord,
-      'status' | 'userId' | 'errorMessage' | 'isNewUser' | 'suggestedLoginPath'
+      'status' | 'userId' | 'errorMessage' | 'isNewUser' | 'suggestedLoginPath' | 'redirectPath'
     >
   >
 ): Promise<void> {

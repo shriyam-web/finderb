@@ -4,6 +4,7 @@ import {
   ActivityIndicator,
   Alert,
   Linking,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -25,7 +26,13 @@ import { useTheme } from '../../context/ThemeContext';
 import { useTabScrollPadding } from '../../hooks/useAppSafeArea';
 import { otpSendLabel, useOtpCooldown } from '../../hooks/useOtpCooldown';
 import { createThemedStyles } from '../../hooks/useThemedStyles';
-import { requestUserEmailOtp, verifyUserEmailOtp } from '../../lib/authApi';
+import {
+  requestPhoneVerifyCode,
+  requestUserEmailOtp,
+  verifyPhoneCode,
+  verifyPhoneWithTruecaller,
+  verifyUserEmailOtp,
+} from '../../lib/authApi';
 import { displayAccountEmail } from '../../lib/syntheticEmail';
 import { SITE_URL } from '../../lib/supabase';
 import { getAppVersionLabel } from '../../lib/appVersion';
@@ -37,6 +44,10 @@ type MenuItem = {
 };
 
 const SUPPORT_EMAIL = 'support@finderb.com';
+
+function lastTenDigits(phone: string | null | undefined) {
+  return (phone || '').replace(/\D/g, '').replace(/^91(?=\d{10}$)/, '').slice(-10);
+}
 
 export default function AccountScreen() {
   const { colors, isDark, toggleDark } = useTheme();
@@ -60,6 +71,14 @@ export default function AccountScreen() {
   const [emailSending, setEmailSending] = useState(false);
   const [emailVerifying, setEmailVerifying] = useState(false);
   const emailOtp = useOtpCooldown();
+  const [phoneCode, setPhoneCode] = useState('');
+  const [phoneProof, setPhoneProof] = useState('');
+  const [phoneProofFor, setPhoneProofFor] = useState('');
+  const [phoneHint, setPhoneHint] = useState('');
+  const [phoneSending, setPhoneSending] = useState(false);
+  const [phoneVerifying, setPhoneVerifying] = useState(false);
+  const [truecallerVerifying, setTruecallerVerifying] = useState(false);
+  const phoneOtp = useOtpCooldown();
 
   const startEdit = () => {
     if (!user) return;
@@ -70,7 +89,12 @@ export default function AccountScreen() {
     setEmailProofFor('');
     setEmailHint('');
     emailOtp.clearSent();
-    setPhoneDraft((user.phone || '').replace(/\D/g, '').replace(/^91/, '').slice(-10));
+    setPhoneDraft(lastTenDigits(user.phone));
+    setPhoneCode('');
+    setPhoneProof('');
+    setPhoneProofFor('');
+    setPhoneHint('');
+    phoneOtp.clearSent();
     setSaveError('');
     setEditing(true);
   };
@@ -81,13 +105,72 @@ export default function AccountScreen() {
   const nextEmail = emailDraft.trim().toLowerCase();
   const emailChanging = !emailLocked && Boolean(nextEmail) && nextEmail !== savedEmail.toLowerCase();
   const emailVerified = emailChanging && emailProofFor === nextEmail && Boolean(emailProof);
-  const phoneLocked = providerKey === 'truecaller' || providerKey.includes('whatsapp');
+  const signInPhone = providerKey === 'truecaller' || providerKey.includes('whatsapp');
+  const savedPhone = lastTenDigits(user?.phone);
+  const phoneValid = /^[6-9]\d{9}$/.test(phoneDraft);
+  const phoneChanging = Boolean(phoneDraft) && phoneDraft !== savedPhone;
+  const phoneVerified = phoneChanging && phoneProofFor === phoneDraft && Boolean(phoneProof);
+  const phoneBusy = phoneSending || phoneVerifying || truecallerVerifying;
+
+  const sendPhoneCode = async () => {
+    if (!phoneValid || phoneOtp.isWaiting(phoneDraft)) return;
+    setPhoneCode('');
+    setSaveError('');
+    setPhoneHint('');
+    setPhoneSending(true);
+    const result = await requestPhoneVerifyCode(phoneDraft);
+    setPhoneSending(false);
+    if (!result.success) {
+      setSaveError(result.error);
+      return;
+    }
+    phoneOtp.markSent(phoneDraft);
+    setPhoneHint(result.message);
+  };
+
+  const checkPhoneCode = async () => {
+    setSaveError('');
+    setPhoneVerifying(true);
+    const result = await verifyPhoneCode(phoneDraft, phoneCode);
+    setPhoneVerifying(false);
+    if (!result.success) {
+      setSaveError(result.error);
+      return;
+    }
+    setPhoneProof(result.phoneVerificationToken);
+    setPhoneProofFor(result.phone);
+    setPhoneHint(result.message);
+  };
+
+  const verifyWithTruecaller = async () => {
+    setSaveError('');
+    setPhoneHint('');
+    setTruecallerVerifying(true);
+    const result = await verifyPhoneWithTruecaller();
+    setTruecallerVerifying(false);
+    if (!result.success) {
+      setSaveError(result.error);
+      return;
+    }
+    setPhoneDraft(result.phone);
+    setPhoneCode('');
+    setPhoneProof(result.phoneVerificationToken);
+    setPhoneProofFor(result.phone);
+    setPhoneHint(result.message);
+  };
 
   const saveProfile = async () => {
     if (!user) return;
-    const digits = phoneDraft.replace(/\D/g, '');
-    if (!phoneLocked && digits && !/^[6-9]\d{9}$/.test(digits)) {
+    if (phoneDraft && !phoneValid && phoneChanging) {
       setSaveError('Enter a valid 10-digit Indian mobile number.');
+      return;
+    }
+    if (!phoneDraft && savedPhone && signInPhone) {
+      setSaveError('You sign in with this mobile number, so it cannot be removed.');
+      return;
+    }
+    if (phoneChanging && !phoneVerified) {
+      setSaveError('Verify the new mobile number on WhatsApp or with Truecaller before saving.');
       return;
     }
     if (emailChanging && !emailVerified) {
@@ -99,8 +182,9 @@ export default function AccountScreen() {
     const result = await updateProfile({
       fullName: nameDraft.trim(),
       email: emailLocked ? undefined : emailDraft.trim() || undefined,
-      phone: phoneLocked ? undefined : digits,
+      phone: phoneDraft,
       emailVerificationToken: emailChanging ? emailProof : undefined,
+      phoneVerificationToken: phoneChanging ? phoneProof : undefined,
     });
     setSaving(false);
     if (!result.success) {
@@ -306,31 +390,92 @@ export default function AccountScreen() {
                       <Text style={styles.editHint}>Add or change your email, then verify it with a code.</Text>
                     )}
                     <Text style={styles.editLabel}>Mobile number</Text>
-                    {phoneLocked ? (
-                      <Text style={styles.lockedValue}>{user.phone?.trim() || 'Not added'}</Text>
-                    ) : (
-                      <View style={styles.phoneRow}>
-                        <Text style={styles.phonePrefix}>+91</Text>
+                    <View style={styles.phoneRow}>
+                      <Text style={styles.phonePrefix}>+91</Text>
+                      <TextInput
+                        value={phoneDraft}
+                        onChangeText={(value) => {
+                          const next = value.replace(/\D/g, '').slice(0, 10);
+                          if (next !== phoneDraft) setPhoneCode('');
+                          setSaveError('');
+                          setPhoneHint('');
+                          setPhoneDraft(next);
+                        }}
+                        keyboardType="number-pad"
+                        style={[styles.editInput, styles.phoneInput]}
+                        placeholder="10-digit mobile"
+                        placeholderTextColor={colors.textSoft}
+                        maxLength={10}
+                      />
+                      {phoneChanging && !phoneVerified ? (
+                        <Pressable
+                          style={[
+                            styles.otpInline,
+                            styles.whatsappInline,
+                            (phoneBusy || !phoneValid || phoneOtp.isWaiting(phoneDraft)) && styles.disabled,
+                          ]}
+                          disabled={phoneBusy || !phoneValid || phoneOtp.isWaiting(phoneDraft)}
+                          onPress={() => void sendPhoneCode()}
+                        >
+                          <Text style={styles.otpInlineText}>
+                            {phoneSending
+                              ? '…'
+                              : otpSendLabel(
+                                  phoneOtp.isSentTo(phoneDraft),
+                                  phoneOtp.isWaiting(phoneDraft),
+                                  phoneOtp.secondsLeft,
+                                )}
+                          </Text>
+                        </Pressable>
+                      ) : null}
+                    </View>
+                    {phoneChanging && !phoneVerified && phoneOtp.isSentTo(phoneDraft) ? (
+                      <View style={styles.otpBlock}>
                         <TextInput
-                          value={phoneDraft}
-                          onChangeText={(value) => {
-                            setSaveError('');
-                            setPhoneDraft(value.replace(/\D/g, '').slice(0, 10));
-                          }}
+                          value={phoneCode}
+                          onChangeText={(value) => setPhoneCode(value.replace(/\D/g, '').slice(0, 6))}
                           keyboardType="number-pad"
-                          style={[styles.editInput, styles.phoneInput]}
-                          placeholder="10-digit mobile"
+                          style={styles.editInput}
+                          placeholder="6-digit WhatsApp code"
                           placeholderTextColor={colors.textSoft}
-                          maxLength={10}
+                          maxLength={6}
                         />
+                        <Pressable
+                          style={[styles.otpBtnPrimary, (phoneBusy || phoneCode.length !== 6) && styles.disabled]}
+                          disabled={phoneBusy || phoneCode.length !== 6}
+                          onPress={() => void checkPhoneCode()}
+                        >
+                          <Text style={styles.otpBtnPrimaryText}>{phoneVerifying ? 'Checking…' : 'Verify'}</Text>
+                        </Pressable>
                       </View>
-                    )}
+                    ) : null}
+                    {Platform.OS === 'android' && !phoneVerified ? (
+                      <Pressable
+                        style={[styles.truecallerVerify, phoneBusy && styles.disabled]}
+                        disabled={phoneBusy}
+                        onPress={() => void verifyWithTruecaller()}
+                      >
+                        {truecallerVerifying ? (
+                          <ActivityIndicator size="small" color="#FFFFFF" />
+                        ) : (
+                          <>
+                            <Ionicons name="call" size={14} color="#FFFFFF" />
+                            <Text style={styles.truecallerVerifyText}>
+                              {phoneChanging ? 'Verify with Truecaller instead' : 'Use my Truecaller number'}
+                            </Text>
+                          </>
+                        )}
+                      </Pressable>
+                    ) : null}
+                    {phoneHint ? <Text style={styles.emailHint}>{phoneHint}</Text> : null}
                     <Text style={styles.editHint}>
-                      {phoneLocked
-                        ? providerKey === 'truecaller'
-                          ? 'This number comes from Truecaller and stays as it is.'
-                          : 'This number comes from WhatsApp and stays as it is.'
-                        : 'Used for your FinderB account. A leading 0 or +91 is removed automatically.'}
+                      {phoneVerified
+                        ? 'Number verified. Tap Save to keep it.'
+                        : phoneChanging
+                          ? 'A new number is saved only after you verify it on WhatsApp or with Truecaller.'
+                          : signInPhone
+                            ? 'You sign in with this number. To change it, type the new number and verify it.'
+                            : 'To change your number, type the new one and verify it on WhatsApp or with Truecaller.'}
                     </Text>
                     {saveError ? (
                       <Text style={styles.saveError}>{saveError}</Text>
@@ -626,6 +771,17 @@ const useStyles = createThemedStyles((colors) => ({
     color: '#FFFFFF',
   },
   otpBlock: { gap: 8, marginBottom: 4 },
+  whatsappInline: { backgroundColor: '#128C7E' },
+  truecallerVerify: {
+    minHeight: 40,
+    borderRadius: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#0074E8',
+  },
+  truecallerVerifyText: { fontFamily: fonts.semiBold, fontSize: 13, color: '#FFFFFF' },
   otpActions: { flexDirection: 'row', gap: 8 },
   otpBtn: {
     flex: 1,

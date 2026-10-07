@@ -45,6 +45,7 @@ type AuthContextValue = {
     phone?: string;
     avatarUrl?: string | null;
     emailVerificationToken?: string;
+    phoneVerificationToken?: string;
   }) => Promise<AuthResult>;
   signOut: () => Promise<void>;
   refresh: () => Promise<void>;
