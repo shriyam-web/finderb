@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import { Inter, Outfit } from "next/font/google";
 import "./globals.css";
 import LayoutClient from "@/components/LayoutClient";
+import MaintenanceScreen from "@/components/MaintenanceScreen";
 import ServiceWorkerRegister from "@/components/pwa/ServiceWorkerRegister";
+import { effectiveSiteMode, getSiteRuntime } from "@/lib/siteRuntime";
 import { getRootStructuredData, rootSiteMetadata } from "@/lib/siteSeo";
 
 const inter = Inter({
@@ -44,24 +46,39 @@ export const metadata: Metadata = {
 
 const jsonLd = getRootStructuredData();
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const runtime = await getSiteRuntime();
+  const mode = effectiveSiteMode(runtime);
+  const htmlClass = [
+    inter.variable,
+    outfit.variable,
+    "h-full antialiased",
+    mode === "text_only" ? "site-text-only" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   return (
-    <html lang="en" className={`${inter.variable} ${outfit.variable} h-full antialiased`}>
+    <html lang="en" className={htmlClass}>
       <head>
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-        />
+        {mode !== "maintenance" && (
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+          />
+        )}
       </head>
       <body className="min-h-full flex flex-col font-sans overflow-x-hidden">
-        <LayoutClient>
-          {children}
-        </LayoutClient>
-        <ServiceWorkerRegister />
+        {mode === "maintenance" ? (
+          <MaintenanceScreen runtime={runtime} />
+        ) : (
+          <LayoutClient>{children}</LayoutClient>
+        )}
+        {mode !== "maintenance" && <ServiceWorkerRegister />}
       </body>
     </html>
   );

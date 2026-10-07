@@ -1941,3 +1941,11 @@ h1, h2, h3, h4, h5, h6 {
     animation: none;
   }
 }
+
+html.site-text-only img:not(.text-only-keep),
+html.site-text-only picture:not(.text-only-keep),
+html.site-text-only video,
+html.site-text-only iframe,
+html.site-text-only canvas:not(.text-only-keep) {
+  display: none !important;
+}
