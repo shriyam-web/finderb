@@ -16,6 +16,7 @@ import {
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { OtpCodeBoxes } from '../../components/OtpCodeBoxes';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { useAuth } from '../../context/AuthContext';
@@ -125,7 +126,6 @@ export default function AccountScreen() {
       return;
     }
     phoneOtp.markSent(phoneDraft);
-    setPhoneHint(result.message);
   };
 
   const checkPhoneCode = async () => {
@@ -431,14 +431,15 @@ export default function AccountScreen() {
                     </View>
                     {phoneChanging && !phoneVerified && phoneOtp.isSentTo(phoneDraft) ? (
                       <View style={styles.otpBlock}>
-                        <TextInput
+                        <Text style={styles.editHint}>
+                          OTP has been sent to the WhatsApp account linked to +91 {phoneDraft.slice(0, 5)}{' '}
+                          {phoneDraft.slice(5)}
+                        </Text>
+                        <OtpCodeBoxes
                           value={phoneCode}
-                          onChangeText={(value) => setPhoneCode(value.replace(/\D/g, '').slice(0, 6))}
-                          keyboardType="number-pad"
-                          style={styles.editInput}
-                          placeholder="6-digit WhatsApp code"
-                          placeholderTextColor={colors.textSoft}
-                          maxLength={6}
+                          onChange={setPhoneCode}
+                          autoFocus
+                          disabled={phoneVerifying}
                         />
                         <Pressable
                           style={[styles.otpBtnPrimary, (phoneBusy || phoneCode.length !== 6) && styles.disabled]}
