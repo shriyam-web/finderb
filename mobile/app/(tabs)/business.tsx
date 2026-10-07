@@ -173,7 +173,7 @@ export default function BusinessScreen() {
                   </Text>
                   <Pressable
                     style={({ pressed }) => [styles.primaryBtn, pressed && styles.pressed]}
-                    onPress={() => router.push('/merchant-welcome?instant=1' as Href)}
+                    onPress={() => router.push('/merchant-welcome' as Href)}
                   >
                     <Text style={styles.primaryText}>Open business dashboard</Text>
                   </Pressable>

@@ -9,7 +9,7 @@ import {
   Text,
   View,
 } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { BlurTargetView, BlurView } from 'expo-blur';
@@ -163,9 +163,8 @@ export default function MerchantWelcomeScreen() {
   const { isDark } = useTheme();
   const router = useRouter();
   const { user } = useAuth();
-  const { instant } = useLocalSearchParams<{ instant?: string }>();
-  const [loading, setLoading] = useState(instant !== '1');
-  const [reveal] = useState(() => new Animated.Value(instant === '1' ? 1 : 0));
+  const [loading, setLoading] = useState(true);
+  const [reveal] = useState(() => new Animated.Value(0));
   const blurTarget = useRef<View>(null);
 
   useEffect(() => {

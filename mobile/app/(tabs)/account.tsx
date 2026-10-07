@@ -257,7 +257,7 @@ export default function AccountScreen() {
     businessAccount
       ? {
           title: 'Business dashboard',
-          onPress: () => router.push('/merchant-welcome?instant=1' as Href),
+          onPress: () => router.push('/merchant-welcome' as Href),
         }
       : {
           title: 'For businesses',
@@ -626,7 +626,7 @@ export default function AccountScreen() {
             {user?.isBusinessAccount ? (
               <Pressable
                 style={styles.bizBanner}
-                onPress={() => router.push('/merchant-welcome?instant=1' as Href)}
+                onPress={() => router.push('/merchant-welcome' as Href)}
               >
                 <Ionicons name="storefront-outline" size={18} color="#F2B45A" />
                 <View style={styles.bizCopy}>
