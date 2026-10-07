@@ -1949,3 +1949,8 @@ html.site-text-only iframe,
 html.site-text-only canvas:not(.text-only-keep) {
   display: none !important;
 }
+
+.maintenance-screen,
+.maintenance-screen * {
+  font-family: var(--font-sans);
+}

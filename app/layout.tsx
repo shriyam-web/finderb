@@ -55,7 +55,7 @@ export default async function RootLayout({
   const mode = effectiveSiteMode(runtime);
   const htmlClass = [
     inter.variable,
-    outfit.variable,
+    mode === "maintenance" ? "" : outfit.variable,
     "h-full antialiased",
     mode === "text_only" ? "site-text-only" : "",
   ]
