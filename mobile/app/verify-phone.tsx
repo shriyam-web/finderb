@@ -12,6 +12,7 @@ import { fonts } from '../constants/typography';
 import { otpSendLabel, useOtpCooldown } from '../hooks/useOtpCooldown';
 import { createThemedStyles } from '../hooks/useThemedStyles';
 import { requestPhoneVerifyCode, verifyPhoneCode, verifyPhoneWithTruecaller } from '../lib/authApi';
+import { skipMobileGate } from '../lib/mobileGate';
 import { mobileInputDigits, PHONE_INPUT_MAX_LENGTH } from '../lib/phoneInput';
 import { displayAccountEmail } from '../lib/syntheticEmail';
 
@@ -92,9 +93,27 @@ export default function VerifyPhoneScreen() {
     router.replace('/login');
   };
 
+  const skip = () => {
+    skipMobileGate(user?.id);
+    router.replace('/(tabs)/home');
+  };
+
   return (
     <AuthShell
       hideBack
+      plain
+      topRight={
+        <Pressable
+          onPress={skip}
+          disabled={busy}
+          hitSlop={10}
+          style={({ pressed }) => [styles.skip, (pressed || busy) && styles.skipPressed]}
+          accessibilityRole="button"
+          accessibilityLabel="Skip for now"
+        >
+          <Text style={styles.skipText}>Skip</Text>
+        </Pressable>
+      }
       title="Verify your mobile"
       subtitle={
         account
@@ -197,6 +216,20 @@ export default function VerifyPhoneScreen() {
 }
 
 const useStyles = createThemedStyles((colors) => ({
+  skip: {
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    backgroundColor: colors.surface,
+  },
+  skipPressed: { opacity: 0.6 },
+  skipText: {
+    fontFamily: fonts.semiBold,
+    fontSize: 13,
+    color: colors.heading,
+  },
   phoneRow: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -23,6 +23,7 @@ import {
 import * as Notifications from 'expo-notifications';
 import { ensureWebFonts } from '../lib/webFonts';
 import { warmupHomeSession } from '../lib/homeBootstrap';
+import { isMobileGateSkipped } from '../lib/mobileGate';
 
 configureNotificationHandler();
 ensureWebFonts();
@@ -67,9 +68,9 @@ function RootNavigator() {
   const gateOpen = segments.length === 0 || segments.some((segment) => MOBILE_GATE_OPEN.has(segment));
 
   useEffect(() => {
-    if (loading || !needsMobile || gateOpen) return;
+    if (loading || !needsMobile || gateOpen || isMobileGateSkipped(user?.id)) return;
     router.replace('/verify-phone' as Href);
-  }, [gateOpen, loading, needsMobile, router]);
+  }, [gateOpen, loading, needsMobile, router, user?.id]);
 
   useEffect(() => {
     void ensureAndroidNotificationChannels();

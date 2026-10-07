@@ -27,9 +27,12 @@ type Props = {
   children: ReactNode;
   footer: ReactNode;
   hideBack?: boolean;
+  /** Content without the card and accent bar. */
+  plain?: boolean;
+  topRight?: ReactNode;
 };
 
-export function AuthShell({ title, subtitle, children, footer, hideBack }: Props) {
+export function AuthShell({ title, subtitle, children, footer, hideBack, plain, topRight }: Props) {
   const { colors, gradients } = useTheme();
   const styles = useStyles();
   const router = useRouter();
@@ -71,7 +74,7 @@ export function AuthShell({ title, subtitle, children, footer, hideBack }: Props
         >
           <View style={styles.topBar}>
             {hideBack ? (
-              <View style={styles.topSpacer} />
+              <View style={topRight ? styles.topRight : styles.topSpacer} />
             ) : (
               <Pressable
                 style={styles.backBtn}
@@ -88,7 +91,7 @@ export function AuthShell({ title, subtitle, children, footer, hideBack }: Props
               <Text style={styles.brandWord}>FinderB</Text>
             </View>
 
-            <View style={styles.topSpacer} />
+            {topRight ? <View style={styles.topRight}>{topRight}</View> : <View style={styles.topSpacer} />}
           </View>
 
           <ScrollView
@@ -102,11 +105,11 @@ export function AuthShell({ title, subtitle, children, footer, hideBack }: Props
           >
             <Animated.View
               style={[
-                styles.card,
+                plain ? styles.plain : styles.card,
                 { opacity: fade, transform: [{ translateY: rise }] },
               ]}
             >
-              <View style={styles.accentBar} />
+              {plain ? null : <View style={styles.accentBar} />}
               <Text style={styles.title}>{title}</Text>
               {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
 
@@ -158,6 +161,11 @@ const useStyles = createThemedStyles((colors) => ({
     color: colors.heading,
   },
   topSpacer: { width: 36 },
+  topRight: { width: 64, alignItems: 'flex-end' },
+  plain: {
+    paddingHorizontal: 6,
+    paddingVertical: 8,
+  },
   scroll: {
     flexGrow: 1,
     justifyContent: 'center',
