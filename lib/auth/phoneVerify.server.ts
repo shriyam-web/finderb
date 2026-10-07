@@ -5,6 +5,7 @@ import {
   consumeOtpChallenge,
   discardOtpChallenge,
   issueOtpChallenge,
+  otpIssueErrorMessage,
   otpSecret,
 } from '@/lib/auth/otpChallenge.server';
 import {
@@ -123,8 +124,11 @@ async function sendPhoneCode(
   let code = '';
   try {
     code = await issueOtpChallenge(purposeFor(subject), phone);
-  } catch {
-    return { success: false, error: 'Could not prepare the verification code. Please try again shortly.' };
+  } catch (error) {
+    return {
+      success: false,
+      error: otpIssueErrorMessage(error, 'Could not prepare the verification code. Please try again shortly.'),
+    };
   }
   const sent = await sendWhatsAppOtp(`91${phone}`, code);
   if (!sent.ok) {

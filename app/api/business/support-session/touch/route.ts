@@ -3,6 +3,7 @@ import {
   SUPPORT_SESSION_COOKIE_MAX_AGE,
   SUPPORT_SESSION_IDLE_MS,
   applyBusinessSessionCookies,
+  readSignedBusinessCookie,
 } from '@/lib/security/session';
 import { cookies } from 'next/headers';
 
@@ -20,7 +21,7 @@ const BUSINESS_ID_COOKIE = 'business_id';
 export async function POST() {
   try {
     const jar = await cookies();
-    const businessId = jar.get(BUSINESS_ID_COOKIE)?.value ?? null;
+    const businessId = await readSignedBusinessCookie();
     const isSupport = jar.get(SUPPORT_FLAG_COOKIE)?.value === '1';
     const lastActive = Number(jar.get(SUPPORT_ACTIVE_COOKIE)?.value || 0);
     const now = Date.now();

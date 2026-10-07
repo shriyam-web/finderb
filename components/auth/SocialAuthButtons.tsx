@@ -133,7 +133,7 @@ function WhatsAppAuthButton({
 
   const modal = open ? (
     <div
-      className="fixed inset-0 z-[1000] flex items-end justify-center bg-slate-900/50 p-0 sm:items-center sm:p-4"
+      className="fixed inset-0 z-[100000] flex items-end justify-center bg-slate-900/50 p-0 sm:items-center sm:p-4"
       style={viewport ? { top: viewport.top, height: viewport.height, bottom: 'auto' } : undefined}
     >
       <button
@@ -181,7 +181,7 @@ function WhatsAppAuthButton({
             type="button"
             onClick={() => setOpen(false)}
             disabled={verifying}
-            className="flex h-9 w-9 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-700 transition hover:bg-slate-200 hover:text-slate-900 disabled:opacity-50"
             aria-label="Close"
           >
             <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>

@@ -8,7 +8,7 @@ import {
   enrichLegacyJobLeadMessage,
   extractLegacyJobId,
 } from '@/lib/jobLeadMessage';
-import { getSessionUserId } from '@/lib/security/session';
+import { getSessionBusinessId, getSessionUserId } from '@/lib/security/session';
 import { enforceRateLimit } from '@/lib/security/enforceRateLimit.server';
 import { getUser } from '@/app/actions/user';
 import {
@@ -28,11 +28,6 @@ export type BusinessLead = {
   created_at: string | null;
   updated_at: string | null;
 };
-
-async function getSessionBusinessId() {
-  const businessId = (await cookies()).get('business_id')?.value;
-  return businessId ?? null;
-}
 
 async function getLoggedInBusinessProfile() {
   const businessId = await getSessionBusinessId();

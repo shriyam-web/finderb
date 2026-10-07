@@ -21,6 +21,25 @@ type ActionResult = { success: true; message?: string; value?: string } | { succ
 
 export type VerifiedContact = { kind: ContactKind; value: string };
 
+const GATE_SKIP_KEY = 'finderb:contact-gate-skipped:';
+
+/** "Skip for now" lasts for this browser tab session; the dashboard banner keeps reminding. */
+export function isContactGateSkipped(businessId: string) {
+  try {
+    return window.sessionStorage.getItem(GATE_SKIP_KEY + businessId) === '1';
+  } catch {
+    return false;
+  }
+}
+
+export function markContactGateSkipped(businessId: string) {
+  try {
+    window.sessionStorage.setItem(GATE_SKIP_KEY + businessId, '1');
+  } catch {
+    // Storage can be unavailable in private mode; the gate simply shows again next load.
+  }
+}
+
 const COPY: Record<ContactKind, { title: string; missing: string; channel: string; accent: string }> = {
   email: {
     title: 'Login email',
@@ -36,8 +55,17 @@ const COPY: Record<ContactKind, { title: string; missing: string; channel: strin
   },
 };
 
+const FORMAT_ERROR: Record<ContactKind, string> = {
+  email: 'Enter a valid email address.',
+  mobile: 'Enter a valid 10-digit Indian mobile number.',
+};
+
 function normalize(kind: ContactKind, value: string) {
   return kind === 'email' ? value.trim().toLowerCase() : value.replace(/\D/g, '').slice(-10);
+}
+
+function isValidContact(kind: ContactKind, value: string) {
+  return kind === 'email' ? /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value) : /^[6-9]\d{9}$/.test(value);
 }
 
 export function ContactVerifyCard({
@@ -67,9 +95,14 @@ export function ContactVerifyCard({
   const target = normalize(kind, value);
   const sent = cooldown.isSentTo(target);
   const wait = cooldown.isWaiting(target) ? cooldown.secondsLeft : 0;
+  const valid = isValidContact(kind, target);
+  const unchanged = editing && target === normalize(kind, savedValue);
+  const showSend = Boolean(target) && !unchanged;
+  const looksComplete = kind === 'email' ? target.includes('@') : target.length === 10;
+  const formatError = looksComplete && !valid ? FORMAT_ERROR[kind] : '';
 
   const send = async () => {
-    if (!target || sending || wait > 0) return;
+    if (!valid || unchanged || sending || wait > 0) return;
     setSending(true);
     setError('');
     setHint('');
@@ -203,17 +236,20 @@ export function ContactVerifyCard({
                 />
               )}
             </div>
-            <button
-              type="button"
-              onClick={() => void send()}
-              disabled={sending || wait > 0 || !target}
-              className={`h-[3.25rem] shrink-0 rounded-xl px-5 text-sm font-bold text-white transition disabled:cursor-not-allowed disabled:opacity-50 sm:min-w-[7.5rem] ${copy.accent}`}
-            >
-              {sending ? 'Sending…' : otpSendLabel(sent, wait > 0, wait)}
-            </button>
+            {showSend ? (
+              <button
+                type="button"
+                onClick={() => void send()}
+                disabled={sending || wait > 0 || !valid}
+                className={`h-[3.25rem] shrink-0 rounded-xl px-5 text-sm font-bold text-white transition disabled:cursor-not-allowed disabled:opacity-50 sm:min-w-[7.5rem] ${copy.accent}`}
+              >
+                {sending ? 'Sending…' : otpSendLabel(sent, wait > 0, wait)}
+              </button>
+            ) : null}
           </div>
+          {formatError ? <p className="text-xs font-medium text-amber-700">{formatError}</p> : null}
 
-          {sent ? (
+          {sent && showSend ? (
             <div className="space-y-3 rounded-2xl border border-[#d7e2ee] bg-[#f7fafc] p-4">
               <p className="text-center text-[13px] leading-relaxed text-[#475569]">
                 {hint ||
@@ -316,10 +352,19 @@ export default function MerchantContactVerifyGate({
             <ContactVerifyCard kind="mobile" initialValue={mobile} verified={mobileVerified} onVerified={onVerified} />
           </div>
 
-          <div className="mt-8">
+          <div className="mt-8 space-y-3">
             <MerchantAuthSubmitButton type="button" onClick={onContinue} disabled={!done}>
               {done ? 'Continue to dashboard' : 'Verify both to continue'}
             </MerchantAuthSubmitButton>
+            {!done ? (
+              <button
+                type="button"
+                onClick={onContinue}
+                className="w-full rounded-xl px-4 py-2.5 text-sm font-semibold text-[#64748b] transition-colors hover:bg-white/80 hover:text-[#153551]"
+              >
+                Skip for now
+              </button>
+            ) : null}
           </div>
         </div>
       </MerchantAuthMain>

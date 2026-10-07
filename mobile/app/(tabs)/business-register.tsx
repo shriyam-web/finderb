@@ -221,6 +221,23 @@ export default function BusinessRegisterScreen() {
     emailOtp.markSent(workEmail);
     setEmailOtpHint(result.message);
   };
+
+  const verifyEmailCode = async (value = emailCode) => {
+    if (value.length !== 6 || emailOtpVerifying) return;
+    setError('');
+    setEmailOtpVerifying(true);
+    const result = await verifyBusinessEmailOtp(workEmail, value);
+    setEmailOtpVerifying(false);
+    if (!result.success || !result.emailVerificationToken) {
+      setEmailCode('');
+      setError(result.success ? 'Could not verify that email.' : result.error);
+      return;
+    }
+    setEmailProof(result.emailVerificationToken);
+    setEmailProofFor(workEmail);
+    setEmailCode('');
+    setEmailOtpHint(result.message);
+  };
   const mobileVerified = Boolean(mobileProof) && mobileProofFor === form.mobile;
   const mobileCodeOpen = mobileOtp.isSentTo(form.mobile);
   const mobileCodeWaiting = mobileOtp.isWaiting(form.mobile);
@@ -780,19 +797,18 @@ export default function BusinessRegisterScreen() {
                 <Text style={styles.otpHint}>Work email verified. You can continue.</Text>
               ) : emailCodeOpen ? (
                 <View style={styles.otpBox}>
-                  <Text style={styles.otpTitle}>Enter the email code</Text>
-                  <AuthField
-                    fontFamily={UI}
-                    label="Email code"
+                  <Text style={styles.otpSentText}>
+                    Enter the 6-digit code sent to <Text style={styles.otpSentPhone}>{workEmail}</Text>
+                  </Text>
+                  <OtpCodeBoxes
                     value={emailCode}
-                    onChangeText={(value) => {
-                      setEmailCode(value.replace(/\D/g, '').slice(0, 6));
+                    onChange={(value) => {
+                      setEmailCode(value);
                       setError('');
                     }}
-                    placeholder="6-digit code"
-                    keyboardType="number-pad"
-                    maxLength={6}
-                    autoComplete="one-time-code"
+                    onComplete={(value) => void verifyEmailCode(value)}
+                    disabled={emailOtpVerifying}
+                    autoFocus
                   />
                   <Pressable
                     style={({ pressed }) => [
@@ -801,26 +817,12 @@ export default function BusinessRegisterScreen() {
                       (emailOtpVerifying || emailCode.length !== 6) && styles.disabled,
                     ]}
                     disabled={emailOtpVerifying || emailCode.length !== 6}
-                    onPress={() => {
-                      void (async () => {
-                        setError('');
-                        setEmailOtpVerifying(true);
-                        const result = await verifyBusinessEmailOtp(workEmail, emailCode);
-                        setEmailOtpVerifying(false);
-                        if (!result.success || !result.emailVerificationToken) {
-                          setError(result.success ? 'Could not verify that email.' : result.error);
-                          return;
-                        }
-                        setEmailProof(result.emailVerificationToken);
-                        setEmailProofFor(workEmail);
-                        setEmailOtpHint(result.message);
-                      })();
-                    }}
+                    onPress={() => void verifyEmailCode()}
                   >
                     {emailOtpVerifying ? (
                       <ActivityIndicator color="#FFFFFF" />
                     ) : (
-                      <Text style={styles.otpBtnPrimaryText}>Verify</Text>
+                      <Text style={styles.otpBtnPrimaryText}>Verify email</Text>
                     )}
                   </Pressable>
                   {emailOtpHint ? <Text style={styles.otpHint}>{emailOtpHint}</Text> : null}
@@ -1812,11 +1814,6 @@ const useStyles = createThemedStyles((colors) => {
     borderColor: b.line,
     backgroundColor: b.card,
     padding: 12,
-  },
-  otpTitle: {
-    fontFamily: UI,
-    fontSize: 14,
-    color: b.ink,
   },
   otpLead: {
     marginTop: 4,

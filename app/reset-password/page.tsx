@@ -3,8 +3,9 @@
 import { Suspense, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Mail, Lock, KeyRound, AlertCircle, CheckCircle2, ArrowRight } from 'lucide-react';
+import { Mail, Lock, AlertCircle, CheckCircle2, ArrowRight } from 'lucide-react';
 import UserAuthShell, { UserAuthTrustRow } from '@/components/auth/UserAuthShell';
+import OtpCodeBoxes from '@/components/auth/OtpCodeBoxes';
 
 function ResetPasswordContent() {
   const router = useRouter();
@@ -20,6 +21,10 @@ function ResetPasswordContent() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (code.length !== 6) {
+      setError('Enter the 6-digit code from your email.');
+      return;
+    }
     if (password !== confirm) {
       setError('New password and confirmation do not match.');
       return;
@@ -107,27 +112,9 @@ function ResetPasswordContent() {
           </div>
         </div>
 
-        <div className="space-y-1.5">
-          <label htmlFor="code" className="text-sm font-medium text-slate-700">
-            6-digit code
-          </label>
-          <div className="group relative">
-            <KeyRound
-              size={17}
-              className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
-            />
-            <input
-              id="code"
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              placeholder="123456"
-              maxLength={6}
-              value={code}
-              onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-              className="w-full rounded-xl border border-slate-200 bg-white py-3 pl-10 pr-4 text-sm tracking-[0.3em] outline-none focus:border-[#215481]/40 focus:ring-4 focus:ring-[#215481]/10"
-              required
-            />
-          </div>
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-slate-700">6-digit code</p>
+          <OtpCodeBoxes value={code} onChange={setCode} tone="neutral" />
         </div>
 
         <div className="space-y-1.5">

@@ -13,7 +13,7 @@ type IndianPhoneInputProps = {
   value: string;
   onChange: (digits: string) => void;
   autoFocus?: boolean;
-  variant?: 'merchant' | 'dashboard';
+  variant?: 'merchant' | 'dashboard' | 'account';
   placeholder?: string;
   className?: string;
   error?: string;
@@ -70,9 +70,11 @@ export default function IndianPhoneInput({
 
   return (
     <div
-      className={`flex items-stretch overflow-hidden rounded-lg border bg-white transition-colors focus-within:border-[#215481] focus-within:ring-2 focus-within:ring-[#215481]/10 ${
-        isComplete ? 'border-emerald-300' : 'border-zinc-200'
-      } ${className}`}
+      className={`flex items-stretch overflow-hidden border bg-white transition-colors ${
+        variant === 'account'
+          ? 'rounded-xl focus-within:border-zinc-400 focus-within:ring-4 focus-within:ring-zinc-900/5'
+          : 'rounded-lg focus-within:border-[#215481] focus-within:ring-2 focus-within:ring-[#215481]/10'
+      } ${isComplete ? 'border-emerald-300' : 'border-zinc-200'} ${className}`}
     >
       <IndiaPhonePrefix variant="dashboard" />
       <input

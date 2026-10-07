@@ -9,13 +9,13 @@ import {
   validateReviewReplyContent,
 } from '@/lib/businessReviews';
 import { enforceRateLimit } from '@/lib/security/enforceRateLimit.server';
-import { assertBusinessSession } from '@/lib/security/session';
+import { assertBusinessSession, getSessionBusinessId, getSessionUserId } from '@/lib/security/session';
 import { createServiceClient } from '@/lib/supabase/service';
 import { revalidateBusinessProfilePaths } from '@/lib/businessRevalidation';
 import { submitBusinessReviewForUser } from '@/lib/submitBusinessReviewCore';
 
 async function getLoggedInUser() {
-  const userId = (await cookies()).get('user_id')?.value;
+  const userId = await getSessionUserId();
   if (!userId) return null;
 
   const supabase = createClient(await cookies());
@@ -131,11 +131,10 @@ export async function upsertMerchantReviewReply(data: {
 }
 
 async function getReviewReporterKey(): Promise<string | null> {
-  const cookieStore = await cookies();
-  const userId = cookieStore.get('user_id')?.value;
+  const userId = await getSessionUserId();
   if (userId) return `user:${userId}`;
 
-  const businessId = cookieStore.get('business_id')?.value;
+  const businessId = await getSessionBusinessId();
   if (businessId) return `business:${businessId}`;
 
   return null;

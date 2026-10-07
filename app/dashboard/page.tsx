@@ -171,8 +171,8 @@ function DashboardContent() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#f4f7fb]">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#215481] border-t-transparent" />
+      <div className="flex min-h-screen items-center justify-center bg-zinc-50">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-900 border-t-transparent" />
       </div>
     );
   }
@@ -197,16 +197,16 @@ function DashboardContent() {
       : '';
 
   return (
-    <div className="min-h-screen bg-[#f4f7fb]">
+    <div className="min-h-screen bg-zinc-50">
       {/* Mobile top bar */}
-      <header className="fixed inset-x-0 top-0 z-[60] flex h-14 items-center justify-between border-b border-slate-200/80 bg-white px-4 lg:hidden">
+      <header className="fixed inset-x-0 top-0 z-[60] flex h-14 items-center justify-between border-b border-zinc-200/80 bg-white px-4 lg:hidden">
         <Link href="/" className="shrink-0">
           <Image src="/logo1.png" alt="FinderB" width={96} height={32} className="h-6 w-auto" priority />
         </Link>
         <button
           type="button"
           onClick={() => setIsSidebarOpen(true)}
-          className="rounded-lg p-2 text-slate-600 hover:bg-slate-100"
+          className="rounded-lg p-2 text-zinc-600 hover:bg-zinc-100"
           aria-label="Open menu"
         >
           <Menu size={22} />
@@ -216,7 +216,7 @@ function DashboardContent() {
       {isSidebarOpen && (
         <button
           type="button"
-          className="fixed inset-0 z-[55] bg-slate-900/30 lg:hidden"
+          className="fixed inset-0 z-[55] bg-zinc-900/30 lg:hidden"
           aria-label="Close menu"
           onClick={() => setIsSidebarOpen(false)}
         />
@@ -224,25 +224,25 @@ function DashboardContent() {
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-[58] flex h-screen w-[272px] flex-col border-r border-slate-200/80 bg-white transition-transform duration-300 lg:translate-x-0 ${
-          isSidebarOpen ? 'translate-x-0 shadow-xl' : '-translate-x-full'
+        className={`fixed inset-y-0 left-0 z-[58] flex h-screen w-[272px] flex-col border-r border-zinc-200/80 bg-white transition-transform duration-300 lg:tranzinc-x-0 ${
+          isSidebarOpen ? 'tranzinc-x-0 shadow-xl' : '-tranzinc-x-full'
         }`}
       >
-        <div className="flex h-14 shrink-0 items-center justify-between border-b border-slate-100 px-5 lg:h-16 lg:px-6">
+        <div className="flex h-14 shrink-0 items-center justify-between border-b border-zinc-100 px-5 lg:h-16 lg:px-6">
           <Link href="/" onClick={() => setIsSidebarOpen(false)}>
             <Image src="/logo1.png" alt="FinderB" width={110} height={36} className="h-7 w-auto" priority />
           </Link>
           <button
             type="button"
             onClick={() => setIsSidebarOpen(false)}
-            className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 lg:hidden"
+            className="rounded-lg p-2 text-zinc-500 hover:bg-zinc-100 lg:hidden"
             aria-label="Close menu"
           >
             <X size={20} />
           </button>
         </div>
 
-        <div className="shrink-0 border-b border-slate-100 px-5 py-4 lg:px-6">
+        <div className="shrink-0 border-b border-zinc-100 px-5 py-4 lg:px-6">
           <div className="flex items-center gap-3">
             {user?.avatarUrl ? (
               <Image
@@ -251,25 +251,25 @@ function DashboardContent() {
                 width={44}
                 height={44}
                 unoptimized
-                className="h-11 w-11 shrink-0 rounded-xl object-cover"
+                className="h-11 w-11 shrink-0 rounded-full object-cover ring-1 ring-zinc-200"
               />
             ) : (
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#215481] text-sm font-semibold text-white">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-sm font-semibold text-zinc-700 ring-1 ring-zinc-200">
                 {userInitials}
               </div>
             )}
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-semibold text-slate-900">{user?.fullName}</p>
-              <p className="truncate text-xs text-slate-500">{sidebarContact}</p>
+              <p className="truncate text-sm font-semibold text-zinc-900">{user?.fullName}</p>
+              <p className="truncate text-xs text-zinc-500">{sidebarContact}</p>
             </div>
           </div>
           {memberSince && (
-            <p className="mt-2 text-xs text-slate-400">Member since {memberSince}</p>
+            <p className="mt-2 text-xs text-zinc-400">Member since {memberSince}</p>
           )}
         </div>
 
         <nav className="min-h-0 flex-1 overflow-y-auto px-3 py-4 lg:px-4">
-          <p className="mb-2 px-3 text-[11px] font-medium uppercase tracking-wider text-slate-400">
+          <p className="mb-2 px-3 text-[11px] font-medium uppercase tracking-wider text-zinc-400">
             Menu
           </p>
           <ul className="space-y-0.5">
@@ -282,14 +282,14 @@ function DashboardContent() {
                     onClick={() => setTab(item.id)}
                     className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors ${
                       active
-                        ? 'bg-[#215481]/10 font-medium text-[#215481]'
-                        : 'font-normal text-slate-600 hover:bg-slate-50'
+                        ? 'bg-zinc-100 font-medium text-zinc-900'
+                        : 'font-normal text-zinc-600 hover:bg-zinc-50'
                     }`}
                   >
                     <item.icon size={18} strokeWidth={active ? 2 : 1.5} />
                     {item.label}
                     {item.id === 'favorites' && favorites.length > 0 && (
-                      <span className="ml-auto rounded-full bg-[#215481]/10 px-2 py-0.5 text-xs text-[#215481]">
+                      <span className="ml-auto rounded-full bg-zinc-200/70 px-2 py-0.5 text-xs text-zinc-700">
                         {favorites.length}
                       </span>
                     )}
@@ -300,10 +300,10 @@ function DashboardContent() {
           </ul>
         </nav>
 
-        <div className="shrink-0 space-y-1 border-t border-slate-100 p-3 lg:p-4">
+        <div className="shrink-0 space-y-1 border-t border-zinc-100 p-3 lg:p-4">
           <Link
             href="/"
-            className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-600 transition-colors hover:bg-slate-50"
+            className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-zinc-600 transition-colors hover:bg-zinc-50"
             onClick={() => setIsSidebarOpen(false)}
           >
             <ExternalLink size={17} />
@@ -312,7 +312,7 @@ function DashboardContent() {
           <button
             type="button"
             onClick={handleLogout}
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-600 transition-colors hover:bg-red-50 hover:text-red-600"
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-zinc-600 transition-colors hover:bg-red-50 hover:text-red-600"
           >
             <LogOut size={17} />
             Sign out
@@ -326,12 +326,12 @@ function DashboardContent() {
           {/* Overview */}
           {activeTab === 'profile' && (
             <div className="mx-auto max-w-5xl space-y-6">
-              <div className="rounded-2xl border border-slate-200/80 bg-white p-6 sm:p-8">
-                <p className="text-sm text-slate-500">Welcome back</p>
-                <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
+              <div className="rounded-2xl border border-zinc-200/80 bg-white p-6 sm:p-8">
+                <p className="text-sm text-zinc-500">Welcome back</p>
+                <h1 className="mt-1 text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl">
                   Hello, {firstName}
                 </h1>
-                <p className="mt-2 max-w-xl text-sm leading-relaxed text-slate-600">
+                <p className="mt-2 max-w-xl text-sm leading-relaxed text-zinc-600">
                   Find trusted local businesses, save your favourites, and pick up recent searches from here.
                 </p>
 
@@ -339,19 +339,19 @@ function DashboardContent() {
                   <div className="relative flex-1">
                     <Search
                       size={18}
-                      className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+                      className="pointer-events-none absolute left-3.5 top-1/2 -tranzinc-y-1/2 text-zinc-400"
                     />
                     <input
                       type="text"
                       value={searchInput}
                       onChange={(e) => setSearchInput(e.target.value)}
                       placeholder="Search for services, places, categories…"
-                      className="w-full rounded-xl border border-slate-200 py-3 pl-10 pr-4 text-sm outline-none transition-all focus:border-[#215481]/40 focus:ring-4 focus:ring-[#215481]/10"
+                      className="w-full rounded-xl border border-zinc-200 py-3 pl-10 pr-4 text-sm outline-none transition-all focus:border-zinc-400 focus:ring-4 focus:ring-zinc-900/5"
                     />
                   </div>
                   <button
                     type="submit"
-                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#215481] px-5 py-3 text-sm font-semibold text-white hover:bg-[#1a4367]"
+                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-zinc-900 px-5 py-3 text-sm font-semibold text-white hover:bg-zinc-800"
                   >
                     Search
                     <ChevronRight size={16} />
@@ -361,14 +361,14 @@ function DashboardContent() {
                 <div className="mt-4 flex flex-wrap gap-2">
                   <Link
                     href="/?tab=ai"
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-700 hover:border-[#215481]/30 hover:text-[#215481]"
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-xs font-medium text-zinc-700 hover:border-zinc-300 hover:text-zinc-900"
                   >
                     <Sparkles size={14} />
                     Try FinderB AI
                   </Link>
                   <Link
                     href="/categories"
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-700 hover:border-[#215481]/30 hover:text-[#215481]"
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-xs font-medium text-zinc-700 hover:border-zinc-300 hover:text-zinc-900"
                   >
                     <LayoutGrid size={14} />
                     All categories
@@ -377,13 +377,13 @@ function DashboardContent() {
               </div>
 
               {searchHistory.length > 0 && (
-                <section className="rounded-2xl border border-slate-200/80 bg-white p-5 sm:p-6">
+                <section className="rounded-2xl border border-zinc-200/80 bg-white p-5 sm:p-6">
                   <div className="mb-4 flex items-center justify-between">
-                    <h2 className="text-sm font-semibold text-slate-900">Continue searching</h2>
+                    <h2 className="text-sm font-semibold text-zinc-900">Continue searching</h2>
                     <button
                       type="button"
                       onClick={() => setTab('history')}
-                      className="text-xs font-medium text-[#215481] hover:underline"
+                      className="text-xs font-medium text-zinc-900 hover:underline"
                     >
                       View all
                     </button>
@@ -393,9 +393,9 @@ function DashboardContent() {
                       <Link
                         key={term}
                         href={`/categories?search=${encodeURIComponent(term)}`}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 transition-colors hover:border-[#215481]/30 hover:text-[#215481]"
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-700 transition-colors hover:border-zinc-300 hover:text-zinc-900"
                       >
-                        <History size={14} className="text-slate-400" />
+                        <History size={14} className="text-zinc-400" />
                         {term}
                       </Link>
                     ))}
@@ -404,10 +404,10 @@ function DashboardContent() {
               )}
 
               {categories.length > 0 && (
-                <section className="rounded-2xl border border-slate-200/80 bg-white p-5 sm:p-6">
+                <section className="rounded-2xl border border-zinc-200/80 bg-white p-5 sm:p-6">
                   <div className="mb-4 flex items-center justify-between">
-                    <h2 className="text-sm font-semibold text-slate-900">Popular categories</h2>
-                    <Link href="/categories" className="text-xs font-medium text-[#215481] hover:underline">
+                    <h2 className="text-sm font-semibold text-zinc-900">Popular categories</h2>
+                    <Link href="/categories" className="text-xs font-medium text-zinc-900 hover:underline">
                       See all
                     </Link>
                   </div>
@@ -416,7 +416,7 @@ function DashboardContent() {
                       <Link
                         key={cat.id}
                         href={categoryHref(cat.slug, cat.name)}
-                        className="flex flex-col items-center gap-2 rounded-xl border border-slate-100 bg-slate-50/80 p-4 text-center transition-colors hover:border-[#215481]/25 hover:bg-white"
+                        className="flex flex-col items-center gap-2 rounded-xl border border-zinc-100 bg-zinc-50/80 p-4 text-center transition-colors hover:border-zinc-300 hover:bg-white"
                       >
                         <CategoryIcon
                           icon={cat.icon}
@@ -425,7 +425,7 @@ function DashboardContent() {
                           className="h-10 w-10"
                           imageClassName="object-contain"
                         />
-                        <span className="line-clamp-2 text-xs font-medium text-slate-800">{cat.name}</span>
+                        <span className="line-clamp-2 text-xs font-medium text-zinc-800">{cat.name}</span>
                       </Link>
                     ))}
                   </div>
@@ -433,10 +433,10 @@ function DashboardContent() {
               )}
 
               {businesses.length > 0 && (
-                <section className="rounded-2xl border border-slate-200/80 bg-white p-5 sm:p-6">
+                <section className="rounded-2xl border border-zinc-200/80 bg-white p-5 sm:p-6">
                   <div className="mb-4 flex items-center justify-between">
-                    <h2 className="text-sm font-semibold text-slate-900">Featured businesses</h2>
-                    <Link href="/categories" className="text-xs font-medium text-[#215481] hover:underline">
+                    <h2 className="text-sm font-semibold text-zinc-900">Featured businesses</h2>
+                    <Link href="/categories" className="text-xs font-medium text-zinc-900 hover:underline">
                       Explore more
                     </Link>
                   </div>
@@ -445,9 +445,9 @@ function DashboardContent() {
                       <Link
                         key={biz.id}
                         href={getBusinessProfilePath(biz)}
-                        className="flex gap-3 rounded-xl border border-slate-200/80 p-3 transition-colors hover:border-[#215481]/25 hover:bg-slate-50/50"
+                        className="flex gap-3 rounded-xl border border-zinc-200/80 p-3 transition-colors hover:border-zinc-300 hover:bg-zinc-50/50"
                       >
-                        <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-slate-100">
+                        <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-zinc-100">
                           <Image
                             src={
                               biz.image ||
@@ -461,14 +461,14 @@ function DashboardContent() {
                           />
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-semibold text-slate-900">{biz.name}</p>
-                          <p className="text-xs text-[#215481]">{biz.category}</p>
-                          <p className="mt-0.5 flex items-center gap-1 truncate text-xs text-slate-500">
+                          <p className="truncate text-sm font-semibold text-zinc-900">{biz.name}</p>
+                          <p className="text-xs text-zinc-500">{biz.category}</p>
+                          <p className="mt-0.5 flex items-center gap-1 truncate text-xs text-zinc-500">
                             <MapPin size={12} />
                             {biz.location}
                           </p>
                           {biz.rating != null && (
-                            <p className="mt-1 flex items-center gap-1 text-xs text-slate-600">
+                            <p className="mt-1 flex items-center gap-1 text-xs text-zinc-600">
                               <Star size={12} className="fill-amber-400 text-amber-400" />
                               {Number(biz.rating).toFixed(1)}
                             </p>
@@ -490,11 +490,11 @@ function DashboardContent() {
                     key={item.label}
                     type="button"
                     onClick={() => setTab(item.tab)}
-                    className="rounded-xl border border-slate-200/80 bg-white p-4 text-left transition-colors hover:border-[#215481]/25"
+                    className="rounded-xl border border-zinc-200/80 bg-white p-4 text-left transition-colors hover:border-zinc-300"
                   >
-                    <item.icon size={18} className="text-[#215481]" />
-                    <p className="mt-3 text-2xl font-semibold text-slate-900">{item.value}</p>
-                    <p className="text-sm text-slate-500">{item.label}</p>
+                    <item.icon size={18} className="text-zinc-900" />
+                    <p className="mt-3 text-2xl font-semibold text-zinc-900">{item.value}</p>
+                    <p className="text-sm text-zinc-500">{item.label}</p>
                   </button>
                 ))}
               </div>
@@ -504,29 +504,29 @@ function DashboardContent() {
           {/* History */}
           {activeTab === 'history' && (
             <div className="mx-auto max-w-3xl">
-              <h1 className="text-xl font-semibold text-slate-900 sm:text-2xl">Search history</h1>
-              <p className="mt-1 text-sm text-slate-500">Tap a search to run it again.</p>
-              <div className="mt-6 rounded-2xl border border-slate-200/80 bg-white divide-y divide-slate-100">
+              <h1 className="text-xl font-semibold text-zinc-900 sm:text-2xl">Search history</h1>
+              <p className="mt-1 text-sm text-zinc-500">Tap a search to run it again.</p>
+              <div className="mt-6 rounded-2xl border border-zinc-200/80 bg-white divide-y divide-zinc-100">
                 {searchHistory.length > 0 ? (
                   searchHistory.map((term) => (
                     <Link
                       key={term}
                       href={`/categories?search=${encodeURIComponent(term)}`}
-                      className="flex items-center justify-between px-4 py-3.5 text-sm text-slate-700 transition-colors hover:bg-slate-50"
+                      className="flex items-center justify-between px-4 py-3.5 text-sm text-zinc-700 transition-colors hover:bg-zinc-50"
                     >
                       <span className="flex items-center gap-3">
-                        <History size={16} className="text-slate-400" />
+                        <History size={16} className="text-zinc-400" />
                         {term}
                       </span>
-                      <ChevronRight size={16} className="text-slate-300" />
+                      <ChevronRight size={16} className="text-zinc-300" />
                     </Link>
                   ))
                 ) : (
                   <div className="px-4 py-12 text-center">
-                    <p className="text-sm text-slate-500">No searches yet.</p>
+                    <p className="text-sm text-zinc-500">No searches yet.</p>
                     <Link
                       href="/categories"
-                      className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-[#215481] hover:underline"
+                      className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-zinc-900 hover:underline"
                     >
                       Start browsing
                       <ChevronRight size={14} />
@@ -540,8 +540,8 @@ function DashboardContent() {
           {/* Favorites */}
           {activeTab === 'favorites' && (
             <div className="mx-auto max-w-3xl">
-              <h1 className="text-xl font-semibold text-slate-900 sm:text-2xl">Saved places</h1>
-              <p className="mt-1 text-sm text-slate-500">Businesses and places you save appear here.</p>
+              <h1 className="text-xl font-semibold text-zinc-900 sm:text-2xl">Saved places</h1>
+              <p className="mt-1 text-sm text-zinc-500">Businesses and places you save appear here.</p>
               {favorites.length > 0 ? (
                 <ul className="mt-6 space-y-2">
                   {favorites.map((id) => {
@@ -550,18 +550,18 @@ function DashboardContent() {
                     <li key={id}>
                       <Link
                         href={biz ? getBusinessProfilePath(biz) : '#'}
-                        className="flex items-center justify-between rounded-xl border border-slate-200/80 bg-white px-4 py-3 text-sm hover:border-[#215481]/25"
+                        className="flex items-center justify-between rounded-xl border border-zinc-200/80 bg-white px-4 py-3 text-sm hover:border-zinc-300"
                       >
                         {biz?.name || biz?.businessName || 'View saved business'}
-                        <ChevronRight size={16} className="text-slate-300" />
+                        <ChevronRight size={16} className="text-zinc-300" />
                       </Link>
                     </li>
                     );
                   })}
                 </ul>
               ) : (
-                <div className="mt-6 rounded-2xl border border-slate-200/80 bg-white p-6">
-                  <p className="text-sm text-slate-600">
+                <div className="mt-6 rounded-2xl border border-zinc-200/80 bg-white p-6">
+                  <p className="text-sm text-zinc-600">
                     You haven&apos;t saved anything yet. Browse featured listings below or search for services near you.
                   </p>
                   {businesses.length > 0 && (
@@ -570,17 +570,17 @@ function DashboardContent() {
                         <Link
                           key={biz.id}
                           href={getBusinessProfilePath(biz)}
-                          className="flex items-center gap-3 rounded-xl border border-slate-100 p-3 hover:border-[#215481]/25"
+                          className="flex items-center gap-3 rounded-xl border border-zinc-100 p-3 hover:border-zinc-300"
                         >
-                          <Building2 size={18} className="shrink-0 text-[#215481]" />
-                          <span className="truncate text-sm font-medium text-slate-800">{biz.name}</span>
+                          <Building2 size={18} className="shrink-0 text-zinc-900" />
+                          <span className="truncate text-sm font-medium text-zinc-800">{biz.name}</span>
                         </Link>
                       ))}
                     </div>
                   )}
                   <Link
                     href="/categories"
-                    className="mt-5 inline-flex items-center gap-1 text-sm font-medium text-[#215481] hover:underline"
+                    className="mt-5 inline-flex items-center gap-1 text-sm font-medium text-zinc-900 hover:underline"
                   >
                     Browse categories
                     <ChevronRight size={14} />
@@ -593,8 +593,8 @@ function DashboardContent() {
           {/* Messages / FinderB updates */}
           {activeTab === 'messages' && (
             <div className="mx-auto max-w-3xl">
-              <h1 className="text-xl font-semibold text-slate-900 sm:text-2xl">Updates</h1>
-              <p className="mt-1 text-sm text-slate-500">
+              <h1 className="text-xl font-semibold text-zinc-900 sm:text-2xl">Updates</h1>
+              <p className="mt-1 text-sm text-zinc-500">
                 Announcements from FinderB. The same updates appear in the mobile app.
               </p>
               {notifications.length > 0 ? (
@@ -604,10 +604,10 @@ function DashboardContent() {
                     return (
                     <li
                       key={item.id}
-                      className="rounded-2xl border border-slate-200/80 bg-white px-4 py-4"
+                      className="rounded-2xl border border-zinc-200/80 bg-white px-4 py-4"
                     >
-                      <p className="text-sm font-semibold text-slate-900">{item.title}</p>
-                      <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-slate-600">
+                      <p className="text-sm font-semibold text-zinc-900">{item.title}</p>
+                      <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-zinc-600">
                         {item.message}
                       </p>
                       {cta ? (
@@ -615,14 +615,14 @@ function DashboardContent() {
                           href={cta.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-[#215481] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#1a4367]"
+                          className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-zinc-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-zinc-800"
                         >
                           {cta.label}
                           <ExternalLink size={12} />
                         </a>
                       ) : null}
                       {broadcastShowsDatetime(item.show_datetime) ? (
-                        <p className="mt-2 text-xs text-slate-400">
+                        <p className="mt-2 text-xs text-zinc-400">
                           {formatDateTimeInr(item.created_at)}
                         </p>
                       ) : null}
@@ -631,10 +631,10 @@ function DashboardContent() {
                   })}
                 </ul>
               ) : (
-                <div className="mt-6 rounded-2xl border border-dashed border-slate-200 bg-white p-8 text-center">
-                  <MessageSquare size={28} className="mx-auto text-slate-300" />
-                  <p className="mt-3 text-sm font-medium text-slate-700">No updates yet</p>
-                  <p className="mx-auto mt-1 max-w-sm text-sm text-slate-500">
+                <div className="mt-6 rounded-2xl border border-dashed border-zinc-200 bg-white p-8 text-center">
+                  <MessageSquare size={28} className="mx-auto text-zinc-300" />
+                  <p className="mt-3 text-sm font-medium text-zinc-700">No updates yet</p>
+                  <p className="mx-auto mt-1 max-w-sm text-sm text-zinc-500">
                     When FinderB sends an announcement, it will show up here and in the app.
                   </p>
                 </div>
@@ -646,8 +646,8 @@ function DashboardContent() {
           {activeTab === 'settings' && (
             <div className="mx-auto max-w-3xl space-y-6">
               <div>
-                <h1 className="text-xl font-semibold text-slate-900 sm:text-2xl">Account</h1>
-                <p className="mt-1 text-sm text-slate-500">
+                <h1 className="text-xl font-semibold text-zinc-900 sm:text-2xl">Account</h1>
+                <p className="mt-1 text-sm text-zinc-500">
                   Your photo, name and contact details. New email and mobile numbers are verified with a code.
                 </p>
               </div>
@@ -657,24 +657,24 @@ function DashboardContent() {
                 onUserChange={(patch) => setUser((prev: typeof user) => ({ ...prev, ...patch }))}
               />
 
-              <div className="rounded-2xl border border-slate-200/80 bg-white p-5">
-                <h2 className="text-sm font-semibold text-slate-900">Quick links</h2>
+              <div className="rounded-2xl border border-zinc-200/80 bg-white p-5">
+                <h2 className="text-sm font-semibold text-zinc-900">Quick links</h2>
                 <div className="mt-3 space-y-1">
-                  <Link href="/" className="flex items-center justify-between rounded-lg px-2 py-2.5 text-sm text-slate-600 hover:bg-slate-50">
+                  <Link href="/" className="flex items-center justify-between rounded-lg px-2 py-2.5 text-sm text-zinc-600 hover:bg-zinc-50">
                     FinderB home
-                    <ChevronRight size={16} className="text-slate-300" />
+                    <ChevronRight size={16} className="text-zinc-300" />
                   </Link>
-                  <Link href="/business/register" className="flex items-center justify-between rounded-lg px-2 py-2.5 text-sm text-slate-600 hover:bg-slate-50">
+                  <Link href="/business/register" className="flex items-center justify-between rounded-lg px-2 py-2.5 text-sm text-zinc-600 hover:bg-zinc-50">
                     List your business
-                    <ChevronRight size={16} className="text-slate-300" />
+                    <ChevronRight size={16} className="text-zinc-300" />
                   </Link>
                   <Link href="/account-deletion" className="flex items-center justify-between rounded-lg px-2 py-2.5 text-sm text-red-600 hover:bg-red-50">
                     Delete account
                     <ChevronRight size={16} className="text-red-300" />
                   </Link>
-                  <Link href="/privacy" className="flex items-center justify-between rounded-lg px-2 py-2.5 text-sm text-slate-600 hover:bg-slate-50">
+                  <Link href="/privacy" className="flex items-center justify-between rounded-lg px-2 py-2.5 text-sm text-zinc-600 hover:bg-zinc-50">
                     Privacy policy
-                    <ChevronRight size={16} className="text-slate-300" />
+                    <ChevronRight size={16} className="text-zinc-300" />
                   </Link>
                 </div>
               </div>
@@ -696,8 +696,8 @@ function DashboardContent() {
 
 function DashboardFallback() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#f4f7fb]">
-      <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#215481] border-t-transparent" />
+    <div className="flex min-h-screen items-center justify-center bg-zinc-50">
+      <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-900 border-t-transparent" />
     </div>
   );
 }

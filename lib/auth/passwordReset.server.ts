@@ -1,6 +1,11 @@
 import 'server-only';
 
-import { consumeOtpChallenge, discardOtpChallenge, issueOtpChallenge } from '@/lib/auth/otpChallenge.server';
+import {
+  consumeOtpChallenge,
+  discardOtpChallenge,
+  issueOtpChallenge,
+  OtpCooldownError,
+} from '@/lib/auth/otpChallenge.server';
 import { createServiceClient } from '@/lib/supabase/service';
 import { createClient } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';
@@ -98,6 +103,14 @@ export async function requestPasswordReset(
   try {
     code = await issueOtpChallenge(PASSWORD_RESET_PURPOSE, normalized);
   } catch (error) {
+    if (error instanceof OtpCooldownError) {
+      // The previous code is still valid; answer the same way so this does not reveal which emails exist.
+      return {
+        success: true,
+        message: 'We sent a 6-digit code to your email. It expires in 15 minutes.',
+        next: 'code',
+      };
+    }
     console.error('[password-reset] could not store code', error);
     return { success: false, error: 'Could not send a reset code. Please try again.' };
   }

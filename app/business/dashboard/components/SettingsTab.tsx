@@ -1,13 +1,8 @@
 'use client';
 
 import {
-  confirmBusinessEmailChangeOtp,
-  sendBusinessEmailChangeOtp,
-} from '@/app/actions/emailOtp';
-import {
   HiOutlinePlus,
   HiOutlineBriefcase,
-  HiOutlineEnvelope,
   HiOutlineMapPin,
   HiOutlineClock,
   HiOutlineChevronRight,
@@ -23,20 +18,17 @@ import {
   HiOutlineUser,
   HiOutlineHashtag,
   HiOutlineXMark,
-  HiOutlineQueueList,
   HiOutlineCreditCard,
   HiOutlineChatBubbleLeftRight,
   HiOutlineLockClosed,
 } from 'react-icons/hi2';
 import { FaInstagram, FaFacebook, FaYoutube, FaWhatsapp } from 'react-icons/fa';
 import { useState, useEffect } from 'react';
-import { otpSendLabel, useOtpCooldown } from '@/hooks/useOtpCooldown';
 import { createPortal } from 'react-dom';
 import Image from 'next/image';
 import { CldUploadWidget } from 'next-cloudinary';
 import GoogleMapsLocationEditor from './GoogleMapsLocationEditor';
 import { validateMapPinAgainstAddress } from '@/app/actions/location';
-import ServiceCategoryTagInput from './ServiceCategoryTagInput';
 import KeywordTagInput from './KeywordTagInput';
 import CategoryChangeRequestPanel from './CategoryChangeRequestPanel';
 import LegalBusinessNameChangeRequestPanel from './LegalBusinessNameChangeRequestPanel';
@@ -57,7 +49,6 @@ import {
   isValidEstablishmentYear,
   parseEstablishmentYearFromDate,
 } from '@/lib/establishmentYear';
-import { parseBusinessServices } from '@/lib/parseBusinessServices';
 import {
   getReviewReplyDraft,
   normalizeReviewReplyForStorage,
@@ -78,8 +69,8 @@ import {
   isValidIndianMobileDigits,
 } from '@/lib/indianPhone';
 import { dashboard } from './dashboard-ui';
-import ListingHiddenNoPhotosBanner from './ListingHiddenNoPhotosBanner';
-import { ContactVerifyCard } from './MerchantContactVerifyGate';
+import { ContactVerifyCard, type VerifiedContact } from './MerchantContactVerifyGate';
+import { pickPublicBusinessEmail } from '@/lib/placeholderEmail';
 import {
   businessHasPublicPhoto,
   syncBusinessImagesWithCover,
@@ -181,7 +172,6 @@ const SETTINGS_FIELDS: FieldDef[] = [
   { key: 'category', label: 'Business Category', icon: HiOutlineTag, type: 'categoryRequest' },
   { key: 'about', label: 'About Business', icon: HiOutlineInformationCircle, type: 'textarea' },
   { key: 'keywords', label: 'Search Keywords', icon: HiOutlineHashtag, type: 'keywords' },
-  { key: 'email', label: 'Official Email', icon: HiOutlineEnvelope, type: 'text' },
   { key: 'ownerInfo', label: 'Owner Information', icon: HiOutlineUser, type: 'ownerInfo' },
   { key: 'publicPhone', label: 'Public Phone', icon: HiOutlinePhone, type: 'text' },
   { key: 'whatsappNumber', label: 'WhatsApp', icon: FaWhatsapp, type: 'text' },
@@ -194,7 +184,6 @@ const SETTINGS_FIELDS: FieldDef[] = [
   { key: 'state', label: 'State', icon: HiOutlineMapPin, type: 'text' },
   { key: 'country', label: 'Country', icon: HiOutlineGlobeAlt, type: 'text' },
   { key: 'mapLocation', label: 'Google Maps Location', icon: HiOutlineMap, type: 'googleMaps' },
-  { key: 'serviceCategory', label: 'Service Category', icon: HiOutlineQueueList, type: 'serviceCategories' },
   { key: 'paymentModes', label: 'Payment Modes', icon: HiOutlineCreditCard, type: 'paymentModes' },
   { key: 'yearsInBusiness', label: 'Year of Establishment', icon: HiOutlineCalendar, type: 'establishmentYear' },
   { key: 'discountRange', label: 'Discount Offer', icon: HiOutlineTag, type: 'select', options: discountOptions },
@@ -213,12 +202,14 @@ const SETTINGS_FIELDS: FieldDef[] = [
   },
 ];
 
+const LOGIN_CONTACT_FOCUS = new Set(['email', 'mobile', 'loginContact']);
+
 const FIELD_SECTIONS = [
   { id: 'brand', title: 'Brand & discovery', keys: ['media', 'businessName', 'displayName', 'category', 'about', 'keywords'] },
-  { id: 'contact', title: 'Contact', keys: ['email', 'ownerInfo', 'publicPhone', 'whatsappNumber', 'website'] },
+  { id: 'contact', title: 'Contact', keys: ['ownerInfo', 'publicPhone', 'whatsappNumber', 'website'] },
   { id: 'location', title: 'Location', keys: ['businessAddress', 'city', 'state', 'country', 'mapLocation'] },
   { id: 'social', title: 'Social media', keys: ['instagramUrl', 'facebookUrl', 'youtubeUrl'] },
-  { id: 'operations', title: 'Operations', keys: ['serviceCategory', 'paymentModes', 'yearsInBusiness', 'discountRange', 'timings', 'reviewReply'] },
+  { id: 'operations', title: 'Operations', keys: ['paymentModes', 'yearsInBusiness', 'discountRange', 'timings', 'reviewReply'] },
   { id: 'account', title: 'Account security', keys: ['changePassword'] },
 ];
 
@@ -240,7 +231,7 @@ interface SettingsTabProps {
   focusField?: string | null;
   onFocusHandled?: () => void;
   onNotifySuccess?: (message: string) => void;
-  onLoginMobileVerified?: (mobile: string) => void;
+  onLoginContactVerified?: (contact: VerifiedContact) => void;
 }
 
 export default function SettingsTab({
@@ -261,18 +252,14 @@ export default function SettingsTab({
   focusField,
   onFocusHandled,
   onNotifySuccess,
-  onLoginMobileVerified,
+  onLoginContactVerified,
 }: SettingsTabProps) {
+  const loginEmail = pickPublicBusinessEmail(business?.workEmail, business?.email) || '';
+  const loginMobile = extractIndianMobileDigits(business?.mobile);
   const [activeModal, setActiveModal] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
   const [syncMondayToAll, setSyncMondayToAll] = useState(false);
   const [fieldError, setFieldError] = useState('');
-  const [emailCode, setEmailCode] = useState('');
-  const [emailProof, setEmailProof] = useState('');
-  const [emailProofFor, setEmailProofFor] = useState('');
-  const [emailHint, setEmailHint] = useState('');
-  const [emailBusy, setEmailBusy] = useState(false);
-  const emailOtp = useOtpCooldown();
   const [pendingCategoryRequest, setPendingCategoryRequest] = useState<BusinessChangeRequest | null>(null);
   const [pendingLegalNameRequest, setPendingLegalNameRequest] = useState<BusinessChangeRequest | null>(null);
 
@@ -305,8 +292,9 @@ export default function SettingsTab({
 
   useEffect(() => {
     if (!focusField) return;
-    const exists = SETTINGS_FIELDS.some((f) => f.key === focusField);
-    if (exists) {
+    if (LOGIN_CONTACT_FOCUS.has(focusField)) {
+      document.getElementById('settings-login-contact')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else if (SETTINGS_FIELDS.some((f) => f.key === focusField)) {
       setActiveModal(focusField);
     }
     onFocusHandled?.();
@@ -324,9 +312,6 @@ export default function SettingsTab({
     }
     if (field.key === 'timings') return !profileData.timings || Object.keys(profileData.timings).length === 0;
     if (field.key === 'yearsInBusiness') return !isValidEstablishmentYear(profileData.yearsInBusiness);
-    if (field.key === 'serviceCategory') {
-      return parseBusinessServices(profileData.serviceCategory).length === 0;
-    }
     if (field.key === 'keywords') return !profileData.keywords || profileData.keywords.length === 0;
     if (field.key === 'displayName') {
       return !profileData.displayName?.trim();
@@ -362,10 +347,6 @@ export default function SettingsTab({
     if (field.key === 'timings') return Object.keys(profileData.timings || {}).length > 0 ? 'Set' : 'Not set';
     if (field.key === 'yearsInBusiness') {
       return formatEstablishmentYearDisplay(profileData.yearsInBusiness) || 'Not set';
-    }
-    if (field.key === 'serviceCategory') {
-      const services = parseBusinessServices(profileData.serviceCategory);
-      return services.length ? services.join(', ') : 'Not set';
     }
     if (field.key === 'keywords') {
       const keywords = normalizeSearchKeywords(profileData.keywords);
@@ -586,21 +567,6 @@ export default function SettingsTab({
       if (ownerMobileError) {
         setFieldError(ownerMobileError);
         return false;
-      }
-    }
-    if (activeModal === 'email') {
-      const next = String(profileData.email || '').trim().toLowerCase();
-      const known = new Set(
-        [business?.email, business?.workEmail]
-          .map((value) => String(value || '').trim().toLowerCase())
-          .filter(Boolean),
-      );
-      if (next && !known.has(next) && (emailProofFor !== next || !emailProof)) {
-        setFieldError('Verify this email with the code before saving.');
-        return false;
-      }
-      if (next && !known.has(next)) {
-        updateField('emailVerificationToken', emailProof);
       }
     }
     if (activeModal === 'reviewReply') {
@@ -1043,11 +1009,6 @@ export default function SettingsTab({
                         );
                       })}
                     </div>
-                  ) : activeModal === 'serviceCategory' ? (
-                    <ServiceCategoryTagInput
-                      value={profileData.serviceCategory || ''}
-                      onChange={(nextValue) => updateField('serviceCategory', nextValue)}
-                    />
                   ) : activeModal === 'paymentModes' ? (
                     <div className="space-y-3">
                       <p className="text-sm text-zinc-600">
@@ -1160,119 +1121,6 @@ export default function SettingsTab({
                         </p>
                       )}
                     </div>
-                  ) : activeModal === 'email' ? (
-                    (() => {
-                      const next = String(profileData.email || '').trim().toLowerCase();
-                      const known = new Set(
-                        [business?.email, business?.workEmail]
-                          .map((value) => String(value || '').trim().toLowerCase())
-                          .filter(Boolean),
-                      );
-                      const needsCode = Boolean(next) && !known.has(next);
-                      const verified = emailProofFor === next && Boolean(emailProof);
-                      const sent = emailOtp.isSentTo(next);
-                      const waiting = emailOtp.isWaiting(next);
-                      return (
-                        <div className="space-y-3">
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="email"
-                              value={profileData.email ?? ''}
-                              onChange={(e) => {
-                                const typed = e.target.value.trim().toLowerCase();
-                                if (typed !== next) setEmailCode('');
-                                updateField('email', e.target.value);
-                                updateField('emailVerificationToken', '');
-                                setEmailProof('');
-                                setEmailProofFor('');
-                                setEmailHint('');
-                                if (fieldError) setFieldError('');
-                              }}
-                              className="min-w-0 flex-1 rounded-lg border border-zinc-200 px-3 py-2.5 text-sm outline-none focus:border-[#215481] focus:ring-2 focus:ring-[#215481]/10"
-                              autoFocus
-                            />
-                            {needsCode && !verified ? (
-                              <button
-                                type="button"
-                                disabled={emailBusy || waiting}
-                                onClick={() => {
-                                  void (async () => {
-                                    setEmailCode('');
-                                    setFieldError('');
-                                    setEmailHint('');
-                                    setEmailBusy(true);
-                                    const result = await sendBusinessEmailChangeOtp(next);
-                                    setEmailBusy(false);
-                                    if (!result.success) {
-                                      setFieldError(result.error);
-                                      return;
-                                    }
-                                    emailOtp.markSent(next);
-                                    setEmailHint(result.message);
-                                  })();
-                                }}
-                                className="h-10 shrink-0 rounded-lg bg-[#153551] px-3 text-xs font-bold text-white disabled:opacity-45"
-                              >
-                                {emailBusy ? 'Sending…' : otpSendLabel(sent, waiting, emailOtp.secondsLeft)}
-                              </button>
-                            ) : null}
-                          </div>
-                          {!needsCode ? (
-                            <p className="text-xs text-zinc-500">
-                              A new address has to be confirmed with a code before it is saved.
-                            </p>
-                          ) : (
-                            <div className="space-y-2">
-                              <p className="text-xs leading-relaxed text-zinc-600">
-                                {verified
-                                  ? 'Email verified. Save to keep this address.'
-                                  : sent
-                                    ? 'Enter the 6-digit code from your email.'
-                                    : 'Send a code to this address, then enter it before saving.'}
-                              </p>
-                              {sent && !verified ? (
-                                <div className="flex gap-2">
-                                  <input
-                                    inputMode="numeric"
-                                    autoComplete="one-time-code"
-                                    maxLength={6}
-                                    value={emailCode}
-                                    onChange={(e) => setEmailCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                                    placeholder="6-digit code"
-                                    className="min-w-0 flex-1 rounded-lg border border-zinc-200 bg-white px-3 py-2.5 text-sm tracking-[0.2em] outline-none focus:border-[#215481]"
-                                  />
-                                  <button
-                                    type="button"
-                                    disabled={emailBusy || emailCode.length !== 6}
-                                    onClick={() => {
-                                      void (async () => {
-                                        setFieldError('');
-                                        setEmailBusy(true);
-                                        const result = await confirmBusinessEmailChangeOtp(next, emailCode);
-                                        setEmailBusy(false);
-                                        if (!result.success || !result.emailVerificationToken) {
-                                          setFieldError(result.success ? 'Could not verify that email.' : result.error);
-                                          return;
-                                        }
-                                        setEmailProof(result.emailVerificationToken);
-                                        setEmailProofFor(next);
-                                        updateField('emailVerificationToken', result.emailVerificationToken);
-                                        setEmailHint(result.message);
-                                      })();
-                                    }}
-                                    className="rounded-lg bg-[#153551] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
-                                  >
-                                    Verify
-                                  </button>
-                                </div>
-                              ) : null}
-                              {emailHint ? <p className="text-xs font-medium text-emerald-700">{emailHint}</p> : null}
-                            </div>
-                          )}
-                          {fieldError ? <p className="text-xs text-rose-600">{fieldError}</p> : null}
-                        </div>
-                      );
-                    })()
                   ) : (
                     <input
                       type={activeField.type === 'number' ? 'number' : 'text'}
@@ -1370,9 +1218,37 @@ export default function SettingsTab({
         </div>
       )}
 
-      {!businessHasPublicPhoto({ profilePictureUrl, images }) && (
-        <ListingHiddenNoPhotosBanner onAddPhotos={() => setActiveModal('media')} />
-      )}
+      <section id="settings-login-contact" className="scroll-mt-24">
+        <h2 className={dashboard.sectionTitle}>Login email &amp; mobile</h2>
+        <p className="mt-1 text-xs text-zinc-500">
+          Used for login codes, invoices and account alerts. A new email or number is saved only after its code
+          is confirmed.
+        </p>
+        <div className="mt-2 grid gap-3 lg:grid-cols-2">
+          <ContactVerifyCard
+            key={`email-${loginEmail}`}
+            kind="email"
+            initialValue={loginEmail}
+            verified={Boolean(business?.emailVerified)}
+            allowChange
+            onVerified={(contact) => {
+              onLoginContactVerified?.(contact);
+              onNotifySuccess?.('Login email verified.');
+            }}
+          />
+          <ContactVerifyCard
+            key={`mobile-${loginMobile}`}
+            kind="mobile"
+            initialValue={loginMobile}
+            verified={Boolean(business?.mobileVerified)}
+            allowChange
+            onVerified={(contact) => {
+              onLoginContactVerified?.(contact);
+              onNotifySuccess?.('Login mobile number verified.');
+            }}
+          />
+        </div>
+      </section>
 
       {missingFields.length > 0 && (
         <div>
@@ -1433,26 +1309,6 @@ export default function SettingsTab({
           </section>
         );
       })}
-
-      <section>
-        <h2 className={dashboard.sectionTitle}>Login mobile number</h2>
-        <p className="mt-1 text-xs text-zinc-500">
-          Used to log in with WhatsApp and for account alerts. A new number is saved only after the WhatsApp code
-          is confirmed.
-        </p>
-        <div className="mt-2">
-          <ContactVerifyCard
-            kind="mobile"
-            initialValue={extractIndianMobileDigits(business?.mobile)}
-            verified={Boolean(business?.mobileVerified)}
-            allowChange
-            onVerified={({ value }) => {
-              onLoginMobileVerified?.(value);
-              onNotifySuccess?.('Login mobile number updated.');
-            }}
-          />
-        </div>
-      </section>
 
       {modal}
       {deleteModal}

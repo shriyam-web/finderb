@@ -108,10 +108,6 @@ export type RegistrationStep2Input = {
   categoryId: string;
   subcategoryId: string;
   nestedSubcategoryId?: string;
-  /** Joined multi-category labels already added via "Add category". */
-  mappedCategories?: string;
-  /** Current draft label from the cascading selects. */
-  draftCategory?: string;
   city: string;
   state: string;
   country: string;
@@ -255,6 +251,7 @@ export function validateRegistrationBusinessFields(data: {
     validateBusinessName(data.businessName) ??
     validateDisplayName(data.displayName, legalName) ??
     (!data.category.trim() ? 'Please select a business category.' : null) ??
+    (data.category.includes('|||') ? 'Please select only one business category.' : null) ??
     validateRegistrationAddressLines(data.addressLine1, data.addressLine2) ??
     (!data.country.trim() ? 'Please select your country.' : null) ??
     (!data.state.trim() ? 'Please select your state.' : null) ??
@@ -268,16 +265,9 @@ export function validateRegistrationStep2Fields(
 ): RegistrationFieldErrors {
   const errors: RegistrationFieldErrors = {};
 
-  const hasMapped = Boolean((input.mappedCategories || '').trim());
-  const hasDraft = Boolean((input.draftCategory || '').trim() || input.categoryId);
-
-  if (!hasMapped && !hasDraft) {
-    errors.categoryId = 'Please add at least one business category.';
-  } else if (!hasMapped) {
-    // Still completing the first mapping via cascading selects
-    if (!input.categoryId) {
-      errors.categoryId = 'Please select a business category.';
-    }
+  if (!input.categoryId) {
+    errors.categoryId = 'Please select a business category.';
+  } else {
     if (input.hasSubcategories && !input.subcategoryId) {
       errors.subcategoryId = 'Please select a subcategory.';
     }

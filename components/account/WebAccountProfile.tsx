@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import { CldUploadWidget } from 'next-cloudinary';
-import { Camera, CheckCircle2, Pencil, User as UserIcon } from 'lucide-react';
+import { BadgeCheck, Camera, Pencil, User as UserIcon } from 'lucide-react';
 import OtpCodeBoxes from '@/components/auth/OtpCodeBoxes';
 import IndianPhoneInput from '@/components/IndianPhoneInput';
 import { otpSendLabel, useOtpCooldown } from '@/hooks/useOtpCooldown';
@@ -45,24 +45,34 @@ function uploadedUrl(result: unknown): string | null {
   return typeof info?.secure_url === 'string' ? info.secure_url : null;
 }
 
-const rowClass = 'p-5';
-const labelClass = 'block text-xs font-medium text-slate-500';
+const rowClass = 'px-5 py-4 sm:px-6';
+const labelClass = 'block text-xs font-medium uppercase tracking-wide text-zinc-400';
 const inputClass =
-  'w-full rounded-lg border border-zinc-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-[#215481] focus:ring-2 focus:ring-[#215481]/10';
+  'w-full rounded-xl border border-zinc-200 bg-white px-3.5 py-2.5 text-sm text-zinc-900 outline-none transition focus:border-zinc-400 focus:ring-4 focus:ring-zinc-900/5';
 const primaryBtn =
-  'rounded-lg bg-[#215481] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#153551] disabled:cursor-not-allowed disabled:opacity-50';
-const ghostBtn = 'rounded-lg px-3 py-2 text-sm font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-800';
+  'rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-40';
+const ghostBtn =
+  'rounded-xl px-3 py-2 text-sm font-medium text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-900';
 
 function EditLink({ label, onClick }: { label: string; onClick: () => void }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="inline-flex shrink-0 items-center gap-1 rounded-lg px-2 py-1 text-sm font-semibold text-[#215481] hover:bg-[#215481]/5"
+      className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-zinc-200 px-2.5 py-1.5 text-xs font-semibold text-zinc-700 transition hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-900"
     >
-      <Pencil size={13} />
+      <Pencil size={12} />
       {label}
     </button>
+  );
+}
+
+function VerifiedTag() {
+  return (
+    <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-200">
+      <BadgeCheck size={12} />
+      Verified
+    </span>
   );
 }
 
@@ -124,7 +134,7 @@ function NameRow({ name, save }: { name: string; save: (patch: WebProfilePatch) 
               </div>
             </div>
           ) : (
-            <p className="mt-1 text-sm text-slate-900">{name || 'Not added'}</p>
+            <p className="mt-1.5 text-[15px] font-medium text-zinc-900">{name || 'Not added'}</p>
           )}
           {error ? <p className="mt-2 text-xs text-red-600">{error}</p> : null}
         </div>
@@ -152,7 +162,16 @@ function VerifiedContactRow({ kind, current, locked, save }: OtpRowProps) {
   const isEmail = kind === 'email';
   const target = isEmail ? value.trim().toLowerCase() : extractIndianMobileDigits(value);
   const unchanged = target === current;
-  const sent = cooldown.isSentTo(target);
+  const valid = isEmail ? /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(target) : /^[6-9]\d{9}$/.test(target);
+  const looksComplete = isEmail ? target.includes('@') : target.length === 10;
+  const formatError =
+    looksComplete && !valid
+      ? isEmail
+        ? 'Enter a valid email address.'
+        : 'Enter a valid 10-digit Indian mobile number.'
+      : '';
+  const canSend = Boolean(target) && !unchanged;
+  const sent = canSend && cooldown.isSentTo(target);
   const wait = cooldown.isWaiting(target) ? cooldown.secondsLeft : 0;
   const label = isEmail ? 'Email' : 'Mobile number';
 
@@ -166,7 +185,7 @@ function VerifiedContactRow({ kind, current, locked, save }: OtpRowProps) {
   };
 
   const send = async () => {
-    if (!target || unchanged || busy || wait > 0) return;
+    if (!valid || unchanged || busy || wait > 0) return;
     setBusy(true);
     setError('');
     setHint('');
@@ -235,10 +254,14 @@ function VerifiedContactRow({ kind, current, locked, save }: OtpRowProps) {
             {label}
           </label>
           {!editing ? (
-            <p className="mt-1 inline-flex max-w-full items-center gap-1.5 break-all text-sm text-slate-900">
-              {current ? <CheckCircle2 size={14} className="shrink-0 text-emerald-500" /> : null}
-              <span className={current ? '' : 'text-slate-400'}>{display}</span>
-            </p>
+            <div className="mt-1.5 flex flex-wrap items-center gap-2">
+              <span
+                className={`break-all text-[15px] font-medium ${current ? 'text-zinc-900' : 'text-zinc-400'}`}
+              >
+                {display}
+              </span>
+              {current ? <VerifiedTag /> : null}
+            </div>
           ) : (
             <div className="mt-2 space-y-3">
               <div className="flex flex-col gap-2 sm:flex-row">
@@ -265,24 +288,28 @@ function VerifiedContactRow({ kind, current, locked, save }: OtpRowProps) {
                         setValue(digits);
                         setError('');
                       }}
+                      variant="account"
                       autoFocus
                     />
                   )}
                 </div>
-                <button
-                  type="button"
-                  onClick={() => void send()}
-                  disabled={busy || wait > 0 || !target || unchanged}
-                  className={`h-[2.625rem] shrink-0 rounded-lg px-4 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-50 ${
-                    isEmail ? 'bg-[#215481] hover:bg-[#153551]' : 'bg-[#128C7E] hover:bg-[#0f7a6e]'
-                  }`}
-                >
-                  {busy && !sent ? 'Sending…' : otpSendLabel(sent, wait > 0, wait)}
-                </button>
+                {canSend ? (
+                  <button
+                    type="button"
+                    onClick={() => void send()}
+                    disabled={busy || wait > 0 || !valid}
+                    className={`h-[2.75rem] shrink-0 rounded-xl px-4 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-40 ${
+                      isEmail ? 'bg-zinc-900 hover:bg-zinc-800' : 'bg-[#128C7E] hover:bg-[#0f7a6e]'
+                    }`}
+                  >
+                    {busy && !sent ? 'Sending…' : otpSendLabel(sent, wait > 0, wait)}
+                  </button>
+                ) : null}
               </div>
+              {formatError ? <p className="text-xs font-medium text-amber-700">{formatError}</p> : null}
               {sent ? (
-                <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
-                  <p className="text-center text-[13px] text-slate-600">
+                <div className="space-y-3 rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
+                  <p className="text-center text-[13px] text-zinc-600">
                     {hint ||
                       (isEmail
                         ? 'Enter the 6-digit code we emailed you.'
@@ -296,6 +323,7 @@ function VerifiedContactRow({ kind, current, locked, save }: OtpRowProps) {
                     }}
                     onComplete={(next) => void verify(next)}
                     disabled={busy}
+                    tone={isEmail ? 'neutral' : 'whatsapp'}
                     autoFocus
                   />
                   <button
@@ -308,10 +336,12 @@ function VerifiedContactRow({ kind, current, locked, save }: OtpRowProps) {
                   </button>
                 </div>
               ) : (
-                <p className="text-xs text-slate-500">
-                  {isEmail
-                    ? 'We will email a code to confirm the new address before saving it.'
-                    : 'We will send a code on WhatsApp to confirm the new number before saving it.'}
+                <p className="text-xs text-zinc-500">
+                  {unchanged && current
+                    ? `Enter a new ${isEmail ? 'email address' : 'mobile number'} to change it.`
+                    : isEmail
+                      ? 'We will email a code to confirm this address before saving it.'
+                      : 'We will send a code on WhatsApp to confirm this number before saving it.'}
                 </p>
               )}
               <button type="button" onClick={reset} className={ghostBtn}>
@@ -320,7 +350,7 @@ function VerifiedContactRow({ kind, current, locked, save }: OtpRowProps) {
             </div>
           )}
           {error ? <p className="mt-2 text-xs text-red-600">{error}</p> : null}
-          {locked && !editing ? <p className="mt-1 text-xs text-slate-400">{locked}</p> : null}
+          {locked && !editing ? <p className="mt-1 text-xs text-zinc-400">{locked}</p> : null}
         </div>
         {editing || locked ? null : (
           <EditLink label={current ? 'Change' : 'Add'} onClick={() => setEditing(true)} />
@@ -371,8 +401,8 @@ export default function WebAccountProfile({
   };
 
   return (
-    <div className="divide-y divide-slate-100 rounded-2xl border border-slate-200/80 bg-white">
-      <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center">
+    <div className="space-y-4">
+      <div className="flex flex-col gap-5 rounded-2xl border border-zinc-200 bg-white p-5 sm:flex-row sm:items-center sm:p-6">
         <div className="relative h-20 w-20 shrink-0">
           {user.avatarUrl ? (
             <Image
@@ -381,22 +411,22 @@ export default function WebAccountProfile({
               width={80}
               height={80}
               unoptimized
-              className="h-20 w-20 rounded-2xl object-cover"
+              className="h-20 w-20 rounded-full object-cover ring-1 ring-zinc-200"
             />
           ) : (
-            <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-[#215481] text-2xl font-semibold text-white">
+            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-zinc-100 text-2xl font-semibold text-zinc-700 ring-1 ring-zinc-200">
               {name ? initialsOf(name) : <UserIcon size={30} />}
             </div>
           )}
           {photoBusy ? (
-            <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-white/70">
-              <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#215481] border-t-transparent" />
+            <div className="absolute inset-0 flex items-center justify-center rounded-full bg-white/70">
+              <div className="h-6 w-6 animate-spin rounded-full border-2 border-zinc-900 border-t-transparent" />
             </div>
           ) : null}
         </div>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-lg font-semibold text-slate-900">{name || 'Your profile'}</p>
-          {memberSince ? <p className="text-xs text-slate-400">Joined {memberSince}</p> : null}
+          <p className="truncate text-lg font-semibold text-zinc-900">{name || 'Your profile'}</p>
+          {memberSince ? <p className="text-sm text-zinc-500">Member since {memberSince}</p> : null}
           <div className="mt-3 flex flex-wrap items-center gap-2">
             {cloudName && uploadPreset ? (
               <CldUploadWidget
@@ -423,7 +453,7 @@ export default function WebAccountProfile({
                     type="button"
                     onClick={() => open()}
                     disabled={photoBusy}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-[#215481] transition hover:border-[#215481]/30 hover:bg-[#215481]/5 disabled:opacity-50"
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 px-3 py-2 text-sm font-semibold text-zinc-800 transition hover:border-zinc-300 hover:bg-zinc-50 disabled:opacity-50"
                   >
                     <Camera size={15} />
                     {user.avatarUrl ? 'Change photo' : 'Add photo'}
@@ -446,9 +476,11 @@ export default function WebAccountProfile({
         </div>
       </div>
 
-      <NameRow key={`name-${name}`} name={name} save={save} />
-      <VerifiedContactRow key={`email-${email}`} kind="email" current={email} locked={emailLocked} save={save} />
-      <VerifiedContactRow key={`phone-${phone}`} kind="phone" current={phone} save={save} />
+      <div className="divide-y divide-zinc-100 rounded-2xl border border-zinc-200 bg-white">
+        <NameRow key={`name-${name}`} name={name} save={save} />
+        <VerifiedContactRow key={`email-${email}`} kind="email" current={email} locked={emailLocked} save={save} />
+        <VerifiedContactRow key={`phone-${phone}`} kind="phone" current={phone} save={save} />
+      </div>
     </div>
   );
 }

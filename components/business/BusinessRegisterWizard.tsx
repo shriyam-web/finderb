@@ -40,7 +40,6 @@ type FormData = {
   businessName: string;
   displayName: string;
   category: string;
-  mappedCategories: string;
   categoryId: string;
   subcategory: string;
   subcategoryId: string;
@@ -76,8 +75,6 @@ type BusinessRegisterWizardProps = {
   onCategoryChange: (categoryId: string) => void;
   onSubcategoryChange: (subcategoryId: string) => void;
   onNestedSubcategoryChange?: (nestedSubcategoryId: string) => void;
-  onAddMappedCategory?: () => void;
-  onRemoveMappedCategory?: (label: string) => void;
   subcategoryLabel?: string;
   nestedSubcategoryLabel?: string;
   countryOptions: SelectOption[];
@@ -109,7 +106,7 @@ type BusinessRegisterWizardProps = {
   emailOtpSent?: boolean;
   emailOtpWait?: number;
   onSendEmailOtp: () => void;
-  onVerifyEmailOtp: () => void;
+  onVerifyEmailOtp: (value?: string) => void;
   mobileOtp: MobileOtpState;
 };
 
@@ -195,8 +192,6 @@ export default function BusinessRegisterWizard({
   onCategoryChange,
   onSubcategoryChange,
   onNestedSubcategoryChange,
-  onAddMappedCategory,
-  onRemoveMappedCategory,
   subcategoryLabel = 'Category',
   nestedSubcategoryLabel = 'Subcategory',
   countryOptions,
@@ -322,31 +317,34 @@ export default function BusinessRegisterWizard({
                       Email verified
                     </p>
                   ) : emailOtpSent ? (
-                    <div id="field-emailOtp" className="space-y-3">
-                      <div className="flex flex-col gap-2 sm:flex-row">
-                        <input
-                          id="emailOtp"
-                          inputMode="numeric"
-                          autoComplete="one-time-code"
-                          maxLength={6}
-                          value={emailOtpCode}
-                          onChange={(e) =>
-                            onEmailOtpCodeChange(e.target.value.replace(/\D/g, '').slice(0, 6))
-                          }
-                          placeholder="6-digit code"
-                          className="min-w-0 flex-1 rounded-xl border border-[#cfd8e3] bg-white px-3.5 py-3 text-[16px] font-semibold tracking-[0.2em] text-[#0f273b] outline-none focus:border-[#153551]"
-                        />
-                        <button
-                          type="button"
-                          onClick={onVerifyEmailOtp}
-                          disabled={emailOtpVerifying || emailOtpCode.length !== 6}
-                          className="rounded-xl bg-[#153551] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#0f2840] disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          {emailOtpVerifying ? 'Verifying…' : 'Verify'}
-                        </button>
-                      </div>
+                    <div
+                      id="field-emailOtp"
+                      className="space-y-3 rounded-2xl border border-[#d7e2ee] bg-[#f7fafc] p-4"
+                    >
+                      <p className="text-center text-[13px] leading-relaxed text-[#475569]">
+                        Enter the 6-digit code sent to{' '}
+                        <span className="break-all font-semibold text-[#0f273b]">
+                          {formData.email.trim()}
+                        </span>
+                      </p>
+                      <OtpCodeBoxes
+                        value={emailOtpCode}
+                        onChange={onEmailOtpCodeChange}
+                        onComplete={(value) => onVerifyEmailOtp(value)}
+                        disabled={emailOtpVerifying}
+                        tone="neutral"
+                        autoFocus
+                      />
+                      <button
+                        type="button"
+                        onClick={() => onVerifyEmailOtp()}
+                        disabled={emailOtpVerifying || emailOtpCode.length !== 6}
+                        className="w-full rounded-xl bg-[#153551] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#0f2840] disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {emailOtpVerifying ? 'Verifying…' : 'Verify email'}
+                      </button>
                       {emailOtpHint ? (
-                        <p className="text-[13px] font-medium text-emerald-700">{emailOtpHint}</p>
+                        <p className="text-center text-[13px] font-medium text-emerald-700">{emailOtpHint}</p>
                       ) : null}
                       <MerchantFieldError message={fieldErrors.emailOtp} />
                     </div>
@@ -535,55 +533,6 @@ export default function BusinessRegisterWizard({
                       loading={loadingNestedSubcategories}
                       error={fieldErrors.nestedSubcategoryId}
                     />
-                  )}
-                  {formData.mappedCategories ? (
-                    <div className="flex flex-wrap gap-2">
-                      {formData.mappedCategories
-                        .split(/\s*\|\|\|\s*/)
-                        .filter(Boolean)
-                        .map((label) => (
-                          <span
-                            key={label}
-                            className="inline-flex max-w-full items-center gap-1 rounded-full border border-[#cfe0ef] bg-[#f3f8fc] px-2.5 py-1 text-xs font-semibold text-[#153551]"
-                          >
-                            <span className="truncate">{label}</span>
-                            {onRemoveMappedCategory ? (
-                              <button
-                                type="button"
-                                onClick={() => onRemoveMappedCategory(label)}
-                                className="text-[#64748b] hover:text-[#153551]"
-                                aria-label={`Remove ${label}`}
-                              >
-                                ×
-                              </button>
-                            ) : null}
-                          </span>
-                        ))}
-                    </div>
-                  ) : null}
-                  {formData.category.trim() ? (
-                    <div className="flex items-center justify-between gap-3 rounded-xl border border-[#d4dde8] bg-white px-3 py-2.5">
-                      <p className="min-w-0 truncate text-xs text-[#475569]">
-                        Ready to add:{' '}
-                        <span className="font-semibold text-[#153551]">
-                          {formData.category}
-                        </span>
-                      </p>
-                      {onAddMappedCategory ? (
-                        <button
-                          type="button"
-                          onClick={onAddMappedCategory}
-                          className="shrink-0 rounded-lg bg-[#153551] px-3 py-1.5 text-xs font-semibold text-white"
-                        >
-                          Add category
-                        </button>
-                      ) : null}
-                    </div>
-                  ) : (
-                    <p className="text-xs leading-relaxed text-[#64748b]">
-                      Select a category (and subcategory if shown), then tap Add
-                      category. You can map multiple categories.
-                    </p>
                   )}
                   <MerchantAuthField
                     id="addressLine1"

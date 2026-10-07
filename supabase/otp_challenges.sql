@@ -17,5 +17,11 @@ create index if not exists otp_challenges_expires_at_idx
 
 alter table public.otp_challenges enable row level security;
 
+-- send_count caps resends per recipient; attempts caps wrong guesses per code.
+alter table public.otp_challenges
+  add column if not exists send_count int not null default 1;
+alter table public.otp_challenges
+  add column if not exists attempts int not null default 0;
+
 alter table public."Business"
   add column if not exists "emailVerified" boolean not null default false;

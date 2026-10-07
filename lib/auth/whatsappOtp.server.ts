@@ -1,6 +1,11 @@
 import 'server-only';
 
-import { consumeOtpChallenge, discardOtpChallenge, issueOtpChallenge } from '@/lib/auth/otpChallenge.server';
+import {
+  consumeOtpChallenge,
+  discardOtpChallenge,
+  issueOtpChallenge,
+  otpIssueErrorMessage,
+} from '@/lib/auth/otpChallenge.server';
 import { createServiceClient } from '@/lib/supabase/service';
 import { mobileAuthSuccessForUserId } from '@/lib/auth/mobileAuth.server';
 import {
@@ -260,8 +265,11 @@ export async function requestWhatsAppLoginOtp(input: {
   let code = '';
   try {
     code = await issueOtpChallenge(whatsAppPurpose(audience), phone);
-  } catch {
-    return { success: false, error: 'Could not prepare the verification code. Please try again shortly.' };
+  } catch (error) {
+    return {
+      success: false,
+      error: otpIssueErrorMessage(error, 'Could not prepare the verification code. Please try again shortly.'),
+    };
   }
   const sent = await sendWhatsAppOtp(`91${phone}`, code);
   if (!sent.ok) {

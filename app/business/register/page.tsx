@@ -39,11 +39,6 @@ import { combineBusinessAddress } from '@/lib/businessAddress';
 import { markNewBusinessOnboarding } from '@/lib/businessOnboarding';
 import AuthRedirectScreen from '@/components/auth/AuthRedirectScreen';
 import { useAlreadyLoggedInRedirect } from '@/hooks/useAlreadyLoggedInRedirect';
-import {
-  joinBusinessCategories,
-  splitBusinessCategories,
-} from '@/lib/categoryTree';
-
 type LiveCategory = {
   id: string;
   name: string;
@@ -136,7 +131,6 @@ function RegisterFormContent() {
     businessName: '',
     displayName: '',
     category: '',
-    mappedCategories: '',
     categoryId: '',
     subcategory: '',
     subcategoryId: '',
@@ -271,8 +265,9 @@ function RegisterFormContent() {
     }
   };
 
-  const handleVerifyEmailOtp = async () => {
-    if (emailOtpCode.replace(/\D/g, '').length !== 6) {
+  const handleVerifyEmailOtp = async (value = emailOtpCode) => {
+    if (emailOtpVerifying) return;
+    if (value.replace(/\D/g, '').length !== 6) {
       setFieldErrors({ emailOtp: 'Enter the 6-digit code from your email.' });
       return;
     }
@@ -280,10 +275,11 @@ function RegisterFormContent() {
     clearFieldErrors('emailOtp', '_form');
     setEmailOtpHint('');
     try {
-      const result = await confirmMerchantRegisterEmailOtp(formData.email, emailOtpCode);
+      const result = await confirmMerchantRegisterEmailOtp(formData.email, value);
       if (!result.success) {
         setEmailVerified(false);
         setEmailVerificationToken('');
+        setEmailOtpCode('');
         setFieldErrors({ emailOtp: result.error });
         return;
       }
@@ -418,34 +414,6 @@ function RegisterFormContent() {
     });
   };
 
-  const addMappedCategory = () => {
-    const draft = formData.category.trim();
-    if (!draft) return;
-    const next = joinBusinessCategories([
-      ...splitBusinessCategories(formData.mappedCategories),
-      draft,
-    ]);
-    patchFormData({
-      mappedCategories: next,
-      categoryId: '',
-      subcategoryId: '',
-      nestedSubcategoryId: '',
-      subcategory: '',
-      category: '',
-    });
-    setSubCategories([]);
-    setNestedSubCategories([]);
-  };
-
-  const removeMappedCategory = (label: string) => {
-    patchFormData({
-      mappedCategories: joinBusinessCategories(
-        splitBusinessCategories(formData.mappedCategories).filter(
-          (item) => item.toLowerCase() !== label.toLowerCase(),
-        ),
-      ),
-    });
-  };
   const stepLabels = ['Basic Details', 'Business Info', 'Success'];
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -497,8 +465,6 @@ function RegisterFormContent() {
         categoryId: formData.categoryId,
         subcategoryId: formData.subcategoryId,
         nestedSubcategoryId: formData.nestedSubcategoryId,
-        mappedCategories: formData.mappedCategories,
-        draftCategory: formData.category,
         city: formData.city,
         state: formData.state,
         country: formData.country,
@@ -597,16 +563,10 @@ function RegisterFormContent() {
           : sub && parent
             ? `${parent.name} › ${sub.name}`
             : parent?.name || formData.category;
-      const categoryLabel =
-        joinBusinessCategories([
-          ...splitBusinessCategories(formData.mappedCategories),
-          draftLabel,
-        ]) || draftLabel;
-
       const registrationData = {
         ...formData,
         confirmPassword: undefined,
-        category: categoryLabel,
+        category: draftLabel,
         mobile,
         publicPhone: formData.publicPhone,
         addressLine1: formData.addressLine1,
@@ -808,8 +768,6 @@ function RegisterFormContent() {
         onCategoryChange={handleCategoryChange}
         onSubcategoryChange={handleSubcategoryChange}
         onNestedSubcategoryChange={handleNestedSubcategoryChange}
-        onAddMappedCategory={addMappedCategory}
-        onRemoveMappedCategory={removeMappedCategory}
         subcategoryLabel={rootIsGroup ? 'Category' : 'Subcategory'}
         nestedSubcategoryLabel="Subcategory"
         countryOptions={countryOptions}
@@ -846,8 +804,8 @@ function RegisterFormContent() {
         onSendEmailOtp={() => {
           void handleSendEmailOtp();
         }}
-        onVerifyEmailOtp={() => {
-          void handleVerifyEmailOtp();
+        onVerifyEmailOtp={(value) => {
+          void handleVerifyEmailOtp(value);
         }}
         mobileOtp={{
           verified: mobileVerified,

@@ -49,7 +49,7 @@ export default function SubscriptionExpiryBanner({
       : 'border-amber-200 bg-amber-50 text-amber-950';
 
   return (
-    <div className={`mb-6 overflow-hidden rounded-xl border shadow-sm ${tone}`}>
+    <div className={`h-full overflow-hidden rounded-xl border shadow-sm ${tone}`}>
       <div className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex min-w-0 items-start gap-3">
           {isExpired ? (

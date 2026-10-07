@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AuthAlert, AuthField, PasswordToggle } from '../components/AuthField';
+import { OtpCodeBoxes } from '../components/OtpCodeBoxes';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { fonts } from '../constants/typography';
@@ -28,6 +29,10 @@ export default function ResetPasswordScreen() {
   const [success, setSuccess] = useState('');
 
   const handleSubmit = async () => {
+    if (code.length !== 6) {
+      setError('Enter the 6-digit code from your email.');
+      return;
+    }
     if (password !== confirm) {
       setError('New password and confirmation do not match.');
       return;
@@ -75,14 +80,10 @@ export default function ResetPasswordScreen() {
               keyboardType="email-address"
               textContentType="emailAddress"
             />
-            <AuthField
-              label="6-digit code"
-              value={code}
-              onChangeText={(value) => setCode(value.replace(/\D/g, '').slice(0, 6))}
-              keyboardType="number-pad"
-              textContentType="oneTimeCode"
-              placeholder="123456"
-            />
+            <View style={styles.codeBlock}>
+              <Text style={styles.codeLabel}>6-digit code</Text>
+              <OtpCodeBoxes value={code} onChange={setCode} accent={colors.brand} />
+            </View>
             <AuthField
               label="New password"
               value={password}
@@ -139,6 +140,15 @@ const useStyles = createThemedStyles((colors) => ({
   card: {
     paddingHorizontal: 20,
     paddingTop: 8,
+  },
+  codeBlock: {
+    marginBottom: 14,
+  },
+  codeLabel: {
+    marginBottom: 8,
+    fontFamily: fonts.semiBold,
+    fontSize: 13,
+    color: colors.text,
   },
   backLink: {
     alignItems: 'center',

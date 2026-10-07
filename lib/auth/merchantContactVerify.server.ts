@@ -4,6 +4,7 @@ import {
   consumeOtpChallenge,
   discardOtpChallenge,
   issueOtpChallenge,
+  otpIssueErrorMessage,
 } from '@/lib/auth/otpChallenge.server';
 import { sendEmailOtpEmail } from '@/lib/email/sendEmailOtp';
 import { extractIndianMobileDigits, isValidIndianMobileDigits } from '@/lib/indianPhone';
@@ -116,6 +117,8 @@ export async function requestMerchantEmailVerifyCode(rawEmail: unknown): Promise
   const email = parseEmail(rawEmail);
   if (!email) return { success: false, error: 'Enter a valid email address.' };
 
+  const ipLimit = await enforceRateLimit('auth', 'merchant-verify-send');
+  if (!ipLimit.ok) return { success: false, error: ipLimit.error };
   const limit = await enforceRateLimit('authEmail', `merchant-verify-email:${session.id}`);
   if (!limit.ok) return { success: false, error: limit.error };
 
@@ -128,8 +131,11 @@ export async function requestMerchantEmailVerifyCode(rawEmail: unknown): Promise
   let code = '';
   try {
     code = await issueOtpChallenge(emailPurpose(session.id), email);
-  } catch {
-    return { success: false, error: 'Could not prepare the verification code. Please try again shortly.' };
+  } catch (error) {
+    return {
+      success: false,
+      error: otpIssueErrorMessage(error, 'Could not prepare the verification code. Please try again shortly.'),
+    };
   }
   if (!(await sendEmailOtpEmail(email, code, 'account'))) {
     await discardOtpChallenge(emailPurpose(session.id), email);
@@ -178,6 +184,8 @@ export async function requestMerchantMobileVerifyCode(rawMobile: unknown): Promi
   const mobile = parseMobile(rawMobile);
   if (!mobile) return { success: false, error: 'Enter a 10-digit Indian mobile number.' };
 
+  const ipLimit = await enforceRateLimit('auth', 'merchant-verify-send');
+  if (!ipLimit.ok) return { success: false, error: ipLimit.error };
   const limit = await enforceRateLimit('authEmail', `merchant-verify-mobile:${session.id}`);
   if (!limit.ok) return { success: false, error: limit.error };
 
@@ -190,8 +198,11 @@ export async function requestMerchantMobileVerifyCode(rawMobile: unknown): Promi
   let code = '';
   try {
     code = await issueOtpChallenge(mobilePurpose(session.id), mobile);
-  } catch {
-    return { success: false, error: 'Could not prepare the verification code. Please try again shortly.' };
+  } catch (error) {
+    return {
+      success: false,
+      error: otpIssueErrorMessage(error, 'Could not prepare the verification code. Please try again shortly.'),
+    };
   }
   const sent = await sendWhatsAppOtp(`91${mobile}`, code);
   if (!sent.ok) {

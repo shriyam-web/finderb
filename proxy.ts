@@ -7,6 +7,7 @@ import {
   getRateLimitKey,
   type RateLimitProfile,
 } from '@/lib/security/rateLimit';
+import { type SessionCookieKind, verifySessionValue } from '@/lib/security/sessionSignature';
 
 function getRequestIp(request: NextRequest): string {
   const forwarded = request.headers.get('x-forwarded-for');
@@ -35,18 +36,22 @@ function rateLimitApi(request: NextRequest, profile: RateLimitProfile) {
   return null;
 }
 
-function requireCookie(
+function requireSession(
   request: NextRequest,
   cookieName: string,
+  kind: SessionCookieKind,
   loginPath: string
 ): NextResponse | null {
-  if (request.cookies.get(cookieName)?.value) {
+  const raw = request.cookies.get(cookieName)?.value;
+  if (verifySessionValue(kind, raw)) {
     return null;
   }
 
   const loginUrl = new URL(loginPath, request.url);
   loginUrl.searchParams.set('redirect', request.nextUrl.pathname);
-  return NextResponse.redirect(loginUrl);
+  const response = NextResponse.redirect(loginUrl);
+  if (raw) response.cookies.set(cookieName, '', { path: '/', maxAge: 0 });
+  return response;
 }
 
 export async function proxy(request: NextRequest) {
@@ -72,7 +77,7 @@ export async function proxy(request: NextRequest) {
   }
 
   if (pathname === '/dashboard' || pathname.startsWith('/dashboard/')) {
-    const blocked = requireCookie(request, 'user_id', '/login');
+    const blocked = requireSession(request, 'user_id', 'user', '/login');
     if (blocked) return blocked;
   }
 
@@ -82,7 +87,7 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith('/business/kyc/') ||
     pathname.startsWith('/business/payment/')
   ) {
-    const blocked = requireCookie(request, 'business_id', '/business/login');
+    const blocked = requireSession(request, 'business_id', 'business', '/business/login');
     if (blocked) return blocked;
   }
 

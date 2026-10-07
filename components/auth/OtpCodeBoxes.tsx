@@ -9,6 +9,12 @@ type OtpCodeBoxesProps = {
   length?: number;
   disabled?: boolean;
   autoFocus?: boolean;
+  tone?: 'whatsapp' | 'neutral';
+};
+
+const FOCUS_TONE = {
+  whatsapp: 'focus:border-[#128C7E] focus:ring-[#128C7E]/20',
+  neutral: 'focus:border-zinc-900 focus:ring-zinc-900/10',
 };
 
 /** One box per digit. Typing moves forward, Backspace moves back, and a pasted code fills every box. */
@@ -19,6 +25,7 @@ export default function OtpCodeBoxes({
   length = 6,
   disabled,
   autoFocus,
+  tone = 'whatsapp',
 }: OtpCodeBoxesProps) {
   const refs = useRef<Array<HTMLInputElement | null>>([]);
   const digits = value.replace(/\D/g, '').slice(0, length);
@@ -76,7 +83,7 @@ export default function OtpCodeBoxes({
             event.preventDefault();
             setDigits(event.clipboardData.getData('text'), length - 1);
           }}
-          className="h-12 w-10 rounded-xl border border-slate-300 bg-white text-center text-lg font-bold text-slate-900 outline-none transition focus:border-[#128C7E] focus:ring-2 focus:ring-[#128C7E]/20 disabled:opacity-50 sm:h-14 sm:w-12 sm:text-xl"
+          className={`h-12 w-10 rounded-xl border border-slate-300 bg-white text-center text-lg font-bold text-slate-900 outline-none transition focus:ring-2 disabled:opacity-50 sm:h-14 sm:w-12 sm:text-xl ${FOCUS_TONE[tone]}`}
         />
       ))}
     </div>

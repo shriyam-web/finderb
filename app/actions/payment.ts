@@ -1,6 +1,5 @@
 'use server';
 
-import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import { getOwnedBusiness } from '@/app/actions/business';
 import { createServiceClient } from '@/lib/supabase/service';
@@ -25,6 +24,7 @@ import {
   isRazorpaySubscriptionsConfigured,
 } from '@/lib/razorpay/subscriptions';
 import { enforceRateLimit } from '@/lib/security/enforceRateLimit.server';
+import { getSessionBusinessId } from '@/lib/security/session';
 
 function getPaymentDbClient() {
   const supabase = createServiceClient();
@@ -38,7 +38,7 @@ function getPaymentDbClient() {
 }
 
 async function assertBusinessSession(businessId: string) {
-  const sessionBusinessId = (await cookies()).get('business_id')?.value;
+  const sessionBusinessId = await getSessionBusinessId();
   if (!sessionBusinessId || sessionBusinessId !== businessId) {
     return { ok: false as const, error: 'Please sign in to your merchant account to continue payment.' };
   }

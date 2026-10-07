@@ -1,5 +1,6 @@
 import { cookies } from 'next/headers';
 import type { NextResponse } from 'next/server';
+import { signSessionValue, verifySessionValue } from '@/lib/security/sessionSignature';
 
 export const SESSION_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
 /** Support impersonation sessions expire after this much idle time. */
@@ -22,12 +23,16 @@ export function getSessionCookieOptions(maxAge = SESSION_COOKIE_MAX_AGE) {
 }
 
 export async function getSessionUserId(): Promise<string | null> {
-  return (await cookies()).get(USER_ID_COOKIE)?.value ?? null;
+  return verifySessionValue('user', (await cookies()).get(USER_ID_COOKIE)?.value);
+}
+
+/** Business id from a validly signed cookie, without the support idle check. */
+export async function readSignedBusinessCookie(): Promise<string | null> {
+  return verifySessionValue('business', (await cookies()).get(BUSINESS_ID_COOKIE)?.value);
 }
 
 export async function getSessionBusinessId(): Promise<string | null> {
-  const jar = await cookies();
-  const businessId = jar.get(BUSINESS_ID_COOKIE)?.value ?? null;
+  const businessId = await readSignedBusinessCookie();
   if (!businessId) return null;
 
   // Read-only expiry check — do not slide idle window here.
@@ -71,7 +76,7 @@ async function enforceSupportSessionIdle(
 
   if (options?.touch) {
     const opts = getSessionCookieOptions(SUPPORT_SESSION_COOKIE_MAX_AGE);
-    jar.set(BUSINESS_ID_COOKIE, businessId, opts);
+    jar.set(BUSINESS_ID_COOKIE, signSessionValue('business', businessId), opts);
     jar.set(SUPPORT_FLAG_COOKIE, '1', opts);
     jar.set(SUPPORT_ACTIVE_COOKIE, String(now), opts);
   }
@@ -89,7 +94,7 @@ export async function touchSupportSessionActivity(): Promise<
   | { ok: false }
 > {
   const jar = await cookies();
-  const businessId = jar.get(BUSINESS_ID_COOKIE)?.value ?? null;
+  const businessId = await readSignedBusinessCookie();
   if (!businessId) return { ok: false };
   if (jar.get(SUPPORT_FLAG_COOKIE)?.value !== '1') return { ok: false };
 
@@ -136,7 +141,7 @@ export async function setUserSessionCookie(userId: string) {
   jar.delete(SUPPORT_FLAG_COOKIE);
   jar.delete(SUPPORT_ACTIVE_COOKIE);
   jar.delete(USER_ID_COOKIE);
-  jar.set(USER_ID_COOKIE, userId, getSessionCookieOptions());
+  jar.set(USER_ID_COOKIE, signSessionValue('user', userId), getSessionCookieOptions());
 }
 
 export async function setBusinessSessionCookie(
@@ -151,7 +156,7 @@ export async function setBusinessSessionCookie(
 
   const maxAge = options?.maxAge ?? SESSION_COOKIE_MAX_AGE;
   const cookieOpts = getSessionCookieOptions(maxAge);
-  jar.set(BUSINESS_ID_COOKIE, businessId, cookieOpts);
+  jar.set(BUSINESS_ID_COOKIE, signSessionValue('business', businessId), cookieOpts);
 
   if (options?.supportSession) {
     jar.set(SUPPORT_FLAG_COOKIE, '1', cookieOpts);
@@ -170,7 +175,7 @@ export function applyBusinessSessionCookies(
   const clearOpts = { ...cookieOpts, maxAge: 0 };
 
   response.cookies.set(USER_ID_COOKIE, '', clearOpts);
-  response.cookies.set(BUSINESS_ID_COOKIE, businessId, cookieOpts);
+  response.cookies.set(BUSINESS_ID_COOKIE, signSessionValue('business', businessId), cookieOpts);
 
   if (options?.supportSession) {
     response.cookies.set(SUPPORT_FLAG_COOKIE, '1', cookieOpts);

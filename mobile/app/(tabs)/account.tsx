@@ -352,17 +352,14 @@ export default function AccountScreen() {
                         </Text>
                         {emailOtp.isSentTo(nextEmail) && !emailVerified ? (
                           <>
-                            <TextInput
+                            <OtpCodeBoxes
                               value={emailCode}
-                              onChangeText={(value) => setEmailCode(value.replace(/\D/g, '').slice(0, 6))}
-                              keyboardType="number-pad"
-                              style={styles.editInput}
-                              placeholder="6-digit code"
-                              placeholderTextColor={colors.textSoft}
-                              maxLength={6}
+                              onChange={setEmailCode}
+                              autoFocus
+                              disabled={emailVerifying}
                             />
                             <Pressable
-                              style={styles.otpBtnPrimary}
+                              style={[styles.otpBtnPrimary, (emailVerifying || emailCode.length !== 6) && styles.disabled]}
                               disabled={emailVerifying || emailCode.length !== 6}
                               onPress={() => {
                                 void (async () => {

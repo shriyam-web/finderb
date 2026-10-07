@@ -65,7 +65,13 @@ import { CldUploadWidget } from 'next-cloudinary';
 import { createClient } from '@/utils/supabase/client';
 import { buildGoogleMapsUrl } from '@/lib/googleMapsLocation';
 import ListingHiddenNoPhotosBanner from './components/ListingHiddenNoPhotosBanner';
-import MerchantContactVerifyGate, { type VerifiedContact } from './components/MerchantContactVerifyGate';
+import MerchantContactVerifyGate, {
+  isContactGateSkipped,
+  markContactGateSkipped,
+  type VerifiedContact,
+} from './components/MerchantContactVerifyGate';
+import ContactVerificationBanner from './components/ContactVerificationBanner';
+import DashboardBannerCarousel, { type DashboardBanner } from './components/DashboardBannerCarousel';
 import { pickPublicBusinessEmail } from '@/lib/placeholderEmail';
 import { extractIndianMobileDigits } from '@/lib/indianPhone';
 
@@ -215,7 +221,8 @@ function DashboardContent() {
         setSupportSession(Boolean(sessionRes.supportSession));
         setContactGate(
           !sessionRes.supportSession &&
-            !(resBusiness.emailVerified && resBusiness.mobileVerified),
+            !(resBusiness.emailVerified && resBusiness.mobileVerified) &&
+            !isContactGateSkipped(resBusiness.id),
         );
         setSupportIdleDeadline(
           typeof sessionRes.supportIdleDeadline === 'number'
@@ -608,15 +615,16 @@ function DashboardContent() {
     return <BusinessWorkspaceLoader />;
   }
 
+  const handleContactVerified = ({ kind, value }: VerifiedContact) => {
+    if (kind === 'email') {
+      setBusiness((prev: typeof business) => ({ ...prev, email: value, workEmail: value, emailVerified: true }));
+      setProfileData((prev) => ({ ...prev, email: value }));
+    } else {
+      setBusiness((prev: typeof business) => ({ ...prev, mobile: value, mobileVerified: true }));
+    }
+  };
+
   if (contactGate && business) {
-    const handleContactVerified = ({ kind, value }: VerifiedContact) => {
-      if (kind === 'email') {
-        setBusiness((prev: typeof business) => ({ ...prev, email: value, workEmail: value, emailVerified: true }));
-        setProfileData((prev) => ({ ...prev, email: value }));
-      } else {
-        setBusiness((prev: typeof business) => ({ ...prev, mobile: value, mobileVerified: true }));
-      }
-    };
     return (
       <MerchantContactVerifyGate
         businessName={business.displayName || business.name || business.businessName || 'your business'}
@@ -625,7 +633,10 @@ function DashboardContent() {
         mobile={extractIndianMobileDigits(business.mobile)}
         mobileVerified={Boolean(business.mobileVerified)}
         onVerified={handleContactVerified}
-        onContinue={() => setContactGate(false)}
+        onContinue={() => {
+          markContactGateSkipped(business.id);
+          setContactGate(false);
+        }}
         onLogout={handleLogout}
       />
     );
@@ -683,6 +694,45 @@ function DashboardContent() {
     setSettingsFocusField(fieldKey);
     setActiveTab('settings');
   };
+
+  const dashboardBanners: DashboardBanner[] = [];
+  if (!supportSession && !(business?.emailVerified && business?.mobileVerified)) {
+    dashboardBanners.push({
+      id: 'contact-verification',
+      label: 'Verify your contact details',
+      node: (
+        <ContactVerificationBanner
+          emailVerified={Boolean(business?.emailVerified)}
+          mobileVerified={Boolean(business?.mobileVerified)}
+          onVerify={() => openSettingsField('loginContact')}
+        />
+      ),
+    });
+  }
+  if (businessId && subscriptionStatus.alertLevel !== 'none') {
+    dashboardBanners.push({
+      id: 'subscription-expiry',
+      label: 'Subscription renewal',
+      node: (
+        <SubscriptionExpiryBanner
+          businessId={businessId}
+          businessName={businessName}
+          fullName={business?.fullName}
+          email={business?.email || business?.workEmail}
+          mobile={business?.mobile || business?.publicPhone}
+          subscription={subscriptionStatus}
+          onOpenSubscription={() => setActiveTab('subscription')}
+        />
+      ),
+    });
+  }
+  if (!hasPublicPhotos) {
+    dashboardBanners.push({
+      id: 'listing-hidden',
+      label: 'Listing hidden without photos',
+      node: <ListingHiddenNoPhotosBanner onAddPhotos={() => openSettingsField('media')} />,
+    });
+  }
 
   const openKycInfo = () => {
     if (businessId) {
@@ -768,28 +818,12 @@ function DashboardContent() {
           notifications={notifications}
         />
 
-        {businessId && subscriptionStatus.alertLevel !== 'none' && (
-          <SubscriptionExpiryBanner
-            businessId={businessId}
-            businessName={businessName}
-            fullName={business?.fullName}
-            email={business?.email || business?.workEmail}
-            mobile={business?.mobile || business?.publicPhone}
-            subscription={subscriptionStatus}
-            onOpenSubscription={() => setActiveTab('subscription')}
-          />
-        )}
+        <DashboardBannerCarousel banners={dashboardBanners} />
 
         {successMessage && (
           <div className="mb-6 overflow-hidden rounded-xl border border-emerald-200 bg-emerald-50 shadow-sm">
             <div className="h-[3px] bg-gradient-to-r from-emerald-400 to-emerald-600" aria-hidden />
             <p className="px-4 py-3 text-sm font-medium text-emerald-900">{successMessage}</p>
-          </div>
-        )}
-
-        {!hasPublicPhotos && (
-          <div className="mb-6">
-            <ListingHiddenNoPhotosBanner onAddPhotos={() => openSettingsField('media')} />
           </div>
         )}
 
@@ -975,9 +1009,7 @@ function DashboardContent() {
               setSuccessMessage(message);
               setTimeout(() => setSuccessMessage(null), 3000);
             }}
-            onLoginMobileVerified={(mobile) => {
-              setBusiness((prev: typeof business) => ({ ...prev, mobile, mobileVerified: true }));
-            }}
+            onLoginContactVerified={handleContactVerified}
           />
           </DashboardTabShell>
         )}

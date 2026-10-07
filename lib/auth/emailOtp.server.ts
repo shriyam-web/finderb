@@ -1,7 +1,12 @@
 import 'server-only';
 
 import { createHmac, timingSafeEqual } from 'crypto';
-import { consumeOtpChallenge, discardOtpChallenge, issueOtpChallenge } from '@/lib/auth/otpChallenge.server';
+import {
+  consumeOtpChallenge,
+  discardOtpChallenge,
+  issueOtpChallenge,
+  otpIssueErrorMessage,
+} from '@/lib/auth/otpChallenge.server';
 import { sendEmailOtpEmail } from '@/lib/email/sendEmailOtp';
 import { REGISTRATION_EMAIL_REGEX } from '@/lib/merchantRegistrationValidation';
 import { enforceRateLimit } from '@/lib/security/enforceRateLimit.server';
@@ -149,10 +154,10 @@ export async function requestMerchantRegisterEmailOtp(
   let code = '';
   try {
     code = await issueOtpChallenge(MERCHANT_REGISTER_EMAIL_PURPOSE, normalized);
-  } catch {
+  } catch (error) {
     return {
       success: false,
-      error: 'Could not prepare the verification code. Please try again shortly.',
+      error: otpIssueErrorMessage(error, 'Could not prepare the verification code. Please try again shortly.'),
     };
   }
   const sent = await sendEmailOtpEmail(normalized, code, 'registration');
@@ -243,8 +248,11 @@ async function requestPurposeEmailOtp(
   let code = '';
   try {
     code = await issueOtpChallenge(purpose, normalized);
-  } catch {
-    return { success: false, error: 'Could not prepare the verification code. Please try again shortly.' };
+  } catch (error) {
+    return {
+      success: false,
+      error: otpIssueErrorMessage(error, 'Could not prepare the verification code. Please try again shortly.'),
+    };
   }
   const sent = await sendEmailOtpEmail(normalized, code, kind);
   if (!sent) {
