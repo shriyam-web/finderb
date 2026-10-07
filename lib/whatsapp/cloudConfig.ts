@@ -11,6 +11,8 @@ export const WHATSAPP_DEFAULT_TEMPLATE_LANG = 'en';
 export const WHATSAPP_DEFAULT_BUTTON = 'url';
 export const WHATSAPP_DEFAULT_GRAPH_VERSION = 'v22.0';
 export const WHATSAPP_DEFAULT_WEBHOOK_VERIFY_TOKEN = 'finderb-wa-otp';
+/** Utility template: {{1}} owner name, {{2}} business name, {{3}} registration number. */
+export const WHATSAPP_BUSINESS_WELCOME_TEMPLATE = 'finderb_business_welcome';
 
 export type WhatsAppOtpButton = 'url' | 'copy_code' | 'none';
 

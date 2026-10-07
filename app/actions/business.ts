@@ -249,17 +249,37 @@ export async function registerBusiness(formData: any) {
 
     console.log('[REGISTER] ✓ Success:', businessWithSlug.id);
 
-    try {
-      const { sendBusinessWelcomeEmail } = await import('@/lib/email/sendBusinessWelcomeEmail');
-      await sendBusinessWelcomeEmail({
-        to: normalizedEmail,
-        ownerName: normalized.fullName,
-        businessName: normalized.displayName || normalized.businessName,
-        city: normalized.city,
-      });
-    } catch (welcomeError) {
-      console.error('[REGISTER] welcome email failed', welcomeError);
-    }
+    const welcomeName = normalized.displayName || normalized.businessName;
+    await Promise.all([
+      (async () => {
+        try {
+          const { sendBusinessWelcomeEmail } = await import('@/lib/email/sendBusinessWelcomeEmail');
+          await sendBusinessWelcomeEmail({
+            to: normalizedEmail,
+            ownerName: normalized.fullName,
+            businessName: welcomeName,
+            city: normalized.city,
+          });
+        } catch (welcomeError) {
+          console.error('[REGISTER] welcome email failed', welcomeError);
+        }
+      })(),
+      (async () => {
+        try {
+          const { sendBusinessWelcomeWhatsApp } = await import(
+            '@/lib/whatsapp/sendBusinessWelcomeWhatsApp'
+          );
+          await sendBusinessWelcomeWhatsApp({
+            mobile: normalized.mobile,
+            ownerName: normalized.fullName,
+            businessName: welcomeName,
+            registrationNumber: regNo,
+          });
+        } catch (welcomeError) {
+          console.error('[REGISTER] welcome WhatsApp failed', welcomeError);
+        }
+      })(),
+    ]);
 
     try {
       await setBusinessSessionCookie(businessWithSlug.id);
