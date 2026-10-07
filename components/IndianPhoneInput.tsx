@@ -17,6 +17,7 @@ type IndianPhoneInputProps = {
   placeholder?: string;
   className?: string;
   error?: string;
+  disabled?: boolean;
 };
 
 export default function IndianPhoneInput({
@@ -28,6 +29,7 @@ export default function IndianPhoneInput({
   placeholder = '98765 43210',
   className = '',
   error,
+  disabled = false,
 }: IndianPhoneInputProps) {
   const digits = extractIndianMobileDigits(value);
   const isComplete = isValidIndianMobileDigits(digits);
@@ -41,7 +43,9 @@ export default function IndianPhoneInput({
       <div id={`field-${id}`}>
         <div
           className={`merchant-auth-phone-field merchant-auth-input-wrap relative flex items-stretch overflow-hidden rounded-[14px] border-2 bg-white transition-[border-color,box-shadow] ${
-            error
+            disabled
+              ? 'border-[#e2e8f0] opacity-80'
+              : error
               ? 'merchant-auth-field-invalid border-rose-400 shadow-[0_0_0_3px_rgba(225,29,72,0.1)]'
               : isComplete
                 ? 'border-emerald-500/80 shadow-[0_0_0_3px_rgba(16,185,129,0.12)]'
@@ -58,9 +62,10 @@ export default function IndianPhoneInput({
             onChange={(e) => handleChange(e.target.value)}
             placeholder={placeholder}
             autoFocus={autoFocus}
+            disabled={disabled}
             aria-invalid={Boolean(error)}
             aria-describedby={error ? `${id}-error` : undefined}
-            className="min-w-0 flex-1 bg-white px-3.5 py-3.5 text-[16px] font-semibold tabular-nums tracking-wide text-[#0f273b] outline-none placeholder:font-normal placeholder:text-[#94a3b8] sm:px-4 sm:py-4"
+            className="min-w-0 flex-1 bg-white px-3.5 py-3.5 disabled:cursor-not-allowed disabled:bg-[#f8fafc] text-[16px] font-semibold tabular-nums tracking-wide text-[#0f273b] outline-none placeholder:font-normal placeholder:text-[#94a3b8] sm:px-4 sm:py-4"
           />
         </div>
         <MerchantFieldError id={error ? `${id}-error` : undefined} message={error} />

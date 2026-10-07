@@ -18,7 +18,7 @@ import { SearchableSelect, type SelectOption } from '@/components/SearchableSele
 import { MerchantAuthMain, MerchantAuthPage } from '@/components/business/MerchantAuthShell';
 import MerchantRechargeButton from '@/components/business/MerchantRechargeButton';
 import type { BillingCycle } from '@/lib/razorpay/plans';
-import IndianPhoneInput, { INDIAN_PHONE_FIELD_HINT } from '@/components/IndianPhoneInput';
+import IndianPhoneInput from '@/components/IndianPhoneInput';
 import { IndiaPhonePrefix } from '@/components/IndiaPhonePrefix';
 import { formatIndianMobileDisplay } from '@/lib/indianPhone';
 import {
@@ -607,12 +607,15 @@ export default function BusinessRegisterWizard({
                     <IndianPhoneInput
                       id="publicPhone"
                       value={formData.publicPhone}
-                      onChange={(digits) => onFormPatch({ publicPhone: digits })}
+                      onChange={() => {}}
                       variant="merchant"
                       placeholder="98765 43210"
                       error={fieldErrors.publicPhone}
+                      disabled
                     />
-                    <p className="mt-2 text-xs leading-relaxed text-[#64748b]">{INDIAN_PHONE_FIELD_HINT}</p>
+                    <p className="mt-2 text-xs leading-relaxed text-[#64748b]">
+                      Customers will see the mobile number you verified in the previous step.
+                    </p>
                   </div>
                 </div>
                 <label className="mt-4 flex items-start gap-3 rounded-xl border border-[#e8edf2] bg-white px-3.5 py-3">

@@ -515,13 +515,14 @@ export async function mobileUpdateProfile(
   if (typeof patch.phone === 'string') {
     const raw = patch.phone.trim();
     const currentPhone = extractIndianMobileDigits(current?.phone || '');
+    const changing = raw ? normalizeIndianPhoneForStorage(raw) !== currentPhone : Boolean(currentPhone);
+    if (phoneLocked && currentPhone && changing) {
+      return {
+        success: false,
+        error: 'You sign in with this mobile number, so it cannot be changed.',
+      };
+    }
     if (!raw) {
-      if (phoneLocked && currentPhone) {
-        return {
-          success: false,
-          error: 'You sign in with this mobile number, so it cannot be removed. Change it to another verified number instead.',
-        };
-      }
       updates.phone = null;
     } else if (normalizeIndianPhoneForStorage(raw) !== currentPhone) {
       const phoneError = indianMobileValidationError(raw, {

@@ -129,7 +129,6 @@ export default function BusinessRegisterScreen() {
   const [pinNote, setPinNote] = useState('');
   const [pinOk, setPinOk] = useState<boolean | null>(null);
   const [pinChecking, setPinChecking] = useState(false);
-  const [samePhone, setSamePhone] = useState(true);
   const [declared, setDeclared] = useState(false);
   const [declareError, setDeclareError] = useState(false);
   const [country, setCountry] = useState(COUNTRIES[0]);
@@ -462,7 +461,7 @@ export default function BusinessRegisterScreen() {
   };
 
   const submit = async () => {
-    const phone = samePhone ? form.mobile : form.publicPhone;
+    const phone = form.mobile;
     const building = form.building.trim();
     const street = form.street.trim();
     const landmark = form.landmark.trim();
@@ -1058,33 +1057,17 @@ export default function BusinessRegisterScreen() {
                 </View>
                 <Ionicons name="chevron-forward" size={18} color={biz.faint} />
               </Pressable>
-              <Pressable
-                style={styles.toggle}
-                onPress={() => {
-                  setSamePhone((on) => !on);
-                  if (samePhone && !form.publicPhone) set('publicPhone', form.mobile);
-                }}
-              >
-                <Ionicons
-                  name={samePhone ? 'checkbox' : 'square-outline'}
-                  size={22}
-                  color={samePhone ? biz.blue : biz.faint}
-                />
-                <Text style={styles.toggleText}>Customers can call {form.mobile || 'this mobile'}</Text>
-              </Pressable>
-              {samePhone ? null : (
-                <AuthField fontFamily={UI}
-                  label="Public phone"
-                  value={form.publicPhone}
-                  onChangeText={(v) => set('publicPhone', nationalDigits(v, country.dial))}
-                  placeholder="Mobile number"
-                  keyboardType="number-pad"
-                  maxLength={country.iso === 'IN' ? 14 : 18}
-                  leftSlot={
-                    <CountryCodeButton country={country} onPress={() => setCountryOpen(true)} />
-                  }
-                />
-              )}
+              <AuthField fontFamily={UI}
+                label="Display phone number"
+                value={`+91 ${form.mobile}`}
+                editable={false}
+                dimmed
+                footer={
+                  <Text style={styles.toggleText}>
+                    Customers will see the mobile number you verified in the previous step.
+                  </Text>
+                }
+              />
               <Pressable
                 style={styles.declare}
                 onPress={() => {

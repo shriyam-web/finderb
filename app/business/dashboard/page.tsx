@@ -53,6 +53,7 @@ import MyListingTab from './components/MyListingTab';
 import SubscriptionTab from './components/SubscriptionTab';
 import SubscriptionExpiryAlert from './components/SubscriptionExpiryAlert';
 import SubscriptionExpiryBanner from './components/SubscriptionExpiryBanner';
+import PlanPurchaseBanner from './components/PlanPurchaseBanner';
 import ReviewsTab from './components/ReviewsTab';
 import { getMerchantNotifications, markMerchantNotificationsRead } from '@/app/actions/merchantNotifications';
 import { broadcastTargetsMerchants } from '@/lib/broadcastAudience';
@@ -709,7 +710,21 @@ function DashboardContent() {
       ),
     });
   }
-  if (businessId && subscriptionStatus.alertLevel !== 'none') {
+  if (businessId && business?.paymentStatus !== 'completed') {
+    dashboardBanners.push({
+      id: 'plan-purchase',
+      label: 'Choose a plan',
+      node: (
+        <PlanPurchaseBanner
+          businessId={businessId}
+          businessName={businessName}
+          fullName={business?.fullName}
+          email={business?.email || business?.workEmail}
+          mobile={business?.mobile || business?.publicPhone}
+        />
+      ),
+    });
+  } else if (businessId && subscriptionStatus.alertLevel !== 'none') {
     dashboardBanners.push({
       id: 'subscription-expiry',
       label: 'Subscription renewal',

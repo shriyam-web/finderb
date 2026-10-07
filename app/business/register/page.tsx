@@ -452,7 +452,7 @@ function RegisterFormContent() {
       setFieldErrors({});
       setFormData((prev) => ({
         ...prev,
-        publicPhone: prev.publicPhone || mobile,
+        publicPhone: mobile,
       }));
       setStep(2);
       return;
@@ -470,7 +470,7 @@ function RegisterFormContent() {
         country: formData.country,
         countryCode: formData.countryCode,
         stateCode: formData.stateCode,
-        publicPhone: formData.publicPhone,
+        publicPhone: mobile,
         addressLine1: formData.addressLine1,
         addressLine2: formData.addressLine2,
         hasSubcategories: subCategories.length > 0,
@@ -538,7 +538,7 @@ function RegisterFormContent() {
       country: formData.country,
       countryCode: formData.countryCode,
       stateCode: formData.stateCode,
-      publicPhone: formData.publicPhone,
+      publicPhone: mobile,
       addressLine1: formData.addressLine1,
       addressLine2: formData.addressLine2,
       hasSubcategories: subCategories.length > 0,
@@ -568,7 +568,7 @@ function RegisterFormContent() {
         confirmPassword: undefined,
         category: draftLabel,
         mobile,
-        publicPhone: formData.publicPhone,
+        publicPhone: mobile,
         addressLine1: formData.addressLine1,
         addressLine2: formData.addressLine2,
         businessAddress: combineBusinessAddress(formData.addressLine1, formData.addressLine2),

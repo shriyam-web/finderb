@@ -35,7 +35,7 @@ export default function SubscriptionExpiryBanner({
       : `Your plan expires in ${subscription.daysRemaining} days`;
 
   const description = isExpired
-    ? 'Lead contact details stay hidden until you recharge.'
+    ? 'Renew your plan to see who enquired and get lead alerts again.'
     : `Renew before ${subscription.expiresAt?.toLocaleDateString('en-IN', {
         day: 'numeric',
         month: 'long',
@@ -69,7 +69,7 @@ export default function SubscriptionExpiryBanner({
             fullName={fullName}
             email={email}
             mobile={mobile}
-            label={isExpired ? 'Recharge now' : 'Renew plan'}
+            label="Renew plan"
             className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#153551] px-4 py-2 text-sm font-semibold text-white hover:bg-[#215481]"
           />
           <Link

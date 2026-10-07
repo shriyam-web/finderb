@@ -101,6 +101,25 @@ async function usedByAnotherUser(userId: string, phone: string): Promise<boolean
   return Boolean(data?.length);
 }
 
+async function signInPhoneLocked(userId: string, phone: string): Promise<boolean> {
+  const client = createServiceClient();
+  if (!client) return false;
+  const { data } = await client
+    .from('User')
+    .select('authProvider, phone')
+    .eq('id', userId)
+    .maybeSingle();
+  const provider = String(data?.authProvider || '').toLowerCase();
+  const current = extractIndianMobileDigits(data?.phone || '');
+  return (
+    Boolean(current) &&
+    current !== phone &&
+    (provider === 'truecaller' || provider.includes('whatsapp'))
+  );
+}
+
+const LOCKED_ERROR = 'You sign in with this mobile number, so it cannot be changed.';
+
 const TAKEN_ERROR = 'This mobile number is already linked to another FinderB account.';
 
 function parsePhone(raw: unknown): string | null {
@@ -167,9 +186,10 @@ export async function requestPhoneVerifyCode(
 ): Promise<{ success: true; message: string } | Failure> {
   const phone = parsePhone(rawPhone);
   if (!phone) return { success: false, error: 'Enter a 10-digit Indian mobile number.' };
-  return sendPhoneCode(userId, phone, async () =>
-    (await usedByAnotherUser(userId, phone)) ? TAKEN_ERROR : null,
-  );
+  return sendPhoneCode(userId, phone, async () => {
+    if (await signInPhoneLocked(userId, phone)) return LOCKED_ERROR;
+    return (await usedByAnotherUser(userId, phone)) ? TAKEN_ERROR : null;
+  });
 }
 
 export function verifyPhoneCode(userId: string, rawPhone: unknown, code: string) {

@@ -224,8 +224,8 @@ function DashboardContent() {
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-[58] flex h-screen w-[272px] flex-col border-r border-zinc-200/80 bg-white transition-transform duration-300 lg:tranzinc-x-0 ${
-          isSidebarOpen ? 'tranzinc-x-0 shadow-xl' : '-tranzinc-x-full'
+        className={`fixed inset-y-0 left-0 z-[58] flex h-screen w-[272px] flex-col border-r border-zinc-200/80 bg-white transition-transform duration-300 lg:translate-x-0 ${
+          isSidebarOpen ? 'translate-x-0 shadow-xl' : '-translate-x-full'
         }`}
       >
         <div className="flex h-14 shrink-0 items-center justify-between border-b border-zinc-100 px-5 lg:h-16 lg:px-6">
@@ -339,7 +339,7 @@ function DashboardContent() {
                   <div className="relative flex-1">
                     <Search
                       size={18}
-                      className="pointer-events-none absolute left-3.5 top-1/2 -tranzinc-y-1/2 text-zinc-400"
+                      className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400"
                     />
                     <input
                       type="text"
@@ -445,7 +445,7 @@ function DashboardContent() {
                       <Link
                         key={biz.id}
                         href={getBusinessProfilePath(biz)}
-                        className="flex gap-3 rounded-xl border border-zinc-200/80 p-3 transition-colors hover:border-zinc-300 hover:bg-zinc-50/50"
+                        className="flex min-w-0 gap-3 rounded-xl border border-zinc-200/80 p-3 transition-colors hover:border-zinc-300 hover:bg-zinc-50/50"
                       >
                         <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-zinc-100">
                           <Image
@@ -570,7 +570,7 @@ function DashboardContent() {
                         <Link
                           key={biz.id}
                           href={getBusinessProfilePath(biz)}
-                          className="flex items-center gap-3 rounded-xl border border-zinc-100 p-3 hover:border-zinc-300"
+                          className="flex min-w-0 items-center gap-3 rounded-xl border border-zinc-100 p-3 hover:border-zinc-300"
                         >
                           <Building2 size={18} className="shrink-0 text-zinc-900" />
                           <span className="truncate text-sm font-medium text-zinc-800">{biz.name}</span>

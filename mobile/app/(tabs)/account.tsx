@@ -108,8 +108,9 @@ export default function AccountScreen() {
   const emailVerified = emailChanging && emailProofFor === nextEmail && Boolean(emailProof);
   const signInPhone = providerKey === 'truecaller' || providerKey.includes('whatsapp');
   const savedPhone = lastTenDigits(user?.phone);
+  const phoneLocked = signInPhone && Boolean(savedPhone);
   const phoneValid = /^[6-9]\d{9}$/.test(phoneDraft);
-  const phoneChanging = Boolean(phoneDraft) && phoneDraft !== savedPhone;
+  const phoneChanging = !phoneLocked && Boolean(phoneDraft) && phoneDraft !== savedPhone;
   const phoneVerified = phoneChanging && phoneProofFor === phoneDraft && Boolean(phoneProof);
   const phoneBusy = phoneSending || phoneVerifying || truecallerVerifying;
 
@@ -165,10 +166,6 @@ export default function AccountScreen() {
       setSaveError('Enter a valid 10-digit Indian mobile number.');
       return;
     }
-    if (!phoneDraft && savedPhone && signInPhone) {
-      setSaveError('You sign in with this mobile number, so it cannot be removed.');
-      return;
-    }
     if (phoneChanging && !phoneVerified) {
       setSaveError('Verify the new mobile number on WhatsApp or with Truecaller before saving.');
       return;
@@ -182,7 +179,7 @@ export default function AccountScreen() {
     const result = await updateProfile({
       fullName: nameDraft.trim(),
       email: emailLocked ? undefined : emailDraft.trim() || undefined,
-      phone: phoneDraft,
+      phone: phoneLocked ? undefined : phoneDraft,
       emailVerificationToken: emailChanging ? emailProof : undefined,
       phoneVerificationToken: phoneChanging ? phoneProof : undefined,
     });
@@ -387,6 +384,17 @@ export default function AccountScreen() {
                       <Text style={styles.editHint}>Add or change your email, then verify it with a code.</Text>
                     )}
                     <Text style={styles.editLabel}>Mobile number</Text>
+                    {phoneLocked ? (
+                      <>
+                        <Text style={styles.lockedValue}>
+                          +91 {savedPhone.slice(0, 5)} {savedPhone.slice(5)}
+                        </Text>
+                        <Text style={styles.editHint}>
+                          You sign in with this number, so it stays as it is.
+                        </Text>
+                      </>
+                    ) : (
+                    <>
                     <View style={styles.phoneRow}>
                       <Text style={styles.phonePrefix}>+91</Text>
                       <TextInput
@@ -471,10 +479,10 @@ export default function AccountScreen() {
                         ? 'Number verified. Tap Save to keep it.'
                         : phoneChanging
                           ? 'A new number is saved only after you verify it on WhatsApp or with Truecaller.'
-                          : signInPhone
-                            ? 'You sign in with this number. To change it, type the new number and verify it.'
-                            : 'To change your number, type the new one and verify it on WhatsApp or with Truecaller.'}
+                          : 'To change your number, type the new one and verify it on WhatsApp or with Truecaller.'}
                     </Text>
+                    </>
+                    )}
                     {saveError ? (
                       <Text style={styles.saveError}>{saveError}</Text>
                     ) : null}

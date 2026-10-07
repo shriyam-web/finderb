@@ -1,15 +1,10 @@
 import Constants from 'expo-constants';
 
-/** Display version for About / footer (native build version when available). */
+/** User-facing version for About / footer; the internal build number is never shown. */
 export function getAppVersionLabel(): string {
-  const native =
+  const version =
     Constants.nativeApplicationVersion?.trim() ||
     Constants.expoConfig?.version?.trim() ||
     '1.0.0';
-  const build =
-    Constants.nativeBuildVersion?.trim() ||
-    (typeof Constants.expoConfig?.android?.versionCode === 'number'
-      ? String(Constants.expoConfig.android.versionCode)
-      : '');
-  return build ? `Version ${native} (${build})` : `Version ${native}`;
+  return `Version ${version}`;
 }

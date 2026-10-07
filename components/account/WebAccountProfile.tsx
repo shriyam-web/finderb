@@ -375,6 +375,10 @@ export default function WebAccountProfile({
   const phone = extractIndianMobileDigits(user.phone || '');
   const provider = String(user.authProvider || '').toLowerCase();
   const emailLocked = provider === 'google' ? 'Managed by your Google sign-in.' : undefined;
+  const phoneLocked =
+    phone && (provider === 'truecaller' || provider.includes('whatsapp'))
+      ? 'You sign in with this number, so it stays as it is.'
+      : undefined;
   const memberSince = user.createdAt
     ? new Date(user.createdAt).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
     : null;
@@ -479,7 +483,7 @@ export default function WebAccountProfile({
       <div className="divide-y divide-zinc-100 rounded-2xl border border-zinc-200 bg-white">
         <NameRow key={`name-${name}`} name={name} save={save} />
         <VerifiedContactRow key={`email-${email}`} kind="email" current={email} locked={emailLocked} save={save} />
-        <VerifiedContactRow key={`phone-${phone}`} kind="phone" current={phone} save={save} />
+        <VerifiedContactRow key={`phone-${phone}`} kind="phone" current={phone} locked={phoneLocked} save={save} />
       </div>
     </div>
   );
