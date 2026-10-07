@@ -1952,5 +1952,7 @@ html.site-text-only canvas:not(.text-only-keep) {
 
 .maintenance-screen,
 .maintenance-screen * {
-  font-family: var(--font-sans);
+  font-family: var(--font-inter), Inter, system-ui, sans-serif !important;
+  letter-spacing: normal;
+  text-transform: none;
 }

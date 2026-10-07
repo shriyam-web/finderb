@@ -91,11 +91,9 @@ export default function MaintenanceScreen({ runtime }: { runtime: SiteRuntime })
         </h1>
         <p className="mt-4 text-[15px] leading-7 text-[#4b5563]">{runtime.message}</p>
         {until ? (
-          <div className="mt-8 rounded-2xl border border-[#e7e5e4] bg-white px-5 py-4 text-sm text-[#374151]">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-[#9ca3af]">
-              Maintenance window
-            </p>
-            <p className="mt-2 leading-6">Until {until} IST</p>
+          <div className="mt-8 rounded-2xl border border-[#e7e5e4] bg-white px-5 py-4 text-sm leading-6 text-[#374151]">
+            <p className="text-[#9ca3af]">Maintenance window</p>
+            <p className="mt-1">Until {until} IST</p>
           </div>
         ) : null}
       </div>
