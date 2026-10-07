@@ -22,7 +22,11 @@ import {
   normalizeIndianPhoneForStorage,
 } from '@/lib/indianPhone';
 import { assertPhoneProof } from '@/lib/auth/phoneVerify.server';
-import { findBusinessForIdentity } from '@/lib/auth/merchantPortal.server';
+import {
+  BUSINESS_PROFILE_LOCKED_MESSAGE,
+  findBusinessForIdentity,
+  withBusinessProfile,
+} from '@/lib/auth/merchantPortal.server';
 import { syncOAuthUserToAppSession } from '@/lib/auth/syncOAuthUser.server';
 import { createClient as createSupabaseJsClient } from '@supabase/supabase-js';
 import { escapeIlikePattern } from '@/lib/searchMatch';
@@ -108,7 +112,7 @@ async function enrichWithBusinessLink(user: MobileAuthUser): Promise<MobileAuthU
   }
 
   return {
-    ...user,
+    ...withBusinessProfile(user, business),
     isBusinessAccount: true,
     businessId: business.id,
     businessName: business.businessName || null,
@@ -439,6 +443,20 @@ function isCloudinaryImageUrl(url: unknown) {
   }
 }
 
+async function isBusinessLinkedUser(
+  user: { email?: string | null; phone?: string | null } | null | undefined,
+): Promise<boolean> {
+  if (!user) return false;
+  return Boolean(await findBusinessForIdentity({ email: user.email, phone: user.phone }));
+}
+
+/** Business-linked logins take their profile from the business, so it is edited only there. */
+export async function businessProfileLockError(userId: string): Promise<string | null> {
+  const supabase = dbClient() ?? createClient(await cookies());
+  const { data } = await supabase.from('User').select('email, phone').eq('id', userId).maybeSingle();
+  return (await isBusinessLinkedUser(data)) ? BUSINESS_PROFILE_LOCKED_MESSAGE : null;
+}
+
 export async function mobileUpdateProfile(
   userId: string,
   patch: {
@@ -458,6 +476,9 @@ export async function mobileUpdateProfile(
     .select('authProvider, email, phone')
     .eq('id', userId)
     .maybeSingle();
+  if (await isBusinessLinkedUser(current)) {
+    return { success: false, error: BUSINESS_PROFILE_LOCKED_MESSAGE };
+  }
   const provider = String(current?.authProvider || '').toLowerCase();
   const emailLocked = provider === 'google';
   const phoneLocked = provider === 'truecaller' || provider.includes('whatsapp');

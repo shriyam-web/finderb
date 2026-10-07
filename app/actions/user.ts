@@ -23,6 +23,7 @@ import {
 } from '@/lib/security/session';
 import { enforceRateLimit } from '@/lib/security/enforceRateLimit.server';
 import { deleteUserAccountById } from '@/lib/accountDeletion.server';
+import { findBusinessForIdentity, withBusinessProfile } from '@/lib/auth/merchantPortal.server';
 
 const USER_PUBLIC_FIELDS =
   'id, fullName, email, favorites, searchHistory, createdAt, updatedAt, avatarUrl, phone, authProvider';
@@ -233,7 +234,17 @@ export async function getSession() {
   if (!userId) return null;
   const result = await getUser(userId);
   if (!result.success || !result.user) return null;
-  return { success: true, user: result.user };
+  const user = result.user as { email?: string | null; phone?: string | null };
+  const business = await findBusinessForIdentity({ email: user.email, phone: user.phone });
+  if (!business) return { success: true, user: { ...result.user, isBusinessAccount: false } };
+  return {
+    success: true,
+    user: {
+      ...withBusinessProfile(result.user, business),
+      isBusinessAccount: true,
+      businessName: business.businessName,
+    },
+  };
 }
 
 export async function toggleFavorite(businessId: string) {

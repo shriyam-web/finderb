@@ -2,7 +2,8 @@
 
 import { useRef, useState } from 'react';
 import Image from 'next/image';
-import { BadgeCheck, Camera, Pencil, User as UserIcon } from 'lucide-react';
+import Link from 'next/link';
+import { BadgeCheck, Camera, Pencil, Store, User as UserIcon } from 'lucide-react';
 import AvatarCropModal from '@/components/account/AvatarCropModal';
 import OtpCodeBoxes from '@/components/auth/OtpCodeBoxes';
 import IndianPhoneInput from '@/components/IndianPhoneInput';
@@ -25,7 +26,11 @@ export type WebAccountUser = {
   avatarUrl?: string | null;
   authProvider?: string | null;
   createdAt?: string | null;
+  isBusinessAccount?: boolean;
+  businessName?: string | null;
 };
+
+const BUSINESS_SETTINGS_PATH = '/business/dashboard?tab=settings';
 
 type SaveResult = { ok: true } | { ok: false; error: string };
 
@@ -71,6 +76,71 @@ function VerifiedTag() {
       <BadgeCheck size={12} />
       Verified
     </span>
+  );
+}
+
+function ReadOnlyRow({ label, value, verified }: { label: string; value: string; verified?: boolean }) {
+  return (
+    <div className={rowClass}>
+      <p className={labelClass}>{label}</p>
+      <div className="mt-1.5 flex flex-wrap items-center gap-2">
+        <span className={`break-all text-[15px] font-medium ${value ? 'text-zinc-900' : 'text-zinc-400'}`}>
+          {value || 'Not added'}
+        </span>
+        {value && verified ? <VerifiedTag /> : null}
+      </div>
+    </div>
+  );
+}
+
+function BusinessAccountProfile({ user }: { user: WebAccountUser }) {
+  const name = String(user.fullName || '').trim();
+  const rawEmail = String(user.email || '').trim().toLowerCase();
+  const email = isSyntheticLoginEmail(rawEmail) ? '' : rawEmail;
+  const phone = extractIndianMobileDigits(user.phone || '');
+  const businessName = String(user.businessName || '').trim();
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-col gap-5 rounded-2xl border border-zinc-200 bg-white p-5 sm:flex-row sm:items-center sm:p-6">
+        {user.avatarUrl ? (
+          <Image
+            src={user.avatarUrl}
+            alt={businessName || name || 'Business photo'}
+            width={80}
+            height={80}
+            unoptimized
+            className="h-20 w-20 shrink-0 rounded-full object-cover ring-1 ring-zinc-200"
+          />
+        ) : (
+          <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-zinc-700 ring-1 ring-zinc-200">
+            <Store size={30} />
+          </div>
+        )}
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-lg font-semibold text-zinc-900">{businessName || name || 'Your business'}</p>
+          <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-800 ring-1 ring-inset ring-amber-200">
+            <Store size={12} />
+            Business account
+          </span>
+          <p className="mt-2 text-sm text-zinc-500">
+            These details come from your business profile. Change them, and the photo, from your business dashboard.
+          </p>
+          <Link
+            href={BUSINESS_SETTINGS_PATH}
+            className="mt-3 inline-flex items-center gap-1.5 rounded-xl bg-zinc-900 px-3.5 py-2 text-sm font-semibold text-white transition hover:bg-zinc-800"
+          >
+            Open business settings
+          </Link>
+        </div>
+      </div>
+
+      <div className="divide-y divide-zinc-100 rounded-2xl border border-zinc-200 bg-white">
+        <ReadOnlyRow label="Owner name" value={name} />
+        <ReadOnlyRow label="Email" value={email} verified />
+        <ReadOnlyRow label="Mobile number" value={phone ? `+91 ${formatIndianMobileDisplay(phone)}` : ''} verified />
+      </div>
+    </div>
   );
 }
 
@@ -359,6 +429,17 @@ function VerifiedContactRow({ kind, current, locked, save }: OtpRowProps) {
 }
 
 export default function WebAccountProfile({
+  user,
+  onUserChange,
+}: {
+  user: WebAccountUser;
+  onUserChange: (patch: Partial<WebAccountUser>) => void;
+}) {
+  if (user.isBusinessAccount) return <BusinessAccountProfile user={user} />;
+  return <PersonalAccountProfile user={user} onUserChange={onUserChange} />;
+}
+
+function PersonalAccountProfile({
   user,
   onUserChange,
 }: {

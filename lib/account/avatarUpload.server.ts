@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { mobileUpdateProfile } from '@/lib/auth/mobileAuth.server';
+import { businessProfileLockError, mobileUpdateProfile } from '@/lib/auth/mobileAuth.server';
 
 const MAX_BYTES = 3_000_000;
 const DATA_URI = /^data:image\/(jpeg|png|webp);base64,([A-Za-z0-9+/=]+)$/;
@@ -12,6 +12,8 @@ export async function uploadUserAvatar(userId: string, dataUri: unknown) {
   if (Math.floor((match[2].length * 3) / 4) > MAX_BYTES) {
     return { success: false as const, error: 'This photo is too large. Choose a smaller one.' };
   }
+  const locked = await businessProfileLockError(userId);
+  if (locked) return { success: false as const, error: locked };
 
   const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
   const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;

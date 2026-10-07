@@ -63,6 +63,7 @@ export default function AccountScreen() {
   const scrollBottomPad = useTabScrollPadding(28);
 
   const [editing, setEditing] = useState(false);
+  const businessAccount = Boolean(user?.isBusinessAccount);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
   const [nameDraft, setNameDraft] = useState('');
@@ -287,10 +288,16 @@ export default function AccountScreen() {
                 <View style={styles.profileTop}>
                   <Pressable
                     onPress={openAvatarMenu}
-                    disabled={avatarBusy}
+                    disabled={avatarBusy || businessAccount}
                     hitSlop={6}
-                    accessibilityRole="button"
-                    accessibilityLabel={user.avatarUrl ? 'Change profile photo' : 'Add profile photo'}
+                    accessibilityRole={businessAccount ? 'image' : 'button'}
+                    accessibilityLabel={
+                      businessAccount
+                        ? 'Business photo'
+                        : user.avatarUrl
+                          ? 'Change profile photo'
+                          : 'Add profile photo'
+                    }
                   >
                     {user.avatarUrl ? (
                       <Image source={{ uri: user.avatarUrl }} style={styles.avatar} alt="Profile photo" />
@@ -306,14 +313,21 @@ export default function AccountScreen() {
                         <ActivityIndicator color={colors.white} />
                       </View>
                     ) : null}
-                    <View style={styles.avatarBadge}>
-                      <Ionicons name="camera" size={12} color={colors.white} />
-                    </View>
+                    {businessAccount ? null : (
+                      <View style={styles.avatarBadge}>
+                        <Ionicons name="camera" size={12} color={colors.white} />
+                      </View>
+                    )}
                   </Pressable>
                   <View style={styles.profileCopy}>
                     <Text style={styles.profileName} numberOfLines={1}>
                       {user.fullName}
                     </Text>
+                    {businessAccount ? (
+                      <Text style={styles.profileBusiness} numberOfLines={1}>
+                        {user.businessName ? `${user.businessName} · Business account` : 'Business account'}
+                      </Text>
+                    ) : null}
                     <Text style={styles.profileMeta} numberOfLines={1}>
                       {displayAccountEmail(user.email) || 'No email'}
                     </Text>
@@ -321,17 +335,26 @@ export default function AccountScreen() {
                       {user.phone?.trim() || 'No mobile'}
                     </Text>
                   </View>
-                  <Pressable
-                    style={styles.editBtn}
-                    onPress={startEdit}
-                    hitSlop={8}
-                    accessibilityLabel="Edit profile"
-                  >
-                    <Ionicons name="create-outline" size={16} color={colors.ink} />
-                  </Pressable>
+                  {businessAccount ? null : (
+                    <Pressable
+                      style={styles.editBtn}
+                      onPress={startEdit}
+                      hitSlop={8}
+                      accessibilityLabel="Edit profile"
+                    >
+                      <Ionicons name="create-outline" size={16} color={colors.ink} />
+                    </Pressable>
+                  )}
                 </View>
 
-                {editing ? (
+                {businessAccount ? (
+                  <Text style={styles.businessNote}>
+                    These details come from your business profile. Change them, and the photo, from the business
+                    dashboard.
+                  </Text>
+                ) : null}
+
+                {editing && !businessAccount ? (
                   <View style={styles.editBlock}>
                     <Text style={styles.editLabel}>Name</Text>
                     <TextInput
@@ -774,6 +797,19 @@ const useStyles = createThemedStyles((colors) => ({
     fontFamily: fonts.regular,
     fontSize: 13,
     lineHeight: 18,
+    color: colors.textMuted,
+  },
+  profileBusiness: {
+    fontFamily: fonts.semiBold,
+    fontSize: 12,
+    lineHeight: 17,
+    color: '#B7791F',
+  },
+  businessNote: {
+    marginTop: 12,
+    fontFamily: fonts.regular,
+    fontSize: 12,
+    lineHeight: 17,
     color: colors.textMuted,
   },
   editBtn: {

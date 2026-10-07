@@ -16,6 +16,10 @@ export type LinkedBusiness = {
   paymentStatus: string | null;
   planExpiresAt: string | null;
   billingCycle: string | null;
+  ownerName: string | null;
+  contactEmail: string | null;
+  contactMobile: string | null;
+  profilePictureUrl: string | null;
 };
 
 async function db() {
@@ -50,7 +54,9 @@ export async function findBusinessForIdentity(input: {
 
   const { data } = await (await db())
     .from('Business')
-    .select('id, businessName, slug, selectedPlan, paymentStatus, planExpiresAt, billingCycle')
+    .select(
+      'id, businessName, slug, selectedPlan, paymentStatus, planExpiresAt, billingCycle, fullName, owner_name, workEmail, email, mobile, owner_mobile, profilePictureUrl',
+    )
     .or(filters.join(','))
     .limit(1);
 
@@ -63,9 +69,17 @@ export async function findBusinessForIdentity(input: {
         paymentStatus?: string | null;
         planExpiresAt?: string | null;
         billingCycle?: string | null;
+        fullName?: string | null;
+        owner_name?: string | null;
+        workEmail?: string | null;
+        email?: string | null;
+        mobile?: string | null;
+        owner_mobile?: string | null;
+        profilePictureUrl?: string | null;
       }
     | undefined;
   if (!row?.id) return null;
+  const text = (value: string | null | undefined) => value?.trim() || null;
   return {
     id: row.id,
     businessName: row.businessName ?? null,
@@ -74,8 +88,28 @@ export async function findBusinessForIdentity(input: {
     paymentStatus: row.paymentStatus ?? null,
     planExpiresAt: row.planExpiresAt ?? null,
     billingCycle: row.billingCycle ?? null,
+    ownerName: text(row.owner_name) ?? text(row.fullName),
+    contactEmail: text(row.workEmail)?.toLowerCase() ?? text(row.email)?.toLowerCase() ?? null,
+    contactMobile: extractIndianMobileDigits(row.mobile || row.owner_mobile || '') || null,
+    profilePictureUrl: text(row.profilePictureUrl),
   };
 }
+
+/** A user login linked to a business shows the business owner's details instead of its own. */
+export function withBusinessProfile<
+  T extends { fullName?: string | null; email?: string | null; phone?: string | null; avatarUrl?: string | null },
+>(user: T, business: LinkedBusiness): T {
+  return {
+    ...user,
+    fullName: business.ownerName || business.businessName || user.fullName,
+    email: business.contactEmail || user.email,
+    phone: business.contactMobile || user.phone,
+    avatarUrl: business.profilePictureUrl || user.avatarUrl,
+  };
+}
+
+export const BUSINESS_PROFILE_LOCKED_MESSAGE =
+  'This is a business account. Update the name, email, mobile and photo from your business dashboard.';
 
 /** Open the website merchant panel session when this user owns a business. */
 export async function openMerchantPortalForUser(
