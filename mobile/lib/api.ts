@@ -681,7 +681,7 @@ export async function fetchSubCategories(
     return { subCategories: [], error: 'Supabase is not configured' };
   }
 
-  return subCategoryMemo.get(
+  const result = await subCategoryMemo.get(
     parentId,
     async () => {
       const client = supabase;
@@ -721,6 +721,8 @@ export async function fetchSubCategories(
     },
     force,
   );
+  if (result.error) subCategoryMemo.delete(parentId);
+  return result;
 }
 
 async function loadMerchantList(

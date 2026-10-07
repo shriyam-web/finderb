@@ -1,3 +1,4 @@
+import { mobileInputDigits } from './phoneInput';
 import { SITE_URL, supabase } from './supabase';
 
 export type RegisterPayload = {
@@ -65,10 +66,7 @@ export async function verifyBusinessPhoneOtp(mobile: string, code: string): Prom
 }
 
 function storedMobile(value: string) {
-  let digits = value.replace(/\D/g, '');
-  if (digits.length > 10 && digits.startsWith('91')) digits = digits.slice(2);
-  if (digits.length === 11 && digits.startsWith('0')) digits = digits.slice(1);
-  return digits.slice(0, 10);
+  return mobileInputDigits(value);
 }
 
 export const EMAIL_TAKEN = 'This email is already registered with FinderB Business. Log in instead, or use another email.';

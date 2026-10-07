@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -23,12 +23,7 @@ import { fonts } from '../../constants/typography';
 import { useTabScrollPadding } from '../../hooks/useAppSafeArea';
 import { otpSendLabel, useOtpCooldown } from '../../hooks/useOtpCooldown';
 import { createThemedStyles } from '../../hooks/useThemedStyles';
-import {
-  fetchExploreCategories,
-  fetchSubCategories,
-  type HomeCategory,
-  type SubCategory,
-} from '../../lib/api';
+import { fetchAllCategories, type HomeCategory } from '../../lib/api';
 import {
   checkBusinessTaken,
   EMAIL_TAKEN,
@@ -42,6 +37,7 @@ import {
 } from '../../lib/businessRegister';
 import { citiesInState, INDIAN_STATES } from '../../lib/indianPlaces';
 import { checkPinInsideCity, type MapPin } from '../../lib/mapPlace';
+import { mobileInputDigits, PHONE_INPUT_MAX_LENGTH } from '../../lib/phoneInput';
 import { ShopMapPicker } from '../../components/ShopMapPicker';
 import { OtpCodeBoxes } from '../../components/OtpCodeBoxes';
 import { SITE_URL } from '../../lib/supabase';
@@ -77,13 +73,6 @@ function flagEmoji(iso: string) {
     .replace(/./g, (char) => String.fromCodePoint(127397 + char.charCodeAt(0)));
 }
 
-function nationalDigits(value: string, dial: string) {
-  let next = value.replace(/\D/g, '');
-  if (next.startsWith(dial) && next.length > dial.length + 4) next = next.slice(dial.length);
-  if (next.startsWith('0')) next = next.replace(/^0+/, '');
-  return next.slice(0, dial === '91' ? 10 : 15);
-}
-
 function passwordMeter(password: string) {
   const rules = [
     { ok: password.length >= 8, label: '8 characters', tip: 'Use at least 8 characters' },
@@ -116,14 +105,16 @@ export default function BusinessRegisterScreen() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [parents, setParents] = useState<HomeCategory[]>([]);
-  const [subs, setSubs] = useState<SubCategory[]>([]);
+  const [catalogState, setCatalogState] = useState<{ categories: HomeCategory[]; error?: string } | null>(null);
   const [parent, setParent] = useState<HomeCategory | null>(null);
-  const [sub, setSub] = useState<SubCategory | null>(null);
+  const [sub, setSub] = useState<HomeCategory | null>(null);
+  const [leaf, setLeaf] = useState<HomeCategory | null>(null);
   const [categoryQuery, setCategoryQuery] = useState('');
   const [placeMenu, setPlaceMenu] = useState<null | 'state' | 'city'>(null);
   const [placeQuery, setPlaceQuery] = useState('');
   const [mapOpen, setMapOpen] = useState(false);
+  const [mapLive, setMapLive] = useState(false);
+  const mapCloseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [pin, setPin] = useState<MapPin | null>(null);
   const [pinNote, setPinNote] = useState('');
   const [pinOk, setPinOk] = useState<boolean | null>(null);
@@ -163,26 +154,83 @@ export default function BusinessRegisterScreen() {
     publicPhone: '',
   });
 
+  useEffect(
+    () => () => {
+      if (mapCloseTimer.current) clearTimeout(mapCloseTimer.current);
+    },
+    [],
+  );
+
+  const openMap = () => {
+    if (!form.city) return;
+    if (mapCloseTimer.current) clearTimeout(mapCloseTimer.current);
+    setMapOpen(true);
+  };
+
+  // Android crashes if the map WebView is torn down while the Modal window is animating
+  // away, so the WebView unmounts first and the Modal closes a moment later.
+  const closeMap = () => {
+    setMapLive(false);
+    if (mapCloseTimer.current) clearTimeout(mapCloseTimer.current);
+    mapCloseTimer.current = setTimeout(() => setMapOpen(false), 120);
+  };
+
   const set = (key: keyof typeof form, value: string) => {
     setForm((prev) => ({ ...prev, [key]: value }));
     setError('');
   };
 
   useEffect(() => {
-    void fetchExploreCategories(80).then((res) => setParents(res.categories || []));
+    let live = true;
+    void fetchAllCategories().then((res) => {
+      if (live) setCatalogState(res);
+    });
+    return () => {
+      live = false;
+    };
   }, []);
 
-  useEffect(() => {
-    if (!parent) {
-      setSubs([]);
-      setSub(null);
-      return;
+  const retryCatalog = () => {
+    setCatalogState(null);
+    void fetchAllCategories(true).then(setCatalogState);
+  };
+
+  const catalog = useMemo(() => catalogState?.categories ?? [], [catalogState]);
+  const catalogFailed = Boolean(catalogState && catalog.length === 0);
+  const categoryById = useMemo(() => new Map(catalog.map((item) => [item.id, item])), [catalog]);
+  const childrenOf = useMemo(() => {
+    const map = new Map<string, HomeCategory[]>();
+    for (const item of catalog) {
+      if (!item.parentId) continue;
+      const list = map.get(item.parentId) ?? [];
+      list.push(item);
+      map.set(item.parentId, list);
     }
-    void fetchSubCategories(parent.id, parent.name).then((res) => {
-      setSubs((res.subCategories || []).filter((item) => !item.id.startsWith('all:')));
-      setSub(null);
-    });
-  }, [parent]);
+    return map;
+  }, [catalog]);
+  const parents = useMemo(() => catalog.filter((item) => !item.parentId), [catalog]);
+  const subs = parent ? (childrenOf.get(parent.id) ?? []) : [];
+  const leaves = sub ? (childrenOf.get(sub.id) ?? []) : [];
+
+  const chooseCategory = (item: HomeCategory) => {
+    const chain: HomeCategory[] = [item];
+    let cursor = item.parentId ? categoryById.get(item.parentId) : undefined;
+    while (cursor && chain.length < 4) {
+      chain.unshift(cursor);
+      cursor = cursor.parentId ? categoryById.get(cursor.parentId) : undefined;
+    }
+    setParent(chain[0]);
+    setSub(chain[1] ?? null);
+    setLeaf(chain[2] ?? null);
+    setCategoryQuery(item.name);
+    setError('');
+  };
+
+  const chooseSub = (item: HomeCategory) => {
+    setSub(item);
+    setLeaf(null);
+    setError('');
+  };
 
   const meter = passwordMeter(form.password.trim());
   const countryMatches = useMemo(() => {
@@ -321,15 +369,26 @@ export default function BusinessRegisterScreen() {
     mobileOk && country.iso === 'IN',
   );
   const toBusinessLogin = () => router.push('/(tabs)/business-login' as Href);
-  const categoryLabel = [parent?.name, sub?.name].filter(Boolean).join(' › ');
-
+  // Same stored label as the website: the two deepest picked levels, and a group root is never stored.
+  const categoryLabel = leaf && sub
+    ? `${sub.name} › ${leaf.name}`
+    : sub && parent
+      ? parent.level === 0
+        ? sub.name
+        : `${parent.name} › ${sub.name}`
+      : parent?.name || '';
   const categoryMatches = useMemo(() => {
     const q = categoryQuery.trim().toLowerCase();
-    const list = q
-      ? parents.filter((item) => item.name.toLowerCase().includes(q))
-      : parents;
-    return list.slice(0, 8);
-  }, [categoryQuery, parents]);
+    if (!q) return parents.slice(0, 12);
+    const rank = (item: HomeCategory) => {
+      const name = item.name.toLowerCase();
+      return (name.startsWith(q) ? 0 : 2) + (item.parentId ? 1 : 0);
+    };
+    return catalog
+      .filter((item) => item.name.toLowerCase().includes(q))
+      .sort((a, b) => rank(a) - rank(b))
+      .slice(0, 12);
+  }, [catalog, categoryQuery, parents]);
 
   const cityChoices = useMemo(() => citiesInState(form.state), [form.state]);
 
@@ -688,10 +747,12 @@ export default function BusinessRegisterScreen() {
               <AuthField fontFamily={UI}
                 label="Mobile"
                 value={form.mobile}
-                onChangeText={(v) => set('mobile', nationalDigits(v, country.dial))}
+                onChangeText={(v) => set('mobile', mobileInputDigits(v, form.mobile, country.dial))}
                 placeholder="Mobile number"
-                keyboardType="number-pad"
-                maxLength={country.iso === 'IN' ? 14 : 18}
+                keyboardType="phone-pad"
+                autoComplete="tel"
+                textContentType="telephoneNumber"
+                maxLength={PHONE_INPUT_MAX_LENGTH}
                 onBlur={checkMobileTaken}
                 leftSlot={
                   <CountryCodeButton country={country} onPress={() => setCountryOpen(true)} />
@@ -991,29 +1052,45 @@ export default function BusinessRegisterScreen() {
                 fontFamily={UI}
                 label="Category"
                 value={categoryQuery}
-                onChangeText={setCategoryQuery}
+                onChangeText={(text) => {
+                  setCategoryQuery(text);
+                  if (parent) {
+                    setParent(null);
+                    setSub(null);
+                    setLeaf(null);
+                  }
+                }}
                 placeholder="Search, like gym or salon"
               />
               <View style={styles.chipWrap}>
-                {parents.length === 0 ? <ActivityIndicator color={biz.blue} /> : null}
+                {!catalogState ? <ActivityIndicator color={biz.blue} /> : null}
                 {categoryMatches.map((item) => {
-                  const on = parent?.id === item.id;
+                  const on = item.id === parent?.id || item.id === sub?.id || item.id === leaf?.id;
+                  const above = item.parentId ? categoryById.get(item.parentId)?.name : undefined;
                   return (
                     <Pressable
                       key={item.id}
-                      onPress={() => {
-                        setParent(item);
-                        setCategoryQuery(item.name);
-                      }}
+                      onPress={() => chooseCategory(item)}
                       style={[styles.chip, on && styles.chipOn]}
                     >
-                      <Text style={[styles.chipText, on && styles.chipTextOn]}>{item.name}</Text>
+                      <Text style={[styles.chipText, on && styles.chipTextOn]}>
+                        {item.name}
+                        {above ? (
+                          <Text style={[styles.chipContext, on && styles.chipTextOn]}>{`  ·  ${above}`}</Text>
+                        ) : null}
+                      </Text>
                     </Pressable>
                   );
                 })}
               </View>
-              {categoryQuery.trim() && categoryMatches.length === 0 ? (
+              {catalogFailed ? (
+                <Pressable onPress={retryCatalog} hitSlop={8}>
+                  <Text style={styles.quiet}>Could not load categories. Tap to try again.</Text>
+                </Pressable>
+              ) : categoryQuery.trim() && categoryMatches.length === 0 ? (
                 <Text style={styles.quiet}>Nothing named that. Try a shorter word.</Text>
+              ) : !categoryQuery.trim() && parents.length > categoryMatches.length ? (
+                <Text style={styles.searchHint}>Type to search all {catalog.length} categories and subcategories.</Text>
               ) : null}
               {subs.length > 0 ? (
                 <>
@@ -1024,7 +1101,26 @@ export default function BusinessRegisterScreen() {
                       return (
                         <Pressable
                           key={item.id}
-                          onPress={() => setSub(item)}
+                          onPress={() => chooseSub(item)}
+                          style={[styles.chip, on && styles.chipTeal]}
+                        >
+                          <Text style={[styles.chipText, on && styles.chipTextOn]}>{item.name}</Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                </>
+              ) : null}
+              {leaves.length > 0 ? (
+                <>
+                  <Text style={styles.fieldLabel}>More specific (optional)</Text>
+                  <View style={styles.chipWrap}>
+                    {leaves.map((item) => {
+                      const on = leaf?.id === item.id;
+                      return (
+                        <Pressable
+                          key={item.id}
+                          onPress={() => setLeaf(on ? null : item)}
                           style={[styles.chip, on && styles.chipTeal]}
                         >
                           <Text style={[styles.chipText, on && styles.chipTextOn]}>{item.name}</Text>
@@ -1086,7 +1182,7 @@ export default function BusinessRegisterScreen() {
               />
               <Pressable
                 style={[styles.mapLaunch, !form.city && styles.mapLaunchOff]}
-                onPress={() => form.city && setMapOpen(true)}
+                onPress={openMap}
                 disabled={!form.city}
               >
                 <Ionicons name="map-outline" size={22} color={form.city ? biz.blue : biz.faint} />
@@ -1204,22 +1300,23 @@ export default function BusinessRegisterScreen() {
       <Modal
         visible={mapOpen}
         animationType="slide"
-        onRequestClose={() => setMapOpen(false)}
+        onShow={() => setMapLive(true)}
+        onRequestClose={closeMap}
       >
         <SafeAreaView style={styles.mapScreen} edges={['top', 'bottom']}>
           <View style={styles.mapBar}>
-            <Pressable onPress={() => setMapOpen(false)} hitSlop={10} accessibilityLabel="Close map">
+            <Pressable onPress={closeMap} hitSlop={10} accessibilityLabel="Close map">
               <Ionicons name="close" size={24} color={biz.ink} />
             </Pressable>
             <View style={styles.mapBarCopy}>
               <Text style={styles.mapBarTitle}>Location on map</Text>
               <Text style={styles.mapBarSub}>Optional. A pin has to sit inside {form.city}.</Text>
             </View>
-            <Pressable onPress={() => setMapOpen(false)} hitSlop={10}>
+            <Pressable onPress={closeMap} hitSlop={10}>
               <Text style={styles.mapDone}>Done</Text>
             </Pressable>
           </View>
-          {form.city ? (
+          {form.city && mapLive ? (
             <ShopMapPicker
               fill
               city={form.city}
@@ -1230,7 +1327,11 @@ export default function BusinessRegisterScreen() {
               checking={pinChecking}
               onPin={placePin}
             />
-          ) : null}
+          ) : (
+            <View style={styles.mapPending}>
+              <ActivityIndicator color={biz.blue} />
+            </View>
+          )}
         </SafeAreaView>
       </Modal>
       <Modal
@@ -1665,6 +1766,14 @@ const useStyles = createThemedStyles((colors) => {
   chipTeal: { backgroundColor: b.blueFill, borderColor: b.blue },
   chipText: { fontFamily: UI, fontSize: 13, color: b.ink },
   chipTextOn: { color: b.onFill },
+  chipContext: { fontFamily: UI, fontSize: 12, color: b.faint },
+  searchHint: {
+    marginTop: -4,
+    marginBottom: 12,
+    fontFamily: UI,
+    fontSize: 12,
+    color: b.faint,
+  },
   quiet: {
     marginBottom: 10,
     fontFamily: UI,
@@ -1777,6 +1886,7 @@ const useStyles = createThemedStyles((colors) => {
     fontSize: 16,
     color: b.blue,
   },
+  mapPending: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   mapWait: {
     marginTop: -2,
     marginBottom: 12,

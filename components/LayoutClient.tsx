@@ -55,6 +55,8 @@ import PWAInstallPrompt from "@/components/pwa/PWAInstallPrompt";
 import ScrollRestoration from "@/components/ScrollRestoration";
 import ScrollToTopButton from "@/components/ScrollToTopButton";
 import { UserLocationProvider } from '@/hooks/useUserCoords';
+import { useMobileGate } from '@/hooks/useMobileGate';
+import { VERIFY_MOBILE_PATH } from '@/lib/mobileGate';
 
 function isHomePage(pathname: string | null) {
   return pathname === '/';
@@ -62,6 +64,7 @@ function isHomePage(pathname: string | null) {
 
 export default function LayoutClient({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  useMobileGate();
   const businessDashboardRoute = isBusinessDashboardRoute(pathname);
   const businessProfileRoute = isBusinessProfileRoute(pathname);
   const merchantAppShell = isMerchantAppShell(pathname);
@@ -77,6 +80,7 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
     isCategoriesBrowse ||
     businessProfileRoute ||
     userDashboardRoute ||
+    pathname === VERIFY_MOBILE_PATH ||
     isBusinessOnboardingPreview(pathname);
   const [loading, setLoading] = useState(!skipSplash);
   const hideTopNavFooter =

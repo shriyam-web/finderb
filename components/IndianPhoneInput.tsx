@@ -35,6 +35,12 @@ export default function IndianPhoneInput({
   const isComplete = isValidIndianMobileDigits(digits);
 
   const handleChange = (raw: string) => {
+    const typed = raw.replace(/\D/g, '');
+    // Typing past a complete number keeps it; otherwise a mobile starting with 91 would lose its first digits.
+    if (isComplete && !raw.trim().startsWith('+') && typed.length > digits.length && typed.startsWith(digits)) {
+      onChange(digits);
+      return;
+    }
     onChange(extractIndianMobileDigits(raw));
   };
 

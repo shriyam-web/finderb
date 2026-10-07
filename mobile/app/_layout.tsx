@@ -1,6 +1,6 @@
 import 'react-native-gesture-handler';
 import { useEffect } from 'react';
-import { Stack, useRouter, type Href } from 'expo-router';
+import { Stack, useRouter, useSegments, type Href } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as Font from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
@@ -9,7 +9,7 @@ import {
   SafeAreaProvider,
   initialWindowMetrics,
 } from 'react-native-safe-area-context';
-import { AuthProvider } from '../context/AuthContext';
+import { AuthProvider, useAuth } from '../context/AuthContext';
 import { LocationProvider } from '../context/LocationContext';
 import { LoginPromptProvider } from '../context/LoginPromptContext';
 import { NotificationInboxProvider } from '../context/NotificationInboxContext';
@@ -35,9 +35,41 @@ SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
 void warmupHomeSession().catch(() => undefined);
 
+/** Screens a signed-in customer without a verified mobile can still reach. */
+const MOBILE_GATE_OPEN = new Set([
+  'verify-phone',
+  'index',
+  'welcome',
+  'login',
+  'signup',
+  'auth',
+  'forgot-password',
+  'reset-password',
+  'delete-account',
+  'merchant-welcome',
+  'business-app',
+  'business',
+  'business-login',
+  'business-register',
+]);
+
+function hasIndianMobile(phone: string | null | undefined) {
+  const digits = (phone || '').replace(/\D/g, '').replace(/^91(?=\d{10}$)/, '');
+  return /^[6-9]\d{9}$/.test(digits);
+}
+
 function RootNavigator() {
   const { colors } = useTheme();
   const router = useRouter();
+  const segments: string[] = useSegments();
+  const { user, loading } = useAuth();
+  const needsMobile = Boolean(user && !user.isBusinessAccount && !hasIndianMobile(user.phone));
+  const gateOpen = segments.length === 0 || segments.some((segment) => MOBILE_GATE_OPEN.has(segment));
+
+  useEffect(() => {
+    if (loading || !needsMobile || gateOpen) return;
+    router.replace('/verify-phone' as Href);
+  }, [gateOpen, loading, needsMobile, router]);
 
   useEffect(() => {
     void ensureAndroidNotificationChannels();
@@ -113,6 +145,10 @@ function RootNavigator() {
           <Stack.Screen
             name="notifications"
             options={{ animation: 'slide_from_right' }}
+          />
+          <Stack.Screen
+            name="verify-phone"
+            options={{ animation: 'fade', gestureEnabled: false }}
           />
         </Stack>
   );

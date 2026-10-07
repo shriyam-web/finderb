@@ -16,6 +16,7 @@ import { createThemedStyles } from '../hooks/useThemedStyles';
 import { useBottomInset } from '../hooks/useAppSafeArea';
 import { useOtpCooldown } from '../hooks/useOtpCooldown';
 import { requestWhatsAppOtp, verifyWhatsAppOtp, type WhatsAppAudience } from '../lib/authApi';
+import { mobileInputDigits, PHONE_INPUT_MAX_LENGTH } from '../lib/phoneInput';
 import type { AuthUser } from '../lib/session';
 
 const OTP_LENGTH = 6;
@@ -152,13 +153,14 @@ export function WhatsAppOtpSheet({ visible, audience, onClose, onSuccess }: Prop
                 label="Mobile number"
                 value={phone}
                 onChangeText={(value) => {
-                  setPhone(value.replace(/\D/g, '').slice(0, 10));
+                  setPhone(mobileInputDigits(value, phone));
                   setError('');
                 }}
                 placeholder="10-digit mobile number"
-                keyboardType="number-pad"
-                maxLength={10}
+                keyboardType="phone-pad"
+                maxLength={PHONE_INPUT_MAX_LENGTH}
                 autoComplete="tel"
+                textContentType="telephoneNumber"
                 autoFocus
                 leftSlot={<Text style={styles.prefix}>+91</Text>}
                 onSubmitEditing={() => void send()}

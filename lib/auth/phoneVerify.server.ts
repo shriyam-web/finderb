@@ -89,6 +89,14 @@ export function assertPhoneProof(
   }
 }
 
+/** Customer accounts made with Google or email have no mobile yet and must verify one before browsing. */
+export async function userNeedsMobile(userId: string): Promise<boolean> {
+  const client = createServiceClient() ?? createClient(await cookies());
+  const { data } = await client.from('User').select('phone').eq('id', userId).maybeSingle();
+  if (!data) return false;
+  return !isValidIndianMobileDigits(extractIndianMobileDigits(data.phone || ''));
+}
+
 async function usedByAnotherUser(userId: string, phone: string): Promise<boolean> {
   const client = createServiceClient();
   if (!client) return false;

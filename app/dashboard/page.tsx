@@ -39,6 +39,7 @@ import {
 import WebAccountProfile from '@/components/account/WebAccountProfile';
 import { isSyntheticLoginEmail } from '@/lib/syntheticLoginEmail';
 import { formatIndianMobileDisplay } from '@/lib/indianPhone';
+import { needsMobileNumber, verifyMobileHref } from '@/lib/mobileGate';
 
 type UserUpdate = {
   id: string;
@@ -85,6 +86,10 @@ function DashboardContent() {
       ]);
 
       if (session?.success) {
+        if (needsMobileNumber(session.user)) {
+          router.replace(verifyMobileHref('/dashboard'));
+          return;
+        }
         setUser(session.user);
         const favIds: string[] = Array.isArray(session.user?.favorites)
           ? session.user.favorites

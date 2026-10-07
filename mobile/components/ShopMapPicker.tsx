@@ -286,7 +286,7 @@ export function ShopMapPicker({ city, state, pin, note, noteOk, checking, onPin,
                 manualPinAtRef.current = Date.now();
                 onPin(next);
               }}
-              style={styles.map}
+              style={[styles.map, Platform.OS === 'android' && styles.mapAndroid]}
             />
           )
         ) : center && !MAPS_KEY ? (
@@ -387,6 +387,8 @@ const useStyles = createThemedStyles((colors) => {
     backgroundColor: b.cardMuted,
   },
   map: { flex: 1, backgroundColor: b.cardMuted },
+  // Android WebView inside animated containers can crash the renderer at full opacity.
+  mapAndroid: { opacity: 0.99 },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   actions: {
     flexDirection: 'row',

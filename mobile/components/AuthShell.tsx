@@ -26,9 +26,10 @@ type Props = {
   subtitle?: string;
   children: ReactNode;
   footer: ReactNode;
+  hideBack?: boolean;
 };
 
-export function AuthShell({ title, subtitle, children, footer }: Props) {
+export function AuthShell({ title, subtitle, children, footer, hideBack }: Props) {
   const { colors, gradients } = useTheme();
   const styles = useStyles();
   const router = useRouter();
@@ -69,14 +70,18 @@ export function AuthShell({ title, subtitle, children, footer }: Props) {
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
           <View style={styles.topBar}>
-            <Pressable
-              style={styles.backBtn}
-              onPress={() => goBackOrHome(router)}
-              hitSlop={8}
-              accessibilityLabel="Go back"
-            >
-              <Ionicons name="chevron-back" size={20} color={colors.ink} />
-            </Pressable>
+            {hideBack ? (
+              <View style={styles.topSpacer} />
+            ) : (
+              <Pressable
+                style={styles.backBtn}
+                onPress={() => goBackOrHome(router)}
+                hitSlop={8}
+                accessibilityLabel="Go back"
+              >
+                <Ionicons name="chevron-back" size={20} color={colors.ink} />
+              </Pressable>
+            )}
 
             <View style={styles.brandRow}>
               <FinderBLogo size={26} />

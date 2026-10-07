@@ -3,6 +3,8 @@ import { cookies } from 'next/headers';
 import { createClient } from '@/utils/supabase/server';
 import { syncOAuthUserToAppSession } from '@/lib/auth/syncOAuthUser.server';
 import { openMerchantPortalForUser } from '@/lib/auth/merchantPortal.server';
+import { userNeedsMobile } from '@/lib/auth/phoneVerify.server';
+import { VERIFY_MOBILE_PATH } from '@/lib/mobileGate';
 import {
   getSafeRedirectPath,
   isMerchantPortalPath,
@@ -66,6 +68,11 @@ export async function GET(request: Request) {
   const redirectUrl = new URL(next, origin);
   if (syncResult.isNewUser) {
     redirectUrl.searchParams.set('welcome', '1');
+  }
+  if (!linked && (await userNeedsMobile(syncResult.userId))) {
+    const verifyUrl = new URL(VERIFY_MOBILE_PATH, origin);
+    verifyUrl.searchParams.set('next', `${redirectUrl.pathname}${redirectUrl.search}`);
+    return NextResponse.redirect(verifyUrl.toString());
   }
   return NextResponse.redirect(redirectUrl.toString());
 }

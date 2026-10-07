@@ -12,9 +12,24 @@ const STATS = [
 ];
 
 type UserAuthShellProps = {
-  mode: 'login' | 'signup';
+  mode: 'login' | 'signup' | 'verify';
   children: ReactNode;
   footer: ReactNode;
+};
+
+const ASIDE_COPY = {
+  login: {
+    title: 'Your city, saved and ready',
+    body: 'Pick up saved places, reviews, and favourites across 300+ cities — sign in once and keep exploring.',
+  },
+  signup: {
+    title: 'Discover what\u2019s around you',
+    body: 'Save favourites, write reviews, and find trusted local businesses. One account for everything FinderB.',
+  },
+  verify: {
+    title: 'One last step',
+    body: 'A verified mobile keeps your account secure and lets businesses you contact reach you back.',
+  },
 };
 
 export function UserAuthDivider({ label = 'or continue with email' }: { label?: string }) {
@@ -52,7 +67,7 @@ export function UserAuthTrustRow() {
 }
 
 export default function UserAuthShell({ mode, children, footer }: UserAuthShellProps) {
-  const isLogin = mode === 'login';
+  const copy = ASIDE_COPY[mode];
 
   return (
     <div className="relative min-h-[calc(100dvh-5rem)] overflow-hidden bg-[#eef3f9] px-4 pb-10 pt-24 sm:px-6 sm:pt-28 md:pt-32 lg:min-h-[calc(100dvh-4rem)] lg:pt-36 lg:pb-14 xl:pt-40">
@@ -112,13 +127,9 @@ export default function UserAuthShell({ mode, children, footer }: UserAuthShellP
             </Link>
             <div className="mt-14 max-w-sm">
               <h1 className="text-[1.85rem] font-bold leading-snug tracking-tight !text-white xl:text-[2.1rem]">
-                {isLogin ? 'Your city, saved and ready' : 'Discover what\u2019s around you'}
+                {copy.title}
               </h1>
-              <p className="mt-3 text-sm leading-relaxed text-white/72">
-                {isLogin
-                  ? 'Pick up saved places, reviews, and favourites across 300+ cities — sign in once and keep exploring.'
-                  : 'Save favourites, write reviews, and find trusted local businesses. One account for everything FinderB.'}
-              </p>
+              <p className="mt-3 text-sm leading-relaxed text-white/72">{copy.body}</p>
             </div>
           </div>
 

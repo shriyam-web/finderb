@@ -37,6 +37,7 @@ import {
   verifyPhoneWithTruecaller,
   verifyUserEmailOtp,
 } from '../../lib/authApi';
+import { mobileInputDigits, PHONE_INPUT_MAX_LENGTH } from '../../lib/phoneInput';
 import { displayAccountEmail } from '../../lib/syntheticEmail';
 import { SITE_URL } from '../../lib/supabase';
 import { getAppVersionLabel } from '../../lib/appVersion';
@@ -492,17 +493,19 @@ export default function AccountScreen() {
                       <TextInput
                         value={phoneDraft}
                         onChangeText={(value) => {
-                          const next = value.replace(/\D/g, '').slice(0, 10);
+                          const next = mobileInputDigits(value, phoneDraft);
                           if (next !== phoneDraft) setPhoneCode('');
                           setSaveError('');
                           setPhoneHint('');
                           setPhoneDraft(next);
                         }}
-                        keyboardType="number-pad"
+                        keyboardType="phone-pad"
+                        autoComplete="tel"
+                        textContentType="telephoneNumber"
                         style={[styles.editInput, styles.phoneInput]}
                         placeholder="10-digit mobile"
                         placeholderTextColor={colors.textSoft}
-                        maxLength={10}
+                        maxLength={PHONE_INPUT_MAX_LENGTH}
                       />
                       {phoneChanging && !phoneVerified ? (
                         <Pressable
