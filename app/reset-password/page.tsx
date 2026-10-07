@@ -9,6 +9,7 @@ import UserAuthShell, { UserAuthTrustRow } from '@/components/auth/UserAuthShell
 function ResetPasswordContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const forBusiness = searchParams.get('for') === 'business';
   const [email, setEmail] = useState(searchParams.get('email') || '');
   const [code, setCode] = useState(searchParams.get('code') || '');
   const [password, setPassword] = useState('');
@@ -40,7 +41,7 @@ function ResetPasswordContent() {
         return;
       }
       setSuccess('Password updated. You can sign in now.');
-      setTimeout(() => router.push('/login'), 900);
+      setTimeout(() => router.push(forBusiness ? '/business/login' : '/login'), 900);
     } catch {
       setError('Network error. Please try again.');
     } finally {
@@ -55,7 +56,7 @@ function ResetPasswordContent() {
         <div className="space-y-4 border-t border-slate-100 pt-6">
           <p className="text-center text-sm text-slate-500">
             Need a new code?{' '}
-            <Link href="/forgot-password" className="font-semibold text-[#215481] hover:text-[#1a4367]">
+            <Link href={forBusiness ? '/forgot-password?for=business' : '/forgot-password'} className="font-semibold text-[#215481] hover:text-[#1a4367]">
               Request again
             </Link>
           </p>

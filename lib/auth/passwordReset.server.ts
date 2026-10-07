@@ -11,6 +11,7 @@ import {
 } from '@/lib/security/password';
 import { sendPasswordResetEmail } from '@/lib/email/sendPasswordResetEmail';
 import { SITE_ORIGIN } from '@/lib/siteSeo';
+import { escapeIlikePattern } from '@/lib/searchMatch';
 
 const PASSWORD_RESET_PURPOSE = 'password-reset';
 const GENERIC_OK =
@@ -32,6 +33,26 @@ export type PasswordResetFailure = {
 
 function dbClient() {
   return createServiceClient();
+}
+
+type ResetDb = NonNullable<ReturnType<typeof createServiceClient>> | ReturnType<typeof createClient>;
+
+async function merchantIdsForEmail(supabase: ResetDb, email: string): Promise<string[]> {
+  const pattern = `"${escapeIlikePattern(email).replace(/[\\"]/g, '\\$&')}"`;
+  const { data, error } = await supabase
+    .from('Business')
+    .select('id')
+    .or(`workEmail.ilike.${pattern},email.ilike.${pattern}`)
+    .limit(8);
+  if (error) {
+    console.error('[password-reset] business lookup failed', error);
+    return [];
+  }
+  return (data || []).map((row: { id: string }) => row.id).filter(Boolean);
+}
+
+function usesPassword(provider: string) {
+  return !provider || provider === 'email' || provider === 'password';
 }
 
 function providerLabel(provider: string): string {
@@ -57,12 +78,14 @@ export async function requestPasswordReset(
     .eq('email', normalized)
     .maybeSingle();
 
-  if (!user) {
+  const merchantIds = await merchantIdsForEmail(supabase, normalized);
+
+  if (!user && !merchantIds.length) {
     return { success: true, message: GENERIC_OK, next: 'none' };
   }
 
-  const provider = String(user.authProvider || '').trim().toLowerCase();
-  if (provider && provider !== 'email' && provider !== 'password') {
+  const provider = String(user?.authProvider || '').trim().toLowerCase();
+  if (!merchantIds.length && !usesPassword(provider)) {
     return {
       success: true,
       message: `This account uses ${providerLabel(provider)}. Sign in with ${providerLabel(provider)} instead of a password.`,
@@ -126,12 +149,15 @@ export async function completePasswordReset(input: {
     .eq('email', email)
     .maybeSingle();
 
-  if (!user) {
+  const merchantIds = await merchantIdsForEmail(supabase, email);
+
+  if (!user && !merchantIds.length) {
     return { success: false, error: 'That code is invalid or expired. Request a new one.' };
   }
 
-  const provider = String(user.authProvider || '').trim().toLowerCase();
-  if (provider && provider !== 'email' && provider !== 'password') {
+  const provider = String(user?.authProvider || '').trim().toLowerCase();
+  const updateUser = Boolean(user) && usesPassword(provider);
+  if (!updateUser && !merchantIds.length) {
     return {
       success: false,
       error: `This account uses ${providerLabel(provider)}. Sign in with ${providerLabel(provider)} instead.`,
@@ -139,14 +165,28 @@ export async function completePasswordReset(input: {
   }
 
   const hashed = await hashPassword(password);
-  const { error } = await supabase
-    .from('User')
-    .update({ password: hashed, updatedAt: new Date().toISOString() })
-    .eq('id', user.id);
+  const now = new Date().toISOString();
 
-  if (error) {
-    console.error('[password-reset] update failed', error);
-    return { success: false, error: 'Could not update your password. Please try again.' };
+  if (merchantIds.length) {
+    const { error } = await supabase
+      .from('Business')
+      .update({ password: hashed, updatedAt: now })
+      .in('id', merchantIds);
+    if (error) {
+      console.error('[password-reset] business update failed', error);
+      return { success: false, error: 'Could not update your password. Please try again.' };
+    }
+  }
+
+  if (updateUser && user) {
+    const { error } = await supabase
+      .from('User')
+      .update({ password: hashed, updatedAt: now })
+      .eq('id', user.id);
+    if (error) {
+      console.error('[password-reset] update failed', error);
+      return { success: false, error: 'Could not update your password. Please try again.' };
+    }
   }
 
   return { success: true };

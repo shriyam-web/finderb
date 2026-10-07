@@ -212,7 +212,11 @@ export default function BusinessLoginPage() {
                           Password
                         </label>
                         <Link
-                          href="#"
+                          href={
+                            email.includes('@')
+                              ? `/forgot-password?for=business&email=${encodeURIComponent(email.trim())}`
+                              : '/forgot-password?for=business'
+                          }
                           className="text-xs font-medium text-[#215481] hover:text-[#153551] hover:underline"
                         >
                           Forgot password?

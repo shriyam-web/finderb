@@ -15,7 +15,8 @@ export default function ForgotPasswordScreen() {
   const { colors } = useTheme();
   const styles = useStyles();
   const router = useRouter();
-  const params = useLocalSearchParams<{ email?: string }>();
+  const params = useLocalSearchParams<{ email?: string; for?: string }>();
+  const forBusiness = params.for === 'business';
   const bottomInset = useBottomInset(20);
   const [email, setEmail] = useState(typeof params.email === 'string' ? params.email : '');
   const [loading, setLoading] = useState(false);
@@ -43,7 +44,7 @@ export default function ForgotPasswordScreen() {
     if (result.next === 'code') {
       router.push({
         pathname: '/reset-password',
-        params: { email: email.trim() },
+        params: forBusiness ? { email: email.trim(), for: 'business' } : { email: email.trim() },
       });
       return;
     }
@@ -81,7 +82,11 @@ export default function ForgotPasswordScreen() {
               onPress={() => void handleSubmit()}
               loading={loading}
             />
-            <Pressable onPress={() => router.push('/login')} hitSlop={8} style={styles.backLink}>
+            <Pressable
+              onPress={() => (forBusiness ? router.back() : router.push('/login'))}
+              hitSlop={8}
+              style={styles.backLink}
+            >
               <Text style={[styles.backText, { color: colors.brand }]}>Back to sign in</Text>
             </Pressable>
           </View>

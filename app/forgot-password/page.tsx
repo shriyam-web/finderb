@@ -3,12 +3,15 @@
 import { Suspense, useState } from 'react';
 import Link from 'next/link';
 import { Mail, AlertCircle, CheckCircle2, ArrowRight } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import UserAuthShell, { UserAuthTrustRow } from '@/components/auth/UserAuthShell';
 
 function ForgotPasswordContent() {
   const router = useRouter();
-  const [email, setEmail] = useState('');
+  const searchParams = useSearchParams();
+  const forBusiness = searchParams.get('for') === 'business';
+  const signInPath = forBusiness ? '/business/login' : '/login';
+  const [email, setEmail] = useState(searchParams.get('email') || '');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
@@ -51,7 +54,9 @@ function ForgotPasswordContent() {
       }
 
       if (data.next === 'code') {
-        router.push(`/reset-password?email=${encodeURIComponent(email.trim())}`);
+        router.push(
+          `/reset-password?email=${encodeURIComponent(email.trim())}${forBusiness ? '&for=business' : ''}`,
+        );
         return;
       }
 
@@ -70,7 +75,7 @@ function ForgotPasswordContent() {
         <div className="space-y-4 border-t border-slate-100 pt-6">
           <p className="text-center text-sm text-slate-500">
             Remembered it?{' '}
-            <Link href="/login" className="font-semibold text-[#215481] hover:text-[#1a4367]">
+            <Link href={signInPath} className="font-semibold text-[#215481] hover:text-[#1a4367]">
               Sign in
             </Link>
           </p>
@@ -97,7 +102,7 @@ function ForgotPasswordContent() {
           <AlertCircle size={17} className="mt-0.5 shrink-0" />
           <div>
             <p>{oauthHint}</p>
-            <Link href="/login" className="mt-2 inline-flex font-semibold text-[#215481] underline-offset-2 hover:underline">
+            <Link href={signInPath} className="mt-2 inline-flex font-semibold text-[#215481] underline-offset-2 hover:underline">
               Go to sign in
             </Link>
           </div>

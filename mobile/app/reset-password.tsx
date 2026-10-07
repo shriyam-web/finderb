@@ -15,7 +15,8 @@ export default function ResetPasswordScreen() {
   const { colors } = useTheme();
   const styles = useStyles();
   const router = useRouter();
-  const params = useLocalSearchParams<{ email?: string }>();
+  const params = useLocalSearchParams<{ email?: string; for?: string }>();
+  const forBusiness = params.for === 'business';
   const bottomInset = useBottomInset(20);
   const [email, setEmail] = useState(typeof params.email === 'string' ? params.email : '');
   const [code, setCode] = useState('');
@@ -45,7 +46,10 @@ export default function ResetPasswordScreen() {
       return;
     }
     setSuccess('Password updated. You can sign in now.');
-    setTimeout(() => router.replace('/login'), 800);
+    setTimeout(
+      () => router.replace(forBusiness ? '/(tabs)/business-login' : '/login'),
+      800,
+    );
   };
 
   return (
@@ -106,7 +110,13 @@ export default function ResetPasswordScreen() {
               loading={loading}
             />
             <Pressable
-              onPress={() => router.push('/forgot-password')}
+              onPress={() =>
+                router.push(
+                  forBusiness
+                    ? { pathname: '/forgot-password', params: { for: 'business', email: email.trim() } }
+                    : '/forgot-password',
+                )
+              }
               hitSlop={8}
               style={styles.backLink}
             >

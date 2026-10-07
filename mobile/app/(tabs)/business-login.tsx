@@ -155,6 +155,19 @@ export default function BusinessLoginScreen() {
             }
           />
           <Pressable
+            onPress={() =>
+              router.push({
+                pathname: '/forgot-password',
+                params: { for: 'business', email: email.trim().toLowerCase() },
+              })
+            }
+            hitSlop={8}
+            style={styles.forgotBtn}
+            accessibilityRole="button"
+          >
+            <Text style={styles.forgotText}>Forgot password?</Text>
+          </Pressable>
+          <Pressable
             style={({ pressed }) => [styles.primaryBtn, pressed && styles.pressed, busy && styles.disabled]}
             onPress={() => void handleEmail()}
             disabled={busy}
@@ -233,6 +246,12 @@ const useStyles = createThemedStyles((colors) => {
     color: b.body,
   },
   alert: { marginBottom: 12 },
+  forgotBtn: { alignSelf: 'flex-end', marginTop: -2, marginBottom: 8, paddingVertical: 4 },
+  forgotText: {
+    fontFamily: fonts.medium,
+    fontSize: 13,
+    color: b.blue,
+  },
   primaryBtn: {
     marginTop: 6,
     minHeight: 52,
