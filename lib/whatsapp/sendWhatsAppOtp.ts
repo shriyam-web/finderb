@@ -59,8 +59,11 @@ function userErrorForCloudFailure(status: number, error: CloudError | null): str
   if (code === 132001 || /template name does not exist/i.test(detail)) {
     return 'WhatsApp could not find the login template. Confirm finderb_login_otp is approved in English.';
   }
-  if (code === 132000 || code === 132012 || /parameter/i.test(detail)) {
+  if (code === 132000 || code === 132012) {
     return 'WhatsApp rejected the login template parameters. Confirm the Copy code authentication template.';
+  }
+  if (code === 100 || code === 131009) {
+    return 'WhatsApp could not send a code to this number. Use your own WhatsApp mobile number and try again.';
   }
   if (code === 133010 || /not registered/i.test(detail)) {
     return 'This number is not on WhatsApp. Use the WhatsApp mobile number for this account.';
@@ -80,13 +83,7 @@ function userErrorForCloudFailure(status: number, error: CloudError | null): str
 function shouldRetryTemplate(error: CloudError | null) {
   const code = error?.code;
   const detail = `${error?.message || ''} ${error?.error_user_msg || ''}`;
-  return (
-    code === 132000 ||
-    code === 132001 ||
-    code === 132012 ||
-    /template/i.test(detail) ||
-    /parameter/i.test(detail)
-  );
+  return code === 132000 || code === 132001 || code === 132012 || /template/i.test(detail);
 }
 
 async function postTemplate(input: {
