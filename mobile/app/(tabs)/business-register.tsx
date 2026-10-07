@@ -37,13 +37,16 @@ import {
   MOBILE_TAKEN,
   mobileTakenMessage,
   requestBusinessEmailOtp,
+  requestBusinessPhoneOtp,
   submitBusinessRegistration,
   verifyBusinessEmailOtp,
+  verifyBusinessPhoneOtp,
   type BusinessTaken,
 } from '../../lib/businessRegister';
 import { citiesInState, INDIAN_STATES } from '../../lib/indianPlaces';
 import { checkPinInsideCity, type MapPin } from '../../lib/mapPlace';
 import { ShopMapPicker } from '../../components/ShopMapPicker';
+import { OtpCodeBoxes } from '../../components/OtpCodeBoxes';
 import { SITE_URL } from '../../lib/supabase';
 
 const UI = fonts.medium;
@@ -139,6 +142,12 @@ export default function BusinessRegisterScreen() {
   const [emailOtpVerifying, setEmailOtpVerifying] = useState(false);
   const [emailOtpHint, setEmailOtpHint] = useState('');
   const emailOtp = useOtpCooldown();
+  const [mobileCode, setMobileCode] = useState('');
+  const [mobileProof, setMobileProof] = useState('');
+  const [mobileProofFor, setMobileProofFor] = useState('');
+  const [mobileOtpSending, setMobileOtpSending] = useState(false);
+  const [mobileOtpVerifying, setMobileOtpVerifying] = useState(false);
+  const mobileOtp = useOtpCooldown();
   const [form, setForm] = useState({
     fullName: '',
     mobile: '',
@@ -210,6 +219,39 @@ export default function BusinessRegisterScreen() {
     }
     emailOtp.markSent(workEmail);
     setEmailOtpHint(result.message);
+  };
+  const mobileVerified = Boolean(mobileProof) && mobileProofFor === form.mobile;
+  const mobileCodeOpen = mobileOtp.isSentTo(form.mobile);
+  const mobileCodeWaiting = mobileOtp.isWaiting(form.mobile);
+
+  const sendMobileCode = async () => {
+    if (!mobileOk || country.iso !== 'IN' || mobileCodeWaiting || mobileOtpSending) return;
+    setMobileCode('');
+    setError('');
+    setMobileOtpSending(true);
+    const result = await requestBusinessPhoneOtp(form.mobile);
+    setMobileOtpSending(false);
+    if (!result.success) {
+      setError(result.error);
+      return;
+    }
+    mobileOtp.markSent(form.mobile);
+  };
+
+  const verifyMobileCode = async (value = mobileCode) => {
+    if (value.length !== 6 || mobileOtpVerifying) return;
+    setError('');
+    setMobileOtpVerifying(true);
+    const result = await verifyBusinessPhoneOtp(form.mobile, value);
+    setMobileOtpVerifying(false);
+    if (!result.success || !result.phoneVerificationToken) {
+      setMobileCode('');
+      setError(result.success ? 'Could not verify that number.' : result.error);
+      return;
+    }
+    setMobileProof(result.phoneVerificationToken);
+    setMobileProofFor(form.mobile);
+    setMobileCode('');
   };
   const nameOk = form.fullName.trim().length >= 2;
   const [emailTaken, checkEmailTaken] = useTakenCheck('email', form.email, emailOk);
@@ -330,6 +372,10 @@ export default function BusinessRegisterScreen() {
       setError('Enter a 10-digit mobile starting with 6, 7, 8, or 9.');
       return;
     }
+    if (!mobileVerified) {
+      setError('Verify your mobile number with the WhatsApp OTP before continuing.');
+      return;
+    }
     if (!emailOk) {
       setError('Enter a valid work email.');
       return;
@@ -439,6 +485,7 @@ export default function BusinessRegisterScreen() {
       fullName: form.fullName.trim(),
       email: form.email.trim().toLowerCase(),
       emailVerificationToken: emailProof,
+      phoneVerificationToken: mobileVerified ? mobileProof : '',
       password: form.password.trim(),
       mobile: form.mobile,
       businessName: form.businessName.trim(),
@@ -461,6 +508,9 @@ export default function BusinessRegisterScreen() {
           takenKey(result.taken, result.taken === 'email' ? form.email : form.mobile),
           result.error === EMAIL_IS_USER || result.error === MOBILE_IS_USER ? 'user' : 'taken',
         );
+        setStep(1);
+      } else if (/whatsapp otp|mobile verification/i.test(result.error || '')) {
+        setMobileProof('');
         setStep(1);
       }
       setError(result.error || 'Registration failed.');
@@ -574,6 +624,28 @@ export default function BusinessRegisterScreen() {
                 leftSlot={
                   <CountryCodeButton country={country} onPress={() => setCountryOpen(true)} />
                 }
+                rightSlot={
+                  mobileVerified ? (
+                    <Ionicons name="checkmark-circle" size={22} color={biz.success} />
+                  ) : (
+                    <Pressable
+                      onPress={() => void sendMobileCode()}
+                      disabled={mobileOtpSending || mobileCodeWaiting || !mobileOk || country.iso !== 'IN'}
+                      style={[
+                        styles.otpInline,
+                        styles.otpInlineWhatsApp,
+                        (mobileOtpSending || mobileCodeWaiting || !mobileOk || country.iso !== 'IN') &&
+                          styles.disabled,
+                      ]}
+                    >
+                      <Text style={styles.otpInlineText}>
+                        {mobileOtpSending
+                          ? '…'
+                          : otpSendLabel(mobileCodeOpen, mobileCodeWaiting, mobileOtp.secondsLeft)}
+                      </Text>
+                    </Pressable>
+                  )
+                }
               />
               <Status
                 ok={mobileOk && mobileTaken !== 'taken' && mobileTaken !== 'user'}
@@ -596,6 +668,45 @@ export default function BusinessRegisterScreen() {
                 }
                 action={mobileTaken === 'taken' ? { label: 'Log in', onPress: toBusinessLogin } : undefined}
               />
+              {mobileVerified ? (
+                <Text style={styles.otpHint}>Mobile verified on WhatsApp.</Text>
+              ) : mobileCodeOpen ? (
+                <View style={styles.otpBox}>
+                  <Text style={styles.otpSentText}>
+                    OTP has been sent to the WhatsApp account linked to{' '}
+                    <Text style={styles.otpSentPhone}>
+                      +91 {form.mobile.slice(0, 5)} {form.mobile.slice(5)}
+                    </Text>
+                  </Text>
+                  <OtpCodeBoxes
+                    value={mobileCode}
+                    onChange={(value) => {
+                      setMobileCode(value);
+                      setError('');
+                    }}
+                    onComplete={(value) => void verifyMobileCode(value)}
+                    disabled={mobileOtpVerifying}
+                    autoFocus
+                  />
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.otpWhatsAppBtn,
+                      pressed && styles.pressed,
+                      (mobileOtpVerifying || mobileCode.length !== 6) && styles.disabled,
+                    ]}
+                    disabled={mobileOtpVerifying || mobileCode.length !== 6}
+                    onPress={() => void verifyMobileCode()}
+                  >
+                    {mobileOtpVerifying ? (
+                      <ActivityIndicator color="#FFFFFF" />
+                    ) : (
+                      <Text style={styles.otpWhatsAppBtnText}>Verify mobile</Text>
+                    )}
+                  </Pressable>
+                </View>
+              ) : mobileOk && country.iso === 'IN' ? (
+                <Text style={styles.otpLead}>Tap Send OTP to get a 6-digit code on this number’s WhatsApp.</Text>
+              ) : null}
               <AuthField fontFamily={UI}
                 label="Work email"
                 value={form.email}
@@ -1693,6 +1804,29 @@ const useStyles = createThemedStyles((colors) => {
   otpInlineText: {
     fontFamily: UI,
     fontSize: 12,
+    color: '#FFFFFF',
+  },
+  otpInlineWhatsApp: { backgroundColor: '#128C7E' },
+  otpSentText: {
+    fontFamily: UI,
+    fontSize: 13,
+    lineHeight: 19,
+    color: b.body,
+    textAlign: 'center',
+    marginBottom: 6,
+  },
+  otpSentPhone: { color: b.ink },
+  otpWhatsAppBtn: {
+    marginTop: 12,
+    minHeight: 46,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#128C7E',
+  },
+  otpWhatsAppBtnText: {
+    fontFamily: UI,
+    fontSize: 14,
     color: '#FFFFFF',
   },
   otpActions: {

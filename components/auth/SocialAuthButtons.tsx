@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useOtpCooldown } from '@/hooks/useOtpCooldown';
+import { useVisualViewportBox } from '@/hooks/useVisualViewportBox';
 import TruecallerButton from '@/components/auth/TruecallerButton';
 import OAuthButtonGroup from '@/components/auth/OAuthButtonGroup';
 import OtpCodeBoxes from '@/components/auth/OtpCodeBoxes';
@@ -48,6 +49,7 @@ function WhatsAppAuthButton({
   const [sending, setSending] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const otp = useOtpCooldown();
+  const viewport = useVisualViewportBox(open);
 
   const digits = phone.replace(/\D/g, '').slice(0, 10);
   const phoneOk = /^[6-9]\d{9}$/.test(digits);
@@ -130,7 +132,10 @@ function WhatsAppAuthButton({
   };
 
   const modal = open ? (
-    <div className="fixed inset-0 z-[1000] flex items-end justify-center bg-slate-900/50 p-0 sm:items-center sm:p-4">
+    <div
+      className="fixed inset-0 z-[1000] flex items-end justify-center bg-slate-900/50 p-0 sm:items-center sm:p-4"
+      style={viewport ? { top: viewport.top, height: viewport.height, bottom: 'auto' } : undefined}
+    >
       <button
         type="button"
         aria-label="Close"
@@ -141,7 +146,7 @@ function WhatsAppAuthButton({
         role="dialog"
         aria-modal="true"
         aria-labelledby="whatsapp-login-title"
-        className="relative w-full max-w-md rounded-t-3xl bg-white px-6 pb-7 pt-5 shadow-2xl sm:rounded-3xl"
+        className="relative max-h-full w-full max-w-md overflow-y-auto overscroll-contain rounded-t-3xl bg-white px-6 pb-7 pt-5 shadow-2xl sm:rounded-3xl"
       >
         <div className="mb-5 flex items-center gap-3">
           {step === 'code' ? (

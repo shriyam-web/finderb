@@ -48,6 +48,7 @@ import {
   validateReviewReplyContent,
 } from '@/lib/businessReviews';
 import {
+  extractIndianMobileDigits,
   indianMobileValidationError,
   normalizeIndianPhoneForStorage,
 } from '@/lib/indianPhone';
@@ -88,6 +89,12 @@ import {
   MERCHANT_EMAIL_UPDATE_PURPOSE,
   MERCHANT_REGISTER_EMAIL_PURPOSE,
 } from '@/lib/auth/emailOtp.server';
+import {
+  assertPhoneProof,
+  MERCHANT_REGISTER_PHONE_SUBJECT,
+  MERCHANT_REGISTER_PHONE_UNVERIFIED,
+} from '@/lib/auth/phoneVerify.server';
+import { isWhatsAppOtpConfigured } from '@/lib/whatsapp/cloudConfig';
 
 // Safe error handler wrapper
 function handleError(error: any, context: string): string {
@@ -164,6 +171,18 @@ export async function registerBusiness(formData: any) {
     );
     if (!emailProof.ok) {
       return { success: false, error: emailProof.error };
+    }
+
+    if (isWhatsAppOtpConfigured()) {
+      const phoneProof = assertPhoneProof(
+        MERCHANT_REGISTER_PHONE_SUBJECT,
+        extractIndianMobileDigits(normalized.mobile),
+        formData?.phoneVerificationToken,
+        MERCHANT_REGISTER_PHONE_UNVERIFIED,
+      );
+      if (!phoneProof.ok) {
+        return { success: false, error: phoneProof.error };
+      }
     }
 
     const ipLimit = await enforceRateLimit('register');

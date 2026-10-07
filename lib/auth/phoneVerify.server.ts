@@ -16,7 +16,10 @@ import {
   createTruecallerAuthRequest,
   getTruecallerAuthRequest,
 } from '@/lib/auth/truecallerPendingStore.server';
+import { cookies } from 'next/headers';
+import { businessMobileConflictMessage } from '@/lib/emailAccountLookup';
 import { extractIndianMobileDigits, isValidIndianMobileDigits } from '@/lib/indianPhone';
+import { createClient } from '@/utils/supabase/server';
 import { enforceRateLimit } from '@/lib/security/enforceRateLimit.server';
 import { createServiceClient } from '@/lib/supabase/service';
 import { sendWhatsAppOtp } from '@/lib/whatsapp/sendWhatsAppOtp';
@@ -50,17 +53,17 @@ export function issuePhoneProof(userId: string, phone: string): string {
   return Buffer.from(`${payload}.${sign(payload)}`).toString('base64url');
 }
 
+const PROFILE_UNVERIFIED = 'Verify this mobile number with WhatsApp or Truecaller before saving it.';
+
 export function assertPhoneProof(
   userId: string,
   phone: string,
   token: string | null | undefined,
+  unverifiedMessage = PROFILE_UNVERIFIED,
 ): { ok: true } | { ok: false; error: string } {
   const raw = String(token || '').trim();
   if (!raw) {
-    return {
-      ok: false,
-      error: 'Verify this mobile number with WhatsApp or Truecaller before saving it.',
-    };
+    return { ok: false, error: unverifiedMessage };
   }
   try {
     const decoded = Buffer.from(raw, 'base64url').toString('utf8');
@@ -74,7 +77,7 @@ export function assertPhoneProof(
     const [tokenUser, tokenPhone, expRaw] = payload.split(':');
     const exp = Number(expRaw);
     if (tokenUser !== userId || tokenPhone !== phone) {
-      return { ok: false, error: 'Verify this mobile number with WhatsApp or Truecaller before saving it.' };
+      return { ok: false, error: unverifiedMessage };
     }
     if (!Number.isFinite(exp) || Date.now() > exp) {
       return { ok: false, error: 'Mobile verification expired. Please verify the number again.' };
@@ -104,38 +107,38 @@ function parsePhone(raw: unknown): string | null {
   return isValidIndianMobileDigits(phone) ? phone : null;
 }
 
-export async function requestPhoneVerifyCode(
-  userId: string,
-  rawPhone: unknown,
+async function sendPhoneCode(
+  subject: string,
+  phone: string,
+  conflict: () => Promise<string | null>,
 ): Promise<{ success: true; message: string } | Failure> {
-  const phone = parsePhone(rawPhone);
-  if (!phone) return { success: false, error: 'Enter a 10-digit Indian mobile number.' };
-
   const ipLimit = await enforceRateLimit('auth', 'phone-verify-send');
   if (!ipLimit.ok) return { success: false, error: ipLimit.error };
   const phoneLimit = await enforceRateLimit('authEmail', `phone-verify:${phone}`);
   if (!phoneLimit.ok) return { success: false, error: phoneLimit.error };
 
-  if (await usedByAnotherUser(userId, phone)) return { success: false, error: TAKEN_ERROR };
+  const taken = await conflict();
+  if (taken) return { success: false, error: taken };
 
   let code = '';
   try {
-    code = await issueOtpChallenge(purposeFor(userId), phone);
+    code = await issueOtpChallenge(purposeFor(subject), phone);
   } catch {
     return { success: false, error: 'Could not prepare the verification code. Please try again shortly.' };
   }
   const sent = await sendWhatsAppOtp(`91${phone}`, code);
   if (!sent.ok) {
-    await discardOtpChallenge(purposeFor(userId), phone);
+    await discardOtpChallenge(purposeFor(subject), phone);
     return { success: false, error: sent.error };
   }
   return { success: true, message: 'We sent a 6-digit code on WhatsApp to this number.' };
 }
 
-export async function verifyPhoneCode(
-  userId: string,
+async function checkPhoneCode(
+  subject: string,
   rawPhone: unknown,
   code: string,
+  message: string,
 ): Promise<PhoneVerified | Failure> {
   const phone = parsePhone(rawPhone);
   if (!phone) return { success: false, error: 'Enter a 10-digit Indian mobile number.' };
@@ -143,15 +146,54 @@ export async function verifyPhoneCode(
   const limit = await enforceRateLimit('authEmail', `phone-verify-check:${phone}`);
   if (!limit.ok) return { success: false, error: limit.error };
 
-  if (!(await consumeOtpChallenge(purposeFor(userId), phone, code))) {
+  if (!(await consumeOtpChallenge(purposeFor(subject), phone, code))) {
     return { success: false, error: 'Invalid or expired code. Check WhatsApp and try again.' };
   }
   return {
     success: true,
     phone,
-    phoneVerificationToken: issuePhoneProof(userId, phone),
-    message: 'Mobile number verified. Tap Save to keep it.',
+    phoneVerificationToken: issuePhoneProof(subject, phone),
+    message,
   };
+}
+
+export async function requestPhoneVerifyCode(
+  userId: string,
+  rawPhone: unknown,
+): Promise<{ success: true; message: string } | Failure> {
+  const phone = parsePhone(rawPhone);
+  if (!phone) return { success: false, error: 'Enter a 10-digit Indian mobile number.' };
+  return sendPhoneCode(userId, phone, async () =>
+    (await usedByAnotherUser(userId, phone)) ? TAKEN_ERROR : null,
+  );
+}
+
+export function verifyPhoneCode(userId: string, rawPhone: unknown, code: string) {
+  return checkPhoneCode(userId, rawPhone, code, 'Mobile number verified. Tap Save to keep it.');
+}
+
+/** Subject for owner-mobile proofs during business registration (there is no account yet). */
+export const MERCHANT_REGISTER_PHONE_SUBJECT = 'merchant-register';
+export const MERCHANT_REGISTER_PHONE_UNVERIFIED =
+  'Verify your mobile number with the WhatsApp OTP before registering.';
+
+export async function requestMerchantRegisterPhoneCode(
+  rawPhone: unknown,
+): Promise<{ success: true; message: string } | Failure> {
+  const phone = parsePhone(rawPhone);
+  if (!phone) return { success: false, error: 'Enter a 10-digit Indian mobile number.' };
+  return sendPhoneCode(MERCHANT_REGISTER_PHONE_SUBJECT, phone, async () =>
+    businessMobileConflictMessage(createClient(await cookies()), phone),
+  );
+}
+
+export function verifyMerchantRegisterPhoneCode(rawPhone: unknown, code: string) {
+  return checkPhoneCode(
+    MERCHANT_REGISTER_PHONE_SUBJECT,
+    rawPhone,
+    code,
+    'Mobile number verified on WhatsApp.',
+  );
 }
 
 /** Truecaller rows for this flow carry `phone-verify:<userId>` and, once done, `:<phone>`. */

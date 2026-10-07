@@ -23,6 +23,11 @@ import {
   sendMerchantRegisterEmailOtp,
 } from '@/app/actions/emailOtp';
 import {
+  confirmMerchantRegisterPhoneOtp,
+  getMerchantPhoneOtpRequirement,
+  sendMerchantRegisterPhoneOtp,
+} from '@/app/actions/phoneOtp';
+import {
   validateRegistrationMobile,
   validateRegistrationStep1Fields,
   validateRegistrationStep2Fields,
@@ -89,6 +94,9 @@ function RegisterFormContent() {
     void getMerchantEmailOtpRequirement()
       .then((res) => setEmailOtpRequired(Boolean(res.required)))
       .catch(() => setEmailOtpRequired(false));
+    void getMerchantPhoneOtpRequirement()
+      .then((res) => setMobileOtpRequired(Boolean(res.required)))
+      .catch(() => setMobileOtpRequired(false));
   }, []);
 
   useEffect(() => {
@@ -123,6 +131,15 @@ function RegisterFormContent() {
   const [emailOtpHint, setEmailOtpHint] = useState('');
   const [emailOtpRequired, setEmailOtpRequired] = useState(false);
   const emailOtpCooldown = useOtpCooldown();
+  const [mobileOtpCode, setMobileOtpCode] = useState('');
+  const [mobileProof, setMobileProof] = useState('');
+  const [mobileProofFor, setMobileProofFor] = useState('');
+  const [mobileOtpSending, setMobileOtpSending] = useState(false);
+  const [mobileOtpVerifying, setMobileOtpVerifying] = useState(false);
+  const [mobileOtpRequired, setMobileOtpRequired] = useState(false);
+  const mobileOtpCooldown = useOtpCooldown();
+  const mobileDigits = mobile.replace(/\D/g, '').slice(-10);
+  const mobileVerified = Boolean(mobileProof) && mobileProofFor === mobileDigits;
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -298,6 +315,48 @@ function RegisterFormContent() {
     }
   };
 
+  const handleSendMobileOtp = async () => {
+    if (mobileOtpSending || mobileOtpCooldown.isWaiting(mobileDigits)) return;
+    setMobileOtpCode('');
+    setMobileOtpSending(true);
+    clearFieldErrors('mobile', '_form');
+    try {
+      const result = await sendMerchantRegisterPhoneOtp(mobileDigits);
+      if (!result.success) {
+        const mapped = { mobile: result.error };
+        setFieldErrors(mapped);
+        scrollToFirstRegistrationError(mapped);
+        return;
+      }
+      mobileOtpCooldown.markSent(mobileDigits);
+    } catch {
+      setFieldErrors({ mobile: 'Could not send the WhatsApp code. Please try again.' });
+    } finally {
+      setMobileOtpSending(false);
+    }
+  };
+
+  const handleVerifyMobileOtp = async (value = mobileOtpCode) => {
+    if (value.length !== 6 || mobileOtpVerifying) return;
+    setMobileOtpVerifying(true);
+    clearFieldErrors('mobile', '_form');
+    try {
+      const result = await confirmMerchantRegisterPhoneOtp(mobileDigits, value);
+      if (!result.success) {
+        setMobileOtpCode('');
+        setFieldErrors({ mobile: result.error });
+        return;
+      }
+      setMobileProof(result.phoneVerificationToken);
+      setMobileProofFor(mobileDigits);
+      setMobileOtpCode('');
+    } catch {
+      setFieldErrors({ mobile: 'Could not verify the code. Please try again.' });
+    } finally {
+      setMobileOtpVerifying(false);
+    }
+  };
+
   const handleCategoryChange = async (categoryId: string) => {
     const parent = liveCategories.find((c) => c.id === categoryId);
     patchFormData({
@@ -418,6 +477,9 @@ function RegisterFormContent() {
       if (emailOtpRequired && (!emailVerified || !emailVerificationToken)) {
         errors.emailOtp = 'Verify your email with the OTP before continuing.';
       }
+      if (mobileOtpRequired && !mobileVerified && !errors.mobile) {
+        errors.mobile = 'Verify your mobile number with the WhatsApp OTP before continuing.';
+      }
       if (Object.keys(errors).length > 0) {
         setFieldErrors(errors);
         scrollToFirstRegistrationError(errors);
@@ -500,6 +562,16 @@ function RegisterFormContent() {
       return;
     }
 
+    if (mobileOtpRequired && !mobileVerified) {
+      const otpError = {
+        mobile: 'Verify your mobile number with the WhatsApp OTP before submitting.',
+      };
+      setFieldErrors(otpError);
+      setStep(1);
+      scrollToFirstRegistrationError(otpError);
+      return;
+    }
+
     const step2Errors = validateRegistrationStep2Fields({
       businessName: formData.businessName,
       displayName: formData.displayName,
@@ -552,6 +624,7 @@ function RegisterFormContent() {
         selectedPlan,
         billingCycle,
         emailVerificationToken,
+        phoneVerificationToken: mobileVerified ? mobileProof : '',
       };
 
       console.log('Sending registration data:', {
@@ -579,6 +652,9 @@ function RegisterFormContent() {
         console.error('Registration failed:', result.error);
         const message = result.error || 'Registration failed. Please try again.';
         const mappedErrors = mapRegistrationServerError(message);
+        if (/whatsapp otp|mobile verification/i.test(message)) {
+          setMobileProof('');
+        }
         if (isStep1RegistrationError(message)) {
           setStep(1);
         }
@@ -782,6 +858,25 @@ function RegisterFormContent() {
         }}
         onVerifyEmailOtp={() => {
           void handleVerifyEmailOtp();
+        }}
+        mobileOtp={{
+          required: mobileOtpRequired,
+          verified: mobileVerified,
+          sent: mobileOtpCooldown.isSentTo(mobileDigits),
+          wait: mobileOtpCooldown.isWaiting(mobileDigits) ? mobileOtpCooldown.secondsLeft : 0,
+          sending: mobileOtpSending,
+          verifying: mobileOtpVerifying,
+          code: mobileOtpCode,
+          onCodeChange: (value) => {
+            setMobileOtpCode(value);
+            clearFieldErrors('mobile');
+          },
+          onSend: () => {
+            void handleSendMobileOtp();
+          },
+          onVerify: (value) => {
+            void handleVerifyMobileOtp(value);
+          },
         }}
       />
     );

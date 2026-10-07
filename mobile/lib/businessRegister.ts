@@ -51,6 +51,19 @@ export async function verifyBusinessEmailOtp(email: string, code: string): Promi
   });
 }
 
+export type PhoneOtpResult =
+  | { success: true; message: string; phoneVerificationToken?: string }
+  | { success: false; error: string };
+
+/** Sends a WhatsApp code to the owner mobile; with `code`, verifies it and returns a proof. */
+export async function requestBusinessPhoneOtp(mobile: string): Promise<PhoneOtpResult> {
+  return postBusinessJson('/api/business/mobile/otp', { phone: storedMobile(mobile) });
+}
+
+export async function verifyBusinessPhoneOtp(mobile: string, code: string): Promise<PhoneOtpResult> {
+  return postBusinessJson('/api/business/mobile/otp', { phone: storedMobile(mobile), code });
+}
+
 function storedMobile(value: string) {
   let digits = value.replace(/\D/g, '');
   if (digits.length > 10 && digits.startsWith('91')) digits = digits.slice(2);
@@ -173,7 +186,7 @@ export async function checkBusinessTaken(input: {
 }
 
 export async function submitBusinessRegistration(
-  payload: RegisterPayload & { emailVerificationToken: string },
+  payload: RegisterPayload & { emailVerificationToken: string; phoneVerificationToken: string },
 ): Promise<RegisterResult> {
   const email = payload.email.trim().toLowerCase();
   const mobile = storedMobile(payload.mobile);
@@ -186,6 +199,12 @@ export async function submitBusinessRegistration(
 
   if (!payload.emailVerificationToken.trim()) {
     return { success: false, error: 'Verify your work email with the code we send you.' };
+  }
+  if (!payload.phoneVerificationToken.trim()) {
+    return {
+      success: false,
+      error: 'Verify your mobile number with the WhatsApp OTP before registering.',
+    };
   }
 
   let result: RegisterResult & { registeredAs?: string };

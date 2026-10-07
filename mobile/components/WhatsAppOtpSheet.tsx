@@ -3,7 +3,6 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Modal,
-  Platform,
   Pressable,
   Text,
   View,
@@ -14,6 +13,7 @@ import { OtpCodeBoxes } from './OtpCodeBoxes';
 import { fonts } from '../constants/typography';
 import { useAuth } from '../context/AuthContext';
 import { createThemedStyles } from '../hooks/useThemedStyles';
+import { useBottomInset } from '../hooks/useAppSafeArea';
 import { useOtpCooldown } from '../hooks/useOtpCooldown';
 import { requestWhatsAppOtp, verifyWhatsAppOtp, type WhatsAppAudience } from '../lib/authApi';
 import type { AuthUser } from '../lib/session';
@@ -33,6 +33,7 @@ function formatPhone(digits: string) {
 
 export function WhatsAppOtpSheet({ visible, audience, onClose, onSuccess }: Props) {
   const styles = useStyles();
+  const bottomInset = useBottomInset(12);
   const { applyAuthResult } = useAuth();
   const [step, setStep] = useState<'phone' | 'code'>('phone');
   const [phone, setPhone] = useState('');
@@ -95,13 +96,17 @@ export function WhatsAppOtpSheet({ visible, audience, onClose, onSuccess }: Prop
   };
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={close}>
-      <KeyboardAvoidingView
-        style={styles.backdrop}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      statusBarTranslucent
+      navigationBarTranslucent
+      onRequestClose={close}
+    >
+      <KeyboardAvoidingView style={styles.backdrop} behavior="padding">
         <Pressable style={styles.dismiss} onPress={close} accessibilityLabel="Close WhatsApp login" />
-        <View style={styles.sheet}>
+        <View style={[styles.sheet, { paddingBottom: 16 + bottomInset }]}>
           <View style={styles.head}>
             {step === 'code' ? (
               <Pressable
@@ -244,7 +249,6 @@ const useStyles = createThemedStyles((colors) => ({
     borderTopRightRadius: 24,
     paddingHorizontal: 18,
     paddingTop: 16,
-    paddingBottom: 28,
   },
   head: {
     flexDirection: 'row',

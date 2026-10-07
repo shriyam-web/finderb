@@ -27,6 +27,7 @@ import {
   MerchantAuthSubmitButton,
 } from '@/components/business/MerchantAuthForm';
 import MerchantPasswordField from '@/components/business/MerchantPasswordField';
+import OtpCodeBoxes from '@/components/auth/OtpCodeBoxes';
 import { MerchantFieldError, MerchantFormBanner } from '@/components/business/MerchantFieldError';
 import type { RegistrationFieldErrors } from '@/lib/merchantRegistrationValidation';
 
@@ -109,6 +110,20 @@ type BusinessRegisterWizardProps = {
   emailOtpWait?: number;
   onSendEmailOtp: () => void;
   onVerifyEmailOtp: () => void;
+  mobileOtp: MobileOtpState;
+};
+
+type MobileOtpState = {
+  required: boolean;
+  verified: boolean;
+  sent: boolean;
+  wait: number;
+  sending: boolean;
+  verifying: boolean;
+  code: string;
+  onCodeChange: (value: string) => void;
+  onSend: () => void;
+  onVerify: (value?: string) => void;
 };
 
 function MerchantRegisterStepBar({
@@ -209,7 +224,9 @@ export default function BusinessRegisterWizard({
   emailOtpWait = 0,
   onSendEmailOtp,
   onVerifyEmailOtp,
+  mobileOtp,
 }: BusinessRegisterWizardProps) {
+  const mobileVerifiedLook = mobileOtp.verified || !mobileOtp.required;
   const [accuracyAccepted, setAccuracyAccepted] = useState(false);
   const [accuracyError, setAccuracyError] = useState('');
 
@@ -350,9 +367,28 @@ export default function BusinessRegisterWizard({
                     onChange={(v) => onFormPatch({ password: v })}
                     error={fieldErrors.password}
                   />
-                  <div id="field-mobile">
-                    <label className="merchant-auth-label">Verified mobile</label>
-                    <div className="merchant-auth-phone-field relative flex items-stretch overflow-hidden rounded-2xl border-2 border-emerald-500/80 bg-white shadow-[0_0_0_3px_rgba(16,185,129,0.1)]">
+                  <div id="field-mobile" className="space-y-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <label className="merchant-auth-label">
+                        {mobileOtp.verified ? 'Verified mobile' : 'Mobile number'}
+                      </label>
+                      {mobileOtp.verified ? null : (
+                        <button
+                          type="button"
+                          onClick={onBack}
+                          className="text-xs font-semibold text-[#215481] hover:underline"
+                        >
+                          Change number
+                        </button>
+                      )}
+                    </div>
+                    <div
+                      className={`merchant-auth-phone-field relative flex items-stretch overflow-hidden rounded-2xl border-2 bg-white ${
+                        mobileVerifiedLook
+                          ? 'border-emerald-500/80 shadow-[0_0_0_3px_rgba(16,185,129,0.1)]'
+                          : 'border-[#cfd8e3]'
+                      }`}
+                    >
                       <IndiaPhonePrefix variant="merchant" />
                       <input
                         readOnly
@@ -360,12 +396,61 @@ export default function BusinessRegisterWizard({
                         value={formatIndianMobileDisplay(mobile)}
                         className="min-w-0 flex-1 bg-white px-3.5 py-3.5 text-[16px] font-semibold tabular-nums text-[#0f273b] sm:px-4 sm:py-4"
                       />
-                      <CheckCircle2
-                        className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-emerald-500"
-                        size={18}
-                        strokeWidth={2.5}
-                      />
+                      {mobileOtp.verified ? (
+                        <CheckCircle2
+                          className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-emerald-500"
+                          size={18}
+                          strokeWidth={2.5}
+                        />
+                      ) : mobileOtp.required ? (
+                        <div className="flex items-center pr-2">
+                          <button
+                            type="button"
+                            onClick={mobileOtp.onSend}
+                            disabled={mobileOtp.sending || mobileOtp.wait > 0}
+                            className="h-8 min-w-[4.6rem] rounded-lg bg-[#128C7E] px-2 text-[11px] font-bold text-white disabled:cursor-not-allowed disabled:opacity-45"
+                          >
+                            {mobileOtp.sending
+                              ? 'Sending…'
+                              : otpSendLabel(mobileOtp.sent, mobileOtp.wait > 0, mobileOtp.wait)}
+                          </button>
+                        </div>
+                      ) : null}
                     </div>
+                    {mobileOtp.verified ? (
+                      <p className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600">
+                        <CheckCircle2 size={14} strokeWidth={2.5} />
+                        Mobile verified on WhatsApp
+                      </p>
+                    ) : mobileOtp.required && mobileOtp.sent ? (
+                      <div className="space-y-3 rounded-2xl border border-[#d7e2ee] bg-[#f7fafc] p-4">
+                        <p className="text-center text-[13px] leading-relaxed text-[#475569]">
+                          OTP has been sent to the WhatsApp account linked to{' '}
+                          <span className="whitespace-nowrap font-semibold text-[#0f273b]">
+                            +91 {formatIndianMobileDisplay(mobile)}
+                          </span>
+                        </p>
+                        <OtpCodeBoxes
+                          value={mobileOtp.code}
+                          onChange={mobileOtp.onCodeChange}
+                          onComplete={(value) => mobileOtp.onVerify(value)}
+                          disabled={mobileOtp.verifying}
+                          autoFocus
+                        />
+                        <button
+                          type="button"
+                          onClick={() => mobileOtp.onVerify()}
+                          disabled={mobileOtp.verifying || mobileOtp.code.length !== 6}
+                          className="w-full rounded-xl bg-[#128C7E] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#0f7a6e] disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {mobileOtp.verifying ? 'Verifying…' : 'Verify mobile'}
+                        </button>
+                      </div>
+                    ) : mobileOtp.required ? (
+                      <p className="text-[13px] leading-relaxed text-[#64748b]">
+                        Tap Send OTP to get a 6-digit code on this number&apos;s WhatsApp.
+                      </p>
+                    ) : null}
                     <MerchantFieldError message={fieldErrors.mobile} />
                   </div>
                 </div>
