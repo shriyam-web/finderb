@@ -36,6 +36,9 @@ import {
   broadcastShowsDatetime,
   resolveBroadcastCta,
 } from '@/lib/broadcastFields';
+import WebAccountProfile from '@/components/account/WebAccountProfile';
+import { isSyntheticLoginEmail } from '@/lib/syntheticLoginEmail';
+import { formatIndianMobileDisplay } from '@/lib/indianPhone';
 
 type UserUpdate = {
   id: string;
@@ -187,6 +190,11 @@ function DashboardContent() {
   const memberSince = user?.createdAt
     ? new Date(user.createdAt).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
     : null;
+  const sidebarContact = !isSyntheticLoginEmail(user?.email)
+    ? user?.email
+    : user?.phone
+      ? `+91 ${formatIndianMobileDisplay(user.phone)}`
+      : '';
 
   return (
     <div className="min-h-screen bg-[#f4f7fb]">
@@ -236,12 +244,23 @@ function DashboardContent() {
 
         <div className="shrink-0 border-b border-slate-100 px-5 py-4 lg:px-6">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#215481] text-sm font-semibold text-white">
-              {userInitials}
-            </div>
+            {user?.avatarUrl ? (
+              <Image
+                src={user.avatarUrl}
+                alt={user?.fullName || 'Profile photo'}
+                width={44}
+                height={44}
+                unoptimized
+                className="h-11 w-11 shrink-0 rounded-xl object-cover"
+              />
+            ) : (
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#215481] text-sm font-semibold text-white">
+                {userInitials}
+              </div>
+            )}
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold text-slate-900">{user?.fullName}</p>
-              <p className="truncate text-xs text-slate-500">{user?.email}</p>
+              <p className="truncate text-xs text-slate-500">{sidebarContact}</p>
             </div>
           </div>
           {memberSince && (
@@ -628,31 +647,15 @@ function DashboardContent() {
             <div className="mx-auto max-w-3xl space-y-6">
               <div>
                 <h1 className="text-xl font-semibold text-slate-900 sm:text-2xl">Account</h1>
-                <p className="mt-1 text-sm text-slate-500">Your profile and sign-in details.</p>
+                <p className="mt-1 text-sm text-slate-500">
+                  Your photo, name and contact details. New email and mobile numbers are verified with a code.
+                </p>
               </div>
 
-              <div className="rounded-2xl border border-slate-200/80 bg-white divide-y divide-slate-100">
-                <div className="flex items-center gap-4 p-5">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-[#215481] text-lg font-semibold text-white">
-                    {userInitials}
-                  </div>
-                  <div>
-                    <p className="font-semibold text-slate-900">{user?.fullName}</p>
-                    <p className="text-sm text-slate-500">{user?.email}</p>
-                    {memberSince && (
-                      <p className="mt-0.5 text-xs text-slate-400">Joined {memberSince}</p>
-                    )}
-                  </div>
-                </div>
-                <div className="p-5">
-                  <label className="text-xs font-medium text-slate-500">Full name</label>
-                  <p className="mt-1 text-sm text-slate-900">{user?.fullName}</p>
-                </div>
-                <div className="p-5">
-                  <label className="text-xs font-medium text-slate-500">Email</label>
-                  <p className="mt-1 text-sm text-slate-900">{user?.email}</p>
-                </div>
-              </div>
+              <WebAccountProfile
+                user={user}
+                onUserChange={(patch) => setUser((prev: typeof user) => ({ ...prev, ...patch }))}
+              />
 
               <div className="rounded-2xl border border-slate-200/80 bg-white p-5">
                 <h2 className="text-sm font-semibold text-slate-900">Quick links</h2>

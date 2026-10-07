@@ -1,5 +1,4 @@
 import {
-  isMerchantEmailOtpConfigured,
   requestMerchantRegisterEmailOtp,
   verifyMerchantRegisterEmailOtp,
 } from '@/lib/auth/emailOtp.server';
@@ -7,7 +6,6 @@ import {
   requestMerchantRegisterPhoneCode,
   verifyMerchantRegisterPhoneCode,
 } from '@/lib/auth/phoneVerify.server';
-import { isWhatsAppOtpConfigured } from '@/lib/whatsapp/cloudConfig';
 import { mobileApiJson, mobileApiOptions } from '@/lib/mobileApiCors';
 import { enforceRateLimit } from '@/lib/security/enforceRateLimit.server';
 
@@ -18,11 +16,9 @@ export function OPTIONS() {
   return mobileApiOptions();
 }
 
+/** Older app builds read these flags; both OTPs are always required now. */
 export async function GET() {
-  return mobileApiJson({
-    required: isMerchantEmailOtpConfigured(),
-    phoneRequired: isWhatsAppOtpConfigured(),
-  });
+  return mobileApiJson({ required: true, phoneRequired: true });
 }
 
 /** `{ email[, code] }` verifies the work email; `{ phone[, code] }` verifies the owner mobile on WhatsApp. */

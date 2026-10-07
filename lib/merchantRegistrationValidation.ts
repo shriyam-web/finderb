@@ -9,7 +9,13 @@ import {
 
 export const REGISTRATION_EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-export type RegistrationStep1Field = 'fullName' | 'email' | 'emailOtp' | 'password' | 'mobile';
+export type RegistrationStep1Field =
+  | 'fullName'
+  | 'email'
+  | 'emailOtp'
+  | 'password'
+  | 'confirmPassword'
+  | 'mobile';
 export type RegistrationStep2Field =
   | 'businessName'
   | 'displayName'
@@ -54,6 +60,7 @@ const REGISTRATION_FIELD_SCROLL_ORDER: RegistrationFieldKey[] = [
   'email',
   'emailOtp',
   'password',
+  'confirmPassword',
   'mobile',
   'businessName',
   'displayName',
@@ -90,6 +97,8 @@ export type RegistrationStep1Input = {
   fullName: string;
   email: string;
   password: string;
+  /** Checked only when the form collects it; the server payload omits it. */
+  confirmPassword?: string;
   mobile: string;
 };
 
@@ -210,6 +219,14 @@ export function validateRegistrationStep1Fields(
 
   const passwordError = validatePassword(input.password);
   if (passwordError) errors.password = passwordError;
+
+  if (input.confirmPassword !== undefined) {
+    if (!input.confirmPassword) {
+      errors.confirmPassword = 'Please confirm your password.';
+    } else if (input.confirmPassword !== input.password) {
+      errors.confirmPassword = 'Passwords do not match.';
+    }
+  }
 
   const mobileError = validateMobile(input.mobile, 'mobile number');
   if (mobileError) errors.mobile = mobileError;

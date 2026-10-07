@@ -85,7 +85,6 @@ import {
 } from '@/lib/categoryFixedSlots';
 import {
   assertEmailVerificationProof,
-  isMerchantEmailOtpConfigured,
   MERCHANT_EMAIL_UPDATE_PURPOSE,
   MERCHANT_REGISTER_EMAIL_PURPOSE,
 } from '@/lib/auth/emailOtp.server';
@@ -94,7 +93,6 @@ import {
   MERCHANT_REGISTER_PHONE_SUBJECT,
   MERCHANT_REGISTER_PHONE_UNVERIFIED,
 } from '@/lib/auth/phoneVerify.server';
-import { isWhatsAppOtpConfigured } from '@/lib/whatsapp/cloudConfig';
 
 // Safe error handler wrapper
 function handleError(error: any, context: string): string {
@@ -173,16 +171,14 @@ export async function registerBusiness(formData: any) {
       return { success: false, error: emailProof.error };
     }
 
-    if (isWhatsAppOtpConfigured()) {
-      const phoneProof = assertPhoneProof(
-        MERCHANT_REGISTER_PHONE_SUBJECT,
-        extractIndianMobileDigits(normalized.mobile),
-        formData?.phoneVerificationToken,
-        MERCHANT_REGISTER_PHONE_UNVERIFIED,
-      );
-      if (!phoneProof.ok) {
-        return { success: false, error: phoneProof.error };
-      }
+    const phoneProof = assertPhoneProof(
+      MERCHANT_REGISTER_PHONE_SUBJECT,
+      extractIndianMobileDigits(normalized.mobile),
+      formData?.phoneVerificationToken,
+      MERCHANT_REGISTER_PHONE_UNVERIFIED,
+    );
+    if (!phoneProof.ok) {
+      return { success: false, error: phoneProof.error };
     }
 
     const ipLimit = await enforceRateLimit('register');
@@ -245,7 +241,8 @@ export async function registerBusiness(formData: any) {
         billingCycle: normalized.billingCycle || 'monthly',
         status: 'Pending',
         kycStatus: 'pending',
-        emailVerified: isMerchantEmailOtpConfigured(),
+        emailVerified: true,
+        mobileVerified: true,
         registrationNumber: regNo,
         ...(passwordValue ? { password: passwordValue } : {}),
         createdAt: now,

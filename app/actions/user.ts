@@ -25,7 +25,7 @@ import { enforceRateLimit } from '@/lib/security/enforceRateLimit.server';
 import { deleteUserAccountById } from '@/lib/accountDeletion.server';
 
 const USER_PUBLIC_FIELDS =
-  'id, fullName, email, favorites, searchHistory, createdAt, updatedAt, avatarUrl';
+  'id, fullName, email, favorites, searchHistory, createdAt, updatedAt, avatarUrl, phone, authProvider';
 
 function handleError(error: unknown, context: string): string {
   console.error(`${context} Error:`, error);

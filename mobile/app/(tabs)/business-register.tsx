@@ -153,6 +153,7 @@ export default function BusinessRegisterScreen() {
     mobile: '',
     email: '',
     password: '',
+    confirmPassword: '',
     businessName: '',
     building: '',
     street: '',
@@ -394,6 +395,14 @@ export default function BusinessRegisterScreen() {
     }
     if (!meter.ready) {
       setError('Password needs at least 8 characters.');
+      return;
+    }
+    if (!form.confirmPassword.trim()) {
+      setError('Confirm your password.');
+      return;
+    }
+    if (form.confirmPassword.trim() !== form.password.trim()) {
+      setError('Passwords do not match.');
       return;
     }
     if (mobileTaken !== 'free' || emailTaken !== 'free') {
@@ -820,11 +829,11 @@ export default function BusinessRegisterScreen() {
                 <Text style={styles.otpHint}>{emailOtpHint}</Text>
               ) : null}
               <AuthField fontFamily={UI}
-                label="Password"
+                label="Create password"
                 value={form.password}
                 onChangeText={(v) => set('password', v)}
                 onEndEditing={(event) => set('password', event.nativeEvent.text.trim())}
-                placeholder="Enter your password"
+                placeholder="Create a password"
                 secureTextEntry={!showPassword}
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -881,6 +890,27 @@ export default function BusinessRegisterScreen() {
                   <Text style={styles.tipDone}>Nothing else. This password is strong.</Text>
                 )}
                   </>
+                }
+              />
+              <AuthField fontFamily={UI}
+                label="Confirm password"
+                value={form.confirmPassword}
+                onChangeText={(v) => set('confirmPassword', v)}
+                onEndEditing={(event) => set('confirmPassword', event.nativeEvent.text.trim())}
+                placeholder="Re-enter your password"
+                secureTextEntry={!showPassword}
+                autoCapitalize="none"
+                autoCorrect={false}
+                autoComplete="password-new"
+                rightSlot={
+                  form.confirmPassword && form.confirmPassword.trim() === form.password.trim() ? (
+                    <Ionicons name="checkmark-circle" size={20} color={biz.success} />
+                  ) : undefined
+                }
+                footer={
+                  form.confirmPassword && form.confirmPassword.trim() !== form.password.trim() ? (
+                    <Text style={styles.passwordMismatch}>Passwords do not match.</Text>
+                  ) : undefined
                 }
               />
               <Pressable
@@ -1559,6 +1589,11 @@ const useStyles = createThemedStyles((colors) => {
     fontFamily: UI,
     fontSize: 12,
     color: b.success,
+  },
+  passwordMismatch: {
+    fontFamily: UI,
+    fontSize: 12,
+    color: b.danger,
   },
   fieldLabel: {
     marginTop: 4,

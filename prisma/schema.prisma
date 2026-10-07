@@ -12,6 +12,7 @@ model Business {
   workEmail                                              String
   emailVerified                                          Boolean      @default(false)
   mobile                                                 String       @unique
+  mobileVerified                                         Boolean      @default(false)
   businessName                                           String
   category                                               String
   location                                               String?

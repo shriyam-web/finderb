@@ -72,12 +72,14 @@ import {
 } from '@/lib/businessAbout';
 import IndianPhoneInput, { INDIAN_PHONE_FIELD_HINT } from '@/components/IndianPhoneInput';
 import {
+  extractIndianMobileDigits,
   formatIndianPhoneLabel,
   indianMobileValidationError,
   isValidIndianMobileDigits,
 } from '@/lib/indianPhone';
 import { dashboard } from './dashboard-ui';
 import ListingHiddenNoPhotosBanner from './ListingHiddenNoPhotosBanner';
+import { ContactVerifyCard } from './MerchantContactVerifyGate';
 import {
   businessHasPublicPhoto,
   syncBusinessImagesWithCover,
@@ -238,6 +240,7 @@ interface SettingsTabProps {
   focusField?: string | null;
   onFocusHandled?: () => void;
   onNotifySuccess?: (message: string) => void;
+  onLoginMobileVerified?: (mobile: string) => void;
 }
 
 export default function SettingsTab({
@@ -258,6 +261,7 @@ export default function SettingsTab({
   focusField,
   onFocusHandled,
   onNotifySuccess,
+  onLoginMobileVerified,
 }: SettingsTabProps) {
   const [activeModal, setActiveModal] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
@@ -1429,6 +1433,26 @@ export default function SettingsTab({
           </section>
         );
       })}
+
+      <section>
+        <h2 className={dashboard.sectionTitle}>Login mobile number</h2>
+        <p className="mt-1 text-xs text-zinc-500">
+          Used to log in with WhatsApp and for account alerts. A new number is saved only after the WhatsApp code
+          is confirmed.
+        </p>
+        <div className="mt-2">
+          <ContactVerifyCard
+            kind="mobile"
+            initialValue={extractIndianMobileDigits(business?.mobile)}
+            verified={Boolean(business?.mobileVerified)}
+            allowChange
+            onVerified={({ value }) => {
+              onLoginMobileVerified?.(value);
+              onNotifySuccess?.('Login mobile number updated.');
+            }}
+          />
+        </div>
+      </section>
 
       {modal}
       {deleteModal}

@@ -1,7 +1,6 @@
 'use server';
 
 import {
-  isMerchantEmailOtpConfigured,
   requestMerchantEmailUpdateOtp,
   requestMerchantRegisterEmailOtp,
   requestUserEmailOtp,
@@ -9,10 +8,6 @@ import {
   verifyMerchantRegisterEmailOtp,
   verifyUserEmailOtp,
 } from '@/lib/auth/emailOtp.server';
-
-export async function getMerchantEmailOtpRequirement() {
-  return { required: isMerchantEmailOtpConfigured() };
-}
 
 export async function sendMerchantRegisterEmailOtp(email: string) {
   return requestMerchantRegisterEmailOtp(email);

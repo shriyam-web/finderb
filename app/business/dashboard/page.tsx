@@ -65,6 +65,9 @@ import { CldUploadWidget } from 'next-cloudinary';
 import { createClient } from '@/utils/supabase/client';
 import { buildGoogleMapsUrl } from '@/lib/googleMapsLocation';
 import ListingHiddenNoPhotosBanner from './components/ListingHiddenNoPhotosBanner';
+import MerchantContactVerifyGate, { type VerifiedContact } from './components/MerchantContactVerifyGate';
+import { pickPublicBusinessEmail } from '@/lib/placeholderEmail';
+import { extractIndianMobileDigits } from '@/lib/indianPhone';
 
 function DashboardContent() {
   const router = useRouter();
@@ -76,6 +79,7 @@ function DashboardContent() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [business, setBusiness] = useState<any>(null);
   const [supportSession, setSupportSession] = useState(false);
+  const [contactGate, setContactGate] = useState(false);
   const [supportIdleDeadline, setSupportIdleDeadline] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -209,6 +213,10 @@ function DashboardContent() {
       if (sessionRes?.success && sessionRes.business) {
         const resBusiness = sessionRes.business;
         setSupportSession(Boolean(sessionRes.supportSession));
+        setContactGate(
+          !sessionRes.supportSession &&
+            !(resBusiness.emailVerified && resBusiness.mobileVerified),
+        );
         setSupportIdleDeadline(
           typeof sessionRes.supportIdleDeadline === 'number'
             ? sessionRes.supportIdleDeadline
@@ -600,6 +608,29 @@ function DashboardContent() {
     return <BusinessWorkspaceLoader />;
   }
 
+  if (contactGate && business) {
+    const handleContactVerified = ({ kind, value }: VerifiedContact) => {
+      if (kind === 'email') {
+        setBusiness((prev: typeof business) => ({ ...prev, email: value, workEmail: value, emailVerified: true }));
+        setProfileData((prev) => ({ ...prev, email: value }));
+      } else {
+        setBusiness((prev: typeof business) => ({ ...prev, mobile: value, mobileVerified: true }));
+      }
+    };
+    return (
+      <MerchantContactVerifyGate
+        businessName={business.displayName || business.name || business.businessName || 'your business'}
+        email={pickPublicBusinessEmail(business.workEmail, business.email) || ''}
+        emailVerified={Boolean(business.emailVerified)}
+        mobile={extractIndianMobileDigits(business.mobile)}
+        mobileVerified={Boolean(business.mobileVerified)}
+        onVerified={handleContactVerified}
+        onContinue={() => setContactGate(false)}
+        onLogout={handleLogout}
+      />
+    );
+  }
+
   const businessName =
     business?.displayName || business?.name || business?.businessName || 'Your Business';
   const subscriptionStatus = getMerchantSubscriptionStatus({
@@ -943,6 +974,9 @@ function DashboardContent() {
             onNotifySuccess={(message) => {
               setSuccessMessage(message);
               setTimeout(() => setSuccessMessage(null), 3000);
+            }}
+            onLoginMobileVerified={(mobile) => {
+              setBusiness((prev: typeof business) => ({ ...prev, mobile, mobileVerified: true }));
             }}
           />
           </DashboardTabShell>

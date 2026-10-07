@@ -53,20 +53,11 @@ export function issueEmailVerificationProof(
   return Buffer.from(`${payload}.${sig}`).toString('base64url');
 }
 
-export function isMerchantEmailOtpConfigured(): boolean {
-  return Boolean(process.env.RESEND_API_KEY?.trim());
-}
-
 export function assertEmailVerificationProof(
   purpose: string,
   email: string,
   token: string | null | undefined,
 ): { ok: true } | { ok: false; error: string } {
-  // Until Resend is configured, do not block merchant registration on email OTP.
-  if (!isMerchantEmailOtpConfigured()) {
-    return { ok: true };
-  }
-
   const normalized = normalizeEmail(email);
   const raw = String(token || '').trim();
   if (!raw) {

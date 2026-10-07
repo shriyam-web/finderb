@@ -36,6 +36,7 @@ type FormData = {
   email: string;
   workEmail: string;
   password: string;
+  confirmPassword: string;
   businessName: string;
   displayName: string;
   category: string;
@@ -102,7 +103,6 @@ type BusinessRegisterWizardProps = {
   emailOtpCode: string;
   onEmailOtpCodeChange: (value: string) => void;
   emailVerified: boolean;
-  emailOtpRequired?: boolean;
   emailOtpSending: boolean;
   emailOtpVerifying: boolean;
   emailOtpHint?: string;
@@ -114,7 +114,6 @@ type BusinessRegisterWizardProps = {
 };
 
 type MobileOtpState = {
-  required: boolean;
   verified: boolean;
   sent: boolean;
   wait: number;
@@ -216,7 +215,6 @@ export default function BusinessRegisterWizard({
   emailOtpCode,
   onEmailOtpCodeChange,
   emailVerified,
-  emailOtpRequired = false,
   emailOtpSending,
   emailOtpVerifying,
   emailOtpHint,
@@ -226,7 +224,6 @@ export default function BusinessRegisterWizard({
   onVerifyEmailOtp,
   mobileOtp,
 }: BusinessRegisterWizardProps) {
-  const mobileVerifiedLook = mobileOtp.verified || !mobileOtp.required;
   const [accuracyAccepted, setAccuracyAccepted] = useState(false);
   const [accuracyError, setAccuracyError] = useState('');
 
@@ -305,7 +302,7 @@ export default function BusinessRegisterWizard({
                     autoComplete="email"
                     error={fieldErrors.email}
                     endAction={
-                      emailVerified || !emailOtpRequired ? undefined : (
+                      emailVerified ? undefined : (
                         <button
                           type="button"
                           onClick={onSendEmailOtp}
@@ -323,10 +320,6 @@ export default function BusinessRegisterWizard({
                     <p className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600">
                       <CheckCircle2 size={14} strokeWidth={2.5} />
                       Email verified
-                    </p>
-                  ) : !emailOtpRequired ? (
-                    <p className="text-[13px] leading-relaxed text-[#64748b]">
-                      Registration can continue without OTP until email delivery is configured.
                     </p>
                   ) : emailOtpSent ? (
                     <div id="field-emailOtp" className="space-y-3">
@@ -358,14 +351,27 @@ export default function BusinessRegisterWizard({
                       <MerchantFieldError message={fieldErrors.emailOtp} />
                     </div>
                   ) : (
-                    <MerchantFieldError message={fieldErrors.emailOtp} />
+                    <>
+                      <p className="text-[13px] leading-relaxed text-[#64748b]">
+                        Tap Send OTP to get a 6-digit code on this email.
+                      </p>
+                      <MerchantFieldError message={fieldErrors.emailOtp} />
+                    </>
                   )}
                   <MerchantPasswordField
                     id="password"
-                    label="Password"
+                    label="Create password"
                     value={formData.password}
                     onChange={(v) => onFormPatch({ password: v })}
                     error={fieldErrors.password}
+                  />
+                  <MerchantPasswordField
+                    id="confirmPassword"
+                    label="Confirm password"
+                    value={formData.confirmPassword}
+                    onChange={(v) => onFormPatch({ confirmPassword: v })}
+                    error={fieldErrors.confirmPassword}
+                    showStrength={false}
                   />
                   <div id="field-mobile" className="space-y-3">
                     <div className="flex items-center justify-between gap-3">
@@ -384,7 +390,7 @@ export default function BusinessRegisterWizard({
                     </div>
                     <div
                       className={`merchant-auth-phone-field relative flex items-stretch overflow-hidden rounded-2xl border-2 bg-white ${
-                        mobileVerifiedLook
+                        mobileOtp.verified
                           ? 'border-emerald-500/80 shadow-[0_0_0_3px_rgba(16,185,129,0.1)]'
                           : 'border-[#cfd8e3]'
                       }`}
@@ -402,7 +408,7 @@ export default function BusinessRegisterWizard({
                           size={18}
                           strokeWidth={2.5}
                         />
-                      ) : mobileOtp.required ? (
+                      ) : (
                         <div className="flex items-center pr-2">
                           <button
                             type="button"
@@ -415,14 +421,14 @@ export default function BusinessRegisterWizard({
                               : otpSendLabel(mobileOtp.sent, mobileOtp.wait > 0, mobileOtp.wait)}
                           </button>
                         </div>
-                      ) : null}
+                      )}
                     </div>
                     {mobileOtp.verified ? (
                       <p className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600">
                         <CheckCircle2 size={14} strokeWidth={2.5} />
                         Mobile verified on WhatsApp
                       </p>
-                    ) : mobileOtp.required && mobileOtp.sent ? (
+                    ) : mobileOtp.sent ? (
                       <div className="space-y-3 rounded-2xl border border-[#d7e2ee] bg-[#f7fafc] p-4">
                         <p className="text-center text-[13px] leading-relaxed text-[#475569]">
                           OTP has been sent to the WhatsApp account linked to{' '}
@@ -446,11 +452,11 @@ export default function BusinessRegisterWizard({
                           {mobileOtp.verifying ? 'Verifying…' : 'Verify mobile'}
                         </button>
                       </div>
-                    ) : mobileOtp.required ? (
+                    ) : (
                       <p className="text-[13px] leading-relaxed text-[#64748b]">
                         Tap Send OTP to get a 6-digit code on this number&apos;s WhatsApp.
                       </p>
-                    ) : null}
+                    )}
                     <MerchantFieldError message={fieldErrors.mobile} />
                   </div>
                 </div>

@@ -19,12 +19,10 @@ import { MerchantAuthPage } from '@/components/business/MerchantAuthShell';
 import { checkBusinessMobileAvailable, registerBusiness } from '@/app/actions/business';
 import {
   confirmMerchantRegisterEmailOtp,
-  getMerchantEmailOtpRequirement,
   sendMerchantRegisterEmailOtp,
 } from '@/app/actions/emailOtp';
 import {
   confirmMerchantRegisterPhoneOtp,
-  getMerchantPhoneOtpRequirement,
   sendMerchantRegisterPhoneOtp,
 } from '@/app/actions/phoneOtp';
 import {
@@ -91,15 +89,6 @@ function RegisterFormContent() {
   }, []);
 
   useEffect(() => {
-    void getMerchantEmailOtpRequirement()
-      .then((res) => setEmailOtpRequired(Boolean(res.required)))
-      .catch(() => setEmailOtpRequired(false));
-    void getMerchantPhoneOtpRequirement()
-      .then((res) => setMobileOtpRequired(Boolean(res.required)))
-      .catch(() => setMobileOtpRequired(false));
-  }, []);
-
-  useEffect(() => {
     const m = searchParams.get('mobile');
     if (m) {
       setMobile(m);
@@ -129,14 +118,12 @@ function RegisterFormContent() {
   const [emailOtpSending, setEmailOtpSending] = useState(false);
   const [emailOtpVerifying, setEmailOtpVerifying] = useState(false);
   const [emailOtpHint, setEmailOtpHint] = useState('');
-  const [emailOtpRequired, setEmailOtpRequired] = useState(false);
   const emailOtpCooldown = useOtpCooldown();
   const [mobileOtpCode, setMobileOtpCode] = useState('');
   const [mobileProof, setMobileProof] = useState('');
   const [mobileProofFor, setMobileProofFor] = useState('');
   const [mobileOtpSending, setMobileOtpSending] = useState(false);
   const [mobileOtpVerifying, setMobileOtpVerifying] = useState(false);
-  const [mobileOtpRequired, setMobileOtpRequired] = useState(false);
   const mobileOtpCooldown = useOtpCooldown();
   const mobileDigits = mobile.replace(/\D/g, '').slice(-10);
   const mobileVerified = Boolean(mobileProof) && mobileProofFor === mobileDigits;
@@ -145,6 +132,7 @@ function RegisterFormContent() {
     email: '',
     workEmail: '',
     password: '',
+    confirmPassword: '',
     businessName: '',
     displayName: '',
     category: '',
@@ -472,12 +460,13 @@ function RegisterFormContent() {
         fullName: formData.fullName,
         email: formData.email,
         password: formData.password,
+        confirmPassword: formData.confirmPassword,
         mobile,
       });
-      if (emailOtpRequired && (!emailVerified || !emailVerificationToken)) {
+      if (!emailVerified || !emailVerificationToken) {
         errors.emailOtp = 'Verify your email with the OTP before continuing.';
       }
-      if (mobileOtpRequired && !mobileVerified && !errors.mobile) {
+      if (!mobileVerified && !errors.mobile) {
         errors.mobile = 'Verify your mobile number with the WhatsApp OTP before continuing.';
       }
       if (Object.keys(errors).length > 0) {
@@ -543,6 +532,7 @@ function RegisterFormContent() {
       fullName: formData.fullName,
       email: formData.email,
       password: formData.password,
+      confirmPassword: formData.confirmPassword,
       mobile,
     });
     if (Object.keys(step1Errors).length > 0) {
@@ -552,7 +542,7 @@ function RegisterFormContent() {
       return;
     }
 
-    if (emailOtpRequired && (!emailVerified || !emailVerificationToken)) {
+    if (!emailVerified || !emailVerificationToken) {
       const otpError = {
         emailOtp: 'Verify your email with the OTP before submitting.',
       };
@@ -562,7 +552,7 @@ function RegisterFormContent() {
       return;
     }
 
-    if (mobileOtpRequired && !mobileVerified) {
+    if (!mobileVerified) {
       const otpError = {
         mobile: 'Verify your mobile number with the WhatsApp OTP before submitting.',
       };
@@ -615,6 +605,7 @@ function RegisterFormContent() {
 
       const registrationData = {
         ...formData,
+        confirmPassword: undefined,
         category: categoryLabel,
         mobile,
         publicPhone: formData.publicPhone,
@@ -843,7 +834,6 @@ function RegisterFormContent() {
           clearFieldErrors('emailOtp');
         }}
         emailVerified={emailVerified}
-        emailOtpRequired={emailOtpRequired}
         emailOtpSending={emailOtpSending}
         emailOtpVerifying={emailOtpVerifying}
         emailOtpHint={emailOtpHint}
@@ -860,7 +850,6 @@ function RegisterFormContent() {
           void handleVerifyEmailOtp();
         }}
         mobileOtp={{
-          required: mobileOtpRequired,
           verified: mobileVerified,
           sent: mobileOtpCooldown.isSentTo(mobileDigits),
           wait: mobileOtpCooldown.isWaiting(mobileDigits) ? mobileOtpCooldown.secondsLeft : 0,
