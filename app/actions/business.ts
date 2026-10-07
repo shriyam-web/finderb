@@ -6,7 +6,6 @@ import { revalidatePath } from 'next/cache';
 import { sortBusinessesByProfileCompleteness } from '@/lib/businessProfileCompleteness';
 import { getBusinessPublicRatingStats } from '@/lib/businessReviews';
 import {
-  BUSINESS_MOBILE_TAKEN_MESSAGE,
   formatRegistrationConflictMessage,
   formatWrongPortalLoginMessage,
   getRegistrationConflict,
@@ -14,6 +13,7 @@ import {
   businessMobileConflictMessage,
   LOGIN_PATHS,
   lookupEmailAccountTypes,
+  lookupMobileAccountTypes,
 } from '@/lib/emailAccountLookup';
 import {
   mapBusinessRecord,
@@ -201,12 +201,11 @@ export async function registerBusiness(formData: any) {
 
     const mobileConflict = await businessMobileConflictMessage(supabase, normalized.mobile);
     if (mobileConflict) {
-      const registeredAs = mobileConflict === BUSINESS_MOBILE_TAKEN_MESSAGE ? 'merchant' : 'user';
       return {
         success: false,
         error: mobileConflict,
-        suggestedLoginPath: LOGIN_PATHS[registeredAs],
-        registeredAs,
+        suggestedLoginPath: LOGIN_PATHS.merchant,
+        registeredAs: 'merchant' as const,
       };
     }
 
@@ -315,6 +314,28 @@ export async function registerBusiness(formData: any) {
     console.error(`[REGISTER] ✗ Failed after ${duration}ms:`, error);
     const errorMessage = handleError(error, 'Registration');
     return { success: false, error: errorMessage };
+  }
+}
+
+/** True when a FinderB user account already uses this email or mobile, so the merchant can confirm reusing it. */
+export async function isContactOnUserAccount(kind: 'email' | 'mobile', value: string): Promise<boolean> {
+  const limit = await enforceRateLimit('lookup', 'business-contact-owner');
+  if (!limit.ok) return false;
+  try {
+    const supabase = createClient(await cookies());
+    if (kind === 'mobile') {
+      const digits = normalizeIndianPhoneForStorage(value);
+      if (digits.length !== 10) return false;
+      const types = await lookupMobileAccountTypes(supabase, digits);
+      return types.includes('user') && !types.includes('merchant');
+    }
+    const email = value.trim().toLowerCase();
+    if (!email.includes('@')) return false;
+    const types = await lookupEmailAccountTypes(supabase, email);
+    return types.includes('user') && !types.includes('merchant') && !types.includes('admin');
+  } catch (error) {
+    console.error('[REGISTER] contact owner lookup failed', error);
+    return false;
   }
 }
 

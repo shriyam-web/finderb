@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import Image from 'next/image';
-import { CldUploadWidget } from 'next-cloudinary';
 import { BadgeCheck, Camera, Pencil, User as UserIcon } from 'lucide-react';
+import AvatarCropModal from '@/components/account/AvatarCropModal';
 import OtpCodeBoxes from '@/components/auth/OtpCodeBoxes';
 import IndianPhoneInput from '@/components/IndianPhoneInput';
 import { otpSendLabel, useOtpCooldown } from '@/hooks/useOtpCooldown';
@@ -14,6 +14,7 @@ import {
   confirmMyPhoneOtp,
   sendMyPhoneOtp,
   updateMyProfile,
+  uploadMyAvatar,
   type WebProfilePatch,
 } from '@/app/actions/userProfile';
 
@@ -40,10 +41,7 @@ function initialsOf(name: string) {
   );
 }
 
-function uploadedUrl(result: unknown): string | null {
-  const info = (result as { info?: { secure_url?: unknown } } | null)?.info;
-  return typeof info?.secure_url === 'string' ? info.secure_url : null;
-}
+const PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
 const rowClass = 'px-5 py-4 sm:px-6';
 const labelClass = 'block text-xs font-medium uppercase tracking-wide text-zinc-400';
@@ -374,16 +372,17 @@ export default function WebAccountProfile({
   const email = isSyntheticLoginEmail(rawEmail) ? '' : rawEmail;
   const phone = extractIndianMobileDigits(user.phone || '');
   const provider = String(user.authProvider || '').toLowerCase();
-  const emailLocked = provider === 'google' ? 'Managed by your Google sign-in.' : undefined;
+  const emailLocked = provider === 'google' ? "Can't be updated as you have registered your account with this Google email." : undefined;
   const phoneLocked =
     phone && (provider === 'truecaller' || provider.includes('whatsapp'))
-      ? 'You sign in with this number, so it stays as it is.'
+      ? "Can't be updated as you have registered your account with this number."
       : undefined;
   const memberSince = user.createdAt
     ? new Date(user.createdAt).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
     : null;
-  const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-  const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
+  const fileInput = useRef<HTMLInputElement>(null);
+  const [cropFile, setCropFile] = useState<File | null>(null);
+  const [cropError, setCropError] = useState('');
 
   const save = async (patch: WebProfilePatch): Promise<SaveResult> => {
     try {
@@ -402,6 +401,39 @@ export default function WebAccountProfile({
     const result = await save({ avatarUrl });
     setPhotoBusy(false);
     if (!result.ok) setPhotoError(result.error);
+  };
+
+  const pickPhoto = (file: File | undefined) => {
+    if (!file) return;
+    if (!PHOTO_TYPES.includes(file.type)) {
+      setPhotoError('Choose a JPG, PNG or WebP photo.');
+      return;
+    }
+    if (file.size > 15_000_000) {
+      setPhotoError('This photo is too large. Choose one under 15 MB.');
+      return;
+    }
+    setPhotoError('');
+    setCropError('');
+    setCropFile(file);
+  };
+
+  const uploadCropped = async (dataUri: string) => {
+    setPhotoBusy(true);
+    setCropError('');
+    try {
+      const result = await uploadMyAvatar(dataUri);
+      if (!result.success) {
+        setCropError(result.error);
+        return;
+      }
+      onUserChange(result.user);
+      setCropFile(null);
+    } catch {
+      setCropError('Could not upload the photo. Please try again.');
+    } finally {
+      setPhotoBusy(false);
+    }
   };
 
   return (
@@ -432,39 +464,25 @@ export default function WebAccountProfile({
           <p className="truncate text-lg font-semibold text-zinc-900">{name || 'Your profile'}</p>
           {memberSince ? <p className="text-sm text-zinc-500">Member since {memberSince}</p> : null}
           <div className="mt-3 flex flex-wrap items-center gap-2">
-            {cloudName && uploadPreset ? (
-              <CldUploadWidget
-                uploadPreset={uploadPreset}
-                onSuccess={(result) => {
-                  const url = uploadedUrl(result);
-                  if (url) void savePhoto(url);
-                }}
-                options={{
-                  cloudName,
-                  maxFiles: 1,
-                  multiple: false,
-                  sources: ['local', 'camera'],
-                  resourceType: 'image',
-                  clientAllowedFormats: ['jpg', 'jpeg', 'png', 'webp'],
-                  maxFileSize: 5_000_000,
-                  cropping: true,
-                  croppingAspectRatio: 1,
-                  showSkipCropButton: false,
-                }}
-              >
-                {({ open }) => (
-                  <button
-                    type="button"
-                    onClick={() => open()}
-                    disabled={photoBusy}
-                    className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 px-3 py-2 text-sm font-semibold text-zinc-800 transition hover:border-zinc-300 hover:bg-zinc-50 disabled:opacity-50"
-                  >
-                    <Camera size={15} />
-                    {user.avatarUrl ? 'Change photo' : 'Add photo'}
-                  </button>
-                )}
-              </CldUploadWidget>
-            ) : null}
+            <input
+              ref={fileInput}
+              type="file"
+              accept={PHOTO_TYPES.join(',')}
+              className="hidden"
+              onChange={(event) => {
+                pickPhoto(event.target.files?.[0]);
+                event.target.value = '';
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => fileInput.current?.click()}
+              disabled={photoBusy}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 px-3 py-2 text-sm font-semibold text-zinc-800 transition hover:border-zinc-300 hover:bg-zinc-50 disabled:opacity-50"
+            >
+              <Camera size={15} />
+              {user.avatarUrl ? 'Change photo' : 'Add photo'}
+            </button>
             {user.avatarUrl ? (
               <button
                 type="button"
@@ -485,6 +503,16 @@ export default function WebAccountProfile({
         <VerifiedContactRow key={`email-${email}`} kind="email" current={email} locked={emailLocked} save={save} />
         <VerifiedContactRow key={`phone-${phone}`} kind="phone" current={phone} locked={phoneLocked} save={save} />
       </div>
+
+      {cropFile ? (
+        <AvatarCropModal
+          file={cropFile}
+          busy={photoBusy}
+          error={cropError}
+          onCancel={() => setCropFile(null)}
+          onConfirm={(dataUri) => void uploadCropped(dataUri)}
+        />
+      ) : null}
     </div>
   );
 }

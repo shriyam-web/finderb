@@ -54,6 +54,7 @@ import SubscriptionTab from './components/SubscriptionTab';
 import SubscriptionExpiryAlert from './components/SubscriptionExpiryAlert';
 import SubscriptionExpiryBanner from './components/SubscriptionExpiryBanner';
 import PlanPurchaseBanner from './components/PlanPurchaseBanner';
+import ProfileIncompleteBanner from './components/ProfileIncompleteBanner';
 import ReviewsTab from './components/ReviewsTab';
 import { getMerchantNotifications, markMerchantNotificationsRead } from '@/app/actions/merchantNotifications';
 import { broadcastTargetsMerchants } from '@/lib/broadcastAudience';
@@ -746,6 +747,22 @@ function DashboardContent() {
       id: 'listing-hidden',
       label: 'Listing hidden without photos',
       node: <ListingHiddenNoPhotosBanner onAddPhotos={() => openSettingsField('media')} />,
+    });
+  }
+  const bannerMissingFields = profileMissingFields.filter(
+    (field) => field.action === 'settings' && field.settingsKey && (hasPublicPhotos || field.settingsKey !== 'media'),
+  );
+  if (business && bannerMissingFields.length > 0) {
+    dashboardBanners.push({
+      id: 'profile-incomplete',
+      label: 'Complete your profile',
+      node: (
+        <ProfileIncompleteBanner
+          fields={bannerMissingFields}
+          completionPercent={completionPercent}
+          onOpenField={openSettingsField}
+        />
+      ),
     });
   }
 

@@ -1,5 +1,6 @@
 'use server';
 
+import { uploadUserAvatar } from '@/lib/account/avatarUpload.server';
 import { mobileUpdateProfile } from '@/lib/auth/mobileAuth.server';
 import { requestPhoneVerifyCode, verifyPhoneCode } from '@/lib/auth/phoneVerify.server';
 import { enforceRateLimit } from '@/lib/security/enforceRateLimit.server';
@@ -16,13 +17,15 @@ export type WebProfilePatch = {
   phoneVerificationToken?: string;
 };
 
-function isAllowedAvatarUrl(url: string) {
-  try {
-    const parsed = new URL(url);
-    return parsed.protocol === 'https:' && parsed.hostname === 'res.cloudinary.com';
-  } catch {
-    return false;
-  }
+type ProfileResult = Awaited<ReturnType<typeof mobileUpdateProfile>>;
+
+function toWebResult(result: ProfileResult) {
+  if (!result.success) return { success: false as const, error: result.error };
+  const { fullName, email, phone, avatarUrl, authProvider } = result.user;
+  return {
+    success: true as const,
+    user: { fullName, email, phone: phone ?? null, avatarUrl: avatarUrl ?? null, authProvider: authProvider ?? null },
+  };
 }
 
 export async function updateMyProfile(patch: WebProfilePatch) {
@@ -32,17 +35,17 @@ export async function updateMyProfile(patch: WebProfilePatch) {
   const limit = await enforceRateLimit('write', `profile:${userId}`);
   if (!limit.ok) return { success: false as const, error: limit.error };
 
-  if (typeof patch.avatarUrl === 'string' && !isAllowedAvatarUrl(patch.avatarUrl)) {
-    return { success: false as const, error: 'Upload the photo again.' };
-  }
+  return toWebResult(await mobileUpdateProfile(userId, patch));
+}
 
-  const result = await mobileUpdateProfile(userId, patch);
-  if (!result.success) return { success: false as const, error: result.error };
-  const { fullName, email, phone, avatarUrl, authProvider } = result.user;
-  return {
-    success: true as const,
-    user: { fullName, email, phone: phone ?? null, avatarUrl: avatarUrl ?? null, authProvider: authProvider ?? null },
-  };
+export async function uploadMyAvatar(dataUri: string) {
+  const userId = await getSessionUserId();
+  if (!userId) return { success: false as const, error: SIGNED_OUT };
+
+  const limit = await enforceRateLimit('write', `profile:${userId}`);
+  if (!limit.ok) return { success: false as const, error: limit.error };
+
+  return toWebResult(await uploadUserAvatar(userId, dataUri));
 }
 
 export async function sendMyPhoneOtp(phone: string) {

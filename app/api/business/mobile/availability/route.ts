@@ -41,11 +41,16 @@ export async function POST(request: Request) {
       checkEmail ? lookupEmailAccountTypes(supabase, email) : Promise.resolve([]),
       checkMobile ? lookupMobileAccountTypes(supabase, mobile) : Promise.resolve([]),
     ]);
+    // Values on a FinderB user account stay usable; the app asks the owner to confirm and verify them.
+    const emailBlockedBy = emailTypes.find((type) => type !== 'user') ?? null;
+    const mobileBlockedBy = mobileTypes.find((type) => type !== 'user') ?? null;
     return mobileApiJson({
-      emailTaken: emailTypes.length > 0,
-      emailRegisteredAs: emailTypes.includes('merchant') ? 'merchant' : (emailTypes[0] ?? null),
-      mobileTaken: mobileTypes.length > 0,
-      mobileRegisteredAs: mobileTypes[0] ?? null,
+      emailTaken: Boolean(emailBlockedBy),
+      emailRegisteredAs: emailBlockedBy,
+      emailOnUserAccount: !emailBlockedBy && emailTypes.includes('user'),
+      mobileTaken: Boolean(mobileBlockedBy),
+      mobileRegisteredAs: mobileBlockedBy,
+      mobileOnUserAccount: !mobileBlockedBy && mobileTypes.includes('user'),
     });
   } catch (error) {
     console.error('[business availability]', error);

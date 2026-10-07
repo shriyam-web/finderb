@@ -16,7 +16,12 @@ import BusinessRegisterLanding from '@/components/business/BusinessRegisterLandi
 import BusinessRegisterWizard from '@/components/business/BusinessRegisterWizard';
 import CategoryIcon from '@/components/CategoryIcon';
 import { MerchantAuthPage } from '@/components/business/MerchantAuthShell';
-import { checkBusinessMobileAvailable, registerBusiness } from '@/app/actions/business';
+import {
+  checkBusinessMobileAvailable,
+  isContactOnUserAccount,
+  registerBusiness,
+} from '@/app/actions/business';
+import UserContactReuseDialog, { type ReusableContact } from '@/components/business/UserContactReuseDialog';
 import {
   confirmMerchantRegisterEmailOtp,
   sendMerchantRegisterEmailOtp,
@@ -122,6 +127,8 @@ function RegisterFormContent() {
   const mobileOtpCooldown = useOtpCooldown();
   const mobileDigits = mobile.replace(/\D/g, '').slice(-10);
   const mobileVerified = Boolean(mobileProof) && mobileProofFor === mobileDigits;
+  const [reuseContact, setReuseContact] = useState<ReusableContact | null>(null);
+  const [reuseApproved, setReuseApproved] = useState<string[]>([]);
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -227,7 +234,15 @@ function RegisterFormContent() {
     clearFieldErrors(...keys);
   };
 
-  const handleSendEmailOtp = async () => {
+  /** Asks before reusing a FinderB user's email or mobile; true means the send must wait for the answer. */
+  const needsReuseConfirm = async (contact: ReusableContact) => {
+    if (reuseApproved.includes(`${contact.kind}:${contact.value}`)) return false;
+    if (!(await isContactOnUserAccount(contact.kind, contact.value))) return false;
+    setReuseContact(contact);
+    return true;
+  };
+
+  const handleSendEmailOtp = async (reuseConfirmed = false) => {
     const email = formData.email.trim();
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       setFieldErrors({ email: 'Please enter a valid email address.' });
@@ -243,6 +258,7 @@ function RegisterFormContent() {
     clearFieldErrors('email', 'emailOtp', '_form');
     setEmailOtpHint('');
     try {
+      if (!reuseConfirmed && (await needsReuseConfirm({ kind: 'email', value: emailKey }))) return;
       const result = await sendMerchantRegisterEmailOtp(email);
       if (!result.success) {
         const mapped = mapRegistrationServerError(result.error);
@@ -299,12 +315,13 @@ function RegisterFormContent() {
     }
   };
 
-  const handleSendMobileOtp = async () => {
+  const handleSendMobileOtp = async (reuseConfirmed = false) => {
     if (mobileOtpSending || mobileOtpCooldown.isWaiting(mobileDigits)) return;
     setMobileOtpCode('');
     setMobileOtpSending(true);
     clearFieldErrors('mobile', '_form');
     try {
+      if (!reuseConfirmed && (await needsReuseConfirm({ kind: 'mobile', value: mobileDigits }))) return;
       const result = await sendMerchantRegisterPhoneOtp(mobileDigits);
       if (!result.success) {
         const mapped = { mobile: result.error };
@@ -744,8 +761,36 @@ function RegisterFormContent() {
     return <AuthRedirectScreen message={authRedirect.message} />;
   }
 
+  const approveReuse = () => {
+    const contact = reuseContact;
+    if (!contact) return;
+    setReuseApproved((prev) => [...prev, `${contact.kind}:${contact.value}`]);
+    setReuseContact(null);
+    if (contact.kind === 'email') void handleSendEmailOtp(true);
+    else void handleSendMobileOtp(true);
+  };
+
+  const declineReuse = () => {
+    const contact = reuseContact;
+    setReuseContact(null);
+    if (contact?.kind === 'email') {
+      patchFormData({ email: '' });
+      window.setTimeout(() => document.getElementById('email')?.focus(), 50);
+    } else if (contact?.kind === 'mobile') {
+      setMobile('');
+      setShowForm(false);
+      window.setTimeout(() => document.getElementById('mobile-input')?.focus(), 300);
+    }
+  };
+
+  const reuseDialog = reuseContact ? (
+    <UserContactReuseDialog contact={reuseContact} onUseSame={approveReuse} onUseDifferent={declineReuse} />
+  ) : null;
+
   if (showForm) {
     return (
+      <>
+      {reuseDialog}
       <BusinessRegisterWizard
         step={step}
         stepLabels={stepLabels}
@@ -826,6 +871,7 @@ function RegisterFormContent() {
           },
         }}
       />
+      </>
     );
   }
 

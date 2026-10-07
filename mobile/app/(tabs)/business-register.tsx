@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
   Platform,
   Linking,
@@ -30,12 +31,8 @@ import {
 } from '../../lib/api';
 import {
   checkBusinessTaken,
-  EMAIL_IS_USER,
   EMAIL_TAKEN,
-  emailTakenMessage,
-  MOBILE_IS_USER,
   MOBILE_TAKEN,
-  mobileTakenMessage,
   requestBusinessEmailOtp,
   requestBusinessPhoneOtp,
   submitBusinessRegistration,
@@ -137,6 +134,7 @@ export default function BusinessRegisterScreen() {
   const [emailCode, setEmailCode] = useState('');
   const [emailProof, setEmailProof] = useState('');
   const [emailProofFor, setEmailProofFor] = useState('');
+  const [reuseApproved, setReuseApproved] = useState<string[]>([]);
   const [emailOtpSending, setEmailOtpSending] = useState(false);
   const [emailOtpVerifying, setEmailOtpVerifying] = useState(false);
   const [emailOtpHint, setEmailOtpHint] = useState('');
@@ -205,10 +203,52 @@ export default function BusinessRegisterScreen() {
   const emailCodeOpen = emailOtp.isSentTo(workEmail);
   const emailCodeWaiting = emailOtp.isWaiting(workEmail);
 
+  /** Resolves true when the value may be used: it is free, or its FinderB user account owner says yes. */
+  const confirmReuse = async (kind: 'email' | 'mobile', value: string) => {
+    const key = takenKey(kind, value);
+    if (reuseApproved.includes(key)) return true;
+    let state = takenCache.get(key);
+    if (!state) {
+      const res = await checkBusinessTaken(kind === 'email' ? { email: value } : { mobile: value });
+      if (!res) return true;
+      state = takenStateFor(kind, res);
+      takenCache.set(key, state);
+    }
+    if (state !== 'user') return true;
+    const label = kind === 'email' ? 'email' : 'mobile number';
+    const shown = kind === 'email' ? value : `+91 ${value.slice(0, 5)} ${value.slice(5)}`;
+    return new Promise<boolean>((resolve) => {
+      Alert.alert(
+        `This ${label} is already in use`,
+        `${shown} is already used by a FinderB user account. Do you want to use the same ${label} for your business?\n\nYour user account stays as it is. You will verify it with an OTP first.`,
+        [
+          {
+            text: `Use a different ${label}`,
+            style: 'cancel',
+            onPress: () => {
+              if (kind === 'email') set('email', '');
+              else set('mobile', '');
+              resolve(false);
+            },
+          },
+          {
+            text: 'Yes, use the same',
+            onPress: () => {
+              setReuseApproved((prev) => [...prev, key]);
+              resolve(true);
+            },
+          },
+        ],
+        { cancelable: true, onDismiss: () => resolve(false) },
+      );
+    });
+  };
+
   const sendWorkEmailCode = async () => {
     if (!emailOk || emailCodeWaiting || emailOtpSending) return;
-    setEmailCode('');
     setError('');
+    if (!(await confirmReuse('email', workEmail))) return;
+    setEmailCode('');
     setEmailOtpHint('');
     setEmailOtpSending(true);
     const result = await requestBusinessEmailOtp(workEmail);
@@ -243,8 +283,9 @@ export default function BusinessRegisterScreen() {
 
   const sendMobileCode = async () => {
     if (!mobileOk || country.iso !== 'IN' || mobileCodeWaiting || mobileOtpSending) return;
-    setMobileCode('');
     setError('');
+    if (!(await confirmReuse('mobile', form.mobile))) return;
+    setMobileCode('');
     setMobileOtpSending(true);
     const result = await requestBusinessPhoneOtp(form.mobile);
     setMobileOtpSending(false);
@@ -401,12 +442,12 @@ export default function BusinessRegisterScreen() {
       setError('Verify your work email with the 6-digit code before continuing.');
       return;
     }
-    if (mobileTaken === 'taken' || mobileTaken === 'user') {
-      setError(mobileTaken === 'user' ? MOBILE_IS_USER : MOBILE_TAKEN);
+    if (mobileTaken === 'taken') {
+      setError(MOBILE_TAKEN);
       return;
     }
-    if (emailTaken === 'taken' || emailTaken === 'user') {
-      setError(emailTaken === 'user' ? EMAIL_IS_USER : EMAIL_TAKEN);
+    if (emailTaken === 'taken') {
+      setError(EMAIL_TAKEN);
       return;
     }
     if (!meter.ready) {
@@ -421,7 +462,8 @@ export default function BusinessRegisterScreen() {
       setError('Passwords do not match.');
       return;
     }
-    if (mobileTaken !== 'free' || emailTaken !== 'free') {
+    const settled = (state: TakenState) => state === 'free' || state === 'user';
+    if (!settled(mobileTaken) || !settled(emailTaken)) {
       setBusy(true);
       const taken = await checkBusinessTaken({ email: form.email, mobile: form.mobile });
       setBusy(false);
@@ -430,11 +472,11 @@ export default function BusinessRegisterScreen() {
         takenCache.set(takenKey('email', form.email), takenStateFor('email', taken));
       }
       if (taken?.mobileTaken) {
-        setError(mobileTakenMessage(taken));
+        setError(MOBILE_TAKEN);
         return;
       }
       if (taken?.emailTaken) {
-        setError(emailTakenMessage(taken));
+        setError(EMAIL_TAKEN);
         return;
       }
     }
@@ -529,10 +571,7 @@ export default function BusinessRegisterScreen() {
     setBusy(false);
     if (!result.success) {
       if (result.taken) {
-        takenCache.set(
-          takenKey(result.taken, result.taken === 'email' ? form.email : form.mobile),
-          result.error === EMAIL_IS_USER || result.error === MOBILE_IS_USER ? 'user' : 'taken',
-        );
+        takenCache.set(takenKey(result.taken, result.taken === 'email' ? form.email : form.mobile), 'taken');
         setStep(1);
       } else if (/whatsapp otp|mobile verification/i.test(result.error || '')) {
         setMobileProof('');
@@ -673,7 +712,7 @@ export default function BusinessRegisterScreen() {
                 }
               />
               <Status
-                ok={mobileOk && mobileTaken !== 'taken' && mobileTaken !== 'user'}
+                ok={mobileOk && mobileTaken !== 'taken'}
                 show={form.mobile.length > 0}
                 pending={mobileOk && mobileTaken === 'checking'}
                 label={
@@ -682,7 +721,7 @@ export default function BusinessRegisterScreen() {
                     : mobileTaken === 'taken'
                       ? 'This number is already registered.'
                       : mobileTaken === 'user'
-                        ? 'This number is used by a FinderB user account.'
+                        ? 'Your FinderB user account uses this number. You can use it for your business too.'
                         : mobileTaken === 'checking'
                           ? 'Checking this number…'
                           : mobileTaken === 'free'
@@ -772,7 +811,7 @@ export default function BusinessRegisterScreen() {
                 autoComplete="email"
               />
               <Status
-                ok={emailOk && emailTaken !== 'taken' && emailTaken !== 'user'}
+                ok={emailOk && emailTaken !== 'taken'}
                 show={form.email.length > 0}
                 pending={emailOk && emailTaken === 'checking'}
                 label={
@@ -781,7 +820,7 @@ export default function BusinessRegisterScreen() {
                     : emailTaken === 'taken'
                       ? 'This email is already registered.'
                       : emailTaken === 'user'
-                        ? 'This email is used by a FinderB user account.'
+                        ? 'Your FinderB user account uses this email. You can use it for your business too.'
                         : emailTaken === 'checking'
                           ? 'Checking this email…'
                           : emailTaken === 'free'
@@ -1283,7 +1322,7 @@ const dialStyles = StyleSheet.create({
 });
 
 /**
- * `idle`: not checked yet. `user`: the value belongs to a shopper account.
+ * `idle`: not checked yet. `user`: a FinderB user account uses the value; the owner may reuse it.
  * `unknown`: the lookup could not run.
  */
 type TakenState = 'idle' | 'checking' | 'free' | 'taken' | 'user' | 'unknown';
@@ -1295,12 +1334,9 @@ function takenKey(kind: 'email' | 'mobile', value: string) {
 }
 
 function takenStateFor(kind: 'email' | 'mobile', result: BusinessTaken) {
-  if (kind === 'mobile') {
-    if (!result.mobileTaken) return 'free';
-    return mobileTakenMessage(result) === MOBILE_IS_USER ? 'user' : 'taken';
-  }
-  if (!result.emailTaken) return 'free';
-  return emailTakenMessage(result) === EMAIL_IS_USER ? 'user' : 'taken';
+  const taken = kind === 'mobile' ? result.mobileTaken : result.emailTaken;
+  const onUserAccount = kind === 'mobile' ? result.mobileOnUserAccount : result.emailOnUserAccount;
+  return taken ? 'taken' : onUserAccount ? 'user' : 'free';
 }
 
 /**

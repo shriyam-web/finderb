@@ -14,6 +14,8 @@ import {
   View,
 } from 'react-native';
 import { Image } from 'expo-image';
+import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
+import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { OtpCodeBoxes } from '../../components/OtpCodeBoxes';
@@ -30,6 +32,7 @@ import { createThemedStyles } from '../../hooks/useThemedStyles';
 import {
   requestPhoneVerifyCode,
   requestUserEmailOtp,
+  uploadMobileAvatar,
   verifyPhoneCode,
   verifyPhoneWithTruecaller,
   verifyUserEmailOtp,
@@ -54,7 +57,7 @@ export default function AccountScreen() {
   const { colors, isDark, toggleDark } = useTheme();
   const styles = useStyles();
   const router = useRouter();
-  const { user, loading, signOut, updateProfile } = useAuth();
+  const { user, loading, signOut, updateProfile, applyAuthResult } = useAuth();
   const { requestLogin } = useLoginPrompt();
   const { unreadCount } = useNotificationInbox();
   const scrollBottomPad = useTabScrollPadding(28);
@@ -80,6 +83,51 @@ export default function AccountScreen() {
   const [phoneVerifying, setPhoneVerifying] = useState(false);
   const [truecallerVerifying, setTruecallerVerifying] = useState(false);
   const phoneOtp = useOtpCooldown();
+  const [avatarBusy, setAvatarBusy] = useState(false);
+
+  const pickAvatar = async () => {
+    if (avatarBusy) return;
+    const picked = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 1,
+    });
+    const asset = picked.canceled ? null : picked.assets?.[0];
+    if (!asset) return;
+    setAvatarBusy(true);
+    try {
+      const rendered = await ImageManipulator.manipulate(asset.uri).resize({ width: 512 }).renderAsync();
+      const saved = await rendered.saveAsync({ format: SaveFormat.JPEG, compress: 0.85, base64: true });
+      if (!saved.base64) throw new Error('empty image');
+      const result = await applyAuthResult(await uploadMobileAvatar(`data:image/jpeg;base64,${saved.base64}`));
+      if (!result.success) Alert.alert('Could not update photo', result.error);
+    } catch {
+      Alert.alert('Could not update photo', 'This photo could not be used. Please choose another one.');
+    } finally {
+      setAvatarBusy(false);
+    }
+  };
+
+  const removeAvatar = async () => {
+    setAvatarBusy(true);
+    const result = await updateProfile({ avatarUrl: null });
+    setAvatarBusy(false);
+    if (!result.success) Alert.alert('Could not remove photo', result.error);
+  };
+
+  const openAvatarMenu = () => {
+    if (avatarBusy) return;
+    if (!user?.avatarUrl) {
+      void pickAvatar();
+      return;
+    }
+    Alert.alert('Profile photo', undefined, [
+      { text: 'Choose new photo', onPress: () => void pickAvatar() },
+      { text: 'Remove photo', style: 'destructive', onPress: () => void removeAvatar() },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  };
 
   const startEdit = () => {
     if (!user) return;
@@ -237,15 +285,31 @@ export default function AccountScreen() {
             ) : user ? (
               <View style={styles.profileCard}>
                 <View style={styles.profileTop}>
-                  {user.avatarUrl ? (
-                    <Image source={{ uri: user.avatarUrl }} style={styles.avatar} />
-                  ) : (
-                    <View style={[styles.avatar, styles.avatarFallback]}>
-                      <Text style={styles.avatarInitial}>
-                        {(user.fullName || 'U').slice(0, 1).toUpperCase()}
-                      </Text>
+                  <Pressable
+                    onPress={openAvatarMenu}
+                    disabled={avatarBusy}
+                    hitSlop={6}
+                    accessibilityRole="button"
+                    accessibilityLabel={user.avatarUrl ? 'Change profile photo' : 'Add profile photo'}
+                  >
+                    {user.avatarUrl ? (
+                      <Image source={{ uri: user.avatarUrl }} style={styles.avatar} alt="Profile photo" />
+                    ) : (
+                      <View style={[styles.avatar, styles.avatarFallback]}>
+                        <Text style={styles.avatarInitial}>
+                          {(user.fullName || 'U').slice(0, 1).toUpperCase()}
+                        </Text>
+                      </View>
+                    )}
+                    {avatarBusy ? (
+                      <View style={[styles.avatar, styles.avatarOverlay]}>
+                        <ActivityIndicator color={colors.white} />
+                      </View>
+                    ) : null}
+                    <View style={styles.avatarBadge}>
+                      <Ionicons name="camera" size={12} color={colors.white} />
                     </View>
-                  )}
+                  </Pressable>
                   <View style={styles.profileCopy}>
                     <Text style={styles.profileName} numberOfLines={1}>
                       {user.fullName}
@@ -336,7 +400,7 @@ export default function AccountScreen() {
                     )}
                     {emailLocked ? (
                       <Text style={styles.editHint}>
-                        This email comes from Google and stays as it is.
+                        {"Can't be updated as you have registered your account with this Google email."}
                       </Text>
                     ) : emailChanging ? (
                       <View style={styles.otpBlock}>
@@ -390,7 +454,7 @@ export default function AccountScreen() {
                           +91 {savedPhone.slice(0, 5)} {savedPhone.slice(5)}
                         </Text>
                         <Text style={styles.editHint}>
-                          You sign in with this number, so it stays as it is.
+                          {"Can't be updated as you have registered your account with this number."}
                         </Text>
                       </>
                     ) : (
@@ -674,6 +738,27 @@ const useStyles = createThemedStyles((colors) => ({
     fontFamily: fonts.bold,
     fontSize: 22,
     color: colors.white,
+  },
+  avatarOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+  },
+  avatarBadge: {
+    position: 'absolute',
+    right: -4,
+    bottom: -4,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.ink,
+    borderWidth: 2,
+    borderColor: colors.white,
   },
   profileCopy: {
     flex: 1,

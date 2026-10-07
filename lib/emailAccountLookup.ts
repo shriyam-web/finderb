@@ -86,16 +86,16 @@ export async function getRegistrationConflict(
   email: string,
   registeringAs: AccountType
 ): Promise<AccountType | null> {
-  const types = await lookupEmailAccountTypes(supabase, email);
+  const types = (await lookupEmailAccountTypes(supabase, email)).filter(
+    // A FinderB user may reuse their own email for a business once they verify it.
+    (type) => !(registeringAs === 'merchant' && type === 'user')
+  );
   if (!types.length) return null;
   return types.find((type) => type === registeringAs) ?? types[0];
 }
 
 export const BUSINESS_MOBILE_TAKEN_MESSAGE =
   'This mobile number is already registered with FinderB Business. Log in instead, or use another number.';
-
-export const USER_MOBILE_TAKEN_MESSAGE =
-  'This mobile number is linked to a FinderB user account. Use a different number for your business.';
 
 /**
  * Mobile is a login identifier for both merchants and users, so one number belongs to one account.
@@ -123,15 +123,16 @@ export async function lookupMobileAccountTypes(
   return types;
 }
 
-/** Null when the number is free; otherwise the message to show the merchant. */
+/**
+ * Null when the number can be used for a business; otherwise the message to show the merchant.
+ * A number on a FinderB user account is allowed once the owner verifies it.
+ */
 export async function businessMobileConflictMessage(
   supabase: SupabaseServerClient,
   mobile: string
 ): Promise<string | null> {
   const types = await lookupMobileAccountTypes(supabase, mobile);
-  if (types.includes('merchant')) return BUSINESS_MOBILE_TAKEN_MESSAGE;
-  if (types.includes('user')) return USER_MOBILE_TAKEN_MESSAGE;
-  return null;
+  return types.includes('merchant') ? BUSINESS_MOBILE_TAKEN_MESSAGE : null;
 }
 
 export function getAlternateAccountType(

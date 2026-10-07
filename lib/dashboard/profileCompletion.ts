@@ -41,7 +41,6 @@ const COMPLETION_FIELDS: CompletionField[] = [
   { key: 'profilePictureUrl', label: 'Business Photos (required to go public)', settingsKey: 'media', action: 'settings' },
   { key: 'timings', label: 'Business Timings', settingsKey: 'timings', action: 'settings' },
   { key: 'yearsInBusiness', label: 'Year of Establishment', settingsKey: 'yearsInBusiness', action: 'settings' },
-  { key: 'serviceCategory', label: 'Service Category', settingsKey: 'serviceCategory', action: 'settings' },
   { key: 'website', label: 'Website', settingsKey: 'website', action: 'settings' },
   { key: 'facebookUrl', label: 'Facebook URL', settingsKey: 'facebookUrl', action: 'settings' },
   { key: 'instagramUrl', label: 'Instagram URL', settingsKey: 'instagramUrl', action: 'settings' },

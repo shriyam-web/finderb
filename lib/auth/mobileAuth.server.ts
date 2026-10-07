@@ -447,6 +447,15 @@ export async function mobileAuthSuccessForUserId(
   };
 }
 
+function isCloudinaryImageUrl(url: unknown) {
+  try {
+    const parsed = new URL(String(url));
+    return parsed.protocol === 'https:' && parsed.hostname === 'res.cloudinary.com';
+  } catch {
+    return false;
+  }
+}
+
 export async function mobileUpdateProfile(
   userId: string,
   patch: {
@@ -550,6 +559,9 @@ export async function mobileUpdateProfile(
   }
 
   if (patch.avatarUrl !== undefined) {
+    if (patch.avatarUrl !== null && !isCloudinaryImageUrl(patch.avatarUrl)) {
+      return { success: false, error: 'Upload the photo again.' };
+    }
     updates.avatarUrl = patch.avatarUrl;
   }
 

@@ -151,6 +151,14 @@
           ]
         }
       ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow FinderB to use a photo from your gallery as your profile picture.",
+          "cameraPermission": false,
+          "microphonePermission": false
+        }
+      ],
       "./plugins/withTruecallerQueries.js",
       "./plugins/withReleaseSigning.js",
       "expo-status-bar"

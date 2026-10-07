@@ -78,32 +78,14 @@ function likeLiteral(value: string) {
   return value.replace(/[%_\\]/g, '\\$&');
 }
 
-export const EMAIL_IS_USER =
-  'This email belongs to a FinderB user account. Use a different email for your business.';
-export const MOBILE_IS_USER =
-  'This mobile number is linked to a FinderB user account. Use a different number for your business.';
-
-type AccountKind = 'user' | 'merchant' | 'admin';
-
 export type BusinessTaken = {
+  /** Held by another business (or an admin), so the value cannot be used. */
   emailTaken: boolean;
   mobileTaken: boolean;
-  /** Which kind of account already owns each value, when known. */
-  emailRegisteredAs?: AccountKind | null;
-  mobileRegisteredAs?: AccountKind | null;
+  /** Used by a FinderB user account; the owner may reuse it for the business after confirming. */
+  emailOnUserAccount: boolean;
+  mobileOnUserAccount: boolean;
 };
-
-export function emailTakenMessage(taken: BusinessTaken | null) {
-  return taken?.emailRegisteredAs && taken.emailRegisteredAs !== 'merchant'
-    ? EMAIL_IS_USER
-    : EMAIL_TAKEN;
-}
-
-export function mobileTakenMessage(taken: BusinessTaken | null) {
-  return taken?.mobileRegisteredAs && taken.mobileRegisteredAs !== 'merchant'
-    ? MOBILE_IS_USER
-    : MOBILE_TAKEN;
-}
 
 const AVAILABILITY_TIMEOUT_MS = 6000;
 
@@ -124,8 +106,8 @@ async function serverTaken(email: string, mobile: string): Promise<BusinessTaken
     return {
       emailTaken: body.emailTaken,
       mobileTaken: body.mobileTaken,
-      emailRegisteredAs: body.emailRegisteredAs ?? null,
-      mobileRegisteredAs: body.mobileRegisteredAs ?? null,
+      emailOnUserAccount: body.emailOnUserAccount === true,
+      mobileOnUserAccount: body.mobileOnUserAccount === true,
     };
   } catch {
     return null;
@@ -137,8 +119,8 @@ async function serverTaken(email: string, mobile: string): Promise<BusinessTaken
 type Lookup = PromiseLike<{ data: unknown[] | null; error: unknown }>;
 
 /**
- * Email and mobile each identify one account (merchants and users can log in with either),
- * so a new business may not reuse a value held by any business or user. Emails match any case;
+ * A new business may not reuse an email or mobile held by another business. One held by a FinderB
+ * user account is reported separately so the owner can confirm reusing it. Emails match any case;
  * mobiles match the last 10 digits, so `+91…`, `91…` and `0…` forms all count. Null if the lookup failed.
  */
 export async function checkBusinessTaken(input: {
@@ -148,7 +130,9 @@ export async function checkBusinessTaken(input: {
   const email = input.email?.trim().toLowerCase() || '';
   const mobile = input.mobile ? storedMobile(input.mobile) : '';
   const hasMobile = mobile.length === 10;
-  if (!email && !hasMobile) return { emailTaken: false, mobileTaken: false };
+  if (!email && !hasMobile) {
+    return { emailTaken: false, mobileTaken: false, emailOnUserAccount: false, mobileOnUserAccount: false };
+  }
   const fromServer = await serverTaken(email, hasMobile ? mobile : '');
   if (fromServer) return fromServer;
 
@@ -175,10 +159,10 @@ export async function checkBusinessTaken(input: {
     const emailBiz = hit(bizEmail) || hit(bizWorkEmail);
     const mobileBiz = hit(bizMobile) || hit(bizOwnerMobile);
     return {
-      emailTaken: emailBiz || hit(userEmail),
-      mobileTaken: mobileBiz || hit(userPhone),
-      emailRegisteredAs: emailBiz ? 'merchant' : hit(userEmail) ? 'user' : null,
-      mobileRegisteredAs: mobileBiz ? 'merchant' : hit(userPhone) ? 'user' : null,
+      emailTaken: emailBiz,
+      mobileTaken: mobileBiz,
+      emailOnUserAccount: !emailBiz && hit(userEmail),
+      mobileOnUserAccount: !mobileBiz && hit(userPhone),
     };
   } catch {
     return null;
@@ -194,8 +178,8 @@ export async function submitBusinessRegistration(
   if (!taken) {
     return { success: false, error: 'Could not register the business. Please try again.' };
   }
-  if (taken.emailTaken) return { success: false, error: emailTakenMessage(taken), taken: 'email' };
-  if (taken.mobileTaken) return { success: false, error: mobileTakenMessage(taken), taken: 'mobile' };
+  if (taken.emailTaken) return { success: false, error: EMAIL_TAKEN, taken: 'email' };
+  if (taken.mobileTaken) return { success: false, error: MOBILE_TAKEN, taken: 'mobile' };
 
   if (!payload.emailVerificationToken.trim()) {
     return { success: false, error: 'Verify your work email with the code we send you.' };
@@ -207,7 +191,7 @@ export async function submitBusinessRegistration(
     };
   }
 
-  let result: RegisterResult & { registeredAs?: string };
+  let result: RegisterResult;
   try {
     result = await postBusinessJson('/api/business/mobile/register', {
       ...payload,
@@ -222,13 +206,12 @@ export async function submitBusinessRegistration(
 
   if (result.success) return { success: true };
   const message = result.error || 'Could not register the business. Please try again.';
-  const conflict = /already registered|already exists|user account|sign in instead/i.test(message);
-  const isUser = result.registeredAs === 'user' || /user account/i.test(message);
+  const conflict = /already registered|already exists|sign in instead/i.test(message);
   if (conflict && /mobile|number/i.test(message) && !/email/i.test(message)) {
-    return { success: false, error: isUser ? MOBILE_IS_USER : MOBILE_TAKEN, taken: 'mobile' };
+    return { success: false, error: MOBILE_TAKEN, taken: 'mobile' };
   }
   if (conflict && /email/i.test(message)) {
-    return { success: false, error: isUser ? EMAIL_IS_USER : EMAIL_TAKEN, taken: 'email' };
+    return { success: false, error: EMAIL_TAKEN, taken: 'email' };
   }
   return { success: false, error: message };
 }

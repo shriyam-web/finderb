@@ -316,6 +316,33 @@ export async function updateMobileProfile(patch: {
   }
 }
 
+export async function uploadMobileAvatar(image: string): Promise<AuthResult> {
+  try {
+    const { getStoredToken } = await import('./session');
+    const token = await getStoredToken();
+    if (!token) {
+      return { success: false, error: 'Please log in.' };
+    }
+    const res = await fetch(`${SITE_URL}/api/auth/mobile/avatar`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ image }),
+    });
+    const text = await res.text();
+    try {
+      return JSON.parse(text) as AuthResult;
+    } catch {
+      return { success: false, error: 'Could not upload the photo. Please try again.' };
+    }
+  } catch {
+    return { success: false, error: 'Could not upload the photo. Check your internet and try again.' };
+  }
+}
+
 /**
  * Prefer the app deep link so Google returns straight into FinderB
  * without an intermediate website page. HTTPS bridge remains a fallback
