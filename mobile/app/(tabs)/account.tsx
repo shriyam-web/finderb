@@ -254,10 +254,15 @@ export default function AccountScreen() {
       title: 'Notifications',
       onPress: () => router.push('/(tabs)/notifications' as Href),
     },
-    {
-      title: 'For businesses',
-      onPress: () => router.push('/business-app' as Href),
-    },
+    businessAccount
+      ? {
+          title: 'Business dashboard',
+          onPress: () => router.push('/merchant-welcome?instant=1' as Href),
+        }
+      : {
+          title: 'For businesses',
+          onPress: () => router.push('/business-app' as Href),
+        },
     {
       title: 'Help & support',
       onPress: () => {
@@ -621,14 +626,13 @@ export default function AccountScreen() {
             {user?.isBusinessAccount ? (
               <Pressable
                 style={styles.bizBanner}
-                onPress={() => void Linking.openURL(`${SITE_URL}/business/login`)}
+                onPress={() => router.push('/merchant-welcome?instant=1' as Href)}
               >
                 <Ionicons name="storefront-outline" size={18} color="#F2B45A" />
                 <View style={styles.bizCopy}>
-                  <Text style={styles.bizTitle}>Business account</Text>
+                  <Text style={styles.bizTitle}>{user.businessName || 'Business account'}</Text>
                   <Text style={styles.bizBody}>
-                    You can use FinderB as usual. Business tools will be in this same app. To manage{' '}
-                    {user.businessName || 'your business'} right now, open the web panel.
+                    Open your business dashboard. Until it is fully in the app, manage your business on the web panel.
                   </Text>
                 </View>
                 <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.7)" />

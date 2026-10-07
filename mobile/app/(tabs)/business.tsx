@@ -138,9 +138,11 @@ export default function BusinessScreen() {
                 />
                 <Text style={styles.kicker}>Business</Text>
               </View>
-              <Text style={styles.heroTitle}>List your business</Text>
+              <Text style={styles.heroTitle}>{isMerchant ? 'Your business' : 'List your business'}</Text>
               <Text style={styles.heroBody}>
-                People search FinderB for businesses near them. Register once so they can see your name, category, phone, and reviews.
+                {isMerchant
+                  ? 'Your business is listed on FinderB. People nearby can find your name, category, phone, and reviews.'
+                  : 'People search FinderB for businesses near them. Register once so they can see your name, category, phone, and reviews.'}
               </Text>
               <View style={styles.portraitRow}>
                 <View style={styles.portraitRing}>
@@ -171,9 +173,9 @@ export default function BusinessScreen() {
                   </Text>
                   <Pressable
                     style={({ pressed }) => [styles.primaryBtn, pressed && styles.pressed]}
-                    onPress={() => router.push('/merchant-welcome' as Href)}
+                    onPress={() => router.push('/merchant-welcome?instant=1' as Href)}
                   >
-                    <Text style={styles.primaryText}>Open merchant panel</Text>
+                    <Text style={styles.primaryText}>Open business dashboard</Text>
                   </Pressable>
                 </>
               ) : (
