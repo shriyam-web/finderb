@@ -161,7 +161,7 @@ export default function BusinessScreen() {
                     contentPosition="top"
                   />
                 </View>
-                <Text style={styles.portraitCopy}>Businesses already listed on FinderB</Text>
+                <Text style={styles.portraitCopy}>Thousands of Businesses already listed on FinderB</Text>
               </View>
             </View>
 
