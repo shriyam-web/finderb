@@ -1,6 +1,6 @@
 import { Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { Image } from 'expo-image';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -27,6 +27,7 @@ import {
   fetchJobById,
   formatJobPosted,
   formatJobType,
+  peekJob,
   submitJobApplication,
   type JobListing,
 } from '../../../lib/jobs';
@@ -54,8 +55,8 @@ export default function JobDetailScreen() {
   const id = param(params.id);
   const bottomPad = useTabScrollPadding(28);
 
-  const [job, setJob] = useState<JobListing | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [job, setJob] = useState<JobListing | null>(() => peekJob(id));
+  const [loading, setLoading] = useState(() => !peekJob(id));
   const [error, setError] = useState('');
   const [applyOpen, setApplyOpen] = useState(false);
   const [fullName, setFullName] = useState('');
@@ -66,6 +67,7 @@ export default function JobDetailScreen() {
   const [formError, setFormError] = useState('');
   const [formSuccess, setFormSuccess] = useState(false);
   const [alreadyApplied, setAlreadyApplied] = useState(false);
+  const latestId = useRef(id);
 
   const load = useCallback(async () => {
     if (!id) {
@@ -73,14 +75,21 @@ export default function JobDetailScreen() {
       setLoading(false);
       return;
     }
-    setLoading(true);
-    const [result, applied] = await Promise.all([
-      fetchJobById(id),
-      hasAppliedToJob(id),
-    ]);
-    setJob(result.job);
-    setError(result.error || '');
-    setAlreadyApplied(applied);
+    latestId.current = id;
+    const cached = peekJob(id);
+    setJob(cached);
+    setError('');
+    setLoading(!cached);
+    void hasAppliedToJob(id).then((applied) => {
+      if (latestId.current === id) setAlreadyApplied(applied);
+    });
+    const result = await fetchJobById(id);
+    if (latestId.current !== id) return;
+    // Keep showing the listed job if only the refresh failed (for example, offline).
+    if (result.job || !cached || result.error === 'Job not found') {
+      setJob(result.job);
+      setError(result.error || '');
+    }
     setLoading(false);
   }, [id]);
 

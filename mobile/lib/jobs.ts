@@ -24,6 +24,16 @@ const jobsMemo = createSessionMemo<{
   error?: string;
 }>();
 const ACTIVE_JOBS_KEY = 'active';
+const jobsById = new Map<string, JobListing>();
+
+function rememberJobs(jobs: JobListing[]) {
+  for (const job of jobs) jobsById.set(job.id, job);
+}
+
+/** A job already loaded by a list, so its detail screen can render without waiting on the network. */
+export function peekJob(id: string): JobListing | null {
+  return jobsById.get(id) ?? null;
+}
 
 export function peekActiveJobs(): {
   jobs: JobListing[];
@@ -100,6 +110,7 @@ export async function fetchActiveJobs(force = false): Promise<{
   );
 
   if (result.error) jobsMemo.delete(ACTIVE_JOBS_KEY);
+  rememberJobs(result.jobs);
   return result;
 }
 
@@ -157,6 +168,7 @@ export async function fetchJobsByBusinessId(businessId: string): Promise<{
     } satisfies JobListing;
   });
 
+  rememberJobs(jobs);
   return { jobs };
 }
 
@@ -197,25 +209,26 @@ export async function fetchJobById(id: string): Promise<{
     return { job: null, error: error.message };
   }
   if (!data) {
+    jobsById.delete(id);
     return { job: null, error: 'Job not found' };
   }
 
   const businessRaw = data.business as JobListing['business'] | JobListing['business'][] | null;
   const business = Array.isArray(businessRaw) ? businessRaw[0] ?? null : businessRaw;
-
-  return {
-    job: {
-      id: String(data.id),
-      title: String(data.title || 'Job opening'),
-      type: (data.type as string | null) ?? null,
-      location: (data.location as string | null) ?? null,
-      salary: (data.salary as string | null) ?? null,
-      description: (data.description as string | null) ?? null,
-      department: (data.department as string | null) ?? null,
-      created_at: (data.created_at as string | null) ?? null,
-      business,
-    },
+  const job: JobListing = {
+    id: String(data.id),
+    title: String(data.title || 'Job opening'),
+    type: (data.type as string | null) ?? null,
+    location: (data.location as string | null) ?? null,
+    salary: (data.salary as string | null) ?? null,
+    description: (data.description as string | null) ?? null,
+    department: (data.department as string | null) ?? null,
+    created_at: (data.created_at as string | null) ?? null,
+    business,
   };
+  jobsById.set(job.id, job);
+
+  return { job };
 }
 
 function buildJobApplicationMessage(jobTitle: string, candidateMessage?: string) {
