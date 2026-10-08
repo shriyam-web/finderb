@@ -5,6 +5,8 @@ set "ANDROID_SDK_ROOT=%ANDROID_HOME%"
 if not defined JAVA_HOME set "JAVA_HOME=C:\Program Files\Eclipse Adoptium\jdk-17.0.18.8-hotspot"
 if not exist "%JAVA_HOME%" set "JAVA_HOME=C:\Program Files\Android\Android Studio\jbr"
 set "NODE_ENV=production"
+rem Release bundles must use mobile/.env, not dev overrides such as a localhost API URL.
+for /f "delims==" %%V in ('set EXPO_PUBLIC_ 2^>nul') do set "%%V="
 set "PATH=C:\Program Files\nodejs;%PATH%"
 
 set "MOBILE=E:\projects\FinderB Sites\FinderB\mobile"
