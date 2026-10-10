@@ -48,6 +48,8 @@ yarn-error.*
 android/app/finderb-release.keystore
 android/keystore.properties
 /credentials/
+/credentials*.zip
 *.keystore
+*.jks
 !android/app/debug.keystore
 
