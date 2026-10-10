@@ -40,6 +40,15 @@ export default async function AccountDeletionPage() {
           any browser.
         </p>
       </LegalSection>
+
+      <LegalSection title="Business accounts">
+        <p>
+          Sign in to the FinderB app with your business account and use Account → Delete account,
+          or email {LEGAL_COMPANY.email} from your registered email. Your listing is removed, sign-in
+          stops working, any active plan is cancelled, and your contact, address, photos, and KYC
+          documents are erased. Payment and invoice records are kept as required by Indian tax law.
+        </p>
+      </LegalSection>
     </LegalPageLayout>
   );
 }

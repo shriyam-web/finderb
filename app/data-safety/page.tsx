@@ -41,8 +41,9 @@ export default function DataSafetyPage() {
             'Phone number — Truecaller sign-in and optional enquiry forms',
             'Approximate and precise location — only if you allow it, to show nearby businesses',
             'App activity — searches, saved places, and enquiries you send to merchants',
-            'Photos — Google profile photo if you sign in with Google; business photos are merchant-uploaded',
-            'Device identifiers — Expo push token so we can send account and announcement notifications',
+            'Photos — a profile photo you pick from your gallery, or your Google profile photo; business photos are merchant-uploaded',
+            'Device identifiers — push token (Expo / Firebase Cloud Messaging) so we can send account and announcement notifications',
+            'User content — reviews you post are shown publicly with your name',
           ]}
         />
       </LegalSection>
@@ -56,7 +57,9 @@ export default function DataSafetyPage() {
             'App activity: App interactions / in-app search history — collected, for discovery and saved places, not sold',
             'App info and performance: Crash logs / diagnostics if the store or Expo reports them — not used for advertising',
             'Device or other IDs: collected for push notifications and fraud prevention, not sold',
-            'Photos and videos: User-generated photos only if a merchant uploads listing images (merchant account). Consumer users typically do not upload photos except a Google avatar.',
+            'Photos and videos: Photos — collected, optional (profile photo, merchant listing images), for app functionality, not sold',
+            'Messages / user content: Other user-generated content (reviews) — collected, optional, shown publicly, not sold',
+            'Audio: Not collected — voice search uses the phone speech service and only the resulting text is sent as a search',
             'Financial info: Not collected in the consumer app. Merchant payments happen on the website via Razorpay.',
             'Encryption in transit: Yes',
             'Users can request data deletion: Yes — in-app Delete account and https://finderb.com/account-deletion',
@@ -80,7 +83,7 @@ export default function DataSafetyPage() {
         <p>
           We share data only with processors that run FinderB: hosting (Vercel), database (Supabase),
           email (Resend, when configured), maps (Google), sign-in (Google / Truecaller), and push
-          delivery (Expo). Merchant subscription payments are processed by Razorpay on the website,
+          delivery (Expo and Google Firebase Cloud Messaging). Merchant subscription payments are processed by Razorpay on the website,
           not in the consumer app checkout.
         </p>
       </LegalSection>

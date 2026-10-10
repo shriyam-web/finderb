@@ -124,10 +124,12 @@ export default function PrivacyPage() {
         <LegalList
           items={[
             'Precise or approximate location, only if you grant permission, to show nearby businesses',
-            'A push-notification token so we can deliver announcements and account alerts',
+            'A push-notification token, delivered through Google Firebase Cloud Messaging, so we can send announcements and account alerts',
             'Google account name, email, and profile photo if you sign in with Google',
             'Phone number and name if you sign in with Truecaller',
-            'Microphone audio while you use voice search, processed on-device / by the OS speech service',
+            'Microphone audio while you use voice search, processed on-device / by the OS speech service and not stored by FinderB',
+            'A profile photo, only if you pick one from your gallery',
+            'Reviews you post, which are shown publicly with your name on the business listing',
           ]}
         />
         <p>

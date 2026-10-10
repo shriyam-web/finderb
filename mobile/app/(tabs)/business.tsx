@@ -11,66 +11,7 @@ import { useTabScrollPadding } from '../../hooks/useAppSafeArea';
 import { createThemedStyles } from '../../hooks/useThemedStyles';
 import { goBackOrHome } from '../../lib/navigation';
 import { TabSwipeHost } from '../../lib/tabSwipe';
-import type { AuthUser } from '../../lib/session';
 import { SITE_URL } from '../../lib/supabase';
-
-const PLANS = [
-  {
-    name: 'Starter',
-    tagline: 'List your business and get discovered',
-    price: '₹0',
-    period: '',
-    was: '',
-    billed: '',
-    note: 'Included',
-    features: [
-      'Basic business listing and profile',
-      'Business name, address, and phone',
-      'Up to 3 photos on your listing',
-      'Standard search visibility',
-    ],
-  },
-  {
-    name: 'Growth',
-    tagline: 'Full power, pay as you grow',
-    price: '₹499',
-    period: '/mo',
-    was: '₹2,999/mo',
-    billed: '',
-    note: 'Everything in Starter, plus',
-    features: [
-      'Premium listing with a rich profile',
-      'Verified partner badge',
-      'Priority placement in local search',
-      'Lead center with customer contact details',
-      'Advanced analytics',
-      'Unlimited photos',
-      'SMS and email lead alerts',
-      'Direct customer chat',
-      '24/7 priority support',
-    ],
-  },
-  {
-    name: 'Pro',
-    tagline: 'Best rate, billed once a year',
-    price: '₹299',
-    period: '/mo',
-    was: '₹35,988/yr',
-    billed: '₹3,588/yr',
-    note: 'Everything in Growth, paid yearly',
-    features: [],
-  },
-] as const;
-
-type PlanName = (typeof PLANS)[number]['name'];
-
-/** A completed payment that has not expired. Starter never counts. */
-function hasActivePaidPlan(user: AuthUser | null | undefined): boolean {
-  if (!user?.isBusinessAccount || user.paymentStatus !== 'completed') return false;
-  if (!user.planExpiresAt) return true;
-  const expires = new Date(user.planExpiresAt).getTime();
-  return Number.isFinite(expires) && expires > Date.now();
-}
 
 const POINTS = [
   {
@@ -99,17 +40,6 @@ export default function BusinessScreen() {
   const scrollRef = useRef<ScrollView>(null);
   useScrollToTop(scrollRef);
   const isMerchant = Boolean(user?.isBusinessAccount);
-  const onStarter = isMerchant && !hasActivePaidPlan(user);
-  const visiblePlans = onStarter ? PLANS.filter((plan) => plan.name !== 'Starter') : PLANS;
-
-  const upgrade = (plan: PlanName) => {
-    const billing = plan === 'Pro' ? 'annual' : 'monthly';
-    const id = user?.businessId;
-    const url = id
-      ? `${SITE_URL}/business/payment/${encodeURIComponent(id)}?billing=${billing}&checkout=1`
-      : `${SITE_URL}/pricing`;
-    void Linking.openURL(url);
-  };
 
   return (
     <TabSwipeHost>
@@ -161,7 +91,7 @@ export default function BusinessScreen() {
                     contentPosition="top"
                   />
                 </View>
-                <Text style={styles.portraitCopy}>Thousands of Businesses already listed on FinderB</Text>
+                <Text style={styles.portraitCopy}>Local businesses near you are already listed on FinderB</Text>
               </View>
             </View>
 
@@ -194,52 +124,6 @@ export default function BusinessScreen() {
                   </Pressable>
                 </>
               )}
-            </View>
-
-            <Text style={styles.section}>{onStarter ? 'Upgrade' : 'Plans'}</Text>
-            <Text style={styles.sectionNote}>
-              {onStarter
-                ? 'You are on Starter. Growth and Pro are the upgrade options. GST applies.'
-                : 'Launch prices. GST applies.'}
-            </Text>
-            <View style={styles.plans}>
-              {visiblePlans.map((plan) => {
-                const featured = plan.name === 'Pro';
-                return (
-                  <View key={plan.name} style={[styles.plan, featured && styles.planFeatured]}>
-                    <View style={styles.planHead}>
-                      <Text style={styles.planName}>{plan.name}</Text>
-                      {plan.was ? <Text style={styles.planBadge}>Early bird</Text> : null}
-                    </View>
-                    <Text style={styles.planTagline}>{plan.tagline}</Text>
-                    <View style={styles.priceRow}>
-                      <Text style={styles.planPrice}>{plan.price}</Text>
-                      {plan.period ? <Text style={styles.planPeriod}>{plan.period}</Text> : null}
-                    </View>
-                    {plan.was ? (
-                      <Text style={styles.planWas}>
-                        <Text style={styles.planStruck}>{plan.was}</Text>
-                        {plan.billed ? `   ${plan.billed}` : ''}
-                      </Text>
-                    ) : null}
-                    <Text style={styles.planNote}>{plan.note}</Text>
-                    {plan.features.map((feature) => (
-                      <View key={feature} style={styles.featureRow}>
-                        <Ionicons name="checkmark" size={16} color={biz.blue} />
-                        <Text style={styles.featureText}>{feature}</Text>
-                      </View>
-                    ))}
-                    {onStarter ? (
-                      <Pressable
-                        style={({ pressed }) => [styles.upgradeBtn, pressed && styles.pressed]}
-                        onPress={() => upgrade(plan.name)}
-                      >
-                        <Text style={styles.upgradeText}>Upgrade</Text>
-                      </Pressable>
-                    ) : null}
-                  </View>
-                );
-              })}
             </View>
 
             <Text style={styles.section}>What you get</Text>
@@ -387,118 +271,6 @@ const useStyles = createThemedStyles((colors) => {
     fontFamily: fonts.medium,
     fontSize: 18,
     color: colors.heading,
-  },
-  sectionNote: {
-    marginHorizontal: 20,
-    marginBottom: 12,
-    fontFamily: fonts.medium,
-    fontSize: 13,
-    lineHeight: 19,
-    color: b.body,
-  },
-  plans: {
-    marginHorizontal: 20,
-    gap: 12,
-  },
-  plan: {
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: b.line,
-    backgroundColor: b.card,
-    padding: 16,
-  },
-  planFeatured: {
-    borderColor: b.blue,
-    backgroundColor: b.cardSoft,
-  },
-  planHead: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 8,
-  },
-  planName: {
-    fontFamily: fonts.medium,
-    fontSize: 18,
-    color: colors.heading,
-  },
-  planBadge: {
-    fontFamily: fonts.medium,
-    fontSize: 12,
-    color: b.blue,
-    backgroundColor: b.blueSoft,
-    borderRadius: 999,
-    overflow: 'hidden',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
-  planTagline: {
-    marginTop: 4,
-    fontFamily: fonts.medium,
-    fontSize: 13,
-    lineHeight: 18,
-    color: b.body,
-  },
-  priceRow: {
-    marginTop: 12,
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-  },
-  planPrice: {
-    fontFamily: fonts.medium,
-    fontSize: 28,
-    lineHeight: 32,
-    letterSpacing: -0.4,
-    color: colors.heading,
-  },
-  planPeriod: {
-    marginBottom: 3,
-    marginLeft: 2,
-    fontFamily: fonts.medium,
-    fontSize: 14,
-    color: b.body,
-  },
-  planWas: {
-    marginTop: 4,
-    fontFamily: fonts.medium,
-    fontSize: 13,
-    color: colors.heading,
-  },
-  planStruck: {
-    color: b.faint,
-    textDecorationLine: 'line-through',
-  },
-  planNote: {
-    marginTop: 12,
-    marginBottom: 6,
-    fontFamily: fonts.medium,
-    fontSize: 13,
-    color: colors.heading,
-  },
-  featureRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 8,
-    paddingVertical: 3,
-  },
-  featureText: {
-    flex: 1,
-    fontFamily: fonts.medium,
-    fontSize: 13,
-    lineHeight: 18,
-    color: b.body,
-  },
-  upgradeBtn: {
-    marginTop: 14,
-    borderRadius: 12,
-    backgroundColor: b.blueFill,
-    alignItems: 'center',
-    paddingVertical: 12,
-  },
-  upgradeText: {
-    fontFamily: fonts.medium,
-    fontSize: 15,
-    color: b.onFill,
   },
   list: {
     marginHorizontal: 20,

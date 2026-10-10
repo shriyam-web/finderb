@@ -113,3 +113,40 @@ export async function submitBusinessReview(input: {
     };
   }
 }
+
+export async function reportBusinessReview(input: {
+  businessId: string;
+  reviewId: string;
+  reason: string;
+}): Promise<{ success: true } | { success: false; error: string; unauthorized?: boolean }> {
+  const token = await getStoredToken();
+  if (!token) {
+    return { success: false, error: 'Please log in to report a review.', unauthorized: true };
+  }
+
+  try {
+    const res = await fetch(`${SITE_URL}/api/reviews/report`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(input),
+    });
+    const data = (await res.json().catch(() => ({}))) as { success?: boolean; error?: string };
+    if (!data.success) {
+      return {
+        success: false,
+        error: data.error || `Server error (${res.status}). Please try again.`,
+        unauthorized: res.status === 401,
+      };
+    }
+    return { success: true };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Network error. Check your connection.',
+    };
+  }
+}

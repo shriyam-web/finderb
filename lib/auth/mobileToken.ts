@@ -11,12 +11,11 @@ type MobileTokenPayload = {
 };
 
 function getSecret(): string {
+  // Never fall back to the anon key: it ships inside the app, so anyone could mint tokens.
   const secret =
-    process.env.MOBILE_SESSION_SECRET?.trim() ||
-    process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() ||
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
+    process.env.MOBILE_SESSION_SECRET?.trim() || process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
   if (!secret) {
-    throw new Error('Missing MOBILE_SESSION_SECRET / Supabase keys for mobile tokens');
+    throw new Error('Missing MOBILE_SESSION_SECRET / SUPABASE_SERVICE_ROLE_KEY for mobile tokens');
   }
   return secret;
 }

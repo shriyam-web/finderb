@@ -45,6 +45,7 @@ import {
 import { getDiscountOfferDisplay } from '../../../lib/discountOffer';
 import { fetchFavoriteIds, toggleFavorite } from '../../../lib/favoritesApi';
 import { recordDirectLead } from '../../../lib/leadsApi';
+import { reportBusinessReview } from '../../../lib/reviewsApi';
 import { goBackOrHome } from '../../../lib/navigation';
 import { SITE_URL } from '../../../lib/supabase';
 import { useTabScrollPadding } from '../../../hooks/useAppSafeArea';
@@ -213,6 +214,7 @@ export default function MerchantProfileScreen() {
   const [linkCopiedVisible, setLinkCopiedVisible] = useState(false);
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [reportedReviewIds, setReportedReviewIds] = useState<Set<string>>(() => new Set());
   const linkCopiedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const contactRevealed = Boolean(user);
@@ -439,6 +441,34 @@ export default function MerchantProfileScreen() {
       return;
     }
     setSaved(result.saved);
+  };
+
+  const sendReviewReport = async (reviewId: string, reason: string) => {
+    if (!merchant) return;
+    const result = await reportBusinessReview({ businessId: merchant.id, reviewId, reason });
+    if (!result.success) {
+      if (result.unauthorized) requestLogin();
+      else Alert.alert('Could not report', result.error);
+      return;
+    }
+    setReportedReviewIds((prev) => new Set(prev).add(reviewId));
+    Alert.alert('Thanks for reporting', 'Our team will review it and remove it if it breaks our rules.');
+  };
+
+  const handleReportReview = (reviewId: string) => {
+    if (!user) {
+      requestLogin();
+      return;
+    }
+    Alert.alert('Report this review?', 'Tell us what is wrong with it.', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Spam or fake', onPress: () => void sendReviewReport(reviewId, 'Spam or fake review') },
+      {
+        text: 'Abusive or offensive',
+        style: 'destructive',
+        onPress: () => void sendReviewReport(reviewId, 'Abusive or offensive content'),
+      },
+    ]);
   };
 
   const handleContactAction = (intent: 'call' | 'whatsapp' | 'enquire') => {
@@ -1384,6 +1414,20 @@ export default function MerchantProfileScreen() {
                         </Text>
                       </View>
                     ) : null}
+                    {review.userId && review.userId === user?.id ? null : reportedReviewIds.has(review.id) ? (
+                      <Text style={styles.reviewReported}>Reported</Text>
+                    ) : (
+                      <Pressable
+                        onPress={() => handleReportReview(review.id)}
+                        hitSlop={8}
+                        style={styles.reviewReport}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Report review by ${review.author || 'customer'}`}
+                      >
+                        <Ionicons name="flag-outline" size={13} color={colors.textSoft} />
+                        <Text style={styles.reviewReportText}>Report</Text>
+                      </Pressable>
+                    )}
                   </View>
                 ))}
               </View>
@@ -2376,6 +2420,23 @@ const useStyles = createThemedStyles((colors, gradients) => ({
     fontSize: 13,
     lineHeight: 19,
     color: colors.textMuted,
+  },
+  reviewReport: {
+    alignSelf: 'flex-end',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  reviewReportText: {
+    fontFamily: fonts.medium,
+    fontSize: 11,
+    color: colors.textSoft,
+  },
+  reviewReported: {
+    alignSelf: 'flex-end',
+    fontFamily: fonts.medium,
+    fontSize: 11,
+    color: colors.textSoft,
   },
   replyCard: {
     marginTop: 2,

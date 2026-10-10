@@ -96,6 +96,13 @@ export default function DeleteAccountScreen() {
               We will delete your FinderB user account, saved places, and sign-in on this phone and
               the website. Public reviews may stay on business pages without your name.
             </Text>
+            {user.isBusinessAccount ? (
+              <Text style={styles.body}>
+                Your business listing will also be removed, any active plan cancelled, and your
+                contact details, photos, and KYC documents erased. Payment records are kept as
+                Indian tax law requires.
+              </Text>
+            ) : null}
             <Text style={styles.label}>Type DELETE to confirm</Text>
             <TextInput
               value={confirmText}

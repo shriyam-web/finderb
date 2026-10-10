@@ -17,14 +17,22 @@ for %%D in (generated\assets\react\release generated\res\react\release generated
   if exist "%MOBILE%\android\app\build\%%D" rmdir /s /q "%MOBILE%\android\app\build\%%D"
 )
 
-call gradlew.bat assembleRelease --no-daemon -PreactNativeArchitectures=armeabi-v7a,arm64-v8a
+rem Pass "aab" to also build the Play Store bundle.
+set "TASKS=assembleRelease"
+if /i "%~1"=="aab" set "TASKS=assembleRelease bundleRelease"
+
+call gradlew.bat %TASKS% --no-daemon -PreactNativeArchitectures=armeabi-v7a,arm64-v8a
 set "ERR=%ERRORLEVEL%"
 
+if not exist "%MOBILE%\dist" mkdir "%MOBILE%\dist"
 if exist "%MOBILE%\android\app\build\outputs\apk\release\app-release.apk" (
-  if not exist "%MOBILE%\dist" mkdir "%MOBILE%\dist"
   copy /Y "%MOBILE%\android\app\build\outputs\apk\release\app-release.apk" "%MOBILE%\dist\FinderB-release.apk" >nul
   echo.
   echo APK: %MOBILE%\dist\FinderB-release.apk
+)
+if /i "%~1"=="aab" if exist "%MOBILE%\android\app\build\outputs\bundle\release\app-release.aab" (
+  copy /Y "%MOBILE%\android\app\build\outputs\bundle\release\app-release.aab" "%MOBILE%\dist\FinderB-release.aab" >nul
+  echo AAB: %MOBILE%\dist\FinderB-release.aab
 )
 
 exit /b %ERR%
