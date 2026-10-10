@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import React, { useState, type ReactNode } from 'react';
+import React, { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   Mail,
   Phone,
@@ -213,22 +213,54 @@ function SecureSiteBadge() {
   );
 }
 
+const CREDIT_TAPS = 7;
+/** Taps further apart than this start the count again. */
+const CREDIT_TAP_GAP_MS = 1500;
+const CREDIT_VISIBLE_MS = 4000;
+
 function MadeInIndiaBadge() {
+  const [creditVisible, setCreditVisible] = useState(false);
+  const tapsRef = useRef({ count: 0, lastAt: 0 });
+  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(
+    () => () => {
+      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+    },
+    [],
+  );
+
+  const handleTap = () => {
+    const now = Date.now();
+    const taps = tapsRef.current;
+    taps.count = now - taps.lastAt > CREDIT_TAP_GAP_MS ? 1 : taps.count + 1;
+    taps.lastAt = now;
+    if (taps.count < CREDIT_TAPS) return;
+
+    taps.count = 0;
+    setCreditVisible(true);
+    if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+    hideTimerRef.current = setTimeout(() => setCreditVisible(false), CREDIT_VISIBLE_MS);
+  };
+
   return (
-    <span className="group relative inline-flex">
-      <span
-        className="inline-flex cursor-default items-center gap-1 rounded border border-neutral-300 bg-white px-2 py-0.5 font-medium text-inherit transition-colors hover:border-[#153551]/25 hover:bg-[#fafaf9]"
-        tabIndex={0}
-        title="Designed and developed by Shriyam Parashar"
-        aria-describedby="footer-made-in-india-tooltip"
+    <span className="relative inline-flex">
+      <button
+        type="button"
+        onClick={handleTap}
+        className="inline-flex cursor-default select-none items-center gap-1 rounded border border-neutral-300 bg-white px-2 py-0.5 font-medium text-inherit transition-colors hover:border-[#153551]/25 hover:bg-[#fafaf9] [-webkit-tap-highlight-color:transparent]"
+        aria-describedby={creditVisible ? 'footer-made-in-india-tooltip' : undefined}
       >
         <IndianFlagIcon className="h-2.5 w-[15px] shrink-0 rounded-[2px] ring-1 ring-black/5" />
         Made in India
-      </span>
+      </button>
       <span
         id="footer-made-in-india-tooltip"
         role="tooltip"
-        className="pointer-events-none absolute bottom-[calc(100%+0.4rem)] left-1/2 z-20 -translate-x-1/2 whitespace-nowrap rounded-md border border-neutral-200 bg-neutral-900 px-2.5 py-1.5 text-[10px] font-medium leading-snug text-white opacity-0 shadow-md transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100"
+        aria-hidden={!creditVisible}
+        className={`pointer-events-none absolute bottom-[calc(100%+0.4rem)] left-1/2 z-20 -translate-x-1/2 whitespace-nowrap rounded-md border border-neutral-200 bg-neutral-900 px-2.5 py-1.5 text-[10px] font-medium leading-snug text-white shadow-md transition-opacity duration-200 ${
+          creditVisible ? 'opacity-100' : 'opacity-0'
+        }`}
       >
         Designed and developed by Shriyam Parashar
         <span

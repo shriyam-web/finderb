@@ -1,16 +1,40 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import dynamic from 'next/dynamic';
 import {
   HiOutlineCheckCircle,
   HiOutlineExclamationCircle,
   HiOutlineMapPin,
 } from 'react-icons/hi2';
+import { Crosshair, Map as MapIcon } from 'lucide-react';
 import { lookupPlaceNameFromCoordinates, resolveGoogleMapsLocation, validateMapPinAgainstAddress } from '@/app/actions/location';
 import { mapEmbedSrc } from '@/lib/businessContact';
 import { buildGoogleMapsUrl } from '@/lib/googleMapsLocation';
 import type { ManualAddress } from '@/lib/locationMatch';
 import { locationTokensMatch } from '@/lib/locationMatch';
+
+const MapPinPicker = dynamic(() => import('./MapPinPicker'), {
+  ssr: false,
+  loading: () => <div className="h-72 w-full animate-pulse rounded-xl bg-slate-100" />,
+});
+
+type PickedLocation = {
+  latitude: number;
+  longitude: number;
+  placeName: string | null;
+  url: string;
+};
+
+function readCurrentPosition(): Promise<GeolocationPosition> {
+  return new Promise((resolve, reject) => {
+    navigator.geolocation.getCurrentPosition(resolve, reject, {
+      enableHighAccuracy: true,
+      timeout: 15000,
+      maximumAge: 60000,
+    });
+  });
+}
 
 type GoogleMapsLocationEditorProps = {
   googleMapsUrl: string;
@@ -52,6 +76,8 @@ export default function GoogleMapsLocationEditor({
       ? { lat: latitude, lng: longitude }
       : null
   );
+  const [busySource, setBusySource] = useState<'link' | 'gps' | 'map' | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   const resultRef = useRef<HTMLDivElement>(null);
   const pendingScrollRef = useRef(false);
@@ -97,36 +123,27 @@ export default function GoogleMapsLocationEditor({
     });
   }, [googleMapsUrl, latitude, longitude]);
 
-  const handleVerify = async () => {
-    setStatus('loading');
-    setError('');
+  const showError = (message: string) => {
+    setStatus('error');
+    setError(message);
+    setResolvedCoords(null);
+    setPlaceName(null);
+    setAddressCorrectionNote('');
+    pendingScrollRef.current = true;
+  };
 
-    const result = await resolveGoogleMapsLocation(input);
-
-    if (!result.success) {
-      setStatus('error');
-      setError(result.error);
-      setResolvedCoords(null);
-      setPlaceName(null);
-      pendingScrollRef.current = true;
-      return;
-    }
-
+  /** Shared by the link, current-location, and map-pin paths. Returns false when the pin is unusable. */
+  const acceptLocation = async (picked: PickedLocation): Promise<boolean> => {
     const addressMatch = await validateMapPinAgainstAddress(
-      result.latitude,
-      result.longitude,
+      picked.latitude,
+      picked.longitude,
       addressContext ?? {},
     );
 
     const resolved = addressMatch.resolved;
     if (!resolved.city && !resolved.state && !resolved.country) {
-      setStatus('error');
-      setError(addressMatch.ok === false ? addressMatch.error : 'Could not read city/state from this pin.');
-      setResolvedCoords(null);
-      setPlaceName(null);
-      setAddressCorrectionNote('');
-      pendingScrollRef.current = true;
-      return;
+      showError(addressMatch.ok === false ? addressMatch.error : 'Could not read city/state from this pin.');
+      return false;
     }
 
     const nextCity = resolved.city ?? '';
@@ -142,10 +159,11 @@ export default function GoogleMapsLocationEditor({
         (manualCountry && nextCountry && !locationTokensMatch(manualCountry, nextCountry)),
     );
 
-    const verifiedInput = result.normalizedUrl;
+    const verifiedInput = picked.url;
     setStatus('valid');
-    setResolvedCoords({ lat: result.latitude, lng: result.longitude });
-    setPlaceName(result.placeName);
+    setError('');
+    setResolvedCoords({ lat: picked.latitude, lng: picked.longitude });
+    setPlaceName(picked.placeName);
     setInput(verifiedInput);
     setLastVerifiedInput(verifiedInput.trim());
     setAddressCorrectionNote(
@@ -157,14 +175,83 @@ export default function GoogleMapsLocationEditor({
     );
     onResolved({
       googleMapsUrl: verifiedInput,
-      latitude: result.latitude,
-      longitude: result.longitude,
+      latitude: picked.latitude,
+      longitude: picked.longitude,
       city: nextCity,
       state: nextState,
       country: nextCountry,
       addressCorrected,
     });
     pendingScrollRef.current = true;
+    return true;
+  };
+
+  const handleVerify = async () => {
+    setStatus('loading');
+    setError('');
+    setBusySource('link');
+    try {
+      const result = await resolveGoogleMapsLocation(input);
+      if (!result.success) {
+        showError(result.error);
+        return;
+      }
+      await acceptLocation({
+        latitude: result.latitude,
+        longitude: result.longitude,
+        placeName: result.placeName,
+        url: result.normalizedUrl,
+      });
+    } finally {
+      setBusySource(null);
+    }
+  };
+
+  const handleCurrentLocation = async () => {
+    if (!('geolocation' in navigator)) {
+      showError('This browser cannot share your location. Set the pin on the map or paste a Google Maps link.');
+      return;
+    }
+    setPickerOpen(false);
+    setStatus('loading');
+    setError('');
+    setBusySource('gps');
+    try {
+      const position = await readCurrentPosition();
+      const { latitude: lat, longitude: lng } = position.coords;
+      await acceptLocation({
+        latitude: lat,
+        longitude: lng,
+        placeName: null,
+        url: buildGoogleMapsUrl(lat, lng),
+      });
+    } catch (reason) {
+      const denied = (reason as GeolocationPositionError)?.code === 1;
+      showError(
+        denied
+          ? 'Location access is blocked. Allow it in your browser settings, or set the pin on the map.'
+          : 'Could not read your current location. Set the pin on the map or paste a Google Maps link.',
+      );
+    } finally {
+      setBusySource(null);
+    }
+  };
+
+  const handleMapPick = async ({ lat, lng }: { lat: number; lng: number }) => {
+    setStatus('loading');
+    setError('');
+    setBusySource('map');
+    try {
+      const accepted = await acceptLocation({
+        latitude: lat,
+        longitude: lng,
+        placeName: null,
+        url: buildGoogleMapsUrl(lat, lng),
+      });
+      if (accepted) setPickerOpen(false);
+    } finally {
+      setBusySource(null);
+    }
   };
 
   const trimmedInput = input.trim();
@@ -182,8 +269,55 @@ export default function GoogleMapsLocationEditor({
 
   const showResult = (status === 'valid' && resolvedCoords) || (status === 'error' && error);
 
+  const placeQuery = [addressContext?.city, addressContext?.state, addressContext?.country]
+    .map((part) => part?.trim())
+    .filter(Boolean)
+    .join(', ');
+
   return (
     <div className="space-y-6">
+      <div className="space-y-3">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <button
+            type="button"
+            onClick={() => void handleCurrentLocation()}
+            disabled={busySource !== null}
+            className="flex items-center justify-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm font-semibold text-indigo-700 transition-colors hover:bg-indigo-100 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <Crosshair size={16} />
+            {busySource === 'gps' ? 'Finding you…' : 'Use current location'}
+          </button>
+          <button
+            type="button"
+            onClick={() => setPickerOpen((open) => !open)}
+            disabled={busySource !== null && busySource !== 'map'}
+            className={`flex items-center justify-center gap-2 rounded-xl border px-4 py-3 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+              pickerOpen
+                ? 'border-indigo-600 bg-indigo-600 text-white hover:bg-indigo-700'
+                : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+            }`}
+          >
+            <MapIcon size={16} />
+            Set location on map
+          </button>
+        </div>
+        {pickerOpen && (
+          <MapPinPicker
+            initial={resolvedCoords}
+            placeQuery={placeQuery}
+            busy={busySource === 'map'}
+            onConfirm={(coords) => void handleMapPick(coords)}
+            onCancel={() => setPickerOpen(false)}
+          />
+        )}
+      </div>
+
+      <div className="flex items-center gap-3 text-xs font-medium uppercase tracking-wide text-slate-400">
+        <span className="h-px flex-1 bg-slate-200" />
+        or paste a Google Maps link
+        <span className="h-px flex-1 bg-slate-200" />
+      </div>
+
       <ol className="space-y-2.5">
         {STEPS.map((step, index) => (
           <li key={step} className="flex gap-3 text-sm leading-relaxed text-slate-600">
@@ -239,7 +373,7 @@ export default function GoogleMapsLocationEditor({
           className="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white transition-all hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <HiOutlineMapPin size={16} />
-          {status === 'loading'
+          {busySource === 'link'
             ? 'Checking…'
             : isVerifiedUnchanged
               ? 'Verified ✓'
@@ -297,7 +431,7 @@ export default function GoogleMapsLocationEditor({
             <div className="flex items-start gap-2.5 rounded-xl border border-red-200 bg-red-50 p-4">
               <HiOutlineExclamationCircle size={20} className="shrink-0 text-red-600" />
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-red-800">Link not accepted</p>
+                <p className="text-sm font-semibold text-red-800">Location not accepted</p>
                 <p className="mt-0.5 text-xs leading-relaxed text-red-700">{error}</p>
               </div>
             </div>
