@@ -14,7 +14,7 @@ import { buildGoogleMapsUrl } from '@/lib/googleMapsLocation';
 import type { ManualAddress } from '@/lib/locationMatch';
 import { locationTokensMatch } from '@/lib/locationMatch';
 
-const MapPinPicker = dynamic(() => import('./MapPinPicker'), {
+const GoogleMapPinPicker = dynamic(() => import('@/components/maps/GoogleMapPinPicker'), {
   ssr: false,
   loading: () => <div className="h-72 w-full animate-pulse rounded-xl bg-slate-100" />,
 });
@@ -302,9 +302,10 @@ export default function GoogleMapsLocationEditor({
           </button>
         </div>
         {pickerOpen && (
-          <MapPinPicker
+          <GoogleMapPinPicker
             initial={resolvedCoords}
             placeQuery={placeQuery}
+            near={{ city: addressContext?.city, state: addressContext?.state }}
             busy={busySource === 'map'}
             onConfirm={(coords) => void handleMapPick(coords)}
             onCancel={() => setPickerOpen(false)}

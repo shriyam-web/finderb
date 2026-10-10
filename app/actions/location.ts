@@ -64,29 +64,6 @@ export async function geocodePlaceQuery(
     }
   }
 
-  try {
-    const params = new URLSearchParams({
-      q: query,
-      format: 'json',
-      limit: '1',
-    });
-    const response = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`, {
-      headers: {
-        'User-Agent': 'FinderB/1.0 (location-resolver)',
-      },
-    });
-    const data = await response.json();
-    if (Array.isArray(data) && data[0]?.lat && data[0]?.lon) {
-      return {
-        latitude: parseFloat(data[0].lat),
-        longitude: parseFloat(data[0].lon),
-        placeName: data[0].display_name || query,
-      };
-    }
-  } catch (error) {
-    console.error('Nominatim geocoding failed:', error);
-  }
-
   return null;
 }
 
@@ -116,26 +93,6 @@ async function reverseGeocodeCoordinates(
     } catch (error) {
       console.error('Google reverse geocoding failed:', error);
     }
-  }
-
-  try {
-    const params = new URLSearchParams({
-      lat: String(latitude),
-      lon: String(longitude),
-      format: 'json',
-    });
-    const response = await fetch(`https://nominatim.openstreetmap.org/reverse?${params.toString()}`, {
-      headers: {
-        'User-Agent': 'FinderB/1.0 (location-resolver)',
-      },
-    });
-    const data = await response.json();
-    if (data?.name) return data.name;
-    if (data?.display_name) {
-      return String(data.display_name).split(',')[0]?.trim() || data.display_name;
-    }
-  } catch (error) {
-    console.error('Nominatim reverse geocoding failed:', error);
   }
 
   return null;
@@ -216,30 +173,9 @@ function extractAreaAndCityFromGoogleResults(
   return { area, city, state };
 }
 
-function extractAreaAndCityFromNominatimAddress(
-  address: Record<string, string | undefined>
-): { area: string | null; city: string | null; state: string | null } {
-  const area =
-    normalizeLocationPart(address.suburb) ||
-    normalizeLocationPart(address.neighbourhood) ||
-    normalizeLocationPart(address.quarter) ||
-    normalizeLocationPart(address.residential) ||
-    normalizeLocationPart(address.city_district);
-
-  const city =
-    normalizeLocationPart(address.city) ||
-    normalizeLocationPart(address.state_district) ||
-    normalizeLocationPart(address.town) ||
-    normalizeLocationPart(address.county) ||
-    normalizeLocationPart(address.municipality);
-
-  const state = normalizeLocationPart(address.state);
-
-  return { area, city, state };
-}
-
 type ResolvedUserLocation = {
   label: string;
+  area: string | null;
   city: string | null;
   state: string | null;
   country: string | null;
@@ -267,23 +203,9 @@ const GOOGLE_PLACE_NAME_TYPES = [
   'administrative_area_level_4',
 ];
 
-const NOMINATIM_PLACE_NAME_KEYS = [
-  'city',
-  'town',
-  'village',
-  'municipality',
-  'city_district',
-  'suburb',
-  'county',
-  'state_district',
-  'neighbourhood',
-  'quarter',
-  'hamlet',
-];
-
 /**
- * Every locality/district name around a pin, from Google and OpenStreetMap. A pin sits "in" a city
- * when any of these match it, so villages and suburbs picked from a city list still count.
+ * Every locality/district name Google gives for a pin. A pin sits "in" a city when any of these
+ * match it, so villages and suburbs picked from a city list still count.
  */
 async function reverseGeocodePlaceNames(latitude: number, longitude: number): Promise<string[]> {
   const names = new Set<string>();
@@ -309,26 +231,6 @@ async function reverseGeocodePlaceNames(latitude: number, longitude: number): Pr
     }
   }
 
-  try {
-    const params = new URLSearchParams({
-      lat: String(latitude),
-      lon: String(longitude),
-      format: 'json',
-      addressdetails: '1',
-    });
-    const response = await fetch(`https://nominatim.openstreetmap.org/reverse?${params.toString()}`, {
-      headers: { 'User-Agent': 'FinderB/1.0 (location-resolver)' },
-    });
-    const data = await response.json();
-    const address: Record<string, unknown> = data?.address ?? {};
-    for (const key of NOMINATIM_PLACE_NAME_KEYS) {
-      const name = normalizeLocationPart(address[key]);
-      if (name) names.add(name);
-    }
-  } catch (error) {
-    console.error('Nominatim place-name reverse geocoding failed:', error);
-  }
-
   return [...names];
 }
 
@@ -348,35 +250,11 @@ async function reverseGeocodeCity(latitude: number, longitude: number): Promise<
         const { area, city, state } = extractAreaAndCityFromGoogleResults(results);
         const country = extractCountryFromGoogleResults(results);
         const label = formatLocationLabel(area, city);
-        if (label) return { label, city, state, country };
+        if (label) return { label, area, city, state, country };
       }
     } catch (error) {
       console.error('Google city reverse geocoding failed:', error);
     }
-  }
-
-  try {
-    const params = new URLSearchParams({
-      lat: String(latitude),
-      lon: String(longitude),
-      format: 'json',
-      addressdetails: '1',
-    });
-    const response = await fetch(`https://nominatim.openstreetmap.org/reverse?${params.toString()}`, {
-      headers: {
-        'User-Agent': 'FinderB/1.0 (location-resolver)',
-      },
-    });
-    const data = await response.json();
-    const address = data?.address;
-    if (address) {
-      const { area, city, state } = extractAreaAndCityFromNominatimAddress(address);
-      const country = normalizeLocationPart(address.country);
-      const label = formatLocationLabel(area, city);
-      if (label) return { label, city, state, country };
-    }
-  } catch (error) {
-    console.error('Nominatim city reverse geocoding failed:', error);
   }
 
   return null;
@@ -501,7 +379,67 @@ export async function resolveCityFromCoordinates(latitude: number, longitude: nu
     state: resolved?.state ?? null,
     country: resolved?.country ?? null,
     cityName: resolved?.city ?? null,
+    area: resolved?.area ?? null,
   };
+}
+
+export type GooglePlaceResult = {
+  name: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+};
+
+/** Google Maps place search, biased to the merchant's city so their own listing comes first. */
+export async function searchGooglePlaces(
+  query: string,
+  near?: { city?: string | null; state?: string | null },
+): Promise<{ success: true; places: GooglePlaceResult[] } | { success: false; error: string }> {
+  const trimmed = query.trim().slice(0, 160);
+  if (trimmed.length < 2) {
+    return { success: false, error: 'Type your business name or address to search.' };
+  }
+
+  const geocodeLimit = await enforceRateLimit('geocode', 'place-search');
+  if (!geocodeLimit.ok) return { success: false, error: geocodeLimit.error };
+
+  const googleKey = getGoogleMapsServerKeyOrFallback();
+  if (!googleKey) return { success: false, error: 'Google Maps search is not available right now.' };
+
+  const area = [near?.city, near?.state].map((part) => part?.trim()).filter(Boolean).join(', ');
+  const textQuery = area && !trimmed.toLowerCase().includes(String(near?.city).toLowerCase())
+    ? `${trimmed}, ${area}`
+    : trimmed;
+
+  try {
+    const params = new URLSearchParams({ query: textQuery, region: 'in', key: googleKey });
+    const response = await fetch(
+      `https://maps.googleapis.com/maps/api/place/textsearch/json?${params.toString()}`,
+    );
+    const data = await response.json();
+    if (data?.status !== 'OK' && data?.status !== 'ZERO_RESULTS') {
+      console.error('Google place search failed:', data?.status, data?.error_message);
+      return { success: false, error: 'Could not search Google Maps. Try again in a moment.' };
+    }
+    const results: Array<{
+      name?: string;
+      formatted_address?: string;
+      geometry?: { location?: { lat?: number; lng?: number } };
+    }> = Array.isArray(data?.results) ? data.results : [];
+    const places = results
+      .filter((item) => item.geometry?.location?.lat != null && item.geometry?.location?.lng != null)
+      .slice(0, 6)
+      .map((item) => ({
+        name: item.name || item.formatted_address || trimmed,
+        address: item.formatted_address || '',
+        latitude: Number(item.geometry!.location!.lat),
+        longitude: Number(item.geometry!.location!.lng),
+      }));
+    return { success: true, places };
+  } catch (error) {
+    console.error('Google place search failed:', error);
+    return { success: false, error: 'Could not search Google Maps. Try again in a moment.' };
+  }
 }
 
 export type MapPinAddressValidation =

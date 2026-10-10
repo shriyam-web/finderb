@@ -1195,7 +1195,7 @@ export default function BusinessRegisterScreen() {
                         ? `Pin set in ${form.city}. Tap to change.`
                         : pin
                           ? pinNote || 'Pin needs to sit inside the city, or clear it.'
-                          : 'Optional. The written address is enough.'}
+                          : 'Search Google Maps, paste a Maps link, or drop a pin.'}
                   </Text>
                 </View>
                 <Ionicons name="chevron-forward" size={18} color={biz.faint} />

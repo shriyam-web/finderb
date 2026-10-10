@@ -45,17 +45,9 @@ export function directionsHref(options: {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
 }
 
-function buildOpenStreetMapEmbedUrl(latitude: number, longitude: number): string {
-  const latDelta = 0.012;
-  const lngDelta = 0.018;
-  const bbox = [
-    longitude - lngDelta,
-    latitude - latDelta,
-    longitude + lngDelta,
-    latitude + latDelta,
-  ].join(',');
-
-  return `https://www.openstreetmap.org/export/embed.html?bbox=${encodeURIComponent(bbox)}&layer=mapnik&marker=${encodeURIComponent(`${latitude},${longitude}`)}`;
+/** Google Maps pin embed; needs no API key, so it works even where the Embed API is off. */
+function buildGoogleMapsPinEmbedUrl(latitude: number, longitude: number): string {
+  return `https://maps.google.com/maps?q=${encodeURIComponent(`${latitude},${longitude}`)}&z=16&hl=en&output=embed`;
 }
 
 export function mapEmbedSrc(options: {
@@ -65,7 +57,7 @@ export function mapEmbedSrc(options: {
   location?: string | null;
 }) {
   if (options.latitude != null && options.longitude != null) {
-    return buildOpenStreetMapEmbedUrl(options.latitude, options.longitude);
+    return buildGoogleMapsPinEmbedUrl(options.latitude, options.longitude);
   }
 
   const query = resolveMapQuery(options);

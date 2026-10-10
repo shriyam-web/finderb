@@ -2,6 +2,7 @@ import type { UserCoords } from '../hooks/useUserLocation';
 import { INDIA_CITY_COORDS } from './cityCoords';
 import { getDistanceKm } from './geo';
 import { stateForCity } from './indianPlaces';
+import { SITE_URL } from './supabase';
 
 export type PlaceName = { area: string | null; city: string | null; region: string | null };
 
@@ -36,73 +37,24 @@ function placeFrom(area: string | null, city: string | null, region: string | nu
   return name.city || name.area ? name : null;
 }
 
-async function getJson(url: string): Promise<unknown> {
+/**
+ * Google reverse geocode (via finderb.com) for when the phone's geocoder is not ready yet,
+ * which is common right after install.
+ */
+export async function networkPlaceName(coords: UserCoords): Promise<PlaceName | null> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), NETWORK_TIMEOUT_MS);
   try {
-    const res = await fetch(url, {
-      headers: {
-        Accept: 'application/json',
-        'Accept-Language': 'en',
-        'User-Agent': 'FinderB/1.0 (location)',
-      },
+    const res = await fetch(`${SITE_URL}/api/geo/reverse?lat=${coords.lat}&lng=${coords.lng}`, {
+      headers: { Accept: 'application/json' },
       signal: controller.signal,
     });
-    return res.ok ? await res.json() : null;
+    if (!res.ok) return null;
+    const body = (await res.json()) as Record<string, unknown>;
+    return placeFrom(clean(body.area), clean(body.city), clean(body.region));
+  } catch {
+    return null;
   } finally {
     clearTimeout(timer);
   }
-}
-
-/** OpenStreetMap at neighbourhood zoom: sector / suburb names like the phone's geocoder. */
-async function nominatimPlace(coords: UserCoords): Promise<PlaceName | null> {
-  const body = (await getJson(
-    'https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=16&addressdetails=1' +
-      `&lat=${coords.lat}&lon=${coords.lng}`,
-  )) as { address?: Record<string, unknown> } | null;
-  const a = body?.address;
-  if (!a) return null;
-  const area =
-    clean(a.suburb) ||
-    clean(a.neighbourhood) ||
-    clean(a.quarter) ||
-    clean(a.residential) ||
-    clean(a.city_district) ||
-    clean(a.village) ||
-    clean(a.hamlet);
-  const city =
-    clean(a.city) || clean(a.town) || clean(a.municipality) || clean(a.county) || clean(a.state_district);
-  return placeFrom(area, city, clean(a.state));
-}
-
-async function photonPlace(coords: UserCoords): Promise<PlaceName | null> {
-  const body = (await getJson(
-    `https://photon.komoot.io/reverse?lat=${coords.lat}&lon=${coords.lng}&lang=en`,
-  )) as { features?: Array<{ properties?: Record<string, unknown> }> } | null;
-  const p = body?.features?.[0]?.properties;
-  if (!p) return null;
-  return placeFrom(clean(p.district) || clean(p.locality), clean(p.city) || clean(p.county), clean(p.state));
-}
-
-async function bigDataCloudPlace(coords: UserCoords): Promise<PlaceName | null> {
-  const body = (await getJson(
-    'https://api.bigdatacloud.net/data/reverse-geocode-client' +
-      `?latitude=${coords.lat}&longitude=${coords.lng}&localityLanguage=en`,
-  )) as { city?: string; locality?: string; principalSubdivision?: string } | null;
-  if (!body) return null;
-  return placeFrom(clean(body.locality), clean(body.city), clean(body.principalSubdivision));
-}
-
-/**
- * Web reverse geocoders for when the phone's geocoder is not ready yet (common right after
- * install). Returns the first answer that names the locality, else the best city-only one.
- */
-export async function networkPlaceName(coords: UserCoords): Promise<PlaceName | null> {
-  let cityOnly: PlaceName | null = null;
-  for (const lookup of [nominatimPlace, photonPlace, bigDataCloudPlace]) {
-    const name = await lookup(coords).catch(() => null);
-    if (name?.area) return name;
-    cityOnly ??= name;
-  }
-  return cityOnly;
 }

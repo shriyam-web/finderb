@@ -18,8 +18,6 @@ export default function BusinessLocationMap({
   if (!embedSrc && !directionsHref) return null;
 
   if (embedSrc) {
-    const isOpenStreetMap = embedSrc.includes('openstreetmap.org');
-
     return (
       <div
         className={`relative overflow-hidden rounded-lg border border-stone-200/80 bg-[#e8eef4] ${className}`}
@@ -32,11 +30,6 @@ export default function BusinessLocationMap({
           referrerPolicy="origin-when-cross-origin"
           allowFullScreen
         />
-        {isOpenStreetMap ? (
-          <span className="pointer-events-none absolute bottom-2 left-2 rounded bg-white/90 px-1.5 py-0.5 text-[9px] text-stone-500 shadow-sm">
-            © OpenStreetMap
-          </span>
-        ) : null}
         {directionsHref ? (
           <a
             href={directionsHref}

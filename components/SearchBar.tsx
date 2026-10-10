@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Search, MapPin, ChevronDown, Mic, TrendingUp, X } from 'lucide-react';
 import { categories } from '@/lib/mockData';
+import { resolveCityFromCoordinates } from '@/app/actions/location';
 
 export default function SearchBar() {
   const [location, setLocation] = useState('');
@@ -43,15 +44,11 @@ export default function SearchBar() {
         async (position) => {
           try {
             const { latitude, longitude } = position.coords;
-            // Use reverse geocoding to get city name
-            const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
-            if (response.ok) {
-              const data = await response.json();
-              const city = data.address.city || data.address.town || data.address.village || data.address.state;
-              if (city) {
-                setLocation(city);
-                return;
-              }
+            const resolved = await resolveCityFromCoordinates(latitude, longitude);
+            const city = resolved.cityName || resolved.state;
+            if (city) {
+              setLocation(city);
+              return;
             }
             setLocation('Delhi');
           } catch (error) {
