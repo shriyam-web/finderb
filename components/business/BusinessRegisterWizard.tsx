@@ -28,6 +28,7 @@ import {
 } from '@/components/business/MerchantAuthForm';
 import MerchantPasswordField from '@/components/business/MerchantPasswordField';
 import OtpCodeBoxes from '@/components/auth/OtpCodeBoxes';
+import RegisterMapPin, { type RegisterPin } from '@/components/business/RegisterMapPin';
 import { MerchantFieldError, MerchantFormBanner } from '@/components/business/MerchantFieldError';
 import type { RegistrationFieldErrors } from '@/lib/merchantRegistrationValidation';
 
@@ -80,6 +81,8 @@ type BusinessRegisterWizardProps = {
   countryOptions: SelectOption[];
   stateOptions: SelectOption[];
   cityOptions: SelectOption[];
+  mapPin: RegisterPin | null;
+  onMapPinChange: (pin: RegisterPin | null) => void;
   registeredBusiness: {
     id: string;
     registrationNumber: string;
@@ -197,6 +200,8 @@ export default function BusinessRegisterWizard({
   countryOptions,
   stateOptions,
   cityOptions,
+  mapPin,
+  onMapPinChange,
   registeredBusiness,
   selectedPlan = 'free',
   billingCycle = 'monthly',
@@ -600,6 +605,13 @@ export default function BusinessRegisterWizard({
                       error={fieldErrors.city}
                     />
                   </div>
+                  <RegisterMapPin
+                    city={formData.city}
+                    state={formData.state}
+                    country={formData.country}
+                    pin={mapPin}
+                    onChange={onMapPinChange}
+                  />
                   <div>
                     <label htmlFor="publicPhone" className="merchant-auth-label">
                       Display phone number

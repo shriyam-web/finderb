@@ -25,16 +25,45 @@ const COUNTRY_ALIASES: Record<string, string[]> = {
   'united kingdom': ['uk', 'u k', 'great britain', 'england'],
 };
 
-function countryVariants(value: string): string[] {
-  const normalized = normalizeLocationText(value);
-  const variants = new Set<string>([normalized]);
-  for (const [canonical, aliases] of Object.entries(COUNTRY_ALIASES)) {
-    if (normalized === canonical || aliases.includes(normalized)) {
+/** Geocoders often return a city's official or older name instead of the one merchants pick. */
+const CITY_ALIASES: Record<string, string[]> = {
+  mohali: ['sahibzada ajit singh nagar', 'sas nagar', 'ajitgarh'],
+  bengaluru: ['bangalore'],
+  mumbai: ['bombay'],
+  kolkata: ['calcutta'],
+  chennai: ['madras'],
+  thiruvananthapuram: ['trivandrum'],
+  puducherry: ['pondicherry'],
+  vadodara: ['baroda'],
+  kochi: ['cochin', 'ernakulam'],
+  kozhikode: ['calicut'],
+  varanasi: ['banaras', 'benares'],
+  prayagraj: ['allahabad'],
+  gurugram: ['gurgaon'],
+  mysuru: ['mysore'],
+  mangaluru: ['mangalore'],
+  belagavi: ['belgaum'],
+  kalaburagi: ['gulbarga'],
+  'chhatrapati sambhajinagar': ['aurangabad'],
+  dharashiv: ['osmanabad'],
+  ahilyanagar: ['ahmednagar'],
+  odisha: ['orissa'],
+  uttarakhand: ['uttaranchal'],
+};
+
+function aliasVariants(value: string, table: Record<string, string[]>): string[] {
+  const variants = new Set<string>([value]);
+  for (const [canonical, aliases] of Object.entries(table)) {
+    if (value === canonical || aliases.includes(value)) {
       variants.add(canonical);
       aliases.forEach((alias) => variants.add(alias));
     }
   }
   return [...variants];
+}
+
+function countryVariants(value: string): string[] {
+  return aliasVariants(normalizeLocationText(value), COUNTRY_ALIASES);
 }
 
 export function locationTokensMatch(a: string, b: string): boolean {
@@ -43,6 +72,10 @@ export function locationTokensMatch(a: string, b: string): boolean {
   if (!left || !right) return false;
   if (left === right) return true;
   if (left.includes(right) || right.includes(left)) return true;
+
+  const leftCities = aliasVariants(left, CITY_ALIASES);
+  const rightCities = aliasVariants(right, CITY_ALIASES);
+  if (leftCities.some((item) => rightCities.includes(item))) return true;
 
   const leftCountries = countryVariants(left);
   const rightCountries = countryVariants(right);

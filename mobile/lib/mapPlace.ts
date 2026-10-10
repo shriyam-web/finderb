@@ -6,6 +6,9 @@ export type PinCityCheck = {
 };
 
 const ALIASES: Record<string, string[]> = {
+  mohali: ['sahibzada ajit singh nagar', 'sas nagar', 'ajitgarh'],
+  'sahibzada ajit singh nagar': ['mohali', 'sas nagar'],
+  'sas nagar': ['mohali', 'sahibzada ajit singh nagar'],
   bengaluru: ['bangalore'],
   bangalore: ['bengaluru'],
   mumbai: ['bombay'],

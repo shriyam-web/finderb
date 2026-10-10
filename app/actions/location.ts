@@ -3,6 +3,7 @@
 import {
   formatResolvedAddressLabel,
   hasResolvedMapAddress,
+  locationTokensMatch,
   mapPinMatchesManualAddress,
   type ManualAddress,
   type ResolvedMapAddress,
@@ -254,6 +255,83 @@ function extractCountryFromGoogleResults(
   return null;
 }
 
+const GOOGLE_PLACE_NAME_TYPES = [
+  'locality',
+  'postal_town',
+  'sublocality',
+  'sublocality_level_1',
+  'sublocality_level_2',
+  'neighborhood',
+  'administrative_area_level_2',
+  'administrative_area_level_3',
+  'administrative_area_level_4',
+];
+
+const NOMINATIM_PLACE_NAME_KEYS = [
+  'city',
+  'town',
+  'village',
+  'municipality',
+  'city_district',
+  'suburb',
+  'county',
+  'state_district',
+  'neighbourhood',
+  'quarter',
+  'hamlet',
+];
+
+/**
+ * Every locality/district name around a pin, from Google and OpenStreetMap. A pin sits "in" a city
+ * when any of these match it, so villages and suburbs picked from a city list still count.
+ */
+async function reverseGeocodePlaceNames(latitude: number, longitude: number): Promise<string[]> {
+  const names = new Set<string>();
+  const googleKey = getGoogleMapsServerKeyOrFallback();
+
+  if (googleKey) {
+    try {
+      const params = new URLSearchParams({ latlng: `${latitude},${longitude}`, key: googleKey });
+      const response = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?${params.toString()}`);
+      const data = await response.json();
+      const results: Array<{ address_components?: Array<{ long_name: string; types: string[] }> }> =
+        Array.isArray(data?.results) ? data.results : [];
+      for (const result of results) {
+        for (const component of result.address_components ?? []) {
+          if (component.types.some((type) => GOOGLE_PLACE_NAME_TYPES.includes(type))) {
+            const name = normalizeLocationPart(component.long_name);
+            if (name) names.add(name);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Google place-name reverse geocoding failed:', error);
+    }
+  }
+
+  try {
+    const params = new URLSearchParams({
+      lat: String(latitude),
+      lon: String(longitude),
+      format: 'json',
+      addressdetails: '1',
+    });
+    const response = await fetch(`https://nominatim.openstreetmap.org/reverse?${params.toString()}`, {
+      headers: { 'User-Agent': 'FinderB/1.0 (location-resolver)' },
+    });
+    const data = await response.json();
+    const address: Record<string, unknown> = data?.address ?? {};
+    for (const key of NOMINATIM_PLACE_NAME_KEYS) {
+      const name = normalizeLocationPart(address[key]);
+      if (name) names.add(name);
+    }
+  } catch (error) {
+    console.error('Nominatim place-name reverse geocoding failed:', error);
+  }
+
+  return [...names];
+}
+
 async function reverseGeocodeCity(latitude: number, longitude: number): Promise<ResolvedUserLocation | null> {
   const googleKey = getGoogleMapsServerKeyOrFallback();
 
@@ -482,7 +560,15 @@ export async function validateMapPinAgainstAddress(
     };
   }
 
-  const match = mapPinMatchesManualAddress(resolvedAddress, manual);
+  let match = mapPinMatchesManualAddress(resolvedAddress, manual);
+  const manualCity = manual.city?.trim();
+  if (!match.ok && manualCity) {
+    const names = await reverseGeocodePlaceNames(latitude, longitude);
+    const cityName = names.find((name) => locationTokensMatch(name, manualCity));
+    if (cityName) {
+      match = mapPinMatchesManualAddress({ ...resolvedAddress, city: cityName }, manual);
+    }
+  }
   if (!match.ok) {
     return {
       ok: false,

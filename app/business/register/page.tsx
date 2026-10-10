@@ -14,6 +14,7 @@ import { getCategories, getSubCategories } from '@/app/actions/category';
 import { Country, State, City } from 'country-state-city';
 import BusinessRegisterLanding from '@/components/business/BusinessRegisterLanding';
 import BusinessRegisterWizard from '@/components/business/BusinessRegisterWizard';
+import type { RegisterPin } from '@/components/business/RegisterMapPin';
 import CategoryIcon from '@/components/CategoryIcon';
 import { MerchantAuthPage } from '@/components/business/MerchantAuthShell';
 import {
@@ -153,6 +154,7 @@ function RegisterFormContent() {
     addressLine1: '',
     addressLine2: '',
   });
+  const [mapPin, setMapPin] = useState<RegisterPin | null>(null);
 
   const countryOptions = Country.getAllCountries().map((c) => ({
     label: c.name,
@@ -217,6 +219,9 @@ function RegisterFormContent() {
       clearFieldErrors('emailOtp');
     }
     setFormData((prev) => ({ ...prev, ...patch }));
+    if ('city' in patch || 'stateCode' in patch || 'countryCode' in patch) {
+      setMapPin(null);
+    }
     const keys = new Set<RegistrationFieldKey>(Object.keys(patch) as RegistrationFieldKey[]);
     if ('countryCode' in patch) {
       keys.add('country');
@@ -589,6 +594,7 @@ function RegisterFormContent() {
         addressLine1: formData.addressLine1,
         addressLine2: formData.addressLine2,
         businessAddress: combineBusinessAddress(formData.addressLine1, formData.addressLine2),
+        ...(mapPin ? { latitude: mapPin.latitude, longitude: mapPin.longitude } : {}),
         selectedPlan,
         billingCycle,
         emailVerificationToken,
@@ -818,6 +824,8 @@ function RegisterFormContent() {
         countryOptions={countryOptions}
         stateOptions={stateOptions}
         cityOptions={cityOptions}
+        mapPin={mapPin}
+        onMapPinChange={setMapPin}
         registeredBusiness={registeredBusiness}
         selectedPlan={selectedPlan}
         billingCycle={billingCycle as 'monthly' | 'annual'}
