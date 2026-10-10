@@ -1,11 +1,10 @@
 'use server';
 
-import { createClient } from '@/utils/supabase/server';
-import { cookies } from 'next/headers';
+import { createDataClient } from '@/utils/supabase/server';
 
 export async function getMovies() {
   try {
-    const supabase = createClient(await cookies());
+    const supabase = await createDataClient();
 
     const { data: movies, error } = await supabase
       .from('movies')

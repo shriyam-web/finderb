@@ -1,6 +1,6 @@
 'use server';
 
-import { createClient } from '@/utils/supabase/server';
+import { createDataClient } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import { sortBusinessesByProfileCompleteness } from '@/lib/businessProfileCompleteness';
@@ -189,7 +189,7 @@ export async function registerBusiness(formData: any) {
     const emailLimit = await enforceRateLimit('authEmail', `register:${normalizedEmail}`);
     if (!emailLimit.ok) return { success: false, error: emailLimit.error };
 
-    const supabase = createClient(await cookies());
+    const supabase = await createDataClient();
 
     const existingAccount = await getRegistrationConflict(supabase, normalizedEmail, 'merchant');
     if (existingAccount) return registrationConflictFailure(existingAccount, 'merchant');
@@ -327,7 +327,7 @@ export async function isContactOnUserAccount(kind: 'email' | 'mobile', value: st
   const limit = await enforceRateLimit('lookup', 'business-contact-owner');
   if (!limit.ok) return false;
   try {
-    const supabase = createClient(await cookies());
+    const supabase = await createDataClient();
     if (kind === 'mobile') {
       const digits = normalizeIndianPhoneForStorage(value);
       if (digits.length !== 10) return false;
@@ -355,7 +355,7 @@ export async function checkBusinessMobileAvailable(
   if (!limit.ok) return { success: false, error: limit.error };
 
   try {
-    const supabase = createClient(await cookies());
+    const supabase = await createDataClient();
     const conflict = await businessMobileConflictMessage(supabase, digits);
     if (conflict) return { success: false, error: conflict };
     return { success: true };
@@ -456,7 +456,7 @@ export async function updateBusinessImages(id: string, images: string[], profile
 
     console.log('Updating images for business:', id);
 
-    const supabase = createClient(await cookies());
+    const supabase = await createDataClient();
     const cleanImages = normalizeBusinessImages(images);
     const explicitProfile =
       typeof profilePictureUrl === 'string' ? profilePictureUrl.trim() : '';
@@ -494,7 +494,7 @@ export async function getBusinessBySlugOrId(slugOrId: string) {
     }
 
     const identifier = slugOrId.trim();
-    const supabase = createClient(await cookies());
+    const supabase = await createDataClient();
 
     const { data: bySlug, error: slugError } = await supabase
       .from('Business')
@@ -609,7 +609,7 @@ export async function getRelatedBusinessesForProfile(
   options?: { categoryLimit?: number; cityLimit?: number }
 ) {
   try {
-    const supabase = createClient(await cookies());
+    const supabase = await createDataClient();
     const categoryLimit = options?.categoryLimit ?? 4;
     const cityLimit = options?.cityLimit ?? 4;
 
@@ -671,7 +671,7 @@ export async function getOwnedBusiness(id: string) {
       return { success: false, error: auth.error };
     }
 
-    const supabase = createClient(await cookies());
+    const supabase = await createDataClient();
 
     const { data: business, error } = await supabase
       .from('Business')
@@ -741,7 +741,7 @@ export async function loginBusiness(email: string, password: string) {
     const emailLimit = await enforceRateLimit('authEmail', `login:${normalizedEmail}`);
     if (!emailLimit.ok) return { success: false, error: emailLimit.error };
 
-    const supabase = createClient(await cookies());
+    const supabase = await createDataClient();
     const loginFields = 'id, password, createdAt';
 
     const [{ data: byWorkEmail }, { data: byEmail }] = await Promise.all([
@@ -836,7 +836,7 @@ export async function verifyBusinessCurrentPassword(businessId: string, currentP
       return { success: false, error: 'Enter your current password.' };
     }
 
-    const supabase = createClient(await cookies());
+    const supabase = await createDataClient();
     const { data: business, error } = await supabase
       .from('Business')
       .select('id, password')
@@ -901,7 +901,7 @@ export async function changeBusinessPassword(
     const ipLimit = await enforceRateLimit('auth');
     if (!ipLimit.ok) return { success: false, error: ipLimit.error };
 
-    const supabase = createClient(await cookies());
+    const supabase = await createDataClient();
 
     const { data: business, error: fetchError } = await supabase
       .from('Business')
@@ -990,7 +990,7 @@ export async function getBusinessSummariesByIds(ids: string[]) {
       return { success: true, businesses: [] as ReturnType<typeof mapBusinessRecord>[] };
     }
 
-    const supabase = createClient(await cookies());
+    const supabase = await createDataClient();
     const { data, error } = await supabase
       .from('Business')
       .select('id, businessName, displayName, slug, city, profilePictureUrl, images')
@@ -1010,7 +1010,7 @@ export async function getBusinessSummariesByIds(ids: string[]) {
 
 export async function getFeaturedBusinesses() {
   try {
-    const supabase = createClient(await cookies());
+    const supabase = await createDataClient();
 
     const { data: businesses, error } = await supabase
       .from('Business')
@@ -1076,7 +1076,7 @@ const CATEGORY_SLOT_SELECT =
 type CategoryLookupRow = CategoryTreeRef & CategoryFixedSlotRow;
 
 async function resolveCategoryListingContext(
-  supabase: ReturnType<typeof createClient>,
+  supabase: Awaited<ReturnType<typeof createDataClient>>,
   categoryName: string
 ): Promise<{ needles: string[]; slotIds: Array<string | null> }> {
   const needles = await resolveBusinessCategoryNeedles(supabase, categoryName);
@@ -1106,7 +1106,7 @@ async function resolveCategoryListingContext(
 }
 
 async function resolveBusinessCategoryNeedles(
-  supabase: ReturnType<typeof createClient>,
+  supabase: Awaited<ReturnType<typeof createDataClient>>,
   categoryName: string
 ): Promise<string[]> {
   const raw = categoryName.trim();
@@ -1219,7 +1219,7 @@ export async function getBusinessesByCategoryAndCity(
     const needed = page * pageSize;
     const fetchLimit = Math.min(Math.max(needed * 4, pageSize * 4), 500);
 
-    const supabase = createClient(await cookies());
+    const supabase = await createDataClient();
     const { needles, slotIds } = await resolveCategoryListingContext(supabase, categorySlug);
     const escapedCity = escapeIlikePattern(citySlug.replace(/-/g, ' '));
 
@@ -1280,7 +1280,7 @@ export async function getBusinessesByCategory(
     const needed = page * pageSize;
     const fetchLimit = Math.min(Math.max(needed * 4, pageSize * 4), 500);
 
-    const supabase = createClient(await cookies());
+    const supabase = await createDataClient();
 
     let query = supabase
       .from('Business')
@@ -1366,7 +1366,7 @@ export async function updateBusinessProfile(id: string, profileData: any) {
 
     console.log('Updating profile for business:', id);
 
-    const supabase = createClient(await cookies());
+    const supabase = await createDataClient();
 
     const lat = parseCoordinate(profileData.latitude);
     const lng = parseCoordinate(profileData.longitude);

@@ -1,7 +1,6 @@
 import 'server-only';
 
-import { cookies } from 'next/headers';
-import { createClient } from '@/utils/supabase/server';
+import { createDataClient } from '@/utils/supabase/server';
 import { createServiceClient } from '@/lib/supabase/service';
 import { extractIndianMobileDigits } from '@/lib/indianPhone';
 import { setBusinessSessionCookie } from '@/lib/security/session';
@@ -25,7 +24,7 @@ export type LinkedBusiness = {
 async function db() {
   const service = createServiceClient();
   if (service) return service;
-  return createClient(await cookies());
+  return await createDataClient();
 }
 
 /** Match a FinderB business by work email or the owner's mobile number. */

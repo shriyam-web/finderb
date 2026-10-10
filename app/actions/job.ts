@@ -1,7 +1,6 @@
 'use server';
 
-import { createClient } from '@/utils/supabase/server';
-import { cookies } from 'next/headers';
+import { createDataClient } from '@/utils/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { buildJobApplicationMessage } from '@/lib/jobLeadMessage';
 import { formatMerchantName } from '@/lib/formatMerchantName';
@@ -25,7 +24,7 @@ export async function createJob(data: {
       return { success: false, error: auth.error };
     }
 
-    const supabase = createClient(await cookies());
+    const supabase = await createDataClient();
 
     const { count, error: countError } = await supabase
       .from('jobs')
@@ -74,7 +73,7 @@ export async function getJobsByBusiness(businessId: string) {
       return { success: false, error: auth.error };
     }
 
-    const supabase = createClient(await cookies());
+    const supabase = await createDataClient();
 
     const { data: jobs, error } = await supabase
       .from('jobs')
@@ -94,7 +93,7 @@ export async function getJobsByBusiness(businessId: string) {
 
 export async function deleteJob(jobId: string) {
   try {
-    const supabase = createClient(await cookies());
+    const supabase = await createDataClient();
 
     const { data: job, error: fetchError } = await supabase
       .from('jobs')
@@ -136,7 +135,7 @@ export async function updateJob(jobId: string, data: {
   status?: string;
 }) {
   try {
-    const supabase = createClient(await cookies());
+    const supabase = await createDataClient();
 
     const { data: existing, error: fetchError } = await supabase
       .from('jobs')
@@ -175,7 +174,7 @@ export async function updateJob(jobId: string, data: {
 
 export async function getAllJobs() {
   try {
-    const supabase = createClient(await cookies());
+    const supabase = await createDataClient();
 
     const { data: jobs, error } = await supabase
       .from('jobs')
@@ -225,7 +224,7 @@ export async function getAllJobs() {
 /** Public: active job postings for a merchant profile. */
 export async function getActiveJobsByBusiness(businessId: string) {
   try {
-    const supabase = createClient(await cookies());
+    const supabase = await createDataClient();
 
     const { data: jobs, error } = await supabase
       .from('jobs')
@@ -257,12 +256,12 @@ export async function submitJobApplication(data: {
     const writeLimit = await enforceRateLimit('write', 'job-application');
     if (!writeLimit.ok) return { success: false, error: writeLimit.error };
 
-    const supabase = createClient(await cookies());
+    const supabase = await createDataClient();
 
     let jobTitle: string = data.jobTitle?.trim() || '';
     const { data: job, error: jobError } = await supabase
       .from('jobs')
-      .select('id, title, business_id')
+      .select('id, title, business_id, status')
       .eq('id', data.jobId)
       .single();
 
@@ -272,6 +271,10 @@ export async function submitJobApplication(data: {
 
     if (job.business_id !== data.businessId) {
       return { success: false, error: 'Invalid job application' };
+    }
+
+    if (job.status && job.status !== 'active') {
+      return { success: false, error: 'This role is no longer open' };
     }
 
     if (!jobTitle) {

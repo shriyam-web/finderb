@@ -1,7 +1,6 @@
 'use server';
 
-import { createClient } from '@/utils/supabase/server';
-import { cookies } from 'next/headers';
+import { createDataClient } from '@/utils/supabase/server';
 import { categoryBrowseHref, categoryHref, dbBanner, dbSymbol } from '@/lib/categoryDisplay';
 import {
   escapeIlikePattern,
@@ -20,7 +19,7 @@ import { buildFeaturedCategoryGroups } from '@/lib/featuredCategoryGroups';
 
 export async function getCategories(topLevelOnly = true) {
   try {
-    const supabase = createClient(await cookies());
+    const supabase = await createDataClient();
 
     const [{ data: categories, error }, businessLabels] = await Promise.all([
       supabase
@@ -64,7 +63,7 @@ export async function getCategories(topLevelOnly = true) {
 
 export async function getSubCategories(parentId: string) {
   try {
-    const supabase = createClient(await cookies());
+    const supabase = await createDataClient();
 
     const [
       { data: subCategories, error },
@@ -147,7 +146,7 @@ function mapSubcategory(
 /** Top-level categories with onboarded merchants (parent or subcategory), up to 6. */
 export async function getFeaturedGroups() {
   try {
-    const supabase = createClient(await cookies());
+    const supabase = await createDataClient();
 
     const { data: parents, error: parentError } = await supabase
       .from('categories')
@@ -218,7 +217,7 @@ export async function findCategoryForBreadcrumb(categoryName: string) {
   }
 
   try {
-    const supabase = createClient(await cookies());
+    const supabase = await createDataClient();
     const pattern = escapeIlikePattern(name);
 
     const { data, error } = await supabase
@@ -296,7 +295,7 @@ export async function searchCategoriesByQuery(query: string) {
   }
 
   try {
-    const supabase = createClient(await cookies());
+    const supabase = await createDataClient();
     const orFilter = terms
       .flatMap((term) => {
         const pattern = `%${escapeIlikePattern(term)}%`;

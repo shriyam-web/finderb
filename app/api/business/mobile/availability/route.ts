@@ -1,5 +1,4 @@
-import { cookies } from 'next/headers';
-import { createClient } from '@/utils/supabase/server';
+import { createDataClient } from '@/utils/supabase/server';
 import { lookupEmailAccountTypes, lookupMobileAccountTypes } from '@/lib/emailAccountLookup';
 import { mobileApiJson, mobileApiOptions } from '@/lib/mobileApiCors';
 import { enforceRateLimit } from '@/lib/security/enforceRateLimit.server';
@@ -36,7 +35,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const supabase = createClient(await cookies());
+    const supabase = await createDataClient();
     const [emailTypes, mobileTypes] = await Promise.all([
       checkEmail ? lookupEmailAccountTypes(supabase, email) : Promise.resolve([]),
       checkMobile ? lookupMobileAccountTypes(supabase, mobile) : Promise.resolve([]),

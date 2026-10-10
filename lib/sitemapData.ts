@@ -7,15 +7,16 @@ import { slugifyCity } from '@/lib/categoryCity';
 import { getBusinessProfilePath } from '@/lib/businessSlug';
 import { businessHasPublicPhoto } from '@/lib/businessMapping';
 import { getTouristPlacePath } from '@/lib/touristPlaceSlug';
+import { createServiceClient } from '@/lib/supabase/service';
 
 export const SITEMAP_BASE_URL = SITE_ORIGIN;
 
 type SitemapEntry = MetadataRoute.Sitemap[number];
 
 function getSupabase() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  return (
+    createServiceClient() ??
+    createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
   );
 }
 

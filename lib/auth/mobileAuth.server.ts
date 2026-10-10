@@ -326,11 +326,10 @@ export async function mobileRegisterWithPassword(formData: {
   }
 
   const normalizedEmail = formData.email.toLowerCase().trim();
-  const cookieClient = createClient(await cookies());
-  const supabase = dbClient() ?? cookieClient;
+  const supabase = dbClient() ?? createClient(await cookies());
 
   const existingAccount = await getRegistrationConflict(
-    cookieClient,
+    supabase,
     normalizedEmail,
     'user'
   );

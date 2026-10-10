@@ -1,7 +1,6 @@
 'use server';
 
-import { createClient } from '@/utils/supabase/server';
-import { cookies } from 'next/headers';
+import { createDataClient } from '@/utils/supabase/server';
 
 import {
   CATEGORY_CHANGE_FIELD,
@@ -13,7 +12,7 @@ import { assertBusinessSession } from '@/lib/security/session';
 import { enforceRateLimit } from '@/lib/security/enforceRateLimit.server';
 
 async function loadCurrentValue(
-  supabase: ReturnType<typeof createClient>,
+  supabase: Awaited<ReturnType<typeof createDataClient>>,
   businessId: string,
   field: BusinessChangeRequestField,
 ) {
@@ -39,7 +38,7 @@ export async function getPendingChangeRequest(businessId: string, field: Busines
       return { success: false as const, error: auth.error };
     }
 
-    const supabase = createClient(await cookies());
+    const supabase = await createDataClient();
     const { data, error } = await supabase
       .from('business_change_requests')
       .select('*')
@@ -92,7 +91,7 @@ export async function submitChangeRequest(params: {
       return { success: false as const, error: auth.error };
     }
 
-    const supabase = createClient(await cookies());
+    const supabase = await createDataClient();
     const currentValue = await loadCurrentValue(supabase, businessId, params.field);
 
     if (!currentValue) {

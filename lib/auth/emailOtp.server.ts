@@ -10,8 +10,7 @@ import {
 import { sendEmailOtpEmail } from '@/lib/email/sendEmailOtp';
 import { REGISTRATION_EMAIL_REGEX } from '@/lib/merchantRegistrationValidation';
 import { enforceRateLimit } from '@/lib/security/enforceRateLimit.server';
-import { createClient } from '@/utils/supabase/server';
-import { cookies } from 'next/headers';
+import { createDataClient } from '@/utils/supabase/server';
 import { getRegistrationConflict, registrationConflictFailure } from '@/lib/emailAccountLookup';
 
 const PROOF_TTL_MS = 45 * 60 * 1000;
@@ -124,7 +123,7 @@ export async function requestMerchantRegisterEmailOtp(
   const emailLimit = await enforceRateLimit('authEmail', `email-otp:${normalized}`);
   if (!emailLimit.ok) return { success: false, error: emailLimit.error };
 
-  const supabase = createClient(await cookies());
+  const supabase = await createDataClient();
   const existingAccount = await getRegistrationConflict(
     supabase,
     normalized,
@@ -216,7 +215,7 @@ async function requestPurposeEmailOtp(
   const emailLimit = await enforceRateLimit('authEmail', `email-otp:${purpose}:${normalized}`);
   if (!emailLimit.ok) return { success: false, error: emailLimit.error };
 
-  const supabase = createClient(await cookies());
+  const supabase = await createDataClient();
   const existingAccount = await getRegistrationConflict(supabase, normalized, registeringAs);
   if (existingAccount) return registrationConflictFailure(existingAccount, registeringAs);
 

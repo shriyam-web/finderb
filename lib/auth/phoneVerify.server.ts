@@ -20,7 +20,7 @@ import {
 import { cookies } from 'next/headers';
 import { businessMobileConflictMessage } from '@/lib/emailAccountLookup';
 import { extractIndianMobileDigits, isValidIndianMobileDigits } from '@/lib/indianPhone';
-import { createClient } from '@/utils/supabase/server';
+import { createClient, createDataClient } from '@/utils/supabase/server';
 import { enforceRateLimit } from '@/lib/security/enforceRateLimit.server';
 import { createServiceClient } from '@/lib/supabase/service';
 import { sendWhatsAppOtp } from '@/lib/whatsapp/sendWhatsAppOtp';
@@ -215,7 +215,7 @@ export async function requestMerchantRegisterPhoneCode(
   const phone = parsePhone(rawPhone);
   if (!phone) return { success: false, error: 'Enter a 10-digit Indian mobile number.' };
   return sendPhoneCode(MERCHANT_REGISTER_PHONE_SUBJECT, phone, async () =>
-    businessMobileConflictMessage(createClient(await cookies()), phone),
+    businessMobileConflictMessage(await createDataClient(), phone),
   );
 }
 

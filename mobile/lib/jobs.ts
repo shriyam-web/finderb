@@ -1,4 +1,5 @@
 import { isSupabaseConfigured, supabase } from './supabase';
+import { submitJobApplicationLead } from './leadsApi';
 import { createSessionMemo } from './sessionMemo';
 
 export type JobListing = {
@@ -231,12 +232,7 @@ export async function fetchJobById(id: string): Promise<{
   return { job };
 }
 
-function buildJobApplicationMessage(jobTitle: string, candidateMessage?: string) {
-  const msg = candidateMessage?.trim() || 'No message provided';
-  return `Applied for: ${jobTitle}\n\nCandidate message: ${msg}`;
-}
-
-/** Public apply — creates a merchant lead (same as website job form). */
+/** Creates a merchant lead through the website API (same as the website job form). */
 export async function submitJobApplication(input: {
   jobId: string;
   businessId: string;
@@ -246,10 +242,6 @@ export async function submitJobApplication(input: {
   phone: string;
   message?: string;
 }): Promise<{ success: boolean; error?: string }> {
-  if (!isSupabaseConfigured || !supabase) {
-    return { success: false, error: 'Supabase is not configured' };
-  }
-
   const fullName = input.fullName.trim();
   const email = input.email.trim();
   const phone = input.phone.trim();
@@ -258,47 +250,8 @@ export async function submitJobApplication(input: {
     return { success: false, error: 'Name, email, and phone are required' };
   }
 
-  const { data: job, error: jobError } = await supabase
-    .from('jobs')
-    .select('id, title, business_id, status')
-    .eq('id', input.jobId)
-    .maybeSingle();
-
-  if (jobError || !job) {
-    return { success: false, error: 'Job not found' };
-  }
-
-  if (job.business_id !== input.businessId) {
-    return { success: false, error: 'Invalid job application' };
-  }
-
-  if (job.status && job.status !== 'active') {
-    return { success: false, error: 'This role is no longer open' };
-  }
-
-  const jobTitle =
-    input.jobTitle?.trim() ||
-    (typeof job.title === 'string' ? job.title.trim() : '') ||
-    'Job posting';
-
-  const now = new Date().toISOString();
-  const { error } = await supabase.from('leads').insert({
-    name: fullName,
-    email,
-    phone,
-    category: 'Job Application',
-    business_id: input.businessId,
-    message: buildJobApplicationMessage(jobTitle, input.message),
-    status: 'New',
-    created_at: now,
-    updated_at: now,
-  });
-
-  if (error) {
-    return { success: false, error: error.message };
-  }
-
-  return { success: true };
+  const result = await submitJobApplicationLead({ ...input, fullName, email, phone });
+  return result.success ? { success: true } : { success: false, error: result.error };
 }
 
 export function formatJobPosted(iso: string | null | undefined): string {

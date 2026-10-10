@@ -1,6 +1,6 @@
 'use server';
 
-import { createClient } from '@/utils/supabase/server';
+import { createDataClient } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';
 import {
   formatWrongPortalLoginMessage,
@@ -73,7 +73,7 @@ export async function registerUser(formData: { fullName?: string; email?: string
     const emailLimit = await enforceRateLimit('authEmail', `register:${normalizedEmail}`);
     if (!emailLimit.ok) return { success: false, error: emailLimit.error };
 
-    const supabase = createClient(await cookies());
+    const supabase = await createDataClient();
 
     const existingAccount = await getRegistrationConflict(supabase, normalizedEmail, 'user');
     if (existingAccount) return registrationConflictFailure(existingAccount, 'user');
@@ -128,7 +128,7 @@ export async function loginUser(email: string, password: string) {
     const emailLimit = await enforceRateLimit('authEmail', `login:${normalizedEmail}`);
     if (!emailLimit.ok) return { success: false, error: emailLimit.error };
 
-    const supabase = createClient(await cookies());
+    const supabase = await createDataClient();
 
     const { data: user, error } = await supabase
       .from('User')
@@ -199,7 +199,7 @@ export async function getUser(id: string) {
       return { success: false, error: 'Unauthorized' };
     }
 
-    const supabase = createClient(await cookies());
+    const supabase = await createDataClient();
 
     const { data: user, error } = await supabase
       .from('User')

@@ -1,7 +1,6 @@
 'use server';
 
-import { cookies } from 'next/headers';
-import { createClient } from '@/utils/supabase/server';
+import { createDataClient } from '@/utils/supabase/server';
 import {
   normalizeReviewReplyForStorage,
   parseBusinessReviews,
@@ -18,7 +17,7 @@ async function getLoggedInUser() {
   const userId = await getSessionUserId();
   if (!userId) return null;
 
-  const supabase = createClient(await cookies());
+  const supabase = await createDataClient();
   const { data: user, error } = await supabase
     .from('User')
     .select('id, fullName')
@@ -82,7 +81,7 @@ export async function upsertMerchantReviewReply(data: {
       return { success: false as const, error: auth.error };
     }
 
-    const supabase = createClient(await cookies());
+    const supabase = await createDataClient();
     const { data: business, error: fetchError } = await supabase
       .from('Business')
       .select('review, slug, businessName, city')
@@ -166,7 +165,7 @@ export async function reportBusinessReview(data: {
       return { success: false as const, error: 'Please sign in to report a review.' };
     }
 
-    const supabase = createClient(await cookies());
+    const supabase = await createDataClient();
     const { data: business, error: fetchError } = await supabase
       .from('Business')
       .select('review, businessName')

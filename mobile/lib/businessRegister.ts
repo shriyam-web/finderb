@@ -1,5 +1,5 @@
 import { mobileInputDigits } from './phoneInput';
-import { SITE_URL, supabase } from './supabase';
+import { SITE_URL } from './supabase';
 
 export type RegisterPayload = {
   fullName: string;
@@ -72,10 +72,6 @@ function storedMobile(value: string) {
 export const EMAIL_TAKEN = 'This email is already registered with FinderB Business. Log in instead, or use another email.';
 export const MOBILE_TAKEN = 'This mobile number is already registered with FinderB Business. Log in instead, or use another number.';
 
-function likeLiteral(value: string) {
-  return value.replace(/[%_\\]/g, '\\$&');
-}
-
 export type BusinessTaken = {
   /** Held by another business (or an admin), so the value cannot be used. */
   emailTaken: boolean;
@@ -114,8 +110,6 @@ async function serverTaken(email: string, mobile: string): Promise<BusinessTaken
   }
 }
 
-type Lookup = PromiseLike<{ data: unknown[] | null; error: unknown }>;
-
 /**
  * A new business may not reuse an email or mobile held by another business. One held by a FinderB
  * user account is reported separately so the owner can confirm reusing it. Emails match any case;
@@ -131,40 +125,7 @@ export async function checkBusinessTaken(input: {
   if (!email && !hasMobile) {
     return { emailTaken: false, mobileTaken: false, emailOnUserAccount: false, mobileOnUserAccount: false };
   }
-  const fromServer = await serverTaken(email, hasMobile ? mobile : '');
-  if (fromServer) return fromServer;
-
-  // Direct read for while the server route is unreachable; limited to rows the public key can see.
-  if (!supabase) return null;
-  const db = supabase;
-  const none: Lookup = Promise.resolve({ data: [], error: null });
-  const emailPattern = likeLiteral(email);
-  const mobilePattern = `%${mobile}`;
-
-  try {
-    const [bizEmail, bizWorkEmail, userEmail, bizMobile, bizOwnerMobile, userPhone] = await Promise.all([
-      email ? db.from('Business').select('id').ilike('email', emailPattern).limit(1) : none,
-      email ? db.from('Business').select('id').ilike('workEmail', emailPattern).limit(1) : none,
-      email ? db.from('User').select('id').ilike('email', emailPattern).limit(1) : none,
-      hasMobile ? db.from('Business').select('id').ilike('mobile', mobilePattern).limit(1) : none,
-      hasMobile ? db.from('Business').select('id').ilike('owner_mobile', mobilePattern).limit(1) : none,
-      hasMobile ? db.from('User').select('id').ilike('phone', mobilePattern).limit(1) : none,
-    ]);
-    if ([bizEmail, bizWorkEmail, userEmail, bizMobile, bizOwnerMobile, userPhone].some((res) => res.error)) {
-      return null;
-    }
-    const hit = (res: { data: unknown[] | null }) => Boolean(res.data?.length);
-    const emailBiz = hit(bizEmail) || hit(bizWorkEmail);
-    const mobileBiz = hit(bizMobile) || hit(bizOwnerMobile);
-    return {
-      emailTaken: emailBiz,
-      mobileTaken: mobileBiz,
-      emailOnUserAccount: !emailBiz && hit(userEmail),
-      mobileOnUserAccount: !mobileBiz && hit(userPhone),
-    };
-  } catch {
-    return null;
-  }
+  return serverTaken(email, hasMobile ? mobile : '');
 }
 
 export async function submitBusinessRegistration(

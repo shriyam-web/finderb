@@ -1,7 +1,6 @@
 'use server';
 
-import { createClient } from '@/utils/supabase/server';
-import { cookies } from 'next/headers';
+import { createDataClient } from '@/utils/supabase/server';
 
 import { type ContactIntent } from '@/lib/directLead';
 import {
@@ -33,7 +32,7 @@ async function getLoggedInBusinessProfile() {
   const businessId = await getSessionBusinessId();
   if (!businessId) return null;
 
-  const supabase = createClient(await cookies());
+  const supabase = await createDataClient();
   const { data, error } = await supabase
     .from('Business')
     .select('id, businessName, displayName, email, workEmail, publicPhone, mobile')
@@ -61,7 +60,7 @@ export async function getBusinessLeads(businessId: string) {
       return { success: false as const, error: 'Unauthorized' };
     }
 
-    const supabase = createClient(await cookies());
+    const supabase = await createDataClient();
     const { data, error } = await supabase
       .from('leads')
       .select('*')
@@ -121,7 +120,7 @@ export async function updateLeadStatus(leadId: string, status: string) {
       return { success: false as const, error: 'Not signed in' };
     }
 
-    const supabase = createClient(await cookies());
+    const supabase = await createDataClient();
 
     const { data: lead, error: fetchError } = await supabase
       .from('leads')

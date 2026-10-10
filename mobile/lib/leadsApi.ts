@@ -99,3 +99,20 @@ export async function recordDirectLead(input: {
   }
   return { success: true, duplicate: Boolean(result.duplicate) };
 }
+
+export async function submitJobApplicationLead(input: {
+  jobId: string;
+  businessId: string;
+  jobTitle?: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  message?: string;
+}): Promise<{ success: true } | LeadFailure> {
+  const result = await postLead<{ success?: boolean; error?: string }>('/api/jobs/apply', input);
+  if ('unauthorized' in result && result.unauthorized) return result;
+  if (!('success' in result) || !result.success) {
+    return { success: false, error: ('error' in result && result.error) || 'Could not submit application' };
+  }
+  return { success: true };
+}
