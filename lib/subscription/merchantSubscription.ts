@@ -22,7 +22,10 @@ export type MerchantSubscriptionInput = {
 
 export type MerchantSubscriptionStatus = {
   isActive: boolean;
+  /** Plan the merchant is on right now — Starter once a paid plan lapses. */
   planName: string;
+  /** Paid plan that was bought, kept after expiry for "your Growth plan has expired" copy. */
+  lastPlanName: string | null;
   planId: string;
   billingCycle: BillingCycle | null;
   startedAt: Date | null;
@@ -171,13 +174,13 @@ export function getMerchantSubscriptionStatus(
     (daysRemaining !== null && daysRemaining <= EXPIRY_WARNING_DAYS) ||
     (billingCycleMonthly && !autoRenewEnabled && effectiveMandateStatus === 'cancelled');
 
-  const planName = paidCompleted
-    ? getPlanDisplayName(planId, billingCycle)
-    : getPlanDisplayName('free');
+  const lastPlanName = paidCompleted ? getPlanDisplayName(planId, billingCycle) : null;
+  const planName = isActive && lastPlanName ? lastPlanName : getPlanDisplayName('free');
 
   return {
     isActive,
     planName,
+    lastPlanName,
     planId,
     billingCycle,
     startedAt,
@@ -195,6 +198,17 @@ export function getMerchantSubscriptionStatus(
     mandateRevokePending,
     isMonthlyMandate: billingCycleMonthly,
   };
+}
+
+export type EffectivePlanKey = 'free' | 'growth' | 'pro';
+
+/** Plan the merchant is entitled to right now; lapsed or unpaid plans fall back to Starter ('free'). */
+export function getEffectivePlanKey(input: MerchantSubscriptionInput, now = new Date()): EffectivePlanKey {
+  const status = getMerchantSubscriptionStatus(input, now);
+  if (!status.isActive) return 'free';
+  if (status.planName === PRICING_PLANS.annual.name) return 'pro';
+  if (status.planName === PRICING_PLANS.monthly.name) return 'growth';
+  return 'free';
 }
 
 export function formatSubscriptionDate(date: Date | null): string {

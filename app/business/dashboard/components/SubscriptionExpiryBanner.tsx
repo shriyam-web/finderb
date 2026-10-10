@@ -29,7 +29,7 @@ export default function SubscriptionExpiryBanner({
   const isUrgent = subscription.alertLevel === 'urgent';
 
   const title = isExpired
-    ? `Your ${subscription.planName} plan has expired`
+    ? `Your ${subscription.lastPlanName ?? subscription.planName} plan has expired`
     : isUrgent
       ? `Only ${subscription.daysRemaining} day${subscription.daysRemaining === 1 ? '' : 's'} left on your plan`
       : `Your plan expires in ${subscription.daysRemaining} days`;

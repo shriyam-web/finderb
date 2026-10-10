@@ -38,6 +38,7 @@ type SubscriptionView = {
   isPendingPayment: boolean;
   canRenew: boolean;
   planName: string;
+  lastPlanName: string | null;
   billingCycle: string | null;
   daysRemaining: number | null;
   startedAtDisplay: string;
@@ -130,6 +131,7 @@ export default function SubscriptionTab({
     isPendingPayment: Boolean(raw.isPendingPayment),
     canRenew: Boolean(raw.canRenew),
     planName: String(raw.planName),
+    lastPlanName: raw.lastPlanName ? String(raw.lastPlanName) : null,
     billingCycle: raw.billingCycle ? String(raw.billingCycle) : null,
     daysRemaining: typeof raw.daysRemaining === 'number' ? raw.daysRemaining : null,
     startedAtDisplay: String(raw.startedAtDisplay),
@@ -258,14 +260,19 @@ export default function SubscriptionTab({
         <h2 className="text-sm font-semibold text-zinc-900">Plan details</h2>
         <div className={`${dashboard.panel} mt-3 px-5 py-1 md:px-6`}>
           <dl>
-            <DetailRow label="Plan">{subscription.planName}</DetailRow>
+            <DetailRow label="Plan">
+              {subscription.planName}
+              {subscription.isExpired && subscription.lastPlanName ? (
+                <span className="text-zinc-500"> · {subscription.lastPlanName} expired</span>
+              ) : null}
+            </DetailRow>
             <DetailRow label="Status">
               <span className={statusClass}>{statusLabel}</span>
             </DetailRow>
             <DetailRow label="Price">
               {planPriceShort(subscription.planName, subscription.billingCycle)}
             </DetailRow>
-            {subscription.billingCycle && (
+            {subscription.isActive && subscription.billingCycle && (
               <DetailRow label="Billing">
                 {subscription.billingCycle === 'annual' ? 'Annual' : 'Monthly'}
               </DetailRow>
@@ -324,7 +331,7 @@ export default function SubscriptionTab({
         expiresAt={subscription.expiresAt}
         daysRemaining={subscription.daysRemaining}
         isActive={subscription.isActive}
-        planName={subscription.planName}
+        planName={subscription.lastPlanName ?? subscription.planName}
       />
 
       <section>

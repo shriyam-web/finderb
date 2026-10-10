@@ -34,10 +34,26 @@ const STATS = [
   { icon: 'star-outline' as const, label: 'Reviews' },
 ];
 
-function planLabel(plan: string | null | undefined): string {
-  const key = (plan || '').toLowerCase();
-  if (key.includes('pro')) return 'Pro plan';
-  if (key.includes('growth')) return 'Growth plan';
+type PlanFields = {
+  selectedPlan?: string | null;
+  paymentStatus?: string | null;
+  planExpiresAt?: string | null;
+  billingCycle?: string | null;
+};
+
+/** Mirrors the website: unpaid or lapsed plans are Starter; a monthly 'pro' purchase is Growth. */
+function planLabel(user: PlanFields | null | undefined): string {
+  const key = (user?.selectedPlan || '').toLowerCase();
+  if (!user || user.paymentStatus !== 'completed') return 'Starter plan';
+  const expiresAt = user.planExpiresAt ? new Date(user.planExpiresAt) : null;
+  if (expiresAt && !Number.isNaN(expiresAt.getTime())) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    expiresAt.setHours(0, 0, 0, 0);
+    if (expiresAt <= today) return 'Starter plan';
+  }
+  if (key === 'growth') return 'Growth plan';
+  if (key === 'pro') return user.billingCycle === 'monthly' ? 'Growth plan' : 'Pro plan';
   return 'Starter plan';
 }
 
@@ -239,7 +255,7 @@ export default function MerchantWelcomeScreen() {
                   <Text style={styles.chipText}>Business account</Text>
                 </View>
                 <View style={[styles.chip, styles.chipMuted]}>
-                  <Text style={[styles.chipText, styles.chipTextMuted]}>{planLabel(user?.selectedPlan)}</Text>
+                  <Text style={[styles.chipText, styles.chipTextMuted]}>{planLabel(user)}</Text>
                 </View>
               </View>
             </View>

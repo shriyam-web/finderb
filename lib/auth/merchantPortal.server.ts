@@ -6,12 +6,15 @@ import { extractIndianMobileDigits } from '@/lib/indianPhone';
 import { setBusinessSessionCookie } from '@/lib/security/session';
 import { TRUECALLER_PHONE_EMAIL_DOMAIN } from '@/lib/auth/truecallerConfig';
 import { WHATSAPP_PHONE_EMAIL_DOMAIN } from '@/lib/auth/whatsappConfig';
+import { getEffectivePlanKey, type EffectivePlanKey } from '@/lib/subscription/merchantSubscription';
 
 export type LinkedBusiness = {
   id: string;
   businessName: string | null;
   slug: string | null;
   selectedPlan: string | null;
+  /** Plan in force right now; Starter ('free') once a paid plan expires. */
+  effectivePlan: EffectivePlanKey;
   paymentStatus: string | null;
   planExpiresAt: string | null;
   billingCycle: string | null;
@@ -54,7 +57,7 @@ export async function findBusinessForIdentity(input: {
   const { data } = await (await db())
     .from('Business')
     .select(
-      'id, businessName, slug, selectedPlan, paymentStatus, planExpiresAt, billingCycle, fullName, owner_name, workEmail, email, mobile, owner_mobile, profilePictureUrl',
+      'id, businessName, slug, selectedPlan, paymentStatus, planExpiresAt, billingCycle, updatedAt, createdAt, fullName, owner_name, workEmail, email, mobile, owner_mobile, profilePictureUrl',
     )
     .or(filters.join(','))
     .limit(1);
@@ -68,6 +71,8 @@ export async function findBusinessForIdentity(input: {
         paymentStatus?: string | null;
         planExpiresAt?: string | null;
         billingCycle?: string | null;
+        updatedAt?: string | null;
+        createdAt?: string | null;
         fullName?: string | null;
         owner_name?: string | null;
         workEmail?: string | null;
@@ -84,6 +89,14 @@ export async function findBusinessForIdentity(input: {
     businessName: row.businessName ?? null,
     slug: row.slug ?? null,
     selectedPlan: row.selectedPlan ?? null,
+    effectivePlan: getEffectivePlanKey({
+      paymentStatus: row.paymentStatus,
+      selectedPlan: row.selectedPlan,
+      billingCycle: row.billingCycle,
+      planExpiresAt: row.planExpiresAt,
+      updatedAt: row.updatedAt,
+      createdAt: row.createdAt,
+    }),
     paymentStatus: row.paymentStatus ?? null,
     planExpiresAt: row.planExpiresAt ?? null,
     billingCycle: row.billingCycle ?? null,

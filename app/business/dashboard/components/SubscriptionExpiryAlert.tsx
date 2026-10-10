@@ -60,7 +60,7 @@ export default function SubscriptionExpiryAlert({
   const isUrgent = subscription.alertLevel === 'urgent';
 
   const title = isExpired
-    ? `Your ${subscription.planName} plan has expired`
+    ? `Your ${subscription.lastPlanName ?? subscription.planName} plan has expired`
     : isUrgent
       ? `Only ${subscription.daysRemaining} day${subscription.daysRemaining === 1 ? '' : 's'} left on your plan`
       : `Your plan expires in ${subscription.daysRemaining} days`;
@@ -119,7 +119,10 @@ export default function SubscriptionExpiryAlert({
           <div className="rounded-lg border border-zinc-100 bg-zinc-50 px-3 py-2 text-sm text-zinc-700">
             <p>
               <span className="font-medium">Current plan:</span> {subscription.planName}
-              {subscription.billingCycle ? ` · ${subscription.billingCycle}` : ''}
+              {subscription.isActive && subscription.billingCycle ? ` · ${subscription.billingCycle}` : ''}
+              {subscription.isExpired && subscription.lastPlanName
+                ? ` (${subscription.lastPlanName} expired)`
+                : ''}
             </p>
             {subscription.expiresAt && (
               <p className="mt-1">

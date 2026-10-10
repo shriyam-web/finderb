@@ -4,7 +4,7 @@ import { formatMerchantName } from '@/lib/formatMerchantName';
 import { getBusinessPublicRatingStats } from '@/lib/businessReviews';
 import { hasPublicTrustBadge } from '@/lib/businessVerification';
 import { parseBusinessServices } from '@/lib/parseBusinessServices';
-import { getPlanDisplayName } from '@/lib/subscription/merchantSubscription';
+import { getMerchantSubscriptionStatus } from '@/lib/subscription/merchantSubscription';
 import { normalizeExternalHref } from '@/lib/validateProfileUrl';
 
 function parseBusinessServicesFromRecord(business: {
@@ -167,10 +167,17 @@ export function mapBusinessRecord(business: Record<string, unknown>) {
     profileQrLink: (safeBusiness.profileQrLink as string | null) ?? null,
     image: listingImage,
     profilePictureUrl,
-    priceRange: `${getPlanDisplayName(
-      safeBusiness.selectedPlan as string | undefined,
-      safeBusiness.billingCycle as string | undefined,
-    )} plan`,
+    priceRange: `${
+      getMerchantSubscriptionStatus({
+        paymentStatus: safeBusiness.paymentStatus as string | undefined,
+        selectedPlan: safeBusiness.selectedPlan as string | undefined,
+        billingCycle: safeBusiness.billingCycle as string | undefined,
+        planStartedAt: safeBusiness.planStartedAt as string | undefined,
+        planExpiresAt: safeBusiness.planExpiresAt as string | undefined,
+        updatedAt: safeBusiness.updatedAt as string | undefined,
+        createdAt: safeBusiness.createdAt as string | undefined,
+      }).planName
+    } plan`,
     rating,
     reviewsCount: reviewCount,
     services,

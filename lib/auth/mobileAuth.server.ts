@@ -117,7 +117,7 @@ async function enrichWithBusinessLink(user: MobileAuthUser): Promise<MobileAuthU
     businessId: business.id,
     businessName: business.businessName || null,
     businessSlug: business.slug || null,
-    selectedPlan: business.selectedPlan,
+    selectedPlan: business.effectivePlan,
     paymentStatus: business.paymentStatus,
     planExpiresAt: business.planExpiresAt,
     billingCycle: business.billingCycle,
