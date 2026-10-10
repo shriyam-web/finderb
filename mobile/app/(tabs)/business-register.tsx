@@ -4,7 +4,6 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
-  Linking,
   Modal,
   Pressable,
   ScrollView,
@@ -40,7 +39,7 @@ import { checkPinInsideCity, type MapPin } from '../../lib/mapPlace';
 import { mobileInputDigits, PHONE_INPUT_MAX_LENGTH } from '../../lib/phoneInput';
 import { ShopMapPicker } from '../../components/ShopMapPicker';
 import { OtpCodeBoxes } from '../../components/OtpCodeBoxes';
-import { SITE_URL } from '../../lib/supabase';
+import { openMerchantLogin } from '../../lib/merchantWeb';
 import { useAuth } from '../../context/AuthContext';
 
 const UI = fonts.medium;
@@ -1251,9 +1250,16 @@ export default function BusinessRegisterScreen() {
               <Text style={styles.doneBody}>
                 {form.businessName} is registered. To manage the listing, photos, and leads, sign in on the FinderB website with {form.email.trim()}.
               </Text>
+              <View style={styles.doneNote}>
+                <Ionicons name="time-outline" size={18} color={biz.blueDeep} />
+                <Text style={styles.doneNoteText}>
+                  Your storefront will not be visible until the FinderB team verifies your business. Please wait up to
+                  24 hours.
+                </Text>
+              </View>
               <Pressable
                 style={({ pressed }) => [styles.primaryBtn, pressed && styles.pressed]}
-                onPress={() => void Linking.openURL(`${SITE_URL}/business/login`)}
+                onPress={() => void openMerchantLogin()}
               >
                 <Text style={styles.primaryText}>Manage on the website</Text>
               </Pressable>
@@ -2118,6 +2124,25 @@ const useStyles = createThemedStyles((colors) => {
     fontSize: 15,
     lineHeight: 22,
     color: colors.textMuted,
+  },
+  doneNote: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    marginTop: 8,
+    marginBottom: 16,
+    padding: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: b.blueLine,
+    backgroundColor: b.blueSoft,
+  },
+  doneNoteText: {
+    flex: 1,
+    fontFamily: UI,
+    fontSize: 14,
+    lineHeight: 20,
+    color: b.blueDeep,
   },
 };
 });

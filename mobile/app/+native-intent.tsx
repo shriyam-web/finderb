@@ -1,3 +1,21 @@
+const WEBSITE_BUSINESS_PAGES = new Set([
+  'login',
+  'dashboard',
+  'kyc',
+  'list',
+  'payment',
+  'support-login',
+  'onboarding-preview',
+]);
+
+/** finderb.com/business/login etc. are website pages, not storefront slugs. */
+function websiteBusinessRoute(pathname: string): string | null {
+  const section = pathname.match(/^\/business\/([^/?#]+)/)?.[1]?.toLowerCase();
+  if (!section) return null;
+  if (section === 'register') return '/business-register';
+  return WEBSITE_BUSINESS_PAGES.has(section) ? '/business-app' : null;
+}
+
 /**
  * Rewrite incoming system / deep-link paths into Expo Router routes.
  * Must never throw — a bad redirect on cold start can close or break the app.
@@ -22,7 +40,7 @@ export function redirectSystemPath({
       ) {
         return `/auth${raw}`;
       }
-      return raw;
+      return websiteBusinessRoute(raw) ?? raw;
     }
 
     // Google OAuth app callback: finderb://auth/callback?...
@@ -91,6 +109,9 @@ export function redirectSystemPath({
     if (url.protocol === 'finderb:' && url.pathname.startsWith('/auth/')) {
       return `${url.pathname}${url.search}${url.hash}`;
     }
+
+    const websiteRoute = websiteBusinessRoute(url.pathname);
+    if (websiteRoute) return websiteRoute;
 
     const businessMatch = url.pathname.match(/^\/business\/([^/]+)\/?$/);
     if (businessMatch?.[1]) {

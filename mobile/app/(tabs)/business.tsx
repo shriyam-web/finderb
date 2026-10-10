@@ -1,7 +1,7 @@
 import { useRef } from 'react';
 import { Href, useRouter, useScrollToTop } from 'expo-router';
 import { Image } from 'expo-image';
-import { Linking, Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { bizColors, useBizColors } from '../../constants/businessColors';
@@ -11,7 +11,7 @@ import { useTabScrollPadding } from '../../hooks/useAppSafeArea';
 import { createThemedStyles } from '../../hooks/useThemedStyles';
 import { goBackOrHome } from '../../lib/navigation';
 import { TabSwipeHost } from '../../lib/tabSwipe';
-import { SITE_URL } from '../../lib/supabase';
+import { openMerchantLogin } from '../../lib/merchantWeb';
 
 const POINTS = [
   {
@@ -143,7 +143,7 @@ export default function BusinessScreen() {
 
             <Pressable
               style={styles.webLink}
-              onPress={() => void Linking.openURL(`${SITE_URL}/business/login`)}
+              onPress={() => void openMerchantLogin()}
             >
               <Text style={styles.webLinkText}>Manage your business on the website</Text>
               <Ionicons name="open-outline" size={16} color={biz.blue} />

@@ -3,7 +3,6 @@ import {
   Animated,
   Easing,
   Image,
-  Linking,
   Pressable,
   StyleSheet,
   Text,
@@ -18,7 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { FinderBLogo } from '../components/BrandMark';
 import { fonts } from '../constants/typography';
 import { createThemedStyles } from '../hooks/useThemedStyles';
-import { SITE_URL } from '../lib/supabase';
+import { openMerchantLogin } from '../lib/merchantWeb';
 
 const NAVY = '#102C42';
 const GOLD = '#F2B45A';
@@ -54,7 +53,7 @@ export default function BusinessRegisterScreen() {
   }, [fade, rise]);
 
   const openWebPanel = () => {
-    void Linking.openURL(`${SITE_URL}/business/login`);
+    void openMerchantLogin();
   };
 
   return (

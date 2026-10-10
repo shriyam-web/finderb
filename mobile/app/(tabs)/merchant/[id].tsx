@@ -48,6 +48,7 @@ import { recordDirectLead } from '../../../lib/leadsApi';
 import { reportBusinessReview } from '../../../lib/reviewsApi';
 import { goBackOrHome } from '../../../lib/navigation';
 import { SITE_URL } from '../../../lib/supabase';
+import { openMerchantLogin } from '../../../lib/merchantWeb';
 import { useTabScrollPadding } from '../../../hooks/useAppSafeArea';
 import { createThemedStyles } from '../../../hooks/useThemedStyles';
 import { useUserLocation } from '../../../hooks/useUserLocation';
@@ -420,7 +421,7 @@ export default function MerchantProfileScreen() {
         { text: 'Not now', style: 'cancel' },
         {
           text: 'Open web panel',
-          onPress: () => void Linking.openURL(`${SITE_URL}/business/login`),
+          onPress: () => void openMerchantLogin(),
         },
       ],
     );

@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import {
   Animated,
   Easing,
-  Linking,
   Platform,
   Pressable,
   ScrollView,
@@ -19,7 +18,7 @@ import { fonts } from '../constants/typography';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { createThemedStyles } from '../hooks/useThemedStyles';
-import { SITE_URL } from '../lib/supabase';
+import { openMerchantLogin } from '../lib/merchantWeb';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const fbMark = require('../assets/fb-mark-clear.png');
@@ -201,7 +200,7 @@ export default function MerchantWelcomeScreen() {
   const ownerName = user?.fullName?.trim() || '';
   const lift = reveal.interpolate({ inputRange: [0, 1], outputRange: [16, 0] });
 
-  const openWebPanel = () => void Linking.openURL(`${SITE_URL}/business/login`);
+  const openWebPanel = () => void openMerchantLogin();
   const leave = () => router.replace('/(tabs)/home');
 
   if (loading) {
