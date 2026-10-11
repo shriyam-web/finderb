@@ -21,6 +21,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { fetchBusinessesByCategory, type HomeCategory } from '../lib/api';
 import { getBusinessOpenStatus } from '../lib/businessHours';
+import { getRatingDisplay, UNRATED_LABEL } from '../lib/ratingDisplay';
 import { compareText } from '../lib/compareText';
 import { useDrivingDistanceLabel } from '../lib/drivingDistance';
 import {
@@ -751,10 +752,7 @@ function BusinessCard({
   const distanceLabel = useDrivingDistanceLabel(merchant.latitude, merchant.longitude);
   const { colors, gradients } = useTheme();
   const styles = useStyles();
-  const rating =
-    merchant.rating != null && merchant.rating > 0
-      ? merchant.rating.toFixed(1)
-      : null;
+  const rating = getRatingDisplay(merchant.rating, merchant.reviewsCount);
   const open = getBusinessOpenStatus(merchant.timings);
   const place = (merchant.location || merchant.city || '').trim();
   const about = (merchant.about || '').trim();
@@ -800,16 +798,16 @@ function BusinessCard({
         </Text>
 
         <View style={styles.metaRow}>
-          {rating ? (
+          {rating.rated ? (
             <View style={styles.rating}>
               <Ionicons name="star" size={13} color={colors.star} />
-              <Text style={styles.metaStrong}>{rating}</Text>
-              {merchant.reviewsCount > 0 ? (
-                <Text style={styles.meta}>({merchant.reviewsCount})</Text>
+              <Text style={styles.metaStrong}>{rating.label}</Text>
+              {rating.showCount ? (
+                <Text style={styles.meta}>({rating.reviewCount})</Text>
               ) : null}
             </View>
           ) : (
-            <Text style={styles.meta}>New on FinderB</Text>
+            <Text style={styles.meta}>New · {UNRATED_LABEL}</Text>
           )}
           {merchant.yearsInBusiness ? (
             <Text style={styles.meta}>· {merchant.yearsInBusiness}+ yrs</Text>

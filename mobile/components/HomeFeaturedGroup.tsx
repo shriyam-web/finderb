@@ -24,9 +24,9 @@ import {
   DEFAULT_FILTERS,
   applyFilters,
   isDefaultFilters,
-  ratingValue,
   type FilterState,
 } from '../lib/merchantFilters';
+import { getRatingDisplay, UNRATED_LABEL } from '../lib/ratingDisplay';
 import type { Merchant } from '../lib/merchants';
 import { fonts } from '../constants/typography';
 import { useTheme } from '../context/ThemeContext';
@@ -135,8 +135,7 @@ function MerchantCard({
 }) {
   const { colors, gradients } = useTheme();
   const styles = useStyles();
-  const hasReviews = merchant.reviewsCount > 0;
-  const rating = ratingValue(merchant).toFixed(1);
+  const rating = getRatingDisplay(merchant.rating, merchant.reviewsCount);
   const open = getBusinessOpenStatus(merchant.timings);
   const distanceLabel = useDrivingDistanceLabel(merchant.latitude, merchant.longitude);
   const place = (merchant.location || merchant.city || '').trim();
@@ -228,15 +227,18 @@ function MerchantCard({
           {leafCategory(merchant.category)}
         </Text>
         <View style={styles.metaRow}>
-          <View style={styles.rating}>
-            <Ionicons name="star" size={12} color={colors.star} />
-            <Text style={styles.metaStrong}>{rating}</Text>
-            {hasReviews ? (
-              <Text style={styles.meta}>({merchant.reviewsCount})</Text>
-            ) : (
+          {rating.rated ? (
+            <View style={styles.rating}>
+              <Ionicons name="star" size={12} color={colors.star} />
+              <Text style={styles.metaStrong}>{rating.label}</Text>
+              {rating.showCount ? <Text style={styles.meta}>({rating.reviewCount})</Text> : null}
+            </View>
+          ) : (
+            <View style={styles.rating}>
               <Text style={styles.metaNew}>New</Text>
-            )}
-          </View>
+              <Text style={styles.meta}>· {UNRATED_LABEL}</Text>
+            </View>
+          )}
           {open.status === 'Open' || open.status === 'Closed' ? (
             <Text
               style={[

@@ -723,7 +723,6 @@ export default function CategoriesPage({
         <MerchantListingRating
           rating={biz.rating}
           reviewCount={biz.reviewsCount}
-          defaultRating={5}
           starSize={11}
           textClassName="text-[11px] font-semibold text-slate-600"
           emptyClassName="text-[11px] text-slate-400"

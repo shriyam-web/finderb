@@ -49,6 +49,7 @@ import { reportBusinessReview } from '../../../lib/reviewsApi';
 import { goBackOrHome } from '../../../lib/navigation';
 import { SITE_URL } from '../../../lib/supabase';
 import { openMerchantLogin } from '../../../lib/merchantWeb';
+import { getRatingDisplay, UNRATED_LABEL } from '../../../lib/ratingDisplay';
 import { useTabScrollPadding } from '../../../hooks/useAppSafeArea';
 import { createThemedStyles } from '../../../hooks/useThemedStyles';
 import { useUserLocation } from '../../../hooks/useUserLocation';
@@ -372,6 +373,10 @@ export default function MerchantProfileScreen() {
     : null;
 
   const ratingValue = merchant?.rating ?? null;
+  const headerRating = getRatingDisplay(
+    ratingValue,
+    merchant?.reviewsCount || merchant?.reviews.length || 0,
+  );
   const ratingBars = useMemo(() => {
     const counts = [0, 0, 0, 0, 0];
     for (const review of merchant?.reviews || []) {
@@ -802,18 +807,21 @@ export default function MerchantProfileScreen() {
                     ) : null}
                   </Text>
                   <View style={styles.ratingUnderName}>
-                    <View style={styles.ratingBox}>
-                      <Ionicons name="star" size={11} color="#FFFFFF" />
-                      <Text style={styles.ratingBoxText}>
-                        {ratingValue != null ? ratingValue.toFixed(1) : '5.0'}
-                      </Text>
-                    </View>
-                    {(merchant.reviewsCount || merchant.reviews.length) > 0 ? (
-                      <Text style={styles.metaMuted}>
-                        ({merchant.reviewsCount || merchant.reviews.length})
-                      </Text>
+                    {headerRating.rated ? (
+                      <>
+                        <View style={styles.ratingBox}>
+                          <Ionicons name="star" size={11} color="#FFFFFF" />
+                          <Text style={styles.ratingBoxText}>{headerRating.label}</Text>
+                        </View>
+                        {headerRating.showCount ? (
+                          <Text style={styles.metaMuted}>({headerRating.reviewCount} reviews)</Text>
+                        ) : null}
+                      </>
                     ) : (
-                      <Text style={styles.metaNew}>New</Text>
+                      <>
+                        <Text style={styles.metaNew}>New</Text>
+                        <Text style={styles.metaMuted}>· {UNRATED_LABEL}</Text>
+                      </>
                     )}
                   </View>
                 </View>
@@ -1347,9 +1355,9 @@ export default function MerchantProfileScreen() {
                     {ratingValue != null ? ratingValue.toFixed(1) : '—'}
                   </Text>
                   <Stars rating={ratingValue || 0} size={14} />
-                  <Text style={styles.ratingBigMeta}>
-                    {merchant.reviewsCount || merchant.reviews.length} reviews
-                  </Text>
+                  {headerRating.rated && headerRating.showCount ? (
+                    <Text style={styles.ratingBigMeta}>{headerRating.reviewCount} reviews</Text>
+                  ) : null}
                 </View>
                 <View style={styles.ratingBars}>
                   {ratingBars.map((row) => (

@@ -1,4 +1,5 @@
 import { Star } from 'lucide-react';
+import { getRatingDisplay, UNRATED_LABEL } from '@/lib/ratingDisplay';
 
 type MerchantListingRatingProps = {
   rating: number | null | undefined;
@@ -6,8 +7,6 @@ type MerchantListingRatingProps = {
   starSize?: number;
   textClassName?: string;
   emptyClassName?: string;
-  /** When set, show this rating if the merchant has no reviews yet. */
-  defaultRating?: number;
 };
 
 export default function MerchantListingRating({
@@ -16,18 +15,11 @@ export default function MerchantListingRating({
   starSize = 11,
   textClassName = 'text-[12px] font-medium text-[#475569]',
   emptyClassName = 'text-[12px] text-[#94a3b8]',
-  defaultRating,
 }: MerchantListingRatingProps) {
-  const count = reviewCount ?? 0;
-  const hasReviews = count > 0 && rating != null && Number(rating) > 0;
-  const displayRating = hasReviews
-    ? Number(rating)
-    : defaultRating != null
-      ? defaultRating
-      : null;
+  const display = getRatingDisplay(rating, reviewCount);
 
-  if (displayRating == null) {
-    return <span className={emptyClassName}>No reviews yet</span>;
+  if (!display.rated) {
+    return <span className={emptyClassName}>{UNRATED_LABEL}</span>;
   }
 
   return (
@@ -38,7 +30,7 @@ export default function MerchantListingRating({
             key={star}
             size={starSize}
             className={
-              star <= Math.round(displayRating)
+              star <= Math.round(display.rating)
                 ? 'fill-amber-400 text-amber-400'
                 : 'fill-gray-200 text-gray-200'
             }
@@ -46,9 +38,9 @@ export default function MerchantListingRating({
         ))}
       </div>
       <span className={textClassName}>
-        {displayRating.toFixed(1).replace(/\.0$/, '')}
-        {hasReviews ? (
-          <span className="font-normal text-[#94a3b8]"> ({count})</span>
+        {display.label}
+        {display.showCount ? (
+          <span className="font-normal text-[#94a3b8]"> ({display.reviewCount})</span>
         ) : null}
       </span>
     </div>

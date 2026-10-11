@@ -48,6 +48,7 @@ import {
   type BusinessReview,
 } from '@/lib/businessReviews';
 import { getDiscountOfferDisplay } from '@/lib/discountOffer';
+import { getRatingDisplay, UNRATED_LABEL } from '@/lib/ratingDisplay';
 import {
   directionsHref,
   phoneHref,
@@ -622,7 +623,7 @@ export default function BusinessProfilePage({
     { label: 'YouTube', href: business.youtubeUrl },
   ].filter((item) => Boolean(item.href));
   const showHoursStatus = Boolean(openStatus && openStatus.label !== 'Hours not listed');
-  const ratingValue = displayRating ?? (reviews.length === 0 ? 5 : null);
+  const headerRating = getRatingDisplay(displayRating, reviews.length);
   const avatarSrc = galleryImages[0];
 
   return (
@@ -716,14 +717,25 @@ export default function BusinessProfilePage({
                   ) : null}
                 </h1>
                 <div className="mt-1 flex items-center gap-1.5">
-                  <span className="inline-flex items-center gap-0.5 rounded-[5px] bg-[#E6A800] px-1.5 py-0.5 text-[11px] font-semibold text-white">
-                    <Star size={11} className="fill-white text-white" />
-                    {ratingValue != null ? ratingValue.toFixed(1) : '5.0'}
-                  </span>
-                  {reviews.length > 0 ? (
-                    <span className="text-xs font-medium text-stone-400">({reviews.length})</span>
+                  {headerRating.rated ? (
+                    <>
+                      <span className="inline-flex items-center gap-0.5 rounded-[5px] bg-[#E6A800] px-1.5 py-0.5 text-[11px] font-semibold text-white">
+                        <Star size={11} className="fill-white text-white" />
+                        {headerRating.label}
+                      </span>
+                      {headerRating.showCount ? (
+                        <span className="text-xs font-medium text-stone-400">
+                          ({headerRating.reviewCount} reviews)
+                        </span>
+                      ) : null}
+                    </>
                   ) : (
-                    <span className="text-[11px] font-semibold text-stone-400">New</span>
+                    <>
+                      <span className="rounded-[5px] bg-[#215481] px-1.5 py-0.5 text-[11px] font-semibold text-white">
+                        New
+                      </span>
+                      <span className="text-[11px] font-medium text-stone-400">{UNRATED_LABEL}</span>
+                    </>
                   )}
                 </div>
               </div>
@@ -956,9 +968,11 @@ export default function BusinessProfilePage({
                       />
                     ))}
                   </div>
-                  <p className="text-center text-[11px] font-medium text-stone-400">
-                    {reviews.length} reviews
-                  </p>
+                  {headerRating.rated && headerRating.showCount ? (
+                    <p className="text-center text-[11px] font-medium text-stone-400">
+                      {headerRating.reviewCount} reviews
+                    </p>
+                  ) : null}
                 </div>
                 <div className="flex min-w-0 flex-1 flex-col justify-center gap-1.5">
                   {ratingBars.map((row) => (

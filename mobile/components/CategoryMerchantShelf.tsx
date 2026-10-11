@@ -3,6 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { getBusinessOpenStatus } from '../lib/businessHours';
+import { getRatingDisplay, UNRATED_LABEL } from '../lib/ratingDisplay';
 import type { HomeCategory } from '../lib/api';
 import type { Merchant } from '../lib/merchants';
 import { fonts } from '../constants/typography';
@@ -36,10 +37,7 @@ function ShelfMerchantCard({
   const styles = useStyles();
   const overlayText =
     colors.statusBarStyle === 'light' ? colors.primary : colors.onDark;
-  const rating =
-    merchant.rating != null && merchant.rating > 0
-      ? merchant.rating.toFixed(1)
-      : null;
+  const rating = getRatingDisplay(merchant.rating, merchant.reviewsCount);
   const open = getBusinessOpenStatus(merchant.timings);
   const hasOffer =
     Boolean(merchant.discountRange) &&
@@ -110,16 +108,16 @@ function ShelfMerchantCard({
         </Text>
 
         <View style={styles.metaRow}>
-          {rating ? (
+          {rating.rated ? (
             <View style={styles.rating}>
               <Ionicons name="star" size={12} color={colors.star} />
-              <Text style={styles.metaStrong}>{rating}</Text>
-              {merchant.reviewsCount > 0 ? (
-                <Text style={styles.meta}>({merchant.reviewsCount})</Text>
+              <Text style={styles.metaStrong}>{rating.label}</Text>
+              {rating.showCount ? (
+                <Text style={styles.meta}>({rating.reviewCount})</Text>
               ) : null}
             </View>
           ) : (
-            <Text style={styles.meta}>No reviews yet</Text>
+            <Text style={styles.meta}>New · {UNRATED_LABEL}</Text>
           )}
         </View>
 

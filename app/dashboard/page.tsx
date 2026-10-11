@@ -7,7 +7,6 @@ import {
   MessageSquare,
   Heart,
   LogOut,
-  Star,
   History,
   Menu,
   X,
@@ -29,6 +28,7 @@ import { getCategories } from '@/app/actions/category';
 import { getFeaturedBusinesses, getBusinessSummariesByIds } from '@/app/actions/business';
 import { getLastSearchQuery } from '@/lib/lastSearchQuery';
 import CategoryIcon from '@/components/CategoryIcon';
+import MerchantListingRating from '@/components/business/MerchantListingRating';
 import { categoryHref } from '@/lib/categoryDisplay';
 import { getBusinessProfilePath } from '@/lib/businessSlug';
 import { formatDateTimeInr } from '@/lib/formatDateTime';
@@ -472,12 +472,15 @@ function DashboardContent() {
                             <MapPin size={12} />
                             {biz.location}
                           </p>
-                          {biz.rating != null && (
-                            <p className="mt-1 flex items-center gap-1 text-xs text-zinc-600">
-                              <Star size={12} className="fill-amber-400 text-amber-400" />
-                              {Number(biz.rating).toFixed(1)}
-                            </p>
-                          )}
+                          <div className="mt-1">
+                            <MerchantListingRating
+                              rating={biz.rating}
+                              reviewCount={biz.reviewsCount}
+                              starSize={12}
+                              textClassName="text-xs text-zinc-600"
+                              emptyClassName="text-xs text-zinc-400"
+                            />
+                          </div>
                         </div>
                       </Link>
                     ))}

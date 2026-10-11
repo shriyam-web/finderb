@@ -30,6 +30,7 @@ import { getBusinessProfilePath } from '@/lib/businessSlug';
 import { getBusinessOpenStatus } from '@/lib/businessHours';
 import { shufflePreservingFixedSlots } from '@/lib/categoryFixedSlots';
 import { getDiscountOfferCardLabel } from '@/lib/discountOffer';
+import { getRatingDisplay, UNRATED_LABEL } from '@/lib/ratingDisplay';
 import { formatDistanceFromUser, getDistanceKm } from '@/lib/geo';
 import { useUserCoords } from '@/hooks/useUserCoords';
 
@@ -473,7 +474,7 @@ function MerchantPortraitCard({
     const opensMatch = openStatus.label.match(/opens\s+(.+)$/i);
     return opensMatch ? `Opens ${opensMatch[1]}` : null;
   })();
-  const ratingValue = merchantRating(biz);
+  const ratingDisplay = getRatingDisplay(biz.rating, biz.reviewsCount);
   const hasOffer = Boolean(biz.discountRange?.trim());
   const isNewListing = (biz.reviewsCount ?? 0) === 0;
   const aboutText = (biz.description || biz.about || '').trim();
@@ -568,13 +569,17 @@ function MerchantPortraitCard({
         ) : null}
 
         <div className="mt-1.5 flex min-h-[16px] items-center gap-2">
-          <span className="inline-flex items-center gap-0.5 text-[11px] font-bold tabular-nums text-slate-800">
-            <Star size={11} className="fill-amber-400 text-amber-400" />
-            {ratingValue.toFixed(1)}
-            {(biz.reviewsCount ?? 0) > 0 ? (
-              <span className="font-medium text-slate-400">({biz.reviewsCount})</span>
-            ) : null}
-          </span>
+          {ratingDisplay.rated ? (
+            <span className="inline-flex items-center gap-0.5 text-[11px] font-bold tabular-nums text-slate-800">
+              <Star size={11} className="fill-amber-400 text-amber-400" />
+              {ratingDisplay.label}
+              {ratingDisplay.showCount ? (
+                <span className="font-medium text-slate-400">({ratingDisplay.reviewCount})</span>
+              ) : null}
+            </span>
+          ) : (
+            <span className="text-[10px] font-medium text-slate-400">{UNRATED_LABEL}</span>
+          )}
 
           {hoursLabel ? (
             <>

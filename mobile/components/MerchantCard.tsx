@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import type { Merchant } from '../lib/merchants';
+import { getRatingDisplay, UNRATED_LABEL } from '../lib/ratingDisplay';
 import { fonts } from '../constants/typography';
 import { useTheme } from '../context/ThemeContext';
 import { createThemedStyles } from '../hooks/useThemedStyles';
@@ -24,8 +25,7 @@ export function MerchantCard({
   const styles = useStyles();
   const overlayText =
     isDarkPalette(colors) ? colors.primary : colors.onDark;
-  const ratingLabel =
-    merchant.rating != null ? merchant.rating.toFixed(1) : null;
+  const rating = getRatingDisplay(merchant.rating, merchant.reviewsCount);
   const hasOffer =
     Boolean(merchant.discountRange) &&
     merchant.discountRange !== 'No Discount' &&
@@ -94,16 +94,16 @@ export function MerchantCard({
         </Text>
 
         <View style={styles.metaRow}>
-          {ratingLabel ? (
+          {rating.rated ? (
             <View style={styles.rating}>
               <Ionicons name="star" size={11} color={colors.star} />
               <Text style={styles.metaText}>
-                {ratingLabel}
-                {merchant.reviewsCount > 0 ? ` (${merchant.reviewsCount})` : ''}
+                {rating.label}
+                {rating.showCount ? ` (${rating.reviewCount})` : ''}
               </Text>
             </View>
           ) : (
-            <Text style={styles.metaText}>New</Text>
+            <Text style={styles.metaText}>New · {UNRATED_LABEL}</Text>
           )}
         </View>
 
