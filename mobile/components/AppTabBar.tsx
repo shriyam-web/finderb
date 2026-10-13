@@ -1,6 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { Animated, Easing, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
-import { Image } from 'expo-image';
+import { Animated, Easing, Image, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path } from 'react-native-svg';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
@@ -32,6 +31,10 @@ const ICONS: Record<
 };
 
 const BLUE_WASH = ['#60A5FA', '#2563EB'] as const;
+
+/** Keep this mark tiny (72px) so the Business tab paints on the first frame. */
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const FB_MARK = require('../assets/fb-mark-tab.png');
 
 const RIBBON_W = 66;
 /** Spans the bar from its top border (wrap paddingTop 6) to the bottom of the tab row. */
@@ -197,11 +200,7 @@ function BusinessTab({ active }: { active: boolean }) {
             style={[bizTabStyles.ring, { opacity: ringOpacity, transform: [{ scale: ringScale }] }]}
           />
           <Animated.View style={[bizTabStyles.plate, { transform: [{ scale: markScale }] }]}>
-            <Image
-              source={require('../assets/fb-mark-clear.png')}
-              style={bizTabStyles.mark}
-              contentFit="contain"
-            />
+            <Image source={FB_MARK} style={bizTabStyles.mark} resizeMode="contain" fadeDuration={0} alt="" />
           </Animated.View>
         </View>
         <Text style={bizTabStyles.label} numberOfLines={1}>

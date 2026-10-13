@@ -380,6 +380,16 @@ function AccountBody({ o }: { o: ConsoleOverview }) {
 
   return (
     <ConsolePage title="Login & security" subtitle="Account">
+      {!b.emailVerified || !b.mobileVerified ? (
+        <View style={styles.warn}>
+          <Ionicons name="trending-down" size={18} color={c.warning} />
+          <Text style={styles.warnText}>
+            <Text style={styles.warnStrong}>Your visibility will drop. </Text>
+            Unverified businesses rank lower in search and get fewer calls. Verify your{' '}
+            {[!b.mobileVerified && 'mobile', !b.emailVerified && 'email'].filter(Boolean).join(' and ')} soon.
+          </Text>
+        </View>
+      ) : null}
       <Section title="How you log in">
         <Panel flush>
           <Pressable
@@ -433,7 +443,10 @@ function AccountBody({ o }: { o: ConsoleOverview }) {
             <Text style={styles.action}>{b.mobileVerified ? 'Change' : 'Verify'}</Text>
           </Pressable>
         </Panel>
-        <Text style={styles.footnote}>Changing your email or mobile needs a one-time code sent to the new address.</Text>
+        <Text style={styles.footnote}>
+          Your login mobile is also the phone customers see on your listing. Changing your email or mobile needs a
+          one-time code sent to the new address.
+        </Text>
       </Section>
 
       <Panel flush>
@@ -524,6 +537,17 @@ const useStyles = createConsoleStyles((c) => ({
   contactTag: { marginTop: 6 },
   action: { fontFamily: fonts.semiBold, fontSize: 14, color: c.accent },
   footnote: { fontFamily: fonts.regular, fontSize: 12.5, lineHeight: 18, color: c.muted, paddingHorizontal: 2 },
+  warn: {
+    flexDirection: 'row',
+    gap: 10,
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: c.isDark ? 'rgba(251,191,36,0.35)' : '#FDE68A',
+    backgroundColor: c.warningSoft,
+  },
+  warnText: { flex: 1, fontFamily: fonts.regular, fontSize: 12.5, lineHeight: 18, color: c.body },
+  warnStrong: { fontFamily: fonts.semiBold, color: c.ink },
   requestRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, paddingVertical: 14 },
   requestLabel: { fontFamily: fonts.regular, fontSize: 12.5, color: c.muted },
   requestValue: { marginTop: 2, fontFamily: fonts.semiBold, fontSize: 15, color: c.ink },

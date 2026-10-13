@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { fonts } from '../../constants/typography';
@@ -53,9 +53,8 @@ export function ConsoleDock({ state, navigation }: BottomTabBarProps) {
             accessibilityState={{ selected: focused }}
             accessibilityLabel={badge ? `${item.label}, ${badge} new` : item.label}
           >
-            <View style={[styles.indicator, focused && { backgroundColor: c.primary }]} />
-            <View>
-              <Ionicons name={focused ? item.activeIcon : item.icon} size={22} color={tint} />
+            <View style={[styles.pill, focused && styles.pillOn]}>
+              <Ionicons name={focused ? item.activeIcon : item.icon} size={21} color={tint} />
               {badge > 0 ? (
                 <View style={styles.badge}>
                   <Text style={styles.badgeText}>{badge > 9 ? '9+' : badge}</Text>
@@ -80,25 +79,18 @@ const useStyles = createConsoleStyles((c) => ({
     bottom: 0,
     flexDirection: 'row',
     backgroundColor: c.card,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: c.lineStrong,
+    borderTopWidth: 1,
+    borderTopColor: c.line,
   },
-  slot: { flex: 1, height: DOCK_HEIGHT, alignItems: 'center', justifyContent: 'center', gap: 3 },
-  indicator: {
-    position: 'absolute',
-    top: 0,
-    width: 32,
-    height: 3,
-    borderBottomLeftRadius: 3,
-    borderBottomRightRadius: 3,
-    backgroundColor: 'transparent',
-  },
-  label: { fontFamily: fonts.regular, fontSize: 11.5 },
+  slot: { flex: 1, height: DOCK_HEIGHT, alignItems: 'center', justifyContent: 'center', gap: 2 },
+  pill: { width: 52, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  pillOn: { backgroundColor: c.isDark ? c.sunken : '#EDEDF0' },
+  label: { fontFamily: fonts.regular, fontSize: 11 },
   labelOn: { fontFamily: fonts.semiBold },
   badge: {
     position: 'absolute',
-    top: -4,
-    right: -10,
+    top: -3,
+    right: 4,
     minWidth: 17,
     height: 17,
     borderRadius: 9,

@@ -71,7 +71,10 @@ export function sectionSummary(key: SectionKey, o: ConsoleOverview): string {
         .filter(Boolean)
         .join(' · ');
     case 'contact':
-      return [p.publicPhone ? `+91 ${p.publicPhone}` : 'No public phone', p.ownerName].filter(Boolean).join(' · ');
+    {
+      const phone = String(o.business.loginMobile || p.publicPhone || '').replace(/\D/g, '').slice(-10);
+      return [phone ? `+91 ${phone}` : 'No public phone', p.ownerName].filter(Boolean).join(' · ');
+    }
     case 'location':
       return [p.businessAddress || 'No address', p.latitude && p.longitude ? 'Pinned on map' : 'No map pin'].join(' · ');
     case 'hours':

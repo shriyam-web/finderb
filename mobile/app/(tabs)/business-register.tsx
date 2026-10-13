@@ -684,7 +684,7 @@ export default function BusinessRegisterScreen() {
             </Pressable>
             <View style={styles.brand}>
               <Image
-                source={require('../../assets/fb-mark-clear.png')}
+                source={require('../../assets/fb-mark-240.png')}
                 style={styles.mark}
                 contentFit="contain"
               />

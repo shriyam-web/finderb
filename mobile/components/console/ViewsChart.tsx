@@ -58,7 +58,7 @@ const useStyles = createConsoleStyles((c) => ({
   },
   peak: { position: 'absolute', top: -7, right: 0, fontFamily: fonts.regular, fontSize: 10.5, color: c.faint },
   col: { flex: 1, alignItems: 'stretch', justifyContent: 'flex-end' },
-  bar: { borderTopLeftRadius: 4, borderTopRightRadius: 4, backgroundColor: c.isDark ? '#3E5C86' : '#B9CBE0' },
+  bar: { borderTopLeftRadius: 4, borderTopRightRadius: 4, backgroundColor: c.isDark ? '#4A4541' : '#D4D4D8' },
   barToday: { backgroundColor: c.primary },
   barEmpty: { backgroundColor: c.line },
   axis: { flexDirection: 'row', justifyContent: 'space-between', paddingRight: 14, marginTop: 6 },

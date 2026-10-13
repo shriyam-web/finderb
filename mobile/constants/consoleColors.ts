@@ -1,7 +1,7 @@
 import type { ColorTokens } from './colors';
 import { useTheme } from '../context/ThemeContext';
 
-/** Business panel palette: the website dashboard's navy on light grey, with the app's warm night set. */
+/** Business panel palette: the website dashboard's white and zinc with navy actions, plus the app's warm night set. */
 export type ConsoleColors = {
   page: string;
   card: string;
@@ -24,22 +24,25 @@ export type ConsoleColors = {
   dangerSoft: string;
   star: string;
   scrim: string;
+  /** FinderB amber, used sparingly for highlights. */
+  brand: string;
+  brandSoft: string;
   isDark: boolean;
 };
 
 const day: ConsoleColors = {
-  page: '#F3F5F8',
+  page: '#FAFAFA',
   card: '#FFFFFF',
-  sunken: '#EEF1F5',
-  line: '#E2E7EE',
-  lineStrong: '#C9D2DD',
-  ink: '#101828',
-  body: '#344054',
-  muted: '#667085',
-  faint: '#98A2B3',
+  sunken: '#F4F4F5',
+  line: '#E4E4E7',
+  lineStrong: '#D4D4D8',
+  ink: '#18181B',
+  body: '#3F3F46',
+  muted: '#71717A',
+  faint: '#A1A1AA',
   primary: '#153551',
   primaryInk: '#FFFFFF',
-  primarySoft: '#E8EEF5',
+  primarySoft: '#F4F4F5',
   accent: '#215481',
   success: '#067647',
   successSoft: '#ECFDF3',
@@ -48,7 +51,9 @@ const day: ConsoleColors = {
   danger: '#B42318',
   dangerSoft: '#FEF3F2',
   star: '#F5A623',
-  scrim: 'rgba(16, 24, 40, 0.5)',
+  scrim: 'rgba(24, 24, 27, 0.5)',
+  brand: '#D97706',
+  brandSoft: '#FEF3E2',
   isDark: false,
 };
 
@@ -74,6 +79,8 @@ const night: ConsoleColors = {
   dangerSoft: 'rgba(248,113,113,0.13)',
   star: '#FBBF24',
   scrim: 'rgba(0, 0, 0, 0.6)',
+  brand: '#FBBF24',
+  brandSoft: 'rgba(251,191,36,0.12)',
   isDark: true,
 };
 

@@ -18,7 +18,7 @@ const SIZES = {
 export function FinderBLogo({ size = 36 }: { size?: number }) {
   return (
     <Image
-      source={require('../assets/fb-glyph.png')}
+      source={require('../assets/fb-glyph-240.png')}
       style={{ width: size, height: size }}
       resizeMode="contain"
       accessibilityLabel="FinderB"

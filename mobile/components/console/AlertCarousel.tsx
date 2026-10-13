@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   FlatList,
+  Image,
   Pressable,
   Text,
   View,
+  type ImageSourcePropType,
   type LayoutChangeEvent,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
@@ -18,16 +20,29 @@ export type AlertTone = 'danger' | 'warning' | 'info' | 'success';
 export type AlertSlide = {
   key: string;
   tone: AlertTone;
-  icon: keyof typeof Ionicons.glyphMap;
+  /** Short pill above the title, e.g. "Action needed". */
+  kicker: string;
   title: string;
   body: string;
   cta: string;
+  art: ImageSourcePropType;
   onPress: () => void;
 };
 
-const ROTATE_MS = 6000;
+/* eslint-disable @typescript-eslint/no-require-imports */
+export const BANNER_ART = {
+  leads: require('../../assets/console/leads.jpg'),
+  photos: require('../../assets/console/photos.jpg'),
+  verify: require('../../assets/console/verify.jpg'),
+  growth: require('../../assets/console/growth.jpg'),
+  profile: require('../../assets/console/profile.jpg'),
+} as const;
+/* eslint-enable @typescript-eslint/no-require-imports */
 
-/** Account alerts that rotate on their own, like the website dashboard banners; swipe or tap a dot to jump. */
+const ROTATE_MS = 6000;
+const SLIDE_HEIGHT = 148;
+
+/** Account banners that rotate on their own, like the website dashboard; swipe or tap a dot to jump. */
 export function AlertCarousel({ slides }: { slides: AlertSlide[] }) {
   const styles = useStyles();
   const c = useConsoleColors();
@@ -56,7 +71,7 @@ export function AlertCarousel({ slides }: { slides: AlertSlide[] }) {
     ({
       danger: { wash: c.dangerSoft, ink: c.danger },
       warning: { wash: c.warningSoft, ink: c.warning },
-      info: { wash: c.primarySoft, ink: c.accent },
+      info: { wash: c.brandSoft, ink: c.brand },
       success: { wash: c.successSoft, ink: c.success },
     })[tone];
 
@@ -77,7 +92,7 @@ export function AlertCarousel({ slides }: { slides: AlertSlide[] }) {
   return (
     <View
       onLayout={(event: LayoutChangeEvent) => setWidth(Math.round(event.nativeEvent.layout.width))}
-      accessibilityLabel="Account alerts"
+      accessibilityLabel="Account updates"
     >
       {width ? (
         <FlatList
@@ -96,26 +111,30 @@ export function AlertCarousel({ slides }: { slides: AlertSlide[] }) {
               <View style={{ width }}>
                 <Pressable
                   onPress={item.onPress}
-                  style={({ pressed }) => [styles.slide, { backgroundColor: tone.wash }, pressed && styles.pressed]}
+                  style={({ pressed }) => [styles.slide, pressed && styles.pressed]}
                   accessibilityRole="button"
-                  accessibilityLabel={`Alert ${i + 1} of ${count}. ${item.title}. ${item.body}`}
+                  accessibilityLabel={`Update ${i + 1} of ${count}. ${item.title}. ${item.body}`}
                 >
-                  <View style={styles.slideTop}>
-                    <View style={[styles.icon, { backgroundColor: c.card }]}>
-                      <Ionicons name={item.icon} size={18} color={tone.ink} />
+                  <View style={styles.copy}>
+                    <View style={[styles.kicker, { backgroundColor: tone.wash }]}>
+                      <View style={[styles.kickerDot, { backgroundColor: tone.ink }]} />
+                      <Text style={[styles.kickerText, { color: tone.ink }]} numberOfLines={1}>
+                        {item.kicker}
+                      </Text>
                     </View>
-                    <View style={styles.copy}>
-                      <Text style={[styles.title, { color: c.ink }]} numberOfLines={2}>
-                        {item.title}
-                      </Text>
-                      <Text style={styles.body} numberOfLines={2}>
-                        {item.body}
-                      </Text>
+                    <Text style={styles.title} numberOfLines={2}>
+                      {item.title}
+                    </Text>
+                    <Text style={styles.body} numberOfLines={2}>
+                      {item.body}
+                    </Text>
+                    <View style={styles.cta}>
+                      <Text style={styles.ctaText}>{item.cta}</Text>
+                      <Ionicons name="arrow-forward" size={14} color={c.primaryInk} />
                     </View>
                   </View>
-                  <View style={styles.ctaRow}>
-                    <Text style={[styles.cta, { color: tone.ink }]}>{item.cta}</Text>
-                    <Ionicons name="arrow-forward" size={15} color={tone.ink} />
+                  <View style={styles.artWrap}>
+                    <Image source={item.art} style={styles.art} resizeMode="contain" fadeDuration={0} alt="" />
                   </View>
                 </Pressable>
               </View>
@@ -133,7 +152,7 @@ export function AlertCarousel({ slides }: { slides: AlertSlide[] }) {
               onPress={() => jump(i)}
               hitSlop={6}
               accessibilityRole="button"
-              accessibilityLabel={`Show alert ${i + 1}`}
+              accessibilityLabel={`Show update ${i + 1}`}
               style={[styles.dot, i === active && styles.dotOn]}
             />
           ))}
@@ -144,17 +163,55 @@ export function AlertCarousel({ slides }: { slides: AlertSlide[] }) {
 }
 
 const useStyles = createConsoleStyles((c) => ({
-  slide: { minHeight: 132, borderRadius: 14, padding: 16, justifyContent: 'space-between', gap: 12 },
-  pressed: { opacity: 0.85 },
-  slideTop: { flexDirection: 'row', gap: 12 },
-  icon: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
-  copy: { flex: 1, minWidth: 0 },
-  title: { fontFamily: fonts.semiBold, fontSize: 15, lineHeight: 21 },
-  body: { marginTop: 3, fontFamily: fonts.regular, fontSize: 13, lineHeight: 19, color: c.body },
-  ctaRow: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingLeft: 48 },
-  cta: { fontFamily: fonts.semiBold, fontSize: 13.5 },
-  placeholder: { height: 132 },
-  dots: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6, marginTop: 10 },
+  slide: {
+    height: SLIDE_HEIGHT,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: c.line,
+    backgroundColor: c.isDark ? c.card : '#FFFFFF',
+    paddingLeft: 14,
+    overflow: 'hidden',
+  },
+  pressed: { opacity: 0.88 },
+  copy: { flex: 1, minWidth: 0, paddingVertical: 12, gap: 4 },
+  kicker: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+  },
+  kickerDot: { width: 6, height: 6, borderRadius: 3 },
+  kickerText: { fontFamily: fonts.semiBold, fontSize: 10.5, letterSpacing: 0.2 },
+  title: { fontFamily: fonts.semiBold, fontSize: 15, lineHeight: 20, color: c.ink },
+  body: { fontFamily: fonts.regular, fontSize: 12, lineHeight: 16, color: c.muted },
+  cta: {
+    marginTop: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 6,
+    paddingHorizontal: 12,
+    height: 30,
+    borderRadius: 8,
+    backgroundColor: c.primary,
+  },
+  ctaText: { fontFamily: fonts.semiBold, fontSize: 12.5, color: c.primaryInk },
+  artWrap: {
+    width: 128,
+    height: SLIDE_HEIGHT - 2,
+    marginLeft: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+  },
+  art: { width: 124, height: 124 },
+  placeholder: { height: SLIDE_HEIGHT },
+  dots: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 5, marginTop: 8 },
   dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: c.lineStrong },
-  dotOn: { width: 18, backgroundColor: c.primary },
+  dotOn: { width: 16, backgroundColor: c.primary },
 }));

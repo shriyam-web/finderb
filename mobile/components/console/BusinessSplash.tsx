@@ -7,7 +7,7 @@ import { useAuth } from '../../context/AuthContext';
 import { createConsoleStyles } from './kit';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const fbMark = require('../../assets/fb-mark-clear.png');
+const fbMark = require('../../assets/fb-mark-240.png');
 
 const TRACK_WIDTH = 132;
 const RUNNER_WIDTH = 44;

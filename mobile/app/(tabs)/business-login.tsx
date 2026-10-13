@@ -107,7 +107,7 @@ export default function BusinessLoginScreen() {
               <Ionicons name="chevron-back" size={22} color={biz.ink} />
             </Pressable>
             <Image
-              source={require('../../assets/fb-mark-clear.png')}
+              source={require('../../assets/fb-mark-240.png')}
               style={styles.mark}
               contentFit="contain"
             />

@@ -23,6 +23,7 @@ import {
 import { useRouter, type Href } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
 import { fonts } from '../../constants/typography';
 import { consoleColors, useConsoleColors, type ConsoleColors } from '../../constants/consoleColors';
 import { useTheme } from '../../context/ThemeContext';
@@ -108,6 +109,31 @@ type PageProps = {
   form?: boolean;
 };
 
+const GLOW_HEIGHT = 420;
+const glowFrame: ViewStyle = { position: 'absolute', top: 0, left: 0, right: 0, height: GLOW_HEIGHT };
+
+/** The website dashboard's backdrop: a warm amber wash top-left and a faint navy one top-right. */
+function PageGlow() {
+  const c = useConsoleColors();
+  if (c.isDark) return null;
+  return (
+    <Svg pointerEvents="none" style={glowFrame} width="100%" height={GLOW_HEIGHT}>
+      <Defs>
+        <RadialGradient id="amber" cx="15%" cy="-8%" rx="80%" ry="50%" gradientUnits="objectBoundingBox">
+          <Stop offset="0" stopColor="#F9B864" stopOpacity={0.16} />
+          <Stop offset="1" stopColor="#F9B864" stopOpacity={0} />
+        </RadialGradient>
+        <RadialGradient id="navy" cx="95%" cy="5%" rx="55%" ry="45%" gradientUnits="objectBoundingBox">
+          <Stop offset="0" stopColor="#215481" stopOpacity={0.08} />
+          <Stop offset="1" stopColor="#215481" stopOpacity={0} />
+        </RadialGradient>
+      </Defs>
+      <Rect width="100%" height="100%" fill="url(#amber)" />
+      <Rect width="100%" height="100%" fill="url(#navy)" />
+    </Svg>
+  );
+}
+
 /** Every console screen: the same header (back, title, actions), scroll body and optional sticky footer. */
 export function ConsolePage({
   title,
@@ -180,7 +206,10 @@ export function ConsolePage({
           {right ? <View style={styles.headerRight}>{right}</View> : null}
         </View>
       </View>
-      {body}
+      <View style={styles.flex}>
+        {form ? null : <PageGlow />}
+        {body}
+      </View>
       {footer ? <View style={[styles.footer, { paddingBottom: bottomInset + 12 }]}>{footer}</View> : null}
     </KeyboardAvoidingView>
   );
@@ -708,7 +737,7 @@ const useKitStyles = createConsoleStyles((c) => ({
   headerTitle: { fontFamily: fonts.semiBold, fontSize: 18, color: c.ink },
   headerSub: { fontFamily: fonts.regular, fontSize: 12.5, color: c.muted, marginTop: 1 },
   headerRight: { flexDirection: 'row', alignItems: 'center' },
-  body: { paddingHorizontal: 16, paddingTop: 16, gap: 16 },
+  body: { paddingHorizontal: 14, paddingTop: 14, gap: 14 },
   formPage: { backgroundColor: c.card },
   formBody: { paddingHorizontal: 20, paddingTop: 20, gap: 24 },
   footer: {
@@ -719,16 +748,16 @@ const useKitStyles = createConsoleStyles((c) => ({
     backgroundColor: c.card,
     gap: 8,
   },
-  section: { gap: 10 },
+  section: { gap: 8 },
   sectionHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 2 },
-  sectionTitle: { fontFamily: fonts.semiBold, fontSize: 16, color: c.ink },
-  sectionAction: { fontFamily: fonts.semiBold, fontSize: 13.5, color: c.accent },
+  sectionTitle: { fontFamily: fonts.semiBold, fontSize: 15, color: c.ink },
+  sectionAction: { fontFamily: fonts.semiBold, fontSize: 13, color: c.accent },
   panel: {
     backgroundColor: c.card,
-    borderRadius: 14,
-    borderWidth: c.isDark ? 1 : StyleSheet.hairlineWidth,
+    borderRadius: 12,
+    borderWidth: 1,
     borderColor: c.line,
-    padding: 16,
+    padding: 14,
   },
   panelFlush: { padding: 0, overflow: 'hidden' },
   btn: {
@@ -869,7 +898,7 @@ const useKitStyles = createConsoleStyles((c) => ({
     paddingHorizontal: 16,
     paddingVertical: 13,
     borderRadius: 12,
-    backgroundColor: c.isDark ? '#36312D' : '#101828',
+    backgroundColor: c.isDark ? '#36312D' : '#18181B',
   },
   toastText: { flex: 1, fontFamily: fonts.regular, fontSize: 14, color: '#FFFFFF' },
 }));

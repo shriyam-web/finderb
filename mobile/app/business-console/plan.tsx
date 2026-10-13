@@ -489,7 +489,7 @@ const useStyles = createConsoleStyles((c) => ({
     borderColor: c.line,
     backgroundColor: c.card,
   },
-  optionOn: { borderColor: c.primary, borderWidth: 2, padding: 15, backgroundColor: c.isDark ? c.card : '#FAFCFF' },
+  optionOn: { borderColor: c.primary, borderWidth: 2, padding: 15, backgroundColor: c.card },
   radio: {
     width: 22,
     height: 22,

@@ -37,7 +37,7 @@ import {
 
 const SECTION_FIELDS: Record<SectionKey, (keyof ConsoleProfile)[]> = {
   basics: ['displayName', 'about', 'keywords', 'serviceCategory'],
-  contact: ['publicPhone', 'whatsappNumber', 'ownerName', 'ownerMobile', 'website'],
+  contact: ['whatsappNumber', 'ownerName', 'ownerMobile', 'website'],
   location: ['businessAddress', 'city', 'state', 'country', 'latitude', 'longitude'],
   hours: ['timings'],
   offers: ['paymentModes', 'discountRange', 'yearsInBusiness'],
@@ -61,6 +61,7 @@ function slotLabel(value: string): string {
 
 const wordCount = (text: string) => text.split(/\s+/).filter(Boolean).length;
 const validMobile = (digits: string) => /^[6-9]\d{9}$/.test(digits);
+const last10 = (value: string | null | undefined) => String(value || '').replace(/\D/g, '').slice(-10);
 const servicesOf = (value: string) =>
   [...new Set(String(value || '').split(/[,|]/).map((item) => item.trim()).filter(Boolean))];
 
@@ -301,13 +302,17 @@ function HoursEditor({ timings, onChange }: { timings: Timings; onChange: (next:
 
 type OwnerProof = { success: true; value: string; ownerMobileVerificationToken: string; message: string };
 
-function OwnerMobileSheet({
+function PhoneVerifySheet({
   mobile,
+  title,
+  reason,
   visible,
   onClose,
   onVerified,
 }: {
   mobile: string;
+  title: string;
+  reason: string;
   visible: boolean;
   onClose: () => void;
   onVerified: (token: string) => void;
@@ -348,14 +353,14 @@ function OwnerMobileSheet({
     }
     otp.clearSent();
     onVerified(result.ownerMobileVerificationToken);
-    notify('Owner mobile verified');
+    notify('Number verified');
     onClose();
   };
 
   return (
     <Sheet
       visible={visible}
-      title="Verify owner mobile"
+      title={title}
       onClose={onClose}
       footer={
         sent ? (
@@ -366,7 +371,7 @@ function OwnerMobileSheet({
       }
     >
       <Text style={styles.sheetLead}>
-        Owner mobile can be used to log in with WhatsApp, so we confirm a new number with a 6-digit code sent to
+        {reason} We’ll send a 6-digit code on WhatsApp to
         <Text style={styles.strong}> +91 {mobile}</Text>.
       </Text>
       {sent ? (
@@ -409,12 +414,20 @@ function EditBody({ o, section }: { o: ConsoleOverview; section: SectionKey }) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [ownerProof, setOwnerProof] = useState<{ mobile: string; token: string } | null>(null);
   const [ownerSheet, setOwnerSheet] = useState(false);
+  const [whatsappProof, setWhatsappProof] = useState<{ mobile: string; token: string } | null>(null);
+  const [whatsappSheet, setWhatsappSheet] = useState(false);
   const saved = useRef(false);
+  const loginMobile = last10(o.business.loginMobile);
   const ownerMobileIsNew =
     validMobile(form.ownerMobile) &&
     form.ownerMobile !== o.profile.ownerMobile &&
-    form.ownerMobile !== o.business.loginMobile;
+    form.ownerMobile !== loginMobile;
   const ownerVerified = ownerProof?.mobile === form.ownerMobile;
+  const whatsapp = last10(form.whatsappNumber);
+  const whatsappIsNew =
+    validMobile(whatsapp) &&
+    ![last10(o.profile.whatsappNumber), last10(o.profile.ownerMobile), loginMobile].includes(whatsapp);
+  const whatsappVerified = whatsappProof?.mobile === whatsapp;
 
   const set = <K extends keyof ConsoleProfile>(key: K, value: ConsoleProfile[K]) => {
     setForm((current) => ({ ...current, [key]: value }));
@@ -470,8 +483,8 @@ function EditBody({ o, section }: { o: ConsoleOverview; section: SectionKey }) {
       if (wordCount(form.about) > o.limits.aboutMaxWords) out.about = `Keep it under ${o.limits.aboutMaxWords} words.`;
     }
     if (section === 'contact') {
-      if (form.publicPhone && !validMobile(form.publicPhone)) out.publicPhone = 'Enter a 10-digit mobile number.';
-      if (form.whatsappNumber && !validMobile(form.whatsappNumber)) out.whatsappNumber = 'Enter a 10-digit WhatsApp number.';
+      if (form.whatsappNumber && !validMobile(whatsapp)) out.whatsappNumber = 'Enter a 10-digit WhatsApp number.';
+      else if (whatsappIsNew && !whatsappVerified) out.whatsappNumber = 'Verify this number on WhatsApp before saving.';
       if (form.ownerMobile && !validMobile(form.ownerMobile)) out.ownerMobile = 'Enter a 10-digit mobile number.';
       else if (ownerMobileIsNew && !ownerVerified) out.ownerMobile = 'Verify this number on WhatsApp before saving.';
       if (!form.ownerName.trim()) out.ownerName = 'Add the owner’s name.';
@@ -514,6 +527,7 @@ function EditBody({ o, section }: { o: ConsoleOverview; section: SectionKey }) {
     for (const key of fields) patch[key] = form[key];
     if (section === 'location') patch.country = form.country || 'India';
     if (section === 'contact' && ownerVerified) patch.ownerMobileVerificationToken = ownerProof?.token;
+    if (section === 'contact' && whatsappVerified) patch.whatsappVerificationToken = whatsappProof?.token;
     setSaving(true);
     const result = await run<ConsoleOverview>('saveProfile', { patch });
     setSaving(false);
@@ -576,15 +590,13 @@ function EditBody({ o, section }: { o: ConsoleOverview; section: SectionKey }) {
 
       {section === 'contact' ? (
         <>
-          <Field
+          <PickField
             label="Public phone"
-            prefix="+91"
-            keyboardType="phone-pad"
-            value={form.publicPhone}
-            onChangeText={(value) => set('publicPhone', mobileInputDigits(value, form.publicPhone))}
-            maxLength={14}
-            error={errors.publicPhone}
-            hint="Customers tap this to call you."
+            value={loginMobile ? `+91 ${loginMobile}` : ''}
+            placeholder="Add your login mobile"
+            icon="lock-closed-outline"
+            hint="Same as your login mobile. Customers tap this to call you. Change it under Login & security with an OTP."
+            onPress={() => router.push('/business-console/account')}
           />
           <Field
             label="WhatsApp number"
@@ -594,16 +606,37 @@ function EditBody({ o, section }: { o: ConsoleOverview; section: SectionKey }) {
             onChangeText={(value) => set('whatsappNumber', mobileInputDigits(value, form.whatsappNumber))}
             maxLength={14}
             error={errors.whatsappNumber}
+            hint={whatsappIsNew ? 'New number — confirm it with a WhatsApp code before saving.' : undefined}
           />
-          <Pressable
-            onPress={() => set('whatsappNumber', form.publicPhone)}
-            disabled={!form.publicPhone || form.whatsappNumber === form.publicPhone}
-            style={styles.inlineLink}
-          >
-            <Text style={[styles.copyText, (!form.publicPhone || form.whatsappNumber === form.publicPhone) && { color: c.faint }]}>
-              Same as public phone
-            </Text>
-          </Pressable>
+          {whatsappIsNew ? (
+            whatsappVerified ? (
+              <Tag label="Verified on WhatsApp" tone="success" />
+            ) : (
+              <Btn label="Verify on WhatsApp" tone="outline" onPress={() => setWhatsappSheet(true)} />
+            )
+          ) : (
+            <Pressable
+              onPress={() => set('whatsappNumber', loginMobile)}
+              disabled={!loginMobile || whatsapp === loginMobile}
+              style={styles.inlineLink}
+            >
+              <Text style={[styles.copyText, (!loginMobile || whatsapp === loginMobile) && { color: c.faint }]}>
+                Same as login mobile
+              </Text>
+            </Pressable>
+          )}
+          <PhoneVerifySheet
+            key={`wa-${whatsapp}`}
+            mobile={whatsapp}
+            title="Verify WhatsApp number"
+            reason="Customers message you on this number, so we confirm it belongs to you."
+            visible={whatsappSheet}
+            onClose={() => setWhatsappSheet(false)}
+            onVerified={(token) => {
+              setWhatsappProof({ mobile: whatsapp, token });
+              setErrors((current) => ({ ...current, whatsappNumber: '' }));
+            }}
+          />
           <Field
             label="Website"
             keyboardType="url"
@@ -632,9 +665,11 @@ function EditBody({ o, section }: { o: ConsoleOverview; section: SectionKey }) {
               )
             ) : null}
           </Section>
-          <OwnerMobileSheet
+          <PhoneVerifySheet
             key={form.ownerMobile}
             mobile={form.ownerMobile}
+            title="Verify owner mobile"
+            reason="Owner mobile can be used to log in with WhatsApp, so we confirm a new number first."
             visible={ownerSheet}
             onClose={() => setOwnerSheet(false)}
             onVerified={(token) => {
