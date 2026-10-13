@@ -43,6 +43,7 @@ export function NotificationInboxProvider({ children }: { children: ReactNode })
   const { user } = useAuth();
   const signedInRef = useRef(Boolean(user));
   signedInRef.current = Boolean(user);
+  const isBusiness = Boolean(user?.isBusinessAccount);
 
   const [items, setItems] = useState<AppNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -52,6 +53,12 @@ export function NotificationInboxProvider({ children }: { children: ReactNode })
   const syncing = useRef(false);
 
   const refresh = useCallback(async (opts?: { silent?: boolean }) => {
+    if (isBusiness) {
+      setItems([]);
+      setUnreadCount(0);
+      setLoading(false);
+      return;
+    }
     if (syncing.current) return;
     syncing.current = true;
     if (!opts?.silent) setLoading(true);
@@ -68,7 +75,7 @@ export function NotificationInboxProvider({ children }: { children: ReactNode })
       syncing.current = false;
       setLoading(false);
     }
-  }, [user?.createdAt, user?.id]);
+  }, [isBusiness, user?.createdAt, user?.id]);
 
   const markAllRead = useCallback(async () => {
     const now = Date.now();

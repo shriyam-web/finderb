@@ -369,7 +369,11 @@ export default function HomeScreen() {
         />
         <Pressable
           style={styles.notifBtn}
-          onPress={() => router.push('/(tabs)/notifications' as Href)}
+          onPress={() =>
+            router.push(
+              (user?.isBusinessAccount ? '/business-console/alerts' : '/(tabs)/notifications') as Href,
+            )
+          }
           accessibilityLabel={
             unreadCount
               ? `Notifications, ${unreadCount} unread`

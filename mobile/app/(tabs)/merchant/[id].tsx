@@ -194,8 +194,9 @@ export default function MerchantProfileScreen() {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { requestLogin: promptLogin } = useLoginPrompt();
-  const params = useLocalSearchParams<{ id?: string | string[] }>();
+  const params = useLocalSearchParams<{ id?: string | string[]; preview?: string }>();
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
+  const ownerPreview = params.preview === '1';
   const location = useUserLocation(true);
   const bottomPad = useTabScrollPadding(16);
   const galleryRef = useRef<ScrollView>(null);
@@ -252,7 +253,7 @@ export default function MerchantProfileScreen() {
       const key = String(id);
       const ownsKey =
         Boolean(user?.isBusinessAccount) &&
-        (user?.businessId === key || user?.businessSlug === key);
+        (ownerPreview || user?.businessId === key || user?.businessSlug === key);
       const result = await fetchMerchantBySlugOrId(key, {
         allowUnlisted: ownsKey,
       });
@@ -288,7 +289,7 @@ export default function MerchantProfileScreen() {
     return () => {
       cancelled = true;
     };
-  }, [id, user?.isBusinessAccount, user?.businessId, user?.businessSlug]);
+  }, [id, ownerPreview, user?.isBusinessAccount, user?.businessId, user?.businessSlug]);
 
   const openStatus = useMemo(
     () => getBusinessOpenStatus(merchant?.timings),

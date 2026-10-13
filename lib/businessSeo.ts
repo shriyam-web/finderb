@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import type { Business } from '@/lib/mockData';
 import { buildFaqJsonLd, buildBusinessSeoContent } from '@/lib/businessContent';
-import { getBusinessLocationLabel } from '@/lib/businessBreadcrumb';
+import { getBusinessAreaLabel, getBusinessLocationLabel } from '@/lib/businessBreadcrumb';
 import { getPublicReviewRating, parseBusinessReviews } from '@/lib/businessReviews';
 import { reviewsToSchemaReviews, timingsToOpeningHoursSchema, aggregateRatingJsonLd } from '@/lib/businessHoursSchema';
 import { getBusinessIndexDecision } from '@/lib/businessIndexation';
@@ -48,20 +48,35 @@ export function getBusinessOgImage(
   return candidate ? resolveAbsoluteUrl(candidate) : resolveAbsoluteUrl(DEFAULT_OG_IMAGE);
 }
 
+/** Fits Google's ~60-character title width (the " | FinderB" suffix is added by the layout template). */
+const TITLE_BUDGET = 60 - ' | FinderB'.length;
+
 export function buildBusinessMetaTitle(business: Business): string {
-  const location = getBusinessLocationLabel(business);
-  const locationPart = location ? ` ${location}` : '';
-  return `${business.name}${locationPart} | Reviews, Contact Number, Address`;
+  const name = business.name.trim();
+  const city = business.city?.trim() || '';
+  const area = getBusinessAreaLabel(business);
+  const named = (place: string) =>
+    place && !name.toLowerCase().includes(place.toLowerCase()) ? `${name}, ${place}` : name;
+
+  const candidates = [
+    `${named(area && city ? `${area}, ${city}` : city)} - Reviews & Contact`,
+    named(area && city ? `${area}, ${city}` : city),
+    `${named(city)} - Reviews & Contact`,
+    named(city),
+  ];
+  return candidates.find((title) => title.length <= TITLE_BUDGET) ?? truncate(named(city), TITLE_BUDGET);
 }
 
 export function buildBusinessMetaDescription(business: Business): string {
-  const location = getBusinessLocationLabel(business);
-  const locationPart = location ? ` ${location}` : '';
+  const city = business.city?.trim() || '';
+  const area = getBusinessAreaLabel(business);
+  const place = area && city ? `${area}, ${city}` : city || getBusinessLocationLabel(business) || '';
+  const placePart = place ? ` in ${place}` : '';
   const services = business.services?.slice(0, 3).join(', ');
-  const servicePart = services ? `, ${services}` : ', services';
+  const servicePart = services ? ` Services: ${services}.` : '';
 
   return truncate(
-    `Find ${business.name}${locationPart} reviews, photos, contact number, address${servicePart} and customer ratings on FinderB.`,
+    `${business.name}${placePart} - see customer reviews, photos, phone number and address on FinderB.${servicePart}`,
     160
   );
 }

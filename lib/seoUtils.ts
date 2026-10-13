@@ -4,7 +4,10 @@ import { SITE_NAME, SITE_ORIGIN, getFacebookMetadata } from '@/lib/siteSeo';
 export function truncate(text: string, max: number): string {
   const trimmed = text.trim();
   if (trimmed.length <= max) return trimmed;
-  return `${trimmed.slice(0, max - 1).trim()}…`;
+  const cut = trimmed.slice(0, max - 1);
+  const lastSpace = cut.lastIndexOf(' ');
+  const clean = lastSpace > max * 0.6 ? cut.slice(0, lastSpace) : cut;
+  return `${clean.replace(/[\s,;:.\-–—|&/+]+$/, '')}…`;
 }
 
 export function resolveAbsoluteUrl(path: string): string {

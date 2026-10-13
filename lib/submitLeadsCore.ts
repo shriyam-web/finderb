@@ -6,6 +6,15 @@ import { cookies } from 'next/headers';
 import { DIRECT_LEAD_MESSAGES, type ContactIntent } from '@/lib/directLead';
 import { CATEGORY_LEAD_BADGE, DIRECT_LEAD_BADGE, PROFILE_LEAD_BADGE } from '@/lib/leadBadges';
 import { escapeIlikePattern } from '@/lib/searchMatch';
+import { queueBusinessPush } from '@/lib/userNotifications.server';
+
+const LEADS_URL = '/business/dashboard?tab=leads';
+
+const DIRECT_LEAD_PUSH: Record<ContactIntent, string> = {
+  call: 'tapped Call on your listing.',
+  whatsapp: 'tapped WhatsApp on your listing.',
+  enquire: 'opened the enquiry form on your listing.',
+};
 
 function dbClient() {
   return createServiceClient();
@@ -80,6 +89,13 @@ export async function recordDirectLeadForActor(params: {
     });
 
     if (insertError) throw insertError;
+    queueBusinessPush({
+      businessId,
+      type: 'lead',
+      title: 'New lead on FinderB',
+      body: `${actorName} ${DIRECT_LEAD_PUSH[params.channel]}`,
+      url: LEADS_URL,
+    });
     return { success: true, duplicate: false };
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : 'Could not record lead';
@@ -160,6 +176,17 @@ export async function submitBroadcastEnquiryForUser(data: {
 
     const { error: insertError } = await supabase.from('leads').insert(rows);
     if (insertError) throw insertError;
+
+    const need = lookingFor.trim().replace(/\s+/g, ' ');
+    for (const businessId of merchantIds) {
+      queueBusinessPush({
+        businessId,
+        type: 'lead',
+        title: 'New enquiry on FinderB',
+        body: `${name.trim()} is looking for: ${need.length > 90 ? `${need.slice(0, 87)}...` : need}`,
+        url: LEADS_URL,
+      });
+    }
 
     return { success: true, merchantCount: merchantIds.size };
   } catch (error: unknown) {

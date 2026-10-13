@@ -3,7 +3,8 @@ import 'server-only';
 import { createServiceClient } from '@/lib/supabase/service';
 import { createClient } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';
-import { broadcastTargetsUsers } from '@/lib/broadcastAudience';
+import { after } from 'next/server';
+import { broadcastTargetsMerchants, broadcastTargetsUsers } from '@/lib/broadcastAudience';
 import {
   broadcastShowsDatetime,
   resolveBroadcastCta,
@@ -119,6 +120,111 @@ function db() {
   return createServiceClient();
 }
 
+type ServiceDb = NonNullable<ReturnType<typeof createServiceClient>>;
+
+type PushTokenRow = {
+  token?: string | null;
+  user_id?: string | null;
+  platform?: string | null;
+  business_id?: string | null;
+};
+
+/** Broadcasts older than this are never pushed, so a backlog cannot fire all at once. */
+const PUSH_FRESH_MS = 48 * 60 * 60 * 1000;
+
+const GENERIC_AUDIENCES = new Set(['users', 'all', 'merchants', 'service providers']);
+
+function hasCategoryAudience(raw: unknown): boolean {
+  if (!Array.isArray(raw)) return false;
+  return raw.some((item) => {
+    const value = String(item).trim().toLowerCase();
+    return Boolean(value) && !GENERIC_AUDIENCES.has(value);
+  });
+}
+
+/**
+ * Devices signed in as a merchant carry `business_id`; they get business pushes only,
+ * and customer broadcasts go to the rest.
+ */
+async function loadPushTokens(
+  supabase: ServiceDb,
+  scope: 'users' | 'merchants' | { businessId: string },
+): Promise<{ rows: PushTokenRow[]; error?: string; missingTable?: boolean }> {
+  let query = supabase.from('user_push_tokens').select('user_id, token, platform, business_id');
+  if (scope === 'users') query = query.is('business_id', null);
+  else if (scope === 'merchants') query = query.not('business_id', 'is', null);
+  else query = query.eq('business_id', scope.businessId);
+
+  let { data, error } = await query;
+  if (error && isMissingBusinessColumn(error)) {
+    if (scope !== 'users') return { rows: [] };
+    ({ data, error } = await supabase.from('user_push_tokens').select('user_id, token, platform'));
+  }
+  if (error) {
+    if (/does not exist|schema cache/i.test(error.message || '')) {
+      return { rows: [], missingTable: true };
+    }
+    return { rows: [], error: error.message };
+  }
+  return { rows: (data ?? []) as PushTokenRow[] };
+}
+
+async function merchantRowsForAudience(
+  supabase: ServiceDb,
+  rows: PushTokenRow[],
+  audience: unknown,
+): Promise<PushTokenRow[]> {
+  if (!rows.length || broadcastTargetsMerchants(audience)) return rows;
+
+  const ids = [...new Set(rows.map((row) => String(row.business_id || '').trim()).filter(Boolean))];
+  const { data } = await supabase.from('Business').select('id, category').in('id', ids);
+  const allowed = new Set(
+    ((data ?? []) as Array<{ id: string; category?: string | null }>)
+      .filter((business) => broadcastTargetsMerchants(audience, business.category))
+      .map((business) => business.id),
+  );
+  return rows.filter((row) => allowed.has(String(row.business_id || '').trim()));
+}
+
+async function sendPush(
+  rows: PushTokenRow[],
+  message: { title: string; body: string; collapseId: string; data: Record<string, string> },
+): Promise<{ sent: number; error?: string }> {
+  const { expoTokens, fcmTokens } = splitPushTokens(rows);
+  if (!expoTokens.length && !fcmTokens.length) return { sent: 0 };
+
+  const [expoResult, fcmResult] = await Promise.all([
+    sendExpoPushMessages(
+      expoTokens.map((token) => ({
+        to: token,
+        title: message.title,
+        body: message.body,
+        sound: 'default',
+        channelId: 'finderb_heads_up',
+        priority: 'high',
+        interruptionLevel: 'time-sensitive',
+        badge: 1,
+        ttl: 86400,
+        collapseId: message.collapseId,
+        data: message.data,
+      })),
+    ),
+    sendFcmPushMessages(
+      fcmTokens.map((token) => ({
+        token,
+        title: message.title,
+        body: message.body,
+        channelId: 'finderb_heads_up',
+        collapseTag: message.collapseId,
+        data: message.data,
+      })),
+    ),
+  ]);
+
+  const error = [expoResult.error, fcmResult.error].filter(Boolean).join('; ');
+  return { sent: expoResult.sent + fcmResult.sent, error: error || undefined };
+}
+
 export async function listUserNotifications(limit = 50): Promise<UserNotification[]> {
   const supabase = db() ?? createClient(await cookies());
   const take = Math.min(100, Math.max(1, limit));
@@ -148,10 +254,15 @@ export async function listUserNotifications(limit = 50): Promise<UserNotificatio
     .filter((row): row is UserNotification => Boolean(row));
 }
 
+function isMissingBusinessColumn(error: { message?: string } | null | undefined) {
+  return /business_id/i.test(error?.message || '');
+}
+
 export async function upsertUserPushToken(input: {
   userId: string;
   token: string;
   platform?: string;
+  businessId?: string | null;
 }): Promise<{ success: true } | { success: false; error: string }> {
   const supabase = db();
   if (!supabase) {
@@ -164,15 +275,18 @@ export async function upsertUserPushToken(input: {
   }
 
   const platform = (input.platform || '').trim().slice(0, 20) || null;
-  const { error } = await supabase.from('user_push_tokens').upsert(
-    {
-      user_id: input.userId,
-      token,
-      platform,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: 'token' }
-  );
+  const row = {
+    user_id: input.userId,
+    token,
+    platform,
+    updated_at: new Date().toISOString(),
+  };
+  let { error } = await supabase
+    .from('user_push_tokens')
+    .upsert({ ...row, business_id: input.businessId?.trim() || null }, { onConflict: 'token' });
+  if (error && isMissingBusinessColumn(error)) {
+    ({ error } = await supabase.from('user_push_tokens').upsert(row, { onConflict: 'token' }));
+  }
 
   if (error) {
     console.error('[push-token]', error);
@@ -250,11 +364,23 @@ export async function dispatchBroadcastPush(broadcastId: string): Promise<{
   if (used.error || !row) {
     return { success: false, error: 'Broadcast not found.' };
   }
-  if (!broadcastTargetsUsers(row.target_audience)) {
-    return { success: true, sent: 0, skipped: 'not-users' };
-  }
   if (row.push_sent_at) {
     return { success: true, sent: 0, skipped: 'already-sent' };
+  }
+
+  const markSent = () =>
+    supabase.from('broadcasts').update({ push_sent_at: new Date().toISOString() }).eq('id', id);
+
+  const forUsers = broadcastTargetsUsers(row.target_audience);
+  const forMerchants = broadcastTargetsMerchants(row.target_audience) || hasCategoryAudience(row.target_audience);
+  if (!forUsers && !forMerchants) {
+    return { success: true, sent: 0, skipped: 'no-audience' };
+  }
+
+  const createdAt = Date.parse(row.created_at || '');
+  if (Number.isFinite(createdAt) && Date.now() - createdAt > PUSH_FRESH_MS) {
+    await markSent();
+    return { success: true, sent: 0, skipped: 'stale' };
   }
 
   const title = (row.title || 'FinderB update').trim() || 'FinderB update';
@@ -263,78 +389,98 @@ export async function dispatchBroadcastPush(broadcastId: string): Promise<{
     return { success: true, sent: 0, skipped: 'empty' };
   }
 
-  const { data: tokens, error: tokenError } = await supabase
-    .from('user_push_tokens')
-    .select('user_id, token, platform');
-
-  if (tokenError) {
-    if (/does not exist|schema cache/i.test(tokenError.message || '')) {
-      return { success: true, sent: 0, skipped: 'no-token-table' };
-    }
-    return { success: false, error: tokenError.message };
-  }
-
-  const { expoTokens, fcmTokens } = splitPushTokens(
-    (tokens || []) as Array<{
-      token?: string | null;
-      user_id?: string | null;
-      platform?: string | null;
-    }>,
-  );
-
   const cta = resolveBroadcastCta({
     cta_url: row.cta_url,
     cta_label: row.cta_label,
   });
-  const pushData: Record<string, string> = {
+  const baseData: Record<string, string> = {
     type: 'broadcast',
     broadcastId: row.id,
   };
   if (cta) {
-    pushData.ctaUrl = cta.url;
-    pushData.ctaLabel = cta.label;
+    baseData.ctaUrl = cta.url;
+    baseData.ctaLabel = cta.label;
   }
 
-  const [expoResult, fcmResult] = await Promise.all([
-    sendExpoPushMessages(
-      expoTokens.map((token) => ({
-        to: token,
-        title,
-        body,
-        sound: 'default',
-        channelId: 'finderb_heads_up',
-        priority: 'high',
-        interruptionLevel: 'time-sensitive',
-        badge: 1,
-        ttl: 86400,
-        collapseId: row.id,
-        data: pushData,
-      })),
-    ),
-    sendFcmPushMessages(
-      fcmTokens.map((token) => ({
-        token,
-        title,
-        body,
-        channelId: 'finderb_heads_up',
-        collapseTag: row.id,
-        data: pushData,
-      })),
-    ),
-  ]);
+  let sent = 0;
+  const errors: string[] = [];
+  let missingTable = false;
 
-  const sent = expoResult.sent + fcmResult.sent;
-  const error = [expoResult.error, fcmResult.error].filter(Boolean).join('; ');
-  if (error && sent === 0) {
-    return { success: false, error };
+  if (forUsers) {
+    const loaded = await loadPushTokens(supabase, 'users');
+    if (loaded.error) errors.push(loaded.error);
+    missingTable ||= Boolean(loaded.missingTable);
+    const result = await sendPush(loaded.rows, {
+      title,
+      body,
+      collapseId: row.id,
+      data: { ...baseData, audience: 'user' },
+    });
+    sent += result.sent;
+    if (result.error) errors.push(result.error);
   }
 
-  await supabase
-    .from('broadcasts')
-    .update({ push_sent_at: new Date().toISOString() })
-    .eq('id', id);
+  if (forMerchants) {
+    const loaded = await loadPushTokens(supabase, 'merchants');
+    if (loaded.error) errors.push(loaded.error);
+    missingTable ||= Boolean(loaded.missingTable);
+    const rows = await merchantRowsForAudience(supabase, loaded.rows, row.target_audience);
+    const result = await sendPush(rows, {
+      title,
+      body,
+      collapseId: row.id,
+      data: { ...baseData, audience: 'business' },
+    });
+    sent += result.sent;
+    if (result.error) errors.push(result.error);
+  }
 
+  if (missingTable && sent === 0 && !errors.length) {
+    return { success: true, sent: 0, skipped: 'no-token-table' };
+  }
+  if (errors.length && sent === 0) {
+    return { success: false, error: errors.join('; ') };
+  }
+
+  await markSent();
   return { success: true, sent };
+}
+
+/** Lead / review alerts for one merchant, delivered only to devices signed in to that business. */
+export async function sendBusinessPush(input: {
+  businessId: string;
+  type: 'lead' | 'review';
+  title: string;
+  body: string;
+  url: string;
+}): Promise<{ sent: number; error?: string }> {
+  const businessId = input.businessId.trim();
+  const supabase = db();
+  if (!supabase || !businessId) return { sent: 0 };
+
+  const loaded = await loadPushTokens(supabase, { businessId });
+  if (loaded.error) return { sent: 0, error: loaded.error };
+  return sendPush(loaded.rows, {
+    title: input.title,
+    body: input.body,
+    collapseId: `${input.type}-${businessId}`,
+    data: { type: input.type, audience: 'business', businessId, url: input.url },
+  });
+}
+
+/** Sends after the response so a slow push service never delays the customer's request. */
+export function queueBusinessPush(input: Parameters<typeof sendBusinessPush>[0]): void {
+  const run = () =>
+    sendBusinessPush(input)
+      .then((result) => {
+        if (result.error) console.error('[business push]', result.error);
+      })
+      .catch((error) => console.error('[business push]', error));
+  try {
+    after(run);
+  } catch {
+    void run();
+  }
 }
 
 export async function dispatchPendingBroadcastPushes(): Promise<void> {
@@ -345,6 +491,7 @@ export async function dispatchPendingBroadcastPushes(): Promise<void> {
     .from('broadcasts')
     .select('id')
     .is('push_sent_at', null)
+    .gte('created_at', new Date(Date.now() - PUSH_FRESH_MS).toISOString())
     .order('created_at', { ascending: false })
     .limit(8);
 

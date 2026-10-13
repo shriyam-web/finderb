@@ -10,7 +10,7 @@ import {
   serializeBusinessReviewsForStorage,
   type BusinessReview,
 } from '@/lib/businessReviews';
-import { createMerchantReviewNotification } from '@/app/actions/merchantNotifications';
+import { queueBusinessPush } from '@/lib/userNotifications.server';
 
 export type SubmitBusinessReviewInput = {
   userId: string;
@@ -26,6 +26,35 @@ export type SubmitBusinessReviewResult =
 
 function dbClient() {
   return createServiceClient();
+}
+
+async function createMerchantReviewNotification(input: {
+  businessId: string;
+  reviewId: string;
+  author: string;
+  rating: number;
+}) {
+  const supabase = createServiceClient();
+  if (!supabase) return;
+
+  const author = input.author.trim() || 'A customer';
+  const rating = Number.isFinite(input.rating) ? input.rating : 5;
+
+  const { error } = await supabase.from('merchant_notifications').insert({
+    business_id: input.businessId,
+    type: 'new_review',
+    title: 'New customer review',
+    body: `${author} left a ${rating}-star review on your listing.`,
+    metadata: {
+      reviewId: input.reviewId,
+      author,
+      rating,
+    },
+  });
+
+  if (error) {
+    console.error('Create Merchant Review Notification Error:', error);
+  }
 }
 
 /**
@@ -102,6 +131,13 @@ export async function submitBusinessReviewForUser(
       reviewId: newReview.id,
       author: newReview.author,
       rating: newReview.rating,
+    });
+    queueBusinessPush({
+      businessId,
+      type: 'review',
+      title: `New ${newReview.rating}-star review`,
+      body: `${newReview.author || 'A customer'} reviewed ${business.businessName || 'your business'} on FinderB.`,
+      url: '/business/dashboard?tab=reviews',
     });
 
     revalidateBusinessProfilePaths({

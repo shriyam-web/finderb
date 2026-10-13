@@ -60,3 +60,18 @@ export async function scheduleWelcomeNotifications(): Promise<void> {
     console.warn('Welcome notifications skipped:', error);
   }
 }
+
+/** Merchants should not get the customer welcome notes that were queued before they signed in. */
+export async function cancelWelcomeNotifications(): Promise<void> {
+  if (Platform.OS === 'web') return;
+  try {
+    const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+    await Promise.all(
+      scheduled
+        .filter((item) => (item.content.data as { type?: unknown } | null)?.type === 'welcome')
+        .map((item) => Notifications.cancelScheduledNotificationAsync(item.identifier)),
+    );
+  } catch {
+    // Nothing scheduled.
+  }
+}

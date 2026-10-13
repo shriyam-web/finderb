@@ -1,6 +1,19 @@
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { cookies } from 'next/headers';
 import type { NextResponse } from 'next/server';
 import { signSessionValue, verifySessionValue } from '@/lib/security/sessionSignature';
+
+/** Merchant identity for app requests, which authenticate with a bearer token instead of cookies. */
+const mobileMerchantScope = new AsyncLocalStorage<{ businessId: string }>();
+
+/** Run merchant server actions as `businessId`, for a token the caller has already verified. */
+export function runAsMobileMerchant<T>(businessId: string, fn: () => Promise<T>): Promise<T> {
+  return mobileMerchantScope.run({ businessId }, fn);
+}
+
+function mobileMerchantId(): string | null {
+  return mobileMerchantScope.getStore()?.businessId ?? null;
+}
 
 export const SESSION_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
 /** Support impersonation sessions expire after this much idle time. */
@@ -23,15 +36,20 @@ export function getSessionCookieOptions(maxAge = SESSION_COOKIE_MAX_AGE) {
 }
 
 export async function getSessionUserId(): Promise<string | null> {
+  if (mobileMerchantId()) return null;
   return verifySessionValue('user', (await cookies()).get(USER_ID_COOKIE)?.value);
 }
 
 /** Business id from a validly signed cookie, without the support idle check. */
 export async function readSignedBusinessCookie(): Promise<string | null> {
+  const mobileId = mobileMerchantId();
+  if (mobileId) return mobileId;
   return verifySessionValue('business', (await cookies()).get(BUSINESS_ID_COOKIE)?.value);
 }
 
 export async function getSessionBusinessId(): Promise<string | null> {
+  const mobileId = mobileMerchantId();
+  if (mobileId) return mobileId;
   const businessId = await readSignedBusinessCookie();
   if (!businessId) return null;
 
@@ -42,6 +60,7 @@ export async function getSessionBusinessId(): Promise<string | null> {
 }
 
 export async function isBusinessSupportSession(): Promise<boolean> {
+  if (mobileMerchantId()) return false;
   const jar = await cookies();
   return jar.get(SUPPORT_FLAG_COOKIE)?.value === '1';
 }

@@ -8,17 +8,33 @@ export const WELCOME_CHANNEL = 'finderb_welcome';
 
 const CHANNELS_READY = { current: false };
 
+let deviceAudience: 'user' | 'business' = 'user';
+
+/** A merchant login sees business alerts only; customers never see business ones. */
+export function setNotificationAudience(audience: 'user' | 'business') {
+  deviceAudience = audience;
+}
+
+export function isBusinessNotification(data: Record<string, unknown> | undefined | null): boolean {
+  if (!data) return false;
+  return data.audience === 'business' || data.type === 'lead' || data.type === 'review';
+}
+
 export function configureNotificationHandler() {
   if (Platform.OS === 'web') return;
   Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-      shouldShowAlert: true,
-      shouldShowBanner: true,
-      shouldShowList: true,
-      shouldPlaySound: true,
-      shouldSetBadge: false,
-      priority: Notifications.AndroidNotificationPriority.MAX,
-    }),
+    handleNotification: async (notification) => {
+      const data = notification.request.content.data as Record<string, unknown> | undefined;
+      const show = isBusinessNotification(data) === (deviceAudience === 'business');
+      return {
+        shouldShowAlert: show,
+        shouldShowBanner: show,
+        shouldShowList: show,
+        shouldPlaySound: show,
+        shouldSetBadge: false,
+        priority: Notifications.AndroidNotificationPriority.MAX,
+      };
+    },
   });
 }
 

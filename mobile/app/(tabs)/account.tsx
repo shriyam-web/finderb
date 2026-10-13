@@ -253,7 +253,8 @@ export default function AccountScreen() {
     },
     {
       title: 'Notifications',
-      onPress: () => router.push('/(tabs)/notifications' as Href),
+      onPress: () =>
+        router.push((businessAccount ? '/business-console/alerts' : '/(tabs)/notifications') as Href),
     },
     businessAccount
       ? {

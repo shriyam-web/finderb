@@ -14,12 +14,18 @@ import { LocationProvider } from '../context/LocationContext';
 import { LoginPromptProvider } from '../context/LoginPromptContext';
 import { NotificationInboxProvider } from '../context/NotificationInboxContext';
 import { ThemeProvider, useTheme } from '../context/ThemeContext';
-import { scheduleWelcomeNotifications } from '../lib/welcomeNotifications';
+import {
+  cancelWelcomeNotifications,
+  scheduleWelcomeNotifications,
+} from '../lib/welcomeNotifications';
 import { registerDevicePushToken } from '../lib/pushNotifications';
 import {
   configureNotificationHandler,
   ensureAndroidNotificationChannels,
+  isBusinessNotification,
+  setNotificationAudience,
 } from '../lib/notificationChannels';
+import { consoleRouteFor } from '../components/console/routes';
 import * as Notifications from 'expo-notifications';
 import { ensureWebFonts } from '../lib/webFonts';
 import { warmupHomeSession } from '../lib/homeBootstrap';
@@ -48,11 +54,20 @@ const MOBILE_GATE_OPEN = new Set([
   'reset-password',
   'delete-account',
   'merchant-welcome',
+  'business-console',
   'business-app',
   'business',
   'business-login',
   'business-register',
 ]);
+
+function notificationTarget(data: Record<string, unknown> | undefined): Href {
+  if (!isBusinessNotification(data)) return '/(tabs)/notifications' as Href;
+  if (data?.type === 'lead') return '/business-console/leads';
+  if (data?.type === 'review') return '/business-console/reviews';
+  const url = typeof data?.ctaUrl === 'string' ? data.ctaUrl : '';
+  return (url && consoleRouteFor(url)) || '/business-console/alerts';
+}
 
 function hasIndianMobile(phone: string | null | undefined) {
   const digits = (phone || '').replace(/\D/g, '').replace(/^91(?=\d{10}$)/, '');
@@ -72,19 +87,29 @@ function RootNavigator() {
     router.replace('/verify-phone' as Href);
   }, [gateOpen, loading, needsMobile, router, user?.id]);
 
+  const isMerchant = Boolean(user?.isBusinessAccount);
+
   useEffect(() => {
     void ensureAndroidNotificationChannels();
+  }, []);
+
+  /* Re-registers on every sign-in/out so the server knows whether this device is a merchant's. */
+  useEffect(() => {
+    if (loading) return;
+    setNotificationAudience(isMerchant ? 'business' : 'user');
+    if (isMerchant) void cancelWelcomeNotifications();
     void registerDevicePushToken();
     const t = setTimeout(() => {
-      void scheduleWelcomeNotifications();
+      if (!isMerchant) void scheduleWelcomeNotifications();
       void registerDevicePushToken();
     }, 2500);
     return () => clearTimeout(t);
-  }, []);
+  }, [loading, isMerchant, user?.id]);
 
   useEffect(() => {
-    const sub = Notifications.addNotificationResponseReceivedListener(() => {
-      router.push('/(tabs)/notifications' as Href);
+    const sub = Notifications.addNotificationResponseReceivedListener((response) => {
+      const data = response.notification.request.content.data as Record<string, unknown> | undefined;
+      router.push(notificationTarget(data));
     });
     return () => sub.remove();
   }, [router]);
@@ -141,6 +166,10 @@ function RootNavigator() {
           />
           <Stack.Screen
             name="merchant-welcome"
+            options={{ animation: 'fade' }}
+          />
+          <Stack.Screen
+            name="business-console"
             options={{ animation: 'fade' }}
           />
           <Stack.Screen

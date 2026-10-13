@@ -21,6 +21,7 @@ const PROMPT_BLOCKED = [
   '/(tabs)/business-login',
   '/(tabs)/business-register',
   '/merchant-welcome',
+  '/business-console',
   '/verify-phone',
   '/forgot-password',
   '/reset-password',

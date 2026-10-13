@@ -3,9 +3,11 @@
 import {
   confirmMerchantEmailVerifyCode,
   confirmMerchantMobileVerifyCode,
+  confirmMerchantOwnerMobileCode,
   getMerchantContactStatus,
   requestMerchantEmailVerifyCode,
   requestMerchantMobileVerifyCode,
+  requestMerchantOwnerMobileCode,
 } from '@/lib/auth/merchantContactVerify.server';
 
 export async function loadMerchantContactStatus() {
@@ -26,4 +28,12 @@ export async function sendMerchantMobileVerifyOtp(mobile: string) {
 
 export async function confirmMerchantMobileVerifyOtp(mobile: string, code: string) {
   return confirmMerchantMobileVerifyCode(mobile, code);
+}
+
+export async function sendMerchantOwnerMobileOtp(mobile: string) {
+  return requestMerchantOwnerMobileCode(mobile);
+}
+
+export async function confirmMerchantOwnerMobileOtp(mobile: string, code: string) {
+  return confirmMerchantOwnerMobileCode(mobile, code);
 }

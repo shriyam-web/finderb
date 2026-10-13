@@ -70,6 +70,7 @@ import {
 } from '@/lib/indianPhone';
 import { dashboard } from './dashboard-ui';
 import { ContactVerifyCard, type VerifiedContact } from './MerchantContactVerifyGate';
+import OwnerMobileVerify from './OwnerMobileVerify';
 import { pickPublicBusinessEmail } from '@/lib/placeholderEmail';
 import {
   businessHasPublicPhoto,
@@ -256,6 +257,13 @@ export default function SettingsTab({
 }: SettingsTabProps) {
   const loginEmail = pickPublicBusinessEmail(business?.workEmail, business?.email) || '';
   const loginMobile = extractIndianMobileDigits(business?.mobile);
+  const editedOwnerMobile = extractIndianMobileDigits(String(profileData.ownerMobile ?? ''));
+  const ownerMobileIsNew =
+    isValidIndianMobileDigits(editedOwnerMobile) &&
+    editedOwnerMobile !== loginMobile &&
+    editedOwnerMobile !== extractIndianMobileDigits(business?.ownerMobile);
+  const [ownerMobileProof, setOwnerMobileProof] = useState<{ mobile: string; token: string } | null>(null);
+  const ownerMobileVerified = ownerMobileProof?.mobile === editedOwnerMobile;
   const [activeModal, setActiveModal] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
   const [syncMondayToAll, setSyncMondayToAll] = useState(false);
@@ -568,6 +576,10 @@ export default function SettingsTab({
         setFieldError(ownerMobileError);
         return false;
       }
+      if (ownerMobileIsNew && !ownerMobileVerified) {
+        setFieldError('Verify the new owner mobile with the WhatsApp code before saving.');
+        return false;
+      }
     }
     if (activeModal === 'reviewReply') {
       const replyError = validateReviewReplyContent(getReviewReplyDraft(profileData.reviewReply));
@@ -833,6 +845,18 @@ export default function SettingsTab({
                         ) : (
                           <p className="mt-2 text-xs text-zinc-500">{INDIAN_PHONE_FIELD_HINT}</p>
                         )}
+                        {ownerMobileIsNew ? (
+                          <OwnerMobileVerify
+                            key={editedOwnerMobile}
+                            mobile={editedOwnerMobile}
+                            verified={ownerMobileVerified}
+                            onVerified={(mobile, token) => {
+                              setOwnerMobileProof({ mobile, token });
+                              updateField('ownerMobileVerificationToken', token);
+                              setFieldError('');
+                            }}
+                          />
+                        ) : null}
                       </div>
                     </div>
                   ) : activeModal === 'discountRange' ? (

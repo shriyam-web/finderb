@@ -6,6 +6,7 @@ import {
   issueOtpChallenge,
   otpIssueErrorMessage,
 } from '@/lib/auth/otpChallenge.server';
+import { assertPhoneProof, issuePhoneProof } from '@/lib/auth/phoneVerify.server';
 import { sendEmailOtpEmail } from '@/lib/email/sendEmailOtp';
 import { extractIndianMobileDigits, isValidIndianMobileDigits } from '@/lib/indianPhone';
 import { REGISTRATION_EMAIL_REGEX } from '@/lib/merchantRegistrationValidation';
@@ -210,6 +211,77 @@ export async function requestMerchantMobileVerifyCode(rawMobile: unknown): Promi
     return { success: false, error: sent.error };
   }
   return { success: true, message: 'We sent a 6-digit code on WhatsApp to this number.' };
+}
+
+const ownerPurpose = (businessId: string) => `merchant-owner-mobile:${businessId}`;
+const ownerProofSubject = (businessId: string) => `merchant-owner:${businessId}`;
+const OWNER_MOBILE_UNVERIFIED = 'Verify the new owner mobile with the WhatsApp code before saving.';
+
+/** Owner mobile is also a WhatsApp login, so a new number needs a code before the profile save accepts it. */
+export async function requestMerchantOwnerMobileCode(rawMobile: unknown): Promise<Sent | Failure> {
+  const session = await sessionBusiness();
+  if ('success' in session) return session;
+  const mobile = parseMobile(rawMobile);
+  if (!mobile) return { success: false, error: 'Enter a 10-digit Indian mobile number.' };
+
+  const ipLimit = await enforceRateLimit('auth', 'merchant-verify-send');
+  if (!ipLimit.ok) return { success: false, error: ipLimit.error };
+  const limit = await enforceRateLimit('authEmail', `merchant-owner-mobile:${session.id}`);
+  if (!limit.ok) return { success: false, error: limit.error };
+
+  try {
+    if (await mobileUsedElsewhere(session.id, mobile)) return { success: false, error: MOBILE_TAKEN };
+  } catch {
+    return { success: false, error: 'Could not check this number. Please try again.' };
+  }
+
+  let code = '';
+  try {
+    code = await issueOtpChallenge(ownerPurpose(session.id), mobile);
+  } catch (error) {
+    return {
+      success: false,
+      error: otpIssueErrorMessage(error, 'Could not prepare the verification code. Please try again shortly.'),
+    };
+  }
+  const sent = await sendWhatsAppOtp(`91${mobile}`, code);
+  if (!sent.ok) {
+    await discardOtpChallenge(ownerPurpose(session.id), mobile);
+    return { success: false, error: sent.error };
+  }
+  return { success: true, message: 'We sent a 6-digit code on WhatsApp to this number.' };
+}
+
+export async function confirmMerchantOwnerMobileCode(
+  rawMobile: unknown,
+  code: string,
+): Promise<(ContactVerified & { ownerMobileVerificationToken: string }) | Failure> {
+  const session = await sessionBusiness();
+  if ('success' in session) return session;
+  const mobile = parseMobile(rawMobile);
+  if (!mobile) return { success: false, error: 'Enter a 10-digit Indian mobile number.' };
+
+  const limit = await enforceRateLimit('authEmail', `merchant-owner-mobile-check:${session.id}`);
+  if (!limit.ok) return { success: false, error: limit.error };
+
+  if (!(await consumeOtpChallenge(ownerPurpose(session.id), mobile, code))) {
+    return { success: false, error: 'Invalid or expired code. Check WhatsApp and try again.' };
+  }
+  return {
+    success: true,
+    value: mobile,
+    ownerMobileVerificationToken: issuePhoneProof(ownerProofSubject(session.id), mobile),
+    message: 'Owner mobile verified. Save to keep it.',
+  };
+}
+
+export function assertOwnerMobileProof(businessId: string, mobile: string, token: unknown) {
+  return assertPhoneProof(
+    ownerProofSubject(businessId),
+    mobile,
+    typeof token === 'string' ? token : null,
+    OWNER_MOBILE_UNVERIFIED,
+  );
 }
 
 export async function confirmMerchantMobileVerifyCode(

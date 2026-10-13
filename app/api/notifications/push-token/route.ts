@@ -16,9 +16,11 @@ export async function POST(request: Request) {
 
     const token = getBearerToken(request);
     let userId = 'guest';
+    let businessId: string | null = null;
     if (token) {
       const user = await mobileGetUserFromToken(token);
       if (user?.id) userId = user.id;
+      if (user?.isBusinessAccount && user.businessId) businessId = user.businessId;
     }
 
     const body = (await request.json().catch(() => null)) as {
@@ -45,6 +47,7 @@ export async function POST(request: Request) {
         userId,
         token: pushToken,
         platform: String(body?.platform || ''),
+        businessId,
       });
       if (!result.success) {
         return NextResponse.json(result, { status: 400 });

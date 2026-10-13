@@ -16,6 +16,7 @@ import {
 } from './searchPrecision';
 import { buildHomeFeaturedGroups } from './featuredCategoryGroups';
 import { createSessionMemo } from './sessionMemo';
+import { consoleCall, isFailure } from './merchantConsoleApi';
 
 /** Job listings have a dedicated home shelf; other parents match the website. */
 const EXCLUDED_HOME_CATEGORY_SLUGS = new Set(['job']);
@@ -1388,6 +1389,14 @@ export async function fetchMerchantBySlugOrId(
   const key = slugOrId.trim();
   if (!key) return { merchant: null, error: 'Missing merchant id' };
 
+  // Pending or paused listings are hidden from public reads; the owner's preview comes from the server.
+  if (options?.allowUnlisted) {
+    const own = await consoleCall<{ success: true; row: Record<string, unknown> }>('storefront');
+    if (!isFailure(own) && own.row && (own.row.id === key || own.row.slug === key)) {
+      return { merchant: mapMerchantRow(own.row) };
+    }
+  }
+
   const bySlug = await supabase
     .from('Business')
     .select(MERCHANT_SELECT)
@@ -1408,25 +1417,6 @@ export async function fetchMerchantBySlugOrId(
 
   if (byId.data) {
     return { merchant: mapMerchantRow(byId.data as Record<string, unknown>) };
-  }
-
-  if (options?.allowUnlisted) {
-    const ownBySlug = await supabase
-      .from('Business')
-      .select(MERCHANT_SELECT)
-      .eq('slug', key)
-      .maybeSingle();
-    if (ownBySlug.data) {
-      return { merchant: mapMerchantRow(ownBySlug.data as Record<string, unknown>) };
-    }
-    const ownById = await supabase
-      .from('Business')
-      .select(MERCHANT_SELECT)
-      .eq('id', key)
-      .maybeSingle();
-    if (ownById.data) {
-      return { merchant: mapMerchantRow(ownById.data as Record<string, unknown>) };
-    }
   }
 
   return {

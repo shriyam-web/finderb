@@ -25,7 +25,8 @@ import {
 } from '@/lib/businessMapping';
 import { revalidateBusinessProfilePaths } from '@/lib/businessRevalidation';
 import { ensureBusinessSlug } from '@/lib/businessSlug.server';
-import { isLegacyBusinessId, resolveBusinessSlug } from '@/lib/businessSlug';
+import { getBusinessProfilePath, isLegacyBusinessId, resolveBusinessSlug } from '@/lib/businessSlug';
+import { queueIndexNow } from '@/lib/indexNow.server';
 import { createServiceClient } from '@/lib/supabase/service';
 import {
   CATEGORY_LISTINGS_MAX_PAGE_SIZE,
@@ -95,6 +96,7 @@ import {
   MERCHANT_REGISTER_PHONE_SUBJECT,
   MERCHANT_REGISTER_PHONE_UNVERIFIED,
 } from '@/lib/auth/phoneVerify.server';
+import { assertOwnerMobileProof } from '@/lib/auth/merchantContactVerify.server';
 
 // Safe error handler wrapper
 function handleError(error: any, context: string): string {
@@ -1444,6 +1446,28 @@ export async function updateBusinessProfile(id: string, profileData: any) {
     }
     profileData.ownerMobile = normalizedOwnerMobile;
 
+    const nextOwnerMobile = extractIndianMobileDigits(normalizedOwnerMobile);
+    if (nextOwnerMobile) {
+      const { data: currentContact } = await supabase
+        .from('Business')
+        .select('mobile, owner_mobile')
+        .eq('id', id)
+        .maybeSingle();
+      const knownMobiles = [currentContact?.owner_mobile, currentContact?.mobile].map((value) =>
+        extractIndianMobileDigits(String(value || '')),
+      );
+      if (!knownMobiles.includes(nextOwnerMobile)) {
+        const ownerProof = assertOwnerMobileProof(
+          id,
+          nextOwnerMobile,
+          profileData?.ownerMobileVerificationToken,
+        );
+        if (!ownerProof.ok) {
+          return { success: false, error: ownerProof.error };
+        }
+      }
+    }
+
     const reviewReplyDraft = getReviewReplyDraft(profileData.reviewReply);
     const reviewReplyError = validateReviewReplyContent(reviewReplyDraft);
     if (reviewReplyError) {
@@ -1531,6 +1555,9 @@ export async function updateBusinessProfile(id: string, profileData: any) {
       slug: mapped.slug,
     });
     revalidateBusinessProfilePaths(mapped);
+    if (String(business.status || '').toLowerCase() === 'active') {
+      queueIndexNow([getBusinessProfilePath(mapped)]);
+    }
     return { success: true, business: mapped };
   } catch (error: any) {
     const errorMessage = handleError(error, 'Profile Update');

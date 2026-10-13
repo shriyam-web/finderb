@@ -2,6 +2,7 @@
   "expo": {
     "name": "FinderB",
     "slug": "finderb",
+    "description": "Find trusted local businesses, services, doctors and jobs near you across India.",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -10,6 +11,9 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.finderb.app",
+      "config": {
+        "usesNonExemptEncryption": false
+      },
       "associatedDomains": [
         "applinks:finderb.com",
         "applinks:www.finderb.com"

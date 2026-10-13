@@ -11,6 +11,12 @@ CREATE TABLE IF NOT EXISTS user_push_tokens (
 
 CREATE INDEX IF NOT EXISTS idx_user_push_tokens_user_id ON user_push_tokens (user_id);
 
+-- Set while the device is signed in as a merchant: it then gets business pushes only.
+ALTER TABLE user_push_tokens
+  ADD COLUMN IF NOT EXISTS business_id TEXT;
+
+CREATE INDEX IF NOT EXISTS idx_user_push_tokens_business_id ON user_push_tokens (business_id);
+
 ALTER TABLE user_push_tokens ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "user_push_tokens_deny_anon" ON user_push_tokens;

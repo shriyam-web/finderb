@@ -8,6 +8,8 @@ import {
 } from '@/lib/subscription/merchantSubscription';
 import { buildCanonicalProfileQrLink } from '@/lib/businessProfileLink';
 import { revalidateBusinessProfilePaths } from '@/lib/businessRevalidation';
+import { getBusinessProfilePath } from '@/lib/businessSlug';
+import { queueIndexNow } from '@/lib/indexNow.server';
 import { SITE_ORIGIN } from '@/lib/siteSeo';
 
 export type NotifyListingLiveResult = {
@@ -63,6 +65,19 @@ export async function notifyListingLive(
     };
   }
 
+  try {
+    revalidateBusinessProfilePaths({
+      id: String(business.id),
+      slug: business.slug,
+      businessName: business.businessName,
+      name: business.displayName,
+      city: business.city,
+    });
+  } catch (revalidateError) {
+    console.warn('[listing-live] revalidate failed', revalidateError);
+  }
+  queueIndexNow([getBusinessProfilePath({ id: String(business.id), slug: business.slug })]);
+
   const to = pickPublicBusinessEmail(business.email, business.workEmail);
   if (!to) {
     return {
@@ -104,18 +119,6 @@ export async function notifyListingLive(
 
   const dashboardUrl = `${SITE_ORIGIN}/business/dashboard`;
   const upgradeUrl = `${SITE_ORIGIN}/pricing`;
-
-  try {
-    revalidateBusinessProfilePaths({
-      id: String(business.id),
-      slug: business.slug,
-      businessName: business.businessName,
-      name: business.displayName,
-      city: business.city,
-    });
-  } catch (revalidateError) {
-    console.warn('[listing-live] revalidate failed', revalidateError);
-  }
 
   const sent = await sendListingLiveEmail({
     to,

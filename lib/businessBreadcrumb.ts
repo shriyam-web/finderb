@@ -92,7 +92,7 @@ function extractAreaFromAddress(
   return null;
 }
 
-function getBusinessAreaLabel(business: BusinessLocationFields): string | null {
+export function getBusinessAreaLabel(business: BusinessLocationFields): string | null {
   const city = normalizePart(business.city);
   const state = normalizePart(business.state);
   const location = normalizePart(business.location);

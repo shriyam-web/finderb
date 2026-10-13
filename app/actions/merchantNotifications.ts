@@ -88,32 +88,3 @@ export async function markMerchantNotificationsRead(
     return { success: false as const, error: 'Failed to update notifications' };
   }
 }
-
-export async function createMerchantReviewNotification(input: {
-  businessId: string;
-  reviewId: string;
-  author: string;
-  rating: number;
-}) {
-  const supabase = createServiceClient();
-  if (!supabase) return;
-
-  const author = input.author.trim() || 'A customer';
-  const rating = Number.isFinite(input.rating) ? input.rating : 5;
-
-  const { error } = await supabase.from('merchant_notifications').insert({
-    business_id: input.businessId,
-    type: 'new_review',
-    title: 'New customer review',
-    body: `${author} left a ${rating}-star review on your listing.`,
-    metadata: {
-      reviewId: input.reviewId,
-      author,
-      rating,
-    },
-  });
-
-  if (error) {
-    console.error('Create Merchant Review Notification Error:', error);
-  }
-}

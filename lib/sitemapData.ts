@@ -54,7 +54,7 @@ function toEntry(
 ): SitemapEntry {
   return {
     url: toSitemapLoc(path),
-    lastModified: opts.lastModified ?? new Date(),
+    lastModified: opts.lastModified,
     changeFrequency: opts.changeFrequency ?? 'weekly',
     priority: opts.priority ?? 0.5,
   };
@@ -141,7 +141,7 @@ async function fetchActiveBusinesses() {
   while (true) {
     const { data, error } = await supabase
       .from('Business')
-      .select('id, slug, businessName, city, updatedAt, profilePictureUrl, images')
+      .select('id, slug, businessName, city, updatedAt, profilePictureUrl, images, paymentStatus')
       .eq('status', 'Active')
       .order('updatedAt', { ascending: false })
       .range(from, from + pageSize - 1);
@@ -151,6 +151,7 @@ async function fetchActiveBusinesses() {
 
     for (const row of data) {
       if (!businessHasPublicPhoto(row)) continue;
+      if (String(row.paymentStatus || '').toLowerCase() === 'draft') continue;
       businesses.push({
         id: row.id,
         slug: row.slug,
@@ -244,7 +245,6 @@ async function fetchDynamicEntries(): Promise<SitemapEntry[]> {
 
   const allCategories = categoriesResult.data ?? [];
   const parents = allCategories.filter((category) => !category.parent_id);
-  const parentById = new Map(parents.map((category) => [category.id, category]));
 
   const categoryEntries = parents
     .map((category) => {
@@ -258,23 +258,7 @@ async function fetchDynamicEntries(): Promise<SitemapEntry[]> {
     })
     .filter((entry): entry is SitemapEntry => Boolean(entry));
 
-  // Subcategory browse URLs used by the modern Categories UI.
-  const subcategoryEntries = allCategories
-    .filter((category) => Boolean(category.parent_id))
-    .map((category) => {
-      const parent = parentById.get(category.parent_id as string);
-      if (!parent) return null;
-      const parentSlug = categorySlug(parent.name, parent.slug);
-      const subSlug = categorySlug(category.name, category.slug);
-      if (!parentSlug || !subSlug || RESERVED_CATEGORY_SLUGS.has(parentSlug)) return null;
-      return toEntry(`/categories/${parentSlug}?sub=${encodeURIComponent(subSlug)}`, {
-        lastModified: parseDate(category.updated_at) ?? parseDate(parent.updated_at),
-        changeFrequency: 'daily',
-        priority: 0.7,
-      });
-    })
-    .filter((entry): entry is SitemapEntry => Boolean(entry));
-
+  // `?sub=` browse URLs canonicalise to the parent category page, so they stay out of the XML sitemap.
   const blogEntries = (blogsResult.data ?? []).map((blog) =>
     toEntry(`/blog/${blog.slug || blog.id}`, {
       lastModified: parseDate(blog.updated_at ?? blog.published_at),
@@ -301,7 +285,6 @@ async function fetchDynamicEntries(): Promise<SitemapEntry[]> {
 
   return [
     ...categoryEntries,
-    ...subcategoryEntries,
     ...categoryCityEntries,
     ...businessEntries,
     ...blogEntries,
