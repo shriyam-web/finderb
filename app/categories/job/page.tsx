@@ -1,12 +1,14 @@
 import { getAllJobs } from '@/app/actions/job';
 import JobPortalClient from './JobPortalClient';
+import { buildPageMetadata } from '@/lib/seoUtils';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata = {
+export const metadata = buildPageMetadata({
   title: 'Jobs',
   description: 'Find jobs posted by verified local businesses on FinderB.',
-};
+  canonicalPath: '/categories/job',
+});
 
 export default async function JobPortalPage() {
   const { success, jobs } = await getAllJobs();
