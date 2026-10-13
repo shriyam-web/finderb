@@ -6,6 +6,7 @@ import ServiceWorkerRegister from "@/components/pwa/ServiceWorkerRegister";
 import { inter, outfit } from "@/lib/fonts";
 import { effectiveSiteMode, getSiteRuntime } from "@/lib/siteRuntime";
 import { getRootStructuredData, rootSiteMetadata } from "@/lib/siteSeo";
+import { serializeJsonLd } from "@/components/JsonLd";
 
 const googleSiteVerification = process.env.GOOGLE_SITE_VERIFICATION?.trim();
 
@@ -56,7 +57,7 @@ export default async function RootLayout({
         {mode !== "maintenance" && (
           <script
             type="application/ld+json"
-            dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+            dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
           />
         )}
       </head>

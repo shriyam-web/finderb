@@ -40,6 +40,8 @@ export default async function BlogDetailPage({ params }: PageProps) {
         content: article.content,
         image: article.image,
         author: article.author,
+        publishedAt: article.publishedAt,
+        updatedAt: article.updatedAt,
       })
     : null;
 

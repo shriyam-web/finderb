@@ -64,7 +64,13 @@ export function buildBlogArticleMetadata(blog: BlogSeoInput | null): Metadata {
 export function buildBlogArticleJsonLd(blog: BlogSeoInput) {
   const url = resolveAbsoluteUrl(getBlogCanonicalPath(blog));
   const image = blog.image ? resolveAbsoluteUrl(blog.image) : resolveAbsoluteUrl('/logo1.png');
-  const published = blog.publishedAt || blog.updatedAt || new Date().toISOString();
+  const published = blog.publishedAt || blog.updatedAt || undefined;
+  const modified = blog.updatedAt || published;
+  const authorName = blog.author?.trim();
+  const author =
+    !authorName || /finderb/i.test(authorName)
+      ? { '@type': 'Organization', name: 'FinderB', url: resolveAbsoluteUrl('/') }
+      : { '@type': 'Person', name: authorName };
 
   return buildJsonLdGraph(
     {
@@ -73,12 +79,9 @@ export function buildBlogArticleJsonLd(blog: BlogSeoInput) {
       headline: blog.title,
       description: truncate(blog.excerpt || blog.title, 200),
       image: [image],
-      datePublished: published,
-      dateModified: blog.updatedAt || published,
-      author: {
-        '@type': 'Person',
-        name: blog.author || 'FinderB Admin',
-      },
+      ...(published ? { datePublished: published } : {}),
+      ...(modified ? { dateModified: modified } : {}),
+      author,
       publisher: {
         '@type': 'Organization',
         name: 'FinderB',

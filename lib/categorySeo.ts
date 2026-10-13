@@ -37,6 +37,7 @@ export function buildCategorySearchMetadata(query: string): Metadata {
     description,
     canonicalPath: `/categories?search=${encodeURIComponent(trimmed)}`,
     keywords: [trimmed, 'near me', 'local business', 'FinderB'],
+    robots: { index: false, follow: true, googleBot: { index: false, follow: true } },
   });
 }
 

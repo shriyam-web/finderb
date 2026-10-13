@@ -1,3 +1,4 @@
+import { serializeJsonLd } from '@/components/JsonLd';
 import { getHomeNavigationStructuredData } from '@/lib/siteSeo';
 
 export default function HomeStructuredData() {
@@ -6,7 +7,7 @@ export default function HomeStructuredData() {
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
     />
   );
 }

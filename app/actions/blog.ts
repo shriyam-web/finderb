@@ -97,6 +97,8 @@ export async function getBlogBySlug(slugOrId: string) {
       content: sanitizeRichHtml(blog.content || 'Story content is currently not available.'),
       image: blog.image_url || 'https://images.unsplash.com/photo-1499750310107-5fef28a66643?auto=format&fit=crop&q=80&w=800',
       date: blog.published_at ? new Date(blog.published_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Recently',
+      publishedAt: (blog.published_at || blog.created_at || null) as string | null,
+      updatedAt: (blog.updated_at || null) as string | null,
       author: blog.author || 'FinderB Admin'
     };
 

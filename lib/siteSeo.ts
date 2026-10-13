@@ -73,13 +73,9 @@ export const rootSiteMetadata: Metadata = {
   creator: SITE_NAME,
   publisher: LEGAL_COMPANY.name,
   metadataBase: new URL(SITE_ORIGIN),
-  alternates: {
-    canonical: SITE_HOME_URL,
-  },
   openGraph: {
     title: HOME_PAGE_TITLE,
     description: HOME_PAGE_DESCRIPTION,
-    url: SITE_HOME_URL,
     siteName: SITE_NAME,
     images: [
       {
