@@ -158,7 +158,7 @@ type FieldDef = {
 };
 
 const LOCATION_FIELDS = new Set(['city', 'state', 'country']);
-const PHONE_FIELDS = new Set(['publicPhone', 'whatsappNumber']);
+const PHONE_FIELDS = new Set(['whatsappNumber']);
 
 function hasValidMapPin(latitude: unknown, longitude: unknown) {
   const lat = typeof latitude === 'number' ? latitude : Number(latitude);
@@ -203,7 +203,7 @@ const SETTINGS_FIELDS: FieldDef[] = [
   },
 ];
 
-const LOGIN_CONTACT_FOCUS = new Set(['email', 'mobile', 'loginContact']);
+const LOGIN_CONTACT_FOCUS = new Set(['email', 'mobile', 'loginContact', 'publicPhone']);
 
 const FIELD_SECTIONS = [
   { id: 'brand', title: 'Brand & discovery', keys: ['media', 'businessName', 'displayName', 'category', 'about', 'keywords'] },
@@ -264,6 +264,14 @@ export default function SettingsTab({
     editedOwnerMobile !== extractIndianMobileDigits(business?.ownerMobile);
   const [ownerMobileProof, setOwnerMobileProof] = useState<{ mobile: string; token: string } | null>(null);
   const ownerMobileVerified = ownerMobileProof?.mobile === editedOwnerMobile;
+  const editedWhatsapp = extractIndianMobileDigits(String(profileData.whatsappNumber ?? ''));
+  const whatsappIsNew =
+    isValidIndianMobileDigits(editedWhatsapp) &&
+    ![loginMobile, extractIndianMobileDigits(business?.ownerMobile), extractIndianMobileDigits(business?.whatsappNumber)].includes(
+      editedWhatsapp,
+    );
+  const [whatsappProof, setWhatsappProof] = useState<{ mobile: string; token: string } | null>(null);
+  const whatsappVerified = whatsappProof?.mobile === editedWhatsapp;
   const [activeModal, setActiveModal] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
   const [syncMondayToAll, setSyncMondayToAll] = useState(false);
@@ -343,6 +351,7 @@ export default function SettingsTab({
     if (field.key === 'changePassword') {
       return false;
     }
+    if (field.key === 'publicPhone') return !loginMobile;
     const value = profileData[field.key];
     return value === undefined || value === null || value === '' || value === 0;
   };
@@ -409,10 +418,22 @@ export default function SettingsTab({
       }
       return 'Not set';
     }
-    if (field.key === 'publicPhone' || field.key === 'whatsappNumber') {
+    if (field.key === 'publicPhone') {
+      const label = formatIndianPhoneLabel(loginMobile);
+      return label ? `${label} · same as login mobile` : 'Not set';
+    }
+    if (field.key === 'whatsappNumber') {
       return formatIndianPhoneLabel(profileData[field.key]) || 'Not set';
     }
     return profileData[field.key] || 'Not set';
+  };
+
+  const openField = (key: string) => {
+    if (key === 'publicPhone') {
+      document.getElementById('settings-login-contact')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
+    setActiveModal(key);
   };
 
   const missingFields = SETTINGS_FIELDS.filter(checkIsMissing);
@@ -562,7 +583,12 @@ export default function SettingsTab({
       return validateLocationAgainstMapPin();
     }
     if (activeModal && PHONE_FIELDS.has(activeModal)) {
-      return validatePhoneField(activeModal);
+      if (!validatePhoneField(activeModal)) return false;
+      if (activeModal === 'whatsappNumber' && whatsappIsNew && !whatsappVerified) {
+        setFieldError('Verify the new WhatsApp number with the code before saving.');
+        return false;
+      }
+      return true;
     }
     if (activeModal === 'ownerInfo') {
       const name = String(profileData.ownerName ?? '').trim();
@@ -1109,6 +1135,18 @@ export default function SettingsTab({
                       ) : (
                         <p className="text-xs text-zinc-500">{INDIAN_PHONE_FIELD_HINT}</p>
                       )}
+                      {activeModal === 'whatsappNumber' && whatsappIsNew ? (
+                        <OwnerMobileVerify
+                          key={editedWhatsapp}
+                          mobile={editedWhatsapp}
+                          verified={whatsappVerified}
+                          onVerified={(mobile, token) => {
+                            setWhatsappProof({ mobile, token });
+                            updateField('whatsappVerificationToken', token);
+                            setFieldError('');
+                          }}
+                        />
+                      ) : null}
                     </div>
                   ) : activeModal && LOCATION_FIELDS.has(activeModal) ? (
                     <div className="space-y-3">
@@ -1245,8 +1283,8 @@ export default function SettingsTab({
       <section id="settings-login-contact" className="scroll-mt-24">
         <h2 className={dashboard.sectionTitle}>Login email &amp; mobile</h2>
         <p className="mt-1 text-xs text-zinc-500">
-          Used for login codes, invoices and account alerts. A new email or number is saved only after its code
-          is confirmed.
+          Used for login codes, invoices and account alerts. Your login mobile is also the phone customers see on
+          your listing. A new email or number is saved only after its code is confirmed.
         </p>
         <div className="mt-2 grid gap-3 lg:grid-cols-2">
           <ContactVerifyCard
@@ -1282,7 +1320,7 @@ export default function SettingsTab({
               <button
                 key={field.key}
                 type="button"
-                onClick={() => setActiveModal(field.key)}
+                onClick={() => openField(field.key)}
                 className="rounded-md border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-medium text-[#153551] hover:bg-amber-100"
               >
                 {field.label}
@@ -1308,7 +1346,7 @@ export default function SettingsTab({
                   <li key={field.key}>
                     <button
                       type="button"
-                      onClick={() => setActiveModal(field.key)}
+                      onClick={() => openField(field.key)}
                       className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-zinc-50"
                     >
                       <Icon size={18} className={isMissing ? 'text-amber-600' : 'text-zinc-400'} />

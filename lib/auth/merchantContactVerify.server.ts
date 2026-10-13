@@ -215,9 +215,15 @@ export async function requestMerchantMobileVerifyCode(rawMobile: unknown): Promi
 
 const ownerPurpose = (businessId: string) => `merchant-owner-mobile:${businessId}`;
 const ownerProofSubject = (businessId: string) => `merchant-owner:${businessId}`;
-const OWNER_MOBILE_UNVERIFIED = 'Verify the new owner mobile with the WhatsApp code before saving.';
+const PHONE_UNVERIFIED = {
+  owner: 'Verify the new owner mobile with the WhatsApp code before saving.',
+  whatsapp: 'Verify the new WhatsApp number with the code we send on WhatsApp before saving.',
+} as const;
 
-/** Owner mobile is also a WhatsApp login, so a new number needs a code before the profile save accepts it. */
+/**
+ * Owner mobile and WhatsApp number both need a code before a new value is saved.
+ * The proof only says "this merchant controls this number", so one proof covers either field.
+ */
 export async function requestMerchantOwnerMobileCode(rawMobile: unknown): Promise<Sent | Failure> {
   const session = await sessionBusiness();
   if ('success' in session) return session;
@@ -271,16 +277,21 @@ export async function confirmMerchantOwnerMobileCode(
     success: true,
     value: mobile,
     ownerMobileVerificationToken: issuePhoneProof(ownerProofSubject(session.id), mobile),
-    message: 'Owner mobile verified. Save to keep it.',
+    message: 'Number verified. Save to keep it.',
   };
 }
 
-export function assertOwnerMobileProof(businessId: string, mobile: string, token: unknown) {
+export function assertOwnerMobileProof(
+  businessId: string,
+  mobile: string,
+  token: unknown,
+  field: keyof typeof PHONE_UNVERIFIED = 'owner',
+) {
   return assertPhoneProof(
     ownerProofSubject(businessId),
     mobile,
     typeof token === 'string' ? token : null,
-    OWNER_MOBILE_UNVERIFIED,
+    PHONE_UNVERIFIED[field],
   );
 }
 
@@ -304,7 +315,7 @@ export async function confirmMerchantMobileVerifyCode(
     if (await mobileUsedElsewhere(session.id, mobile)) return { success: false, error: MOBILE_TAKEN };
     const { error } = await db()
       .from('Business')
-      .update({ mobile, mobileVerified: true, updatedAt: new Date().toISOString() })
+      .update({ mobile, publicPhone: mobile, mobileVerified: true, updatedAt: new Date().toISOString() })
       .eq('id', session.id);
     if (error) {
       if (error.code === '23505') return { success: false, error: MOBILE_TAKEN };

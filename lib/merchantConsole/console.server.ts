@@ -376,7 +376,12 @@ async function saveProfile(businessId: string, patch: unknown) {
   const editable = profileOf(business);
   const next: Record<string, unknown> = { ...editable };
   for (const [key, value] of Object.entries(patch as Record<string, unknown>)) {
-    if (key in editable || key === 'emailVerificationToken' || key === 'ownerMobileVerificationToken') {
+    if (
+      key in editable ||
+      key === 'emailVerificationToken' ||
+      key === 'ownerMobileVerificationToken' ||
+      key === 'whatsappVerificationToken'
+    ) {
       next[key] = value;
     }
   }

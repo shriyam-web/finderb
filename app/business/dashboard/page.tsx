@@ -622,7 +622,8 @@ function DashboardContent() {
       setBusiness((prev: typeof business) => ({ ...prev, email: value, workEmail: value, emailVerified: true }));
       setProfileData((prev) => ({ ...prev, email: value }));
     } else {
-      setBusiness((prev: typeof business) => ({ ...prev, mobile: value, mobileVerified: true }));
+      setBusiness((prev: typeof business) => ({ ...prev, mobile: value, publicPhone: value, mobileVerified: true }));
+      setProfileData((prev) => ({ ...prev, publicPhone: value }));
     }
   };
 

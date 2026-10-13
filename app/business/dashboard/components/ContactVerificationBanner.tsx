@@ -16,7 +16,7 @@ export default function ContactVerificationBanner({
   const pending = [!emailVerified && 'email', !mobileVerified && 'mobile number'].filter(Boolean) as string[];
   if (pending.length === 0) return null;
 
-  const title = `Verify your ${pending.join(' and ')}`;
+  const title = `Verify your ${pending.join(' and ')} — your visibility will drop until you do`;
 
   return (
     <div className="h-full rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-950">
@@ -26,8 +26,9 @@ export default function ContactVerificationBanner({
           <div className="min-w-0">
             <p className="text-sm font-bold">{title}</p>
             <p className="mt-0.5 text-xs leading-relaxed text-amber-900/90">
-              Confirm {pending.length > 1 ? 'them' : 'it'} with a one-time code so login codes, invoices and lead
-              alerts reach you. If it is missing or wrong, you can update it while verifying.
+              Unverified listings rank lower in search and get fewer calls and leads. Confirm{' '}
+              {pending.length > 1 ? 'them' : 'it'} with a one-time code today — it takes under a minute, and you can
+              correct a wrong {pending.length > 1 ? 'value' : pending[0]} while verifying.
             </p>
           </div>
         </div>

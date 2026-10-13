@@ -230,7 +230,7 @@ export async function registerBusiness(formData: any) {
         city: normalized.city,
         state: normalized.state,
         country: normalized.country,
-        publicPhone: normalized.publicPhone,
+        publicPhone: normalized.mobile,
         businessAddress: normalized.businessAddress,
         ...(hasMapPin ? { latitude, longitude } : {}),
         selectedPlan: normalized.selectedPlan || 'free',
@@ -1418,7 +1418,18 @@ export async function updateBusinessProfile(id: string, profileData: any) {
       };
     }
 
-    profileData.publicPhone = normalizeIndianPhoneForStorage(profileData.publicPhone ?? '');
+    const { data: currentContact } = await supabase
+      .from('Business')
+      .select('mobile, owner_mobile, whatsappNumber')
+      .eq('id', id)
+      .maybeSingle();
+    const loginMobile = String(currentContact?.mobile || '').trim();
+    const knownMobiles = [currentContact?.owner_mobile, currentContact?.mobile].map((value) =>
+      extractIndianMobileDigits(String(value || '')),
+    );
+
+    // The public number is always the verified login mobile; it changes only through the mobile OTP flow.
+    profileData.publicPhone = loginMobile || normalizeIndianPhoneForStorage(profileData.publicPhone ?? '');
     const publicPhoneError = indianMobileValidationError(profileData.publicPhone, {
       allowLandline: true,
       label: 'display phone number',
@@ -1435,6 +1446,19 @@ export async function updateBusinessProfile(id: string, profileData: any) {
       }
     }
     profileData.whatsappNumber = normalizedWhatsapp;
+    const nextWhatsapp = extractIndianMobileDigits(normalizedWhatsapp);
+    const currentWhatsapp = extractIndianMobileDigits(String(currentContact?.whatsappNumber || ''));
+    if (nextWhatsapp && nextWhatsapp !== currentWhatsapp && !knownMobiles.includes(nextWhatsapp)) {
+      const whatsappProof = assertOwnerMobileProof(
+        id,
+        nextWhatsapp,
+        profileData?.whatsappVerificationToken ?? profileData?.ownerMobileVerificationToken,
+        'whatsapp',
+      );
+      if (!whatsappProof.ok) {
+        return { success: false, error: whatsappProof.error };
+      }
+    }
     profileData.keywords = normalizeSearchKeywords(profileData.keywords);
 
     const normalizedOwnerMobile = normalizeIndianPhoneForStorage(profileData.ownerMobile ?? '');
@@ -1448,14 +1472,6 @@ export async function updateBusinessProfile(id: string, profileData: any) {
 
     const nextOwnerMobile = extractIndianMobileDigits(normalizedOwnerMobile);
     if (nextOwnerMobile) {
-      const { data: currentContact } = await supabase
-        .from('Business')
-        .select('mobile, owner_mobile')
-        .eq('id', id)
-        .maybeSingle();
-      const knownMobiles = [currentContact?.owner_mobile, currentContact?.mobile].map((value) =>
-        extractIndianMobileDigits(String(value || '')),
-      );
       if (!knownMobiles.includes(nextOwnerMobile)) {
         const ownerProof = assertOwnerMobileProof(
           id,
