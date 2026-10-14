@@ -20,6 +20,7 @@ import { useAuth } from '../../context/AuthContext';
 import { createThemedStyles } from '../../hooks/useThemedStyles';
 import { useTabScrollPadding } from '../../hooks/useAppSafeArea';
 import type { AuthUser } from '../../lib/session';
+import { setPreferredShell } from '../../lib/preferredShell';
 
 export default function BusinessLoginScreen() {
   const styles = useStyles();
@@ -41,6 +42,7 @@ export default function BusinessLoginScreen() {
       );
       return;
     }
+    await setPreferredShell('business');
     router.replace('/merchant-welcome');
   };
 
@@ -130,7 +132,7 @@ export default function BusinessLoginScreen() {
             value={email}
             onChangeText={setEmail}
             onEndEditing={(event) => setEmail(event.nativeEvent.text.trim())}
-            placeholder="you@business.com or 9876543210"
+            placeholder="Enter your email or phone"
             autoCapitalize="none"
             autoCorrect={false}
             keyboardType="default"

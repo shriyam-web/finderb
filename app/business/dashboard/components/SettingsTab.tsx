@@ -712,6 +712,10 @@ export default function SettingsTab({
                           options={{
                             maxFiles: 5 - mediaImages.length,
                             cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
+                            cropping: true,
+                            showSkipCropButton: true,
+                            croppingShowDimensions: true,
+                            croppingCoordinatesMode: 'custom',
                           }}
                         >
                           {({ open }) => (
@@ -721,7 +725,7 @@ export default function SettingsTab({
                               className="flex aspect-square flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-zinc-300 text-zinc-400 hover:border-[#215481] hover:text-[#215481]"
                             >
                               <HiOutlinePlus size={22} />
-                              <span className="text-[10px] font-medium">Add</span>
+                              <span className="text-[10px] font-medium">Add / crop</span>
                             </button>
                           )}
                         </CldUploadWidget>

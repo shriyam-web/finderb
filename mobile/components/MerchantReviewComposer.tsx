@@ -11,21 +11,39 @@ import { Ionicons } from '@expo/vector-icons';
 import { fonts } from '../constants/typography';
 import { submitBusinessReview } from '../lib/reviewsApi';
 import type { MerchantReview } from '../lib/merchants';
+import { REVIEW_STAR_EMOJI, reviewTemplatesForCategory } from '../lib/reviewInvite';
 import { useTheme } from '../context/ThemeContext';
 import { createThemedStyles } from '../hooks/useThemedStyles';
 
 type Props = {
   businessId: string;
+  category?: string;
   alreadyReviewed: boolean;
   signedIn: boolean;
+  ownBusiness?: boolean;
+  authorName?: string;
   onRequestLogin: () => void;
   onSubmitted: (payload: { reviews: MerchantReview[]; rating: number }) => void;
 };
 
+function maskName(name: string): string {
+  const trimmed = name.trim() || 'Customer';
+  return trimmed
+    .split(/\s+/)
+    .map((word) => {
+      if (!word) return word;
+      return word.length === 1 ? word : `${word[0]}${'x'.repeat(word.length - 1)}`;
+    })
+    .join(' ');
+}
+
 export function MerchantReviewComposer({
   businessId,
+  category,
   alreadyReviewed,
   signedIn,
+  ownBusiness,
+  authorName,
   onRequestLogin,
   onSubmitted,
 }: Props) {
@@ -33,6 +51,8 @@ export function MerchantReviewComposer({
   const styles = useStyles();
   const [rating, setRating] = useState(0);
   const [content, setContent] = useState('');
+  const [anonymous, setAnonymous] = useState(false);
+  const [anonymousReason, setAnonymousReason] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -47,6 +67,15 @@ export function MerchantReviewComposer({
         <Pressable style={styles.loginBtn} onPress={onRequestLogin}>
           <Text style={styles.loginBtnText}>Sign in to review</Text>
         </Pressable>
+      </View>
+    );
+  }
+
+  if (ownBusiness) {
+    return (
+      <View style={styles.card}>
+        <Text style={styles.title}>Your listing</Text>
+        <Text style={styles.sub}>You cannot review your own business.</Text>
       </View>
     );
   }
@@ -73,12 +102,18 @@ export function MerchantReviewComposer({
       setError('Please write at least 10 characters');
       return;
     }
+    if (anonymous && anonymousReason.trim().length < 10) {
+      setError('Please tell us why you want to post anonymously (at least 10 characters).');
+      return;
+    }
 
     setSubmitting(true);
     const result = await submitBusinessReview({
       businessId,
       rating,
       content,
+      anonymous,
+      anonymousReason,
     });
     setSubmitting(false);
 
@@ -91,9 +126,11 @@ export function MerchantReviewComposer({
       return;
     }
 
-    setSuccess('Thanks — your review is live.');
+    setSuccess(anonymous ? 'Thanks — your anonymous review is live.' : 'Thanks — your review is live.');
     setContent('');
     setRating(0);
+    setAnonymous(false);
+    setAnonymousReason('');
     onSubmitted({ reviews: result.reviews, rating: result.rating });
   };
 
@@ -102,6 +139,10 @@ export function MerchantReviewComposer({
       <Text style={styles.title}>Write a review</Text>
       <Text style={styles.sub}>Share your experience to help others decide.</Text>
 
+      <View style={styles.mood}>
+        <Text style={styles.moodEmoji}>{REVIEW_STAR_EMOJI[rating]?.emoji || '⭐'}</Text>
+        <Text style={styles.moodLabel}>{REVIEW_STAR_EMOJI[rating]?.label || 'How was it?'}</Text>
+      </View>
       <View style={styles.stars}>
         {[1, 2, 3, 4, 5].map((n) => (
           <Pressable
@@ -120,6 +161,14 @@ export function MerchantReviewComposer({
         ))}
       </View>
 
+      <View style={styles.templates}>
+        {reviewTemplatesForCategory(category || '').slice(0, 4).map((template) => (
+          <Pressable key={template} onPress={() => setContent(template)} style={styles.template}>
+            <Text style={styles.templateText}>{template}</Text>
+          </Pressable>
+        ))}
+      </View>
+
       <TextInput
         value={content}
         onChangeText={setContent}
@@ -132,6 +181,39 @@ export function MerchantReviewComposer({
         editable={!submitting}
       />
       <Text style={styles.counter}>{content.trim().length}/1200</Text>
+
+      <Pressable
+        style={styles.checkRow}
+        onPress={() => setAnonymous((value) => !value)}
+        accessibilityRole="checkbox"
+        accessibilityState={{ checked: anonymous }}
+      >
+        <Ionicons
+          name={anonymous ? 'checkbox' : 'square-outline'}
+          size={20}
+          color={anonymous ? colors.ink : colors.textMuted}
+        />
+        <View style={styles.flex}>
+          <Text style={styles.checkTitle}>Post anonymously</Text>
+          <Text style={styles.checkHint}>
+            Your name will look like {maskName(authorName || 'Your name')} on this listing.
+          </Text>
+        </View>
+      </Pressable>
+
+      {anonymous ? (
+        <TextInput
+          value={anonymousReason}
+          onChangeText={setAnonymousReason}
+          placeholder="Why do you need to post anonymously?"
+          placeholderTextColor={colors.textSoft}
+          multiline
+          textAlignVertical="top"
+          style={styles.reasonInput}
+          maxLength={500}
+          editable={!submitting}
+        />
+      ) : null}
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {success ? <Text style={styles.success}>{success}</Text> : null}
@@ -173,12 +255,27 @@ const useStyles = createThemedStyles((colors) => ({
     color: colors.textMuted,
     marginBottom: 4,
   },
+  mood: { alignItems: 'center', gap: 4, marginTop: 4 },
+  moodEmoji: { fontSize: 36, lineHeight: 42 },
+  moodLabel: { fontFamily: fonts.medium, fontSize: 13, color: colors.textMuted },
   stars: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 6,
     marginVertical: 2,
   },
+  templates: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  template: {
+    maxWidth: '100%',
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surfaceSoft,
+  },
+  templateText: { fontFamily: fonts.regular, fontSize: 12, lineHeight: 16, color: colors.textMuted },
   input: {
     minHeight: 96,
     borderWidth: 1,
@@ -236,6 +333,38 @@ const useStyles = createThemedStyles((colors) => ({
     fontFamily: fonts.semiBold,
     fontSize: 14,
     color: colors.onDark,
+  },
+  flex: { flex: 1, minWidth: 0 },
+  checkRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    marginTop: 4,
+  },
+  checkTitle: {
+    fontFamily: fonts.medium,
+    fontSize: 13,
+    color: colors.heading,
+  },
+  checkHint: {
+    marginTop: 2,
+    fontFamily: fonts.regular,
+    fontSize: 12,
+    lineHeight: 16,
+    color: colors.textMuted,
+  },
+  reasonInput: {
+    minHeight: 72,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontFamily: fonts.regular,
+    fontSize: 14,
+    lineHeight: 20,
+    color: colors.ink,
+    backgroundColor: colors.surfaceSoft,
   },
   doneRow: {
     flexDirection: 'row',

@@ -7,9 +7,14 @@ import { revalidateBusinessProfilePaths } from '@/lib/businessRevalidation';
 import {
   averageReviewRating,
   parseBusinessReviews,
+  publicReviewAuthor,
   serializeBusinessReviewsForStorage,
+  toPublicReviews,
+  validateAnonymousReason,
   type BusinessReview,
 } from '@/lib/businessReviews';
+import { userOwnsOrManagesBusiness } from '@/lib/reviewIdentity.server';
+import { upsertReviewModerationRow } from '@/lib/reviewModeration.server';
 import { queueBusinessPush } from '@/lib/userNotifications.server';
 
 export type SubmitBusinessReviewInput = {
@@ -18,6 +23,8 @@ export type SubmitBusinessReviewInput = {
   businessId: string;
   rating: number;
   content: string;
+  anonymous?: boolean;
+  anonymousReason?: string;
 };
 
 export type SubmitBusinessReviewResult =
@@ -88,6 +95,17 @@ export async function submitBusinessReviewForUser(
       return { success: false, error: 'Please select a rating' };
     }
 
+    const anonymous = Boolean(input.anonymous);
+    const anonymousReason = input.anonymousReason?.trim() || '';
+    if (anonymous) {
+      const reasonError = validateAnonymousReason(anonymousReason);
+      if (reasonError) return { success: false, error: reasonError };
+    }
+
+    if (await userOwnsOrManagesBusiness(userId, businessId)) {
+      return { success: false, error: 'You cannot review your own business.' };
+    }
+
     const supabase = dbClient() ?? createClient(await cookies());
     const { data: business, error: fetchError } = await supabase
       .from('Business')
@@ -116,6 +134,13 @@ export async function submitBusinessReviewForUser(
       }),
       userId,
       authorVerified: true,
+      ...(anonymous
+        ? {
+            anonymous: true,
+            anonymousReason,
+            anonymityStatus: 'pending' as const,
+          }
+        : {}),
     };
 
     const nextReviews = [newReview, ...existing];
@@ -132,17 +157,24 @@ export async function submitBusinessReviewForUser(
 
     if (updateError) throw updateError;
 
+    await upsertReviewModerationRow({
+      businessId,
+      businessName: business.businessName,
+      review: newReview,
+    });
+
+    const notifyAuthor = publicReviewAuthor(newReview);
     const notificationId = await createMerchantReviewNotification({
       businessId,
       reviewId: newReview.id,
-      author: newReview.author,
+      author: notifyAuthor,
       rating: newReview.rating,
     });
     queueBusinessPush({
       businessId,
       type: 'review',
       title: `New ${newReview.rating}-star review`,
-      body: `${newReview.author || 'A customer'} reviewed ${business.businessName || 'your business'} on FinderB.`,
+      body: `${notifyAuthor || 'A customer'} reviewed ${business.businessName || 'your business'} on FinderB.`,
       url: `/business/dashboard?tab=reviews&reviewId=${encodeURIComponent(newReview.id)}`,
       reviewId: newReview.id,
       notificationId: notificationId || undefined,
@@ -157,7 +189,7 @@ export async function submitBusinessReviewForUser(
 
     return {
       success: true,
-      reviews: nextReviews,
+      reviews: toPublicReviews(nextReviews),
       rating: nextRating,
     };
   } catch (error) {

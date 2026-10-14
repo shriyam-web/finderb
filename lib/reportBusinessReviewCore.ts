@@ -1,4 +1,10 @@
-import { parseBusinessReviews } from '@/lib/businessReviews';
+import {
+  BUSINESS_REVIEW_FLAGS_PER_MONTH,
+  isReviewVisibleToMerchant,
+  parseBusinessReviews,
+  publicReviewAuthor,
+} from '@/lib/businessReviews';
+import { countBusinessReviewFlagsThisMonth } from '@/lib/reviewModeration.server';
 import { enforceRateLimit } from '@/lib/security/enforceRateLimit.server';
 import { createServiceClient } from '@/lib/supabase/service';
 
@@ -42,15 +48,30 @@ export async function reportBusinessReviewAs(
       return { success: false, error: 'Business not found' };
     }
 
-    const review = parseBusinessReviews(business.review).find((entry) => entry.id === reviewId);
+    const review = parseBusinessReviews(business.review).find(
+      (entry) => entry.id === reviewId && isReviewVisibleToMerchant(entry)
+    );
     if (!review) {
       return { success: false, error: 'Review not found' };
+    }
+
+    const isBusinessReporter = reporterKey.startsWith('business:');
+    if (isBusinessReporter) {
+      const used = await countBusinessReviewFlagsThisMonth(businessId);
+      if (used >= BUSINESS_REVIEW_FLAGS_PER_MONTH) {
+        return {
+          success: false,
+          error: `You can flag ${BUSINESS_REVIEW_FLAGS_PER_MONTH} reviews per month. Please try again next month.`,
+        };
+      }
     }
 
     const { error: insertError } = await service.from('review_reports').insert({
       business_id: businessId,
       review_id: reviewId,
       reporter_key: reporterKey,
+      reporter_type: isBusinessReporter ? 'business' : 'user',
+      status: 'open',
       reason,
     });
 
@@ -61,18 +82,21 @@ export async function reportBusinessReviewAs(
       throw insertError;
     }
 
-    await service.from('merchant_notifications').insert({
-      business_id: businessId,
-      type: 'review_reported',
-      title: 'Review reported',
-      body: `A review from ${review.author.trim() || 'a customer'} was flagged: ${reason}`,
-      metadata: {
-        reviewId,
-        author: review.author,
-        reporterKey,
-        reason,
-      },
-    });
+    if (!isBusinessReporter) {
+      const author = publicReviewAuthor(review);
+      await service.from('merchant_notifications').insert({
+        business_id: businessId,
+        type: 'review_reported',
+        title: 'Review reported',
+        body: `A review from ${author.trim() || 'a customer'} was flagged: ${reason}`,
+        metadata: {
+          reviewId,
+          author,
+          reporterKey,
+          reason,
+        },
+      });
+    }
 
     return { success: true, alreadyReported: false };
   } catch (error) {

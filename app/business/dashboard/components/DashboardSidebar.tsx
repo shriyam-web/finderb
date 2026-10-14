@@ -8,7 +8,6 @@ import { PricingPlanIcon } from '@/components/pricing/PricingPlanIcon';
 import {
   HiOutlineArrowLeftOnRectangle,
   HiOutlineArrowTopRightOnSquare,
-  HiOutlineBars3,
   HiOutlineXMark,
 } from 'react-icons/hi2';
 
@@ -67,7 +66,6 @@ export default function DashboardSidebar({
   activeTab,
   onTabChange,
   isOpen,
-  onToggle,
   onClose,
   businessName,
   businessCategory,
@@ -85,7 +83,10 @@ export default function DashboardSidebar({
   profileImageUrl,
   onLogout,
 }: DashboardSidebarProps) {
-  const primaryNavItems = menuItems.slice(0, 4);
+  const primaryNavItems = [
+    ...menuItems.filter((item) => ['overview', 'listings', 'leads', 'reviews'].includes(item.id)),
+    ...menuItems.filter((item) => item.id === 'subscription'),
+  ];
 
   useEffect(() => {
     if (!isOpen) return;
@@ -268,14 +269,6 @@ export default function DashboardSidebar({
   return (
     <>
       <header className="fixed inset-x-0 top-0 z-[100] flex h-14 items-center gap-3 border-b border-zinc-200 bg-white px-4 lg:hidden">
-        <button
-          type="button"
-          onClick={onToggle}
-          className="rounded-md border border-zinc-200 p-2 text-zinc-700"
-          aria-label={isOpen ? 'Close menu' : 'Open menu'}
-        >
-          {isOpen ? <HiOutlineXMark size={20} /> : <HiOutlineBars3 size={20} />}
-        </button>
         <div className="flex min-w-0 items-center gap-2">
           <button
             type="button"
@@ -316,14 +309,10 @@ export default function DashboardSidebar({
                 <span className="absolute top-0 h-0.5 w-8 rounded-full bg-[#f9b864]" aria-hidden />
               )}
               <Icon size={20} />
-              {item.label.split(' ')[0]}
+              {item.id === 'subscription' ? 'Plan' : item.label.split(' ')[0]}
             </button>
           );
         })}
-        <button type="button" onClick={onToggle} className="flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] font-medium text-zinc-400">
-          <HiOutlineBars3 size={20} />
-          More
-        </button>
       </nav>
 
       <div

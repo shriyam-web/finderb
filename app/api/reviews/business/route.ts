@@ -37,6 +37,8 @@ export async function POST(request: Request) {
       businessId?: string;
       rating?: number;
       content?: string;
+      anonymous?: boolean;
+      anonymousReason?: string;
     } | null;
 
     if (!body) {
@@ -52,6 +54,8 @@ export async function POST(request: Request) {
       businessId: body.businessId || '',
       rating: Number(body.rating),
       content: body.content || '',
+      anonymous: Boolean(body.anonymous),
+      anonymousReason: body.anonymousReason || '',
     });
 
     if (!result.success) {

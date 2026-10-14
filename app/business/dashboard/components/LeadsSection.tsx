@@ -19,7 +19,16 @@ import {
   updateLeadStatus,
   type BusinessLead,
 } from '@/app/actions/leads';
-import { DIRECT_LEAD_BADGE, leadBadgeClassName } from '@/lib/leadBadges';
+import LeadSourceBadge from '@/components/leads/LeadSourceBadge';
+import {
+  LEAD_PIPELINE_STATUSES,
+  LEAD_STATUS_CONTACTED,
+  isDirectLeadSource,
+  isOpenLead,
+  leadPipelineClassName,
+  leadPipelineOf,
+  leadSourceOf,
+} from '@/lib/leadBadges';
 import { formatRelativeTime, phoneDigits, whatsappLink } from '@/lib/formatRelativeTime';
 import { parseJobLeadDisplay } from '@/lib/jobLeadMessage';
 import { getPaidPlansLabel } from '@/lib/subscription/merchantSubscription';
@@ -50,15 +59,11 @@ function isJobLead(lead: BusinessLead) {
 }
 
 function isDirectLead(lead: BusinessLead) {
-  return lead.status === DIRECT_LEAD_BADGE;
+  return isDirectLeadSource(lead);
 }
 
 function isNewLead(lead: BusinessLead) {
-  return (
-    lead.status === 'New' ||
-    lead.status === 'New Lead' ||
-    lead.status === DIRECT_LEAD_BADGE
-  );
+  return isOpenLead(lead);
 }
 
 function getLeadEnquiryDisplay(lead: BusinessLead) {
@@ -172,15 +177,17 @@ export default function LeadsSection({
     }
   }, [activeTab, businessLeads.length, jobLeads.length]);
 
-  const handleMarkContacted = async (leadId: string) => {
+  const handleSetStatus = async (leadId: string, status: string) => {
     setUpdatingId(leadId);
-    const res = await updateLeadStatus(leadId, 'Contacted');
+    const res = await updateLeadStatus(leadId, status);
     if (res.success) {
-      setLeads((prev) =>
-        prev.map((lead) => (lead.id === leadId ? { ...lead, status: 'Contacted' } : lead))
-      );
+      setLeads((prev) => prev.map((lead) => (lead.id === leadId ? { ...lead, status } : lead)));
     }
     setUpdatingId(null);
+  };
+
+  const handleMarkContacted = async (leadId: string) => {
+    await handleSetStatus(leadId, LEAD_STATUS_CONTACTED);
   };
 
   const contactMessage = (lead: BusinessLead) => {
@@ -279,10 +286,11 @@ export default function LeadsSection({
               <span className="shrink-0 text-[11px] text-zinc-400">{formatRelativeTime(lead.created_at)}</span>
             </div>
             <div className="mt-1 flex flex-wrap items-center gap-1.5">
+              <LeadSourceBadge source={leadSourceOf(lead)} />
               <span
-                className={`inline-flex rounded-full border px-1.5 py-px text-[10px] font-semibold ${leadBadgeClassName(lead.status)}`}
+                className={`inline-flex rounded-full border px-1.5 py-px text-[10px] font-semibold ${leadPipelineClassName(lead.status)}`}
               >
-                {lead.status}
+                {leadPipelineOf(lead)}
               </span>
               {isJob ? (
                 <span className="text-[10px] font-medium text-[#215481]">Job</span>
@@ -300,6 +308,23 @@ export default function LeadsSection({
           </div>
         </div>
         <div className="mt-2 flex flex-wrap items-center justify-end gap-1.5">
+          {!isPaymentPending ? (
+            <label className="inline-flex items-center gap-1 text-[11px] text-zinc-500">
+              Status
+              <select
+                value={leadPipelineOf(lead)}
+                disabled={updatingId === lead.id}
+                onChange={(event) => void handleSetStatus(lead.id, event.target.value)}
+                className="rounded-full border border-zinc-200 bg-white px-2 py-1 text-[11px] font-semibold text-[#215481] outline-none"
+              >
+                {LEAD_PIPELINE_STATUSES.map((status) => (
+                  <option key={status} value={status}>
+                    {status}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
           {!isPaymentPending && isNew ? (
             <button
               type="button"
@@ -431,7 +456,7 @@ export default function LeadsSection({
 
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <LeadStatChip label="Total leads" value={leads.length} accent="navy" />
-            <LeadStatChip label="New" value={totalNew} accent={totalNew > 0 ? 'gold' : undefined} />
+            <LeadStatChip label="To contact" value={totalNew} accent={totalNew > 0 ? 'gold' : undefined} />
             <LeadStatChip label="Direct" value={directLeadCount} />
             <LeadStatChip label="Job apps" value={jobLeads.length} />
           </div>
@@ -452,7 +477,7 @@ export default function LeadsSection({
                 }`}
               >
                 {businessLeads.length}
-                {newBusinessCount > 0 ? ` · ${newBusinessCount} new` : ''}
+                {newBusinessCount > 0 ? ` · ${newBusinessCount} open` : ''}
               </span>
             </button>
             <button
@@ -470,7 +495,7 @@ export default function LeadsSection({
                 }`}
               >
                 {jobLeads.length}
-                {newJobCount > 0 ? ` · ${newJobCount} new` : ''}
+                {newJobCount > 0 ? ` · ${newJobCount} open` : ''}
               </span>
             </button>
           </div>

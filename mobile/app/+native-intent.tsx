@@ -44,6 +44,10 @@ export function redirectSystemPath({
       }
       const website = websiteBusinessRoute(raw);
       if (website) return website;
+      const reviewPath = raw.match(/^\/review\/([^/?#]+)\/?([?#][\s\S]*)?$/);
+      if (reviewPath?.[1]) {
+        return `/review/${decodeURIComponent(reviewPath[1])}${reviewPath[2] || ''}`;
+      }
       const businessPath = raw.match(/^\/business\/([^/?#]+)\/?([?#][\s\S]*)?$/);
       if (businessPath?.[1]) {
         return `/merchant/${decodeURIComponent(businessPath[1])}${businessPath[2] || ''}`;
@@ -116,6 +120,11 @@ export function redirectSystemPath({
 
     if (url.protocol === 'finderb:' && url.pathname.startsWith('/auth/')) {
       return `${url.pathname}${url.search}${url.hash}`;
+    }
+
+    const reviewMatch = url.pathname.match(/^\/review\/([^/]+)\/?$/);
+    if (reviewMatch?.[1]) {
+      return `/review/${decodeURIComponent(reviewMatch[1])}${url.search}${url.hash}`;
     }
 
     const websiteRoute = websiteBusinessRoute(url.pathname);

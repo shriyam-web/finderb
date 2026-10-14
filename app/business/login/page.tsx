@@ -196,7 +196,7 @@ export default function BusinessLoginPage() {
                       type="text"
                       value={email}
                       onChange={setEmail}
-                      placeholder="you@business.com or 9876543210"
+                      placeholder="Enter your email or phone"
                       icon={Mail}
                       autoComplete="username"
                     />

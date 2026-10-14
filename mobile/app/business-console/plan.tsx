@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, Text, View } from 'react-native';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { fonts } from '../../constants/typography';
 import { useConsoleColors } from '../../constants/consoleColors';
@@ -12,10 +12,13 @@ import {
   type SubscriptionStatus,
 } from '../../lib/merchantConsoleApi';
 import { RazorpayCheckout, type CheckoutSuccess } from '../../components/console/RazorpayCheckout';
+import { ViewsChart } from '../../components/console/ViewsChart';
 import {
   Btn,
+  ConsoleHeaderActions,
   ConsolePage,
   Empty,
+  HeaderIcon,
   Panel,
   Section,
   Sheet,
@@ -145,10 +148,11 @@ function CompareCell({ value }: { value: boolean | string }) {
   return <Text style={styles.compareText}>{value}</Text>;
 }
 
-export default function PlanScreen() {
+export function PlanBody({ docked = false }: { docked?: boolean }) {
   const styles = useStyles();
   const c = useConsoleColors();
-  const { run, notify, refresh } = useMerchantConsole();
+  const router = useRouter();
+  const { run, notify, refresh, overview } = useMerchantConsole();
   const [details, setDetails] = useState<SubscriptionDetails | null>(null);
   const [error, setError] = useState('');
   const [cycle, setCycle] = useState<Cycle | null>(null);
@@ -268,6 +272,19 @@ export default function PlanScreen() {
     <ConsolePage
       title="Plan & billing"
       subtitle={sub ? (sub.isActive ? `${sub.planName} plan` : 'Free plan') : undefined}
+      docked={docked}
+      right={
+        docked ? (
+          <ConsoleHeaderActions>
+            <HeaderIcon
+              icon="notifications-outline"
+              label="Notifications"
+              badge={overview?.notifications.unread}
+              onPress={() => router.push('/business-console/alerts')}
+            />
+          </ConsoleHeaderActions>
+        ) : undefined
+      }
       refreshing={refreshing}
       onRefresh={() => void onRefresh()}
       footer={
@@ -290,6 +307,31 @@ export default function PlanScreen() {
       ) : (
         <>
           <CurrentPlan sub={sub} />
+          {overview ? (
+            <Section title="Listing performance">
+              <Panel>
+                <Text style={styles.currentLabel}>Profile views · 30 days</Text>
+                <Text style={styles.currentName}>{overview.stats.views30d.toLocaleString('en-IN')}</Text>
+                <View style={styles.chart}>
+                  <ViewsChart days={overview.stats.viewsDaily} />
+                </View>
+                <View style={styles.statRow}>
+                  <View style={styles.statCell}>
+                    <Text style={styles.statValue}>{overview.stats.leadsTotal}</Text>
+                    <Text style={styles.statLabel}>Leads</Text>
+                  </View>
+                  <View style={styles.statCell}>
+                    <Text style={styles.statValue}>{overview.stats.leadsConverted}</Text>
+                    <Text style={styles.statLabel}>Won</Text>
+                  </View>
+                  <View style={styles.statCell}>
+                    <Text style={styles.statValue}>{overview.stats.reviewCount}</Text>
+                    <Text style={styles.statLabel}>Reviews</Text>
+                  </View>
+                </View>
+              </Panel>
+            </Section>
+          ) : null}
           {verifying ? (
             <Panel style={styles.verifying}>
               <ActivityIndicator color={c.primary} />
@@ -446,6 +488,10 @@ export default function PlanScreen() {
   );
 }
 
+export default function PlanScreen() {
+  return <PlanBody />;
+}
+
 const useStyles = createConsoleStyles((c) => ({
   flex: { flex: 1, minWidth: 0 },
   loading: { marginTop: 50 },
@@ -454,6 +500,11 @@ const useStyles = createConsoleStyles((c) => ({
   currentLabel: { fontFamily: fonts.regular, fontSize: 13, color: c.muted },
   currentName: { marginTop: 6, fontFamily: fonts.semiBold, fontSize: 24, color: c.ink },
   currentLine: { marginTop: 2, fontFamily: fonts.regular, fontSize: 13, lineHeight: 19, color: c.body },
+  chart: { marginTop: 12, height: 88 },
+  statRow: { marginTop: 14, flexDirection: 'row' },
+  statCell: { flex: 1, alignItems: 'center' },
+  statValue: { fontFamily: fonts.semiBold, fontSize: 18, color: c.ink },
+  statLabel: { marginTop: 2, fontFamily: fonts.regular, fontSize: 12, color: c.muted },
   meter: { marginTop: 14, height: 6, borderRadius: 3, backgroundColor: c.sunken, overflow: 'hidden' },
   meterFill: { height: 6, borderRadius: 3, backgroundColor: c.primary },
   meterText: { marginTop: 6, fontFamily: fonts.regular, fontSize: 12.5, color: c.muted },

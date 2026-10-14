@@ -33,11 +33,13 @@ function PhotosBody({ o }: { o: ConsoleOverview }) {
   const cover = o.photos.cover || images[0] || null;
   const tile = Math.floor((width - 32 - GAP * 2) / 3);
 
-  const pick = async () => {
+  const pick = async (crop = false) => {
     const picked = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
-      allowsMultipleSelection: true,
-      selectionLimit: BATCH_LIMIT,
+      allowsMultipleSelection: !crop,
+      allowsEditing: crop,
+      aspect: crop ? [1, 1] : undefined,
+      selectionLimit: crop ? 1 : BATCH_LIMIT,
       quality: 1,
     });
     if (picked.canceled || !picked.assets?.length) return;
@@ -112,12 +114,21 @@ function PhotosBody({ o }: { o: ConsoleOverview }) {
       title="Photos"
       subtitle={`${images.length} uploaded`}
       footer={
-        <Btn
-          icon="add"
-          label={uploading ? `Uploading ${Math.min(uploading.done + 1, uploading.total)} of ${uploading.total}…` : 'Add photos'}
-          busy={Boolean(uploading)}
-          onPress={() => void pick()}
-        />
+        <View style={{ gap: 8 }}>
+          <Btn
+            icon="crop-outline"
+            tone="outline"
+            label="Crop & add one"
+            busy={Boolean(uploading)}
+            onPress={() => void pick(true)}
+          />
+          <Btn
+            icon="add"
+            label={uploading ? `Uploading ${Math.min(uploading.done + 1, uploading.total)} of ${uploading.total}…` : 'Add photos'}
+            busy={Boolean(uploading)}
+            onPress={() => void pick(false)}
+          />
+        </View>
       }
     >
       <View style={styles.note}>

@@ -46,7 +46,8 @@ import { getProfileCompletion, getAccountMissingFields } from '@/lib/dashboard/p
 import { hasPublicTrustBadge, isListingLive, KYC_OUTSOURCED_MESSAGE } from '@/lib/businessVerification';
 import { getJobsByBusiness } from '@/app/actions/job';
 import { getBusinessProfileViewStats } from '@/app/actions/analytics';
-import { getBusinessPublicRatingStats, parseBusinessReviews } from '@/lib/businessReviews';
+import { getBusinessPublicRatingStats, parseBusinessReviews, visibleMerchantReviews } from '@/lib/businessReviews';
+import { isOpenLead } from '@/lib/leadBadges';
 import DashboardAtAGlance from './components/DashboardAtAGlance';
 import TrustBadgeCallout from './components/TrustBadgeCallout';
 import MyListingTab from './components/MyListingTab';
@@ -64,7 +65,6 @@ import {
   businessHasPublicPhoto,
   syncBusinessImagesWithCover,
 } from '@/lib/businessMapping';
-import { CldUploadWidget } from 'next-cloudinary';
 import { createClient } from '@/utils/supabase/client';
 import { buildGoogleMapsUrl } from '@/lib/googleMapsLocation';
 import ListingHiddenNoPhotosBanner from './components/ListingHiddenNoPhotosBanner';
@@ -75,6 +75,8 @@ import MerchantContactVerifyGate, {
 } from './components/MerchantContactVerifyGate';
 import ContactVerificationBanner from './components/ContactVerificationBanner';
 import DashboardBannerCarousel, { type DashboardBanner } from './components/DashboardBannerCarousel';
+import ReviewsVisibilityBanner from './components/ReviewsVisibilityBanner';
+import FinderBQrStudio from '@/components/business/FinderBQrStudio';
 import { pickPublicBusinessEmail } from '@/lib/placeholderEmail';
 import { extractIndianMobileDigits } from '@/lib/indianPhone';
 
@@ -83,6 +85,7 @@ function DashboardContent() {
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState('overview');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [qrStudioOpen, setQrStudioOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -478,7 +481,7 @@ function DashboardContent() {
       if (res.success) {
         setLeadCount(res.leads.length);
         setNewLeadCount(
-          res.leads.filter((l) => l.status === 'New' || l.status === 'New Lead').length
+          res.leads.filter((l) => isOpenLead(l)).length
         );
       }
     });
@@ -607,7 +610,7 @@ function DashboardContent() {
       icon: HiOutlineStar,
       activeIcon: RiStarFill,
       badge:
-        parseBusinessReviews(profileData.review).filter(
+        visibleMerchantReviews(parseBusinessReviews(profileData.review)).filter(
           (review) => !review.merchantReply?.content?.trim()
         ).length || undefined,
     },
@@ -751,6 +754,16 @@ function DashboardContent() {
       ),
     });
   }
+  dashboardBanners.push({
+    id: 'reviews-visibility',
+    label: 'Get 10 reviews',
+    node: (
+      <ReviewsVisibilityBanner
+        reviewCount={ratingStats.reviewCount}
+        onOpenStudio={() => setQrStudioOpen(true)}
+      />
+    ),
+  });
   if (!hasPublicPhotos) {
     dashboardBanners.push({
       id: 'listing-hidden',
@@ -872,10 +885,27 @@ function DashboardContent() {
             }
           }}
           onNotificationsClose={() => setIsNotificationsOpen(false)}
+          onOpenMenu={() => setIsSidebarOpen(true)}
           notifications={notifications}
         />
 
         <DashboardBannerCarousel banners={dashboardBanners} />
+        {qrStudioOpen && business ? (
+          <FinderBQrStudio
+            businessName={businessName}
+            category={business.category}
+            city={business.city}
+            business={{
+              id: business.id,
+              slug: business.slug,
+              name: businessName,
+              businessName: business.businessName,
+              displayName: business.displayName,
+              city: business.city,
+            }}
+            onClose={() => setQrStudioOpen(false)}
+          />
+        ) : null}
 
         {successMessage && (
           <div className="mb-6 overflow-hidden rounded-xl border border-emerald-200 bg-emerald-50 shadow-sm">

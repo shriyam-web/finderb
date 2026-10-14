@@ -21,7 +21,7 @@ import { FaWhatsapp } from 'react-icons/fa';
 import type { Business } from '@/lib/mockData';
 import { findCategoryForBreadcrumb, type CategoryBreadcrumb } from '@/app/actions/category';
 import { getBusiness, getBusinessesByCategory, getBusinessSession } from '@/app/actions/business';
-import { submitBusinessReview } from '@/app/actions/reviews';
+import { getBusinessReviewEligibility, submitBusinessReview } from '@/app/actions/reviews';
 import { getSession, toggleFavorite } from '@/app/actions/user';
 import { recordDirectLead } from '@/app/actions/leads';
 import ConnectMerchantModal from '@/components/ConnectMerchantModal';
@@ -44,8 +44,11 @@ import { getBusinessLocationLabel } from '@/lib/businessBreadcrumb';
 import { getBusinessOpenStatus, getWeeklyHours } from '@/lib/businessHours';
 import {
   getPublicReviewRating,
+  maskReviewAuthorName,
   parseBusinessReviewReply,
   parseBusinessReviews,
+  validateAnonymousReason,
+  visiblePublicReviews,
   type BusinessReview,
 } from '@/lib/businessReviews';
 import { getDiscountOfferDisplay } from '@/lib/discountOffer';
@@ -75,6 +78,7 @@ import {
   shouldRecordProfileViewToday,
 } from '@/lib/profileViews';
 import { getActiveJobsByBusiness } from '@/app/actions/job';
+import { REVIEW_STAR_EMOJI, reviewTemplatesForCategory } from '@/lib/reviewInvite';
 
 function StarPicker({
   value,
@@ -83,25 +87,32 @@ function StarPicker({
   value: number;
   onChange: (rating: number) => void;
 }) {
+  const mood = REVIEW_STAR_EMOJI[value];
   return (
-    <div className="flex gap-0.5">
-      {Array.from({ length: 5 }).map((_, index) => {
-        const starValue = index + 1;
-        return (
-          <button
-            key={starValue}
-            type="button"
-            onClick={() => onChange(starValue)}
-            className="p-0.5"
-            aria-label={`Rate ${starValue} stars`}
-          >
-            <Star
-              size={20}
-              className={starValue <= value ? 'fill-amber-500 text-amber-500' : 'text-stone-300'}
-            />
-          </button>
-        );
-      })}
+    <div className="space-y-2">
+      <div className="flex items-center gap-2">
+        <span className="text-3xl leading-none">{mood?.emoji || '⭐'}</span>
+        <span className="text-sm font-medium text-stone-600">{mood?.label || 'How was your visit?'}</span>
+      </div>
+      <div className="flex gap-0.5">
+        {Array.from({ length: 5 }).map((_, index) => {
+          const starValue = index + 1;
+          return (
+            <button
+              key={starValue}
+              type="button"
+              onClick={() => onChange(starValue)}
+              className="p-0.5"
+              aria-label={`Rate ${starValue} stars`}
+            >
+              <Star
+                size={20}
+                className={starValue <= value ? 'fill-amber-500 text-amber-500' : 'text-stone-300'}
+              />
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -117,6 +128,7 @@ type SessionUser = {
   fullName: string;
   email: string;
   favorites: string[];
+  businessId?: string | null;
 };
 
 type SessionBusiness = {
@@ -155,8 +167,10 @@ export default function BusinessProfilePage({
     initialRelatedCategory.length > 0 ? initialRelatedCategory : initialRelatedCity
   );
   const [reviews, setReviews] = useState<BusinessReview[]>(
-    initialBusiness ? parseBusinessReviews(initialBusiness.review) : []
+    initialBusiness ? visiblePublicReviews(parseBusinessReviews(initialBusiness.review)) : []
   );
+  const [reviewAnonymous, setReviewAnonymous] = useState(false);
+  const [reviewAnonymousReason, setReviewAnonymousReason] = useState('');
   const [sessionUser, setSessionUser] = useState<SessionUser | null>(null);
   const [sessionBusiness, setSessionBusiness] = useState<SessionBusiness | null>(null);
   const [notFound, setNotFound] = useState(false);
@@ -170,6 +184,7 @@ export default function BusinessProfilePage({
   const [reviewSubmitting, setReviewSubmitting] = useState(false);
   const [reviewError, setReviewError] = useState<string | null>(null);
   const [reviewSuccess, setReviewSuccess] = useState<string | null>(null);
+  const [ownsThisListing, setOwnsThisListing] = useState(false);
   const [categoryBreadcrumb, setCategoryBreadcrumb] = useState<CategoryBreadcrumb | null>(
     initialCategoryBreadcrumb
   );
@@ -190,7 +205,7 @@ export default function BusinessProfilePage({
   useEffect(() => {
     if (initialBusiness) {
       setBusiness(initialBusiness);
-      setReviews(parseBusinessReviews(initialBusiness.review));
+      setReviews(visiblePublicReviews(parseBusinessReviews(initialBusiness.review)));
       setCategoryBreadcrumb(initialCategoryBreadcrumb);
       setRelated(
         initialRelatedCategory.length > 0 ? initialRelatedCategory : initialRelatedCity
@@ -212,7 +227,7 @@ export default function BusinessProfilePage({
       if (result.success && result.business) {
         const record = result.business as Business;
         setBusiness(record);
-        setReviews(parseBusinessReviews(record.review));
+        setReviews(visiblePublicReviews(parseBusinessReviews(record.review)));
 
         const categoryResult = await findCategoryForBreadcrumb(record.category);
         setCategoryBreadcrumb(categoryResult.category);
@@ -241,6 +256,7 @@ export default function BusinessProfilePage({
           fullName: sessionResult.user.fullName,
           email: sessionResult.user.email,
           favorites: toFavoriteIds(sessionResult.user.favorites),
+          businessId: sessionResult.user.businessId || null,
         });
       } else {
         setSessionUser(null);
@@ -278,6 +294,7 @@ export default function BusinessProfilePage({
           fullName: sessionResult.user.fullName,
           email: sessionResult.user.email,
           favorites: toFavoriteIds(sessionResult.user.favorites),
+          businessId: sessionResult.user.businessId || null,
         });
       } else {
         setSessionUser(null);
@@ -298,6 +315,21 @@ export default function BusinessProfilePage({
 
     fetchSession();
   }, [initialBusiness]);
+
+  useEffect(() => {
+    const listingId = business?.id;
+    if (!listingId) {
+      setOwnsThisListing(false);
+      return;
+    }
+    let cancelled = false;
+    void getBusinessReviewEligibility(listingId).then((result) => {
+      if (!cancelled) setOwnsThisListing(result.reason === 'own');
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [business?.id, sessionUser?.id, sessionUser?.businessId, sessionBusiness?.id]);
 
   useEffect(() => {
     const q = resolveClientSearchQuery(searchParams.get('q') ?? searchParams.get('search'));
@@ -431,7 +463,11 @@ export default function BusinessProfilePage({
     [business],
   );
   const contactRevealed = Boolean(sessionUser || sessionBusiness);
-  const managesThisProfile = Boolean(sessionBusiness?.id && business?.id === sessionBusiness.id);
+  const managesThisProfile = Boolean(
+    ownsThisListing ||
+      (sessionBusiness?.id && business?.id === sessionBusiness.id) ||
+      (sessionUser?.businessId && business?.id === sessionUser.businessId)
+  );
 
   useEffect(() => {
     if (!sessionUser || !business?.id) {
@@ -559,19 +595,31 @@ export default function BusinessProfilePage({
     setReviewError(null);
     setReviewSuccess(null);
 
+    if (reviewAnonymous) {
+      const reasonError = validateAnonymousReason(reviewAnonymousReason);
+      if (reasonError) {
+        setReviewError(reasonError);
+        return;
+      }
+    }
+
     const result = await submitBusinessReview({
       businessId: business.id,
       rating: reviewRating,
       content: reviewContent,
+      anonymous: reviewAnonymous,
+      anonymousReason: reviewAnonymousReason,
     });
 
     if (result.success) {
-      setReviews(result.reviews);
+      setReviews(visiblePublicReviews(result.reviews));
       setBusiness((current) =>
         current ? { ...current, rating: result.rating, reviewsCount: result.reviews.length } : current
       );
       setReviewContent('');
-      setReviewSuccess('Your review was posted.');
+      setReviewAnonymous(false);
+      setReviewAnonymousReason('');
+      setReviewSuccess(reviewAnonymous ? 'Your anonymous review was posted.' : 'Your review was posted.');
     } else {
       setReviewError(result.error);
     }
@@ -998,7 +1046,9 @@ export default function BusinessProfilePage({
               </div>
             ) : null}
 
-            {!sessionUser ? (
+            {managesThisProfile ? (
+              <p className="mt-4 text-sm text-stone-500">You cannot review your own business.</p>
+            ) : !sessionUser ? (
               <div className="mt-4 rounded-lg border border-[#f9b864]/30 bg-[#fff8ef] px-4 py-3 text-sm text-stone-600">
                 <Link
                   href={buildLoginHref(`${getBusinessProfilePath(business)}#reviews`)}
@@ -1013,10 +1063,27 @@ export default function BusinessProfilePage({
             ) : (
               <form onSubmit={handleReviewSubmit} className="mt-4 rounded-2xl border border-stone-200 bg-white p-4">
                 <p className="text-sm text-stone-700">
-                  Posting as <span className="font-medium text-stone-900">{sessionUser.fullName}</span>
+                  Posting as{' '}
+                  <span className="font-medium text-stone-900">
+                    {reviewAnonymous
+                      ? maskReviewAuthorName(sessionUser.fullName)
+                      : sessionUser.fullName}
+                  </span>
                 </p>
                 <div className="mt-3">
                   <StarPicker value={reviewRating} onChange={setReviewRating} />
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {reviewTemplatesForCategory(business.category || '').slice(0, 4).map((template) => (
+                    <button
+                      key={template}
+                      type="button"
+                      onClick={() => setReviewContent(template)}
+                      className="rounded-full border border-stone-200 bg-stone-50 px-3 py-1.5 text-left text-[11px] text-stone-700 hover:border-[#215481]"
+                    >
+                      {template}
+                    </button>
+                  ))}
                 </div>
                 <textarea
                   value={reviewContent}
@@ -1027,6 +1094,31 @@ export default function BusinessProfilePage({
                   required
                   minLength={10}
                 />
+                <label className="mt-3 flex cursor-pointer items-start gap-2 text-sm text-stone-700">
+                  <input
+                    type="checkbox"
+                    className="mt-0.5"
+                    checked={reviewAnonymous}
+                    onChange={(event) => setReviewAnonymous(event.target.checked)}
+                  />
+                  <span>
+                    Post anonymously
+                    <span className="mt-0.5 block text-xs text-stone-500">
+                      Your public name will look like {maskReviewAuthorName(sessionUser.fullName)}.
+                    </span>
+                  </span>
+                </label>
+                {reviewAnonymous ? (
+                  <textarea
+                    value={reviewAnonymousReason}
+                    onChange={(event) => setReviewAnonymousReason(event.target.value)}
+                    placeholder="Why do you need to post anonymously?"
+                    rows={2}
+                    minLength={10}
+                    className="mt-3 w-full rounded-lg border border-stone-200 px-3 py-2 text-sm outline-none focus:border-[#215481]"
+                    required
+                  />
+                ) : null}
                 {reviewError && <p className="mt-2 text-xs text-red-600">{reviewError}</p>}
                 {reviewSuccess && <p className="mt-2 text-xs text-emerald-700">{reviewSuccess}</p>}
                 <button

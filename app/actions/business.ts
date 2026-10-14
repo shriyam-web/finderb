@@ -794,6 +794,9 @@ export async function loginBusiness(email: string, password: string) {
       });
       if (team) {
         await setBusinessSessionCookie(team.businessId);
+        void import('@/lib/businessUserLinks.server').then(({ linkUsersMatchingBusiness }) =>
+          linkUsersMatchingBusiness(team.businessId)
+        );
         return { success: true, businessId: team.businessId };
       }
 
@@ -844,12 +847,18 @@ export async function loginBusiness(email: string, password: string) {
       });
       if (team) {
         await setBusinessSessionCookie(team.businessId);
+        void import('@/lib/businessUserLinks.server').then(({ linkUsersMatchingBusiness }) =>
+          linkUsersMatchingBusiness(team.businessId)
+        );
         return { success: true, businessId: team.businessId };
       }
       return { success: false, error: 'Incorrect password. Please try again.' };
     }
 
     await setBusinessSessionCookie(matchedBusiness.id);
+    void import('@/lib/businessUserLinks.server').then(({ linkUsersMatchingBusiness }) =>
+      linkUsersMatchingBusiness(matchedBusiness.id)
+    );
 
     return { success: true, businessId: matchedBusiness.id };
   } catch (error: any) {

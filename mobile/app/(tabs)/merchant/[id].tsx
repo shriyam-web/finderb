@@ -459,10 +459,10 @@ export default function MerchantProfileScreen() {
   };
 
   const isOwnBusiness =
-    Boolean(user?.isBusinessAccount) &&
     Boolean(merchant) &&
     (user?.businessId === merchant?.id ||
-      (!!user?.businessSlug &&
+      (!!user?.isBusinessAccount &&
+        !!user?.businessSlug &&
         !!merchant?.slug &&
         user.businessSlug === merchant.slug) ||
       (!!user?.email &&
@@ -1424,8 +1424,11 @@ export default function MerchantProfileScreen() {
 
             <MerchantReviewComposer
               businessId={merchant.id}
+              category={merchant.category}
               alreadyReviewed={userHasReviewed}
               signedIn={Boolean(user)}
+              ownBusiness={isOwnBusiness}
+              authorName={user?.fullName}
               onRequestLogin={requestLogin}
               onSubmitted={({ reviews, rating }) => {
                 setMerchant((prev) =>
@@ -1452,12 +1455,42 @@ export default function MerchantProfileScreen() {
                         </Text>
                       </View>
                       <View style={styles.reviewHeadCopy}>
-                        <Text style={styles.reviewAuthor}>{review.author}</Text>
+                        <View style={styles.reviewAuthorRow}>
+                          <Text style={styles.reviewAuthor}>{review.author}</Text>
+                          {review.anonymous ? (
+                            <Text style={styles.reviewAnonBadge}>Anonymous</Text>
+                          ) : null}
+                        </View>
                         <Stars rating={review.rating} />
+                        {review.date ? (
+                          <Text style={styles.reviewDate}>{review.date}</Text>
+                        ) : null}
                       </View>
-                      {review.date ? (
-                        <Text style={styles.reviewDate}>{review.date}</Text>
-                      ) : null}
+                      <View style={styles.reviewActions}>
+                        <Pressable
+                          onPress={() => void Clipboard.setStringAsync(review.id)}
+                          hitSlop={8}
+                          style={styles.reviewIdBadge}
+                          accessibilityRole="button"
+                          accessibilityLabel="Copy review ID"
+                        >
+                          <Text style={styles.reviewIdBadgeText}>{review.id.slice(0, 8)}</Text>
+                        </Pressable>
+                        {review.userId && review.userId === user?.id ? null : reportedReviewIds.has(review.id) ? (
+                          <Text style={styles.reviewReported}>Flagged</Text>
+                        ) : (
+                          <Pressable
+                            onPress={() => handleReportReview(review.id)}
+                            hitSlop={8}
+                            style={styles.reviewReport}
+                            accessibilityRole="button"
+                            accessibilityLabel={`Flag review by ${review.author || 'customer'}`}
+                          >
+                            <Ionicons name="flag-outline" size={13} color={colors.textSoft} />
+                            <Text style={styles.reviewReportText}>Flag</Text>
+                          </Pressable>
+                        )}
+                      </View>
                     </View>
                     <Text style={styles.reviewBody}>{review.content}</Text>
                     {review.merchantReply?.content ? (
@@ -1468,20 +1501,6 @@ export default function MerchantProfileScreen() {
                         </Text>
                       </View>
                     ) : null}
-                    {review.userId && review.userId === user?.id ? null : reportedReviewIds.has(review.id) ? (
-                      <Text style={styles.reviewReported}>Reported</Text>
-                    ) : (
-                      <Pressable
-                        onPress={() => handleReportReview(review.id)}
-                        hitSlop={8}
-                        style={styles.reviewReport}
-                        accessibilityRole="button"
-                        accessibilityLabel={`Report review by ${review.author || 'customer'}`}
-                      >
-                        <Ionicons name="flag-outline" size={13} color={colors.textSoft} />
-                        <Text style={styles.reviewReportText}>Report</Text>
-                      </Pressable>
-                    )}
                   </View>
                 ))}
               </View>
@@ -2442,8 +2461,26 @@ const useStyles = createThemedStyles((colors, gradients) => ({
   },
   reviewTop: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: 10,
+  },
+  reviewActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  reviewIdBadge: {
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+    borderRadius: 6,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    backgroundColor: 'transparent',
+  },
+  reviewIdBadgeText: {
+    fontFamily: fonts.medium,
+    fontSize: 10,
+    color: colors.textMuted,
   },
   reviewAvatar: {
     width: 36,
@@ -2459,10 +2496,21 @@ const useStyles = createThemedStyles((colors, gradients) => ({
     color: colors.brand,
   },
   reviewHeadCopy: { flex: 1, minWidth: 0, gap: 3 },
+  reviewAuthorRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6 },
   reviewAuthor: {
     fontFamily: fonts.semiBold,
     fontSize: 13,
     color: colors.ink,
+  },
+  reviewAnonBadge: {
+    fontFamily: fonts.medium,
+    fontSize: 10,
+    color: colors.textMuted,
+    backgroundColor: colors.surfaceSoft,
+    overflow: 'hidden',
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
   },
   reviewDate: {
     fontFamily: fonts.medium,
@@ -2476,10 +2524,14 @@ const useStyles = createThemedStyles((colors, gradients) => ({
     color: colors.textMuted,
   },
   reviewReport: {
-    alignSelf: 'flex-end',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+    borderRadius: 6,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
   },
   reviewReportText: {
     fontFamily: fonts.medium,
@@ -2487,7 +2539,6 @@ const useStyles = createThemedStyles((colors, gradients) => ({
     color: colors.textSoft,
   },
   reviewReported: {
-    alignSelf: 'flex-end',
     fontFamily: fonts.medium,
     fontSize: 11,
     color: colors.textSoft,

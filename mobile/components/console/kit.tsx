@@ -62,6 +62,16 @@ export function useTabBack() {
   return () => router.navigate(HOME_HREF);
 }
 
+export function ConsoleHeaderActions({ children }: { children?: ReactNode }) {
+  const router = useRouter();
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+      <HeaderIcon icon="menu-outline" label="More" onPress={() => router.push('/business-console/more')} />
+      {children}
+    </View>
+  );
+}
+
 export function HeaderIcon({
   icon,
   onPress,

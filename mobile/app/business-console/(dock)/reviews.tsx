@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Alert, Pressable, Text, View } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { fonts } from '../../../constants/typography';
@@ -8,9 +9,11 @@ import { useMerchantConsole } from '../../../context/MerchantConsoleContext';
 import { getRatingDisplay } from '../../../lib/ratingDisplay';
 import { isFailure, type ConsoleOverview, type ConsoleReview } from '../../../lib/merchantConsoleApi';
 import { ConsoleGate } from '../../../components/console/ConsoleGate';
+import { FinderBQrStudio } from '../../../components/console/FinderBQrStudio';
 import {
   Btn,
   Chip,
+  ConsoleHeaderActions,
   ConsolePage,
   Empty,
   Field,
@@ -82,14 +85,20 @@ function Summary({ o }: { o: ConsoleOverview }) {
 function ReviewCard({
   review,
   onReply,
+  onFlag,
   highlight,
 }: {
   review: ConsoleReview;
   onReply: () => void;
+  onFlag: () => void;
   highlight?: boolean;
 }) {
   const styles = useStyles();
   const c = useConsoleColors();
+  const copyId = async () => {
+    await Clipboard.setStringAsync(review.id);
+    Alert.alert('Review ID copied', 'Share this ID with FinderB support if they ask for it.');
+  };
   return (
     <View style={[styles.card, highlight && styles.cardHighlight]}>
       <View style={styles.cardHead}>
@@ -97,13 +106,39 @@ function ReviewCard({
           <Text style={styles.avatarText}>{(review.author || 'C').charAt(0).toUpperCase()}</Text>
         </View>
         <View style={styles.flex}>
-          <Text style={styles.author} numberOfLines={1}>
-            {review.author || 'Customer'}
-          </Text>
+          <View style={styles.authorRow}>
+            <Text style={styles.author} numberOfLines={1}>
+              {review.author || 'Customer'}
+            </Text>
+            {review.anonymous ? <Text style={styles.badge}>Anonymous</Text> : null}
+            {review.hidden ? <Text style={styles.badgeHidden}>Hidden</Text> : null}
+          </View>
           <View style={styles.cardMeta}>
             <Stars value={review.rating} size={13} />
             {review.date ? <Text style={styles.date}>{shortDate(review.date)}</Text> : null}
           </View>
+        </View>
+        <View style={styles.cardActions}>
+          <Pressable
+            onPress={() => void copyId()}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="Copy review ID"
+            style={styles.idBadge}
+          >
+            <Text style={styles.idBadgeText}>{review.id.slice(0, 8)}</Text>
+          </Pressable>
+          <Pressable
+            onPress={onFlag}
+            hitSlop={8}
+            disabled={review.flagged}
+            accessibilityRole="button"
+            style={styles.flagBtn}
+          >
+            <Text style={[styles.flagText, review.flagged && styles.flaggedText]}>
+              {review.flagged ? 'Flagged' : 'Flag'}
+            </Text>
+          </Pressable>
         </View>
       </View>
       {review.content ? <Text style={styles.content}>{review.content}</Text> : null}
@@ -137,8 +172,11 @@ function ReviewsBody({ o }: { o: ConsoleOverview }) {
   const [filter, setFilter] = useState<'all' | 'open'>('all');
   const openedFocus = useRef('');
   const [target, setTarget] = useState<ConsoleReview | null>(null);
+  const [flagTarget, setFlagTarget] = useState<ConsoleReview | null>(null);
+  const [flagReason, setFlagReason] = useState('');
   const [draft, setDraft] = useState('');
   const [saving, setSaving] = useState(false);
+  const [qrOpen, setQrOpen] = useState(false);
   const [templateOpen, setTemplateOpen] = useState(false);
   const [template, setTemplate] = useState(o.profile.reviewReply || '');
   const { replyMin, replyMax } = o.limits;
@@ -163,6 +201,25 @@ function ReviewsBody({ o }: { o: ConsoleOverview }) {
   const startReply = (review: ConsoleReview) => {
     setTarget(review);
     setDraft(review.reply?.content || '');
+  };
+
+  const sendFlag = async () => {
+    if (!flagTarget) return;
+    const reason = flagReason.trim();
+    if (reason.length < 8) {
+      notify('Tell us why this review should be checked (at least 8 characters).', 'bad');
+      return;
+    }
+    setSaving(true);
+    const result = await run('flagReview', { reviewId: flagTarget.id, reason });
+    setSaving(false);
+    if (isFailure(result)) {
+      notify(result.error, 'bad');
+      return;
+    }
+    setFlagTarget(null);
+    setFlagReason('');
+    notify('Flag sent to FinderB admins');
   };
 
   const sendReply = async () => {
@@ -203,17 +260,29 @@ function ReviewsBody({ o }: { o: ConsoleOverview }) {
   const draftLength = draft.trim().length;
 
   return (
+    <>
     <ConsolePage
       title="Reviews"
-      subtitle={open.length ? `${open.length} waiting for your reply` : 'All reviews answered'}
+      subtitle={
+        open.length
+          ? `${open.length} waiting for your reply · ${o.reviewFlags?.remaining ?? 10} flags left this month`
+          : `All reviews answered · ${o.reviewFlags?.remaining ?? 10} flags left this month`
+      }
       onBack={back}
       right={
-        <HeaderIcon
-          icon="notifications-outline"
-          label="Notifications"
-          badge={o.notifications.unread}
-          onPress={() => router.push('/business-console/alerts')}
-        />
+        <ConsoleHeaderActions>
+          <HeaderIcon
+            icon="qr-code-outline"
+            label="Create review QR"
+            onPress={() => setQrOpen(true)}
+          />
+          <HeaderIcon
+            icon="notifications-outline"
+            label="Notifications"
+            badge={o.notifications.unread}
+            onPress={() => router.push('/business-console/alerts')}
+          />
+        </ConsoleHeaderActions>
       }
       docked
       refreshing={refreshing}
@@ -251,6 +320,10 @@ function ReviewsBody({ o }: { o: ConsoleOverview }) {
                 review={review}
                 highlight={review.id === focusReviewId}
                 onReply={() => startReply(review)}
+                onFlag={() => {
+                  setFlagTarget(review);
+                  setFlagReason('');
+                }}
               />
             ))
           ) : (
@@ -304,6 +377,38 @@ function ReviewsBody({ o }: { o: ConsoleOverview }) {
       </Sheet>
 
       <Sheet
+        visible={Boolean(flagTarget)}
+        title="Flag this review"
+        onClose={() => setFlagTarget(null)}
+        action={{
+          label: 'Submit flag',
+          busy: saving,
+          disabled: flagReason.trim().length < 8,
+          onPress: () => void sendFlag(),
+        }}
+      >
+        <Text style={styles.sheetIntro}>
+          FinderB admins will check if this review is offensive, untruthful, or abusive. You can flag{' '}
+          {o.reviewFlags?.limit ?? 10} reviews per month ({o.reviewFlags?.remaining ?? 10} left).
+        </Text>
+        {flagTarget?.content ? (
+          <View style={styles.sheetQuote}>
+            <Text style={styles.author}>{flagTarget.author || 'Customer'}</Text>
+            <Text style={styles.sheetQuoteText}>{flagTarget.content}</Text>
+          </View>
+        ) : null}
+        <Field
+          label="Why are you flagging this?"
+          multiline
+          value={flagReason}
+          onChangeText={setFlagReason}
+          maxLength={500}
+          placeholder="What is wrong with this review?"
+          counter={`${flagReason.trim().length}/500`}
+        />
+      </Sheet>
+
+      <Sheet
         visible={templateOpen}
         title="Saved reply"
         onClose={() => setTemplateOpen(false)}
@@ -324,6 +429,15 @@ function ReviewsBody({ o }: { o: ConsoleOverview }) {
         />
       </Sheet>
     </ConsolePage>
+      <FinderBQrStudio
+        visible={qrOpen}
+        businessName={o.business.name}
+        category={o.business.category}
+        city={o.business.city}
+        slugOrId={o.business.slug || o.business.id}
+        onClose={() => setQrOpen(false)}
+      />
+    </>
   );
 }
 
@@ -387,7 +501,24 @@ const useStyles = createConsoleStyles((c) => ({
     borderWidth: 1.5,
     backgroundColor: c.primarySoft,
   },
-  cardHead: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  cardHead: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  cardActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  idBadge: {
+    borderWidth: 1,
+    borderColor: c.lineStrong,
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    backgroundColor: 'transparent',
+  },
+  idBadgeText: { fontFamily: fonts.medium, fontSize: 11, color: c.muted },
+  flagBtn: {
+    borderWidth: 1,
+    borderColor: c.lineStrong,
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
   avatar: {
     width: 40,
     height: 40,
@@ -398,7 +529,30 @@ const useStyles = createConsoleStyles((c) => ({
   },
   avatarText: { fontFamily: fonts.semiBold, fontSize: 15, color: c.body },
   cardMeta: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 3 },
-  author: { fontFamily: fonts.semiBold, fontSize: 15, color: c.ink },
+  authorRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6 },
+  author: { fontFamily: fonts.semiBold, fontSize: 15, color: c.ink, flexShrink: 1 },
+  badge: {
+    fontFamily: fonts.medium,
+    fontSize: 10,
+    color: c.muted,
+    backgroundColor: c.sunken,
+    overflow: 'hidden',
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  badgeHidden: {
+    fontFamily: fonts.medium,
+    fontSize: 10,
+    color: c.accent,
+    backgroundColor: c.primarySoft,
+    overflow: 'hidden',
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  flagText: { fontFamily: fonts.semiBold, fontSize: 11, color: c.accent },
+  flaggedText: { color: c.faint },
   date: { fontFamily: fonts.regular, fontSize: 12, color: c.faint },
   content: { fontFamily: fonts.regular, fontSize: 14, lineHeight: 21, color: c.body },
   reply: { padding: 12, borderRadius: 10, backgroundColor: c.sunken, gap: 6 },

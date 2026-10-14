@@ -86,6 +86,7 @@ export type ConsoleLead = {
   category: string;
   message: string | null;
   status: string;
+  source?: string | null;
   created_at: string | null;
   locked: boolean;
 };
@@ -96,6 +97,9 @@ export type ConsoleReview = {
   rating: number;
   content: string;
   date?: string;
+  anonymous?: boolean;
+  hidden?: boolean;
+  flagged?: boolean;
   reply: { content: string; date: string | null } | null;
 };
 
@@ -160,6 +164,7 @@ export type ConsoleOverview = {
   };
   leads: ConsoleLead[];
   reviews: ConsoleReview[];
+  reviewFlags?: { used: number; remaining: number; limit: number };
   notifications: { items: ConsoleNotification[]; unread: number };
   limits: {
     aboutMaxWords: number;

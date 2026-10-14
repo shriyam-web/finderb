@@ -19,7 +19,7 @@ const ITEMS: DockItem[] = [
   { name: 'leads', label: 'Leads', icon: 'people-outline', activeIcon: 'people' },
   { name: 'listing', label: 'Listing', icon: 'storefront-outline', activeIcon: 'storefront' },
   { name: 'reviews', label: 'Reviews', icon: 'star-outline', activeIcon: 'star' },
-  { name: 'more', label: 'More', icon: 'menu-outline', activeIcon: 'menu' },
+  { name: 'subscription', label: 'Plan', icon: 'card-outline', activeIcon: 'card' },
 ];
 
 export function ConsoleDock({ state, navigation }: BottomTabBarProps) {

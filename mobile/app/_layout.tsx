@@ -30,6 +30,7 @@ import * as Notifications from 'expo-notifications';
 import { ensureWebFonts } from '../lib/webFonts';
 import { warmupHomeSession } from '../lib/homeBootstrap';
 import { isMobileGateSkipped } from '../lib/mobileGate';
+import { getPreferredShell } from '../lib/preferredShell';
 
 configureNotificationHandler();
 ensureWebFonts();
@@ -93,6 +94,14 @@ function RootNavigator() {
   }, [gateOpen, loading, needsMobile, router, user?.id]);
 
   const isMerchant = Boolean(user?.isBusinessAccount);
+
+  useEffect(() => {
+    if (loading || !isMerchant) return;
+    if (segments[0] !== '(tabs)' || segments[1] !== 'home') return;
+    void getPreferredShell(true).then((shell) => {
+      if (shell === 'business') router.replace('/business-console' as Href);
+    });
+  }, [isMerchant, loading, router, segments]);
 
   useEffect(() => {
     void ensureAndroidNotificationChannels();
@@ -176,6 +185,10 @@ function RootNavigator() {
           <Stack.Screen
             name="business-console"
             options={{ animation: 'fade' }}
+          />
+          <Stack.Screen
+            name="review/[slug]"
+            options={{ animation: 'slide_from_right' }}
           />
           <Stack.Screen
             name="notifications"

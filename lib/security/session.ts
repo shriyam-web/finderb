@@ -156,11 +156,18 @@ export async function clearBusinessSessionCookies() {
 
 export async function setUserSessionCookie(userId: string) {
   const jar = await cookies();
+  const previousBusinessId = verifySessionValue('business', jar.get(BUSINESS_ID_COOKIE)?.value);
+  const wasSupport = jar.get(SUPPORT_FLAG_COOKIE)?.value === '1';
   jar.delete(BUSINESS_ID_COOKIE);
   jar.delete(SUPPORT_FLAG_COOKIE);
   jar.delete(SUPPORT_ACTIVE_COOKIE);
   jar.delete(USER_ID_COOKIE);
   jar.set(USER_ID_COOKIE, signSessionValue('user', userId), getSessionCookieOptions());
+  if (previousBusinessId && !wasSupport) {
+    void import('@/lib/businessUserLinks.server').then(({ rememberBusinessUserLink }) =>
+      rememberBusinessUserLink(userId, previousBusinessId, 'session-switch')
+    );
+  }
 }
 
 export async function setBusinessSessionCookie(
@@ -168,6 +175,7 @@ export async function setBusinessSessionCookie(
   options?: { maxAge?: number; supportSession?: boolean },
 ) {
   const jar = await cookies();
+  const previousUserId = verifySessionValue('user', jar.get(USER_ID_COOKIE)?.value);
   jar.delete(USER_ID_COOKIE);
   jar.delete(BUSINESS_ID_COOKIE);
   jar.delete(SUPPORT_FLAG_COOKIE);
@@ -180,6 +188,10 @@ export async function setBusinessSessionCookie(
   if (options?.supportSession) {
     jar.set(SUPPORT_FLAG_COOKIE, '1', cookieOpts);
     jar.set(SUPPORT_ACTIVE_COOKIE, String(Date.now()), cookieOpts);
+  } else if (previousUserId) {
+    void import('@/lib/businessUserLinks.server').then(({ rememberBusinessUserLink }) =>
+      rememberBusinessUserLink(previousUserId, businessId, 'session-switch')
+    );
   }
 }
 

@@ -27,6 +27,8 @@ import {
   getPublicReviewRating,
   parseBusinessReviewReply,
   parseBusinessReviews,
+  publicReviewAuthor,
+  visibleMerchantReviews,
 } from '@/lib/businessReviews';
 import { getDiscountOfferDisplay } from '@/lib/discountOffer';
 import { formatEstablishmentYearsLabel } from '@/lib/establishmentYear';
@@ -176,7 +178,10 @@ export default function MyListingTab({
     [profileData.serviceCategory]
   );
 
-  const reviews = useMemo(() => parseBusinessReviews(profileData.review), [profileData.review]);
+  const reviews = useMemo(
+    () => visibleMerchantReviews(parseBusinessReviews(profileData.review)),
+    [profileData.review]
+  );
   const ownerReply = useMemo(
     () => parseBusinessReviewReply(profileData.reviewReply),
     [profileData.reviewReply]
@@ -689,7 +694,7 @@ export default function MyListingTab({
                       className="rounded-lg border border-zinc-200/80 bg-zinc-50/40 px-4 py-3"
                     >
                       <div className="flex items-center justify-between gap-2">
-                        <p className="text-sm font-semibold text-zinc-800">{review.author}</p>
+                        <p className="text-sm font-semibold text-zinc-800">{publicReviewAuthor(review)}</p>
                         <span className="inline-flex items-center gap-0.5 text-xs text-amber-700">
                           <HiOutlineStar size={11} className="text-amber-500" />
                           {review.rating}

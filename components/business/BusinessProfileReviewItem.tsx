@@ -6,8 +6,9 @@ import Link from 'next/link';
 import { Flag, Star, X } from 'lucide-react';
 import { reportBusinessReview } from '@/app/actions/reviews';
 import { VerifiedUserTick } from '@/components/business/VerifiedMark';
+import ReviewIdBadge from '@/components/reviews/ReviewIdBadge';
 import { buildLoginHref } from '@/lib/authRedirect';
-import { isReviewAuthorVerified, type BusinessReview } from '@/lib/businessReviews';
+import { isAnonymousPublic, isReviewAuthorVerified, type BusinessReview } from '@/lib/businessReviews';
 
 const REPORT_SUGGESTIONS = [
   'Spam or fake review',
@@ -43,6 +44,7 @@ export default function BusinessProfileReviewItem({
   const [selectedReason, setSelectedReason] = useState<string>(REPORT_SUGGESTIONS[0]);
   const [otherDetails, setOtherDetails] = useState('');
   const showVerifiedBadge = isReviewAuthorVerified(review);
+  const anonymous = isAnonymousPublic(review);
   const loginHref = buildLoginHref(`${profileRedirectPath}#reviews`);
   const replyContent =
     review.merchantReply?.content?.trim() || defaultReply?.trim() || '';
@@ -234,24 +236,31 @@ export default function BusinessProfileReviewItem({
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-1.5">
               <p className="text-sm font-medium text-stone-900">{review.author}</p>
-              {showVerifiedBadge ? <VerifiedUserTick size={14} /> : null}
+              {anonymous ? (
+                <span className="rounded bg-stone-100 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-stone-500">
+                  Anonymous
+                </span>
+              ) : null}
+              {showVerifiedBadge && !anonymous ? <VerifiedUserTick size={14} /> : null}
             </div>
-            {review.date && <p className="text-xs text-stone-400">{review.date}</p>}
+            <div className="mt-1 flex flex-wrap items-center gap-2">
+              <div className="flex gap-0.5">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Star
+                    key={i}
+                    size={11}
+                    className={
+                      i < review.rating ? 'fill-amber-500 text-amber-500' : 'text-stone-200'
+                    }
+                  />
+                ))}
+              </div>
+              {review.date ? <p className="text-xs text-stone-400">{review.date}</p> : null}
+            </div>
           </div>
 
           <div className="flex shrink-0 items-center gap-2">
-            <div className="flex gap-0.5">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Star
-                  key={i}
-                  size={11}
-                  className={
-                    i < review.rating ? 'fill-amber-500 text-amber-500' : 'text-stone-200'
-                  }
-                />
-              ))}
-            </div>
-
+            <ReviewIdBadge reviewId={review.id} />
             {contactRevealed ? (
               <button
                 type="button"
@@ -261,8 +270,8 @@ export default function BusinessProfileReviewItem({
                 }}
                 disabled={reported}
                 className="inline-flex items-center gap-1 rounded-md border border-stone-200 px-2 py-1 text-[11px] font-medium text-stone-500 transition-colors hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 disabled:cursor-default disabled:opacity-60"
-                aria-label={reported ? 'Review reported' : 'Report review'}
-                title={reported ? 'Review reported' : 'Report review'}
+                aria-label={reported ? 'Review reported' : 'Flag review'}
+                title={reported ? 'Review reported' : 'Flag review'}
               >
                 <Flag size={12} />
                 {reported ? 'Reported' : 'Flag'}
@@ -271,7 +280,7 @@ export default function BusinessProfileReviewItem({
               <Link
                 href={loginHref}
                 className="inline-flex items-center gap-1 rounded-md border border-stone-200 px-2 py-1 text-[11px] font-medium text-stone-500 hover:border-stone-300 hover:bg-stone-50"
-                title="Sign in to report this review"
+                title="Sign in to flag this review"
               >
                 <Flag size={12} />
                 Flag

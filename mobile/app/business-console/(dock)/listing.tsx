@@ -9,6 +9,7 @@ import type { ConsoleOverview } from '../../../lib/merchantConsoleApi';
 import { ConsoleGate } from '../../../components/console/ConsoleGate';
 import {
   Btn,
+  ConsoleHeaderActions,
   ConsolePage,
   HeaderIcon,
   PUBLIC_SITE,
@@ -43,11 +44,13 @@ function ListingBody({ o }: { o: ConsoleOverview }) {
       subtitle="What customers see on FinderB"
       onBack={back}
       right={
-        <HeaderIcon
-          icon="eye-outline"
-          label="Preview storefront"
-          onPress={() => router.push({ pathname: '/(tabs)/merchant/[id]', params: { id: o.business.id, preview: '1' } })}
-        />
+        <ConsoleHeaderActions>
+          <HeaderIcon
+            icon="eye-outline"
+            label="Preview storefront"
+            onPress={() => router.push({ pathname: '/(tabs)/merchant/[id]', params: { id: o.business.id, preview: '1' } })}
+          />
+        </ConsoleHeaderActions>
       }
       docked
       refreshing={refreshing}

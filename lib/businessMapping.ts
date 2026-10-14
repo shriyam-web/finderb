@@ -1,7 +1,7 @@
 import { parseCoordinate } from '@/lib/geo';
 import { pickPublicBusinessEmail } from '@/lib/placeholderEmail';
 import { formatMerchantName } from '@/lib/formatMerchantName';
-import { getBusinessPublicRatingStats } from '@/lib/businessReviews';
+import { getBusinessPublicRatingStats, serializePublicReviewsForClient } from '@/lib/businessReviews';
 import { hasPublicTrustBadge } from '@/lib/businessVerification';
 import { parseBusinessServices } from '@/lib/parseBusinessServices';
 import { getMerchantSubscriptionStatus } from '@/lib/subscription/merchantSubscription';
@@ -208,7 +208,7 @@ export function mapBusinessRecord(business: Record<string, unknown>) {
       isFinderBVerified: Boolean(business.isFinderBVerified),
       hasVerifiedBadge: Boolean(business.hasVerifiedBadge),
     }),
-    review: business.review,
+    review: serializePublicReviewsForClient(business.review),
     reviewReply: business.reviewReply,
     keywords: Array.isArray(business.keywords) ? business.keywords : [],
     discountRange: (business.discountRange as string | null) ?? null,

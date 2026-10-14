@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { BackHandler, Pressable, Share, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter, type Href } from 'expo-router';
@@ -10,9 +10,12 @@ import { getRatingDisplay } from '../../../lib/ratingDisplay';
 import type { ConsoleOverview, MissingField } from '../../../lib/merchantConsoleApi';
 import { ConsoleGate } from '../../../components/console/ConsoleGate';
 import { AlertCarousel, BANNER_ART, type AlertSlide } from '../../../components/console/AlertCarousel';
+import { FinderBQrStudio } from '../../../components/console/FinderBQrStudio';
+import { setPreferredShell } from '../../../lib/preferredShell';
 import { ViewsChart } from '../../../components/console/ViewsChart';
 import {
   Btn,
+  ConsoleHeaderActions,
   ConsolePage,
   HeaderIcon,
   PUBLIC_SITE,
@@ -22,7 +25,8 @@ import {
   createConsoleStyles,
   timeAgo,
 } from '../../../components/console/kit';
-import { LEAD_STATUS_TONE } from '../../../components/console/leadStatus';
+import { LEAD_STATUS_TONE, pipelineOf } from '../../../components/console/leadStatus';
+import { LeadSourceBadge } from '../../../components/console/LeadSourceBadge';
 import { LISTING_SECTIONS } from '../../../components/console/listingSections';
 
 type IconName = keyof typeof Ionicons.glyphMap;
@@ -65,7 +69,7 @@ function missingIcon(key: string): IconName {
   return icons[key] ?? 'add-circle-outline';
 }
 
-function bannersFor(o: ConsoleOverview, go: Go): AlertSlide[] {
+function bannersFor(o: ConsoleOverview, go: Go, openStudio: () => void): AlertSlide[] {
   const slides: AlertSlide[] = [];
   const sub = o.subscription;
   const b = o.business;
@@ -153,6 +157,19 @@ function bannersFor(o: ConsoleOverview, go: Go): AlertSlide[] {
       cta: 'See plans',
       art: BANNER_ART.growth,
       onPress: () => go('/business-console/plan'),
+    });
+  }
+
+  if (o.stats.reviewCount < 10) {
+    slides.push({
+      key: 'reviews-visibility',
+      tone: 'info',
+      kicker: 'Higher visibility',
+      title: 'Get 10 reviews to rank higher',
+      body: 'Generate your FinderB QR card and send customers a one-tap review link.',
+      cta: 'Create QR card',
+      art: BANNER_ART.growth,
+      onPress: openStudio,
     });
   }
 
@@ -270,7 +287,7 @@ function Performance({ o, go }: { o: ConsoleOverview; go: Go }) {
   ];
   const funnel: { label: string; value: string; note: string; href: Href }[] = [
     { label: 'Leads', value: n(s.leadsTotal), note: `${s.leads7d} this week`, href: '/business-console/leads' },
-    { label: 'New', value: n(s.leadsNew), note: s.leadsNew ? 'Reply now' : 'All caught up', href: '/business-console/leads' },
+    { label: 'To contact', value: n(s.leadsNew), note: s.leadsNew ? 'Reply now' : 'All caught up', href: '/business-console/leads' },
     {
       label: 'Won',
       value: n(s.leadsConverted),
@@ -429,7 +446,10 @@ function RecentLeads({ o, go }: { o: ConsoleOverview; go: Go }) {
                   {lead.created_at ? ` · ${timeAgo(lead.created_at)}` : ''}
                 </Text>
               </View>
-              <Tag label={lead.status} tone={LEAD_STATUS_TONE[lead.status] ?? 'neutral'} />
+              <View style={{ alignItems: 'flex-end', gap: 4 }}>
+                <LeadSourceBadge lead={lead} />
+                <Tag label={pipelineOf(lead.status)} tone={LEAD_STATUS_TONE[pipelineOf(lead.status)] ?? 'neutral'} />
+              </View>
             </Pressable>
           ))
         ) : (
@@ -567,33 +587,39 @@ function HomeBody({ o }: { o: ConsoleOverview }) {
   const styles = useStyles();
   const router = useRouter();
   const { refresh, refreshing } = useMerchantConsole();
+  const [qrOpen, setQrOpen] = useState(false);
   const go: Go = (href) => router.push(href);
-  const slides = bannersFor(o, go);
+  const slides = bannersFor(o, go, () => setQrOpen(true));
   const firstName = (o.business.ownerName || '').trim().split(/\s+/)[0];
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
-  const toFinderBHome = () => router.replace('/(tabs)/home' as Href);
+  const toFinderBHome = () => {
+    void setPreferredShell('user').then(() => router.replace('/(tabs)/home' as Href));
+  };
 
   useEffect(() => {
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
-      router.replace('/(tabs)/home' as Href);
+      void setPreferredShell('user').then(() => router.replace('/(tabs)/home' as Href));
       return true;
     });
     return () => sub.remove();
   }, [router]);
 
   return (
+    <>
     <ConsolePage
       title="Home"
       subtitle={`${greeting}${firstName ? `, ${firstName}` : ''}`}
       onBack={toFinderBHome}
       right={
-        <HeaderIcon
-          icon="notifications-outline"
-          label="Notifications"
-          badge={o.notifications.unread}
-          onPress={() => go('/business-console/alerts')}
-        />
+        <ConsoleHeaderActions>
+          <HeaderIcon
+            icon="notifications-outline"
+            label="Notifications"
+            badge={o.notifications.unread}
+            onPress={() => go('/business-console/alerts')}
+          />
+        </ConsoleHeaderActions>
       }
       docked
       refreshing={refreshing}
@@ -615,6 +641,15 @@ function HomeBody({ o }: { o: ConsoleOverview }) {
       </Section>
       <Text style={styles.footNote}>Pull down to refresh · Numbers update every few minutes</Text>
     </ConsolePage>
+      <FinderBQrStudio
+        visible={qrOpen}
+        businessName={o.business.name}
+        category={o.business.category}
+        city={o.business.city}
+        slugOrId={o.business.slug || o.business.id}
+        onClose={() => setQrOpen(false)}
+      />
+    </>
   );
 }
 

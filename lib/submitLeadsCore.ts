@@ -4,7 +4,12 @@ import { createServiceClient } from '@/lib/supabase/service';
 import { createClient } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';
 import { DIRECT_LEAD_MESSAGES, type ContactIntent } from '@/lib/directLead';
-import { CATEGORY_LEAD_BADGE, DIRECT_LEAD_BADGE, PROFILE_LEAD_BADGE } from '@/lib/leadBadges';
+import {
+  CATEGORY_LEAD_BADGE,
+  DEFAULT_LEAD_STATUS,
+  DIRECT_LEAD_BADGE,
+  PROFILE_LEAD_BADGE,
+} from '@/lib/leadBadges';
 import { escapeIlikePattern } from '@/lib/searchMatch';
 import { recordMerchantNotification } from '@/lib/merchantAlert.server';
 import { queueBusinessPush } from '@/lib/userNotifications.server';
@@ -63,7 +68,7 @@ export async function recordDirectLeadForActor(params: {
       .from('leads')
       .select('id')
       .eq('business_id', businessId)
-      .eq('status', DIRECT_LEAD_BADGE)
+      .or(`source.eq.${DIRECT_LEAD_BADGE},status.eq.${DIRECT_LEAD_BADGE}`)
       .eq('message', message)
       .gte('created_at', since);
 
@@ -84,7 +89,8 @@ export async function recordDirectLeadForActor(params: {
       category: String(business.category || 'General'),
       business_id: businessId,
       message,
-      status: DIRECT_LEAD_BADGE,
+      status: DEFAULT_LEAD_STATUS,
+      source: DIRECT_LEAD_BADGE,
       created_at: now,
       updated_at: now,
     });
@@ -180,7 +186,8 @@ export async function submitBroadcastEnquiryForUser(data: {
       category: category.trim(),
       business_id: businessId,
       message: lookingFor.trim(),
-      status: businessId === sourceBusinessId ? PROFILE_LEAD_BADGE : CATEGORY_LEAD_BADGE,
+      status: DEFAULT_LEAD_STATUS,
+      source: businessId === sourceBusinessId ? PROFILE_LEAD_BADGE : CATEGORY_LEAD_BADGE,
       created_at: now,
       updated_at: now,
     }));

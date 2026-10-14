@@ -1,5 +1,6 @@
 import { Alert, Pressable, Text, View } from 'react-native';
 import { useRouter, type Href } from 'expo-router';
+import { setPreferredShell } from '../../../lib/preferredShell';
 import { fonts } from '../../../constants/typography';
 import { useAuth } from '../../../context/AuthContext';
 import { useTheme } from '../../../context/ThemeContext';
@@ -32,6 +33,7 @@ function MoreBody({ o }: { o: ConsoleOverview }) {
         text: 'Log out',
         style: 'destructive',
         onPress: async () => {
+          await setPreferredShell('user');
           await signOut();
           router.replace('/(tabs)/home' as Href);
         },
@@ -145,7 +147,9 @@ function MoreBody({ o }: { o: ConsoleOverview }) {
         <Row
           icon="compass-outline"
           label="Browse FinderB"
-          onPress={() => router.replace('/(tabs)/home' as Href)}
+          onPress={() => {
+            void setPreferredShell('user').then(() => router.replace('/(tabs)/home' as Href));
+          }}
         />
         <Row icon="log-out-outline" label="Log out" tone="danger" onPress={logOut} last />
       </Panel>

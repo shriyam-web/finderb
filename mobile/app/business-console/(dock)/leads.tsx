@@ -9,6 +9,7 @@ import { isFailure, type ConsoleLead } from '../../../lib/merchantConsoleApi';
 import { ConsoleGate } from '../../../components/console/ConsoleGate';
 import {
   Chip,
+  ConsoleHeaderActions,
   ConsolePage,
   Empty,
   HeaderIcon,
@@ -17,7 +18,15 @@ import {
   timeAgo,
   useTabBack,
 } from '../../../components/console/kit';
-import { LEAD_STATUSES, LEAD_STATUS_TONE, dialable, type LeadStatus } from '../../../components/console/leadStatus';
+import {
+  LEAD_STATUSES,
+  LEAD_STATUS_TONE,
+  dialable,
+  isOpenPipeline,
+  pipelineOf,
+  type LeadStatus,
+} from '../../../components/console/leadStatus';
+import { LeadSourceBadge } from '../../../components/console/LeadSourceBadge';
 
 type Filter = 'All' | LeadStatus;
 
@@ -46,7 +55,10 @@ function LeadCard({
             <Text style={styles.name} numberOfLines={1}>
               {lead.name || 'Customer'}
             </Text>
-            <Tag label={lead.status} tone={LEAD_STATUS_TONE[lead.status] ?? 'neutral'} />
+            <Tag label={pipelineOf(lead.status)} tone={LEAD_STATUS_TONE[pipelineOf(lead.status)] ?? 'neutral'} />
+          </View>
+          <View style={{ marginTop: 4 }}>
+            <LeadSourceBadge lead={lead} />
           </View>
           <Text style={styles.meta} numberOfLines={1}>
             {[lead.category, timeAgo(lead.created_at)].filter(Boolean).join(' · ')}
@@ -112,7 +124,7 @@ function LeadCard({
 
       <View style={styles.track}>
         {LEAD_STATUSES.map((status) => {
-          const active = lead.status === status;
+          const active = pipelineOf(lead.status) === status;
           return (
             <Pressable
               key={status}
@@ -167,11 +179,14 @@ function LeadsBody() {
 
   const counts = useMemo(() => {
     const out: Record<string, number> = { All: leads?.length ?? 0 };
-    for (const lead of leads ?? []) out[lead.status] = (out[lead.status] ?? 0) + 1;
+    for (const lead of leads ?? []) {
+      const status = pipelineOf(lead.status);
+      out[status] = (out[status] ?? 0) + 1;
+    }
     return out;
   }, [leads]);
 
-  const visible = (leads ?? []).filter((lead) => filter === 'All' || lead.status === filter);
+  const visible = (leads ?? []).filter((lead) => filter === 'All' || pipelineOf(lead.status) === filter);
 
   const changeStatus = async (lead: ConsoleLead, status: LeadStatus) => {
     setBusyId(lead.id);
@@ -195,15 +210,21 @@ function LeadsBody() {
   return (
     <ConsolePage
       title="Leads"
-      subtitle={leads ? `${leads.length} total · ${counts.New ?? 0} new` : 'Customer enquiries'}
+      subtitle={
+        leads
+          ? `${leads.length} total · ${leads.filter((lead) => isOpenPipeline(lead.status)).length} to contact`
+          : 'Customer enquiries'
+      }
       onBack={back}
       right={
-        <HeaderIcon
-          icon="notifications-outline"
-          label="Notifications"
-          badge={overview?.notifications.unread}
-          onPress={() => router.push('/business-console/alerts')}
-        />
+        <ConsoleHeaderActions>
+          <HeaderIcon
+            icon="notifications-outline"
+            label="Notifications"
+            badge={overview?.notifications.unread}
+            onPress={() => router.push('/business-console/alerts')}
+          />
+        </ConsoleHeaderActions>
       }
       docked
       refreshing={refreshing}

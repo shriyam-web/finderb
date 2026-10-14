@@ -20,7 +20,8 @@ export default function ConsoleDockLayout() {
       <Tabs.Screen name="leads" options={{ title: 'Leads' }} />
       <Tabs.Screen name="listing" options={{ title: 'Listing' }} />
       <Tabs.Screen name="reviews" options={{ title: 'Reviews' }} />
-      <Tabs.Screen name="more" options={{ title: 'More' }} />
+      <Tabs.Screen name="subscription" options={{ title: 'Plan' }} />
+      <Tabs.Screen name="more" options={{ href: null, title: 'More' }} />
     </Tabs>
   );
 }

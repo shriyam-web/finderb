@@ -2,9 +2,11 @@
 
 import { createDataClient } from '@/utils/supabase/server';
 import {
+  BUSINESS_REVIEW_FLAGS_PER_MONTH,
   normalizeReviewReplyForStorage,
   parseBusinessReviews,
   serializeBusinessReviewsForStorage,
+  toMerchantReviews,
   validateReviewReplyContent,
 } from '@/lib/businessReviews';
 import { enforceRateLimit } from '@/lib/security/enforceRateLimit.server';
@@ -12,6 +14,8 @@ import { assertBusinessSession, getSessionBusinessId, getSessionUserId } from '@
 import { revalidateBusinessProfilePaths } from '@/lib/businessRevalidation';
 import { submitBusinessReviewForUser } from '@/lib/submitBusinessReviewCore';
 import { reportBusinessReviewAs } from '@/lib/reportBusinessReviewCore';
+import { countBusinessReviewFlagsThisMonth } from '@/lib/reviewModeration.server';
+import { userOwnsOrManagesBusiness } from '@/lib/reviewIdentity.server';
 
 async function getLoggedInUser() {
   const userId = await getSessionUserId();
@@ -28,10 +32,51 @@ async function getLoggedInUser() {
   return user as { id: string; fullName: string };
 }
 
+export async function getBusinessReviewEligibility(businessId: string) {
+  const listingId = businessId?.trim();
+  if (!listingId) {
+    return { canReview: false as const, reason: 'missing' as const };
+  }
+
+  const businessSessionId = await getSessionBusinessId();
+  if (businessSessionId && businessSessionId === listingId) {
+    return { canReview: false as const, reason: 'own' as const };
+  }
+
+  const userId = await getSessionUserId();
+  if (!userId) {
+    return { canReview: false as const, reason: 'login' as const };
+  }
+
+  if (await userOwnsOrManagesBusiness(userId, listingId)) {
+    return { canReview: false as const, reason: 'own' as const };
+  }
+
+  return { canReview: true as const, reason: null };
+}
+
+export async function getMerchantReviewFlagQuota(businessId: string) {
+  const listingId = businessId?.trim();
+  if (!listingId) {
+    return { success: false as const, error: 'Business ID is required' };
+  }
+  const auth = await assertBusinessSession(listingId);
+  if (!auth.ok) return { success: false as const, error: auth.error };
+  const used = await countBusinessReviewFlagsThisMonth(listingId);
+  return {
+    success: true as const,
+    flagsUsed: used,
+    flagsRemaining: Math.max(0, BUSINESS_REVIEW_FLAGS_PER_MONTH - used),
+    flagsLimit: BUSINESS_REVIEW_FLAGS_PER_MONTH,
+  };
+}
+
 export async function submitBusinessReview(data: {
   businessId: string;
   rating: number;
   content: string;
+  anonymous?: boolean;
+  anonymousReason?: string;
 }) {
   const writeLimit = await enforceRateLimit('write', 'business-review');
   if (!writeLimit.ok) return { success: false as const, error: writeLimit.error };
@@ -47,6 +92,8 @@ export async function submitBusinessReview(data: {
     businessId: data.businessId,
     rating: data.rating,
     content: data.content,
+    anonymous: data.anonymous,
+    anonymousReason: data.anonymousReason,
   });
 }
 
@@ -121,7 +168,7 @@ export async function upsertMerchantReviewReply(data: {
 
     return {
       success: true as const,
-      reviews: nextReviews,
+      reviews: toMerchantReviews(nextReviews),
     };
   } catch (error) {
     console.error('Upsert Merchant Review Reply Error:', error);
@@ -149,4 +196,33 @@ export async function reportBusinessReview(data: {
     return { success: false as const, error: 'Please sign in to report a review.' };
   }
   return reportBusinessReviewAs(reporterKey, data);
+}
+
+export async function flagMerchantReview(data: {
+  businessId: string;
+  reviewId: string;
+  reason: string;
+}) {
+  const businessId = data.businessId?.trim();
+  if (!businessId) return { success: false as const, error: 'Business ID is required' };
+
+  const auth = await assertBusinessSession(businessId);
+  if (!auth.ok) {
+    return { success: false as const, error: auth.error };
+  }
+
+  const result = await reportBusinessReviewAs(`business:${businessId}`, {
+    businessId,
+    reviewId: data.reviewId,
+    reason: data.reason,
+  });
+  if (!result.success) return result;
+
+  const used = await countBusinessReviewFlagsThisMonth(businessId);
+  return {
+    ...result,
+    flagsUsed: used,
+    flagsRemaining: Math.max(0, BUSINESS_REVIEW_FLAGS_PER_MONTH - used),
+    flagsLimit: BUSINESS_REVIEW_FLAGS_PER_MONTH,
+  };
 }

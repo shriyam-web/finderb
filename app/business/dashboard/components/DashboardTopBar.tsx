@@ -1,6 +1,6 @@
 'use client';
 
-import { HiOutlineBell } from 'react-icons/hi2';
+import { HiOutlineBars3, HiOutlineBell } from 'react-icons/hi2';
 import { formatDateTimeInr } from '@/lib/formatDateTime';
 import {
   broadcastShowsDatetime,
@@ -62,6 +62,7 @@ type DashboardTopBarProps = {
   onOpenNotification?: (item: DashboardNotification) => void;
   onMarkAllRead?: () => void;
   notifications: DashboardNotification[];
+  onOpenMenu?: () => void;
 };
 
 function itemCta(n: DashboardNotification) {
@@ -82,6 +83,7 @@ export default function DashboardTopBar({
   onOpenNotification,
   onMarkAllRead,
   notifications,
+  onOpenMenu,
 }: DashboardTopBarProps) {
   const meta = tabMeta[activeTab] || { title: activeTab, description: '' };
 
@@ -94,7 +96,17 @@ export default function DashboardTopBar({
         )}
       </div>
 
-      <div className="relative shrink-0">
+      <div className="relative flex shrink-0 items-center gap-2">
+        {onOpenMenu ? (
+          <button
+            type="button"
+            onClick={onOpenMenu}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-zinc-200 text-zinc-700 hover:bg-zinc-50 lg:hidden"
+            aria-label="Open more"
+          >
+            <HiOutlineBars3 size={18} />
+          </button>
+        ) : null}
         <button
           type="button"
           onClick={onNotificationsToggle}

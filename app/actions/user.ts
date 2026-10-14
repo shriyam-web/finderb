@@ -236,12 +236,18 @@ export async function getSession() {
   if (!result.success || !result.user) return null;
   const user = result.user as { email?: string | null; phone?: string | null };
   const business = await findBusinessForIdentity({ email: user.email, phone: user.phone });
-  if (!business) return { success: true, user: { ...result.user, isBusinessAccount: false } };
+  if (!business) {
+    return { success: true, user: { ...result.user, isBusinessAccount: false, businessId: null } };
+  }
+  void import('@/lib/businessUserLinks.server').then(({ rememberBusinessUserLink }) =>
+    rememberBusinessUserLink(userId, business.id, 'identity')
+  );
   return {
     success: true,
     user: {
       ...withBusinessProfile(result.user, business),
       isBusinessAccount: true,
+      businessId: business.id,
       businessName: business.businessName,
     },
   };

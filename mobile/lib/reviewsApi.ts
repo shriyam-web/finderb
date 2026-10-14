@@ -32,6 +32,8 @@ function mapReviews(raw: unknown): MerchantReview[] {
       date: String(row.date || '').trim(),
       userId: typeof row.userId === 'string' ? row.userId : undefined,
       authorVerified: Boolean(row.authorVerified),
+      anonymous: Boolean(row.anonymous) || undefined,
+      hidden: Boolean(row.hidden) || undefined,
       merchantReply:
         row.merchantReply && typeof row.merchantReply === 'object'
           ? {
@@ -49,6 +51,8 @@ export async function submitBusinessReview(input: {
   businessId: string;
   rating: number;
   content: string;
+  anonymous?: boolean;
+  anonymousReason?: string;
 }): Promise<SubmitReviewResult> {
   const token = await getStoredToken();
   if (!token) {
@@ -71,6 +75,8 @@ export async function submitBusinessReview(input: {
         businessId: input.businessId,
         rating: input.rating,
         content: input.content,
+        anonymous: Boolean(input.anonymous),
+        anonymousReason: input.anonymousReason || '',
       }),
     });
 

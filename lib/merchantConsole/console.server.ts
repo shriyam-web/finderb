@@ -7,7 +7,18 @@ import {
   updateBusinessProfile,
 } from '@/app/actions/business';
 import { getBusinessLeads, updateLeadStatus } from '@/app/actions/leads';
-import { upsertMerchantReviewReply } from '@/app/actions/reviews';
+import { isOpenLead } from '@/lib/leadBadges';
+import {
+  BUSINESS_REVIEW_FLAGS_PER_MONTH,
+  getBusinessPublicRatingStats,
+  getReviewReplyDraft,
+  parseBusinessReviews,
+  REVIEW_REPLY_MAX_LENGTH,
+  REVIEW_REPLY_MIN_LENGTH,
+  toMerchantReview,
+  visibleMerchantReviews,
+} from '@/lib/businessReviews';
+import { countBusinessReviewFlagsThisMonth } from '@/lib/reviewModeration.server';
 import { createJob, deleteJob, getJobsByBusiness, updateJob } from '@/app/actions/job';
 import { getBusinessProfileViewStats } from '@/app/actions/analytics';
 import { merchantNotificationCta } from '@/lib/merchantNotificationCta';
@@ -36,13 +47,7 @@ import {
 import { PROFILE_LINK_FIELDS, validateProfileLink } from '@/lib/validateProfileUrl';
 import { isValidEstablishmentYear, minEstablishmentYear } from '@/lib/establishmentYear';
 import { MAX_SEARCH_KEYWORDS } from '@/lib/businessKeywords';
-import {
-  getBusinessPublicRatingStats,
-  getReviewReplyDraft,
-  parseBusinessReviews,
-  REVIEW_REPLY_MAX_LENGTH,
-  REVIEW_REPLY_MIN_LENGTH,
-} from '@/lib/businessReviews';
+import { flagMerchantReview, upsertMerchantReviewReply } from '@/app/actions/reviews';
 import { businessHasPublicPhoto, normalizeBusinessImages } from '@/lib/businessMapping';
 import { getBusinessProfilePath } from '@/lib/businessSlug';
 import { broadcastTargetsMerchants } from '@/lib/broadcastAudience';
@@ -148,17 +153,47 @@ function photosOf(business: Business) {
   };
 }
 
-function reviewsOf(business: Business) {
-  return parseBusinessReviews(business.review).map((review) => ({
-    id: review.id,
-    author: review.author,
-    rating: review.rating,
-    content: review.content,
-    date: review.date,
-    reply: review.merchantReply?.content?.trim()
-      ? { content: review.merchantReply.content.trim(), date: review.merchantReply.date || null }
-      : null,
-  }));
+function reviewsOf(
+  business: Business,
+  flaggedIds: Set<string> = new Set()
+) {
+  return visibleMerchantReviews(parseBusinessReviews(business.review)).map((review) => {
+    const view = toMerchantReview(review);
+    return {
+      id: view.id,
+      author: view.author,
+      rating: view.rating,
+      content: view.content,
+      date: view.date,
+      anonymous: Boolean(view.anonymous),
+      hidden: Boolean(view.hidden),
+      flagged: flaggedIds.has(view.id),
+      reply: review.merchantReply?.content?.trim()
+        ? { content: review.merchantReply.content.trim(), date: review.merchantReply.date || null }
+        : null,
+    };
+  });
+}
+
+async function reviewFlagState(businessId: string) {
+  const supabase = createServiceClient();
+  const limit = BUSINESS_REVIEW_FLAGS_PER_MONTH;
+  if (!supabase) {
+    return { used: 0, remaining: limit, limit, flaggedIds: new Set<string>() };
+  }
+  const [{ data }, used] = await Promise.all([
+    supabase
+      .from('review_reports')
+      .select('review_id')
+      .eq('reporter_key', `business:${businessId}`),
+    countBusinessReviewFlagsThisMonth(businessId),
+  ]);
+  return {
+    used,
+    remaining: Math.max(0, limit - used),
+    limit,
+    flaggedIds: new Set((data || []).map((row) => String(row.review_id))),
+  };
 }
 
 function maskLeads<T extends { email: string | null; phone: string | null }>(leads: T[], unlocked: boolean) {
@@ -295,7 +330,8 @@ async function overview(businessId: string) {
     subscription,
   });
   const ratingStats = getBusinessPublicRatingStats(business.review);
-  const reviews = reviewsOf(business);
+  const flagState = await reviewFlagState(businessId);
+  const reviews = reviewsOf(business, flagState.flaggedIds);
   const status = String(business.status || 'Pending');
   const category = text(business.category);
 
@@ -351,7 +387,7 @@ async function overview(businessId: string) {
       views30d: views.viewsLast30Days ?? 0,
       viewsAllTime: views.viewsAllTime ?? 0,
       leadsTotal: leads.length,
-      leadsNew: leads.filter((lead) => lead.status === 'New' || lead.status === 'New Lead').length,
+      leadsNew: leads.filter((lead) => isOpenLead(lead)).length,
       leads7d: leads.filter(
         (lead) => lead.created_at && Date.now() - new Date(lead.created_at).getTime() <= 7 * 24 * 60 * 60 * 1000,
       ).length,
@@ -367,6 +403,11 @@ async function overview(businessId: string) {
     },
     leads: maskLeads(leads.slice(0, 5), subscription.isActive),
     reviews,
+    reviewFlags: {
+      used: flagState.used,
+      remaining: flagState.remaining,
+      limit: flagState.limit,
+    },
     notifications,
     limits: {
       aboutMaxWords: ABOUT_BUSINESS_MAX_WORDS,
@@ -497,7 +538,15 @@ async function leads(businessId: string) {
 }
 
 async function setLeadStatus(leadId: unknown, status: unknown) {
-  const allowed = ['New', 'Contacted', 'Converted', 'Closed'];
+  const allowed = [
+    'To be contacted',
+    'Asked to connect later',
+    'Contacted',
+    'Not interested',
+    'Wrong lead',
+    'Converted',
+    'Closed',
+  ];
   if (typeof leadId !== 'string' || typeof status !== 'string' || !allowed.includes(status)) {
     return fail('Choose a valid status.');
   }
@@ -510,6 +559,16 @@ async function replyReview(businessId: string, reviewId: unknown, content: unkno
     businessId,
     reviewId: String(reviewId || ''),
     content: String(content || ''),
+  });
+  if (!result.success) return fail(result.error);
+  return overview(businessId);
+}
+
+async function flagReview(businessId: string, reviewId: unknown, reason: unknown) {
+  const result = await flagMerchantReview({
+    businessId,
+    reviewId: String(reviewId || ''),
+    reason: String(reason || ''),
   });
   if (!result.success) return fail(result.error);
   return overview(businessId);
@@ -743,6 +802,8 @@ export async function runConsoleAction(userId: string, businessId: string, body:
       return setLeadStatus(body.leadId, body.status);
     case 'replyReview':
       return replyReview(businessId, body.reviewId, body.content);
+    case 'flagReview':
+      return flagReview(businessId, body.reviewId, body.reason);
     case 'jobs':
       return jobs(businessId);
     case 'saveJob':

@@ -14,6 +14,7 @@ import {
   recordDirectLeadForActor,
   submitBroadcastEnquiryForUser,
 } from '@/lib/submitLeadsCore';
+import { isLeadPipelineStatus } from '@/lib/leadBadges';
 
 export type BusinessLead = {
   id: string;
@@ -24,6 +25,7 @@ export type BusinessLead = {
   business_id: string | null;
   message: string | null;
   status: string;
+  source?: string | null;
   created_at: string | null;
   updated_at: string | null;
 };
@@ -113,6 +115,9 @@ export async function updateLeadStatus(leadId: string, status: string) {
   try {
     if (!leadId || !status?.trim()) {
       return { success: false as const, error: 'Lead ID and status are required' };
+    }
+    if (!isLeadPipelineStatus(status.trim())) {
+      return { success: false as const, error: 'Choose a valid lead status.' };
     }
 
     const sessionId = await getSessionBusinessId();

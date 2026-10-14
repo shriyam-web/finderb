@@ -6,8 +6,23 @@ export type MerchantReview = {
   date: string;
   userId?: string;
   authorVerified?: boolean;
+  anonymous?: boolean;
+  hidden?: boolean;
   merchantReply?: { content: string };
 };
+
+function maskReviewAuthorName(name: string): string {
+  const trimmed = name.trim() || 'Customer';
+  return trimmed
+    .split(/\s+/)
+    .map((word) => {
+      if (!word) return word;
+      const first = word[0];
+      if (word.length === 1) return first;
+      return `${first}${'x'.repeat(word.length - 1)}`;
+    })
+    .join(' ');
+}
 
 export type Merchant = {
   id: string;
@@ -243,15 +258,21 @@ function parseReviews(review: unknown): MerchantReview[] {
     const entry = raw as Record<string, unknown>;
     const content = String(entry.content || entry.text || '').trim();
     if (!content) return null;
+    if (entry.deleted) return null;
     const rating = Number(entry.rating);
+    const anonymous =
+      Boolean(entry.anonymous) && String(entry.anonymityStatus || '') !== 'revealed';
+    const rawAuthor = String(entry.author || entry.name || 'Customer').trim() || 'Customer';
     return {
       id: String(entry.id || `r-${index}`),
-      author: String(entry.author || entry.name || 'Customer').trim() || 'Customer',
+      author: anonymous ? maskReviewAuthorName(rawAuthor) : rawAuthor,
       content,
       rating: Number.isFinite(rating) ? rating : 5,
       date: String(entry.date || entry.createdAt || '').trim(),
       userId: typeof entry.userId === 'string' ? entry.userId : undefined,
-      authorVerified: Boolean(entry.authorVerified),
+      authorVerified: anonymous ? false : Boolean(entry.authorVerified),
+      anonymous: anonymous || undefined,
+      hidden: Boolean(entry.hidden) || undefined,
       merchantReply:
         entry.merchantReply && typeof entry.merchantReply === 'object'
           ? {
@@ -314,7 +335,7 @@ export function mapMerchantRow(row: Record<string, unknown>): Merchant {
   const displayName = String(row.displayName || '').trim();
   const businessName = String(row.businessName || '').trim();
   const name = displayName || businessName || 'Business';
-  const reviews = parseReviews(row.review);
+  const reviews = parseReviews(row.review).filter((review) => !review.hidden);
   const { rating, reviewsCount } = ratingStats(reviews);
   const profile = firstUrl(row.profilePictureUrl);
   const images = parseGallery(row.images, profile);

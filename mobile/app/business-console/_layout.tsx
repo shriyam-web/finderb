@@ -5,12 +5,17 @@ import { useAuth } from '../../context/AuthContext';
 import { MerchantConsoleProvider } from '../../context/MerchantConsoleContext';
 import { useConsoleColors } from '../../constants/consoleColors';
 import { ToastHost } from '../../components/console/kit';
+import { setPreferredShell } from '../../lib/preferredShell';
 
 export default function BusinessConsoleLayout() {
   const c = useConsoleColors();
   const router = useRouter();
   const { user, loading } = useAuth();
   const isMerchant = Boolean(user?.isBusinessAccount);
+
+  useEffect(() => {
+    if (isMerchant) void setPreferredShell('business');
+  }, [isMerchant]);
 
   useEffect(() => {
     if (loading || isMerchant) return;

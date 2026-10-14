@@ -26,6 +26,7 @@ import {
 } from '../lib/session';
 import { registerDevicePushToken } from '../lib/pushNotifications';
 import { stampNotificationSince } from '../lib/notificationInbox';
+import { setPreferredShell } from '../lib/preferredShell';
 
 type AuthContextValue = {
   user: AuthUser | null;
@@ -163,6 +164,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signOut: async () => {
         await clearSession();
         await clearGuestMode();
+        await setPreferredShell('user').catch(() => undefined);
         setUser(null);
       },
       refresh,
