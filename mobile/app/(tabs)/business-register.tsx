@@ -39,7 +39,6 @@ import { checkPinInsideCity, type MapPin } from '../../lib/mapPlace';
 import { mobileInputDigits, PHONE_INPUT_MAX_LENGTH } from '../../lib/phoneInput';
 import { ShopMapPicker } from '../../components/ShopMapPicker';
 import { OtpCodeBoxes } from '../../components/OtpCodeBoxes';
-import { openMerchantLogin } from '../../lib/merchantWeb';
 import { useAuth } from '../../context/AuthContext';
 
 const UI = fonts.medium;
@@ -1248,7 +1247,7 @@ export default function BusinessRegisterScreen() {
               </View>
               <Text style={styles.doneTitle}>You’re listed.</Text>
               <Text style={styles.doneBody}>
-                {form.businessName} is registered. To manage the listing, photos, and leads, sign in on the FinderB website with {form.email.trim()}.
+                {form.businessName} is registered. Open the in-app dashboard to manage the listing, photos, and leads.
               </Text>
               <View style={styles.doneNote}>
                 <Ionicons name="time-outline" size={18} color={biz.blueDeep} />
@@ -1259,9 +1258,9 @@ export default function BusinessRegisterScreen() {
               </View>
               <Pressable
                 style={({ pressed }) => [styles.primaryBtn, pressed && styles.pressed]}
-                onPress={() => void openMerchantLogin()}
+                onPress={() => router.replace('/business-console' as Href)}
               >
-                <Text style={styles.primaryText}>Manage on the website</Text>
+                <Text style={styles.primaryText}>Open dashboard</Text>
               </Pressable>
             </View>
           ) : null}

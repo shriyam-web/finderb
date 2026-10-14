@@ -57,6 +57,7 @@ import PlanPurchaseBanner from './components/PlanPurchaseBanner';
 import ProfileIncompleteBanner from './components/ProfileIncompleteBanner';
 import ReviewsTab from './components/ReviewsTab';
 import { getMerchantNotifications, markMerchantNotificationsRead } from '@/app/actions/merchantNotifications';
+import { merchantNotificationCta } from '@/lib/merchantNotificationCta';
 import { broadcastTargetsMerchants } from '@/lib/broadcastAudience';
 import { getMerchantSubscriptionStatus } from '@/lib/subscription/merchantSubscription';
 import {
@@ -408,14 +409,21 @@ function DashboardContent() {
 
       const merchantItems =
         merchantResult?.success
-          ? merchantResult.notifications.map((item) => ({
-              id: item.id,
-              title: item.title || 'Alert',
-              message: item.body,
-              created_at: item.created_at,
-              source: 'merchant' as const,
-              read: Boolean(item.read_at),
-            }))
+          ? merchantResult.notifications.map((item) => {
+              const cta = merchantNotificationCta(item.type, item.metadata);
+              return {
+                id: item.id,
+                title: item.title || 'Alert',
+                message: item.body,
+                created_at: item.created_at,
+                source: 'merchant' as const,
+                type: item.type,
+                read: Boolean(item.read_at),
+                cta_url: cta.url,
+                cta_label: cta.label,
+                show_datetime: true,
+              };
+            })
           : [];
 
       const broadcastNotifications = broadcastItems.map(
@@ -447,7 +455,7 @@ function DashboardContent() {
       setNotifications(merged);
       const unreadMerchant = merchantResult?.success ? merchantResult.unreadCount : 0;
       setMerchantAlertCount(unreadMerchant);
-      setUnreadCount(unreadMerchant + broadcastNotifications.length);
+      setUnreadCount(unreadMerchant);
     };
 
     if (business) {
@@ -828,6 +836,22 @@ function DashboardContent() {
           activeTab={activeTab}
           unreadCount={unreadCount}
           isNotificationsOpen={isNotificationsOpen}
+          onOpenNotification={(item) => {
+            const url = String(item.cta_url || '').trim();
+            setIsNotificationsOpen(false);
+            if (url.startsWith('/')) {
+              router.push(url);
+            } else if (/^https?:\/\//i.test(url)) {
+              window.open(url, '_blank', 'noopener,noreferrer');
+            }
+          }}
+          onMarkAllRead={async () => {
+            if (!businessId) return;
+            await markMerchantNotificationsRead(businessId);
+            setMerchantAlertCount(0);
+            setUnreadCount(0);
+            setNotifications((prev) => prev.map((item) => ({ ...item, read: true })));
+          }}
           onNotificationsToggle={async () => {
             const nextOpen = !isNotificationsOpen;
             setIsNotificationsOpen(nextOpen);
@@ -968,6 +992,7 @@ function DashboardContent() {
             <ReviewsTab
               businessId={businessId}
               reviewData={profileData.review}
+              highlightReviewId={searchParams.get('reviewId')}
               onReviewsChange={(reviews) => {
                 setProfileData((prev) => ({ ...prev, review: reviews }));
                 setBusiness((prev: typeof business) => (prev ? { ...prev, review: reviews } : prev));

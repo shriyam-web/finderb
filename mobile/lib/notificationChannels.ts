@@ -20,6 +20,50 @@ export function isBusinessNotification(data: Record<string, unknown> | undefined
   return data.audience === 'business' || data.type === 'lead' || data.type === 'review';
 }
 
+function isRemotePushTrigger(trigger: Notifications.NotificationTrigger | null): boolean {
+  if (!trigger || typeof trigger !== 'object') return false;
+  const type = 'type' in trigger ? String(trigger.type) : '';
+  return type === 'push' || type === 'remote';
+}
+
+/** Expo often swallows remote heads-up while the app is open; replay as a local alert. */
+export async function presentForegroundPush(
+  notification: Notifications.Notification,
+): Promise<void> {
+  if (Platform.OS === 'web') return;
+  const identifier = notification.request.identifier || '';
+  if (identifier.startsWith('fg-')) return;
+
+  const data = (notification.request.content.data || {}) as Record<string, unknown>;
+  if (String(data._localReplay || '') === '1') return;
+
+  const trigger = notification.request.trigger;
+  const remote =
+    isRemotePushTrigger(trigger) ||
+    (trigger == null && Boolean(data.type || data.audience));
+  if (!remote) return;
+
+  const show = isBusinessNotification(data) === (deviceAudience === 'business');
+  if (!show) return;
+
+  const content = notification.request.content;
+  try {
+    await Notifications.scheduleNotificationAsync({
+      identifier: `fg-${identifier || Date.now()}`,
+      content: {
+        title: content.title || 'FinderB',
+        body: content.body || '',
+        data: { ...data, _localReplay: '1' },
+        sound: 'default',
+        ...(Platform.OS === 'android' ? { channelId: UPDATES_CHANNEL } : null),
+      },
+      trigger: null,
+    });
+  } catch (error) {
+    console.error('[foreground push]', error);
+  }
+}
+
 export function configureNotificationHandler() {
   if (Platform.OS === 'web') return;
   Notifications.setNotificationHandler({

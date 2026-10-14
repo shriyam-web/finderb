@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { HiOutlineStar } from 'react-icons/hi2';
 import { upsertMerchantReviewReply } from '@/app/actions/reviews';
 import {
@@ -14,6 +14,7 @@ import { DashboardPanel, DashboardSectionHeader } from './DashboardShell';
 type ReviewsTabProps = {
   businessId: string;
   reviewData: unknown;
+  highlightReviewId?: string | null;
   onReviewsChange: (reviews: BusinessReview[]) => void;
 };
 
@@ -143,8 +144,12 @@ function ReviewReplyEditor({
   );
 }
 
-export default function ReviewsTab({ businessId, reviewData, onReviewsChange }: ReviewsTabProps) {
+export default function ReviewsTab({ businessId, reviewData, highlightReviewId, onReviewsChange }: ReviewsTabProps) {
   const reviews = useMemo(() => parseBusinessReviews(reviewData), [reviewData]);
+  useEffect(() => {
+    if (!highlightReviewId) return;
+    document.getElementById(`review-${highlightReviewId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, [highlightReviewId, reviews.length]);
   const repliedCount = reviews.filter((review) => review.merchantReply?.content).length;
   const pendingReplyCount = reviews.length - repliedCount;
 
@@ -184,7 +189,11 @@ export default function ReviewsTab({ businessId, reviewData, onReviewsChange }: 
       ) : (
         <div className="overflow-hidden rounded-lg border border-zinc-200 bg-white divide-y divide-zinc-100">
           {reviews.map((review) => (
-            <article key={review.id} className="p-4 md:p-5">
+            <article
+              key={review.id}
+              id={`review-${review.id}`}
+              className={`p-4 md:p-5 ${highlightReviewId === review.id ? 'bg-amber-50 ring-1 ring-amber-200' : ''}`}
+            >
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-zinc-900">{review.author}</p>

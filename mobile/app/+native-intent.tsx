@@ -10,6 +10,8 @@ const WEBSITE_BUSINESS_PAGES = new Set([
 
 /** finderb.com/business/login etc. are website pages, not storefront slugs. */
 function websiteBusinessRoute(pathname: string): string | null {
+  const invite = pathname.match(/^\/business\/invite\/([^/?#]+)/i);
+  if (invite?.[1]) return `/business-invite/${decodeURIComponent(invite[1])}`;
   const section = pathname.match(/^\/business\/([^/?#]+)/)?.[1]?.toLowerCase();
   if (!section) return null;
   if (section === 'register') return '/business-register';
@@ -40,7 +42,13 @@ export function redirectSystemPath({
       ) {
         return `/auth${raw}`;
       }
-      return websiteBusinessRoute(raw) ?? raw;
+      const website = websiteBusinessRoute(raw);
+      if (website) return website;
+      const businessPath = raw.match(/^\/business\/([^/?#]+)\/?([?#][\s\S]*)?$/);
+      if (businessPath?.[1]) {
+        return `/merchant/${decodeURIComponent(businessPath[1])}${businessPath[2] || ''}`;
+      }
+      return raw;
     }
 
     // Google OAuth app callback: finderb://auth/callback?...

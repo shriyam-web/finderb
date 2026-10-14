@@ -507,7 +507,7 @@ function EditBody({ o, section }: { o: ConsoleOverview; section: SectionKey }) {
     if (section === 'offers') {
       const year = Number(form.yearsInBusiness) || 0;
       const now = new Date().getFullYear();
-      if (year && (year < 1900 || year > now)) out.yearsInBusiness = `Enter a year between 1900 and ${now}.`;
+      if (year && (year < now - 500 || year > now)) out.yearsInBusiness = `Enter a year between ${now - 500} and ${now}.`;
     }
     return out;
   };

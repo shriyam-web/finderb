@@ -636,7 +636,7 @@ export default function AccountScreen() {
                 <View style={styles.bizCopy}>
                   <Text style={styles.bizTitle}>{user.businessName || 'Business account'}</Text>
                   <Text style={styles.bizBody}>
-                    Open your business dashboard. Until it is fully in the app, manage your business on the web panel.
+                    Open your business dashboard to manage listings, leads, and reviews.
                   </Text>
                 </View>
                 <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.7)" />

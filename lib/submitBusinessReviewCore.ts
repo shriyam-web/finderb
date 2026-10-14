@@ -33,28 +33,34 @@ async function createMerchantReviewNotification(input: {
   reviewId: string;
   author: string;
   rating: number;
-}) {
+}): Promise<string | null> {
   const supabase = createServiceClient();
-  if (!supabase) return;
+  if (!supabase) return null;
 
   const author = input.author.trim() || 'A customer';
   const rating = Number.isFinite(input.rating) ? input.rating : 5;
 
-  const { error } = await supabase.from('merchant_notifications').insert({
-    business_id: input.businessId,
-    type: 'new_review',
-    title: 'New customer review',
-    body: `${author} left a ${rating}-star review on your listing.`,
-    metadata: {
-      reviewId: input.reviewId,
-      author,
-      rating,
-    },
-  });
+  const { data, error } = await supabase
+    .from('merchant_notifications')
+    .insert({
+      business_id: input.businessId,
+      type: 'new_review',
+      title: 'New customer review',
+      body: `${author} left a ${rating}-star review on your listing.`,
+      metadata: {
+        reviewId: input.reviewId,
+        author,
+        rating,
+      },
+    })
+    .select('id')
+    .single();
 
   if (error) {
     console.error('Create Merchant Review Notification Error:', error);
+    return null;
   }
+  return typeof data?.id === 'string' ? data.id : null;
 }
 
 /**
@@ -126,7 +132,7 @@ export async function submitBusinessReviewForUser(
 
     if (updateError) throw updateError;
 
-    await createMerchantReviewNotification({
+    const notificationId = await createMerchantReviewNotification({
       businessId,
       reviewId: newReview.id,
       author: newReview.author,
@@ -137,7 +143,9 @@ export async function submitBusinessReviewForUser(
       type: 'review',
       title: `New ${newReview.rating}-star review`,
       body: `${newReview.author || 'A customer'} reviewed ${business.businessName || 'your business'} on FinderB.`,
-      url: '/business/dashboard?tab=reviews',
+      url: `/business/dashboard?tab=reviews&reviewId=${encodeURIComponent(newReview.id)}`,
+      reviewId: newReview.id,
+      notificationId: notificationId || undefined,
     });
 
     revalidateBusinessProfilePaths({

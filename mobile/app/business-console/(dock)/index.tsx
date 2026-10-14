@@ -1,4 +1,5 @@
-import { Pressable, Share, Text, View } from 'react-native';
+import { useEffect } from 'react';
+import { BackHandler, Pressable, Share, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter, type Href } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -169,35 +170,6 @@ function bannersFor(o: ConsoleOverview, go: Go): AlertSlide[] {
   }
 
   return slides;
-}
-
-function VerifyWarning({ o, go }: { o: ConsoleOverview; go: Go }) {
-  const styles = useStyles();
-  const c = useConsoleColors();
-  const b = o.business;
-  if (b.emailVerified && b.mobileVerified) return null;
-  const pending = [!b.mobileVerified && 'mobile number', !b.emailVerified && 'email'].filter(Boolean).join(' and ');
-  return (
-    <Pressable
-      onPress={() => go('/business-console/account')}
-      style={({ pressed }) => [styles.warn, pressed && styles.pressed]}
-      accessibilityRole="button"
-      accessibilityLabel={`Verify your ${pending}. Your visibility will drop until you do.`}
-    >
-      <View style={styles.warnIcon}>
-        <Ionicons name="trending-down" size={18} color={c.warning} />
-      </View>
-      <View style={styles.flex}>
-        <Text style={styles.warnTitle}>Your visibility will drop</Text>
-        <Text style={styles.warnBody}>
-          Verify your {pending} soon. Unverified businesses rank lower in search and get fewer calls and leads.
-        </Text>
-      </View>
-      <View style={styles.warnCta}>
-        <Text style={styles.warnCtaText}>Verify</Text>
-      </View>
-    </Pressable>
-  );
 }
 
 function ShopCard({ o, go }: { o: ConsoleOverview; go: Go }) {
@@ -600,12 +572,21 @@ function HomeBody({ o }: { o: ConsoleOverview }) {
   const firstName = (o.business.ownerName || '').trim().split(/\s+/)[0];
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  const toFinderBHome = () => router.replace('/(tabs)/home' as Href);
+
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      router.replace('/(tabs)/home' as Href);
+      return true;
+    });
+    return () => sub.remove();
+  }, [router]);
 
   return (
     <ConsolePage
       title="Home"
       subtitle={`${greeting}${firstName ? `, ${firstName}` : ''}`}
-      onBack={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)/business' as Href))}
+      onBack={toFinderBHome}
       right={
         <HeaderIcon
           icon="notifications-outline"
@@ -618,7 +599,6 @@ function HomeBody({ o }: { o: ConsoleOverview }) {
       refreshing={refreshing}
       onRefresh={() => void refresh()}
     >
-      <VerifyWarning o={o} go={go} />
       <ShopCard o={o} go={go} />
       {slides.length ? <AlertCarousel slides={slides} /> : null}
       <Section title="Performance">

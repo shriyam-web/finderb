@@ -751,7 +751,7 @@ function RegisterFormContent() {
     },
     {
       q: 'Do I need to download the FinderB App to manage my listing?',
-      a: 'While our app provides a great mobile experience, you can easily manage your business listing through our responsive web dashboard on any device.'
+      a: 'You can manage your listing from the FinderB Business dashboard in the app, or from the same dashboard on the website. Both sides of FinderB live in one place.'
     }
   ];
 

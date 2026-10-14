@@ -105,6 +105,51 @@ function getGalleryImages(profilePictureUrl: string | null, images: string[]) {
   return getBusinessGalleryImages({ profilePictureUrl, images });
 }
 
+function dash(value: string | null | undefined) {
+  const text = String(value || '').trim();
+  return text || 'Not set';
+}
+
+function listingEditableRows(profileData: ProfileData) {
+  const hours = profileData.timings
+    ? WEEKDAYS.filter((day) => profileData.timings?.[day]).length
+    : 0;
+  return [
+    { key: 'about', label: 'About', value: dash(profileData.about) },
+    { key: 'category', label: 'Category', value: dash(profileData.category) },
+    { key: 'serviceCategory', label: 'Services', value: dash(profileData.serviceCategory) },
+    { key: 'keywords', label: 'Keywords', value: profileData.keywords?.length ? profileData.keywords.join(', ') : 'Not set' },
+    { key: 'publicPhone', label: 'Public phone', value: dash(profileData.publicPhone) },
+    { key: 'whatsappNumber', label: 'WhatsApp', value: dash(profileData.whatsappNumber) },
+    { key: 'email', label: 'Public email', value: dash(profileData.email) },
+    { key: 'website', label: 'Website', value: dash(profileData.website) },
+    { key: 'businessAddress', label: 'Address', value: dash(profileData.businessAddress) },
+    { key: 'city', label: 'City', value: dash(profileData.city) },
+    { key: 'state', label: 'State', value: dash(profileData.state) },
+    { key: 'country', label: 'Country', value: dash(profileData.country) },
+    {
+      key: 'mapLocation',
+      label: 'Map pin',
+      value: profileData.latitude && profileData.longitude ? 'Pinned on map' : 'Not set',
+    },
+    { key: 'timings', label: 'Opening hours', value: hours ? `${hours} days set` : 'Not set' },
+    {
+      key: 'paymentModes',
+      label: 'Payment modes',
+      value: profileData.paymentModes?.length ? profileData.paymentModes.join(', ') : 'Not set',
+    },
+    {
+      key: 'yearsInBusiness',
+      label: 'Year established',
+      value: formatEstablishmentYearsLabel(profileData.yearsInBusiness) || 'Not set',
+    },
+    { key: 'discountRange', label: 'Offers', value: dash(profileData.discountRange) },
+    { key: 'instagramUrl', label: 'Instagram', value: dash(profileData.instagramUrl) },
+    { key: 'facebookUrl', label: 'Facebook', value: dash(profileData.facebookUrl) },
+    { key: 'youtubeUrl', label: 'YouTube', value: dash(profileData.youtubeUrl) },
+  ];
+}
+
 export default function MyListingTab({
   businessId,
   businessProfilePath,
@@ -744,6 +789,42 @@ export default function MyListingTab({
           </div>
         </aside>
       </div>
+
+      <section className={dashboard.panel}>
+        <div className="flex items-center justify-between gap-3 border-b border-zinc-100 px-4 py-3">
+          <div>
+            <h3 className="text-sm font-semibold text-zinc-900">Editable details</h3>
+            <p className="mt-0.5 text-xs text-zinc-500">Every field customers can see on your listing. Tap to edit.</p>
+          </div>
+          <button type="button" onClick={onEditProfile} className={dashboard.btnSecondary}>
+            <HiOutlinePencilSquare size={14} />
+            Edit
+          </button>
+        </div>
+        <ul className="divide-y divide-zinc-100">
+          {listingEditableRows(profileData).map((row) => (
+            <li key={row.key}>
+              <button
+                type="button"
+                onClick={() => (onOpenSettingsField ? onOpenSettingsField(row.key) : onEditProfile())}
+                className="flex w-full items-start gap-3 px-4 py-3 text-left hover:bg-zinc-50"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-zinc-900">{row.label}</p>
+                  <p className={`mt-0.5 text-xs ${row.value === 'Not set' ? 'text-amber-700' : 'text-zinc-500'}`}>
+                    {row.value}
+                  </p>
+                </div>
+                {row.value === 'Not set' ? (
+                  <span className="shrink-0 text-[10px] font-medium text-amber-700">Add</span>
+                ) : (
+                  <HiOutlinePencilSquare size={14} className="mt-0.5 shrink-0 text-zinc-300" />
+                )}
+              </button>
+            </li>
+          ))}
+        </ul>
+      </section>
     </div>
   );
 }

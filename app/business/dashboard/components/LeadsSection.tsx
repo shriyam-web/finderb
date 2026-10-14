@@ -259,71 +259,59 @@ export default function LeadsSection({
     return (
       <article
         key={lead.id}
-        className={`relative overflow-hidden rounded-lg border bg-white transition-shadow hover:shadow-sm ${
-          isNew ? 'border-[#f9b864]/50 ring-1 ring-[#f9b864]/20' : 'border-zinc-200'
+        className={`rounded-xl border bg-white px-3 py-2.5 ${
+          isNew ? 'border-[#f9b864]/60' : 'border-zinc-200/90'
         }`}
       >
-        {isNew && (
-          <div className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-[#f9b864] to-[#f69e32]" aria-hidden />
-        )}
-
-        <div className="flex flex-col gap-4 p-4 pl-5 sm:flex-row sm:items-start sm:justify-between">
-          <div className="flex min-w-0 flex-1 gap-3">
-            <div
-              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-xs font-bold ${
-                isNew ? 'bg-[#f9b864] text-[#153551]' : 'bg-[#153551] text-white'
-              }`}
-            >
-              {initials(lead.name)}
-            </div>
-
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <h4 className="truncate text-sm font-bold text-zinc-900">
-                  {maskName(lead.name, isPaymentPending)}
-                </h4>
-                <span
-                  className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold ${leadBadgeClassName(lead.status)}`}
-                >
-                  {lead.status}
-                </span>
-                {isJob && (
-                  <span className="rounded-full bg-[#215481]/8 px-2 py-0.5 text-[10px] font-semibold text-[#215481]">
-                    Job application
-                  </span>
-                )}
-              </div>
-
-              <p className="mt-1 text-xs text-zinc-400">{formatRelativeTime(lead.created_at)}</p>
-
-              <p className="mt-2 text-sm font-medium leading-snug text-zinc-800">{enquiry.primary}</p>
-              {enquiry.secondary && (
-                <p className="mt-1 text-sm leading-relaxed text-zinc-500">{enquiry.secondary}</p>
-              )}
-
-              {!isPaymentPending && (lead.phone || lead.email) && (
-                <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-zinc-500">
-                  {lead.phone && <span>{lead.phone}</span>}
-                  {lead.email && <span className="break-all">{lead.email}</span>}
-                </div>
-              )}
-            </div>
+        <div className="flex items-start gap-2.5">
+          <div
+            className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold ${
+              isNew ? 'bg-[#f9b864] text-[#153551]' : 'bg-zinc-100 text-zinc-700'
+            }`}
+          >
+            {initials(lead.name)}
           </div>
-
-          <div className="flex shrink-0 flex-col items-stretch gap-2 sm:items-end sm:pl-4">
-            {!isPaymentPending && isNew && (
-              <button
-                type="button"
-                disabled={updatingId === lead.id}
-                onClick={() => handleMarkContacted(lead.id)}
-                className="inline-flex items-center justify-center gap-1 rounded-lg border border-zinc-200 px-3 py-1.5 text-[11px] font-semibold text-[#215481] hover:bg-zinc-50 disabled:opacity-50"
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <h4 className="min-w-0 flex-1 truncate text-[13px] font-semibold text-zinc-900">
+                {maskName(lead.name, isPaymentPending)}
+              </h4>
+              <span className="shrink-0 text-[11px] text-zinc-400">{formatRelativeTime(lead.created_at)}</span>
+            </div>
+            <div className="mt-1 flex flex-wrap items-center gap-1.5">
+              <span
+                className={`inline-flex rounded-full border px-1.5 py-px text-[10px] font-semibold ${leadBadgeClassName(lead.status)}`}
               >
-                <HiOutlineCheckCircle size={13} />
-                {updatingId === lead.id ? 'Saving…' : 'Mark contacted'}
-              </button>
-            )}
-            {renderContactActions(lead)}
+                {lead.status}
+              </span>
+              {isJob ? (
+                <span className="text-[10px] font-medium text-[#215481]">Job</span>
+              ) : null}
+              <span className="min-w-0 truncate text-[12px] text-zinc-600">{enquiry.primary}</span>
+            </div>
+            {enquiry.secondary ? (
+              <p className="mt-0.5 line-clamp-1 text-[12px] text-zinc-500">{enquiry.secondary}</p>
+            ) : null}
+            {!isPaymentPending && (lead.phone || lead.email) ? (
+              <p className="mt-0.5 truncate text-[11px] text-zinc-400">
+                {[lead.phone, lead.email].filter(Boolean).join(' · ')}
+              </p>
+            ) : null}
           </div>
+        </div>
+        <div className="mt-2 flex flex-wrap items-center justify-end gap-1.5">
+          {!isPaymentPending && isNew ? (
+            <button
+              type="button"
+              disabled={updatingId === lead.id}
+              onClick={() => handleMarkContacted(lead.id)}
+              className="inline-flex items-center gap-1 rounded-full border border-zinc-200 px-2.5 py-1 text-[11px] font-semibold text-[#215481] hover:bg-zinc-50 disabled:opacity-50"
+            >
+              <HiOutlineCheckCircle size={12} />
+              {updatingId === lead.id ? 'Saving…' : 'Contacted'}
+            </button>
+          ) : null}
+          {renderContactActions(lead)}
         </div>
       </article>
     );
@@ -350,7 +338,7 @@ export default function LeadsSection({
     }
 
     return (
-      <div className="space-y-3">
+      <div className="space-y-2">
         {limit && items.length > limit && (
           <p className="text-right text-[11px] text-zinc-400">Showing latest {limit} of {items.length}</p>
         )}

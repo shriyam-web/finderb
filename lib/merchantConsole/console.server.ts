@@ -10,10 +10,7 @@ import { getBusinessLeads, updateLeadStatus } from '@/app/actions/leads';
 import { upsertMerchantReviewReply } from '@/app/actions/reviews';
 import { createJob, deleteJob, getJobsByBusiness, updateJob } from '@/app/actions/job';
 import { getBusinessProfileViewStats } from '@/app/actions/analytics';
-import {
-  getMerchantNotifications,
-  markMerchantNotificationsRead,
-} from '@/app/actions/merchantNotifications';
+import { merchantNotificationCta } from '@/lib/merchantNotificationCta';
 import { cancelMerchantAutoRenew, getMerchantSubscriptionDetails } from '@/app/actions/subscription';
 import { completeMerchantPayment, createMerchantPaymentOrder } from '@/app/actions/payment';
 import { getPendingChangeRequest, submitChangeRequest } from '@/app/actions/businessChangeRequests';
@@ -37,7 +34,7 @@ import {
   KYC_OUTSOURCED_MESSAGE,
 } from '@/lib/businessVerification';
 import { PROFILE_LINK_FIELDS, validateProfileLink } from '@/lib/validateProfileUrl';
-import { isValidEstablishmentYear } from '@/lib/establishmentYear';
+import { isValidEstablishmentYear, minEstablishmentYear } from '@/lib/establishmentYear';
 import { MAX_SEARCH_KEYWORDS } from '@/lib/businessKeywords';
 import {
   getBusinessPublicRatingStats,
@@ -65,6 +62,12 @@ import {
   PLAN_COMPARE_ROWS,
 } from '@/lib/pricing/growthPro';
 import { isRazorpayConfigured } from '@/lib/razorpay/server';
+import {
+  inviteTeamMember,
+  listTeamMembers,
+  resendTeamInvite,
+  revokeTeamMember,
+} from '@/lib/businessTeam/teamInvites.server';
 import { createServiceClient } from '@/lib/supabase/service';
 import { escapeIlikePattern } from '@/lib/searchMatch';
 
@@ -170,8 +173,15 @@ function maskLeads<T extends { email: string | null; phone: string | null }>(lea
 
 async function loadNotifications(businessId: string, category: string) {
   const supabase = createServiceClient();
-  const [merchant, broadcasts] = await Promise.all([
-    getMerchantNotifications(businessId),
+  const [merchantRows, broadcasts] = await Promise.all([
+    supabase
+      ? supabase
+          .from('merchant_notifications')
+          .select('id, type, title, body, metadata, read_at, created_at')
+          .eq('business_id', businessId)
+          .order('created_at', { ascending: false })
+          .limit(50)
+      : Promise.resolve({ data: [] as Record<string, unknown>[], error: null }),
     supabase
       ? supabase
           .from('broadcasts')
@@ -181,19 +191,32 @@ async function loadNotifications(businessId: string, category: string) {
       : Promise.resolve({ data: [] as Record<string, unknown>[] }),
   ]);
 
-  const own = merchant.success
-    ? merchant.notifications.map((item) => ({
-        id: item.id,
-        kind: 'alert' as const,
-        type: item.type,
-        title: item.title || 'Alert',
-        body: item.body,
-        createdAt: item.created_at,
-        read: Boolean(item.read_at),
-        ctaUrl: null as string | null,
-        ctaLabel: null as string | null,
-      }))
-    : [];
+  if ('error' in merchantRows && merchantRows.error) {
+    console.error('[merchant alerts]', merchantRows.error);
+  }
+
+  const own = ((merchantRows.data ?? []) as Array<{
+    id: string;
+    type: string;
+    title: string | null;
+    body: string;
+    metadata: Record<string, unknown> | null;
+    read_at: string | null;
+    created_at: string;
+  }>).map((item) => {
+    const cta = merchantNotificationCta(item.type, item.metadata);
+    return {
+      id: item.id,
+      kind: 'alert' as const,
+      type: item.type,
+      title: item.title || 'Alert',
+      body: item.body,
+      createdAt: item.created_at,
+      read: Boolean(item.read_at),
+      ctaUrl: cta.url,
+      ctaLabel: cta.label,
+    };
+  });
 
   const news = ((broadcasts.data ?? []) as Record<string, unknown>[])
     .filter((row) => broadcastTargetsMerchants(row.target_audience, category))
@@ -212,7 +235,7 @@ async function loadNotifications(businessId: string, category: string) {
   const items = [...own, ...news].sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
   );
-  return { items, unread: merchant.success ? merchant.unreadCount : 0 };
+  return { items, unread: own.filter((item) => !item.read).length };
 }
 
 const TREND_DAYS = 14;
@@ -395,7 +418,9 @@ async function saveProfile(businessId: string, patch: unknown) {
   }
   const year = Number(next.yearsInBusiness) || 0;
   if (year && !isValidEstablishmentYear(year)) {
-    return fail(`Year of establishment must be between 1900 and ${new Date().getFullYear()}.`);
+    return fail(
+      `Year of establishment must be between ${minEstablishmentYear()} and ${new Date().getFullYear()}.`,
+    );
   }
   next.yearsInBusiness = year;
   if (Array.isArray(next.keywords) && next.keywords.length > MAX_SEARCH_KEYWORDS) {
@@ -685,7 +710,15 @@ async function changePassword(businessId: string, input: Record<string, unknown>
 }
 
 async function markRead(businessId: string) {
-  await markMerchantNotificationsRead(businessId);
+  const supabase = createServiceClient();
+  if (supabase) {
+    const { error } = await supabase
+      .from('merchant_notifications')
+      .update({ read_at: new Date().toISOString() })
+      .eq('business_id', businessId)
+      .is('read_at', null);
+    if (error) console.error('[merchant alerts read]', error);
+  }
   return { success: true as const };
 }
 
@@ -744,6 +777,24 @@ export async function runConsoleAction(userId: string, businessId: string, body:
       return changePassword(businessId, body);
     case 'markNotificationsRead':
       return markRead(businessId);
+    case 'notifications': {
+      const business = await loadBusiness(businessId);
+      if ('success' in business) return business;
+      return loadNotifications(businessId, text(business.category));
+    }
+    case 'listTeam':
+      return { success: true as const, members: await listTeamMembers(businessId) };
+    case 'inviteTeam':
+      return inviteTeamMember({
+        businessId,
+        email: String(body.email || ''),
+        mobile: String(body.mobile || ''),
+        invitedBy: businessId,
+      });
+    case 'resendTeam':
+      return resendTeamInvite({ businessId, memberId: String(body.memberId || '') });
+    case 'revokeTeam':
+      return revokeTeamMember({ businessId, memberId: String(body.memberId || '') });
     default:
       return fail('Unknown action.');
   }

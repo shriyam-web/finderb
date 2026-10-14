@@ -57,7 +57,7 @@ export function ConsoleGate({ children }: { children: (overview: ConsoleOverview
             }}
           />
         ) : notMerchant ? (
-          <Btn label="Set up my business" icon="add-circle-outline" onPress={() => router.replace('/business-app' as Href)} />
+          <Btn label="Set up my business" icon="add-circle-outline" onPress={() => router.replace('/(tabs)/business' as Href)} />
         ) : (
           <Btn label="Try again" icon="refresh" busy={refreshing} onPress={() => void refresh()} />
         )}

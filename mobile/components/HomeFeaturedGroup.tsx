@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
   Platform,
   Pressable,
   ScrollView,
@@ -16,7 +15,14 @@ import {
   MerchantFilterSheet,
   MerchantFilterTrigger,
 } from './MerchantFilterSheet';
-import { fetchBusinessesByCategory, peekBusinessesByCategory, type HomeCategory } from '../lib/api';
+import { applyFixedSlotOrder } from '../lib/categoryFixedSlots';
+import {
+  fetchBusinessesByCategory,
+  getCategoryMerchantPool,
+  getCategorySlotIds,
+  peekBusinessesByCategory,
+  type HomeCategory,
+} from '../lib/api';
 import { getBusinessOpenStatus } from '../lib/businessHours';
 import { sortByUserLocation, type Coords } from '../lib/geo';
 import { useDrivingDistanceLabel, useRoadDistanceOrder } from '../lib/drivingDistance';
@@ -74,6 +80,22 @@ function leafCategory(raw: string) {
 function shortAbout(raw: string | null | undefined) {
   if (!raw) return '';
   return raw.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function shuffleMerchants<T>(items: T[], seed: number): T[] {
+  const arr = [...items];
+  let state = seed || 1;
+  const next = () => {
+    state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
+    return state / 4294967296;
+  };
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(next() * (i + 1));
+    const tmp = arr[i];
+    arr[i] = arr[j];
+    arr[j] = tmp;
+  }
+  return arr;
 }
 
 function hexAlpha(hex: string, alpha: number) {
@@ -300,6 +322,49 @@ function SeeAllCard({
   );
 }
 
+function MerchantSkeletonCard() {
+  const styles = useStyles();
+  return (
+    <View style={styles.card}>
+      <View style={styles.photo} />
+      <View style={styles.skeletonBody}>
+        <View style={styles.skeletonLine} />
+        <View style={[styles.skeletonLine, styles.skeletonLineShort]} />
+        <View style={[styles.skeletonLine, styles.skeletonLineTiny]} />
+      </View>
+    </View>
+  );
+}
+
+function MerchantSkeletonRow({ folderOpen }: { folderOpen?: boolean }) {
+  const styles = useStyles();
+  return (
+    <ScrollView
+      horizontal
+      scrollEnabled={false}
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={[styles.rail, folderOpen && styles.railInFolder]}
+    >
+      {Array.from({ length: 4 }).map((_, index) => (
+        <MerchantSkeletonCard key={index} />
+      ))}
+    </ScrollView>
+  );
+}
+
+/** Reserved height for a parent section before its category row exists. */
+export function HomeSectionSkeleton() {
+  const styles = useStyles();
+  return (
+    <View style={styles.section}>
+      <View style={styles.head}>
+        <View style={styles.skeletonTitle} />
+      </View>
+      <MerchantSkeletonRow />
+    </View>
+  );
+}
+
 function MerchantRow({
   merchants,
   compact,
@@ -388,14 +453,20 @@ export function HomeFeaturedGroup({
   const [nestedId, setNestedId] = useState<string | null>(null);
   const initialQuery =
     pickDefaultCategory(group).queryName || group.queryName || group.name;
+  const initialPool = getCategoryMerchantPool(initialQuery);
   const initialCached = peekBusinessesByCategory(initialQuery, {
     page: 1,
     pageSize: 24,
   });
   const [merchants, setMerchants] = useState<Merchant[]>(
-    () => initialCached?.merchants ?? [],
+    () => initialPool ?? initialCached?.merchants ?? [],
   );
-  const [loading, setLoading] = useState(!initialCached);
+  const [slotIds, setSlotIds] = useState<Array<string | null>>(() =>
+    getCategorySlotIds(initialQuery),
+  );
+  const [loading, setLoading] = useState(!initialPool && !initialCached);
+  const [orderSeed, setOrderSeed] = useState(() => Math.floor(Math.random() * 1e9) || 1);
+  const skipSeedReset = useRef(true);
   const [active, setActive] = useState(eager);
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const [filterOpen, setFilterOpen] = useState(false);
@@ -477,12 +548,9 @@ export function HomeFeaturedGroup({
       query: string,
       confirmedEmpty: boolean,
     ) => {
-      setMerchants(
-        sortByUserLocation(list, {
-          coords: coordsRef.current,
-          city,
-        }),
-      );
+      const pool = getCategoryMerchantPool(query);
+      setMerchants(pool ? [...pool] : list);
+      setSlotIds(getCategorySlotIds(query));
       setLoading(false);
       if (!readySent.current) {
         readySent.current = true;
@@ -522,18 +590,33 @@ export function HomeFeaturedGroup({
       });
   }, [active, listingQuery, listingSource.id, reloadToken, city, group.id, group.name, group.queryName]);
 
-  const nearestEight = useMemo(
-    () => applyFilters(merchants, filters, userCoords).slice(0, 8),
-    [filters, merchants, userCoords],
-  );
-  const visibleMerchants = useRoadDistanceOrder(nearestEight);
+  useEffect(() => {
+    if (skipSeedReset.current) {
+      skipSeedReset.current = false;
+      return;
+    }
+    setOrderSeed(Math.floor(Math.random() * 1e9) || 1);
+  }, [listingQuery, reloadToken]);
+
+  const filtersIdle = isDefaultFilters(filters);
+
+  const previewMerchants = useMemo(() => {
+    if (filtersIdle) {
+      return applyFixedSlotOrder(shuffleMerchants(merchants, orderSeed), slotIds).slice(0, 8);
+    }
+    const ranked = sortByUserLocation(merchants, {
+      coords: userCoords,
+      city,
+    });
+    return applyFilters(ranked, filters, userCoords).slice(0, 8);
+  }, [city, filters, filtersIdle, merchants, orderSeed, slotIds, userCoords]);
+  const roadOrdered = useRoadDistanceOrder(previewMerchants);
+  const visibleMerchants = filters.distance !== 'any' ? roadOrdered : previewMerchants;
 
   const filterMatchCount = useMemo(
     () => applyFilters(merchants, filters, userCoords).length,
     [filters, merchants, userCoords],
   );
-
-  const filtersIdle = isDefaultFilters(filters);
 
   return (
     <View style={[styles.section, muted && styles.sectionMuted]}>
@@ -806,15 +889,7 @@ export function HomeFeaturedGroup({
           ) : null}
 
           {loading ? (
-            <View
-              style={[
-                styles.loadingRow,
-                folderOpen && styles.loadingInFolder,
-              ]}
-            >
-              <ActivityIndicator color={colors.ink} />
-              <Text style={styles.loadingText}>Finding places…</Text>
-            </View>
+            <MerchantSkeletonRow folderOpen={folderOpen} />
           ) : visibleMerchants.length === 0 ? (
             <Text style={[styles.empty, folderOpen && styles.emptyInFolder]}>
               {filtersIdle
@@ -1265,6 +1340,27 @@ const useStyles = createThemedStyles((colors) => ({
     width: '47%',
     flexGrow: 1,
     minWidth: 0,
+  },
+  skeletonTitle: {
+    width: 148,
+    height: 18,
+    borderRadius: 6,
+    backgroundColor: colors.muted,
+  },
+  skeletonBody: {
+    paddingTop: 8,
+    gap: 6,
+  },
+  skeletonLine: {
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: colors.muted,
+  },
+  skeletonLineShort: {
+    width: '72%',
+  },
+  skeletonLineTiny: {
+    width: '46%',
   },
   photo: {
     height: 142,

@@ -1,9 +1,37 @@
-const MIN_ESTABLISHMENT_YEAR = 1900;
+const MAX_YEARS_IN_BUSINESS = 500;
+
+function currentYear() {
+  return new Date().getFullYear();
+}
+
+export function minEstablishmentYear() {
+  return currentYear() - MAX_YEARS_IN_BUSINESS;
+}
 
 export function isValidEstablishmentYear(value: number | null | undefined): value is number {
   if (value == null || value <= 0) return false;
-  const currentYear = new Date().getFullYear();
-  return value >= MIN_ESTABLISHMENT_YEAR && value <= currentYear;
+  const year = Math.floor(value);
+  return year >= minEstablishmentYear() && year <= currentYear();
+}
+
+/** Years trading, from a stored establishment year. Caps at 500. */
+export function yearsInBusinessFromEstablishment(value: number | null | undefined): number | null {
+  if (isValidEstablishmentYear(value)) {
+    return Math.min(MAX_YEARS_IN_BUSINESS, Math.max(0, currentYear() - value));
+  }
+  // Older rows stored “years in business” (18) instead of a year (2008).
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    const years = Math.floor(value);
+    if (years > 0 && years <= MAX_YEARS_IN_BUSINESS) return years;
+  }
+  return null;
+}
+
+export function formatYearsInBusinessShort(value: number | null | undefined): string | null {
+  const years = yearsInBusinessFromEstablishment(value);
+  if (years == null) return null;
+  if (years <= 0) return 'New';
+  return `${years} yr${years === 1 ? '' : 's'}`;
 }
 
 /** Map stored year to a date input value (Jan 1 of that year). */
@@ -24,16 +52,20 @@ export function formatEstablishmentYearDisplay(year: number | null | undefined):
 }
 
 export function formatEstablishmentYearsLabel(year: number | null | undefined): string | null {
-  if (!isValidEstablishmentYear(year)) return null;
-  const years = new Date().getFullYear() - year;
-  if (years <= 0) return `Est. ${year}`;
-  return `Est. ${year} · ${years} yr${years === 1 ? '' : 's'} in business`;
+  if (isValidEstablishmentYear(year)) {
+    const years = yearsInBusinessFromEstablishment(year);
+    if (years == null || years <= 0) return `Est. ${year}`;
+    return `Est. ${year} · ${years} yr${years === 1 ? '' : 's'} in business`;
+  }
+  const years = yearsInBusinessFromEstablishment(year);
+  if (years == null) return null;
+  return `${years} yr${years === 1 ? '' : 's'} in business`;
 }
 
 export function getEstablishmentDateBounds() {
-  const currentYear = new Date().getFullYear();
+  const now = currentYear();
   return {
-    min: `${MIN_ESTABLISHMENT_YEAR}-01-01`,
-    max: `${currentYear}-12-31`,
+    min: `${minEstablishmentYear()}-01-01`,
+    max: `${now}-12-31`,
   };
 }

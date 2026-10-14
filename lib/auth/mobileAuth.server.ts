@@ -158,7 +158,18 @@ async function ensureUserFromMerchantEmail(
       break;
     }
   }
-  if (!matched) return null;
+  if (!matched) {
+    const { verifyTeamMemberPassword } = await import('@/lib/businessTeam/teamInvites.server');
+    const team = await verifyTeamMemberPassword({ email: normalizedEmail, password });
+    if (!team) return null;
+    matched = {
+      id: team.businessId,
+      password,
+      businessName: extras?.fullName,
+      mobile: extras?.phone || team.mobile,
+      profilePictureUrl: extras?.avatarUrl,
+    };
+  }
 
   const hashedPassword = await hashPassword(password);
   const now = new Date().toISOString();
@@ -216,13 +227,65 @@ async function ensureUserFromMerchantEmail(
   return enrichWithBusinessLink(created as MobileAuthUser);
 }
 
+async function ensureUserFromMerchantPhone(
+  identifier: string,
+  password: string
+): Promise<MobileAuthUser | null> {
+  const digits = extractIndianMobileDigits(identifier);
+  if (digits.length < 10) return null;
+  const service = dbClient();
+  const supabase = service ?? createClient(await cookies());
+  const pattern = `%${escapeIlikePattern(digits)}`;
+  const [byMobile, byOwner, byPublic] = await Promise.all([
+    supabase.from('Business').select('id, password, businessName, mobile, owner_mobile, publicPhone, profilePictureUrl, workEmail, email').ilike('mobile', pattern).limit(8),
+    supabase.from('Business').select('id, password, businessName, mobile, owner_mobile, publicPhone, profilePictureUrl, workEmail, email').ilike('owner_mobile', pattern).limit(8),
+    supabase.from('Business').select('id, password, businessName, mobile, owner_mobile, publicPhone, profilePictureUrl, workEmail, email').ilike('publicPhone', pattern).limit(8),
+  ]);
+  const rows = [...(byMobile.data ?? []), ...(byOwner.data ?? []), ...(byPublic.data ?? [])] as Array<{
+    id: string;
+    password: string;
+    businessName?: string | null;
+    mobile?: string | null;
+    owner_mobile?: string | null;
+    publicPhone?: string | null;
+    profilePictureUrl?: string | null;
+    workEmail?: string | null;
+    email?: string | null;
+  }>;
+  const seen = new Set<string>();
+  for (const row of rows) {
+    if (seen.has(row.id)) continue;
+    seen.add(row.id);
+    const phones = [row.mobile, row.owner_mobile, row.publicPhone];
+    if (!phones.some((value) => extractIndianMobileDigits(value) === digits)) continue;
+    const verification = await verifyPassword(password, row.password);
+    if (!verification.valid) continue;
+    const loginEmail = (row.workEmail || row.email || '').trim();
+    if (!loginEmail) return null;
+    return ensureUserFromMerchantEmail(loginEmail, password, {
+      fullName: row.businessName,
+      phone: digits,
+      avatarUrl: row.profilePictureUrl,
+    });
+  }
+  const { verifyTeamMemberPassword } = await import('@/lib/businessTeam/teamInvites.server');
+  const team = await verifyTeamMemberPassword({ phone: digits, password });
+  if (!team) return null;
+  const loginEmail = team.email || `${digits}@whatsapp.finderb.local`;
+  return ensureUserFromMerchantEmail(loginEmail, password, {
+    fullName: null,
+    phone: digits,
+    avatarUrl: null,
+  });
+}
+
 export async function mobileLoginWithPassword(
   email: string,
   password: string
 ): Promise<MobileAuthSuccess | MobileAuthFailure> {
   const normalizedPassword = password.trim();
   if (!email.trim() || !normalizedPassword) {
-    return { success: false, error: 'Email and password are required' };
+    return { success: false, error: 'Email or mobile number and password are required' };
   }
 
   const passwordCheck = validatePasswordLength(normalizedPassword, 1);
@@ -233,6 +296,19 @@ export async function mobileLoginWithPassword(
   const normalizedEmail = email.toLowerCase().trim();
   const service = dbClient();
   const supabase = service ?? createClient(await cookies());
+
+  if (!normalizedEmail.includes('@')) {
+    const linkedByPhone = await ensureUserFromMerchantPhone(email, normalizedPassword);
+    if (linkedByPhone) {
+      return {
+        success: true,
+        token: createMobileSessionToken(linkedByPhone.id),
+        user: linkedByPhone,
+        isNewUser: false,
+      };
+    }
+    return { success: false, error: 'No business account found with this mobile number.' };
+  }
 
   const { data: user, error } = await supabase
     .from('User')

@@ -4,14 +4,15 @@ import {
   fetchAllCategories,
   fetchBusinessesByCategory,
   fetchFeaturedHomeCategories,
-  peekBusinessesByCategory,
   subscribeCategoryCatalog,
   type HomeCategory,
 } from './api';
+import { uniqueCatalogCategories } from './featuredCategoryGroups';
 import { fetchActiveJobs } from './jobs';
 
 export type HomeBootstrapData = {
   categories: HomeCategory[];
+  catalog: HomeCategory[];
 };
 
 let cache: HomeBootstrapData | null = null;
@@ -95,6 +96,10 @@ export async function loadHomeBootstrap(force = false): Promise<HomeBootstrapDat
 
     const data: HomeBootstrapData = {
       categories: orderParents(categories, force),
+      catalog:
+        categoryResult.catalog && categoryResult.catalog.length > 0
+          ? categoryResult.catalog
+          : uniqueCatalogCategories(categories),
     };
     cache = data;
     return data;
@@ -109,20 +114,6 @@ export async function loadHomeBootstrap(force = false): Promise<HomeBootstrapDat
 
 function listingQueryOf(category: HomeCategory) {
   return (category.queryName || category.name).trim();
-}
-
-function groupHasAllMerchants(group: HomeCategory): boolean | null {
-  const page = peekBusinessesByCategory(listingQueryOf(group), {
-    page: 1,
-    pageSize: 24,
-  });
-  if (!page) return null;
-  return page.merchants.length > 0;
-}
-
-function dropEmptyAllGroups(categories: HomeCategory[]): HomeCategory[] {
-  const kept = categories.filter((group) => groupHasAllMerchants(group) !== false);
-  return kept;
 }
 
 async function mapPool<T>(
@@ -160,11 +151,8 @@ export async function warmupHomeSession(): Promise<HomeBootstrapData> {
   warmupInflight = (async () => {
     const data = await loadHomeBootstrap(false);
     await warmupHomeShelves(data.categories);
-    const kept = dropEmptyAllGroups(data.categories);
-    parentOrderIds = kept.map((cat) => cat.id);
-    const next = { categories: kept };
-    cache = next;
-    return next;
+    cache = data;
+    return data;
   })();
 
   try {

@@ -1,6 +1,6 @@
 import { Redirect } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { BrandedSplash } from '../components/BrandedSplash';
 import { hideNativeSplash } from '../lib/nativeSplash';
 import { warmupHomeSession } from '../lib/homeBootstrap';
 
@@ -15,6 +15,7 @@ export default function Index() {
 
   useEffect(() => {
     let alive = true;
+    const reveal = requestAnimationFrame(() => hideNativeSplash());
     const failsafe = setTimeout(() => {
       if (!alive || ready) return;
       hideNativeSplash();
@@ -33,17 +34,14 @@ export default function Index() {
 
     return () => {
       alive = false;
+      cancelAnimationFrame(reveal);
       clearTimeout(failsafe);
     };
   }, []);
 
   if (!ready) {
-    return <View style={styles.root} />;
+    return <BrandedSplash message="Finding places near you" />;
   }
 
   return <Redirect href="/(tabs)/home" />;
 }
-
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#FFFFFF' },
-});

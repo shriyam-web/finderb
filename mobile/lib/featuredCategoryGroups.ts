@@ -41,6 +41,23 @@ function childrenByParentId(all: HomeCategory[]): Map<string, HomeCategory[]> {
   return map;
 }
 
+/** Unique real categories (no synthetic “All” tabs). Used for home “View all N”. */
+export function uniqueCatalogCategories(all: HomeCategory[]): HomeCategory[] {
+  const seen = new Set<string>();
+  const out: HomeCategory[] = [];
+  const walk = (nodes: HomeCategory[]) => {
+    for (const node of nodes) {
+      if (node.id && !node.id.startsWith('all:') && !seen.has(node.id)) {
+        seen.add(node.id);
+        out.push({ ...node, children: undefined });
+      }
+      if (node.children?.length) walk(node.children);
+    }
+  };
+  walk(all);
+  return sortByMerchantCount(out);
+}
+
 /**
  * Homepage sections: every parent, its categories, and nested subcategories.
  * Parent order is left as-is (home bootstrap shuffles it per load).

@@ -45,10 +45,10 @@ export default function BusinessLoginScreen() {
   };
 
   const handleEmail = async () => {
-    const workEmail = email.trim().toLowerCase();
+    const workEmail = email.trim();
     const workPassword = password.trim();
     if (!workEmail || !workPassword) {
-      setError('Enter your work email and password.');
+      setError('Enter your email or mobile number and password.');
       return;
     }
     setError('');
@@ -115,7 +115,7 @@ export default function BusinessLoginScreen() {
           </View>
           <Text style={styles.title}>Business login</Text>
           <Text style={styles.sub}>
-            Sign in with the work email from registration, or use Google, Truecaller, or WhatsApp.
+            Sign in with the email or mobile number from registration, or use Google, Truecaller, or WhatsApp.
           </Text>
 
           {error ? (
@@ -126,15 +126,15 @@ export default function BusinessLoginScreen() {
 
           <AuthField
             fontFamily={fonts.medium}
-            label="Work email"
+            label="Email or mobile number"
             value={email}
             onChangeText={setEmail}
-            onEndEditing={(event) => setEmail(event.nativeEvent.text.trim().toLowerCase())}
-            placeholder="you@business.com"
+            onEndEditing={(event) => setEmail(event.nativeEvent.text.trim())}
+            placeholder="you@business.com or 9876543210"
             autoCapitalize="none"
             autoCorrect={false}
-            keyboardType="email-address"
-            autoComplete="email"
+            keyboardType="default"
+            autoComplete="username"
           />
           <AuthField
             fontFamily={fonts.medium}

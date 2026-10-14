@@ -24,6 +24,10 @@ export const RATE_LIMITS = {
   geocode: { limit: 40, windowMs: 60 * 1000 },
   /** Razorpay order + verify */
   payment: { limit: 15, windowMs: 60 * 60 * 1000 },
+  /** Resend a business team invite to one person */
+  teamInvite: { limit: 1, windowMs: 2 * 60 * 1000 },
+  /** Team invites from one business per hour */
+  teamInviteHour: { limit: 8, windowMs: 60 * 60 * 1000 },
 } as const satisfies Record<string, RateLimitConfig>;
 
 export type RateLimitProfile = keyof typeof RATE_LIMITS;

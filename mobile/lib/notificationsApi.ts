@@ -9,6 +9,7 @@ export type AppNotification = {
   cta_url?: string | null;
   cta_label?: string | null;
   show_datetime?: boolean;
+  read?: boolean;
 };
 
 export async function fetchUserNotifications(): Promise<

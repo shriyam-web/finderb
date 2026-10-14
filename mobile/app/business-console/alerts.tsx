@@ -50,6 +50,10 @@ function AlertsBody({ o }: { o: ConsoleOverview }) {
     void WebBrowser.openBrowserAsync(url);
   };
 
+  const markAll = () => {
+    void run('markNotificationsRead').then(() => refresh());
+  };
+
   return (
     <ConsolePage
       title="Notifications"
@@ -57,6 +61,13 @@ function AlertsBody({ o }: { o: ConsoleOverview }) {
       refreshing={refreshing}
       onRefresh={() => void refresh()}
       bodyStyle={styles.list}
+      right={
+        o.notifications.unread ? (
+          <Pressable onPress={markAll} hitSlop={8} accessibilityRole="button" accessibilityLabel="Mark all as read">
+            <Text style={styles.markAll}>Mark all as read</Text>
+          </Pressable>
+        ) : undefined
+      }
     >
       {items.length ? (
         <View style={styles.panel}>
@@ -143,4 +154,5 @@ const useStyles = createConsoleStyles((c) => ({
   foot: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 6 },
   time: { fontFamily: fonts.regular, fontSize: 12, color: c.faint },
   cta: { fontFamily: fonts.semiBold, fontSize: 13, color: c.accent },
+  markAll: { fontFamily: fonts.semiBold, fontSize: 13, color: c.accent },
 }));

@@ -6,6 +6,7 @@ import { cookies } from 'next/headers';
 import { DIRECT_LEAD_MESSAGES, type ContactIntent } from '@/lib/directLead';
 import { CATEGORY_LEAD_BADGE, DIRECT_LEAD_BADGE, PROFILE_LEAD_BADGE } from '@/lib/leadBadges';
 import { escapeIlikePattern } from '@/lib/searchMatch';
+import { recordMerchantNotification } from '@/lib/merchantAlert.server';
 import { queueBusinessPush } from '@/lib/userNotifications.server';
 
 const LEADS_URL = '/business/dashboard?tab=leads';
@@ -89,12 +90,22 @@ export async function recordDirectLeadForActor(params: {
     });
 
     if (insertError) throw insertError;
+    const leadTitle = 'New lead on FinderB';
+    const leadBody = `${actorName} ${DIRECT_LEAD_PUSH[params.channel]}`;
+    const notificationId = await recordMerchantNotification({
+      businessId,
+      type: 'lead',
+      title: leadTitle,
+      body: leadBody,
+      metadata: { channel: params.channel, url: LEADS_URL },
+    });
     queueBusinessPush({
       businessId,
       type: 'lead',
-      title: 'New lead on FinderB',
-      body: `${actorName} ${DIRECT_LEAD_PUSH[params.channel]}`,
+      title: leadTitle,
+      body: leadBody,
       url: LEADS_URL,
+      notificationId: notificationId || undefined,
     });
     return { success: true, duplicate: false };
   } catch (error: unknown) {
@@ -178,13 +189,23 @@ export async function submitBroadcastEnquiryForUser(data: {
     if (insertError) throw insertError;
 
     const need = lookingFor.trim().replace(/\s+/g, ' ');
-    for (const businessId of merchantIds) {
-      queueBusinessPush({
-        businessId,
+    const enquiryTitle = 'New enquiry on FinderB';
+    const enquiryBody = `${name.trim()} is looking for: ${need.length > 90 ? `${need.slice(0, 87)}...` : need}`;
+    for (const merchantId of merchantIds) {
+      const notificationId = await recordMerchantNotification({
+        businessId: merchantId,
         type: 'lead',
-        title: 'New enquiry on FinderB',
-        body: `${name.trim()} is looking for: ${need.length > 90 ? `${need.slice(0, 87)}...` : need}`,
+        title: enquiryTitle,
+        body: enquiryBody,
+        metadata: { url: LEADS_URL, sourceBusinessId },
+      });
+      queueBusinessPush({
+        businessId: merchantId,
+        type: 'lead',
+        title: enquiryTitle,
+        body: enquiryBody,
         url: LEADS_URL,
+        notificationId: notificationId || undefined,
       });
     }
 

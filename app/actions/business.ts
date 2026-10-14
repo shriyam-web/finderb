@@ -722,10 +722,11 @@ export async function getOwnedBusiness(id: string) {
 
 export async function loginBusiness(email: string, password: string) {
   try {
-    const normalizedEmail = email.trim().toLowerCase();
+    const identifier = email.trim();
+    const normalizedEmail = identifier.toLowerCase();
     const normalizedPassword = password.trim();
-    if (!normalizedEmail || !normalizedPassword) {
-      return { success: false, error: 'Email and password are required' };
+    if (!identifier || !normalizedPassword) {
+      return { success: false, error: 'Email or mobile number and password are required' };
     }
 
     const passwordCheck = validatePasswordLength(normalizedPassword, 1);
@@ -733,26 +734,47 @@ export async function loginBusiness(email: string, password: string) {
       return { success: false, error: passwordCheck.error };
     }
 
-    if (!normalizedEmail.includes('@')) {
-      return { success: false, error: 'Please enter a valid email address' };
+    const loginDigits = extractIndianMobileDigits(identifier);
+    const isEmailLogin = identifier.includes('@');
+    if (!isEmailLogin && loginDigits.length < 10) {
+      return { success: false, error: 'Enter a valid email or 10-digit mobile number' };
     }
 
     const ipLimit = await enforceRateLimit('auth');
     if (!ipLimit.ok) return { success: false, error: ipLimit.error };
 
-    const emailLimit = await enforceRateLimit('authEmail', `login:${normalizedEmail}`);
+    const emailLimit = await enforceRateLimit('authEmail', `login:${isEmailLogin ? normalizedEmail : loginDigits}`);
     if (!emailLimit.ok) return { success: false, error: emailLimit.error };
 
     const supabase = await createDataClient();
-    const loginFields = 'id, password, createdAt';
+    const loginFields = 'id, password, createdAt, mobile, owner_mobile, publicPhone';
 
-    const [{ data: byWorkEmail }, { data: byEmail }] = await Promise.all([
-      supabase.from('Business').select(loginFields).ilike('workEmail', escapeIlikePattern(normalizedEmail)),
-      supabase.from('Business').select(loginFields).ilike('email', escapeIlikePattern(normalizedEmail)),
-    ]);
+    const phonePattern = `%${escapeIlikePattern(loginDigits)}`;
+    const [{ data: byWorkEmail }, { data: byEmail }, { data: byMobile }, { data: byOwnerMobile }, { data: byPublicPhone }] =
+      await Promise.all([
+        isEmailLogin
+          ? supabase.from('Business').select(loginFields).ilike('workEmail', escapeIlikePattern(normalizedEmail))
+          : Promise.resolve({ data: [] as Array<Record<string, unknown>> }),
+        isEmailLogin
+          ? supabase.from('Business').select(loginFields).ilike('email', escapeIlikePattern(normalizedEmail))
+          : Promise.resolve({ data: [] as Array<Record<string, unknown>> }),
+        !isEmailLogin
+          ? supabase.from('Business').select(loginFields).ilike('mobile', phonePattern).limit(8)
+          : Promise.resolve({ data: [] as Array<Record<string, unknown>> }),
+        !isEmailLogin
+          ? supabase.from('Business').select(loginFields).ilike('owner_mobile', phonePattern).limit(8)
+          : Promise.resolve({ data: [] as Array<Record<string, unknown>> }),
+        !isEmailLogin
+          ? supabase.from('Business').select(loginFields).ilike('publicPhone', phonePattern).limit(8)
+          : Promise.resolve({ data: [] as Array<Record<string, unknown>> }),
+      ]);
 
     const seen = new Set<string>();
-    const businesses = [...(byWorkEmail ?? []), ...(byEmail ?? [])]
+    const phoneMatches = [...(byMobile ?? []), ...(byOwnerMobile ?? []), ...(byPublicPhone ?? [])].filter((row) => {
+      const candidates = [row.mobile, row.owner_mobile, row.publicPhone];
+      return candidates.some((value) => extractIndianMobileDigits(value) === loginDigits);
+    });
+    const businesses = [...(byWorkEmail ?? []), ...(byEmail ?? []), ...phoneMatches]
       .filter((row) => {
         if (seen.has(row.id)) return false;
         seen.add(row.id);
@@ -764,7 +786,20 @@ export async function loginBusiness(email: string, password: string) {
       );
 
     if (!businesses.length) {
-      const accountTypes = await lookupEmailAccountTypes(supabase, normalizedEmail);
+      const { verifyTeamMemberPassword } = await import('@/lib/businessTeam/teamInvites.server');
+      const team = await verifyTeamMemberPassword({
+        email: isEmailLogin ? normalizedEmail : null,
+        phone: isEmailLogin ? null : loginDigits,
+        password: normalizedPassword,
+      });
+      if (team) {
+        await setBusinessSessionCookie(team.businessId);
+        return { success: true, businessId: team.businessId };
+      }
+
+      const accountTypes = isEmailLogin
+        ? await lookupEmailAccountTypes(supabase, normalizedEmail)
+        : await lookupMobileAccountTypes(supabase, loginDigits);
       const alternateType = getAlternateAccountType(accountTypes, 'merchant');
 
       if (alternateType) {
@@ -778,7 +813,9 @@ export async function loginBusiness(email: string, password: string) {
 
       return {
         success: false,
-        error: 'No Merchant account found with this email. Please check your email or register a new business.',
+        error: isEmailLogin
+          ? 'No merchant account found with this email. Check the email or register your business.'
+          : 'No merchant account found with this mobile number. Check the number or register your business.',
       };
     }
 
@@ -799,6 +836,16 @@ export async function loginBusiness(email: string, password: string) {
     }
 
     if (!matchedBusiness) {
+      const { verifyTeamMemberPassword } = await import('@/lib/businessTeam/teamInvites.server');
+      const team = await verifyTeamMemberPassword({
+        email: isEmailLogin ? normalizedEmail : null,
+        phone: isEmailLogin ? null : loginDigits,
+        password: normalizedPassword,
+      });
+      if (team) {
+        await setBusinessSessionCookie(team.businessId);
+        return { success: true, businessId: team.businessId };
+      }
       return { success: false, error: 'Incorrect password. Please try again.' };
     }
 
@@ -1269,9 +1316,34 @@ export async function getBusinessesByCategoryAndCity(
   }
 }
 
+function hashSeed(input: string): number {
+  let hash = 2166136261;
+  for (let i = 0; i < input.length; i++) {
+    hash ^= input.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+function seededShuffle<T>(items: T[], seed: string): T[] {
+  const arr = [...items];
+  let state = hashSeed(seed) || 1;
+  const next = () => {
+    state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
+    return state / 4294967296;
+  };
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(next() * (i + 1));
+    const tmp = arr[i];
+    arr[i] = arr[j];
+    arr[j] = tmp;
+  }
+  return arr;
+}
+
 export async function getBusinessesByCategory(
   categoryName: string,
-  options?: { page?: number; pageSize?: number }
+  options?: { page?: number; pageSize?: number; shuffleSeed?: string }
 ) {
   try {
     const page = Math.max(1, options?.page ?? 1);
@@ -1280,7 +1352,9 @@ export async function getBusinessesByCategory(
       CATEGORY_LISTINGS_MAX_PAGE_SIZE
     );
     const needed = page * pageSize;
-    const fetchLimit = Math.min(Math.max(needed * 4, pageSize * 4), 500);
+    const fetchLimit = options?.shuffleSeed
+      ? 500
+      : Math.min(Math.max(needed * 4, pageSize * 4), 500);
 
     const supabase = await createDataClient();
 
@@ -1304,12 +1378,11 @@ export async function getBusinessesByCategory(
       throw error;
     }
 
-    const withPhotos = applyFixedSlotOrder(
-      filterBusinessesWithPublicPhotos(
-        (businesses ?? []).map((b: Record<string, unknown>) => mapBusinessRecord(b)).filter((b) => b.id)
-      ),
-      slotIds
+    const photoList = filterBusinessesWithPublicPhotos(
+      (businesses ?? []).map((b: Record<string, unknown>) => mapBusinessRecord(b)).filter((b) => b.id)
     );
+    const rotated = options?.shuffleSeed ? seededShuffle(photoList, options.shuffleSeed) : photoList;
+    const withPhotos = applyFixedSlotOrder(rotated, slotIds);
     const mappedBusinesses = withPhotos.slice((page - 1) * pageSize, page * pageSize);
 
     const ids = mappedBusinesses.map((business) => business.id);

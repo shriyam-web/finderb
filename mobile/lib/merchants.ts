@@ -95,6 +95,104 @@ function normalizeHref(value: unknown): string | null {
   return raw;
 }
 
+/**
+ * Phone uploads are often HEIC, and Cloudinary `f_auto` can answer with AVIF.
+ * Android's image decoder then paints a blank frame. Always ask for a JPEG.
+ */
+function forceCloudinaryJpeg(url: string): string {
+  const marker = '/upload/';
+  const idx = url.indexOf(marker);
+  if (idx < 0) return url;
+  const after = url.slice(idx + marker.length);
+  const slash = after.indexOf('/');
+  const first = slash === -1 ? after : after.slice(0, slash);
+  const rest = slash === -1 ? '' : after.slice(slash + 1);
+  const versionOnly = /^v\d+$/.test(first);
+  const looksLikeTransform =
+    !versionOnly &&
+    (first.includes(',') ||
+      /^(f_|w_|h_|q_|c_|g_|e_|dpr_|fl_|b_|a_|ar_|bo_|t_|l_|o_)/.test(first));
+  if (!looksLikeTransform) {
+    return `${url.slice(0, idx + marker.length)}f_jpg,q_auto,c_limit,w_1600/${after}`;
+  }
+  let chain = /(^|,)f_[a-z0-9]+/.test(first)
+    ? first.replace(/(^|,)f_[a-z0-9]+/, '$1f_jpg')
+    : `f_jpg,${first}`;
+  if (!/(^|,)q_/.test(chain)) chain = `${chain},q_auto`;
+  if (!/(^|,)w_/.test(chain) && !/(^|,)h_/.test(chain)) chain = `${chain},c_limit,w_1600`;
+  return `${url.slice(0, idx + marker.length)}${chain}${rest ? `/${rest}` : ''}`;
+}
+
+/** Make a stored photo URL loadable in the app, including Cloudinary originals. */
+function normalizeImageUrl(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  let url = value.trim().replace(/^['"]+|['"]+$/g, '');
+  if (!url || url === 'Not Set') return null;
+  if (url.startsWith('//')) url = `https:${url}`;
+  else if (url.startsWith('http://')) url = `https://${url.slice('http://'.length)}`;
+  if (url.includes(' ')) url = encodeURI(url);
+  if (url.includes('res.cloudinary.com') && url.includes('/upload/')) {
+    url = forceCloudinaryJpeg(url);
+  }
+  return url;
+}
+
+function urlFromGalleryItem(item: unknown): string | null {
+  if (typeof item === 'string') return normalizeImageUrl(item);
+  if (!item || typeof item !== 'object') return null;
+  const record = item as Record<string, unknown>;
+  return normalizeImageUrl(record.secure_url ?? record.url ?? record.src);
+}
+
+/** Postgres text[] sometimes arrives as `{a,b}` instead of a JS array. */
+function splitPgArray(raw: string): string[] | null {
+  const trimmed = raw.trim();
+  if (!trimmed.startsWith('{') || !trimmed.endsWith('}')) return null;
+  const body = trimmed.slice(1, -1);
+  if (!body.trim()) return [];
+  const out: string[] = [];
+  let current = '';
+  let quoted = false;
+  for (let i = 0; i < body.length; i += 1) {
+    const ch = body[i];
+    if (quoted) {
+      if (ch === '"' && body[i + 1] === '"') {
+        current += '"';
+        i += 1;
+      } else if (ch === '\\' && body[i + 1]) {
+        current += body[i + 1];
+        i += 1;
+      } else if (ch === '"') {
+        quoted = false;
+      } else {
+        current += ch;
+      }
+    } else if (ch === '"') {
+      quoted = true;
+    } else if (ch === ',') {
+      out.push(current.trim());
+      current = '';
+    } else {
+      current += ch;
+    }
+  }
+  out.push(current.trim());
+  return out.filter(Boolean);
+}
+
+function galleryItems(images: unknown): unknown[] {
+  if (Array.isArray(images)) return images;
+  if (typeof images !== 'string') return [];
+  const trimmed = images.trim();
+  if (!trimmed) return [];
+  try {
+    const parsed = JSON.parse(trimmed) as unknown;
+    return Array.isArray(parsed) ? parsed : [trimmed];
+  } catch {
+    return splitPgArray(trimmed) ?? [trimmed];
+  }
+}
+
 function parseGallery(images: unknown, profile: string | null): string[] {
   const list: string[] = [];
   const seen = new Set<string>();
@@ -103,11 +201,13 @@ function parseGallery(images: unknown, profile: string | null): string[] {
     seen.add(url);
     list.push(url);
   };
-  push(profile);
-  if (Array.isArray(images)) {
-    for (const item of images) {
-      push(firstUrl(item));
+  push(normalizeImageUrl(profile));
+  for (const item of galleryItems(images)) {
+    if (typeof item === 'string' && (item.trim().startsWith('[') || item.trim().startsWith('{'))) {
+      for (const nested of galleryItems(item)) push(urlFromGalleryItem(nested));
+      continue;
     }
+    push(urlFromGalleryItem(item));
   }
   return list;
 }

@@ -12,6 +12,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   UIManager,
   useWindowDimensions,
   View,
@@ -41,6 +42,7 @@ import { createThemedStyles } from '../hooks/useThemedStyles';
 import { ClimateHeaderBackdrop } from './ClimateHeaderBackdrop';
 import { useLocalWeather } from '../hooks/useLocalWeather';
 import { getClimateTheme } from '../lib/climateThemes';
+import { formatYearsInBusinessShort } from '../lib/establishmentYear';
 
 if (
   Platform.OS === 'android' &&
@@ -83,17 +85,15 @@ function categoryGridMetrics(width: number, height: number) {
   const scale = Math.min(wScale, hScale);
   const compact = width < 360 || short;
 
-  const iconBox = Math.round(Math.min(rowBudget * 0.42, (compact ? 22 : 25) * scale));
+  const iconBox = Math.round(Math.min(rowBudget * 0.38, (compact ? 22 : 25) * scale));
   const iconImg = Math.round(iconBox * 0.88);
   const ionSize = Math.round(iconBox * 0.78);
-  const fontSize = Math.max(8, Math.min(12, Math.round(9.2 * scale * 10) / 10));
-  const lineHeight = Math.round(fontSize + 2);
-  const cellPadV = Math.max(1, Math.round(1.5 * scale));
-  const cellGap = Math.max(1, Math.round(1.5 * scale));
-  const cellH = Math.min(
-    rowBudget,
-    iconBox + cellGap + lineHeight + cellPadV * 2,
-  );
+  const fontSize = 12;
+  const lineHeight = 16;
+  const labelLines = 2;
+  const cellPadV = Math.max(2, Math.round(2 * scale));
+  const cellGap = Math.max(2, Math.round(2 * scale));
+  const cellH = iconBox + cellGap + lineHeight * labelLines + cellPadV * 2;
 
   return {
     cols,
@@ -322,6 +322,8 @@ type Props = {
   onVoiceSearch?: (transcript: string) => void;
   onOpenCategory: (category: HomeCategory) => void;
   onSeeAll: () => void;
+  /** Full unique catalog for “View all N” — must match the count shown. */
+  catalog?: HomeCategory[];
   onOpenMerchant: (merchant: Merchant) => void;
   onSelectCategory?: (category: HomeCategory) => void;
   /** Home renders parent sections below the grid; skip the in-hero merchant rail. */
@@ -487,9 +489,7 @@ function CategoryGridCell({
           },
           selected && styles.gridLabelSelected,
         ]}
-        numberOfLines={1}
-        adjustsFontSizeToFit
-        minimumFontScale={0.75}
+        numberOfLines={2}
       >
         {category.name}
       </Text>
@@ -650,16 +650,20 @@ function VoiceListeningShell({
   );
 }
 
-function countCatalog(items: HomeCategory[]): number {
-  let total = 0;
+function flattenCatalog(items: HomeCategory[]): HomeCategory[] {
+  const seen = new Set<string>();
+  const out: HomeCategory[] = [];
   const walk = (nodes: HomeCategory[]) => {
     for (const node of nodes) {
-      if (!node.id.startsWith('all:')) total += 1;
+      if (!node.id.startsWith('all:') && !seen.has(node.id)) {
+        seen.add(node.id);
+        out.push({ ...node, children: undefined });
+      }
       if (node.children?.length) walk(node.children);
     }
   };
   walk(items);
-  return total;
+  return out;
 }
 
 /** Always-visible expand control with a clear blink. */
@@ -809,8 +813,8 @@ function BusinessCard({
           ) : (
             <Text style={styles.meta}>New · {UNRATED_LABEL}</Text>
           )}
-          {merchant.yearsInBusiness ? (
-            <Text style={styles.meta}>· {merchant.yearsInBusiness}+ yrs</Text>
+          {formatYearsInBusinessShort(merchant.yearsInBusiness) ? (
+            <Text style={styles.meta}>· {formatYearsInBusinessShort(merchant.yearsInBusiness)}</Text>
           ) : null}
         </View>
 
@@ -874,6 +878,7 @@ export function InteractiveCategoryDeck({
   onVoiceSearch,
   onOpenCategory,
   onSeeAll,
+  catalog,
   onOpenMerchant,
   onSelectCategory,
   showMerchantSheet = true,
@@ -887,8 +892,8 @@ export function InteractiveCategoryDeck({
   const styles = useStyles();
   const allItems = useMemo(
     () =>
-      [...categories].sort(
-        (a, b) => (b.businessCount || 0) - (a.businessCount || 0),
+      flattenCatalog(categories).sort(
+        (a, b) => (b.businessCount || 0) - (a.businessCount || 0) || a.name.localeCompare(b.name),
       ),
     [categories],
   );
@@ -898,7 +903,8 @@ export function InteractiveCategoryDeck({
   );
 
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [catsExpanded, setCatsExpanded] = useState(false);
+  const [allOpen, setAllOpen] = useState(false);
+  const [allQuery, setAllQuery] = useState('');
   const [listening, setListening] = useState(false);
   const [hintIndex, setHintIndex] = useState(0);
   const hintFade = useRef(new Animated.Value(1)).current;
@@ -946,27 +952,39 @@ export function InteractiveCategoryDeck({
     const ordered = selected ? [selected, ...rest] : pool;
     return ordered.slice(0, grid.railLimit);
   }, [activeId, allItems, grid.railLimit, populatedItems]);
-  const expandPool =
-    populatedItems.length > 0 ? populatedItems : allItems;
-  const visibleCats = catsExpanded
-    ? pinSelectedFirst(expandPool, activeId)
-    : railItems;
-  const hasMoreLocal = expandPool.length > grid.railLimit;
-  const catalogCount = useMemo(() => countCatalog(categories), [categories]);
-  const canExpand = catalogCount > 0 && (hasMoreLocal || catsExpanded || Boolean(onSeeAll));
+  const expandPool = useMemo(
+    () =>
+      flattenCatalog(catalog && catalog.length > 0 ? catalog : categories).sort(
+        (a, b) => (b.businessCount || 0) - (a.businessCount || 0) || a.name.localeCompare(b.name),
+      ),
+    [catalog, categories],
+  );
+  const visibleCats = railItems;
+  const catalogCount = expandPool.length;
+  const canExpand = catalogCount > grid.railLimit || allOpen;
+  const allFiltered = useMemo(() => {
+    const query = allQuery.trim().toLowerCase();
+    const pool = pinSelectedFirst(expandPool, activeId);
+    if (!query) return pool;
+    return pool.filter((cat) => cat.name.toLowerCase().includes(query));
+  }, [activeId, allQuery, expandPool]);
+  const railRows = Math.ceil(visibleCats.length / Math.max(1, grid.cols));
+  const railGridH =
+    railRows > 0
+      ? railRows * grid.cellH + Math.max(0, railRows - 1) * grid.rowGap
+      : 0;
+  const allRows = Math.ceil(allFiltered.length / Math.max(1, grid.cols));
+  const allGridH =
+    allRows > 0
+      ? allRows * grid.cellH + Math.max(0, allRows - 1) * grid.rowGap
+      : 0;
 
   const toggleCategoriesExpanded = () => {
-    if (!hasMoreLocal && !catsExpanded) {
-      onSeeAll?.();
-      return;
-    }
-    LayoutAnimation.configureNext({
-      duration: 280,
-      create: { type: 'easeInEaseOut', property: 'opacity' },
-      update: { type: 'easeInEaseOut' },
-      delete: { type: 'easeInEaseOut', property: 'opacity' },
+    if (catalogCount === 0) return;
+    setAllOpen((open) => {
+      if (open) setAllQuery('');
+      return !open;
     });
-    setCatsExpanded((v) => !v);
   };
 
   const selectCategory = (id: string) => {
@@ -977,7 +995,8 @@ export function InteractiveCategoryDeck({
       create: { type: 'easeInEaseOut', property: 'opacity' },
     });
     setActiveId(id);
-    setCatsExpanded(false);
+    setAllOpen(false);
+    setAllQuery('');
     listFade.setValue(0.25);
     Animated.timing(listFade, {
       toValue: 1,
@@ -1216,7 +1235,16 @@ export function InteractiveCategoryDeck({
                 { paddingHorizontal: grid.hPad },
               ]}
             >
-              <View style={[styles.grid, { columnGap: grid.gap, rowGap: grid.rowGap }]}>
+              <View
+                style={[
+                  styles.grid,
+                  {
+                    columnGap: grid.gap,
+                    rowGap: grid.rowGap,
+                    height: railGridH,
+                  },
+                ]}
+              >
                 {visibleCats.map((cat) => (
                   <CategoryGridCell
                     key={cat.id}
@@ -1231,7 +1259,7 @@ export function InteractiveCategoryDeck({
 
             {canExpand ? (
               <PulsingExpandArrow
-                expanded={catsExpanded}
+                expanded={allOpen}
                 total={catalogCount}
                 onPress={toggleCategoriesExpanded}
               />
@@ -1487,6 +1515,88 @@ export function InteractiveCategoryDeck({
       </Modal>
       </>
       ) : null}
+
+      <Modal
+        visible={allOpen}
+        animationType="slide"
+        onRequestClose={() => {
+          setAllOpen(false);
+          setAllQuery('');
+        }}
+      >
+        <View
+          style={[
+            styles.allSheet,
+            {
+              backgroundColor: climateTheme.base,
+              paddingTop: Math.max(insets.top, 12),
+            },
+          ]}
+        >
+          <View style={styles.allHead}>
+            <View style={styles.flex}>
+              <Text style={styles.allKicker}>FinderB</Text>
+              <Text style={styles.allTitle}>
+                All {catalogCount} categories
+              </Text>
+            </View>
+            <Pressable
+              onPress={() => {
+                setAllOpen(false);
+                setAllQuery('');
+              }}
+              style={styles.allClose}
+              accessibilityRole="button"
+              accessibilityLabel="Close categories"
+            >
+              <Ionicons name="close" size={22} color="#FFFFFF" />
+            </Pressable>
+          </View>
+          <View style={styles.allSearchWrap}>
+            <Ionicons name="search" size={16} color="rgba(255,255,255,0.7)" />
+            <TextInput
+              value={allQuery}
+              onChangeText={setAllQuery}
+              placeholder="Search categories"
+              placeholderTextColor="rgba(255,255,255,0.45)"
+              style={styles.allSearch}
+              autoCorrect={false}
+              autoCapitalize="none"
+            />
+          </View>
+          <ScrollView
+            contentContainerStyle={{
+              paddingHorizontal: grid.hPad,
+              paddingBottom: Math.max(insets.bottom, 24) + 12,
+            }}
+            keyboardShouldPersistTaps="handled"
+          >
+            <View
+              style={[
+                styles.grid,
+                {
+                  columnGap: grid.gap,
+                  rowGap: grid.rowGap,
+                  height: allGridH,
+                },
+              ]}
+            >
+              {allFiltered.map((cat) => (
+                <CategoryGridCell
+                  key={cat.id}
+                  category={cat}
+                  selected={active?.id === cat.id}
+                  metrics={grid}
+                  onPress={() => selectCategory(cat.id)}
+                />
+              ))}
+            </View>
+            {allFiltered.length === 0 ? (
+              <Text style={styles.allEmpty}>No categories match that search.</Text>
+            ) : null}
+          </ScrollView>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -1656,6 +1766,62 @@ const useStyles = createThemedStyles((colors) => ({
   expandedBlock: {
     paddingTop: 0,
     paddingBottom: 0,
+  },
+  flex: { flex: 1, minWidth: 0 },
+  allSheet: { flex: 1 },
+  allHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingBottom: 10,
+  },
+  allKicker: {
+    fontFamily: fonts.semiBold,
+    fontSize: 11,
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+    color: 'rgba(255,255,255,0.55)',
+  },
+  allTitle: {
+    fontFamily: fonts.bold,
+    fontSize: 22,
+    lineHeight: 26,
+    color: '#FFFFFF',
+    marginTop: 2,
+  },
+  allClose: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.12)',
+  },
+  allSearchWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginHorizontal: 16,
+    marginBottom: 12,
+    paddingHorizontal: 12,
+    minHeight: 44,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+  },
+  allSearch: {
+    flex: 1,
+    fontFamily: fonts.regular,
+    fontSize: 15,
+    color: '#FFFFFF',
+    paddingVertical: 8,
+  },
+  allEmpty: {
+    fontFamily: fonts.regular,
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.7)',
+    textAlign: 'center',
+    marginTop: 28,
   },
   expandedHint: {
     fontFamily: fonts.semiBold,

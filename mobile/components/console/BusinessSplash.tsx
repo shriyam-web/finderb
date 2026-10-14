@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { fonts } from '../../constants/typography';
 import { useConsoleColors } from '../../constants/consoleColors';
 import { useAuth } from '../../context/AuthContext';
-import { createConsoleStyles } from './kit';
+import { createConsoleStyles, DOCK_HEIGHT } from './kit';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const fbMark = require('../../assets/fb-mark-240.png');
@@ -42,15 +42,13 @@ export function BusinessSplash() {
 
   return (
     <View
-      style={[styles.page, { paddingTop: insets.top, paddingBottom: insets.bottom + 36 }]}
+      style={[styles.page, { paddingTop: insets.top, paddingBottom: insets.bottom + DOCK_HEIGHT + 36 }]}
       accessibilityRole="progressbar"
       accessibilityLabel="Opening FinderB Business"
     >
       <StatusBar barStyle={c.isDark ? 'light-content' : 'dark-content'} />
       <Animated.View style={[styles.center, { opacity: enter, transform: [{ translateY: lift }, { scale }] }]}>
-        <View style={styles.tile}>
-          <Image source={fbMark} style={styles.mark} resizeMode="contain" alt="FinderB" />
-        </View>
+        <Image source={fbMark} style={styles.mark} resizeMode="contain" alt="FinderB" />
         <Text style={styles.word}>
           FinderB <Text style={styles.wordAccent}>Business</Text>
         </Text>
@@ -73,23 +71,8 @@ export function BusinessSplash() {
 
 const useStyles = createConsoleStyles((c) => ({
   page: { flex: 1, backgroundColor: c.card, alignItems: 'center', justifyContent: 'space-between' },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 },
-  tile: {
-    width: 92,
-    height: 92,
-    borderRadius: 26,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
-    borderWidth: c.isDark ? 0 : 1,
-    borderColor: c.line,
-    shadowColor: '#101828',
-    shadowOpacity: c.isDark ? 0 : 0.08,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: c.isDark ? 0 : 4,
-  },
-  mark: { width: 58, height: 58 },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32, marginTop: -24 },
+  mark: { width: 84, height: 84 },
   word: { marginTop: 22, fontFamily: fonts.semiBold, fontSize: 22, color: c.ink },
   wordAccent: { color: c.primary },
   shop: { marginTop: 6, maxWidth: 280, fontFamily: fonts.regular, fontSize: 14.5, color: c.muted },

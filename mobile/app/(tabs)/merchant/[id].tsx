@@ -5,6 +5,7 @@ import {
   Alert,
   Animated,
   Dimensions,
+  useWindowDimensions,
   Linking,
   NativeScrollEvent,
   NativeSyntheticEvent,
@@ -47,16 +48,57 @@ import { fetchFavoriteIds, toggleFavorite } from '../../../lib/favoritesApi';
 import { recordDirectLead } from '../../../lib/leadsApi';
 import { reportBusinessReview } from '../../../lib/reviewsApi';
 import { goBackOrHome } from '../../../lib/navigation';
+import { formatYearsInBusinessShort } from '../../../lib/establishmentYear';
 import { SITE_URL } from '../../../lib/supabase';
-import { openMerchantLogin } from '../../../lib/merchantWeb';
 import { getRatingDisplay, UNRATED_LABEL } from '../../../lib/ratingDisplay';
 import { useTabScrollPadding } from '../../../hooks/useAppSafeArea';
 import { createThemedStyles } from '../../../hooks/useThemedStyles';
 import { useUserLocation } from '../../../hooks/useUserLocation';
 import { useDrivingDistanceLabel } from '../../../lib/drivingDistance';
 
-const { width: SCREEN_W } = Dimensions.get('window');
-const HERO_H = Math.round(SCREEN_W * 0.638);
+const FALLBACK_W = Dimensions.get('window').width || 360;
+
+function cloudinaryOriginal(url: string): string | null {
+  const marker = '/upload/';
+  const idx = url.indexOf(marker);
+  if (idx < 0) return null;
+  const after = url.slice(idx + marker.length);
+  const slash = after.indexOf('/');
+  if (slash <= 0) return null;
+  const first = after.slice(0, slash);
+  if (!first.includes('f_jpg')) return null;
+  return `${url.slice(0, idx + marker.length)}${after.slice(slash + 1)}`;
+}
+
+function GalleryPhoto({
+  uri,
+  width,
+  height,
+  priority = 'high',
+}: {
+  uri: string;
+  width: number | '100%';
+  height: number | '100%';
+  priority?: 'low' | 'normal' | 'high';
+}) {
+  const [src, setSrc] = useState(uri);
+  useEffect(() => {
+    setSrc(uri);
+  }, [uri]);
+  return (
+    <Image
+      source={{ uri: src }}
+      style={{ width, height }}
+      contentFit="cover"
+      cachePolicy="memory-disk"
+      priority={priority}
+      onError={() => {
+        const plain = cloudinaryOriginal(src);
+        if (plain && plain !== src) setSrc(plain);
+      }}
+    />
+  );
+}
 
 function maskPhone(value?: string | null): string {
   const trimmed = (value || '').trim();
@@ -188,6 +230,14 @@ function RelatedMeta({ item }: { item: Merchant }) {
 }
 
 export default function MerchantProfileScreen() {
+  const windowWidth = useWindowDimensions().width;
+  const [heroW, setHeroW] = useState(windowWidth > 0 ? windowWidth : FALLBACK_W);
+  const screenW = heroW > 0 ? heroW : FALLBACK_W;
+  const heroH = Math.round(screenW * 0.638);
+
+  useEffect(() => {
+    if (windowWidth > 0 && heroW <= 0) setHeroW(windowWidth);
+  }, [heroW, windowWidth]);
   const { colors, gradients } = useTheme();
   const styles = useStyles();
   const router = useRouter();
@@ -317,14 +367,14 @@ export default function MerchantProfileScreen() {
       setGalleryIndex((prev) => {
         const next = (prev + 1) % photos.length;
         galleryRef.current?.scrollTo({
-          x: next * SCREEN_W,
+          x: next * screenW,
           animated: true,
         });
         return next;
       });
     }, 5000);
     return () => clearInterval(timer);
-  }, [photos.length, merchant?.id, lightboxOpen]);
+  }, [photos.length, merchant?.id, lightboxOpen, screenW]);
 
   const openLightbox = (index = 0) => {
     if (!photos.length) return;
@@ -393,14 +443,14 @@ export default function MerchantProfileScreen() {
   }, [merchant?.reviews]);
 
   const headerOpacity = scrollY.interpolate({
-    inputRange: [HERO_H - 120, HERO_H - 40],
+    inputRange: [heroH - 120, heroH - 40],
     outputRange: [0, 1],
     extrapolate: 'clamp',
   });
 
   const onGalleryScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const x = e.nativeEvent.contentOffset.x;
-    setGalleryIndex(Math.round(x / SCREEN_W));
+    setGalleryIndex(Math.round(x / screenW));
   };
 
   const requestLogin = () => {
@@ -420,17 +470,7 @@ export default function MerchantProfileScreen() {
         user.email.toLowerCase() === merchant.email.toLowerCase()));
 
   const openBusinessEdit = () => {
-    Alert.alert(
-      'Manage this business',
-      'Business tools will be in this same app. To manage this listing right now, open the web panel.',
-      [
-        { text: 'Not now', style: 'cancel' },
-        {
-          text: 'Open web panel',
-          onPress: () => void openMerchantLogin(),
-        },
-      ],
-    );
+    router.push('/business-console/edit' as Href);
   };
 
   const handleSave = async () => {
@@ -633,7 +673,7 @@ export default function MerchantProfileScreen() {
             useNativeDriver: true,
             listener: (e: NativeSyntheticEvent<NativeScrollEvent>) => {
               const y = e.nativeEvent.contentOffset.y;
-              setCompactVisible(y > HERO_H - 80);
+              setCompactVisible(y > heroH - 80);
             },
           },
         )}
@@ -646,18 +686,25 @@ export default function MerchantProfileScreen() {
             </View>
           </SafeAreaView>
         ) : null}
-        <View style={[styles.hero, { height: HERO_H }]}>
+        <View
+          style={[styles.hero, { height: heroH }]}
+          onLayout={(event) => {
+            const next = event.nativeEvent.layout.width;
+            if (next > 0 && Math.abs(next - heroW) > 1) setHeroW(next);
+          }}
+        >
           {photos.length ? (
             <ScrollView
               ref={galleryRef}
               horizontal
               pagingEnabled
               decelerationRate="fast"
-              snapToInterval={SCREEN_W}
+              snapToInterval={screenW}
               snapToAlignment="center"
               disableIntervalMomentum
               nestedScrollEnabled
               directionalLockEnabled
+              removeClippedSubviews={false}
               showsHorizontalScrollIndicator={false}
               onScroll={onGalleryScroll}
               scrollEventThrottle={16}
@@ -667,13 +714,14 @@ export default function MerchantProfileScreen() {
                 <Pressable
                   key={`${uri}-${index}`}
                   onPress={() => openLightbox(index)}
-                  style={{ width: SCREEN_W, height: HERO_H }}
+                  style={{ width: screenW, height: heroH }}
                   accessibilityLabel={`View photo ${index + 1}`}
                 >
-                  <Image
-                    source={{ uri }}
-                    style={{ width: SCREEN_W, height: HERO_H }}
-                    contentFit="cover"
+                  <GalleryPhoto
+                    uri={uri}
+                    width={screenW}
+                    height={heroH}
+                    priority={index === 0 ? 'high' : 'normal'}
                   />
                 </Pressable>
               ))}
@@ -765,11 +813,7 @@ export default function MerchantProfileScreen() {
                 accessibilityLabel="View profile photo"
               >
                 {photos[0] ? (
-                  <Image
-                    source={{ uri: photos[0] }}
-                    style={styles.avatar}
-                    contentFit="cover"
-                  />
+                  <GalleryPhoto uri={photos[0]} width={72} height={72} />
                 ) : (
                   <View style={styles.avatarFallback}>
                     <Text style={styles.avatarLetter}>
@@ -875,8 +919,8 @@ export default function MerchantProfileScreen() {
             <View style={styles.identityBody}>
               <Text style={styles.categoryLine} numberOfLines={1}>
                 {merchant.category || 'Business'}
-                {merchant.yearsInBusiness
-                  ? ` · ${merchant.yearsInBusiness}+ yrs`
+                {formatYearsInBusinessShort(merchant.yearsInBusiness)
+                  ? ` · ${formatYearsInBusinessShort(merchant.yearsInBusiness)}`
                   : ''}
               </Text>
 
@@ -1653,11 +1697,11 @@ const useStyles = createThemedStyles((colors, gradients) => ({
     color: colors.textMuted,
   },
   hero: {
-    width: SCREEN_W,
+    width: '100%',
     backgroundColor: colors.night,
     overflow: 'hidden',
   },
-  gallery: { width: SCREEN_W, height: '100%' },
+  gallery: { width: '100%', height: '100%' },
   heroFill: { ...StyleSheet.absoluteFill },
   heroShade: { ...StyleSheet.absoluteFill },
   heroTop: {
@@ -2518,7 +2562,7 @@ const useStyles = createThemedStyles((colors, gradients) => ({
     gap: 12,
   },
   relatedCard: {
-    width: Math.min(220, SCREEN_W * 0.58),
+    width: Math.min(220, FALLBACK_W * 0.58),
   },
   relatedPhoto: {
     height: 150,

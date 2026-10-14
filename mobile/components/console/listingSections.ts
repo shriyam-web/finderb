@@ -1,4 +1,5 @@
 import type { Ionicons } from '@expo/vector-icons';
+import { formatEstablishmentYearsLabel } from '../../lib/establishmentYear';
 import type { ConsoleOverview, Timings } from '../../lib/merchantConsoleApi';
 
 export type SectionKey = 'basics' | 'contact' | 'location' | 'hours' | 'offers' | 'social';
@@ -98,4 +99,61 @@ export function sectionSummary(key: SectionKey, o: ConsoleOverview): string {
 export function sectionGaps(section: ListingSection, o: ConsoleOverview): number {
   const missing = new Set(o.completion.missing.map((field) => field.key));
   return section.fields.filter((field) => missing.has(field)).length;
+}
+
+export type ListingDetailRow = {
+  label: string;
+  value: string;
+  section: SectionKey;
+  missing: boolean;
+};
+
+function dash(value: string | null | undefined, fallback = 'Not set') {
+  const text = String(value || '').trim();
+  return text || fallback;
+}
+
+/** Every editable listing field, for the listing tab. */
+export function listingDetailRows(o: ConsoleOverview): ListingDetailRow[] {
+  const p = o.profile;
+  const missing = new Set(o.completion.missing.map((field) => field.key));
+  const isMissing = (key: string) => missing.has(key);
+  return [
+    { label: 'Display name', value: dash(p.displayName || p.businessName), section: 'basics', missing: isMissing('displayName') },
+    { label: 'About', value: dash(p.about), section: 'basics', missing: isMissing('about') },
+    { label: 'Keywords', value: p.keywords.length ? p.keywords.join(', ') : 'Not set', section: 'basics', missing: isMissing('keywords') },
+    { label: 'Services', value: dash(p.serviceCategory), section: 'basics', missing: isMissing('serviceCategory') },
+    { label: 'Public phone', value: dash(p.publicPhone), section: 'contact', missing: isMissing('publicPhone') },
+    { label: 'WhatsApp', value: dash(p.whatsappNumber), section: 'contact', missing: isMissing('whatsappNumber') },
+    { label: 'Owner', value: [p.ownerName, p.ownerMobile].filter(Boolean).join(' · ') || 'Not set', section: 'contact', missing: isMissing('ownerInfo') },
+    { label: 'Public email', value: dash(p.email), section: 'contact', missing: false },
+    { label: 'Website', value: dash(p.website), section: 'contact', missing: isMissing('website') },
+    { label: 'Address', value: dash(p.businessAddress), section: 'location', missing: isMissing('businessAddress') },
+    { label: 'City', value: dash(p.city), section: 'location', missing: isMissing('city') },
+    { label: 'State', value: dash(p.state), section: 'location', missing: isMissing('state') },
+    { label: 'Country', value: dash(p.country), section: 'location', missing: isMissing('country') },
+    {
+      label: 'Map pin',
+      value: p.latitude && p.longitude ? `${p.latitude.toFixed(4)}, ${p.longitude.toFixed(4)}` : 'Not set',
+      section: 'location',
+      missing: isMissing('mapLocation'),
+    },
+    { label: 'Opening hours', value: hoursSummary(p.timings), section: 'hours', missing: isMissing('timings') },
+    {
+      label: 'Payment modes',
+      value: p.paymentModes.length ? p.paymentModes.join(', ') : 'Not set',
+      section: 'offers',
+      missing: isMissing('paymentModes'),
+    },
+    {
+      label: 'Year established',
+      value: formatEstablishmentYearsLabel(p.yearsInBusiness) || 'Not set',
+      section: 'offers',
+      missing: isMissing('yearsInBusiness'),
+    },
+    { label: 'Offers', value: dash(p.discountRange), section: 'offers', missing: false },
+    { label: 'Instagram', value: dash(p.instagramUrl), section: 'social', missing: isMissing('instagramUrl') },
+    { label: 'Facebook', value: dash(p.facebookUrl), section: 'social', missing: isMissing('facebookUrl') },
+    { label: 'YouTube', value: dash(p.youtubeUrl), section: 'social', missing: isMissing('youtubeUrl') },
+  ];
 }

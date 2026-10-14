@@ -14,7 +14,7 @@ import {
   relatedSearchTerms,
   searchDisplayLabel,
 } from './searchPrecision';
-import { buildHomeFeaturedGroups } from './featuredCategoryGroups';
+import { buildHomeFeaturedGroups, uniqueCatalogCategories } from './featuredCategoryGroups';
 import { createSessionMemo } from './sessionMemo';
 import { consoleCall, isFailure } from './merchantConsoleApi';
 
@@ -461,6 +461,7 @@ type SubCategoryResult = {
 
 type MerchantListResult = {
   merchants: Merchant[];
+  slotIds?: Array<string | null>;
   error?: string;
 };
 
@@ -555,6 +556,19 @@ function paginateMerchants(
     hasMore: page * pageSize < total,
     error,
   };
+}
+
+/** Full category pool, before nearest-page slicing. Home shuffles this when no filter is on. */
+export function getCategoryMerchantPool(categoryQuery: string): Merchant[] | null {
+  const hit = merchantListMemo.peek(merchantListKey(categoryQuery));
+  if (!hit || hit.error) return null;
+  return hit.merchants;
+}
+
+/** Paid category slots. Home puts these back after a fair shuffle. */
+export function getCategorySlotIds(categoryQuery: string): Array<string | null> {
+  const hit = merchantListMemo.peek(merchantListKey(categoryQuery));
+  return hit?.slotIds ?? [];
 }
 
 export function peekBusinessesByCategory(
@@ -661,15 +675,17 @@ export async function fetchExploreCategories(limit = 80): Promise<{
 /** Homepage parent groups with nested categories and subcategories. */
 export async function fetchFeaturedHomeCategories(force = false): Promise<{
   categories: HomeCategory[];
+  catalog: HomeCategory[];
   error?: string;
 }> {
   const result = await fetchCategoryCatalog(force);
-  if (result.error) return result;
+  if (result.error) return { ...result, catalog: [] };
+  const usable = result.categories.filter(
+    (cat) => !EXCLUDED_HOME_CATEGORY_SLUGS.has(cat.slug),
+  );
   return {
-    categories: buildHomeFeaturedGroups(
-      result.categories,
-      EXCLUDED_HOME_CATEGORY_SLUGS,
-    ),
+    categories: buildHomeFeaturedGroups(usable, EXCLUDED_HOME_CATEGORY_SLUGS),
+    catalog: uniqueCatalogCategories(usable),
   };
 }
 
@@ -797,6 +813,7 @@ async function loadMerchantList(
         .filter(merchantHasPublicPhoto),
       slotIds,
     ),
+    slotIds,
   };
 }
 

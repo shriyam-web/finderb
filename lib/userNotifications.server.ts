@@ -453,6 +453,8 @@ export async function sendBusinessPush(input: {
   title: string;
   body: string;
   url: string;
+  reviewId?: string;
+  notificationId?: string;
 }): Promise<{ sent: number; error?: string }> {
   const businessId = input.businessId.trim();
   const supabase = db();
@@ -460,11 +462,21 @@ export async function sendBusinessPush(input: {
 
   const loaded = await loadPushTokens(supabase, { businessId });
   if (loaded.error) return { sent: 0, error: loaded.error };
+  const reviewId = input.reviewId?.trim() || '';
+  const notificationId = input.notificationId?.trim() || '';
   return sendPush(loaded.rows, {
     title: input.title,
     body: input.body,
-    collapseId: `${input.type}-${businessId}`,
-    data: { type: input.type, audience: 'business', businessId, url: input.url },
+    collapseId: `${input.type}-${businessId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    data: {
+      type: input.type,
+      audience: 'business',
+      businessId,
+      url: input.url,
+      ctaUrl: input.url,
+      ...(reviewId ? { reviewId } : {}),
+      ...(notificationId ? { notificationId } : {}),
+    },
   });
 }
 

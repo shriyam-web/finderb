@@ -124,12 +124,6 @@ function FinderBAppCard({
           ))}
         </div>
 
-        <div className="rounded-xl border border-white/[0.08] bg-black/20 p-2.5">
-          <p className="mb-2 text-[9px] font-semibold uppercase tracking-[0.16em] text-white/35">
-            Coming soon on
-          </p>
-          <StorePlatformsRow />
-        </div>
       </div>
     </div>
   );
@@ -1628,16 +1622,17 @@ export default function NativeAppsComingSoon() {
           <div className="relative grid items-center gap-12 px-4 py-6 sm:p-10 lg:grid-cols-[1fr_1.15fr] lg:gap-6 lg:p-12 xl:p-14">
             <div className="relative z-10 text-left">
               <h2 className="mb-4 text-3xl font-extrabold leading-[1.08] tracking-tight !text-white sm:text-4xl lg:text-[2.65rem]">
-                Two FinderB apps hitting{' '}
+                The FinderB app is{' '}
                 <span className="bg-gradient-to-r from-secondary via-amber-200 to-cyan-300 bg-[length:200%_auto] bg-clip-text text-transparent animate-coming-soon-shimmer">
-                  App Store &amp; Google Play
+                  coming soon
                 </span>
               </h2>
 
               <p className="mb-8 max-w-lg text-sm leading-relaxed text-white/60 sm:text-base">
-                <strong className="text-white/90">FinderB</strong> helps you discover local
-                services. <strong className="text-secondary">FinderB Business</strong> helps
-                merchants grow — both launching natively on iOS and Android.
+                One app on the App Store and Google Play, with two sides:{' '}
+                <strong className="text-white/90">FinderB</strong> to discover local services,
+                and <strong className="text-secondary">FinderB Business</strong> for merchants
+                to manage listings, leads, and reviews.
               </p>
 
               <div className="space-y-3">
@@ -1653,6 +1648,15 @@ export default function NativeAppsComingSoon() {
                   tagline="Manage listings, leads, reviews & analytics on the go"
                   features={BUSINESS_FEATURES}
                 />
+                <div className="rounded-2xl border border-white/[0.08] bg-black/20 p-3 sm:p-3.5">
+                  <p className="mb-2 text-[9px] font-semibold uppercase tracking-[0.16em] text-white/35">
+                    Coming soon
+                  </p>
+                  <StorePlatformsRow />
+                  <p className="mt-2 text-[11px] leading-snug text-white/55">
+                    One app on both stores — FinderB and FinderB Business are two sides of the same app.
+                  </p>
+                </div>
               </div>
             </div>
 
@@ -1674,9 +1678,9 @@ export default function NativeAppsComingSoon() {
 
               <div className="absolute right-0 top-6 z-30 hidden rounded-xl border border-white/10 bg-white/5 px-3 py-2 backdrop-blur-md sm:block">
                 <p className="text-[8px] font-bold uppercase tracking-wider text-secondary">
-                  2 FinderB apps
+                  Coming soon
                 </p>
-                <p className="text-[11px] font-semibold text-white">iOS &amp; Android</p>
+                <p className="text-[11px] font-semibold text-white">One app · two sides</p>
               </div>
 
               <div className="absolute bottom-24 left-0 z-30 hidden rounded-xl border border-white/10 bg-white/5 px-3 py-2 backdrop-blur-md sm:block">
@@ -1692,7 +1696,7 @@ export default function NativeAppsComingSoon() {
           <div className="relative overflow-hidden border-t border-white/5 bg-white/[0.02] px-6 py-3">
             <div className="animate-shimmer absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent" />
             <p className="relative text-center text-[10px] font-semibold uppercase tracking-[0.2em] text-white/35">
-              FinderB · FinderB Business · App Store · Google Play · Coming 2026
+              FinderB · FinderB Business · App Store · Google Play · Coming soon
             </p>
           </div>
         </div>

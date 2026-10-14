@@ -53,12 +53,7 @@ export default function BusinessLoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) {
-      setError('Please enter both email and password');
-      return;
-    }
-
-    if (!email.includes('@')) {
-      setError('Please enter a valid email address');
+      setError('Enter your email or mobile number and password');
       return;
     }
 
@@ -163,7 +158,7 @@ export default function BusinessLoginPage() {
               <MerchantAuthFormCard>
                 <MerchantAuthFormHeader
                   title="Partner sign in"
-                  subtitle="Google, Truecaller, WhatsApp, or the email from your business registration."
+                  subtitle="Google, Truecaller, WhatsApp, or the email or mobile number from your business registration."
                 />
                 <MerchantAuthFormBody>
                   <SocialAuthButtons
@@ -173,7 +168,7 @@ export default function BusinessLoginPage() {
                   />
                   <div className="my-5 flex items-center gap-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
                     <span className="h-px flex-1 bg-slate-200" />
-                    or work email
+                    or email / mobile
                     <span className="h-px flex-1 bg-slate-200" />
                   </div>
 
@@ -197,13 +192,13 @@ export default function BusinessLoginPage() {
                   <form onSubmit={handleLogin} className="space-y-4">
                     <MerchantAuthField
                       id="email"
-                      label="Work email"
-                      type="email"
+                      label="Email or mobile number"
+                      type="text"
                       value={email}
                       onChange={setEmail}
-                      placeholder="you@business.com"
+                      placeholder="you@business.com or 9876543210"
                       icon={Mail}
-                      autoComplete="email"
+                      autoComplete="username"
                     />
 
                     <div>

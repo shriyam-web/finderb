@@ -13,6 +13,11 @@ import * as Notifications from 'expo-notifications';
 import { useAuth } from './AuthContext';
 import type { AppNotification } from '../lib/notificationsApi';
 import {
+  consoleCall,
+  isFailure,
+  type ConsoleNotification,
+} from '../lib/merchantConsoleApi';
+import {
   isNotificationUnread,
   markInboxRead,
   rememberBroadcastId,
@@ -22,6 +27,8 @@ import {
   broadcastIdFromNotificationData,
   configureNotificationHandler,
   ensureAndroidNotificationChannels,
+  isBusinessNotification,
+  presentForegroundPush,
 } from '../lib/notificationChannels';
 
 configureNotificationHandler();
@@ -53,16 +60,34 @@ export function NotificationInboxProvider({ children }: { children: ReactNode })
   const syncing = useRef(false);
 
   const refresh = useCallback(async (opts?: { silent?: boolean }) => {
-    if (isBusiness) {
-      setItems([]);
-      setUnreadCount(0);
-      setLoading(false);
-      return;
-    }
     if (syncing.current) return;
     syncing.current = true;
     if (!opts?.silent) setLoading(true);
     try {
+      if (isBusiness) {
+        const result = await consoleCall<{ items: ConsoleNotification[]; unread: number }>('notifications');
+        if (isFailure(result)) {
+          setError(result.error);
+          setItems([]);
+          setUnreadCount(0);
+          return;
+        }
+        setItems(
+          (result.items || []).map((item) => ({
+            id: item.id,
+            title: item.title,
+            message: item.body,
+            created_at: item.createdAt,
+            cta_url: item.ctaUrl,
+            cta_label: item.ctaLabel,
+            read: item.read,
+          })),
+        );
+        setUnreadCount(result.unread || 0);
+        setReadAt(null);
+        setError('');
+        return;
+      }
       const snapshot = await syncNotificationInbox({
         userId: signedInRef.current ? user?.id : null,
         createdAt: signedInRef.current ? user?.createdAt : null,
@@ -78,14 +103,23 @@ export function NotificationInboxProvider({ children }: { children: ReactNode })
   }, [isBusiness, user?.createdAt, user?.id]);
 
   const markAllRead = useCallback(async () => {
+    if (isBusiness) {
+      await consoleCall('markNotificationsRead');
+      setItems((prev) => prev.map((item) => ({ ...item, read: true })));
+      setUnreadCount(0);
+      return;
+    }
     const now = Date.now();
     await markInboxRead(now);
     setReadAt(now);
     setUnreadCount(0);
-  }, []);
+  }, [isBusiness]);
 
   const isUnread = useCallback(
-    (item: AppNotification) => isNotificationUnread(item, readAt),
+    (item: AppNotification) => {
+      if (typeof item.read === 'boolean') return !item.read;
+      return isNotificationUnread(item, readAt);
+    },
     [readAt],
   );
 
@@ -123,14 +157,36 @@ export function NotificationInboxProvider({ children }: { children: ReactNode })
   useEffect(() => {
     if (Platform.OS === 'web') return;
     const sub = Notifications.addNotificationReceivedListener((notification) => {
-      const id = broadcastIdFromNotificationData(
-        notification.request.content.data as Record<string, unknown> | undefined,
-      );
+      const content = notification.request.content;
+      const data = content.data as Record<string, unknown> | undefined;
+      const id = broadcastIdFromNotificationData(data);
       if (id) void rememberBroadcastId(id);
+      void presentForegroundPush(notification);
+      if (isBusiness && isBusinessNotification(data)) {
+        const itemId = String(data?.notificationId || notification.request.identifier || '').trim();
+        if (itemId && !itemId.startsWith('fg-')) {
+          setItems((prev) => {
+            if (prev.some((item) => item.id === itemId)) return prev;
+            return [
+              {
+                id: itemId,
+                title: content.title || 'FinderB',
+                message: content.body || '',
+                created_at: new Date().toISOString(),
+                cta_url: String(data?.ctaUrl || data?.url || ''),
+                cta_label: data?.type === 'review' ? 'View review' : 'Open leads',
+                read: false,
+              },
+              ...prev,
+            ];
+          });
+          setUnreadCount((count) => count + 1);
+        }
+      }
       void refresh({ silent: true });
     });
     return () => sub.remove();
-  }, [refresh]);
+  }, [isBusiness, refresh]);
 
   const value = useMemo<InboxValue>(
     () => ({

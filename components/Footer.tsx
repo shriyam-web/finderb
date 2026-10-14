@@ -428,7 +428,7 @@ export default function Footer() {
                     <Link
                       href="/#native-apps"
                       className="inline-flex items-center gap-2 rounded-md border border-neutral-300 px-3 py-1.5 text-xs text-neutral-700 transition-colors hover:border-neutral-400 hover:text-neutral-900"
-                      title="Preview FinderB apps coming to the App Store"
+                      title="The FinderB app is coming soon on the App Store"
                     >
                       <AppStoreIcon className="h-3.5 w-3.5 text-neutral-800" />
                       App Store
@@ -436,7 +436,7 @@ export default function Footer() {
                     <Link
                       href="/#native-apps"
                       className="inline-flex items-center gap-2 rounded-md border border-neutral-300 px-3 py-1.5 text-xs text-neutral-700 transition-colors hover:border-neutral-400 hover:text-neutral-900"
-                      title="Preview FinderB apps coming to Google Play"
+                      title="The FinderB app is coming soon on Google Play"
                     >
                       <FaGooglePlay size={13} />
                       Google Play

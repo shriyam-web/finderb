@@ -429,8 +429,8 @@ function applyMerchantFilters(
     return rows;
   }
 
-  // Offers / verified / hiring only — keep a shuffled filtered set.
-  return seededShuffle(rows, `${shuffleSeed}:${activeFilters.slice().sort().join(',')}`);
+  rows.sort((a, b) => trendingScore(b) - trendingScore(a));
+  return rows;
 }
 
 function emptyFilterTip(activeFilters: MerchantFilterId[]) {
@@ -667,6 +667,9 @@ export default function FeaturedCategoryGroup({
   const [activeFilters, setActiveFilters] = useState<MerchantFilterId[]>([]);
   const [filterOpen, setFilterOpen] = useState(false);
   const filterPanelRef = useRef<HTMLDivElement>(null);
+  const loadSeed = useRef(
+    `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`
+  );
 
   const subIdsKey = subcategories.map((sub) => sub.id).join(',');
 
@@ -694,7 +697,7 @@ export default function FeaturedCategoryGroup({
         merchants,
         activeFilters,
         userCoords,
-        `${id}:${listingSource?.id || selected?.id || selectedId || 'all'}`,
+        `${loadSeed.current}:${id}:${listingSource?.id || selected?.id || selectedId || 'all'}`,
         fixedSlotIds
       ),
     [merchants, activeFilters, userCoords, id, listingSource?.id, selected?.id, selectedId, fixedSlotIds]
@@ -793,19 +796,24 @@ export default function FeaturedCategoryGroup({
   }, []);
 
   useEffect(() => {
+    setActiveFilters((prev) => (prev.length ? [] : prev));
+    setFilterOpen(false);
+  }, [listingSource?.id, listingSource?.slug, listingSource?.queryName]);
+
+  useEffect(() => {
     if (!inView || !subReady || !listingSource) return;
 
     let cancelled = false;
     const query = listingSource.queryName || listingSource.slug || listingSource.name;
+    const shuffle = activeFilters.length === 0;
 
     async function load() {
       setLoading(true);
       setMerchants([]);
-      setActiveFilters([]);
-      setFilterOpen(false);
       const result = await getBusinessesByCategory(query, {
         page: 1,
         pageSize: HOME_MERCHANT_PAGE_SIZE,
+        ...(shuffle ? { shuffleSeed: loadSeed.current } : {}),
       });
       if (cancelled) return;
 
@@ -830,6 +838,7 @@ export default function FeaturedCategoryGroup({
     listingSource?.slug,
     listingSource?.name,
     listingSource?.queryName,
+    activeFilters.length,
   ]);
 
   useEffect(() => {

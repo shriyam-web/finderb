@@ -42,22 +42,36 @@ const tabMeta: Record<string, { title: string; description: string }> = {
   },
 };
 
+type DashboardNotification = {
+  id?: string;
+  title?: string;
+  message: string;
+  created_at: string;
+  cta_url?: string | null;
+  cta_label?: string | null;
+  show_datetime?: boolean | null;
+  read?: boolean;
+};
+
 type DashboardTopBarProps = {
   activeTab: string;
   unreadCount: number;
   isNotificationsOpen: boolean;
   onNotificationsToggle: () => void;
   onNotificationsClose: () => void;
-  notifications: Array<{
-    id?: string;
-    title?: string;
-    message: string;
-    created_at: string;
-    cta_url?: string | null;
-    cta_label?: string | null;
-    show_datetime?: boolean | null;
-  }>;
+  onOpenNotification?: (item: DashboardNotification) => void;
+  onMarkAllRead?: () => void;
+  notifications: DashboardNotification[];
 };
+
+function itemCta(n: DashboardNotification) {
+  const url = (n.cta_url || '').trim();
+  if (url.startsWith('/')) {
+    return { url, label: n.cta_label || 'Open', internal: true };
+  }
+  const remote = resolveBroadcastCta(n);
+  return remote ? { ...remote, internal: false } : null;
+}
 
 export default function DashboardTopBar({
   activeTab,
@@ -65,6 +79,8 @@ export default function DashboardTopBar({
   isNotificationsOpen,
   onNotificationsToggle,
   onNotificationsClose,
+  onOpenNotification,
+  onMarkAllRead,
   notifications,
 }: DashboardTopBarProps) {
   const meta = tabMeta[activeTab] || { title: activeTab, description: '' };
@@ -98,33 +114,42 @@ export default function DashboardTopBar({
           <>
             <div className="fixed inset-0 z-40" onClick={onNotificationsClose} />
             <div className="absolute right-0 top-full z-50 mt-2 w-80 overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-lg">
-              <div className="border-b border-zinc-100 px-4 py-3">
+              <div className="flex items-center justify-between border-b border-zinc-100 px-4 py-3">
                 <h3 className="text-sm font-semibold text-zinc-900">Notifications</h3>
+                {unreadCount > 0 && onMarkAllRead ? (
+                  <button
+                    type="button"
+                    onClick={onMarkAllRead}
+                    className="text-[11px] font-semibold text-[#215481] hover:underline"
+                  >
+                    Mark all as read
+                  </button>
+                ) : null}
               </div>
               <div className="max-h-80 overflow-y-auto">
                 {notifications.length > 0 ? (
                   notifications.map((n) => {
-                    const cta = resolveBroadcastCta(n);
+                    const cta = itemCta(n);
                     return (
-                    <div key={n.id || `${n.title}-${n.created_at}`} className="border-b border-zinc-50 px-4 py-3 last:border-0">
+                    <button
+                      type="button"
+                      key={n.id || `${n.title}-${n.created_at}`}
+                      onClick={() => onOpenNotification?.(n)}
+                      className={`block w-full border-b border-zinc-50 px-4 py-3 text-left last:border-0 hover:bg-amber-50/40 ${n.read === false ? 'bg-[#fff8ee]' : ''}`}
+                    >
                       <p className="text-sm font-medium text-zinc-900">{n.title || 'Notification'}</p>
                       <p className="mt-0.5 text-xs text-zinc-600">{n.message}</p>
                       {cta ? (
-                        <a
-                          href={cta.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="mt-2 inline-flex rounded-md bg-[#215481] px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-[#1a4367]"
-                        >
+                        <span className="mt-2 inline-flex rounded-md bg-[#215481] px-2.5 py-1 text-[11px] font-semibold text-white">
                           {cta.label}
-                        </a>
+                        </span>
                       ) : null}
                       {broadcastShowsDatetime(n.show_datetime) ? (
                         <p className="mt-1 text-[11px] text-zinc-400">
                           {formatDateTimeInr(n.created_at)}
                         </p>
                       ) : null}
-                    </div>
+                    </button>
                     );
                   })
                 ) : (

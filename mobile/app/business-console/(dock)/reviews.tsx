@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { fonts } from '../../../constants/typography';
 import { useConsoleColors } from '../../../constants/consoleColors';
@@ -79,11 +79,19 @@ function Summary({ o }: { o: ConsoleOverview }) {
   );
 }
 
-function ReviewCard({ review, onReply }: { review: ConsoleReview; onReply: () => void }) {
+function ReviewCard({
+  review,
+  onReply,
+  highlight,
+}: {
+  review: ConsoleReview;
+  onReply: () => void;
+  highlight?: boolean;
+}) {
   const styles = useStyles();
   const c = useConsoleColors();
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, highlight && styles.cardHighlight]}>
       <View style={styles.cardHead}>
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>{(review.author || 'C').charAt(0).toUpperCase()}</Text>
@@ -122,9 +130,12 @@ function ReviewsBody({ o }: { o: ConsoleOverview }) {
   const styles = useStyles();
   const c = useConsoleColors();
   const router = useRouter();
+  const { reviewId: reviewIdParam } = useLocalSearchParams<{ reviewId?: string }>();
+  const focusReviewId = Array.isArray(reviewIdParam) ? reviewIdParam[0] : reviewIdParam;
   const back = useTabBack();
   const { run, notify, refresh, refreshing } = useMerchantConsole();
   const [filter, setFilter] = useState<'all' | 'open'>('all');
+  const openedFocus = useRef('');
   const [target, setTarget] = useState<ConsoleReview | null>(null);
   const [draft, setDraft] = useState('');
   const [saving, setSaving] = useState(false);
@@ -133,7 +144,21 @@ function ReviewsBody({ o }: { o: ConsoleOverview }) {
   const { replyMin, replyMax } = o.limits;
 
   const open = o.reviews.filter((review) => !review.reply);
-  const list = filter === 'open' ? open : o.reviews;
+  const list = (() => {
+    const base = filter === 'open' ? open : o.reviews;
+    if (!focusReviewId) return base;
+    const hit = base.find((review) => review.id === focusReviewId);
+    if (!hit) return base;
+    return [hit, ...base.filter((review) => review.id !== focusReviewId)];
+  })();
+
+  useEffect(() => {
+    if (!focusReviewId || openedFocus.current === focusReviewId) return;
+    const review = o.reviews.find((item) => item.id === focusReviewId);
+    if (!review) return;
+    openedFocus.current = focusReviewId;
+    setFilter('all');
+  }, [focusReviewId, o.reviews]);
 
   const startReply = (review: ConsoleReview) => {
     setTarget(review);
@@ -220,7 +245,14 @@ function ReviewsBody({ o }: { o: ConsoleOverview }) {
             <Chip label="Needs reply" count={open.length} active={filter === 'open'} onPress={() => setFilter('open')} />
           </View>
           {list.length ? (
-            list.map((review) => <ReviewCard key={review.id} review={review} onReply={() => startReply(review)} />)
+            list.map((review) => (
+              <ReviewCard
+                key={review.id}
+                review={review}
+                highlight={review.id === focusReviewId}
+                onReply={() => startReply(review)}
+              />
+            ))
           ) : (
             <Empty icon="checkmark-done-outline" title="Every review has a reply" body="Nice work. New ones will show up here." />
           )}
@@ -349,6 +381,11 @@ const useStyles = createConsoleStyles((c) => ({
     borderWidth: c.isDark ? 1 : 0.5,
     borderColor: c.line,
     gap: 12,
+  },
+  cardHighlight: {
+    borderColor: c.accent,
+    borderWidth: 1.5,
+    backgroundColor: c.primarySoft,
   },
   cardHead: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   avatar: {

@@ -82,7 +82,10 @@ export async function findBusinessForIdentity(input: {
         profilePictureUrl?: string | null;
       }
     | undefined;
-  if (!row?.id) return null;
+  if (!row?.id) {
+    const { findActiveTeamBusiness } = await import('@/lib/businessTeam/teamInvites.server');
+    return findActiveTeamBusiness({ email, phone });
+  }
   const text = (value: string | null | undefined) => value?.trim() || null;
   return {
     id: row.id,

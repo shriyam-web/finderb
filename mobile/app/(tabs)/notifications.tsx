@@ -24,6 +24,7 @@ import { createThemedStyles } from '../../hooks/useThemedStyles';
 import { setViewingNotificationInbox } from '../../lib/notificationInbox';
 import { recordNotificationReads } from '../../lib/notificationsApi';
 import { goBackOrHome } from '../../lib/navigation';
+import { consoleRouteFor } from '../../components/console/routes';
 
 function formatWhen(value: string) {
   const date = new Date(value);
@@ -75,8 +76,13 @@ export default function NotificationsScreen() {
   const guestEmpty = !user;
 
   const openCta = async (url: string) => {
+    const route = user?.isBusinessAccount ? consoleRouteFor(url) : null;
+    if (route) {
+      router.push(route);
+      return;
+    }
     try {
-      await Linking.openURL(url);
+      await Linking.openURL(/^https?:\/\//i.test(url) ? url : `https://finderb.com${url}`);
     } catch {
       // ignore invalid / blocked urls
     }
@@ -90,6 +96,18 @@ export default function NotificationsScreen() {
           variant="bar"
           style={styles.header}
           onBack={() => goBackOrHome(router)}
+          right={
+            items.some((item) => isUnread(item)) ? (
+              <Pressable
+                onPress={() => void markAllRead()}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel="Mark all as read"
+              >
+                <Text style={styles.markAll}>Mark all as read</Text>
+              </Pressable>
+            ) : undefined
+          }
         />
         {authLoading || (loading && !refreshing && items.length === 0) ? (
           <View style={styles.centered}>
@@ -152,9 +170,12 @@ export default function NotificationsScreen() {
               const ctaUrl = typeof item.cta_url === 'string' ? item.cta_url.trim() : '';
               const ctaLabel = (item.cta_label || 'Open').trim() || 'Open';
               return (
-                <View
+                <Pressable
                   key={item.id}
+                  onPress={ctaUrl ? () => void openCta(ctaUrl) : undefined}
+                  disabled={!ctaUrl}
                   style={[styles.row, unread ? styles.rowUnread : styles.rowRead]}
+                  accessibilityRole={ctaUrl ? 'button' : undefined}
                 >
                   <View style={styles.rowAccent}>
                     {unread ? <View style={styles.unreadDot} /> : <View style={styles.readTick} />}
@@ -169,21 +190,16 @@ export default function NotificationsScreen() {
                       {item.message}
                     </Text>
                     {ctaUrl ? (
-                      <Pressable
-                        onPress={() => void openCta(ctaUrl)}
-                        style={styles.ctaLink}
-                        accessibilityRole="link"
-                        accessibilityLabel={ctaLabel}
-                      >
+                      <View style={styles.ctaLink}>
                         <Text style={styles.ctaLinkText}>{ctaLabel}</Text>
                         <Ionicons name="arrow-forward" size={13} color={colors.primary} />
-                      </Pressable>
+                      </View>
                     ) : null}
                     {showsDatetime(item.show_datetime) ? (
                       <Text style={styles.cardWhen}>{formatWhen(item.created_at)}</Text>
                     ) : null}
                   </View>
-                </View>
+                </Pressable>
               );
             })}
           </ScrollView>
@@ -233,6 +249,11 @@ const useStyles = createThemedStyles((colors) => ({
   loginBtn: {
     alignSelf: 'stretch',
     marginTop: 10,
+  },
+  markAll: {
+    fontFamily: fonts.semiBold,
+    fontSize: 13,
+    color: colors.primary,
   },
   row: {
     flexDirection: 'row',

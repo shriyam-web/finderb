@@ -19,7 +19,7 @@ import { BusinessRegisterBanner } from '../../components/BusinessRegisterBanner'
 import { HeaderWeatherChip } from '../../components/HeaderWeatherChip';
 import { HourlyForecastSheet } from '../../components/HourlyForecastSheet';
 import { HomeAiTeaser } from '../../components/HomeAiTeaser';
-import { HomeFeaturedGroup } from '../../components/HomeFeaturedGroup';
+import { HomeFeaturedGroup, HomeSectionSkeleton } from '../../components/HomeFeaturedGroup';
 import { InteractiveCategoryDeck } from '../../components/InteractiveCategoryDeck';
 import { LocationPickerModal } from '../../components/LocationPickerModal';
 import { lightColors } from '../../constants/colors';
@@ -106,6 +106,9 @@ export default function HomeScreen() {
   const [homeCategories, setHomeCategories] = useState<HomeCategory[]>(
     initialCache?.categories ?? [],
   );
+  const [catalog, setCatalog] = useState<HomeCategory[]>(
+    initialCache?.catalog ?? [],
+  );
   const [reloadToken, setReloadToken] = useState(0);
   const [emptySectionIds, setEmptySectionIds] = useState<Set<string>>(
     () => new Set(),
@@ -129,6 +132,7 @@ export default function HomeScreen() {
   const loadHomeData = useCallback(async (force = false) => {
     const data = await loadHomeBootstrap(force);
     setHomeCategories(data.categories);
+    setCatalog(data.catalog);
     setCategoriesLoading(false);
     return data;
   }, []);
@@ -385,7 +389,11 @@ export default function HomeScreen() {
             size={22}
             color={stickyChrome.ink}
           />
-          {unreadCount > 0 ? <View style={styles.notifDot} /> : null}
+          {unreadCount > 0 ? (
+            <View style={styles.notifBadge}>
+              <Text style={styles.notifBadgeText}>{unreadCount > 9 ? '9+' : String(unreadCount)}</Text>
+            </View>
+          ) : null}
         </Pressable>
       </View>
     </View>
@@ -438,6 +446,7 @@ export default function HomeScreen() {
             <View>
               <InteractiveCategoryDeck
                 categories={featuredGroups}
+                catalog={catalog}
                 userCoords={location.coords}
                 city={city}
                 reloadToken={reloadToken}
@@ -458,6 +467,12 @@ export default function HomeScreen() {
                 showMerchantSheet={false}
                 headerTopInset={stickyHeaderInset}
               />
+
+              {categoriesLoading && visibleGroups.length === 0
+                ? Array.from({ length: 4 }).map((_, index) => (
+                    <HomeSectionSkeleton key={`home-skeleton-${index}`} />
+                  ))
+                : null}
 
               {visibleGroups.map((group, index) => (
                 <View key={group.id}>
@@ -626,16 +641,25 @@ const useStyles = createThemedStyles((colors) => ({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  notifDot: {
+  notifBadge: {
     position: 'absolute',
-    top: 6,
-    right: 6,
-    width: 9,
-    height: 9,
-    borderRadius: 5,
+    top: 2,
+    right: 0,
+    minWidth: 16,
+    height: 16,
+    paddingHorizontal: 4,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: '#EF4444',
     borderWidth: 1.5,
     borderColor: 'rgba(255,255,255,0.95)',
+  },
+  notifBadgeText: {
+    fontFamily: fonts.bold,
+    fontSize: 9,
+    lineHeight: 11,
+    color: '#FFFFFF',
   },
   bannerWrap: {
     marginTop: 8,

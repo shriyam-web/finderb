@@ -16,8 +16,8 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FinderBLogo } from '../components/BrandMark';
 import { fonts } from '../constants/typography';
+import { useAuth } from '../context/AuthContext';
 import { createThemedStyles } from '../hooks/useThemedStyles';
-import { openMerchantLogin } from '../lib/merchantWeb';
 
 const NAVY = '#102C42';
 const GOLD = '#F2B45A';
@@ -31,10 +31,23 @@ const PROMISE = [
 export default function BusinessRegisterScreen() {
   const styles = useStyles();
   const router = useRouter();
+  const { user, loading } = useAuth();
+  const isMerchant = Boolean(user?.isBusinessAccount);
   const { height, width } = useWindowDimensions();
   const compact = height < 720 || width < 360;
   const fade = useRef(new Animated.Value(0)).current;
   const rise = useRef(new Animated.Value(24)).current;
+
+  useEffect(() => {
+    if (loading) return;
+    if (isMerchant) {
+      router.replace('/business-console' as Href);
+      return;
+    }
+    if (user) {
+      router.replace('/(tabs)/business-register' as Href);
+    }
+  }, [isMerchant, loading, router, user]);
 
   useEffect(() => {
     Animated.parallel([
@@ -51,10 +64,6 @@ export default function BusinessRegisterScreen() {
       }),
     ]).start();
   }, [fade, rise]);
-
-  const openWebPanel = () => {
-    void openMerchantLogin();
-  };
 
   return (
     <View style={styles.root}>
@@ -101,7 +110,7 @@ export default function BusinessRegisterScreen() {
               Business
             </Text>
             <Text style={[styles.line, compact && styles.lineCompact]}>
-              Business tools will be in this same app. That side is not ready yet, so manage your listing on the web panel for now.
+              List, discover, and convert — the FinderB Business dashboard lives in this same app.
             </Text>
           </View>
 
@@ -129,11 +138,11 @@ export default function BusinessRegisterScreen() {
           </Pressable>
           <Pressable
             style={({ pressed }) => [styles.secondary, pressed && styles.pressed]}
-            onPress={openWebPanel}
+            onPress={() => router.push('/(tabs)/business-login' as Href)}
             accessibilityRole="button"
-            accessibilityLabel="Manage on the web panel"
+            accessibilityLabel="Business login"
           >
-            <Text style={styles.secondaryText}>Manage on web panel</Text>
+            <Text style={styles.secondaryText}>Already listed? Log in</Text>
           </Pressable>
         </Animated.View>
       </SafeAreaView>

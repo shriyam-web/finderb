@@ -63,9 +63,14 @@ const MOBILE_GATE_OPEN = new Set([
 
 function notificationTarget(data: Record<string, unknown> | undefined): Href {
   if (!isBusinessNotification(data)) return '/(tabs)/notifications' as Href;
+  const reviewId = typeof data?.reviewId === 'string' ? data.reviewId.trim() : '';
   if (data?.type === 'lead') return '/business-console/leads';
-  if (data?.type === 'review') return '/business-console/reviews';
-  const url = typeof data?.ctaUrl === 'string' ? data.ctaUrl : '';
+  if (data?.type === 'review') {
+    return reviewId
+      ? ({ pathname: '/business-console/reviews', params: { reviewId } } as Href)
+      : '/business-console/reviews';
+  }
+  const url = typeof data?.ctaUrl === 'string' ? data.ctaUrl : typeof data?.url === 'string' ? data.url : '';
   return (url && consoleRouteFor(url)) || '/business-console/alerts';
 }
 

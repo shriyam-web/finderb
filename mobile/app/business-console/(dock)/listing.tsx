@@ -19,7 +19,7 @@ import {
   createConsoleStyles,
   useTabBack,
 } from '../../../components/console/kit';
-import { LISTING_SECTIONS, sectionGaps, sectionSummary } from '../../../components/console/listingSections';
+import { listingDetailRows } from '../../../components/console/listingSections';
 
 function ListingBody({ o }: { o: ConsoleOverview }) {
   const styles = useStyles();
@@ -128,32 +128,26 @@ function ListingBody({ o }: { o: ConsoleOverview }) {
 
       <Section title="Business details">
         <Panel flush>
-          {LISTING_SECTIONS.map((section, index) => {
-            const gaps = sectionGaps(section, o);
-            return (
-              <Pressable
-                key={section.key}
-                onPress={() => router.push({ pathname: '/business-console/edit', params: { section: section.key } })}
-                style={({ pressed }) => [styles.section, index > 0 && styles.sectionLine, pressed && styles.pressed]}
-                accessibilityRole="button"
-                accessibilityLabel={`${section.title}${gaps ? `, ${gaps} missing` : ''}`}
-              >
-                <View style={[styles.sectionIcon, gaps ? styles.sectionIconGap : null]}>
-                  <Ionicons name={section.icon} size={18} color={gaps ? c.warning : c.accent} />
+          {listingDetailRows(o).map((row, index) => (
+            <Pressable
+              key={row.label}
+              onPress={() => router.push({ pathname: '/business-console/edit', params: { section: row.section } })}
+              style={({ pressed }) => [styles.section, index > 0 && styles.sectionLine, pressed && styles.pressed]}
+              accessibilityRole="button"
+              accessibilityLabel={`${row.label}, ${row.value}`}
+            >
+              <View style={styles.flex}>
+                <View style={styles.sectionHead}>
+                  <Text style={styles.sectionTitle}>{row.label}</Text>
+                  {row.missing ? <Tag label="Add" tone="warning" /> : null}
                 </View>
-                <View style={styles.flex}>
-                  <View style={styles.sectionHead}>
-                    <Text style={styles.sectionTitle}>{section.title}</Text>
-                    {gaps ? <Tag label={`${gaps} missing`} tone="warning" /> : null}
-                  </View>
-                  <Text style={styles.sectionSummary} numberOfLines={1}>
-                    {sectionSummary(section.key, o)}
-                  </Text>
-                </View>
-                <Ionicons name="chevron-forward" size={18} color={c.faint} />
-              </Pressable>
-            );
-          })}
+                <Text style={styles.sectionSummary} numberOfLines={3}>
+                  {row.value}
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={c.faint} />
+            </Pressable>
+          ))}
         </Panel>
       </Section>
 

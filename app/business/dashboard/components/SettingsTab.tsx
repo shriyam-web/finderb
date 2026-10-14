@@ -77,6 +77,7 @@ import {
   syncBusinessImagesWithCover,
 } from '@/lib/businessMapping';
 import ChangePasswordPanel from './ChangePasswordPanel';
+import TeamAccessPanel from './TeamAccessPanel';
 
 const discountOptions = [
   '5% - 10% OFF',
@@ -1329,6 +1330,8 @@ export default function SettingsTab({
           </div>
         </div>
       )}
+
+      {business?.id ? <TeamAccessPanel businessId={business.id} /> : null}
 
       {FIELD_SECTIONS.map((section) => {
         const sectionFields = section.keys

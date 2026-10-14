@@ -5,7 +5,22 @@ export function consoleRouteFor(url: string): Href | null {
   const lower = url.toLowerCase();
   if (/subscription|pricing|payment|plan/.test(lower)) return '/business-console/plan';
   if (/lead/.test(lower)) return '/business-console/leads';
-  if (/review/.test(lower)) return '/business-console/reviews';
+  if (/review/.test(lower)) {
+    try {
+      const parsed = new URL(url, 'https://finderb.com');
+      const reviewId = parsed.searchParams.get('reviewId')?.trim();
+      if (reviewId) {
+        return { pathname: '/business-console/reviews', params: { reviewId } };
+      }
+    } catch {
+      // relative dashboard links still match below
+    }
+    const reviewId = /reviewid=([^&]+)/i.exec(url)?.[1];
+    if (reviewId) {
+      return { pathname: '/business-console/reviews', params: { reviewId: decodeURIComponent(reviewId) } };
+    }
+    return '/business-console/reviews';
+  }
   if (/job/.test(lower)) return '/business-console/jobs';
   if (/photo|media|gallery/.test(lower)) return '/business-console/photos';
   if (/setting|profile|listing/.test(lower)) return '/business-console/listing';

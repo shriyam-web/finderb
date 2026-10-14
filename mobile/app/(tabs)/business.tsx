@@ -11,7 +11,6 @@ import { useTabScrollPadding } from '../../hooks/useAppSafeArea';
 import { createThemedStyles } from '../../hooks/useThemedStyles';
 import { goBackOrHome } from '../../lib/navigation';
 import { TabSwipeHost } from '../../lib/tabSwipe';
-import { openMerchantLogin } from '../../lib/merchantWeb';
 
 const POINTS = [
   {
@@ -141,13 +140,6 @@ export default function BusinessScreen() {
               ))}
             </View>
 
-            <Pressable
-              style={styles.webLink}
-              onPress={() => void openMerchantLogin()}
-            >
-              <Text style={styles.webLinkText}>Manage your business on the website</Text>
-              <Ionicons name="open-outline" size={16} color={biz.blue} />
-            </Pressable>
           </ScrollView>
         </SafeAreaView>
       </View>

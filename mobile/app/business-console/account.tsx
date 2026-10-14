@@ -7,11 +7,11 @@ import { useConsoleColors } from '../../constants/consoleColors';
 import { useMerchantConsole } from '../../context/MerchantConsoleContext';
 import { useOtpCooldown, otpSendLabel } from '../../hooks/useOtpCooldown';
 import { fetchAllCategories, type HomeCategory } from '../../lib/api';
-import { openMerchantLogin } from '../../lib/merchantWeb';
 import { mobileInputDigits } from '../../lib/phoneInput';
 import { isFailure, type ChangeRequest, type ConsoleOverview } from '../../lib/merchantConsoleApi';
 import { OtpCodeBoxes } from '../../components/OtpCodeBoxes';
 import { ConsoleGate } from '../../components/console/ConsoleGate';
+import { TeamAccess } from '../../components/console/TeamAccess';
 import {
   Btn,
   ConsolePage,
@@ -453,6 +453,8 @@ function AccountBody({ o }: { o: ConsoleOverview }) {
         <Row icon="key-outline" label="Change password" value="For logging in on the website and app" onPress={() => setPasswordOpen(true)} last />
       </Panel>
 
+      <TeamAccess />
+
       <Section title="Needs FinderB approval">
         <Panel flush>
           <RequestRow label="Category" current={b.category} request={requests?.category ?? null} onPress={() => setRequestField('category')} />
@@ -477,9 +479,6 @@ function AccountBody({ o }: { o: ConsoleOverview }) {
             />
           </View>
           <Text style={styles.kycBody}>{o.kycMessage}</Text>
-          {!kycDone && !kycReview ? (
-            <Btn small tone="outline" icon="open-outline" label="Start on the website" onPress={() => void openMerchantLogin()} style={styles.kycBtn} />
-          ) : null}
         </Panel>
       </Section>
 

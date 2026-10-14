@@ -1,25 +1,21 @@
 import { Alert, Pressable, Text, View } from 'react-native';
 import { useRouter, type Href } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { fonts } from '../../../constants/typography';
-import { useConsoleColors } from '../../../constants/consoleColors';
 import { useAuth } from '../../../context/AuthContext';
 import { useTheme } from '../../../context/ThemeContext';
 import { useMerchantConsole } from '../../../context/MerchantConsoleContext';
-import { openMerchantLogin } from '../../../lib/merchantWeb';
 import type { ConsoleOverview } from '../../../lib/merchantConsoleApi';
 import { ConsoleGate } from '../../../components/console/ConsoleGate';
-import { ConsolePage, Panel, Row, Section, createConsoleStyles, useTabBack } from '../../../components/console/kit';
+import { ConsolePage, Panel, Row, createConsoleStyles, useTabBack } from '../../../components/console/kit';
 
 const THEMES = [
-  { key: 'light', label: 'Light', icon: 'sunny-outline' },
-  { key: 'dark', label: 'Dark', icon: 'moon-outline' },
-  { key: 'system', label: 'System', icon: 'phone-portrait-outline' },
+  { key: 'light', label: 'Light' },
+  { key: 'dark', label: 'Dark' },
+  { key: 'system', label: 'System' },
 ] as const;
 
 function MoreBody({ o }: { o: ConsoleOverview }) {
   const styles = useStyles();
-  const c = useConsoleColors();
   const router = useRouter();
   const back = useTabBack();
   const { signOut } = useAuth();
@@ -42,73 +38,90 @@ function MoreBody({ o }: { o: ConsoleOverview }) {
       },
     ]);
 
+  const planLine = sub.isActive
+    ? sub.planName
+    : sub.isExpired
+      ? 'Plan ended'
+      : 'Free plan';
+
   return (
     <ConsolePage
       title="More"
-      subtitle={o.business.name}
+      subtitle="Account and tools"
       onBack={back}
       docked
       refreshing={refreshing}
       onRefresh={() => void refresh()}
     >
-      <Section title="Business">
-        <Panel flush>
-          <Row
-            icon="notifications-outline"
-            label="Notifications"
-            value={unread ? `${unread} unread` : 'Updates from FinderB'}
-            tone={unread ? 'warning' : undefined}
-            onPress={() => router.push('/business-console/alerts')}
-          />
-          <Row
-            icon="card-outline"
-            label="Plan & billing"
-            value={
-              sub.isActive
-                ? `${sub.planName}${sub.expiresAtDisplay ? ` · till ${sub.expiresAtDisplay}` : ''}`
-                : sub.isExpired
-                  ? 'Plan ended · renew to unlock leads'
-                  : 'Free plan · upgrade to unlock leads'
-            }
-            tone={!sub.isActive || sub.alertLevel === 'urgent' ? 'warning' : undefined}
-            onPress={() => router.push('/business-console/plan')}
-          />
-          <Row
-            icon="images-outline"
-            label="Photos"
-            value={`${o.photos.images.length} uploaded`}
-            onPress={() => router.push('/business-console/photos')}
-          />
-          <Row
-            icon="briefcase-outline"
-            label="Jobs"
-            value={o.stats.activeJobs ? `${o.stats.activeJobs} open` : 'Post a vacancy'}
-            onPress={() => router.push('/business-console/jobs')}
-            last
-          />
-        </Panel>
-      </Section>
+      <View style={styles.identity}>
+        <View style={styles.identityMark}>
+          <Text style={styles.identityLetter}>
+            {(o.business.name || 'B').trim().charAt(0).toUpperCase()}
+          </Text>
+        </View>
+        <View style={styles.flex}>
+          <Text style={styles.identityName} numberOfLines={1}>
+            {o.business.name}
+          </Text>
+          <Text style={styles.identityMeta} numberOfLines={1}>
+            {[planLine, verified ? 'Verified' : 'Verification pending'].filter(Boolean).join(' · ')}
+          </Text>
+        </View>
+      </View>
 
-      <Section title="Account">
-        <Panel flush>
-          <Row
-            icon="shield-checkmark-outline"
-            label="Login & security"
-            value={verified ? 'Email and mobile verified' : 'Verify your email and mobile'}
-            tone={verified ? undefined : 'warning'}
-            onPress={() => router.push('/business-console/account')}
-          />
-          <Row
-            icon="globe-outline"
-            label="Open on website"
-            value="Same account in your browser"
-            onPress={() => void openMerchantLogin()}
-            last
-          />
-        </Panel>
-      </Section>
+      <Panel flush>
+        <Row
+          icon="notifications-outline"
+          label="Notifications"
+          value={unread ? `${unread} unread` : undefined}
+          tone={unread ? 'warning' : undefined}
+          onPress={() => router.push('/business-console/alerts')}
+        />
+        <Row
+          icon="card-outline"
+          label="Plan and billing"
+          value={sub.expiresAtDisplay ? `Till ${sub.expiresAtDisplay}` : planLine}
+          tone={!sub.isActive || sub.alertLevel === 'urgent' ? 'warning' : undefined}
+          onPress={() => router.push('/business-console/plan')}
+        />
+        <Row
+          icon="images-outline"
+          label="Photos"
+          value={String(o.photos.images.length)}
+          onPress={() => router.push('/business-console/photos')}
+        />
+        <Row
+          icon="briefcase-outline"
+          label="Jobs"
+          value={o.stats.activeJobs ? String(o.stats.activeJobs) : undefined}
+          onPress={() => router.push('/business-console/jobs')}
+          last
+        />
+      </Panel>
 
-      <Section title="Appearance">
+      <Panel flush>
+        <Row
+          icon="shield-checkmark-outline"
+          label="Login and security"
+          value={verified ? 'Verified' : 'Action needed'}
+          tone={verified ? undefined : 'warning'}
+          onPress={() => router.push('/business-console/account')}
+        />
+        <Row
+          icon="storefront-outline"
+          label="Preview storefront"
+          onPress={() =>
+            router.push({
+              pathname: '/(tabs)/merchant/[id]',
+              params: { id: o.business.id, preview: '1' },
+            })
+          }
+          last
+        />
+      </Panel>
+
+      <View style={styles.themeBlock}>
+        <Text style={styles.themeLabel}>Appearance</Text>
         <View style={styles.themes}>
           {THEMES.map((theme) => {
             const active = preference === theme.key;
@@ -121,19 +134,17 @@ function MoreBody({ o }: { o: ConsoleOverview }) {
                 accessibilityState={{ selected: active }}
                 accessibilityLabel={`${theme.label} theme`}
               >
-                <Ionicons name={theme.icon} size={20} color={active ? c.primary : c.body} />
                 <Text style={[styles.themeText, active && styles.themeTextActive]}>{theme.label}</Text>
               </Pressable>
             );
           })}
         </View>
-      </Section>
+      </View>
 
       <Panel flush>
         <Row
           icon="compass-outline"
           label="Browse FinderB"
-          value="Switch to the customer app"
           onPress={() => router.replace('/(tabs)/home' as Href)}
         />
         <Row icon="log-out-outline" label="Log out" tone="danger" onPress={logOut} last />
@@ -147,18 +158,39 @@ export default function MoreScreen() {
 }
 
 const useStyles = createConsoleStyles((c) => ({
-  themes: { flexDirection: 'row', gap: 10 },
+  flex: { flex: 1, minWidth: 0 },
+  identity: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 4,
+  },
+  identityMark: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: c.primarySoft,
+  },
+  identityLetter: { fontFamily: fonts.semiBold, fontSize: 18, color: c.primary },
+  identityName: { fontFamily: fonts.semiBold, fontSize: 17, color: c.ink },
+  identityMeta: { marginTop: 2, fontFamily: fonts.regular, fontSize: 13, color: c.muted },
+  themeBlock: { gap: 8 },
+  themeLabel: { fontFamily: fonts.medium, fontSize: 12, color: c.muted },
+  themes: {
+    flexDirection: 'row',
+    padding: 3,
+    borderRadius: 10,
+    backgroundColor: c.sunken,
+  },
   theme: {
     flex: 1,
     alignItems: 'center',
-    gap: 6,
-    paddingVertical: 14,
-    borderRadius: 12,
-    backgroundColor: c.card,
-    borderWidth: 1,
-    borderColor: c.line,
+    paddingVertical: 8,
+    borderRadius: 8,
   },
-  themeActive: { backgroundColor: c.primarySoft, borderColor: c.primary },
-  themeText: { fontFamily: fonts.regular, fontSize: 13, color: c.body },
-  themeTextActive: { fontFamily: fonts.semiBold, color: c.primary },
+  themeActive: { backgroundColor: c.card },
+  themeText: { fontFamily: fonts.regular, fontSize: 13, color: c.muted },
+  themeTextActive: { fontFamily: fonts.semiBold, color: c.ink },
 }));
