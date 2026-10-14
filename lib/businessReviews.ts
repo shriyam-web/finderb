@@ -120,7 +120,15 @@ export function parseBusinessReviews(review: unknown): BusinessReview[] {
   }
 
   if (typeof review === 'string') {
-    const single = normalizeReviewEntry(review, 0);
+    const trimmed = review.trim();
+    if (trimmed.startsWith('[') || trimmed.startsWith('{')) {
+      try {
+        return parseBusinessReviews(JSON.parse(trimmed));
+      } catch {
+        // Stored as a plain-text review, not JSON.
+      }
+    }
+    const single = normalizeReviewEntry(trimmed, 0);
     return single ? [single] : [];
   }
 

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { enforceRateLimit } from '@/lib/security/enforceRateLimit.server';
 import {
   dismissReviewReport,
+  listAllReviews,
   listAnonymousReviews,
   listReviewFlags,
   moderateStoredReview,
@@ -55,9 +56,13 @@ export async function GET(request: Request) {
     if (kind === 'user-flags' || kind === 'business-flags') {
       const rows = await listReviewFlags(
         kind === 'business-flags' ? 'business' : 'user',
-        status || 'open'
+        status === 'all' ? '' : status || 'open'
       );
       return NextResponse.json({ success: true, rows });
+    }
+    if (kind === 'all') {
+      const result = await listAllReviews(q);
+      return NextResponse.json({ success: true, ...result });
     }
 
     const result = await searchReviews(q);

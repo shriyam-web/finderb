@@ -11,6 +11,12 @@ import {
 import { revalidateBusinessProfilePaths } from '@/lib/businessRevalidation';
 import { escapeIlikePattern } from '@/lib/searchMatch';
 import { createServiceClient } from '@/lib/supabase/service';
+import {
+  flattenBusinessReviews,
+  matchesReviewQuery,
+  sortReviewsNewest,
+  type AdminReviewListRow,
+} from '@/lib/reviewAdminList';
 
 type ServiceClient = NonNullable<ReturnType<typeof createServiceClient>>;
 
@@ -279,63 +285,134 @@ export type ReviewFlagRow = {
   reviewed_at: string | null;
 };
 
-export async function listAnonymousReviews(status?: string) {
+function flattenLoadedBusiness(row: {
+  id: string;
+  businessName?: string | null;
+  displayName?: string | null;
+  city?: string | null;
+  slug?: string | null;
+  review: unknown;
+}) {
+  return flattenBusinessReviews(row);
+}
+
+async function loadBusinessReviewRows(): Promise<AdminReviewListRow[]> {
   const supabase = db();
   if (!supabase) return [];
-  let query = supabase
-    .from('review_moderation')
-    .select('*')
-    .eq('anonymous', true)
-    .eq('deleted', false)
-    .order('created_at', { ascending: false })
-    .limit(200);
-  if (status === 'pending' || status === 'allowed' || status === 'revealed') {
-    query = query.eq('anonymity_status', status);
+  const pageSize = 200;
+  const maxPages = 40;
+  const rows: AdminReviewListRow[] = [];
+  for (let page = 0; page < maxPages; page += 1) {
+    const from = page * pageSize;
+    const to = from + pageSize - 1;
+    const { data, error } = await supabase
+      .from('Business')
+      .select('id, businessName, displayName, slug, city, review')
+      .not('review', 'is', null)
+      .order('updatedAt', { ascending: false })
+      .range(from, to);
+    if (error) {
+      console.error('[review-moderation] list businesses', error);
+      break;
+    }
+    const batch = data || [];
+    rows.push(...batch.flatMap((row) => flattenLoadedBusiness(row as {
+      id: string;
+      businessName?: string | null;
+      displayName?: string | null;
+      city?: string | null;
+      slug?: string | null;
+      review: unknown;
+    })));
+    if (batch.length < pageSize) break;
   }
-  const { data, error } = await query;
-  if (error) {
-    console.error('[review-moderation] list anonymous', error);
-    return [];
-  }
-  return (data || []) as ReviewModerationRow[];
+  return rows;
+}
+
+function reviewCounts(rows: AdminReviewListRow[]) {
+  return {
+    all: rows.length,
+    visible: rows.filter((row) => !row.hidden && !row.deleted).length,
+    hidden: rows.filter((row) => row.hidden && !row.deleted).length,
+    removed: rows.filter((row) => row.deleted).length,
+    anonymousPending: rows.filter((row) => row.anonymous && !row.deleted && row.anonymity_status === 'pending').length,
+  };
+}
+
+export async function listAllReviews(query = '') {
+  const allRows = sortReviewsNewest(await loadBusinessReviewRows());
+  const rows = allRows.filter((row) => matchesReviewQuery(row, query));
+  return {
+    rows,
+    counts: reviewCounts(allRows),
+  };
+}
+
+export async function listAnonymousReviews(status?: string) {
+  const rows = (await loadBusinessReviewRows()).filter((row) => row.anonymous && !row.deleted);
+  const filtered =
+    status === 'pending' || status === 'allowed' || status === 'revealed'
+      ? rows.filter((row) => row.anonymity_status === status)
+      : rows;
+  return sortReviewsNewest(filtered);
 }
 
 export async function listReviewFlags(reporterType: 'user' | 'business', status = 'open') {
   const supabase = db();
   if (!supabase) return [];
-  const { data, error } = await supabase
+  let query = supabase
     .from('review_reports')
     .select('*')
     .eq('reporter_type', reporterType)
-    .eq('status', status)
     .order('created_at', { ascending: false })
     .limit(200);
+  if (status) query = query.eq('status', status);
+  const { data, error } = await query;
   if (error) {
     console.error('[review-moderation] list flags', error);
     return [];
   }
   const rows = (data || []) as ReviewFlagRow[];
-  const ids = [...new Set(rows.map((row) => row.review_id).filter(Boolean))];
-  if (!ids.length) return rows;
-  const { data: moderation } = await supabase
-    .from('review_moderation')
-    .select('business_id, review_id, author_name, display_name, content, rating, business_name, anonymous')
-    .in('review_id', ids);
-  const byKey = new Map(
-    (moderation || []).map((row) => [`${row.business_id}:${row.review_id}`, row])
+  const businessIds = [...new Set(rows.map((row) => row.business_id).filter(Boolean))];
+  if (!businessIds.length) return rows;
+  const { data: businesses } = await supabase
+    .from('Business')
+    .select('id, businessName, displayName, slug, city, review')
+    .in('id', businessIds);
+  const reviewByKey = new Map(
+    (businesses || []).flatMap((business) =>
+      flattenBusinessReviews(business as {
+        id: string;
+        businessName?: string | null;
+        displayName?: string | null;
+        city?: string | null;
+        slug?: string | null;
+        review: unknown;
+      }).map((review) => [`${review.business_id}:${review.review_id}`, review]),
+    ),
   );
   return rows.map((row) => {
-    const extra = byKey.get(`${row.business_id}:${row.review_id}`) as
-      | {
-          author_name?: string;
-          display_name?: string;
-          content?: string;
-          rating?: number;
-          business_name?: string;
-          anonymous?: boolean;
+    const extra = reviewByKey.get(`${row.business_id}:${row.review_id}`);
+    return extra
+      ? {
+          ...row,
+          author_name: extra.author_name,
+          display_name: extra.public_name,
+          public_name: extra.public_name,
+          content: extra.content,
+          rating: extra.rating,
+          business_name: extra.business_name,
+          city: extra.city,
+          slug: extra.slug,
+          date: extra.date,
+          anonymous: extra.anonymous,
+          anonymous_reason: extra.anonymous_reason,
+          hidden: extra.hidden,
+          deleted: extra.deleted,
+          anonymity_status: extra.anonymity_status,
+          reply: extra.reply,
         }
-      | undefined;
-    return extra ? { ...row, ...extra } : row;
+      : row;
   });
 }
 
@@ -356,7 +433,15 @@ export async function searchReviews(query: string) {
   const supabase = db();
   if (!supabase) return { businesses: [] as ReturnType<typeof mapMerchantSearchRow>[], matches: [] as ReviewModerationRow[] };
   const q = query.trim();
-  if (q.length < 2) return { businesses: [], matches: [] };
+  if (q.length < 2) {
+    const listed = await listAllReviews('');
+    return {
+      businesses: [],
+      matches: [],
+      rows: listed.rows,
+      counts: listed.counts,
+    };
+  }
 
   const looksLikeId = /^[a-z0-9_-]{8,}$/i.test(q) && !/\s/.test(q);
   const like = `%${escapeIlikePattern(q.replace(/,/g, ' '))}%`;
