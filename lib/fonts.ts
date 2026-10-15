@@ -14,14 +14,12 @@ export const outfit = Outfit({
 
 export const plusJakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
   variable: '--font-plus-jakarta',
   display: 'swap',
 });
 
 export const dmSans = DM_Sans({
   subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
   variable: '--font-pricing',
   display: 'swap',
 });

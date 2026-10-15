@@ -37,7 +37,7 @@ export default function BusinessInviteScreen() {
         if (cancelled) return;
         setLoading(false);
         if (!data.success) {
-          setError(data.error || 'This invite is not valid.');
+          setError(data.error || 'This invite link has expired.');
           return;
         }
         setBusinessName(data.businessName || 'this business');

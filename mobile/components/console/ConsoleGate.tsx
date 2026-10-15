@@ -32,6 +32,25 @@ export function ConsoleGate({ children }: { children: (overview: ConsoleOverview
 
   const signedOut = errorCode === 'signed_out';
   const notMerchant = errorCode === 'not_merchant';
+  const offline = /no internet/i.test(error || '');
+
+  if (offline) {
+    return (
+      <View style={styles.offlinePage}>
+        <View style={styles.offlineMark}>
+          <Ionicons name="wifi-outline" size={26} color="#6B7280" />
+        </View>
+        <Text style={styles.offlineTitle}>No internet connection</Text>
+        <Text style={styles.offlineBody}>
+          FinderB needs the internet to open your business dashboard. Check your connection, then try again.
+        </Text>
+        <View style={styles.errorActions}>
+          <Btn label="Try again" icon="refresh" busy={refreshing} onPress={() => void refresh()} />
+          <Btn label="Back to FinderB" tone="text" onPress={() => router.replace('/(tabs)/home' as Href)} />
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.page, styles.center]}>
@@ -89,4 +108,35 @@ const useStyles = createConsoleStyles((c) => ({
     textAlign: 'center',
   },
   errorActions: { marginTop: 22, alignSelf: 'stretch', gap: 6 },
+  offlinePage: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 32,
+  },
+  offlineMark: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F4F4F5',
+  },
+  offlineTitle: {
+    marginTop: 18,
+    fontFamily: fonts.semiBold,
+    fontSize: 22,
+    color: '#6B7280',
+    textAlign: 'center',
+  },
+  offlineBody: {
+    marginTop: 10,
+    maxWidth: 320,
+    fontFamily: fonts.regular,
+    fontSize: 15,
+    lineHeight: 22,
+    color: '#9CA3AF',
+    textAlign: 'center',
+  },
 }));

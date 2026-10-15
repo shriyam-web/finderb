@@ -6,6 +6,7 @@ import { hasPublicTrustBadge } from '@/lib/businessVerification';
 import { parseBusinessServices } from '@/lib/parseBusinessServices';
 import { getMerchantSubscriptionStatus } from '@/lib/subscription/merchantSubscription';
 import { normalizeExternalHref } from '@/lib/validateProfileUrl';
+import { hasBusinessMapPin, isBusinessWhatsappVerified } from '@/lib/unverifiedContact';
 
 function parseBusinessServicesFromRecord(business: {
   serviceCategory?: string | null;
@@ -215,6 +216,19 @@ export function mapBusinessRecord(business: Record<string, unknown>) {
     displayName: formattedDisplayName || null,
     registrationNumber: (business.registrationNumber as string | null) ?? null,
     hasActiveJobs: Boolean(business.hasActiveJobs),
+    phoneVerified: Boolean(business.mobileVerified),
+    emailVerified: Boolean(business.emailVerified),
+    whatsappVerified: isBusinessWhatsappVerified({
+      whatsappVerified: business.whatsappVerified as boolean,
+      whatsappNumber: business.whatsappNumber as string,
+      publicPhone: business.publicPhone as string,
+      mobile: business.mobile as string,
+      mobileVerified: Boolean(business.mobileVerified),
+    }),
+    hasMapPin: hasBusinessMapPin({
+      latitude: business.latitude as number,
+      longitude: business.longitude as number,
+    }),
   };
 }
 

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   ActivityIndicator,
   Animated,
@@ -20,7 +20,7 @@ import {
   type TextStyle,
   type ViewStyle,
 } from 'react-native';
-import { useRouter, type Href } from 'expo-router';
+import { useFocusEffect, useRouter, type Href } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
@@ -29,6 +29,8 @@ import { consoleColors, useConsoleColors, type ConsoleColors } from '../../const
 import { useTheme } from '../../context/ThemeContext';
 import { useMerchantConsole } from '../../context/MerchantConsoleContext';
 import { useBottomInset } from '../../hooks/useAppSafeArea';
+import { FinderBLogo } from '../BrandMark';
+import { openConsolePath, useConsoleBackAction } from '../../lib/consoleNav';
 
 type NamedStyles<T> = { [P in keyof T]: ViewStyle | TextStyle | ImageStyle };
 type IconName = keyof typeof Ionicons.glyphMap;
@@ -52,21 +54,25 @@ export function useDockPadding(extra = 24) {
 
 /** Back target for screens with no history: the panel home. */
 export function useConsoleBack() {
-  const router = useRouter();
-  return () => (router.canGoBack() ? router.back() : router.replace(HOME_HREF));
+  const goBack = useConsoleBackAction();
+  return () => {
+    goBack('header');
+  };
 }
 
-/** Back on a dock tab returns to the Home tab. */
+/** Back on a dock tab returns to the previous console screen, never the consumer app. */
 export function useTabBack() {
-  const router = useRouter();
-  return () => router.navigate(HOME_HREF);
+  const goBack = useConsoleBackAction();
+  return () => {
+    goBack('header');
+  };
 }
 
 export function ConsoleHeaderActions({ children }: { children?: ReactNode }) {
   const router = useRouter();
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-      <HeaderIcon icon="menu-outline" label="More" onPress={() => router.push('/business-console/more')} />
+      <HeaderIcon icon="menu-outline" label="More" onPress={() => openConsolePath(router, '/business-console/more')} />
       {children}
     </View>
   );
@@ -107,7 +113,14 @@ type PageProps = {
   title: string;
   subtitle?: string;
   onBack?: () => void;
+  hideBack?: boolean;
+  /** Replaces the back control — used on the Home dashboard for the menu. */
+  left?: ReactNode;
+  /** Home dashboard: FinderB mark + “Business”, hamburger on the left. */
+  brand?: boolean;
   right?: ReactNode;
+  /** Drawn over the scroll body (Home search results). */
+  overlay?: ReactNode;
   children: ReactNode;
   docked?: boolean;
   refreshing?: boolean;
@@ -149,7 +162,11 @@ export function ConsolePage({
   title,
   subtitle,
   onBack,
+  hideBack,
+  left,
+  brand,
   right,
+  overlay,
   children,
   docked,
   refreshing,
@@ -162,13 +179,31 @@ export function ConsolePage({
   const styles = useKitStyles();
   const c = useConsoleColors();
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const goBack = useConsoleBack();
   const dockPad = useDockPadding();
   const bottomInset = useBottomInset();
-  const bottomPad = docked ? dockPad : footer ? 24 : bottomInset + 28;
+  const footerLift = (docked ? DOCK_HEIGHT : 0) + bottomInset + 12;
+  const bottomPad = docked ? dockPad + (footer ? 72 : 0) : footer ? 24 : bottomInset + 28;
+  const scrollRef = useRef<ScrollView>(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      const jump = () => scrollRef.current?.scrollTo({ x: 0, y: 0, animated: false });
+      jump();
+      const frame = requestAnimationFrame(jump);
+      const later = setTimeout(jump, 50);
+      return () => {
+        cancelAnimationFrame(frame);
+        clearTimeout(later);
+      };
+    }, []),
+  );
 
   const body = scroll ? (
     <ScrollView
+      ref={scrollRef}
+      contentOffset={{ x: 0, y: 0 }}
       contentContainerStyle={[styles.body, form && styles.formBody, { paddingBottom: bottomPad }, bodyStyle]}
       keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator={false}
@@ -194,33 +229,53 @@ export function ConsolePage({
     <KeyboardAvoidingView style={[styles.page, form && styles.formPage]} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <View style={styles.headerRow}>
-          <Pressable
-            onPress={onBack ?? goBack}
-            hitSlop={6}
-            style={({ pressed }) => [styles.headerIcon, pressed && styles.headerIconPressed]}
-            accessibilityRole="button"
-            accessibilityLabel="Go back"
-          >
-            <Ionicons name="arrow-back" size={22} color={c.ink} />
-          </Pressable>
-          <View style={styles.headerCopy}>
-            <Text style={styles.headerTitle} numberOfLines={1}>
-              {title}
-            </Text>
-            {subtitle ? (
-              <Text style={styles.headerSub} numberOfLines={1}>
-                {subtitle}
+          {left ? (
+            left
+          ) : brand ? (
+            <HeaderIcon
+              icon="menu-outline"
+              label="More"
+              onPress={() => openConsolePath(router, '/business-console/more')}
+            />
+          ) : hideBack ? (
+            <View style={{ width: 6 }} />
+          ) : (
+            <Pressable
+              onPress={onBack ?? goBack}
+              hitSlop={6}
+              style={({ pressed }) => [styles.headerIcon, pressed && styles.headerIconPressed]}
+              accessibilityRole="button"
+              accessibilityLabel="Go back"
+            >
+              <Ionicons name="arrow-back" size={22} color={c.ink} />
+            </Pressable>
+          )}
+          {brand ? (
+            <View style={styles.brandLockup} accessibilityRole="header" accessibilityLabel="FinderB Business">
+              <FinderBLogo size={26} />
+              <Text style={styles.brandWord}>Business</Text>
+            </View>
+          ) : (
+            <View style={styles.headerCopy}>
+              <Text style={styles.headerTitle} numberOfLines={1}>
+                {title}
               </Text>
-            ) : null}
-          </View>
-          {right ? <View style={styles.headerRight}>{right}</View> : null}
+              {subtitle ? (
+                <Text style={styles.headerSub} numberOfLines={1}>
+                  {subtitle}
+                </Text>
+              ) : null}
+            </View>
+          )}
+          {right ? <View style={[styles.headerRight, brand && styles.headerRightGrow]}>{right}</View> : null}
         </View>
       </View>
-      <View style={styles.flex}>
+      <View style={[styles.flex, styles.bodyWrap]}>
         {form ? null : <PageGlow />}
         {body}
+        {overlay}
       </View>
-      {footer ? <View style={[styles.footer, { paddingBottom: bottomInset + 12 }]}>{footer}</View> : null}
+      {footer ? <View style={[styles.footer, { paddingBottom: footerLift }]}>{footer}</View> : null}
     </KeyboardAvoidingView>
   );
 }
@@ -321,13 +376,14 @@ type FieldProps = TextInputProps & {
 };
 
 /** Underlined text field: label on top, a single bottom rule that thickens on focus. */
-export function Field({ label, hint, error, counter, prefix, style, multiline, onFocus, onBlur, ...input }: FieldProps) {
+export function Field({ label, hint, error, counter, prefix, style, multiline, onFocus, onBlur, editable, ...input }: FieldProps) {
   const styles = useKitStyles();
   const c = useConsoleColors();
   const [focused, setFocused] = useState(false);
+  const locked = editable === false;
   const ruleColor = error ? c.danger : focused ? c.primary : c.lineStrong;
   return (
-    <View style={styles.field}>
+    <View style={[styles.field, locked && { opacity: 0.7 }]}>
       <Text style={[styles.fieldLabel, focused && { color: c.primary }, error ? { color: c.danger } : null]}>
         {label}
       </Text>
@@ -344,6 +400,7 @@ export function Field({ label, hint, error, counter, prefix, style, multiline, o
           selectionColor={c.primary}
           cursorColor={c.primary}
           multiline={multiline}
+          editable={editable}
           textAlignVertical={multiline ? 'top' : 'center'}
           underlineColorAndroid="transparent"
           style={[styles.input, multiline && styles.inputMulti, style]}
@@ -707,6 +764,7 @@ export function inr(amount: number): string {
 
 const useKitStyles = createConsoleStyles((c) => ({
   flex: { flex: 1 },
+  bodyWrap: { position: 'relative' },
   page: { flex: 1, backgroundColor: c.page },
   header: {
     backgroundColor: c.card,
@@ -724,6 +782,7 @@ const useKitStyles = createConsoleStyles((c) => ({
     width: 42,
     height: 42,
     borderRadius: 21,
+    flexShrink: 0,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -747,6 +806,15 @@ const useKitStyles = createConsoleStyles((c) => ({
   headerTitle: { fontFamily: fonts.semiBold, fontSize: 18, color: c.ink },
   headerSub: { fontFamily: fonts.regular, fontSize: 12.5, color: c.muted, marginTop: 1 },
   headerRight: { flexDirection: 'row', alignItems: 'center' },
+  headerRightGrow: {
+    flex: 1,
+    minWidth: 0,
+    marginLeft: 16,
+    justifyContent: 'flex-end',
+    gap: 2,
+  },
+  brandLockup: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingRight: 2, flexShrink: 0 },
+  brandWord: { fontFamily: fonts.semiBold, fontSize: 17, color: c.ink, letterSpacing: -0.3 },
   body: { paddingHorizontal: 14, paddingTop: 14, gap: 14 },
   formPage: { backgroundColor: c.card },
   formBody: { paddingHorizontal: 20, paddingTop: 20, gap: 24 },
@@ -810,6 +878,7 @@ const useKitStyles = createConsoleStyles((c) => ({
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexShrink: 0,
     gap: 6,
     paddingHorizontal: 14,
     height: 36,

@@ -8,6 +8,7 @@ import {
   extractLegacyJobId,
 } from '@/lib/jobLeadMessage';
 import { getSessionBusinessId, getSessionUserId } from '@/lib/security/session';
+import { assertBusinessTab } from '@/lib/businessTeam/teamActor.server';
 import { enforceRateLimit } from '@/lib/security/enforceRateLimit.server';
 import { getUser } from '@/app/actions/user';
 import {
@@ -28,6 +29,7 @@ export type BusinessLead = {
   source?: string | null;
   created_at: string | null;
   updated_at: string | null;
+  merchant_read_at?: string | null;
 };
 
 async function getLoggedInBusinessProfile() {
@@ -61,6 +63,8 @@ export async function getBusinessLeads(businessId: string) {
     if (!sessionId || sessionId !== businessId) {
       return { success: false as const, error: 'Unauthorized' };
     }
+    const tab = await assertBusinessTab(businessId, 'leads', 'view');
+    if (!tab.ok) return { success: false as const, error: tab.error };
 
     const supabase = await createDataClient();
     const { data, error } = await supabase
@@ -141,9 +145,14 @@ export async function updateLeadStatus(leadId: string, status: string) {
       return { success: false as const, error: 'Unauthorized' };
     }
 
+    const now = new Date().toISOString();
     const { error: updateError } = await supabase
       .from('leads')
-      .update({ status: status.trim(), updated_at: new Date().toISOString() })
+      .update({
+        status: status.trim(),
+        updated_at: now,
+        merchant_read_at: now,
+      })
       .eq('id', leadId);
 
     if (updateError) throw updateError;
@@ -152,6 +161,47 @@ export async function updateLeadStatus(leadId: string, status: string) {
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : 'Failed to update lead';
     console.error('Update Lead Status Error:', error);
+    return { success: false as const, error: msg };
+  }
+}
+
+export async function markLeadRead(leadId: string) {
+  try {
+    if (!leadId) {
+      return { success: false as const, error: 'Lead ID is required' };
+    }
+    const sessionId = await getSessionBusinessId();
+    if (!sessionId) {
+      return { success: false as const, error: 'Not signed in' };
+    }
+    const tab = await assertBusinessTab(sessionId, 'leads', 'view');
+    if (!tab.ok) return { success: false as const, error: tab.error };
+
+    const supabase = await createDataClient();
+    const { data: lead, error: fetchError } = await supabase
+      .from('leads')
+      .select('business_id, merchant_read_at')
+      .eq('id', leadId)
+      .single();
+    if (fetchError || !lead) {
+      return { success: false as const, error: 'Lead not found' };
+    }
+    if (lead.business_id !== sessionId) {
+      return { success: false as const, error: 'Unauthorized' };
+    }
+    if (lead.merchant_read_at) {
+      return { success: true as const, alreadyRead: true as const };
+    }
+    const now = new Date().toISOString();
+    const { error: updateError } = await supabase
+      .from('leads')
+      .update({ merchant_read_at: now, updated_at: now })
+      .eq('id', leadId);
+    if (updateError) throw updateError;
+    return { success: true as const, alreadyRead: false as const };
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : 'Could not update this lead';
+    console.error('Mark Lead Read Error:', error);
     return { success: false as const, error: msg };
   }
 }

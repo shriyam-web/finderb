@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { HiOutlineStar } from 'react-icons/hi2';
+import { HiOutlineFlag, HiOutlineStar } from 'react-icons/hi2';
 import { flagMerchantReview, getMerchantReviewFlagQuota, upsertMerchantReviewReply } from '@/app/actions/reviews';
 import ReviewIdBadge from '@/components/reviews/ReviewIdBadge';
 import {
@@ -29,6 +29,7 @@ type ReviewsTabProps = {
   reviewData: unknown;
   highlightReviewId?: string | null;
   onReviewsChange: (reviews: BusinessReview[]) => void;
+  canEdit?: boolean;
 };
 
 function StarRow({ rating }: { rating: number }) {
@@ -37,7 +38,7 @@ function StarRow({ rating }: { rating: number }) {
       {Array.from({ length: 5 }).map((_, index) => (
         <HiOutlineStar
           key={index}
-          size={14}
+          size={16}
           className={index < rating ? 'text-amber-500' : 'text-zinc-200'}
         />
       ))}
@@ -85,7 +86,7 @@ function ReviewReplyEditor({
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="text-xs font-medium text-zinc-500">Your reply</p>
-            <p className="mt-1 text-sm leading-relaxed text-zinc-700">{existingReply}</p>
+            <p className="mt-1 text-base leading-relaxed text-zinc-700">{existingReply}</p>
             {review.merchantReply?.date && (
               <p className="mt-1 text-[11px] text-zinc-400">
                 {new Date(review.merchantReply.date).toLocaleDateString('en-IN', {
@@ -157,7 +158,13 @@ function ReviewReplyEditor({
   );
 }
 
-export default function ReviewsTab({ businessId, reviewData, highlightReviewId, onReviewsChange }: ReviewsTabProps) {
+export default function ReviewsTab({
+  businessId,
+  reviewData,
+  highlightReviewId,
+  onReviewsChange,
+  canEdit = true,
+}: ReviewsTabProps) {
   const reviews = useMemo(
     () => visibleMerchantReviews(parseBusinessReviews(reviewData)),
     [reviewData]
@@ -262,7 +269,7 @@ export default function ReviewsTab({ businessId, reviewData, highlightReviewId, 
           </div>
         </DashboardPanel>
       ) : (
-        <div className="overflow-hidden rounded-lg border border-zinc-200 bg-white divide-y divide-zinc-100">
+        <div className="space-y-3">
           {reviews.map((review) => {
             const author = publicReviewAuthor(review);
             const anonymous = isAnonymousPublic(review);
@@ -271,49 +278,54 @@ export default function ReviewsTab({ businessId, reviewData, highlightReviewId, 
               <article
                 key={review.id}
                 id={`review-${review.id}`}
-                className={`p-4 md:p-5 ${highlightReviewId === review.id ? 'bg-amber-50 ring-1 ring-amber-200' : ''}`}
+                className={`relative overflow-hidden rounded-xl border border-[#215481]/20 bg-gradient-to-br from-[#dceaf7] via-white to-[#ffe8cc] p-5 pb-14 font-sans shadow-[inset_0_0_0_1px_rgba(232,135,58,0.12)] ${highlightReviewId === review.id ? 'ring-1 ring-amber-200' : ''}`}
               >
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="min-w-0">
+                <div className="absolute right-3 top-3">
+                  <ReviewIdBadge reviewId={review.id} tone="zinc" />
+                </div>
+                <div className="min-w-0 pr-24">
                     <div className="flex flex-wrap items-center gap-2">
-                      <p className="text-sm font-semibold text-zinc-900">{author}</p>
+                      <p className="text-base font-semibold text-zinc-900">{author}</p>
                       {anonymous ? (
-                        <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-zinc-500">
+                        <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-[11px] font-medium uppercase tracking-wide text-zinc-500">
                           Anonymous
                         </span>
                       ) : null}
                       {review.hidden ? (
-                        <span className="rounded bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-amber-700">
+                        <span className="rounded bg-amber-50 px-1.5 py-0.5 text-[11px] font-medium uppercase tracking-wide text-amber-700">
                           Hidden from public
                         </span>
                       ) : null}
                     </div>
                     <div className="mt-1 flex flex-wrap items-center gap-2">
                       <StarRow rating={review.rating} />
-                      {review.date ? <p className="text-xs text-zinc-400">{review.date}</p> : null}
+                      {review.date ? <p className="text-[15px] text-zinc-500">{review.date}</p> : null}
                     </div>
-                  </div>
-                  <div className="flex shrink-0 flex-wrap items-center gap-2">
-                    <ReviewIdBadge reviewId={review.id} tone="zinc" />
-                    <button
-                      type="button"
-                      disabled={flagged}
-                      onClick={() => {
-                        setFlagTarget(review);
-                        setFlagError(null);
-                      }}
-                      className="rounded-md border border-zinc-200 px-2 py-1 text-[11px] font-medium text-zinc-500 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 disabled:opacity-60"
-                    >
-                      {flagged ? 'Flagged' : 'Flag'}
-                    </button>
-                  </div>
                 </div>
-                <p className="mt-2 text-sm leading-relaxed text-zinc-600">{review.content}</p>
+                <p className="mt-3 text-base leading-relaxed text-zinc-700">{review.content}</p>
+                {canEdit ? (
+                  <button
+                    type="button"
+                    disabled={flagged}
+                    onClick={() => {
+                      setFlagTarget(review);
+                      setFlagError(null);
+                    }}
+                    className="absolute bottom-3 right-3 rounded-full p-2 text-zinc-400 hover:bg-rose-50 hover:text-rose-600 disabled:opacity-60"
+                    aria-label={flagged ? 'Already flagged' : 'Flag this review'}
+                  >
+                    <HiOutlineFlag size={18} className={flagged ? 'text-rose-500' : ''} />
+                  </button>
+                ) : null}
+                {canEdit ? (
                 <ReviewReplyEditor
                   review={review}
                   businessId={businessId}
                   onSaved={onReviewsChange}
                 />
+                ) : review.merchantReply?.content ? (
+                  <p className="mt-3 rounded-lg bg-zinc-50 px-3 py-2 text-sm text-zinc-700">{review.merchantReply.content}</p>
+                ) : null}
               </article>
             );
           })}

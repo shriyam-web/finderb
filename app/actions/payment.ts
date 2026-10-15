@@ -24,7 +24,7 @@ import {
   isRazorpaySubscriptionsConfigured,
 } from '@/lib/razorpay/subscriptions';
 import { enforceRateLimit } from '@/lib/security/enforceRateLimit.server';
-import { getSessionBusinessId } from '@/lib/security/session';
+import { assertBusinessTab } from '@/lib/businessTeam/teamActor.server';
 
 function getPaymentDbClient() {
   const supabase = createServiceClient();
@@ -37,13 +37,6 @@ function getPaymentDbClient() {
   return { ok: true as const, supabase };
 }
 
-async function assertBusinessSession(businessId: string) {
-  const sessionBusinessId = await getSessionBusinessId();
-  if (!sessionBusinessId || sessionBusinessId !== businessId) {
-    return { ok: false as const, error: 'Please sign in to your merchant account to continue payment.' };
-  }
-  return { ok: true as const };
-}
 
 function checkoutBusinessSummary(business: Record<string, unknown>) {
   return {
@@ -99,7 +92,7 @@ export async function getPaymentPageData(businessId: string) {
     return { success: false as const, error: 'Business ID is required' };
   }
 
-  const session = await assertBusinessSession(businessId);
+  const session = await assertBusinessTab(businessId, 'subscription', 'view');
   if (!session.ok) {
     return { success: false as const, error: session.error };
   }
@@ -140,7 +133,7 @@ export async function createMerchantPaymentOrder(params: {
     return { success: false as const, error: 'Invalid billing cycle selected' };
   }
 
-  const session = await assertBusinessSession(businessId);
+  const session = await assertBusinessTab(businessId, 'subscription', 'edit');
   if (!session.ok) {
     return { success: false as const, error: session.error };
   }
@@ -319,7 +312,7 @@ export async function completeMerchantPayment(params: {
     return { success: false as const, error: 'Invalid plan or billing cycle' };
   }
 
-  const session = await assertBusinessSession(businessId);
+  const session = await assertBusinessTab(businessId, 'subscription', 'edit');
   if (!session.ok) {
     return { success: false as const, error: session.error };
   }

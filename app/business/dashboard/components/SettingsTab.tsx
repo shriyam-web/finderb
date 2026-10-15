@@ -32,11 +32,14 @@ import { validateMapPinAgainstAddress } from '@/app/actions/location';
 import KeywordTagInput from './KeywordTagInput';
 import CategoryChangeRequestPanel from './CategoryChangeRequestPanel';
 import LegalBusinessNameChangeRequestPanel from './LegalBusinessNameChangeRequestPanel';
+import DisplayNameChangeRequestPanel from './DisplayNameChangeRequestPanel';
 import {
   getPendingChangeRequest,
 } from '@/app/actions/businessChangeRequests';
+import { hideOwnBusinessListing } from '@/app/actions/business';
 import {
   CATEGORY_CHANGE_FIELD,
+  DISPLAY_NAME_FIELD,
   LEGAL_BUSINESS_NAME_FIELD,
   type BusinessChangeRequest,
 } from '@/lib/businessChangeRequest';
@@ -170,7 +173,7 @@ function hasValidMapPin(latitude: unknown, longitude: unknown) {
 const SETTINGS_FIELDS: FieldDef[] = [
   { key: 'media', label: 'Business Photos', icon: HiOutlinePhoto, type: 'media' },
   { key: 'businessName', label: 'Legal Business Name', icon: HiOutlineBriefcase, type: 'legalNameRequest' },
-  { key: 'displayName', label: 'Business Display Name', icon: HiOutlineUser, type: 'text' },
+  { key: 'displayName', label: 'Business Display Name', icon: HiOutlineUser, type: 'displayNameRequest' },
   { key: 'category', label: 'Business Category', icon: HiOutlineTag, type: 'categoryRequest' },
   { key: 'about', label: 'About Business', icon: HiOutlineInformationCircle, type: 'textarea' },
   { key: 'keywords', label: 'Search Keywords', icon: HiOutlineHashtag, type: 'keywords' },
@@ -234,6 +237,8 @@ interface SettingsTabProps {
   onFocusHandled?: () => void;
   onNotifySuccess?: (message: string) => void;
   onLoginContactVerified?: (contact: VerifiedContact) => void;
+  isOwner?: boolean;
+  canEdit?: boolean;
 }
 
 export default function SettingsTab({
@@ -255,6 +260,8 @@ export default function SettingsTab({
   onFocusHandled,
   onNotifySuccess,
   onLoginContactVerified,
+  isOwner = true,
+  canEdit = true,
 }: SettingsTabProps) {
   const loginEmail = pickPublicBusinessEmail(business?.workEmail, business?.email) || '';
   const loginMobile = extractIndianMobileDigits(business?.mobile);
@@ -279,6 +286,9 @@ export default function SettingsTab({
   const [fieldError, setFieldError] = useState('');
   const [pendingCategoryRequest, setPendingCategoryRequest] = useState<BusinessChangeRequest | null>(null);
   const [pendingLegalNameRequest, setPendingLegalNameRequest] = useState<BusinessChangeRequest | null>(null);
+  const [pendingDisplayNameRequest, setPendingDisplayNameRequest] = useState<BusinessChangeRequest | null>(null);
+  const [hideBusy, setHideBusy] = useState(false);
+  const [hideConfirm, setHideConfirm] = useState(false);
 
   useEffect(() => setMounted(true), []);
 
@@ -289,10 +299,12 @@ export default function SettingsTab({
     Promise.all([
       getPendingChangeRequest(business.id, CATEGORY_CHANGE_FIELD),
       getPendingChangeRequest(business.id, LEGAL_BUSINESS_NAME_FIELD),
-    ]).then(([categoryResult, legalResult]) => {
+      getPendingChangeRequest(business.id, DISPLAY_NAME_FIELD),
+    ]).then(([categoryResult, legalResult, displayResult]) => {
       if (cancelled) return;
       if (categoryResult.success) setPendingCategoryRequest(categoryResult.request);
       if (legalResult.success) setPendingLegalNameRequest(legalResult.request);
+      if (displayResult.success) setPendingDisplayNameRequest(displayResult.request);
     });
 
     return () => {
@@ -383,7 +395,8 @@ export default function SettingsTab({
       return pendingLegalNameRequest ? `${base} · change pending` : base;
     }
     if (field.key === 'displayName') {
-      return profileData.displayName || profileData.businessName || 'Not set';
+      const base = profileData.displayName || profileData.businessName || 'Not set';
+      return pendingDisplayNameRequest ? `${base} · change pending` : base;
     }
     if (field.key === 'ownerInfo') {
       const name = profileData.ownerName?.trim();
@@ -430,6 +443,7 @@ export default function SettingsTab({
   };
 
   const openField = (key: string) => {
+    if (!canEdit) return;
     if (key === 'publicPhone') {
       document.getElementById('settings-login-contact')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       return;
@@ -668,7 +682,7 @@ export default function SettingsTab({
               <form
                 onSubmit={async (e) => {
                   e.preventDefault();
-                  if (activeModal === 'category' || activeModal === 'businessName') return;
+                  if (activeModal === 'category' || activeModal === 'businessName' || activeModal === 'displayName') return;
                   if (!(await validateActiveModalField())) return;
                   await handleUpdateProfile(e);
                   setActiveModal(null);
@@ -824,20 +838,15 @@ export default function SettingsTab({
                       <p className="text-sm text-zinc-500">Sign in again to request a legal name change.</p>
                     )
                   ) : activeModal === 'displayName' ? (
-                    <div className="space-y-3">
-                      <p className="rounded-lg border border-[#215481]/15 bg-[#215481]/[0.04] px-3 py-2.5 text-xs leading-relaxed text-zinc-700">
-                        This is the name customers see on your public FinderB profile, search results, and
-                        listing cards. Your legal business name stays on record separately.
-                      </p>
-                      <input
-                        type="text"
-                        value={profileData.displayName ?? ''}
-                        onChange={(e) => updateField('displayName', e.target.value)}
-                        placeholder="e.g. Sharma Electronics"
-                        className="w-full rounded-lg border border-zinc-200 px-3 py-2.5 text-sm outline-none focus:border-[#215481] focus:ring-2 focus:ring-[#215481]/10"
-                        autoFocus
+                    business?.id ? (
+                      <DisplayNameChangeRequestPanel
+                        businessId={business.id}
+                        currentDisplayName={profileData.displayName || ''}
+                        onPendingChange={setPendingDisplayNameRequest}
                       />
-                    </div>
+                    ) : (
+                      <p className="text-sm text-zinc-500">Sign in again to request a display name change.</p>
+                    )
                   ) : activeModal === 'ownerInfo' ? (
                     <div className="space-y-4">
                       <p className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-xs leading-relaxed text-zinc-600">
@@ -870,6 +879,7 @@ export default function SettingsTab({
                             if (fieldError) setFieldError('');
                           }}
                           variant="dashboard"
+                          disabled={ownerMobileVerified}
                         />
                         {fieldError ? (
                           <p className="mt-2 text-xs text-rose-600">{fieldError}</p>
@@ -1134,6 +1144,7 @@ export default function SettingsTab({
                         }}
                         autoFocus
                         variant="dashboard"
+                        disabled={activeModal === 'whatsappNumber' && whatsappVerified}
                       />
                       {fieldError ? (
                         <p className="text-xs text-rose-600">{fieldError}</p>
@@ -1209,15 +1220,16 @@ export default function SettingsTab({
                   <button
                     type="button"
                     onClick={() => setActiveModal(null)}
-                    className={`${activeModal === 'category' || activeModal === 'businessName' ? 'w-full' : 'flex-1'} ${dashboard.btnSecondary}`}
+                    className={`${activeModal === 'category' || activeModal === 'businessName' || activeModal === 'displayName' ? 'w-full' : 'flex-1'} ${dashboard.btnSecondary}`}
                   >
-                    {activeModal === 'category' || activeModal === 'businessName' ? 'Close' : 'Cancel'}
+                    {activeModal === 'category' || activeModal === 'businessName' || activeModal === 'displayName' ? 'Close' : 'Cancel'}
                   </button>
-                  {activeModal !== 'category' && activeModal !== 'businessName' && (
+                  {activeModal !== 'category' && activeModal !== 'businessName' && activeModal !== 'displayName' && (
                   <button
                     type="submit"
                     disabled={
                       updating ||
+                      !canEdit ||
                       Boolean(fieldError) ||
                       (activeModal === 'mapLocation' &&
                         checkIsMissing(SETTINGS_FIELDS.find((f) => f.key === 'mapLocation')!)) ||
@@ -1285,7 +1297,7 @@ export default function SettingsTab({
         </div>
       )}
 
-      <section id="settings-login-contact" className="scroll-mt-24">
+      {isOwner ? <section id="settings-login-contact" className="scroll-mt-24">
         <h2 className={dashboard.sectionTitle}>Login email &amp; mobile</h2>
         <p className="mt-1 text-xs text-zinc-500">
           Used for login codes, invoices and account alerts. Your login mobile is also the phone customers see on
@@ -1315,7 +1327,7 @@ export default function SettingsTab({
             }}
           />
         </div>
-      </section>
+      </section> : null}
 
       {missingFields.length > 0 && (
         <div>
@@ -1335,9 +1347,14 @@ export default function SettingsTab({
         </div>
       )}
 
-      {business?.id ? <TeamAccessPanel businessId={business.id} /> : null}
+      {isOwner && business?.id ? <TeamAccessPanel businessId={business.id} /> : null}
+      {!canEdit ? (
+        <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-950">
+          You can open Settings, but only the original owner or a teammate with edit rights can change it.
+        </p>
+      ) : null}
 
-      {FIELD_SECTIONS.map((section) => {
+      {FIELD_SECTIONS.filter((section) => isOwner || section.id !== 'account').map((section) => {
         const sectionFields = section.keys
           .map((key) => SETTINGS_FIELDS.find((f) => f.key === key))
           .filter(Boolean) as FieldDef[];
@@ -1354,7 +1371,8 @@ export default function SettingsTab({
                     <button
                       type="button"
                       onClick={() => openField(field.key)}
-                      className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-zinc-50"
+                      disabled={!canEdit}
+                      className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-zinc-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
                     >
                       <Icon size={18} className={isMissing ? 'text-amber-600' : 'text-zinc-400'} />
                       <div className="min-w-0 flex-1">
@@ -1378,6 +1396,48 @@ export default function SettingsTab({
           </section>
         );
       })}
+
+      {isOwner && business?.id ? (
+        <section className="rounded-xl border border-rose-200 bg-rose-50/60 p-4">
+          <h2 className="text-sm font-semibold text-rose-900">Delete my business</h2>
+          <p className="mt-1 text-xs leading-relaxed text-rose-800/90">
+            This takes your listing down so customers can no longer find it on FinderB.
+          </p>
+          {hideConfirm ? (
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button
+                type="button"
+                disabled={hideBusy}
+                onClick={async () => {
+                  setHideBusy(true);
+                  const result = await hideOwnBusinessListing(business.id);
+                  setHideBusy(false);
+                  if (!result.success) {
+                    window.alert(result.error);
+                    return;
+                  }
+                  window.alert(result.message);
+                  window.location.reload();
+                }}
+                className="rounded-lg bg-rose-700 px-3 py-2 text-xs font-semibold text-white disabled:opacity-60"
+              >
+                {hideBusy ? 'Taking down…' : 'Yes, take it down'}
+              </button>
+              <button type="button" onClick={() => setHideConfirm(false)} className={dashboard.btnSecondary}>
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setHideConfirm(true)}
+              className="mt-3 rounded-lg border border-rose-300 bg-white px-3 py-2 text-xs font-semibold text-rose-800"
+            >
+              Delete my business
+            </button>
+          )}
+        </section>
+      ) : null}
 
       {modal}
       {deleteModal}

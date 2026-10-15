@@ -126,10 +126,14 @@ export default function ScrollRestoration() {
         restoreScrollPosition(saved);
       } else if (hash) {
         scrollToHash(hash);
+      } else {
+        restoreScrollPosition(0);
       }
       pendingPopState = false;
     } else if (hash) {
       scrollToHash(hash);
+    } else {
+      restoreScrollPosition(0);
     }
 
     routeKeyRef.current = key;

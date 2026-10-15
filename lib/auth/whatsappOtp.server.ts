@@ -150,6 +150,7 @@ async function establishWhatsAppUser(
     const provider = String(existing.authProvider || '').toLowerCase();
     const updates: Record<string, unknown> = {
       phone,
+      phoneVerified: true,
       updatedAt: now,
     };
     if (!provider || provider === 'whatsapp') {
@@ -174,6 +175,7 @@ async function establishWhatsAppUser(
         .from('User')
         .update({
           phone,
+          phoneVerified: true,
           ...(!provider || provider === 'whatsapp' ? { authProvider: 'whatsapp' } : {}),
           updatedAt: now,
         })
@@ -202,6 +204,7 @@ async function establishWhatsAppUser(
       password: await hashPassword(crypto.randomUUID()),
       authProvider: 'whatsapp',
       phone,
+      phoneVerified: true,
       favorites: [],
       searchHistory: [],
       createdAt: now,

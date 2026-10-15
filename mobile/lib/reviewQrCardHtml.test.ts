@@ -10,10 +10,10 @@ const html = reviewQrCardHtml({
   reviewUrl: 'https://finderb.com/review/jaipur-sweets',
   qrBase64: 'abc123',
 });
-assert.match(html, /FINDERB/);
+assert.match(html, /FinderB/);
 assert.match(html, /Jaipur Sweets/);
 assert.match(html, /data:image\/png;base64,abc123/);
 assert.match(html, /1080/);
-assert.match(html, /1350/);
+assert.match(html, /1920/);
 
 console.log('reviewQrCardHtml tests passed');

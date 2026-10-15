@@ -1,12 +1,14 @@
 import { useEffect, useRef } from 'react';
 import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FinderBLogo } from './BrandMark';
 import { fonts } from '../constants/typography';
 
-const SKY = ['#0B5EA8', '#1A86D6', '#4AA6EA'] as const;
+const INK = '#153551';
+const MUTED = '#5B6B7C';
+const TRACK = '#E4EBF3';
+const RUNNER = '#215481';
 
 type Props = {
   mode?: 'intro' | 'boot';
@@ -45,14 +47,7 @@ export function BrandedSplash({
 
   return (
     <View style={styles.root}>
-      <StatusBar style="light" />
-      <LinearGradient
-        colors={[...SKY]}
-        locations={[0, 0.55, 1]}
-        start={{ x: 0.15, y: 0 }}
-        end={{ x: 0.9, y: 1 }}
-        style={StyleSheet.absoluteFill}
-      />
+      <StatusBar style="dark" />
       <Animated.View
         style={[
           styles.stage,
@@ -90,7 +85,7 @@ export function BrandedSplash({
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#0B5EA8',
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -103,13 +98,13 @@ const styles = StyleSheet.create({
     fontFamily: fonts.extraBold,
     fontSize: 40,
     letterSpacing: -1.2,
-    color: '#FFFFFF',
+    color: INK,
   },
   tag: {
     marginTop: 8,
     fontFamily: fonts.medium,
     fontSize: 15,
-    color: 'rgba(255,255,255,0.82)',
+    color: MUTED,
   },
   foot: {
     position: 'absolute',
@@ -124,18 +119,18 @@ const styles = StyleSheet.create({
     height: 3,
     borderRadius: 2,
     overflow: 'hidden',
-    backgroundColor: 'rgba(255,255,255,0.28)',
+    backgroundColor: TRACK,
   },
   runner: {
     width: 48,
     height: 3,
     borderRadius: 2,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: RUNNER,
   },
   loading: {
     fontFamily: fonts.medium,
     fontSize: 12,
     letterSpacing: 0.4,
-    color: 'rgba(255,255,255,0.78)',
+    color: MUTED,
   },
 });

@@ -30,19 +30,26 @@ export function FinderBQrStudio({
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=1000x1000&margin=12&data=${encodeURIComponent(reviewUrl)}`;
   const place = [category, city].filter(Boolean).join(' · ');
   const [qrBase64, setQrBase64] = useState<string | null>(null);
+  const [logoBase64, setLogoBase64] = useState<string | null>(null);
   const [pngBase64, setPngBase64] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     if (!visible) {
       setQrBase64(null);
+      setLogoBase64(null);
       setPngBase64(null);
       return;
     }
     let cancelled = false;
-    void downloadQrSourceBase64(qrUrl)
-      .then((value) => {
-        if (!cancelled) setQrBase64(value);
+    void Promise.all([
+      downloadQrSourceBase64(qrUrl),
+      downloadQrSourceBase64(`${PUBLIC_SITE}/businesslogo.png`).catch(() => null),
+    ])
+      .then(([qr, logo]) => {
+        if (cancelled) return;
+        setQrBase64(qr);
+        setLogoBase64(logo);
       })
       .catch(() => {
         if (!cancelled) Alert.alert('Could not prepare the review card', 'Check your connection and try again.');
@@ -68,7 +75,7 @@ export function FinderBQrStudio({
         Alert.alert(
           result.method === 'saved' ? 'Card saved' : 'Share or save the card',
           result.method === 'saved'
-            ? 'The 1080×1350 FinderB review card was saved to the folder you chose.'
+            ? 'The 1080×1920 FinderB review card was saved to the folder you chose.'
             : 'Use Save Image or Save to Files in the share sheet.',
         );
       }
@@ -82,20 +89,23 @@ export function FinderBQrStudio({
   return (
     <Sheet visible={visible} title="FinderB review card" onClose={onClose}>
       <View style={styles.card}>
-        <Text style={styles.brand}>FINDERB</Text>
-        <Text style={styles.tag}>This business is on FinderB</Text>
+        <View style={styles.topRibbon} />
+        <Image source={{ uri: `${PUBLIC_SITE}/businesslogo.png` }} style={styles.logo} resizeMode="contain" />
+        <Text style={styles.tag}>REVIEW CARD</Text>
         <Text style={styles.name}>{businessName}</Text>
         {place ? <Text style={styles.place}>{place}</Text> : null}
         <View style={styles.qrPlate}>
           <Image source={{ uri: qrUrl }} style={styles.qr} resizeMode="contain" />
         </View>
         <Text style={styles.hint}>Scan to leave a review</Text>
+        <Text style={styles.site}>finderb.com</Text>
+        <View style={styles.bottomRibbon} />
       </View>
       <Text style={styles.url} selectable>
         {reviewUrl}
       </Text>
       <Text style={styles.meta}>
-        {pngBase64 ? '1080×1350 PNG is ready to save.' : 'Preparing the high-quality card…'}
+        {pngBase64 ? '1080×1920 PNG is ready to save.' : 'Preparing the high-quality card…'}
       </Text>
       <Btn icon="share-social-outline" label="Share review link" onPress={share} />
       <Btn
@@ -118,6 +128,7 @@ export function FinderBQrStudio({
               place,
               reviewUrl,
               qrBase64,
+              logoBase64,
             }),
           }}
           onMessage={(event) => {
@@ -141,35 +152,78 @@ export function FinderBQrStudio({
 
 const useStyles = createConsoleStyles((c) => ({
   card: {
-    borderRadius: 18,
-    padding: 18,
-    backgroundColor: '#12324C',
+    borderRadius: 22,
+    paddingTop: 18,
+    paddingBottom: 18,
+    paddingHorizontal: 22,
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
-    gap: 8,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: c.line,
+    gap: 6,
   },
-  brand: {
+  topRibbon: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    height: 10,
+    backgroundColor: '#153551',
+    borderBottomWidth: 4,
+    borderBottomColor: '#E8873A',
+  },
+  bottomRibbon: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 10,
+    backgroundColor: '#153551',
+    borderTopWidth: 4,
+    borderTopColor: '#E8873A',
+  },
+  logo: {
+    width: 196,
+    height: 48,
+    marginTop: 14,
+  },
+  tag: {
     fontFamily: fonts.semiBold,
-    fontSize: 12,
+    fontSize: 11,
     letterSpacing: 3,
-    color: '#F9D48A',
+    color: '#E8873A',
   },
-  tag: { fontFamily: fonts.medium, fontSize: 12, color: 'rgba(255,255,255,0.72)' },
   name: {
+    marginTop: 6,
     fontFamily: fonts.semiBold,
     fontSize: 22,
     lineHeight: 26,
-    color: '#FFFFFF',
+    color: '#153551',
     textAlign: 'center',
   },
-  place: { fontFamily: fonts.regular, fontSize: 13, color: 'rgba(255,255,255,0.7)' },
+  place: { fontFamily: fonts.medium, fontSize: 13, color: '#5B6B7C', textAlign: 'center' },
   qrPlate: {
     marginTop: 8,
-    padding: 12,
-    borderRadius: 16,
+    padding: 14,
+    borderRadius: 22,
     backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E4EBF3',
   },
-  qr: { width: 220, height: 220 },
-  hint: { marginTop: 4, fontFamily: fonts.semiBold, fontSize: 13, color: '#FFFFFF' },
+  qr: { width: 188, height: 188 },
+  hint: {
+    marginTop: 8,
+    fontFamily: fonts.semiBold,
+    fontSize: 13,
+    color: '#153551',
+  },
+  site: {
+    fontFamily: fonts.medium,
+    fontSize: 12,
+    color: '#5B6B7C',
+    marginBottom: 8,
+  },
   url: {
     marginTop: 12,
     fontFamily: fonts.regular,

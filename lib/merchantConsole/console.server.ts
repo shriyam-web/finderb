@@ -6,8 +6,15 @@ import {
   updateBusinessImages,
   updateBusinessProfile,
 } from '@/app/actions/business';
-import { getBusinessLeads, updateLeadStatus } from '@/app/actions/leads';
+import { getBusinessLeads, markLeadRead, updateLeadStatus } from '@/app/actions/leads';
+import { hideOwnBusinessListing } from '@/app/actions/business';
 import { isOpenLead } from '@/lib/leadBadges';
+import { isLeadUnread, averageLeadResponseLabel } from '@/lib/leadRead';
+import {
+  averageCompletionPercent,
+  COMPETITOR_COMPLETION_SELECT,
+} from '@/lib/dashboard/competitorInsights';
+import { isBusinessWhatsappVerified } from '@/lib/unverifiedContact';
 import {
   BUSINESS_REVIEW_FLAGS_PER_MONTH,
   getBusinessPublicRatingStats,
@@ -34,7 +41,11 @@ import {
   requestMerchantMobileVerifyCode,
   requestMerchantOwnerMobileCode,
 } from '@/lib/auth/merchantContactVerify.server';
-import { CATEGORY_CHANGE_FIELD, LEGAL_BUSINESS_NAME_FIELD } from '@/lib/businessChangeRequest';
+import {
+  CATEGORY_CHANGE_FIELD,
+  DISPLAY_NAME_FIELD,
+  LEGAL_BUSINESS_NAME_FIELD,
+} from '@/lib/businessChangeRequest';
 import { getAccountHealth } from '@/lib/dashboard/accountHealth';
 import { getAccountMissingFields, getProfileCompletion } from '@/lib/dashboard/profileCompletion';
 import { getMerchantSubscriptionStatus } from '@/lib/subscription/merchantSubscription';
@@ -72,7 +83,11 @@ import {
   listTeamMembers,
   resendTeamInvite,
   revokeTeamMember,
+  updateTeamAccess,
+  verifyTeamInviteOtp,
 } from '@/lib/businessTeam/teamInvites.server';
+import { CONSOLE_ACTION_ACCESS, TEAM_OWNER_ONLY, TEAM_TAB_LOCKED } from '@/lib/businessTeam/teamAccess';
+import { resolveBusinessActor } from '@/lib/businessTeam/teamActor.server';
 import { createServiceClient } from '@/lib/supabase/service';
 import { escapeIlikePattern } from '@/lib/searchMatch';
 
@@ -85,7 +100,7 @@ const LEAD_CONTACT_LOCKED = 'Upgrade to see contact';
 
 /** Same public columns the app reads for any storefront, so the owner preview maps identically. */
 const STOREFRONT_SELECT =
-  'id, slug, businessName, displayName, category, location, city, state, about, profilePictureUrl, images, publicPhone, mobile, email, workEmail, website, whatsappNumber, instagramUrl, facebookUrl, youtubeUrl, review, isFinderBVerified, hasVerifiedBadge, discountRange, status, latitude, longitude, timings, serviceCategory, keywords, paymentModes, businessAddress, yearsInBusiness';
+  'id, slug, businessName, displayName, category, location, city, state, about, profilePictureUrl, images, publicPhone, mobile, email, workEmail, website, whatsappNumber, instagramUrl, facebookUrl, youtubeUrl, review, isFinderBVerified, hasVerifiedBadge, discountRange, status, latitude, longitude, timings, serviceCategory, keywords, paymentModes, businessAddress, yearsInBusiness, emailVerified, mobileVerified, whatsappVerified';
 
 async function loadBusiness(businessId: string): Promise<Business | Fail> {
   const owned = await getOwnedBusiness(businessId);
@@ -117,7 +132,7 @@ function profileOf(business: Business) {
   return {
     displayName: text(business.displayName),
     businessName: text(business.businessName),
-    ownerName: text(business.ownerName),
+    ownerName: text(business.ownerName) || text(business.owner_name),
     ownerMobile: extractIndianMobileDigits(business.ownerMobile) || '',
     category: text(business.category),
     publicPhone: text(business.publicPhone),
@@ -194,6 +209,19 @@ async function reviewFlagState(businessId: string) {
     limit,
     flaggedIds: new Set((data || []).map((row) => String(row.review_id))),
   };
+}
+
+async function loadCompetitorAverage(businessId: string, category: string) {
+  const supabase = createServiceClient();
+  if (!supabase || !category) return null;
+  const { data } = await supabase
+    .from('Business')
+    .select(COMPETITOR_COMPLETION_SELECT)
+    .eq('category', category)
+    .neq('id', businessId)
+    .eq('status', 'Active')
+    .limit(200);
+  return averageCompletionPercent((data || []) as Record<string, unknown>[]);
 }
 
 function maskLeads<T extends { email: string | null; phone: string | null }>(leads: T[], unlocked: boolean) {
@@ -315,6 +343,8 @@ async function viewTrend(businessId: string) {
 }
 
 async function overview(businessId: string) {
+  const actor = await resolveBusinessActor(businessId);
+  if (!actor.ok) return fail(actor.error);
   const business = await loadBusiness(businessId);
   if ('success' in business) return business;
 
@@ -335,12 +365,13 @@ async function overview(businessId: string) {
   const status = String(business.status || 'Pending');
   const category = text(business.category);
 
-  const [leadsResult, jobsResult, views, notifications, trend] = await Promise.all([
+  const [leadsResult, jobsResult, views, notifications, trend, competitorAverage] = await Promise.all([
     getBusinessLeads(businessId),
     getJobsByBusiness(businessId),
     getBusinessProfileViewStats(businessId),
     loadNotifications(businessId, category),
     viewTrend(businessId),
+    loadCompetitorAverage(businessId, category),
   ]);
   const leads = leadsResult.success ? leadsResult.leads : [];
   const jobs = jobsResult.success && jobsResult.jobs ? jobsResult.jobs : [];
@@ -375,6 +406,13 @@ async function overview(businessId: string) {
       loginMobile: extractIndianMobileDigits(business.mobile) || '',
       emailVerified: Boolean(business.emailVerified),
       mobileVerified: Boolean(business.mobileVerified),
+      whatsappVerified: isBusinessWhatsappVerified({
+        whatsappVerified: business.whatsappVerified as boolean,
+        whatsappNumber: text(business.whatsappNumber),
+        publicPhone: text(business.publicPhone),
+        mobile: text(business.mobile),
+        mobileVerified: Boolean(business.mobileVerified),
+      }),
       createdAt: (business.createdAt as string) || null,
     },
     profile: profileOf(business),
@@ -387,7 +425,9 @@ async function overview(businessId: string) {
       views30d: views.viewsLast30Days ?? 0,
       viewsAllTime: views.viewsAllTime ?? 0,
       leadsTotal: leads.length,
-      leadsNew: leads.filter((lead) => isOpenLead(lead)).length,
+      leadsNew: leads.filter((lead) => isLeadUnread(lead)).length,
+      averageResponse: averageLeadResponseLabel(leads),
+      competitorAverage,
       leads7d: leads.filter(
         (lead) => lead.created_at && Date.now() - new Date(lead.created_at).getTime() <= 7 * 24 * 60 * 60 * 1000,
       ).length,
@@ -417,6 +457,11 @@ async function overview(businessId: string) {
       maxActiveJobs: 3,
     },
     kycMessage: KYC_OUTSOURCED_MESSAGE,
+    actor: {
+      isOwner: actor.isOwner,
+      teamMemberId: actor.isOwner ? null : actor.teamMemberId,
+      access: actor.access,
+    },
   };
 }
 
@@ -451,6 +496,7 @@ async function saveProfile(businessId: string, patch: unknown) {
   }
   next.businessName = editable.businessName;
   next.category = editable.category;
+  next.displayName = editable.displayName;
 
   for (const field of PROFILE_LINK_FIELDS) {
     const checked = validateProfileLink(field, String(next[field] ?? ''));
@@ -535,6 +581,18 @@ async function leads(businessId: string) {
     unlocked: subscriptionOf(business).isActive,
     leads: maskLeads(result.leads, subscriptionOf(business).isActive),
   };
+}
+
+async function markLeadReadAction(leadId: unknown) {
+  if (typeof leadId !== 'string' || !leadId) return fail('Lead is required.');
+  const result = await markLeadRead(leadId);
+  return result.success ? { success: true as const } : fail(result.error);
+}
+
+async function hideBusiness(businessId: string) {
+  const result = await hideOwnBusinessListing(businessId);
+  if (!result.success) return fail(result.error);
+  return { success: true as const, message: result.message };
 }
 
 async function setLeadStatus(leadId: unknown, status: unknown) {
@@ -691,20 +749,28 @@ async function cancelAutoRenew(businessId: string) {
 }
 
 async function changeRequests(businessId: string) {
-  const [category, legalName] = await Promise.all([
+  const [category, legalName, displayName] = await Promise.all([
     getPendingChangeRequest(businessId, CATEGORY_CHANGE_FIELD),
     getPendingChangeRequest(businessId, LEGAL_BUSINESS_NAME_FIELD),
+    getPendingChangeRequest(businessId, DISPLAY_NAME_FIELD),
   ]);
   return {
     success: true as const,
     category: category.success ? category.request : null,
     legalName: legalName.success ? legalName.request : null,
+    displayName: displayName.success ? displayName.request : null,
   };
 }
 
 async function requestChange(businessId: string, field: unknown, value: unknown, note: unknown) {
   const target =
-    field === 'category' ? CATEGORY_CHANGE_FIELD : field === 'legalName' ? LEGAL_BUSINESS_NAME_FIELD : null;
+    field === 'category'
+      ? CATEGORY_CHANGE_FIELD
+      : field === 'legalName'
+        ? LEGAL_BUSINESS_NAME_FIELD
+        : field === 'displayName'
+          ? DISPLAY_NAME_FIELD
+          : null;
   if (!target) return fail('Choose what you want to change.');
   const result = await submitChangeRequest({
     businessId,
@@ -783,8 +849,26 @@ async function markRead(businessId: string) {
 
 export type ConsoleRequest = { action?: unknown } & Record<string, unknown>;
 
+async function gateConsoleAction(businessId: string, action: unknown) {
+  const key = String(action || '');
+  const rule = CONSOLE_ACTION_ACCESS[key];
+  if (!rule) return null;
+  const actor = await resolveBusinessActor(businessId);
+  if (!actor.ok) return fail(actor.error);
+  if (rule.owner && !actor.isOwner) return fail(TEAM_OWNER_ONLY);
+  if (rule.tab && rule.mode === 'edit' && !(actor.isOwner || (actor.access[rule.tab]?.view && actor.access[rule.tab]?.edit))) {
+    return fail(TEAM_TAB_LOCKED);
+  }
+  if (rule.tab && rule.mode === 'view' && !(actor.isOwner || actor.access[rule.tab]?.view)) {
+    return fail(TEAM_TAB_LOCKED);
+  }
+  return null;
+}
+
 /** Dispatch one console action. The caller must already run inside `runAsMobileMerchant`. */
 export async function runConsoleAction(userId: string, businessId: string, body: ConsoleRequest) {
+  const blocked = await gateConsoleAction(businessId, body.action);
+  if (blocked) return blocked;
   switch (body.action) {
     case 'overview':
       return overview(businessId);
@@ -800,6 +884,10 @@ export async function runConsoleAction(userId: string, businessId: string, body:
       return leads(businessId);
     case 'setLeadStatus':
       return setLeadStatus(body.leadId, body.status);
+    case 'markLeadRead':
+      return markLeadReadAction(body.leadId);
+    case 'hideBusiness':
+      return hideBusiness(businessId);
     case 'replyReview':
       return replyReview(businessId, body.reviewId, body.content);
     case 'flagReview':
@@ -848,12 +936,26 @@ export async function runConsoleAction(userId: string, businessId: string, body:
     case 'inviteTeam':
       return inviteTeamMember({
         businessId,
+        channel: body.channel === 'phone' ? 'phone' : 'email',
         email: String(body.email || ''),
         mobile: String(body.mobile || ''),
+        access: body.access,
         invitedBy: businessId,
       });
     case 'resendTeam':
       return resendTeamInvite({ businessId, memberId: String(body.memberId || '') });
+    case 'verifyTeamOtp':
+      return verifyTeamInviteOtp({
+        businessId,
+        memberId: String(body.memberId || ''),
+        code: String(body.code || ''),
+      });
+    case 'updateTeamAccess':
+      return updateTeamAccess({
+        businessId,
+        memberId: String(body.memberId || ''),
+        access: body.access,
+      });
     case 'revokeTeam':
       return revokeTeamMember({ businessId, memberId: String(body.memberId || '') });
     default:

@@ -15,7 +15,8 @@ export type RegistrationStep1Field =
   | 'emailOtp'
   | 'password'
   | 'confirmPassword'
-  | 'mobile';
+  | 'mobile'
+  | 'whatsappNumber';
 export type RegistrationStep2Field =
   | 'businessName'
   | 'displayName'
@@ -42,6 +43,7 @@ export function mapRegistrationServerError(error: string): RegistrationFieldErro
     return { emailOtp: error };
   }
   if (lower.includes('email')) return { email: error };
+  if (lower.includes('whatsapp')) return { whatsappNumber: error };
   if (lower.includes('mobile') || lower.includes('phone')) return { mobile: error };
   if (lower.includes('password')) return { password: error };
   if (lower.includes('full name') || lower.includes('owner')) return { fullName: error };
@@ -62,6 +64,7 @@ const REGISTRATION_FIELD_SCROLL_ORDER: RegistrationFieldKey[] = [
   'password',
   'confirmPassword',
   'mobile',
+  'whatsappNumber',
   'businessName',
   'displayName',
   'categoryId',
@@ -125,6 +128,7 @@ export type NormalizedRegistrationData = {
   email: string;
   password: string;
   mobile: string;
+  whatsappNumber: string;
   businessName: string;
   displayName: string;
   category: string;
@@ -335,6 +339,7 @@ export function validateAndNormalizeRegistrationPayload(data: {
   email?: string;
   password?: string;
   mobile?: string;
+  whatsappNumber?: string;
   businessName?: string;
   displayName?: string;
   category?: string;
@@ -377,6 +382,9 @@ export function validateAndNormalizeRegistrationPayload(data: {
     mobile: data.mobile ?? '',
   });
 
+  const whatsappNumber = normalizeIndianPhoneForStorage(String(data.whatsappNumber || step1.mobile));
+  const whatsappError = validateMobile(whatsappNumber, 'WhatsApp number');
+  if (whatsappError) return { ok: false, error: whatsappError };
   const step2 = normalizeRegistrationStep2({
     businessName: data.businessName ?? '',
     displayName: data.displayName,
@@ -399,6 +407,7 @@ export function validateAndNormalizeRegistrationPayload(data: {
       ...step1,
       ...step2,
       selectedPlan: data.selectedPlan,
+      whatsappNumber,
       billingCycle: data.billingCycle,
     },
   };

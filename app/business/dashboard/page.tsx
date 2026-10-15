@@ -47,7 +47,6 @@ import { hasPublicTrustBadge, isListingLive, KYC_OUTSOURCED_MESSAGE } from '@/li
 import { getJobsByBusiness } from '@/app/actions/job';
 import { getBusinessProfileViewStats } from '@/app/actions/analytics';
 import { getBusinessPublicRatingStats, parseBusinessReviews, visibleMerchantReviews } from '@/lib/businessReviews';
-import { isOpenLead } from '@/lib/leadBadges';
 import DashboardAtAGlance from './components/DashboardAtAGlance';
 import TrustBadgeCallout from './components/TrustBadgeCallout';
 import MyListingTab from './components/MyListingTab';
@@ -77,8 +76,22 @@ import ContactVerificationBanner from './components/ContactVerificationBanner';
 import DashboardBannerCarousel, { type DashboardBanner } from './components/DashboardBannerCarousel';
 import ReviewsVisibilityBanner from './components/ReviewsVisibilityBanner';
 import FinderBQrStudio from '@/components/business/FinderBQrStudio';
+import MerchantSupportFab from '@/components/business/MerchantSupportFab';
+import OfflineNotice from '@/components/business/OfflineNotice';
+import MerchantInsightsCard from './components/MerchantInsightsCard';
+import { getMerchantPerformanceInsights } from '@/app/actions/merchantInsights';
+import { isBusinessWhatsappVerified } from '@/lib/unverifiedContact';
+import { averageLeadResponseLabel, isLeadUnread } from '@/lib/leadRead';
 import { pickPublicBusinessEmail } from '@/lib/placeholderEmail';
 import { extractIndianMobileDigits } from '@/lib/indianPhone';
+import {
+  canEditTeamTab,
+  canViewTeamTab,
+  firstVisibleTeamTab,
+  ownerTeamAccess,
+  type TeamAccessMap,
+  type TeamTabKey,
+} from '@/lib/businessTeam/teamAccess';
 
 function DashboardContent() {
   const router = useRouter();
@@ -109,6 +122,10 @@ function DashboardContent() {
   const [activeJobsCount, setActiveJobsCount] = useState(0);
   const [settingsFocusField, setSettingsFocusField] = useState<string | null>(null);
   const [merchantAlertCount, setMerchantAlertCount] = useState(0);
+  const [isOwner, setIsOwner] = useState(true);
+  const [teamAccess, setTeamAccess] = useState<TeamAccessMap>(() => ownerTeamAccess());
+  const [competitorAverage, setCompetitorAverage] = useState<number | null>(null);
+  const [averageResponse, setAverageResponse] = useState<string | null>(null);
 
   const handleSettingsFocusHandled = useCallback(() => {
     setSettingsFocusField(null);
@@ -235,6 +252,8 @@ function DashboardContent() {
             ? sessionRes.supportIdleDeadline
             : null,
         );
+        setIsOwner(sessionRes.isOwner !== false);
+        if (sessionRes.teamAccess) setTeamAccess(sessionRes.teamAccess);
         const cover = resBusiness.profilePictureUrl || null;
         const syncedImages = syncBusinessImagesWithCover(resBusiness.images, cover);
         setBusiness(resBusiness);
@@ -383,6 +402,11 @@ function DashboardContent() {
   }, [searchParams]);
 
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    }
     if (activeTab === 'reviews' && businessId) {
       void markMerchantNotificationsRead(businessId);
       setMerchantAlertCount(0);
@@ -480,9 +504,8 @@ function DashboardContent() {
     getBusinessLeads(businessId).then((res) => {
       if (res.success) {
         setLeadCount(res.leads.length);
-        setNewLeadCount(
-          res.leads.filter((l) => isOpenLead(l)).length
-        );
+        setNewLeadCount(res.leads.filter((l) => isLeadUnread(l)).length);
+        setAverageResponse(averageLeadResponseLabel(res.leads));
       }
     });
     getJobsByBusiness(businessId).then((res) => {
@@ -491,6 +514,15 @@ function DashboardContent() {
       }
     });
   }, [businessId]);
+
+  useEffect(() => {
+    if (!businessId) return;
+    void getMerchantPerformanceInsights(businessId, business?.category).then((result) => {
+      if (!result.success) return;
+      setCompetitorAverage(result.competitorAverage);
+      if (result.averageResponse) setAverageResponse(result.averageResponse);
+    });
+  }, [businessId, business?.category]);
 
   const handleLogout = async () => {
     const res = await logoutBusiness();
@@ -600,6 +632,9 @@ function DashboardContent() {
     setProfileData(prev => ({ ...prev, [field]: value }));
   };
 
+  const canView = (tab: TeamTabKey) => canViewTeamTab(teamAccess, tab, isOwner);
+  const canEdit = (tab: TeamTabKey) => canEditTeamTab(teamAccess, tab, isOwner);
+
   const menuItems = [
     { id: 'overview', label: 'Overview', icon: HiOutlineSquares2X2, activeIcon: RiDashboardFill },
     { id: 'listings', label: 'My Listing', icon: HiOutlineQueueList, activeIcon: RiListCheck },
@@ -618,7 +653,13 @@ function DashboardContent() {
     { id: 'subscription', label: 'My Subscription', icon: HiOutlineCreditCard, activeIcon: HiOutlineCreditCard },
     { id: 'messages', label: 'Messages', icon: HiOutlineChatBubbleLeftRight, activeIcon: RiMessage3Line },
     { id: 'settings', label: 'Settings', icon: HiOutlineCog8Tooth, activeIcon: RiSettings4Line },
-  ];
+  ].filter((item) => canView(item.id as TeamTabKey));
+
+  useEffect(() => {
+    if (!canView(activeTab as TeamTabKey)) {
+      setActiveTab(firstVisibleTeamTab(teamAccess, isOwner));
+    }
+  }, [activeTab, teamAccess, isOwner]);
 
   if (showOnboarding) {
     return <BusinessOnboardingLoader onComplete={handleOnboardingComplete} />;
@@ -754,6 +795,7 @@ function DashboardContent() {
       ),
     });
   }
+  if (canView('reviews')) {
   dashboardBanners.push({
     id: 'reviews-visibility',
     label: 'Get 10 reviews',
@@ -764,6 +806,7 @@ function DashboardContent() {
       />
     ),
   });
+  }
   if (!hasPublicPhotos) {
     dashboardBanners.push({
       id: 'listing-hidden',
@@ -801,7 +844,9 @@ function DashboardContent() {
       <DashboardSidebar
         menuItems={menuItems}
         activeTab={activeTab}
-        onTabChange={setActiveTab}
+        onTabChange={(tab) => {
+          if (canView(tab as TeamTabKey)) setActiveTab(tab);
+        }}
         isOpen={isSidebarOpen}
         onToggle={() => setIsSidebarOpen((open) => !open)}
         onClose={() => setIsSidebarOpen(false)}
@@ -890,7 +935,7 @@ function DashboardContent() {
         />
 
         <DashboardBannerCarousel banners={dashboardBanners} />
-        {qrStudioOpen && business ? (
+        {qrStudioOpen && business && canView('reviews') ? (
           <FinderBQrStudio
             businessName={businessName}
             category={business.category}
@@ -929,6 +974,12 @@ function DashboardContent() {
               onOpenBilling={() => setActiveTab('subscription')}
             />
 
+            <MerchantInsightsCard
+              ownPercent={completionPercent}
+              competitorAverage={competitorAverage}
+              averageResponse={averageResponse}
+            />
+
             {!isListingLiveOnPlatform && (
               <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
                 <p className="font-semibold">Your listing is not public yet</p>
@@ -960,36 +1011,50 @@ function DashboardContent() {
                   onOpenKyc={openKycInfo}
                 />
 
-                {businessId && (
+                {businessId && canView('leads') ? (
                   <LeadsSection
                     businessId={businessId}
                     businessProfilePath={businessProfilePath}
                     isPaymentPending={isPaymentPending}
                     variant="overview"
                     onCountChange={setLeadCount}
+                    onUnreadChange={setNewLeadCount}
+                    canEdit={canEdit('leads')}
                   />
-                )}
+                ) : null}
               </div>
 
               <div className="xl:col-span-4">
                 <DashboardQuickActions
                   actions={[
-                    {
-                      label: 'Edit public listing',
-                      description: 'Update photos, hours, and business description.',
-                      onClick: () => setActiveTab('listings'),
-                    },
-                    {
-                      label: 'Post a job opening',
-                      description: 'Reach candidates through FinderB job listings.',
-                      onClick: () => setActiveTab('jobs'),
-                    },
-                    {
-                      label: 'Account & verification',
-                      description: 'Documents, contact details, and preferences.',
-                      onClick: () => setActiveTab('settings'),
-                    },
-                    ...(businessId
+                    ...(canView('listings')
+                      ? [
+                          {
+                            label: 'Edit public listing',
+                            description: 'Update photos, hours, and business description.',
+                            onClick: () => setActiveTab('listings'),
+                          },
+                        ]
+                      : []),
+                    ...(canView('jobs')
+                      ? [
+                          {
+                            label: 'Post a job opening',
+                            description: 'Reach candidates through FinderB job listings.',
+                            onClick: () => setActiveTab('jobs'),
+                          },
+                        ]
+                      : []),
+                    ...(canView('settings')
+                      ? [
+                          {
+                            label: 'Account & verification',
+                            description: 'Documents, contact details, and preferences.',
+                            onClick: () => setActiveTab('settings'),
+                          },
+                        ]
+                      : []),
+                    ...(businessId && canView('subscription')
                       ? [
                           {
                             label: 'My Subscription',
@@ -1013,7 +1078,14 @@ function DashboardContent() {
               isPaymentPending={isPaymentPending}
               variant="leads"
               onCountChange={setLeadCount}
+              onUnreadChange={setNewLeadCount}
+              canEdit={canEdit('leads')}
             />
+            {averageResponse ? (
+              <p className="text-sm text-zinc-600">
+                Average response time so far: <span className="font-semibold text-[#153551]">{averageResponse}</span>
+              </p>
+            ) : null}
           </DashboardTabShell>
         )}
 
@@ -1023,6 +1095,7 @@ function DashboardContent() {
               businessId={businessId}
               reviewData={profileData.review}
               highlightReviewId={searchParams.get('reviewId')}
+              canEdit={canEdit('reviews')}
               onReviewsChange={(reviews) => {
                 setProfileData((prev) => ({ ...prev, review: reviews }));
                 setBusiness((prev: typeof business) => (prev ? { ...prev, review: reviews } : prev));
@@ -1041,6 +1114,15 @@ function DashboardContent() {
             images={images}
             profilePictureUrl={profilePictureUrl}
             completionPercent={completionPercent}
+            phoneVerified={Boolean(business?.mobileVerified)}
+            emailVerified={Boolean(business?.emailVerified)}
+            whatsappVerified={isBusinessWhatsappVerified({
+              whatsappVerified: business?.whatsappVerified,
+              whatsappNumber: profileData.whatsappNumber,
+              publicPhone: profileData.publicPhone,
+              mobile: business?.mobile,
+              mobileVerified: business?.mobileVerified,
+            })}
             missingFields={listingMissingFields}
             onEditProfile={() => setActiveTab('settings')}
             onOpenSettingsField={openSettingsField}
@@ -1051,7 +1133,7 @@ function DashboardContent() {
 
         {activeTab === 'jobs' && businessId && (
           <DashboardTabShell>
-            <JobPostingTab businessId={businessId} />
+            <JobPostingTab businessId={businessId} canEdit={canEdit('jobs')} />
           </DashboardTabShell>
         )}
 
@@ -1081,6 +1163,8 @@ function DashboardContent() {
             profileData={profileData}
             images={images}
             profilePictureUrl={profilePictureUrl}
+            isOwner={isOwner}
+            canEdit={canEdit('settings')}
             updating={updating}
             successMessage={successMessage}
             updateField={updateField}
@@ -1101,6 +1185,8 @@ function DashboardContent() {
           />
           </DashboardTabShell>
         )}
+        <MerchantSupportFab />
+        <OfflineNotice />
       </main>
     </div>
   );

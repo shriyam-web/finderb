@@ -13,6 +13,7 @@ export type RegisterPayload = {
   state: string;
   country: string;
   publicPhone: string;
+  whatsappNumber: string;
   addressLine1: string;
   addressLine2?: string;
   latitude?: number;
@@ -129,7 +130,11 @@ export async function checkBusinessTaken(input: {
 }
 
 export async function submitBusinessRegistration(
-  payload: RegisterPayload & { emailVerificationToken: string; phoneVerificationToken: string },
+  payload: RegisterPayload & {
+    emailVerificationToken: string;
+    phoneVerificationToken: string;
+    whatsappVerificationToken?: string;
+  },
 ): Promise<RegisterResult> {
   const email = payload.email.trim().toLowerCase();
   const mobile = storedMobile(payload.mobile);
@@ -149,6 +154,16 @@ export async function submitBusinessRegistration(
       error: 'Verify your mobile number with the WhatsApp OTP before registering.',
     };
   }
+  const whatsapp = storedMobile(payload.whatsappNumber || mobile);
+  if (whatsapp.length !== 10) {
+    return { success: false, error: 'Enter a valid WhatsApp number.' };
+  }
+  if (whatsapp !== mobile && !payload.whatsappVerificationToken?.trim()) {
+    return {
+      success: false,
+      error: 'Verify your WhatsApp number with the OTP before registering.',
+    };
+  }
 
   let result: RegisterResult;
   try {
@@ -157,7 +172,9 @@ export async function submitBusinessRegistration(
       email,
       mobile,
       publicPhone: storedMobile(payload.publicPhone),
+      whatsappNumber: whatsapp,
       emailVerificationToken: payload.emailVerificationToken,
+      whatsappVerificationToken: payload.whatsappVerificationToken || undefined,
     });
   } catch {
     return { success: false, error: 'Could not register the business. Please try again.' };

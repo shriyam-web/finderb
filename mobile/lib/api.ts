@@ -22,7 +22,7 @@ import { consoleCall, isFailure } from './merchantConsoleApi';
 const EXCLUDED_HOME_CATEGORY_SLUGS = new Set(['job']);
 
 const MERCHANT_SELECT =
-  'id, slug, businessName, displayName, category, location, city, state, about, profilePictureUrl, images, publicPhone, mobile, email, workEmail, website, whatsappNumber, instagramUrl, facebookUrl, youtubeUrl, review, isFinderBVerified, hasVerifiedBadge, discountRange, status, latitude, longitude, timings, serviceCategory, keywords, paymentModes, businessAddress, yearsInBusiness';
+  'id, slug, businessName, displayName, category, location, city, state, about, profilePictureUrl, images, publicPhone, mobile, email, workEmail, website, whatsappNumber, instagramUrl, facebookUrl, youtubeUrl, review, isFinderBVerified, hasVerifiedBadge, discountRange, status, latitude, longitude, timings, serviceCategory, keywords, paymentModes, businessAddress, yearsInBusiness, emailVerified, mobileVerified, whatsappVerified';
 
 const CATEGORY_SELECT =
   'id, name, slug, symbol, banner, items_count, position, status, parent_id, level';

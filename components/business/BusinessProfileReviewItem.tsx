@@ -6,7 +6,6 @@ import Link from 'next/link';
 import { Flag, Star, X } from 'lucide-react';
 import { reportBusinessReview } from '@/app/actions/reviews';
 import { VerifiedUserTick } from '@/components/business/VerifiedMark';
-import ReviewIdBadge from '@/components/reviews/ReviewIdBadge';
 import { buildLoginHref } from '@/lib/authRedirect';
 import { isAnonymousPublic, isReviewAuthorVerified, type BusinessReview } from '@/lib/businessReviews';
 
@@ -260,7 +259,6 @@ export default function BusinessProfileReviewItem({
           </div>
 
           <div className="flex shrink-0 items-center gap-2">
-            <ReviewIdBadge reviewId={review.id} />
             {contactRevealed ? (
               <button
                 type="button"

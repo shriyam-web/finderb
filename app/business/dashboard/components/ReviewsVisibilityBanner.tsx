@@ -19,7 +19,7 @@ export default function ReviewsVisibilityBanner({
             <HiOutlineStar size={12} />
             Higher visibility
           </p>
-          <h3 className="mt-2 text-lg font-semibold tracking-tight">
+          <h3 className="mt-2 text-lg font-semibold tracking-tight text-white [color:#ffffff]">
             {remaining > 0
               ? `${remaining} more review${remaining === 1 ? '' : 's'} to unlock a stronger rank`
               : 'You crossed 10 reviews — keep the momentum'}

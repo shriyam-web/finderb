@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { ActivityIndicator, Linking, Pressable, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Linking, Pressable, Text, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { fonts } from '../../../constants/typography';
@@ -34,10 +34,12 @@ function LeadCard({
   lead,
   busy,
   onStatus,
+  onOpen,
 }: {
   lead: ConsoleLead;
   busy: boolean;
   onStatus: (status: LeadStatus) => void;
+  onOpen: (href: string) => void;
 }) {
   const styles = useStyles();
   const c = useConsoleColors();
@@ -57,7 +59,7 @@ function LeadCard({
             </Text>
             <Tag label={pipelineOf(lead.status)} tone={LEAD_STATUS_TONE[pipelineOf(lead.status)] ?? 'neutral'} />
           </View>
-          <View style={{ marginTop: 4 }}>
+          <View style={styles.sourceWrap}>
             <LeadSourceBadge lead={lead} />
           </View>
           <Text style={styles.meta} numberOfLines={1}>
@@ -89,7 +91,7 @@ function LeadCard({
           <View style={styles.iconRow}>
             {phone ? (
               <Pressable
-                onPress={() => void Linking.openURL(`tel:+${phone}`)}
+                onPress={() => onOpen(`tel:+${phone}`)}
                 style={styles.iconBtn}
                 accessibilityLabel={`Call ${firstName}`}
               >
@@ -99,7 +101,7 @@ function LeadCard({
             {phone ? (
               <Pressable
                 onPress={() =>
-                  void Linking.openURL(
+                  onOpen(
                     `https://wa.me/${phone}?text=${encodeURIComponent(`Hi ${firstName}, thanks for reaching out on FinderB.`)}`,
                   )
                 }
@@ -111,7 +113,7 @@ function LeadCard({
             ) : null}
             {lead.email ? (
               <Pressable
-                onPress={() => void Linking.openURL(`mailto:${lead.email}`)}
+                onPress={() => onOpen(`mailto:${lead.email}`)}
                 style={styles.iconBtn}
                 accessibilityLabel={`Email ${firstName}`}
               >
@@ -135,9 +137,7 @@ function LeadCard({
               accessibilityState={{ selected: active, disabled: busy }}
               accessibilityLabel={`Mark as ${status}`}
             >
-              <Text style={[styles.stepText, active && styles.stepTextActive]} numberOfLines={1}>
-                {status}
-              </Text>
+              <Text style={[styles.stepText, active && styles.stepTextActive]}>{status}</Text>
             </Pressable>
           );
         })}
@@ -198,7 +198,27 @@ function LeadsBody() {
     }
     setLeads((current) => (current ?? []).map((item) => (item.id === lead.id ? { ...item, status } : item)));
     notify(`${lead.name || 'Lead'} marked ${status.toLowerCase()}`);
+    setLeads((current) =>
+      (current ?? []).map((item) =>
+        item.id === lead.id ? { ...item, merchant_read_at: item.merchant_read_at || new Date().toISOString() } : item,
+      ),
+    );
     void refresh();
+  };
+
+  const openContact = async (lead: ConsoleLead, href: string) => {
+    if (!lead.merchant_read_at) {
+      const result = await run('markLeadRead', { leadId: lead.id });
+      if (!isFailure(result)) {
+        setLeads((current) =>
+          (current ?? []).map((item) =>
+            item.id === lead.id ? { ...item, merchant_read_at: new Date().toISOString() } : item,
+          ),
+        );
+        void refresh();
+      }
+    }
+    void Linking.openURL(href);
   };
 
   const onRefresh = async () => {
@@ -230,6 +250,10 @@ function LeadsBody() {
       refreshing={refreshing}
       onRefresh={() => void onRefresh()}
     >
+      {overview?.stats.averageResponse ? (
+        <Text style={styles.meta}>Average response time so far: {overview.stats.averageResponse}</Text>
+      ) : null}
+
       {!unlocked ? (
         <Pressable
           onPress={() => router.push('/business-console/plan')}
@@ -248,7 +272,7 @@ function LeadsBody() {
       ) : null}
 
       {leads && leads.length ? (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters}>
+        <View style={styles.filters}>
           {(['All', ...LEAD_STATUSES] as Filter[]).map((option) => (
             <Chip
               key={option}
@@ -258,7 +282,7 @@ function LeadsBody() {
               onPress={() => setFilter(option)}
             />
           ))}
-        </ScrollView>
+        </View>
       ) : null}
 
       {error && !leads ? (
@@ -275,7 +299,13 @@ function LeadsBody() {
         <Empty icon="filter-outline" title={`No ${filter.toLowerCase()} leads`} body="Pick another filter to see the rest." />
       ) : (
         visible.map((lead) => (
-          <LeadCard key={lead.id} lead={lead} busy={busyId === lead.id} onStatus={(status) => void changeStatus(lead, status)} />
+          <LeadCard
+            key={lead.id}
+            lead={lead}
+            busy={busyId === lead.id}
+            onStatus={(status) => void changeStatus(lead, status)}
+            onOpen={(href) => void openContact(lead, href)}
+          />
         ))
       )}
     </ConsolePage>
@@ -310,7 +340,7 @@ const useStyles = createConsoleStyles((c) => ({
   },
   unlockTitle: { fontFamily: fonts.semiBold, fontSize: 15, color: c.ink },
   unlockBody: { marginTop: 2, fontFamily: fonts.regular, fontSize: 12.5, lineHeight: 17, color: c.muted },
-  filters: { gap: 8, paddingRight: 8 },
+  filters: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   card: {
     paddingHorizontal: 12,
     paddingVertical: 11,
@@ -330,8 +360,9 @@ const useStyles = createConsoleStyles((c) => ({
     backgroundColor: c.primarySoft,
   },
   markText: { fontFamily: fonts.semiBold, fontSize: 13, color: c.primary },
-  nameLine: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  name: { flex: 1, fontFamily: fonts.semiBold, fontSize: 15, color: c.ink },
+  nameLine: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
+  name: { flexShrink: 1, fontFamily: fonts.semiBold, fontSize: 15, color: c.ink },
+  sourceWrap: { marginTop: 4, alignSelf: 'flex-start' },
   meta: { marginTop: 1, fontFamily: fonts.regular, fontSize: 12, color: c.muted },
   message: {
     fontFamily: fonts.regular,
@@ -356,17 +387,17 @@ const useStyles = createConsoleStyles((c) => ({
     justifyContent: 'center',
     backgroundColor: c.sunken,
   },
-  track: { flexDirection: 'row', gap: 4, marginTop: 2 },
+  track: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 2 },
   step: {
-    flex: 1,
-    height: 26,
-    borderRadius: 13,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: c.sunken,
   },
   stepActive: { backgroundColor: c.primary },
-  stepText: { fontFamily: fonts.regular, fontSize: 11, color: c.muted },
+  stepText: { fontFamily: fonts.regular, fontSize: 11.5, lineHeight: 15, color: c.muted },
   stepTextActive: { fontFamily: fonts.semiBold, color: c.primaryInk },
-  trackBusy: { position: 'absolute', alignSelf: 'center', left: 0, right: 0, top: 4 },
+  trackBusy: { position: 'absolute', alignSelf: 'center', left: 0, right: 0, top: 8 },
 }));

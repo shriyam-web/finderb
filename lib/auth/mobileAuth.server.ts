@@ -35,6 +35,7 @@ import {
   USER_EMAIL_PURPOSE,
 } from '@/lib/auth/emailOtp.server';
 import { isSyntheticLoginEmail } from '@/lib/syntheticLoginEmail';
+import type { TeamAccessMap } from '@/lib/businessTeam/teamAccess';
 
 export const MOBILE_USER_FIELDS =
   'id, fullName, email, favorites, searchHistory, createdAt, updatedAt, avatarUrl, authProvider, phone';
@@ -52,6 +53,9 @@ export type MobileAuthUser = {
   authProvider?: string | null;
   /** True when this login is linked to a Business row (merchant credentials / email). */
   isBusinessAccount?: boolean;
+  isBusinessOwner?: boolean;
+  teamMemberId?: string | null;
+  teamAccess?: TeamAccessMap | null;
   businessId?: string | null;
   businessName?: string | null;
   businessSlug?: string | null;
@@ -92,15 +96,45 @@ async function loadPublicUser(userId: string): Promise<MobileAuthUser | null> {
 }
 
 async function enrichWithBusinessLink(user: MobileAuthUser): Promise<MobileAuthUser> {
-  const business = await findBusinessForIdentity({
+  const owned = await findBusinessForIdentity(
+    {
+      email: user.email,
+      phone: user.phone,
+    },
+    { includeTeam: false },
+  );
+
+  if (owned?.id) {
+    const { ownerTeamAccess } = await import('@/lib/businessTeam/teamAccess');
+    return {
+      ...withBusinessProfile(user, owned),
+      isBusinessAccount: true,
+      isBusinessOwner: true,
+      teamMemberId: null,
+      teamAccess: ownerTeamAccess(),
+      businessId: owned.id,
+      businessName: owned.businessName || null,
+      businessSlug: owned.slug || null,
+      selectedPlan: owned.effectivePlan,
+      paymentStatus: owned.paymentStatus,
+      planExpiresAt: owned.planExpiresAt,
+      billingCycle: owned.billingCycle,
+    };
+  }
+
+  const { findActiveTeamMembership } = await import('@/lib/businessTeam/teamInvites.server');
+  const team = await findActiveTeamMembership({
     email: user.email,
     phone: user.phone,
   });
 
-  if (!business?.id) {
+  if (!team?.business.id) {
     return {
       ...user,
       isBusinessAccount: false,
+      isBusinessOwner: false,
+      teamMemberId: null,
+      teamAccess: null,
       businessId: null,
       businessName: null,
       businessSlug: null,
@@ -112,15 +146,18 @@ async function enrichWithBusinessLink(user: MobileAuthUser): Promise<MobileAuthU
   }
 
   return {
-    ...withBusinessProfile(user, business),
+    ...withBusinessProfile(user, team.business),
     isBusinessAccount: true,
-    businessId: business.id,
-    businessName: business.businessName || null,
-    businessSlug: business.slug || null,
-    selectedPlan: business.effectivePlan,
-    paymentStatus: business.paymentStatus,
-    planExpiresAt: business.planExpiresAt,
-    billingCycle: business.billingCycle,
+    isBusinessOwner: false,
+    teamMemberId: team.memberId,
+    teamAccess: team.access,
+    businessId: team.business.id,
+    businessName: team.business.businessName || null,
+    businessSlug: team.business.slug || null,
+    selectedPlan: team.business.effectivePlan,
+    paymentStatus: team.business.paymentStatus,
+    planExpiresAt: team.business.planExpiresAt,
+    billingCycle: team.business.billingCycle,
   };
 }
 
@@ -587,6 +624,7 @@ export async function mobileUpdateProfile(
         patch.emailVerificationToken,
       );
       if (!proof.ok) return { success: false, error: proof.error };
+      updates.emailVerified = true;
     }
     const { data: clash } = await supabase
       .from('User')
@@ -634,6 +672,7 @@ export async function mobileUpdateProfile(
         };
       }
       updates.phone = phone;
+      updates.phoneVerified = true;
     }
   }
 

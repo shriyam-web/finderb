@@ -31,6 +31,7 @@ interface Job {
 
 interface JobPostingTabProps {
   businessId: string;
+  canEdit?: boolean;
 }
 
 const JOB_TYPES = ['Full-time', 'Part-time', 'Contract', 'Internship', 'Freelance'];
@@ -45,7 +46,7 @@ function formatDate(date: Date) {
   return `Posted ${d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`;
 }
 
-export default function JobPostingTab({ businessId }: JobPostingTabProps) {
+export default function JobPostingTab({ businessId, canEdit = true }: JobPostingTabProps) {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -207,7 +208,7 @@ export default function JobPostingTab({ businessId }: JobPostingTabProps) {
           <button
             type="button"
             onClick={() => handleOpenModal()}
-            disabled={isLimitReached}
+            disabled={!canEdit || isLimitReached}
             className={`${dashboard.btnPrimary} shrink-0 disabled:cursor-not-allowed disabled:opacity-50`}
           >
             <HiOutlinePlus size={18} />
@@ -257,10 +258,14 @@ export default function JobPostingTab({ businessId }: JobPostingTabProps) {
             Post up to {MAX_ACTIVE_JOBS} live roles at a time. Candidates apply through FinderB and you manage
             applications in Leads.
           </p>
+          {canEdit ? (
           <button type="button" onClick={() => handleOpenModal()} className={`mt-6 ${dashboard.btnPrimary}`}>
             <HiOutlinePlus size={16} />
             Post your first job
           </button>
+          ) : (
+            <p className="mt-6 text-sm text-zinc-500">You can view jobs, but only a teammate with edit rights can post them.</p>
+          )}
         </div>
       ) : (
         <div className="space-y-3">
@@ -341,6 +346,7 @@ export default function JobPostingTab({ businessId }: JobPostingTabProps) {
                     )}
                   </div>
 
+                  {canEdit ? (
                   <div className="flex shrink-0 gap-2 sm:flex-col sm:items-stretch">
                     <button
                       type="button"
@@ -359,6 +365,7 @@ export default function JobPostingTab({ businessId }: JobPostingTabProps) {
                       <HiOutlineTrash size={15} />
                     </button>
                   </div>
+                  ) : null}
                 </div>
               </article>
             );

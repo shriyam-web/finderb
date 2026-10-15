@@ -12,6 +12,7 @@ import { isFailure, type ChangeRequest, type ConsoleOverview } from '../../lib/m
 import { OtpCodeBoxes } from '../../components/OtpCodeBoxes';
 import { ConsoleGate } from '../../components/console/ConsoleGate';
 import { TeamAccess } from '../../components/console/TeamAccess';
+import { canEditTeamTab } from '../../lib/teamAccess';
 import {
   Btn,
   ConsolePage,
@@ -26,7 +27,12 @@ import {
 } from '../../components/console/kit';
 
 type ContactKind = 'email' | 'mobile';
-type Requests = { success: true; category: ChangeRequest | null; legalName: ChangeRequest | null };
+type Requests = {
+  success: true;
+  category: ChangeRequest | null;
+  legalName: ChangeRequest | null;
+  displayName: ChangeRequest | null;
+};
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
@@ -125,15 +131,18 @@ function ContactSheet({
           editable={!checking}
         />
       ) : (
-        <Field
-          label="Mobile number"
-          prefix="+91"
-          value={value}
-          onChangeText={(next) => setValue(mobileInputDigits(next, value))}
-          keyboardType="phone-pad"
-          maxLength={14}
-          editable={!checking}
-        />
+        <>
+          <Field
+            label="Mobile number"
+            prefix="+91"
+            value={value}
+            onChangeText={(next) => setValue(mobileInputDigits(next, value))}
+            keyboardType="phone-pad"
+            maxLength={14}
+            editable={!checking}
+          />
+          <View style={{ height: 16 }} />
+        </>
       )}
       {sent ? (
         <View style={styles.otp}>
@@ -216,7 +225,7 @@ function RequestSheet({
   onClose,
   onDone,
 }: {
-  field: 'category' | 'legalName' | null;
+  field: 'category' | 'legalName' | 'displayName' | null;
   o: ConsoleOverview;
   onClose: () => void;
   onDone: (next: Requests) => void;
@@ -267,13 +276,22 @@ function RequestSheet({
   return (
     <Sheet
       visible={Boolean(field)}
-      title={field === 'category' ? 'Change category' : 'Change legal name'}
+      title={
+        field === 'category' ? 'Change category' : field === 'displayName' ? 'Change display name' : 'Change legal name'
+      }
       onClose={onClose}
       action={{ label: 'Send', busy, disabled: !value.trim(), onPress: () => void submit() }}
     >
       <Text style={styles.sheetLead}>
-        Now: <Text style={styles.strong}>{field === 'category' ? o.business.category : o.business.legalName}</Text>. The FinderB team
-        reviews this so search stays accurate — usually within a day.
+        Now:{' '}
+        <Text style={styles.strong}>
+          {field === 'category'
+            ? o.business.category
+            : field === 'displayName'
+              ? o.profile.displayName || o.business.name
+              : o.business.legalName}
+        </Text>
+        . The FinderB team reviews this so search stays accurate — usually within a day.
       </Text>
       {field === 'category' ? (
         <>
@@ -302,6 +320,14 @@ function RequestSheet({
             </>
           )}
         </>
+      ) : field === 'displayName' ? (
+        <Field
+          label="New display name"
+          value={value}
+          onChangeText={setValue}
+          placeholder="The name customers should see"
+          maxLength={80}
+        />
       ) : (
         <Field
           label="New legal name"
@@ -329,12 +355,14 @@ function RequestRow({
   request,
   onPress,
   last,
+  allowChange = true,
 }: {
   label: string;
   current: string;
   request: ChangeRequest | null;
   onPress: () => void;
   last?: boolean;
+  allowChange?: boolean;
 }) {
   const styles = useStyles();
   return (
@@ -351,7 +379,7 @@ function RequestRow({
           </View>
         ) : null}
       </View>
-      {!request ? <Btn small tone="outline" label="Request change" onPress={onPress} /> : null}
+      {allowChange && !request ? <Btn small tone="outline" label="Request change" onPress={onPress} /> : null}
     </View>
   );
 }
@@ -363,7 +391,7 @@ function AccountBody({ o }: { o: ConsoleOverview }) {
   const { run } = useMerchantConsole();
   const [contact, setContact] = useState<ContactKind | null>(null);
   const [passwordOpen, setPasswordOpen] = useState(false);
-  const [requestField, setRequestField] = useState<'category' | 'legalName' | null>(null);
+  const [requestField, setRequestField] = useState<'category' | 'legalName' | 'displayName' | null>(null);
   const [requests, setRequests] = useState<Requests | null>(null);
   const b = o.business;
 
@@ -377,10 +405,17 @@ function AccountBody({ o }: { o: ConsoleOverview }) {
 
   const kycDone = /verified|approved/i.test(b.kycStatus || '');
   const kycReview = /review|pending|submitted/i.test(b.kycStatus || '');
+  const isOwner = o.actor?.isOwner !== false;
+  const canEditSettings = canEditTeamTab(o.actor?.access, 'settings', isOwner);
 
   return (
     <ConsolePage title="Login & security" subtitle="Account">
-      {!b.emailVerified || !b.mobileVerified ? (
+      {!isOwner ? (
+        <Text style={styles.footnote}>
+          Login email, mobile, password, and team invites stay with the original business owner.
+        </Text>
+      ) : null}
+      {isOwner && (!b.emailVerified || !b.mobileVerified) ? (
         <View style={styles.warn}>
           <Ionicons name="trending-down" size={18} color={c.warning} />
           <Text style={styles.warnText}>
@@ -390,7 +425,7 @@ function AccountBody({ o }: { o: ConsoleOverview }) {
           </Text>
         </View>
       ) : null}
-      <Section title="How you log in">
+      {isOwner ? <Section title="How you log in">
         <Panel flush>
           <Pressable
             onPress={() => setContact('email')}
@@ -447,23 +482,33 @@ function AccountBody({ o }: { o: ConsoleOverview }) {
           Your login mobile is also the phone customers see on your listing. Changing your email or mobile needs a
           one-time code sent to the new address.
         </Text>
-      </Section>
+      </Section> : null}
 
+      {isOwner ? (
       <Panel flush>
         <Row icon="key-outline" label="Change password" value="For logging in on the website and app" onPress={() => setPasswordOpen(true)} last />
       </Panel>
+      ) : null}
 
-      <TeamAccess />
+      {isOwner ? <TeamAccess /> : null}
 
       <Section title="Needs FinderB approval">
         <Panel flush>
-          <RequestRow label="Category" current={b.category} request={requests?.category ?? null} onPress={() => setRequestField('category')} />
+          <RequestRow label="Category" current={b.category} request={requests?.category ?? null} onPress={() => setRequestField('category')} allowChange={canEditSettings} />
           <RequestRow
             label="Legal business name"
             current={b.legalName}
             request={requests?.legalName ?? null}
             onPress={() => setRequestField('legalName')}
+            allowChange={canEditSettings}
+          />
+          <RequestRow
+            label="Display name"
+            current={o.profile.displayName || b.name}
+            request={requests?.displayName ?? null}
+            onPress={() => setRequestField('displayName')}
             last
+            allowChange={canEditSettings}
           />
         </Panel>
       </Section>

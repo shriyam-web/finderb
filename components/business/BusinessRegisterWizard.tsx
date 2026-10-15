@@ -111,6 +111,11 @@ type BusinessRegisterWizardProps = {
   onSendEmailOtp: () => void;
   onVerifyEmailOtp: (value?: string) => void;
   mobileOtp: MobileOtpState;
+  whatsappNumber: string;
+  onWhatsappChange: (digits: string) => void;
+  useMobileForWhatsApp: boolean;
+  onUseMobileForWhatsAppChange: (same: boolean) => void;
+  whatsappOtp: MobileOtpState;
 };
 
 type MobileOtpState = {
@@ -223,6 +228,11 @@ export default function BusinessRegisterWizard({
   onSendEmailOtp,
   onVerifyEmailOtp,
   mobileOtp,
+  whatsappNumber,
+  onWhatsappChange,
+  useMobileForWhatsApp,
+  onUseMobileForWhatsAppChange,
+  whatsappOtp,
 }: BusinessRegisterWizardProps) {
   const [accuracyAccepted, setAccuracyAccepted] = useState(false);
   const [accuracyError, setAccuracyError] = useState('');
@@ -470,6 +480,124 @@ export default function BusinessRegisterWizard({
                   title="Business details"
                   subtitle="Help customers find and contact your business."
                 />
+                <div id="field-whatsappNumber" className="space-y-3">
+                    <button
+                      type="button"
+                      role="checkbox"
+                      aria-checked={!useMobileForWhatsApp}
+                      onClick={() => onUseMobileForWhatsAppChange(!useMobileForWhatsApp)}
+                      className="flex items-start gap-2.5 text-left"
+                    >
+                      <span
+                        className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 text-[11px] font-bold ${
+                          !useMobileForWhatsApp
+                            ? 'border-[#153551] bg-[#153551] text-white'
+                            : 'border-[#cfd8e3] bg-white text-transparent'
+                        }`}
+                      >
+                        ✓
+                      </span>
+                      <span className="text-[13px] font-medium leading-5 text-[#334155]">
+                        I have a different WhatsApp number
+                      </span>
+                    </button>
+                    <div className="flex items-center justify-between gap-3">
+                      <label className="merchant-auth-label">
+                        {whatsappOtp.verified ? 'Verified WhatsApp' : 'WhatsApp number'}
+                      </label>
+                    </div>
+                    <div
+                      className={`merchant-auth-phone-field relative flex items-stretch overflow-hidden rounded-2xl border-2 bg-white ${
+                        whatsappOtp.verified
+                          ? 'border-emerald-500/80 shadow-[0_0_0_3px_rgba(16,185,129,0.1)]'
+                          : useMobileForWhatsApp
+                            ? 'border-[#e2e8f0]'
+                            : 'border-[#cfd8e3]'
+                      }`}
+                    >
+                      <IndiaPhonePrefix variant="merchant" />
+                      <input
+                        id="whatsappNumber"
+                        type="tel"
+                        inputMode="numeric"
+                        autoComplete="tel-national"
+                        disabled={useMobileForWhatsApp || whatsappOtp.verified}
+                        value={formatIndianMobileDisplay(
+                          useMobileForWhatsApp ? mobile : whatsappNumber,
+                        )}
+                        onChange={(e) => onWhatsappChange(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                        placeholder="WhatsApp number"
+                        className="min-w-0 flex-1 bg-white px-3.5 py-3.5 text-[16px] font-semibold tabular-nums text-[#0f273b] outline-none placeholder:font-normal placeholder:text-[#94a3b8] disabled:cursor-not-allowed disabled:bg-[#f8fafc] sm:px-4 sm:py-4"
+                      />
+                      {whatsappOtp.verified ? (
+                        <CheckCircle2
+                          className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-emerald-500"
+                          size={18}
+                          strokeWidth={2.5}
+                        />
+                      ) : useMobileForWhatsApp ? null : (
+                        <div className="flex items-center pr-2">
+                          <button
+                            type="button"
+                            onClick={whatsappOtp.onSend}
+                            disabled={
+                              whatsappOtp.sending ||
+                              whatsappOtp.wait > 0 ||
+                              whatsappNumber.replace(/\D/g, '').length !== 10
+                            }
+                            className="h-8 min-w-[4.6rem] rounded-lg bg-[#128C7E] px-2 text-[11px] font-bold text-white disabled:cursor-not-allowed disabled:opacity-45"
+                          >
+                            {whatsappOtp.sending
+                              ? 'Sending…'
+                              : otpSendLabel(whatsappOtp.sent, whatsappOtp.wait > 0, whatsappOtp.wait)}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    {whatsappOtp.verified ? (
+                      <p className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600">
+                        <CheckCircle2 size={14} strokeWidth={2.5} />
+                        {useMobileForWhatsApp
+                          ? 'This verified mobile will be used as your WhatsApp number.'
+                          : 'WhatsApp number verified.'}
+                      </p>
+                    ) : useMobileForWhatsApp ? (
+                      <p className="text-[13px] leading-relaxed text-[#64748b]">
+                        {mobileOtp.verified
+                          ? 'This verified mobile will be used as your WhatsApp number.'
+                          : 'Verify your mobile first. We will use it as your WhatsApp number.'}
+                      </p>
+                    ) : whatsappOtp.sent ? (
+                      <div className="space-y-3 rounded-2xl border border-[#d7e2ee] bg-[#f7fafc] p-4">
+                        <p className="text-center text-[13px] leading-relaxed text-[#475569]">
+                          OTP has been sent to the WhatsApp account linked to{' '}
+                          <span className="whitespace-nowrap font-semibold text-[#0f273b]">
+                            +91 {formatIndianMobileDisplay(whatsappNumber)}
+                          </span>
+                        </p>
+                        <OtpCodeBoxes
+                          value={whatsappOtp.code}
+                          onChange={whatsappOtp.onCodeChange}
+                          onComplete={(value) => whatsappOtp.onVerify(value)}
+                          disabled={whatsappOtp.verifying}
+                          autoFocus={!mobileOtp.sent || mobileOtp.verified}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => whatsappOtp.onVerify()}
+                          disabled={whatsappOtp.verifying || whatsappOtp.code.length !== 6}
+                          className="w-full rounded-xl bg-[#128C7E] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#0f7a6e] disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {whatsappOtp.verifying ? 'Verifying…' : 'Verify WhatsApp'}
+                        </button>
+                      </div>
+                    ) : (
+                      <p className="text-[13px] leading-relaxed text-[#64748b]">
+                        Customers will message this number. Tap Send OTP to confirm it on WhatsApp.
+                      </p>
+                    )}
+                    <MerchantFieldError message={fieldErrors.whatsappNumber} />
+                  </div>
                 <MerchantFormBanner message={fieldErrors._form} />
                 <div className="space-y-4">
                   <MerchantAuthField

@@ -31,10 +31,13 @@ async function db() {
 }
 
 /** Match a FinderB business by work email or the owner's mobile number. */
-export async function findBusinessForIdentity(input: {
-  email?: string | null;
-  phone?: string | null;
-}): Promise<LinkedBusiness | null> {
+export async function findBusinessForIdentity(
+  input: {
+    email?: string | null;
+    phone?: string | null;
+  },
+  options?: { includeTeam?: boolean },
+): Promise<LinkedBusiness | null> {
   const email = input.email?.toLowerCase().trim() || '';
   const phone = extractIndianMobileDigits(input.phone || '');
   const synthetic =
@@ -83,6 +86,7 @@ export async function findBusinessForIdentity(input: {
       }
     | undefined;
   if (!row?.id) {
+    if (options?.includeTeam === false) return null;
     const { findActiveTeamBusiness } = await import('@/lib/businessTeam/teamInvites.server');
     return findActiveTeamBusiness({ email, phone });
   }
@@ -137,11 +141,16 @@ export async function openMerchantPortalForUser(
     .maybeSingle();
   if (!user) return null;
 
-  const business = await findBusinessForIdentity({
-    email: (user as { email?: string | null }).email,
-    phone: (user as { phone?: string | null }).phone,
-  });
-  if (!business) return null;
-  await setBusinessSessionCookie(business.id);
-  return business;
+  const email = (user as { email?: string | null }).email;
+  const phone = (user as { phone?: string | null }).phone;
+  const owned = await findBusinessForIdentity({ email, phone }, { includeTeam: false });
+  if (owned) {
+    await setBusinessSessionCookie(owned.id);
+    return owned;
+  }
+  const { findActiveTeamMembership } = await import('@/lib/businessTeam/teamInvites.server');
+  const team = await findActiveTeamMembership({ email, phone });
+  if (!team) return null;
+  await setBusinessSessionCookie(team.business.id, { teamMemberId: team.memberId });
+  return team.business;
 }

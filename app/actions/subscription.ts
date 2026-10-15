@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { createServiceClient } from '@/lib/supabase/service';
-import { assertBusinessSession } from '@/lib/security/session';
+import { assertBusinessTab } from '@/lib/businessTeam/teamActor.server';
 import { getOwnedBusiness } from '@/app/actions/business';
 import { enforceRateLimit } from '@/lib/security/enforceRateLimit.server';
 import { cancelRazorpaySubscription, getRazorpaySubscription, TERMINAL_RAZORPAY_SUBSCRIPTION_STATUSES } from '@/lib/razorpay/subscriptions';
@@ -248,7 +248,7 @@ export async function getMerchantSubscriptionDetails(businessId: string) {
     return { success: false as const, error: 'Business ID is required' };
   }
 
-  const session = await assertBusinessSession(businessId);
+  const session = await assertBusinessTab(businessId, 'subscription', 'view');
   if (!session.ok) {
     return { success: false as const, error: session.error };
   }
@@ -312,7 +312,7 @@ export async function cancelMerchantAutoRenew(businessId: string) {
   const limit = await enforceRateLimit('payment', `cancel:${businessId}`);
   if (!limit.ok) return { success: false as const, error: limit.error };
 
-  const session = await assertBusinessSession(businessId);
+  const session = await assertBusinessTab(businessId, 'subscription', 'edit');
   if (!session.ok) {
     return { success: false as const, error: session.error };
   }

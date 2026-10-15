@@ -4,11 +4,12 @@ import { createDataClient } from '@/utils/supabase/server';
 
 import {
   CATEGORY_CHANGE_FIELD,
-  LEGAL_BUSINESS_NAME_FIELD,
+  CHANGE_REQUEST_BUSINESS_COLUMN,
   type BusinessChangeRequest,
   type BusinessChangeRequestField,
 } from '@/lib/businessChangeRequest';
 import { assertBusinessSession } from '@/lib/security/session';
+import { assertBusinessTab } from '@/lib/businessTeam/teamActor.server';
 import { enforceRateLimit } from '@/lib/security/enforceRateLimit.server';
 
 async function loadCurrentValue(
@@ -16,7 +17,7 @@ async function loadCurrentValue(
   businessId: string,
   field: BusinessChangeRequestField,
 ) {
-  const column = field === CATEGORY_CHANGE_FIELD ? 'category' : 'businessName';
+  const column = CHANGE_REQUEST_BUSINESS_COLUMN[field];
   const { data, error } = await supabase
     .from('Business')
     .select(column)
@@ -86,7 +87,7 @@ export async function submitChangeRequest(params: {
       return { success: false as const, error: 'Please provide the requested value.' };
     }
 
-    const auth = await assertBusinessSession(businessId);
+    const auth = await assertBusinessTab(businessId, 'settings', 'edit');
     if (!auth.ok) {
       return { success: false as const, error: auth.error };
     }
@@ -94,8 +95,8 @@ export async function submitChangeRequest(params: {
     const supabase = await createDataClient();
     const currentValue = await loadCurrentValue(supabase, businessId, params.field);
 
-    if (!currentValue) {
-      return { success: false as const, error: 'Current value is not set.' };
+    if (currentValue == null) {
+      return { success: false as const, error: 'Could not load the current value.' };
     }
 
     if (currentValue.toLowerCase() === requestedValue.toLowerCase()) {

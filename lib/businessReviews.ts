@@ -97,10 +97,7 @@ function normalizeReviewEntry(raw: unknown, index: number): BusinessReview | nul
     rating: Number.isFinite(rating) && rating >= 1 && rating <= 5 ? rating : 5,
     date: String(entry.date || entry.createdAt || '').trim(),
     userId: entry.userId ? String(entry.userId) : undefined,
-    authorVerified:
-      typeof entry.authorVerified === 'boolean'
-        ? entry.authorVerified
-        : Boolean(entry.userId),
+    authorVerified: entry.authorVerified === true,
     merchantReply,
     anonymous: Boolean(entry.anonymous),
     anonymousReason: anonymousReason || undefined,
@@ -288,7 +285,7 @@ export function getBusinessPublicRatingStats(review: unknown): {
 
 export function isReviewAuthorVerified(review: BusinessReview): boolean {
   if (isAnonymousPublic(review)) return false;
-  return review.authorVerified ?? Boolean(review.userId);
+  return review.authorVerified === true;
 }
 
 export function serializeBusinessReviewsForStorage(reviews: BusinessReview[]) {
@@ -299,7 +296,7 @@ export function serializeBusinessReviewsForStorage(reviews: BusinessReview[]) {
     rating: review.rating,
     date: review.date,
     ...(review.userId ? { userId: review.userId } : {}),
-    ...(review.authorVerified || review.userId ? { authorVerified: true } : {}),
+    ...(review.authorVerified === true ? { authorVerified: true } : {}),
     ...(review.merchantReply ? { merchantReply: review.merchantReply } : {}),
     ...(review.anonymous ? { anonymous: true } : {}),
     ...(review.anonymousReason ? { anonymousReason: review.anonymousReason } : {}),

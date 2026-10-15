@@ -27,7 +27,7 @@
     },
     "android": {
       "package": "com.finderb.app",
-      "versionCode": 18,
+      "versionCode": 22,
       "googleServicesFile": "./google-services.json",
       "softwareKeyboardLayoutMode": "pan",
       "permissions": [
@@ -77,6 +77,16 @@
               "scheme": "https",
               "host": "www.finderb.com",
               "pathPrefix": "/blog"
+            },
+            {
+              "scheme": "https",
+              "host": "finderb.com",
+              "pathPrefix": "/review"
+            },
+            {
+              "scheme": "https",
+              "host": "www.finderb.com",
+              "pathPrefix": "/review"
             }
           ]
         },

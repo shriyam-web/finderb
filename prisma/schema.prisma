@@ -73,6 +73,7 @@ model Business {
   timings                                                Json?
   website                                                String?
   whatsappNumber                                         String?
+  whatsappVerified                                       Boolean      @default(false)
   yearsInBusiness                                        Int?
   youtubeUrl                                             String?
   review                                                 Json?
@@ -159,6 +160,8 @@ model User {
   supabaseAuthId   String?  @unique
   phone            String?  @unique
   truecallerUserId String?  @unique
+  emailVerified    Boolean  @default(false)
+  phoneVerified    Boolean  @default(false)
   favorites        String[] @default([])
   searchHistory    String[] @default([])
   createdAt        DateTime @default(now())
@@ -248,17 +251,18 @@ model broadcasts {
 }
 
 model leads {
-  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name        String
-  email       String?
-  phone       String?
-  category    String
-  business_id String?
-  message     String?
-  status      String    @default("New")
-  created_at  DateTime? @default(now()) @db.Timestamptz(6)
-  updated_at  DateTime? @default(now()) @db.Timestamptz(6)
-  Business    Business? @relation(fields: [business_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name             String
+  email            String?
+  phone            String?
+  category         String
+  business_id      String?
+  message          String?
+  status           String    @default("New")
+  created_at       DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime? @default(now()) @db.Timestamptz(6)
+  merchant_read_at DateTime? @db.Timestamptz(6)
+  Business         Business? @relation(fields: [business_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@index([category])
   @@index([status])

@@ -32,8 +32,10 @@ export async function POST(request: Request) {
     }
 
     const businessId = user.businessId;
-    const result = await runAsMobileMerchant(businessId, () =>
-      runConsoleAction(user.id, businessId, body),
+    const result = await runAsMobileMerchant(
+      businessId,
+      () => runConsoleAction(user.id, businessId, body),
+      user.teamMemberId,
     );
     return mobileApiJson(result, 200);
   } catch (error) {

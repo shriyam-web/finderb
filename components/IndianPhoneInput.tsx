@@ -97,7 +97,8 @@ export default function IndianPhoneInput({
         onChange={(e) => handleChange(e.target.value)}
         placeholder={placeholder}
         autoFocus={autoFocus}
-        className="min-w-0 flex-1 px-3 py-2.5 text-sm font-medium tabular-nums tracking-wide text-zinc-900 outline-none placeholder:font-normal placeholder:text-zinc-400"
+        disabled={disabled}
+        className="min-w-0 flex-1 px-3 py-2.5 text-sm font-medium tabular-nums tracking-wide text-zinc-900 outline-none placeholder:font-normal placeholder:text-zinc-400 disabled:cursor-not-allowed disabled:bg-zinc-50 disabled:text-zinc-500"
       />
     </div>
   );

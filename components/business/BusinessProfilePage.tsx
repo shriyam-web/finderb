@@ -68,6 +68,11 @@ import {
   type ContactIntent,
 } from '@/lib/directLead';
 import { getBusinessShareUrl } from '@/lib/businessSeo';
+import UnverifiedDetailDialog from '@/components/business/UnverifiedDetailDialog';
+import {
+  hasBusinessMapPin,
+  type UnverifiedContactKind,
+} from '@/lib/unverifiedContact';
 import { getBusinessProfilePath } from '@/lib/businessSlug';
 import { formatDistanceFromUser } from '@/lib/geo';
 import { useUserCoords } from '@/hooks/useUserCoords';
@@ -182,6 +187,7 @@ export default function BusinessProfilePage({
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewContent, setReviewContent] = useState('');
   const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [unverifiedKind, setUnverifiedKind] = useState<UnverifiedContactKind | null>(null);
   const [reviewError, setReviewError] = useState<string | null>(null);
   const [reviewSuccess, setReviewSuccess] = useState<string | null>(null);
   const [ownsThisListing, setOwnsThisListing] = useState(false);
@@ -496,6 +502,20 @@ export default function BusinessProfilePage({
   const handleContactAction = useCallback(
     async (intent: ContactIntent) => {
       if (!business) return;
+      const flags = business as Business & {
+        phoneVerified?: boolean;
+        emailVerified?: boolean;
+        whatsappVerified?: boolean;
+        hasMapPin?: boolean;
+      };
+      if (intent === 'call' && !flags.phoneVerified && !managesThisProfile) {
+        setUnverifiedKind('phone');
+        return;
+      }
+      if (intent === 'whatsapp' && !flags.whatsappVerified && !managesThisProfile) {
+        setUnverifiedKind('whatsapp');
+        return;
+      }
       if (!sessionUser && !sessionBusiness) {
         handleRequestContact(intent);
         return;
@@ -516,7 +536,7 @@ export default function BusinessProfilePage({
         setConnectModalOpen(true);
       }
     },
-    [business, sessionUser, sessionBusiness, phoneLink, whatsappLink, handleRequestContact],
+    [business, sessionUser, sessionBusiness, phoneLink, whatsappLink, handleRequestContact, managesThisProfile],
   );
 
   useEffect(() => {
@@ -849,15 +869,21 @@ export default function BusinessProfilePage({
                         <span className="text-stone-300">·</span>
                       ) : null}
                       {directionsLink ? (
-                        <a
-                          href={directionsLink}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const flags = business as Business & { hasMapPin?: boolean };
+                            if (!flags.hasMapPin && !hasBusinessMapPin(business) && !managesThisProfile) {
+                              setUnverifiedKind('map');
+                              return;
+                            }
+                            window.open(directionsLink, '_blank', 'noopener,noreferrer');
+                          }}
                           className="inline-flex items-center gap-1 font-semibold text-blue-700"
                         >
                           <Navigation size={13} />
                           Get Direction
-                        </a>
+                        </button>
                       ) : null}
                     </div>
                   )}
@@ -936,6 +962,20 @@ export default function BusinessProfilePage({
             paymentModes={business.paymentModes ?? []}
             socialLinks={socialLinks}
             onCall={() => void handleContactAction('call')}
+            onEmail={() => {
+              const flags = business as Business & { emailVerified?: boolean };
+              if (!flags.emailVerified && !managesThisProfile) {
+                setUnverifiedKind('email');
+                return;
+              }
+              if (!contactRevealed) {
+                handleRequestContact('enquire');
+                return;
+              }
+              if (business.email) window.location.href = `mailto:${business.email}`;
+            }}
+            phoneVerified={Boolean((business as Business & { phoneVerified?: boolean }).phoneVerified) || managesThisProfile}
+            emailVerified={Boolean((business as Business & { emailVerified?: boolean }).emailVerified) || managesThisProfile}
             onEnquire={() => {
               if (contactRevealed) void handleContactAction('enquire');
               else handleRequestContact('enquire');
@@ -1171,6 +1211,8 @@ export default function BusinessProfilePage({
           {shareMessage}
         </div>
       ) : null}
+
+      <UnverifiedDetailDialog kind={unverifiedKind} onClose={() => setUnverifiedKind(null)} />
 
       <ConnectMerchantModal
         business={{

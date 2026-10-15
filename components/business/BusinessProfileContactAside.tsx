@@ -36,6 +36,9 @@ type BusinessProfileContactAsideProps = {
   socialLinks: SocialLink[];
   onCall: () => void;
   onEnquire: () => void;
+  onEmail?: () => void;
+  phoneVerified?: boolean;
+  emailVerified?: boolean;
 };
 
 function getMaskedPhoneNumber(value: string): string {
@@ -104,6 +107,9 @@ export default function BusinessProfileContactAside({
   paymentModes,
   socialLinks,
   onCall,
+  onEmail,
+  phoneVerified = true,
+  emailVerified = true,
 }: BusinessProfileContactAsideProps) {
   const loginHref = buildLoginHref(profileRedirectPath);
   const websiteHref = website ? normalizeExternalHref(website) : null;
@@ -138,7 +144,7 @@ export default function BusinessProfileContactAside({
               <ContactRow
                 icon={<Phone size={16} />}
                 label="Phone"
-                value={contactRevealed ? phone : getMaskedPhoneNumber(phone)}
+                value={contactRevealed && phoneVerified ? phone : getMaskedPhoneNumber(phone)}
                 onClick={onCall}
               />
             ) : null}
@@ -146,8 +152,12 @@ export default function BusinessProfileContactAside({
               <ContactRow
                 icon={<Mail size={16} />}
                 label="Email"
-                value={contactRevealed ? email : getMaskedEmail(email)}
+                value={contactRevealed && emailVerified ? email : getMaskedEmail(email)}
                 onClick={() => {
+                  if (onEmail) {
+                    onEmail();
+                    return;
+                  }
                   if (contactRevealed) {
                     window.location.href = `mailto:${email}`;
                     return;

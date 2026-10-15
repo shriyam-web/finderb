@@ -77,6 +77,7 @@ import {
   getSessionUserId,
   setBusinessSessionCookie,
 } from '@/lib/security/session';
+import { assertBusinessOwner, assertBusinessTab, resolveBusinessActor } from '@/lib/businessTeam/teamActor.server';
 import { removeUserAccountsMovedToBusiness } from '@/lib/accountDeletion.server';
 import { enforceRateLimit } from '@/lib/security/enforceRateLimit.server';
 import { redactPublicBusinessFields } from '@/lib/security/businessFields';
@@ -185,6 +186,21 @@ export async function registerBusiness(formData: any) {
       return { success: false, error: phoneProof.error };
     }
 
+    const whatsappDigits = extractIndianMobileDigits(normalized.whatsappNumber);
+    const whatsappToken =
+      whatsappDigits === extractIndianMobileDigits(normalized.mobile)
+        ? formData?.phoneVerificationToken
+        : formData?.whatsappVerificationToken;
+    const whatsappProof = assertPhoneProof(
+      MERCHANT_REGISTER_PHONE_SUBJECT,
+      whatsappDigits,
+      whatsappToken,
+      'Verify your WhatsApp number with the OTP before registering.',
+    );
+    if (!whatsappProof.ok) {
+      return { success: false, error: whatsappProof.error };
+    }
+
     const ipLimit = await enforceRateLimit('register');
     if (!ipLimit.ok) return { success: false, error: ipLimit.error };
 
@@ -225,6 +241,7 @@ export async function registerBusiness(formData: any) {
         displayName: normalized.displayName,
         owner_name: normalized.fullName,
         owner_mobile: normalized.mobile,
+        whatsappNumber: normalized.whatsappNumber,
         category: normalized.category,
         location: normalized.location,
         city: normalized.city,
@@ -405,7 +422,7 @@ export async function updateBusinessPayment(
       return { success: false, error: 'Business ID is required' };
     }
 
-    const auth = await assertBusinessSession(id);
+    const auth = await assertBusinessTab(id, 'subscription', 'edit');
     if (!auth.ok) {
       return { success: false, error: auth.error };
     }
@@ -451,7 +468,7 @@ export async function updateBusinessImages(id: string, images: string[], profile
       return { success: false, error: 'Business ID is required' };
     }
 
-    const auth = await assertBusinessSession(id);
+    const auth = await assertBusinessTab(id, 'listings', 'edit');
     if (!auth.ok) {
       return { success: false, error: auth.error };
     }
@@ -793,7 +810,7 @@ export async function loginBusiness(email: string, password: string) {
         password: normalizedPassword,
       });
       if (team) {
-        await setBusinessSessionCookie(team.businessId);
+        await setBusinessSessionCookie(team.businessId, { teamMemberId: team.memberId });
         void import('@/lib/businessUserLinks.server').then(({ linkUsersMatchingBusiness }) =>
           linkUsersMatchingBusiness(team.businessId)
         );
@@ -846,7 +863,7 @@ export async function loginBusiness(email: string, password: string) {
         password: normalizedPassword,
       });
       if (team) {
-        await setBusinessSessionCookie(team.businessId);
+        await setBusinessSessionCookie(team.businessId, { teamMemberId: team.memberId });
         void import('@/lib/businessUserLinks.server').then(({ linkUsersMatchingBusiness }) =>
           linkUsersMatchingBusiness(team.businessId)
         );
@@ -884,7 +901,7 @@ export async function verifyBusinessCurrentPassword(businessId: string, currentP
       return { success: false, error: 'Business ID is required' };
     }
 
-    const auth = await assertBusinessSession(businessId);
+    const auth = await assertBusinessOwner(businessId);
     if (!auth.ok) {
       return { success: false, error: auth.error };
     }
@@ -930,7 +947,7 @@ export async function changeBusinessPassword(
       return { success: false, error: 'Business ID is required' };
     }
 
-    const auth = await assertBusinessSession(businessId);
+    const auth = await assertBusinessOwner(businessId);
     if (!auth.ok) {
       return { success: false, error: auth.error };
     }
@@ -1019,10 +1036,15 @@ export async function getBusinessSession() {
     const supportIdleDeadline = supportSession
       ? await getBusinessSupportIdleDeadline()
       : null;
+    const actor = await resolveBusinessActor(businessId);
+    if (!actor.ok) return null;
     return {
       ...owned,
       supportSession,
       supportIdleDeadline,
+      isOwner: actor.isOwner,
+      teamAccess: actor.access,
+      teamMemberId: actor.isOwner ? null : actor.teamMemberId,
     };
   } catch (error) {
     console.error('Get Business Session Error:', error);
@@ -1443,12 +1465,10 @@ export async function updateBusinessProfile(id: string, profileData: any) {
       return { success: false, error: 'Business ID is required' };
     }
 
-    const auth = await assertBusinessSession(id);
+    const auth = await assertBusinessTab(id, 'settings', 'edit');
     if (!auth.ok) {
       return { success: false, error: auth.error };
     }
-
-    console.log('Updating profile for business:', id);
 
     const supabase = await createDataClient();
 
@@ -1502,7 +1522,7 @@ export async function updateBusinessProfile(id: string, profileData: any) {
 
     const { data: currentContact } = await supabase
       .from('Business')
-      .select('mobile, owner_mobile, whatsappNumber')
+      .select('mobile, owner_mobile, whatsappNumber, mobileVerified')
       .eq('id', id)
       .maybeSingle();
     const loginMobile = String(currentContact?.mobile || '').trim();
@@ -1606,10 +1626,17 @@ export async function updateBusinessProfile(id: string, profileData: any) {
       }
     }
 
+    const nextWhatsappVerified =
+      Boolean(nextWhatsapp) &&
+      (nextWhatsapp === extractIndianMobileDigits(loginMobile) && Boolean(currentContact?.mobileVerified)
+        ? true
+        : nextWhatsapp !== currentWhatsapp
+          ? Boolean(profileData?.whatsappVerificationToken || profileData?.ownerMobileVerificationToken)
+          : undefined);
+
     const { data: business, error } = await supabase
       .from('Business')
       .update({
-        displayName: profileData.displayName?.trim() || null,
         owner_name: profileData.ownerName?.trim() || null,
         owner_mobile: profileData.ownerMobile || null,
         ...(submittedEmail ? { email: submittedEmail, workEmail: submittedEmail } : {}),
@@ -1626,6 +1653,7 @@ export async function updateBusinessProfile(id: string, profileData: any) {
         instagramUrl: profileData.instagramUrl,
         facebookUrl: profileData.facebookUrl,
         whatsappNumber: profileData.whatsappNumber,
+        ...(nextWhatsappVerified !== undefined ? { whatsappVerified: nextWhatsappVerified } : {}),
         youtubeUrl: profileData.youtubeUrl,
         about: trimAboutToWordLimit(aboutText),
         keywords: profileData.keywords,
@@ -1660,5 +1688,44 @@ export async function updateBusinessProfile(id: string, profileData: any) {
   } catch (error: any) {
     const errorMessage = handleError(error, 'Profile Update');
     return { success: false, error: errorMessage };
+  }
+}
+
+export async function hideOwnBusinessListing(businessId: string) {
+  try {
+    if (!businessId) {
+      return { success: false as const, error: 'Business ID is required' };
+    }
+    const auth = await assertBusinessOwner(businessId);
+    if (!auth.ok) {
+      return { success: false as const, error: auth.error };
+    }
+    const supabase = await createDataClient();
+    const { data, error } = await supabase
+      .from('Business')
+      .update({
+        status: 'inactive',
+        updatedAt: new Date().toISOString(),
+      })
+      .eq('id', businessId)
+      .select('id, slug, businessName, displayName, city, status')
+      .maybeSingle();
+    if (error || !data) {
+      return { success: false as const, error: 'Could not take down this listing.' };
+    }
+    revalidateBusinessProfilePaths({
+      id: data.id,
+      slug: data.slug,
+      name: data.displayName,
+      businessName: data.businessName,
+      city: data.city,
+    });
+    return {
+      success: true as const,
+      message: 'Your listing has been taken down and is no longer visible to customers.',
+    };
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : 'Could not take down this listing.';
+    return { success: false as const, error: msg };
   }
 }

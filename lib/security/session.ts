@@ -3,12 +3,24 @@ import { cookies } from 'next/headers';
 import type { NextResponse } from 'next/server';
 import { signSessionValue, verifySessionValue } from '@/lib/security/sessionSignature';
 
+type MobileMerchantStore = { businessId: string; teamMemberId?: string | null };
+
+type BusinessSessionOptions = {
+  maxAge?: number;
+  supportSession?: boolean;
+  teamMemberId?: string | null;
+};
+
 /** Merchant identity for app requests, which authenticate with a bearer token instead of cookies. */
-const mobileMerchantScope = new AsyncLocalStorage<{ businessId: string }>();
+const mobileMerchantScope = new AsyncLocalStorage<MobileMerchantStore>();
 
 /** Run merchant server actions as `businessId`, for a token the caller has already verified. */
-export function runAsMobileMerchant<T>(businessId: string, fn: () => Promise<T>): Promise<T> {
-  return mobileMerchantScope.run({ businessId }, fn);
+export function runAsMobileMerchant<T>(
+  businessId: string,
+  fn: () => Promise<T>,
+  teamMemberId?: string | null,
+): Promise<T> {
+  return mobileMerchantScope.run({ businessId, teamMemberId: teamMemberId || null }, fn);
 }
 
 function mobileMerchantId(): string | null {
@@ -24,6 +36,7 @@ const BUSINESS_ID_COOKIE = 'business_id';
 const USER_ID_COOKIE = 'user_id';
 const SUPPORT_FLAG_COOKIE = 'business_support';
 const SUPPORT_ACTIVE_COOKIE = 'business_support_active';
+const TEAM_MEMBER_COOKIE = 'team_member';
 
 export function getSessionCookieOptions(maxAge = SESSION_COOKIE_MAX_AGE) {
   return {
@@ -45,6 +58,12 @@ export async function readSignedBusinessCookie(): Promise<string | null> {
   const mobileId = mobileMerchantId();
   if (mobileId) return mobileId;
   return verifySessionValue('business', (await cookies()).get(BUSINESS_ID_COOKIE)?.value);
+}
+
+export async function getSessionTeamMemberId(): Promise<string | null> {
+  const store = mobileMerchantScope.getStore();
+  if (store) return store.teamMemberId ?? null;
+  return verifySessionValue('team-member', (await cookies()).get(TEAM_MEMBER_COOKIE)?.value);
 }
 
 export async function getSessionBusinessId(): Promise<string | null> {
@@ -152,6 +171,7 @@ export async function clearBusinessSessionCookies() {
   jar.delete(BUSINESS_ID_COOKIE);
   jar.delete(SUPPORT_FLAG_COOKIE);
   jar.delete(SUPPORT_ACTIVE_COOKIE);
+  jar.delete(TEAM_MEMBER_COOKIE);
 }
 
 export async function setUserSessionCookie(userId: string) {
@@ -162,6 +182,7 @@ export async function setUserSessionCookie(userId: string) {
   jar.delete(SUPPORT_FLAG_COOKIE);
   jar.delete(SUPPORT_ACTIVE_COOKIE);
   jar.delete(USER_ID_COOKIE);
+  jar.delete(TEAM_MEMBER_COOKIE);
   jar.set(USER_ID_COOKIE, signSessionValue('user', userId), getSessionCookieOptions());
   if (previousBusinessId && !wasSupport) {
     void import('@/lib/businessUserLinks.server').then(({ rememberBusinessUserLink }) =>
@@ -172,7 +193,7 @@ export async function setUserSessionCookie(userId: string) {
 
 export async function setBusinessSessionCookie(
   businessId: string,
-  options?: { maxAge?: number; supportSession?: boolean },
+  options?: BusinessSessionOptions,
 ) {
   const jar = await cookies();
   const previousUserId = verifySessionValue('user', jar.get(USER_ID_COOKIE)?.value);
@@ -180,10 +201,15 @@ export async function setBusinessSessionCookie(
   jar.delete(BUSINESS_ID_COOKIE);
   jar.delete(SUPPORT_FLAG_COOKIE);
   jar.delete(SUPPORT_ACTIVE_COOKIE);
+  jar.delete(TEAM_MEMBER_COOKIE);
 
   const maxAge = options?.maxAge ?? SESSION_COOKIE_MAX_AGE;
   const cookieOpts = getSessionCookieOptions(maxAge);
   jar.set(BUSINESS_ID_COOKIE, signSessionValue('business', businessId), cookieOpts);
+
+  if (options?.teamMemberId) {
+    jar.set(TEAM_MEMBER_COOKIE, signSessionValue('team-member', options.teamMemberId), cookieOpts);
+  }
 
   if (options?.supportSession) {
     jar.set(SUPPORT_FLAG_COOKIE, '1', cookieOpts);
@@ -199,7 +225,7 @@ export async function setBusinessSessionCookie(
 export function applyBusinessSessionCookies(
   response: NextResponse,
   businessId: string,
-  options?: { maxAge?: number; supportSession?: boolean },
+  options?: BusinessSessionOptions,
 ) {
   const maxAge = options?.maxAge ?? SESSION_COOKIE_MAX_AGE;
   const cookieOpts = getSessionCookieOptions(maxAge);
@@ -207,6 +233,12 @@ export function applyBusinessSessionCookies(
 
   response.cookies.set(USER_ID_COOKIE, '', clearOpts);
   response.cookies.set(BUSINESS_ID_COOKIE, signSessionValue('business', businessId), cookieOpts);
+
+  if (options?.teamMemberId) {
+    response.cookies.set(TEAM_MEMBER_COOKIE, signSessionValue('team-member', options.teamMemberId), cookieOpts);
+  } else {
+    response.cookies.set(TEAM_MEMBER_COOKIE, '', clearOpts);
+  }
 
   if (options?.supportSession) {
     response.cookies.set(SUPPORT_FLAG_COOKIE, '1', cookieOpts);

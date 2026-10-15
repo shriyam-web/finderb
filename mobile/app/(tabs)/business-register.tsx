@@ -103,6 +103,7 @@ export default function BusinessRegisterScreen() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [passwordStep, setPasswordStep] = useState<'password' | 'confirm'>('password');
   const [catalogState, setCatalogState] = useState<{ categories: HomeCategory[]; error?: string } | null>(null);
   const [parent, setParent] = useState<HomeCategory | null>(null);
   const [sub, setSub] = useState<HomeCategory | null>(null);
@@ -614,6 +615,7 @@ export default function BusinessRegisterScreen() {
       phoneVerificationToken: mobileVerified ? mobileProof : '',
       password: form.password.trim(),
       mobile: form.mobile,
+      whatsappNumber: form.mobile,
       businessName: form.businessName.trim(),
       displayName: form.businessName.trim(),
       category: categoryLabel,

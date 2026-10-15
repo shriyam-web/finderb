@@ -382,7 +382,7 @@ h1, h2, h3, h4, h5, h6 {
 /* Merchant dashboard: single font stack everywhere (matches Total Views stat cards) */
 .merchant-dashboard,
 .merchant-dashboard :is(h1, h2, h3, h4, h5, h6, p, span, a, button, label, li, td, th, input, textarea, select) {
-  font-family: 'Google Sans', var(--font-inter), 'Inter', system-ui, -apple-system, sans-serif !important;
+  font-family: var(--font-inter), Inter, system-ui, -apple-system, sans-serif !important;
 }
 
 .shadow-premium {

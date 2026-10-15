@@ -98,6 +98,9 @@ type MyListingTabProps = {
   profilePictureUrl: string | null;
   completionPercent: number;
   missingFields: MissingProfileField[];
+  phoneVerified?: boolean;
+  emailVerified?: boolean;
+  whatsappVerified?: boolean;
   onEditProfile: () => void;
   onOpenSettingsField?: (settingsKey: string) => void;
   onOpenKyc?: () => void;
@@ -112,7 +115,10 @@ function dash(value: string | null | undefined) {
   return text || 'Not set';
 }
 
-function listingEditableRows(profileData: ProfileData) {
+function listingEditableRows(
+  profileData: ProfileData,
+  flags: { phoneVerified?: boolean; emailVerified?: boolean; whatsappVerified?: boolean },
+) {
   const hours = profileData.timings
     ? WEEKDAYS.filter((day) => profileData.timings?.[day]).length
     : 0;
@@ -121,9 +127,9 @@ function listingEditableRows(profileData: ProfileData) {
     { key: 'category', label: 'Category', value: dash(profileData.category) },
     { key: 'serviceCategory', label: 'Services', value: dash(profileData.serviceCategory) },
     { key: 'keywords', label: 'Keywords', value: profileData.keywords?.length ? profileData.keywords.join(', ') : 'Not set' },
-    { key: 'publicPhone', label: 'Public phone', value: dash(profileData.publicPhone) },
-    { key: 'whatsappNumber', label: 'WhatsApp', value: dash(profileData.whatsappNumber) },
-    { key: 'email', label: 'Public email', value: dash(profileData.email) },
+    { key: 'publicPhone', label: 'Public phone', value: dash(profileData.publicPhone), verified: flags.phoneVerified },
+    { key: 'whatsappNumber', label: 'WhatsApp', value: dash(profileData.whatsappNumber), verified: flags.whatsappVerified },
+    { key: 'email', label: 'Public email', value: dash(profileData.email), verified: flags.emailVerified },
     { key: 'website', label: 'Website', value: dash(profileData.website) },
     { key: 'businessAddress', label: 'Address', value: dash(profileData.businessAddress) },
     { key: 'city', label: 'City', value: dash(profileData.city) },
@@ -161,6 +167,9 @@ export default function MyListingTab({
   profilePictureUrl,
   completionPercent,
   missingFields,
+  phoneVerified,
+  emailVerified,
+  whatsappVerified,
   onEditProfile,
   onOpenSettingsField,
   onOpenKyc,
@@ -807,7 +816,7 @@ export default function MyListingTab({
           </button>
         </div>
         <ul className="divide-y divide-zinc-100">
-          {listingEditableRows(profileData).map((row) => (
+          {listingEditableRows(profileData, { phoneVerified, emailVerified, whatsappVerified }).map((row) => (
             <li key={row.key}>
               <button
                 type="button"
@@ -815,7 +824,12 @@ export default function MyListingTab({
                 className="flex w-full items-start gap-3 px-4 py-3 text-left hover:bg-zinc-50"
               >
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-zinc-900">{row.label}</p>
+                  <p className="flex items-center gap-1.5 text-sm font-medium text-zinc-900">
+                    {row.label}
+                    {'verified' in row && row.verified ? (
+                      <HiOutlineShieldCheck size={15} className="shrink-0 text-emerald-600" aria-label="Verified" />
+                    ) : null}
+                  </p>
                   <p className={`mt-0.5 text-xs ${row.value === 'Not set' ? 'text-amber-700' : 'text-zinc-500'}`}>
                     {row.value}
                   </p>

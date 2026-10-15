@@ -89,6 +89,7 @@ export async function syncTruecallerUserToAppSession(
       authProvider,
       phone,
       truecallerUserId: identity.truecallerUserId,
+      phoneVerified: true,
       updatedAt: now,
     };
     if (!existing.email || isSyntheticEmail(existing.email)) {
@@ -119,6 +120,7 @@ export async function syncTruecallerUserToAppSession(
       avatarUrl: identity.avatarUrl,
       phone,
       truecallerUserId: identity.truecallerUserId,
+      phoneVerified: true,
       favorites: [],
       searchHistory: [],
       createdAt: now,

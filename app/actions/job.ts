@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { buildJobApplicationMessage } from '@/lib/jobLeadMessage';
 import { formatMerchantName } from '@/lib/formatMerchantName';
 import { businessHasPublicPhoto } from '@/lib/businessMapping';
-import { assertBusinessSession } from '@/lib/security/session';
+import { assertBusinessTab } from '@/lib/businessTeam/teamActor.server';
 import { enforceRateLimit } from '@/lib/security/enforceRateLimit.server';
 import { revalidateHomePage } from '@/lib/homePageData';
 
@@ -19,7 +19,7 @@ export async function createJob(data: {
   businessId: string;
 }) {
   try {
-    const auth = await assertBusinessSession(data.businessId);
+    const auth = await assertBusinessTab(data.businessId, 'jobs', 'edit');
     if (!auth.ok) {
       return { success: false, error: auth.error };
     }
@@ -68,7 +68,7 @@ export async function createJob(data: {
 
 export async function getJobsByBusiness(businessId: string) {
   try {
-    const auth = await assertBusinessSession(businessId);
+    const auth = await assertBusinessTab(businessId, 'jobs', 'view');
     if (!auth.ok) {
       return { success: false, error: auth.error };
     }
@@ -105,7 +105,7 @@ export async function deleteJob(jobId: string) {
       return { success: false, error: 'Job not found' };
     }
 
-    const auth = await assertBusinessSession(job.business_id);
+    const auth = await assertBusinessTab(job.business_id, 'jobs', 'edit');
     if (!auth.ok) {
       return { success: false, error: auth.error };
     }
@@ -147,7 +147,7 @@ export async function updateJob(jobId: string, data: {
       return { success: false, error: 'Job not found' };
     }
 
-    const auth = await assertBusinessSession(existing.business_id);
+    const auth = await assertBusinessTab(existing.business_id, 'jobs', 'edit');
     if (!auth.ok) {
       return { success: false, error: auth.error };
     }

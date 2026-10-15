@@ -57,6 +57,7 @@ function isStep1RegistrationError(error: string): boolean {
   return (
     lower.includes('email') ||
     lower.includes('mobile') ||
+    lower.includes('whatsapp') ||
     lower.includes('password') ||
     lower.includes('full name') ||
     lower.includes('account') ||
@@ -128,6 +129,19 @@ function RegisterFormContent() {
   const mobileOtpCooldown = useOtpCooldown();
   const mobileDigits = mobile.replace(/\D/g, '').slice(-10);
   const mobileVerified = Boolean(mobileProof) && mobileProofFor === mobileDigits;
+  const [useMobileForWhatsApp, setUseMobileForWhatsApp] = useState(true);
+  const [whatsapp, setWhatsapp] = useState('');
+  const [whatsappOtpCode, setWhatsappOtpCode] = useState('');
+  const [whatsappProof, setWhatsappProof] = useState('');
+  const [whatsappProofFor, setWhatsappProofFor] = useState('');
+  const [whatsappOtpSending, setWhatsappOtpSending] = useState(false);
+  const [whatsappOtpVerifying, setWhatsappOtpVerifying] = useState(false);
+  const whatsappOtpCooldown = useOtpCooldown();
+  const whatsappDigits = (useMobileForWhatsApp ? mobileDigits : whatsapp.replace(/\D/g, '').slice(-10));
+  const whatsappVerified =
+    (useMobileForWhatsApp && mobileVerified) ||
+    (Boolean(whatsappProof) && whatsappProofFor === whatsappDigits) ||
+    (mobileVerified && whatsappDigits === mobileDigits);
   const [reuseContact, setReuseContact] = useState<ReusableContact | null>(null);
   const [reuseApproved, setReuseApproved] = useState<string[]>([]);
   const [formData, setFormData] = useState({
@@ -356,10 +370,83 @@ function RegisterFormContent() {
       setMobileProof(result.phoneVerificationToken);
       setMobileProofFor(mobileDigits);
       setMobileOtpCode('');
+      if (useMobileForWhatsApp || whatsapp.replace(/\D/g, '').slice(-10) === mobileDigits) {
+        setWhatsappProof(result.phoneVerificationToken);
+        setWhatsappProofFor(mobileDigits);
+      }
     } catch {
       setFieldErrors({ mobile: 'Could not verify the code. Please try again.' });
     } finally {
       setMobileOtpVerifying(false);
+    }
+  };
+
+  const handleUseMobileForWhatsAppChange = (same: boolean) => {
+    setUseMobileForWhatsApp(same);
+    clearFieldErrors('whatsappNumber', '_form');
+    if (same) {
+      setWhatsapp(mobileDigits);
+      if (mobileVerified) {
+        setWhatsappProof(mobileProof);
+        setWhatsappProofFor(mobileDigits);
+      }
+      setWhatsappOtpCode('');
+      return;
+    }
+    setWhatsapp((prev) => (prev.replace(/\D/g, '').slice(-10) === mobileDigits ? '' : prev));
+    setWhatsappProof('');
+    setWhatsappProofFor('');
+    setWhatsappOtpCode('');
+  };
+
+  const handleSendWhatsappOtp = async () => {
+    if (whatsappOtpSending || whatsappOtpCooldown.isWaiting(whatsappDigits)) return;
+    if (whatsappDigits === mobileDigits && mobileVerified) {
+      setWhatsappProof(mobileProof);
+      setWhatsappProofFor(mobileDigits);
+      return;
+    }
+    if (whatsappDigits.length !== 10) {
+      setFieldErrors({ whatsappNumber: 'Enter a 10-digit WhatsApp number.' });
+      return;
+    }
+    setWhatsappOtpCode('');
+    setWhatsappOtpSending(true);
+    clearFieldErrors('whatsappNumber', '_form');
+    try {
+      const result = await sendMerchantRegisterPhoneOtp(whatsappDigits);
+      if (!result.success) {
+        const mapped = { whatsappNumber: result.error };
+        setFieldErrors(mapped);
+        scrollToFirstRegistrationError(mapped);
+        return;
+      }
+      whatsappOtpCooldown.markSent(whatsappDigits);
+    } catch {
+      setFieldErrors({ whatsappNumber: 'Could not send the WhatsApp code. Please try again.' });
+    } finally {
+      setWhatsappOtpSending(false);
+    }
+  };
+
+  const handleVerifyWhatsappOtp = async (value = whatsappOtpCode) => {
+    if (value.length !== 6 || whatsappOtpVerifying) return;
+    setWhatsappOtpVerifying(true);
+    clearFieldErrors('whatsappNumber', '_form');
+    try {
+      const result = await confirmMerchantRegisterPhoneOtp(whatsappDigits, value);
+      if (!result.success) {
+        setWhatsappOtpCode('');
+        setFieldErrors({ whatsappNumber: result.error });
+        return;
+      }
+      setWhatsappProof(result.phoneVerificationToken);
+      setWhatsappProofFor(whatsappDigits);
+      setWhatsappOtpCode('');
+    } catch {
+      setFieldErrors({ whatsappNumber: 'Could not verify the WhatsApp code. Please try again.' });
+    } finally {
+      setWhatsappOtpVerifying(false);
     }
   };
 
@@ -459,6 +546,11 @@ function RegisterFormContent() {
       if (!mobileVerified && !errors.mobile) {
         errors.mobile = 'Verify your mobile number with the WhatsApp OTP before continuing.';
       }
+      if (!whatsappVerified && !errors.whatsappNumber) {
+        errors.whatsappNumber = useMobileForWhatsApp
+          ? 'Verify your mobile number first — it will be used as your WhatsApp number.'
+          : 'Verify your WhatsApp number with the OTP before continuing.';
+      }
       if (Object.keys(errors).length > 0) {
         setFieldErrors(errors);
         scrollToFirstRegistrationError(errors);
@@ -550,6 +642,18 @@ function RegisterFormContent() {
       return;
     }
 
+    if (!whatsappVerified) {
+      const otpError = {
+        whatsappNumber: useMobileForWhatsApp
+          ? 'Verify your mobile number first — it will be used as your WhatsApp number.'
+          : 'Verify your WhatsApp number with the OTP before submitting.',
+      };
+      setFieldErrors(otpError);
+      setStep(1);
+      scrollToFirstRegistrationError(otpError);
+      return;
+    }
+
     const step2Errors = validateRegistrationStep2Fields({
       businessName: formData.businessName,
       displayName: formData.displayName,
@@ -599,6 +703,9 @@ function RegisterFormContent() {
         billingCycle,
         emailVerificationToken,
         phoneVerificationToken: mobileVerified ? mobileProof : '',
+        whatsappNumber: whatsappDigits,
+        whatsappVerificationToken:
+          whatsappDigits === mobileDigits ? undefined : whatsappVerified ? whatsappProof : '',
       };
 
       console.log('Sending registration data:', {
@@ -626,8 +733,12 @@ function RegisterFormContent() {
         console.error('Registration failed:', result.error);
         const message = result.error || 'Registration failed. Please try again.';
         const mappedErrors = mapRegistrationServerError(message);
-        if (/whatsapp otp|mobile verification/i.test(message)) {
+        if (/whatsapp number/i.test(message)) {
+          setWhatsappProof('');
+          setWhatsappProofFor('');
+        } else if (/mobile verification|verify your mobile/i.test(message)) {
           setMobileProof('');
+          setMobileProofFor('');
         }
         if (isStep1RegistrationError(message)) {
           setStep(1);
@@ -876,6 +987,36 @@ function RegisterFormContent() {
           },
           onVerify: (value) => {
             void handleVerifyMobileOtp(value);
+          },
+        }}
+        whatsappNumber={whatsapp}
+        onWhatsappChange={(digits) => {
+          setWhatsapp(digits);
+          if (whatsappProofFor && whatsappProofFor !== digits) {
+            setWhatsappProof('');
+            setWhatsappProofFor('');
+            setWhatsappOtpCode('');
+          }
+          clearFieldErrors('whatsappNumber');
+        }}
+        useMobileForWhatsApp={useMobileForWhatsApp}
+        onUseMobileForWhatsAppChange={handleUseMobileForWhatsAppChange}
+        whatsappOtp={{
+          verified: whatsappVerified,
+          sent: whatsappOtpCooldown.isSentTo(whatsappDigits),
+          wait: whatsappOtpCooldown.isWaiting(whatsappDigits) ? whatsappOtpCooldown.secondsLeft : 0,
+          sending: whatsappOtpSending,
+          verifying: whatsappOtpVerifying,
+          code: whatsappOtpCode,
+          onCodeChange: (value) => {
+            setWhatsappOtpCode(value);
+            clearFieldErrors('whatsappNumber');
+          },
+          onSend: () => {
+            void handleSendWhatsappOtp();
+          },
+          onVerify: (value) => {
+            void handleVerifyWhatsappOtp(value);
           },
         }}
       />

@@ -40,6 +40,7 @@ export function LeadSourceBadge({
 
 const styles = {
   direct: {
+    alignSelf: 'flex-start' as const,
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
     gap: 4,
@@ -57,6 +58,7 @@ const styles = {
     color: '#FFFFFF',
   },
   profile: {
+    alignSelf: 'flex-start' as const,
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
     gap: 6,
@@ -80,6 +82,7 @@ const styles = {
     color: '#D7E8F7',
   },
   category: {
+    alignSelf: 'flex-start' as const,
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
     gap: 4,

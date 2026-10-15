@@ -1,5 +1,6 @@
 import { SITE_URL } from './supabase';
 import { getStoredToken } from './session';
+import type { TeamAccessMap } from './teamAccess';
 
 export type DayTiming = {
   open?: string;
@@ -88,6 +89,7 @@ export type ConsoleLead = {
   status: string;
   source?: string | null;
   created_at: string | null;
+  merchant_read_at?: string | null;
   locked: boolean;
 };
 
@@ -134,6 +136,7 @@ export type ConsoleBusiness = {
   loginMobile: string;
   emailVerified: boolean;
   mobileVerified: boolean;
+  whatsappVerified: boolean;
   createdAt: string | null;
 };
 
@@ -161,6 +164,8 @@ export type ConsoleOverview = {
     reviewCount: number;
     reviewsAwaitingReply: number;
     activeJobs: number;
+    averageResponse: string | null;
+    competitorAverage: number | null;
   };
   leads: ConsoleLead[];
   reviews: ConsoleReview[];
@@ -174,6 +179,11 @@ export type ConsoleOverview = {
     maxActiveJobs: number;
   };
   kycMessage: string;
+  actor?: {
+    isOwner: boolean;
+    teamMemberId: string | null;
+    access: TeamAccessMap;
+  };
 };
 
 export type ConsoleJob = {

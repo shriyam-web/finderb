@@ -18,7 +18,7 @@ export async function GET() {
       details: [
         {
           appID,
-          paths: ['/business/*', '/business'],
+          paths: ['/business/*', '/business', '/review/*', '/review'],
         },
       ],
     },

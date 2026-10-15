@@ -313,9 +313,22 @@ export async function confirmMerchantMobileVerifyCode(
 
   try {
     if (await mobileUsedElsewhere(session.id, mobile)) return { success: false, error: MOBILE_TAKEN };
+    const { data: current } = await db()
+      .from('Business')
+      .select('whatsappNumber')
+      .eq('id', session.id)
+      .maybeSingle();
+    const whatsappSame =
+      extractIndianMobileDigits(String(current?.whatsappNumber || '')) === mobile;
     const { error } = await db()
       .from('Business')
-      .update({ mobile, publicPhone: mobile, mobileVerified: true, updatedAt: new Date().toISOString() })
+      .update({
+        mobile,
+        publicPhone: mobile,
+        mobileVerified: true,
+        ...(whatsappSame ? { whatsappVerified: true } : {}),
+        updatedAt: new Date().toISOString(),
+      })
       .eq('id', session.id);
     if (error) {
       if (error.code === '23505') return { success: false, error: MOBILE_TAKEN };

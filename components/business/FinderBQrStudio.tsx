@@ -20,7 +20,13 @@ type FinderBQrStudioProps = {
 };
 
 const CARD_W = 1080;
-const CARD_H = 1350;
+const CARD_H = 1920;
+const FONT = 'Inter';
+const BLUE = '#153551';
+const BLUE_MID = '#215481';
+const ORANGE = '#E8873A';
+const MUTED = '#5E6E80';
+const LINE = '#E7EEF5';
 
 export default function FinderBQrStudio({
   businessName,
@@ -33,7 +39,7 @@ export default function FinderBQrStudio({
   const [busy, setBusy] = useState(false);
   const [ready, setReady] = useState(false);
   const reviewUrl = useMemo(() => buildReviewInviteUrl(business), [business]);
-  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=520x520&margin=8&data=${encodeURIComponent(reviewUrl)}`;
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=720x720&margin=10&data=${encodeURIComponent(reviewUrl)}`;
 
   useEffect(() => {
     let cancelled = false;
@@ -46,57 +52,112 @@ export default function FinderBQrStudio({
 
       canvas.width = CARD_W;
       canvas.height = CARD_H;
+      await readyFonts();
+      if (cancelled) return;
 
-      const bg = ctx.createLinearGradient(0, 0, CARD_W, CARD_H);
-      bg.addColorStop(0, '#0b1f33');
-      bg.addColorStop(0.45, '#153551');
-      bg.addColorStop(1, '#215481');
-      ctx.fillStyle = bg;
+      const wash = ctx.createLinearGradient(0, 0, CARD_W, CARD_H);
+      wash.addColorStop(0, '#D7E7F6');
+      wash.addColorStop(0.45, '#FFFFFF');
+      wash.addColorStop(1, '#FFE4C4');
+      ctx.fillStyle = wash;
       ctx.fillRect(0, 0, CARD_W, CARD_H);
 
-      ctx.fillStyle = 'rgba(249, 212, 138, 0.14)';
-      ctx.beginPath();
-      ctx.arc(980, 120, 220, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.beginPath();
-      ctx.arc(80, 1280, 260, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.fillStyle = BLUE;
+      ctx.fillRect(0, 0, CARD_W, 22);
+      ctx.fillStyle = ORANGE;
+      ctx.fillRect(0, 22, CARD_W, 12);
+      ctx.fillStyle = ORANGE;
+      ctx.fillRect(0, CARD_H - 34, CARD_W, 12);
+      ctx.fillStyle = BLUE;
+      ctx.fillRect(0, CARD_H - 22, CARD_W, 22);
 
-      ctx.fillStyle = '#f9d48a';
-      ctx.font = '700 28px Inter, Arial, sans-serif';
-      ctx.fillText('FINDERB', 80, 110);
-      ctx.fillStyle = 'rgba(255,255,255,0.72)';
-      ctx.font = '500 22px Inter, Arial, sans-serif';
-      ctx.fillText('Trusted local businesses of India', 80, 148);
+      let logoHeight = 110;
+      try {
+        const logo = await loadImage('/businesslogo.png');
+        if (cancelled) return;
+        const logoW = 520;
+        logoHeight = (logoW * logo.height) / logo.width;
+        ctx.drawImage(logo, (CARD_W - logoW) / 2, 78, logoW, logoHeight);
+      } catch {
+        ctx.fillStyle = BLUE;
+        ctx.font = `700 40px ${FONT}`;
+        ctx.textAlign = 'center';
+        ctx.fillText('FinderB Business', CARD_W / 2, 150);
+      }
 
-      ctx.fillStyle = '#ffffff';
-      ctx.font = '800 64px Inter, Arial, sans-serif';
-      wrapText(ctx, businessName, 80, 280, 920, 72);
+      const ruleY = 78 + logoHeight + 38;
+      ctx.fillStyle = BLUE;
+      ctx.fillRect(CARD_W / 2 - 72, ruleY, 72, 4);
+      ctx.fillStyle = ORANGE;
+      ctx.fillRect(CARD_W / 2, ruleY, 72, 4);
 
-      ctx.fillStyle = 'rgba(255,255,255,0.78)';
-      ctx.font = '600 28px Inter, Arial, sans-serif';
-      ctx.fillText([category, city].filter(Boolean).join('  ·  ') || 'On FinderB', 80, 430);
-
-      ctx.fillStyle = '#ffffff';
-      roundRect(ctx, 90, 500, 900, 620, 36);
-      ctx.fill();
-
-      const qr = await loadImage(qrUrl);
-      if (cancelled) return;
-      ctx.drawImage(qr, 290, 540, 500, 500);
-
-      ctx.fillStyle = '#153551';
-      ctx.font = '700 30px Inter, Arial, sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText('Scan to review us on FinderB', CARD_W / 2, 1080);
-      ctx.textAlign = 'left';
+      ctx.fillStyle = ORANGE;
+      ctx.font = `600 26px ${FONT}`;
+      spacedCenter(ctx, 'REVIEW CARD', CARD_W / 2, ruleY + 58, 11);
 
-      ctx.fillStyle = 'rgba(255,255,255,0.86)';
-      ctx.font = '600 26px Inter, Arial, sans-serif';
-      ctx.fillText('This business is live on FinderB', 80, 1220);
-      ctx.fillStyle = 'rgba(255,255,255,0.58)';
-      ctx.font = '500 22px Inter, Arial, sans-serif';
-      ctx.fillText('finderb.com', 80, 1260);
+      ctx.fillStyle = BLUE;
+      ctx.font = `700 64px ${FONT}`;
+      wrapCentered(ctx, businessName, CARD_W / 2, ruleY + 132, 860, 74);
+
+      ctx.fillStyle = MUTED;
+      ctx.font = `500 30px ${FONT}`;
+      ctx.fillText([category, city].filter(Boolean).join('  ·  ') || 'On FinderB', CARD_W / 2, ruleY + 278);
+
+      const plate = 680;
+      const plateX = (CARD_W - plate) / 2;
+      const plateY = 690;
+      ctx.fillStyle = '#F6F9FC';
+      roundRect(ctx, plateX, plateY, plate, plate, 36);
+      ctx.fill();
+      ctx.fillStyle = '#FFFFFF';
+      roundRect(ctx, plateX + 18, plateY + 18, plate - 36, plate - 36, 28);
+      ctx.fill();
+      ctx.strokeStyle = LINE;
+      ctx.lineWidth = 2;
+      roundRect(ctx, plateX + 18, plateY + 18, plate - 36, plate - 36, 28);
+      ctx.stroke();
+      drawTicks(ctx, plateX + 38, plateY + 38, plate - 76);
+
+      try {
+        const qr = await loadImage(qrUrl);
+        if (cancelled) return;
+        ctx.drawImage(qr, plateX + 70, plateY + 70, plate - 140, plate - 140);
+      } catch {
+        ctx.fillStyle = MUTED;
+        ctx.font = `500 24px ${FONT}`;
+        ctx.fillText('QR unavailable', CARD_W / 2, plateY + plate / 2);
+      }
+
+      ctx.fillStyle = BLUE;
+      ctx.font = `600 36px ${FONT}`;
+      ctx.fillText('Scan to leave a review', CARD_W / 2, plateY + plate + 82);
+      ctx.fillStyle = MUTED;
+      ctx.font = `500 26px ${FONT}`;
+      ctx.fillText('Takes less than a minute', CARD_W / 2, plateY + plate + 122);
+
+      ctx.strokeStyle = LINE;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(180, CARD_H - 168);
+      ctx.lineTo(CARD_W - 180, CARD_H - 168);
+      ctx.stroke();
+
+      try {
+        const footerLogo = await loadImage('/businesslogo.png');
+        if (cancelled) return;
+        const footerW = 280;
+        const footerH = (footerW * footerLogo.height) / footerLogo.width;
+        ctx.drawImage(footerLogo, (CARD_W - footerW) / 2, CARD_H - 148, footerW, footerH);
+      } catch {
+        ctx.fillStyle = BLUE;
+        ctx.font = `600 18px ${FONT}`;
+        ctx.fillText('FinderB Business', CARD_W / 2, CARD_H - 92);
+      }
+      ctx.fillStyle = MUTED;
+      ctx.font = `500 24px ${FONT}`;
+      ctx.fillText('Verified reviews  ·  finderb.com', CARD_W / 2, CARD_H - 48);
+      ctx.textAlign = 'left';
 
       if (!cancelled) setReady(true);
     }
@@ -148,14 +209,17 @@ export default function FinderBQrStudio({
         <div className="flex items-start justify-between gap-3 border-b border-zinc-100 px-4 py-3">
           <div>
             <h3 className="text-base font-semibold text-zinc-900">FinderB review card</h3>
-            <p className="mt-0.5 text-xs text-zinc-500">High-quality 1080×1350 image. Print it or send the review link.</p>
+            <p className="mt-0.5 text-xs text-zinc-500">Tall 1080×1920 print card. White field, Inter only, FinderB Business logo.</p>
           </div>
           <button type="button" onClick={onClose} className="rounded-md p-1 text-zinc-400 hover:bg-zinc-100" aria-label="Close">
             <HiOutlineXMark size={18} />
           </button>
         </div>
-        <div className="px-4 py-4">
-          <canvas ref={canvasRef} className="mx-auto h-auto w-full max-w-[340px] rounded-xl border border-zinc-200 bg-[#12324c]" />
+        <div className="bg-[#F7F9FC] px-4 py-5">
+          <canvas
+            ref={canvasRef}
+            className="mx-auto h-auto w-full max-w-[300px] rounded-2xl border border-zinc-200 bg-white shadow-[0_18px_40px_rgba(21,53,81,0.12)]"
+          />
           <p className="mt-3 break-all text-center text-[11px] text-zinc-500">{reviewUrl}</p>
         </div>
         <div className="flex gap-2 border-t border-zinc-100 px-4 py-3">
@@ -172,7 +236,7 @@ export default function FinderBQrStudio({
             type="button"
             disabled={!ready || busy}
             onClick={() => void download()}
-            className="flex flex-[1.2] items-center justify-center gap-2 rounded-lg bg-[#215481] px-3 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+            className="flex-[1.2] flex items-center justify-center gap-2 rounded-lg bg-[#215481] px-3 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
           >
             <HiOutlineArrowDownTray size={16} />
             Download PNG
@@ -181,6 +245,19 @@ export default function FinderBQrStudio({
       </div>
     </div>
   );
+}
+
+async function readyFonts() {
+  try {
+    await document.fonts.ready;
+    await Promise.all([
+      document.fonts.load(`500 26px ${FONT}`),
+      document.fonts.load(`600 36px ${FONT}`),
+      document.fonts.load(`700 64px ${FONT}`),
+    ]);
+  } catch {
+    // Canvas falls back to the system sans if Inter is not ready.
+  }
 }
 
 function loadImage(src: string) {
@@ -203,36 +280,76 @@ function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
   ctx.closePath();
 }
 
-function wrapText(
+function drawTicks(ctx: CanvasRenderingContext2D, x: number, y: number, size: number) {
+  const arm = 42;
+  ctx.lineWidth = 6;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.strokeStyle = ORANGE;
+  tick(ctx, x, y, 1, 1, arm);
+  tick(ctx, x + size, y, -1, 1, arm);
+  ctx.strokeStyle = BLUE_MID;
+  tick(ctx, x, y + size, 1, -1, arm);
+  tick(ctx, x + size, y + size, -1, -1, arm);
+}
+
+function tick(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  dx: number,
+  dy: number,
+  arm: number,
+) {
+  ctx.beginPath();
+  ctx.moveTo(x + dx * arm, y);
+  ctx.lineTo(x, y);
+  ctx.lineTo(x, y + dy * arm);
+  ctx.stroke();
+}
+
+function wrapCentered(
   ctx: CanvasRenderingContext2D,
   text: string,
   x: number,
   y: number,
   maxWidth: number,
-  lineHeight: number
+  lineHeight: number,
 ) {
   const words = text.split(/\s+/);
   let line = '';
-  let top = y;
-  let lines = 0;
+  const lines: string[] = [];
   for (const word of words) {
     const next = line ? `${line} ${word}` : word;
     if (ctx.measureText(next).width > maxWidth && line) {
-      ctx.fillText(line, x, top);
+      lines.push(line);
       line = word;
-      top += lineHeight;
-      lines += 1;
-      if (lines >= 2) {
-        ctx.fillText(`${word}…`, x, top);
-        return;
+      if (lines.length >= 2) {
+        lines.push(`${word}…`);
+        line = '';
+        break;
       }
     } else {
       line = next;
     }
   }
-  if (line) ctx.fillText(line, x, top);
+  if (line) lines.push(line);
+  lines.slice(0, 2).forEach((item, index) => ctx.fillText(item, x, y + index * lineHeight));
 }
 
 function slugify(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'business';
+}
+
+function spacedCenter(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, gap: number) {
+  ctx.textAlign = 'left';
+  const parts = text.split('');
+  const widths = parts.map((letter) => ctx.measureText(letter).width);
+  const total = widths.reduce((sum, width) => sum + width, 0) + gap * (parts.length - 1);
+  let left = x - total / 2;
+  for (let i = 0; i < parts.length; i += 1) {
+    ctx.fillText(parts[i], left, y);
+    left += widths[i] + gap;
+  }
+  ctx.textAlign = 'center';
 }

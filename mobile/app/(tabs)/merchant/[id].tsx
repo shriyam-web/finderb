@@ -55,6 +55,7 @@ import { useTabScrollPadding } from '../../../hooks/useAppSafeArea';
 import { createThemedStyles } from '../../../hooks/useThemedStyles';
 import { useUserLocation } from '../../../hooks/useUserLocation';
 import { useDrivingDistanceLabel } from '../../../lib/drivingDistance';
+import { unverifiedContactMessage, type UnverifiedContactKind } from '../../../lib/unverifiedContact';
 
 const FALLBACK_W = Dimensions.get('window').width || 360;
 
@@ -518,8 +519,22 @@ export default function MerchantProfileScreen() {
     ]);
   };
 
+  const showUnverified = (kind: UnverifiedContactKind) => {
+    Alert.alert('FinderB', unverifiedContactMessage(kind));
+  };
+
   const handleContactAction = (intent: 'call' | 'whatsapp' | 'enquire') => {
     if (!merchant) return;
+    if (!isOwnBusiness) {
+      if (intent === 'call' && !merchant.phoneVerified) {
+        showUnverified('phone');
+        return;
+      }
+      if (intent === 'whatsapp' && !merchant.whatsappVerified) {
+        showUnverified('whatsapp');
+        return;
+      }
+    }
     if (!contactRevealed) {
       if (intent === 'call' || intent === 'whatsapp') {
         requestLogin();
@@ -954,7 +969,13 @@ export default function MerchantProfileScreen() {
                     ) : null}
                     {mapsUrl ? (
                       <Pressable
-                        onPress={() => Linking.openURL(mapsUrl)}
+                        onPress={() => {
+                          if (!merchant.hasMapPin && !isOwnBusiness) {
+                            showUnverified('map');
+                            return;
+                          }
+                          void Linking.openURL(mapsUrl);
+                        }}
                         style={({ pressed }) => [
                           styles.placeDirections,
                           pressed && styles.pressed,
@@ -1099,11 +1120,7 @@ export default function MerchantProfileScreen() {
               {merchant.contact ? (
                 <Pressable
                   style={styles.contactRow}
-                  onPress={() =>
-                    contactRevealed
-                      ? handleContactAction('call')
-                      : requestLogin()
-                  }
+                  onPress={() => handleContactAction('call')}
                 >
                   <View style={styles.contactIcon}>
                     <Ionicons name="call-outline" size={16} color={colors.ink} />
@@ -1111,7 +1128,7 @@ export default function MerchantProfileScreen() {
                   <View style={styles.contactCopy}>
                     <Text style={styles.contactLabel}>Phone</Text>
                     <Text style={styles.contactValue}>
-                      {contactRevealed
+                      {contactRevealed && (merchant.phoneVerified || isOwnBusiness)
                         ? merchant.contact
                         : maskPhone(merchant.contact)}
                     </Text>
@@ -1127,11 +1144,17 @@ export default function MerchantProfileScreen() {
               {merchant.email ? (
                 <Pressable
                   style={styles.contactRow}
-                  onPress={() =>
-                    contactRevealed
-                      ? Linking.openURL(`mailto:${merchant.email}`)
-                      : requestLogin()
-                  }
+                  onPress={() => {
+                    if (!merchant.emailVerified && !isOwnBusiness) {
+                      showUnverified('email');
+                      return;
+                    }
+                    if (!contactRevealed) {
+                      requestLogin();
+                      return;
+                    }
+                    void Linking.openURL(`mailto:${merchant.email}`);
+                  }}
                 >
                   <View style={styles.contactIcon}>
                     <Ionicons name="mail-outline" size={16} color={colors.ink} />
@@ -1139,7 +1162,7 @@ export default function MerchantProfileScreen() {
                   <View style={styles.contactCopy}>
                     <Text style={styles.contactLabel}>Email</Text>
                     <Text style={styles.contactValue}>
-                      {contactRevealed
+                      {contactRevealed && (merchant.emailVerified || isOwnBusiness)
                         ? merchant.email
                         : maskEmail(merchant.email)}
                     </Text>
@@ -1457,6 +1480,14 @@ export default function MerchantProfileScreen() {
                       <View style={styles.reviewHeadCopy}>
                         <View style={styles.reviewAuthorRow}>
                           <Text style={styles.reviewAuthor}>{review.author}</Text>
+                          {review.authorVerified && !review.anonymous ? (
+                            <Ionicons
+                              name="checkmark-circle"
+                              size={15}
+                              color="#0284C7"
+                              accessibilityLabel="Verified user"
+                            />
+                          ) : null}
                           {review.anonymous ? (
                             <Text style={styles.reviewAnonBadge}>Anonymous</Text>
                           ) : null}
@@ -1467,15 +1498,6 @@ export default function MerchantProfileScreen() {
                         ) : null}
                       </View>
                       <View style={styles.reviewActions}>
-                        <Pressable
-                          onPress={() => void Clipboard.setStringAsync(review.id)}
-                          hitSlop={8}
-                          style={styles.reviewIdBadge}
-                          accessibilityRole="button"
-                          accessibilityLabel="Copy review ID"
-                        >
-                          <Text style={styles.reviewIdBadgeText}>{review.id.slice(0, 8)}</Text>
-                        </Pressable>
                         {review.userId && review.userId === user?.id ? null : reportedReviewIds.has(review.id) ? (
                           <Text style={styles.reviewReported}>Flagged</Text>
                         ) : (

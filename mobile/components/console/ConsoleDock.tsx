@@ -5,6 +5,8 @@ import { fonts } from '../../constants/typography';
 import { useConsoleColors } from '../../constants/consoleColors';
 import { useMerchantConsole } from '../../context/MerchantConsoleContext';
 import { useBottomInset } from '../../hooks/useAppSafeArea';
+import { rememberDockTab } from '../../lib/consoleNav';
+import { canViewTeamTab, MOBILE_ROUTE_TAB } from '../../lib/teamAccess';
 import { createConsoleStyles, DOCK_HEIGHT } from './kit';
 
 type DockItem = {
@@ -27,6 +29,7 @@ export function ConsoleDock({ state, navigation }: BottomTabBarProps) {
   const c = useConsoleColors();
   const bottomInset = useBottomInset();
   const { overview } = useMerchantConsole();
+  const isOwner = overview?.actor?.isOwner !== false;
   const badges: Record<string, number> = {
     leads: overview?.stats.leadsNew ?? 0,
     reviews: overview?.stats.reviewsAwaitingReply ?? 0,
@@ -35,6 +38,8 @@ export function ConsoleDock({ state, navigation }: BottomTabBarProps) {
   return (
     <View style={[styles.wrap, { paddingBottom: bottomInset }]}>
       {ITEMS.map((item) => {
+        const tabKey = MOBILE_ROUTE_TAB[item.name];
+        if (tabKey && !canViewTeamTab(overview?.actor?.access, tabKey, isOwner)) return null;
         const index = state.routes.findIndex((route: { name: string }) => route.name === item.name);
         if (index < 0) return null;
         const route = state.routes[index];

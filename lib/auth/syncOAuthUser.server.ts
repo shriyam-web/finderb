@@ -84,6 +84,7 @@ export async function syncOAuthUserToAppSession(
         fullName,
         avatarUrl,
         authProvider,
+        emailVerified: true,
         updatedAt: now,
       })
       .eq('id', existingByAuthId.id);
@@ -108,6 +109,7 @@ export async function syncOAuthUserToAppSession(
         avatarUrl,
         authProvider,
         supabaseAuthId: authUser.id,
+        emailVerified: true,
         updatedAt: now,
       })
       .eq('id', existingByEmail.id);
@@ -128,6 +130,7 @@ export async function syncOAuthUserToAppSession(
       authProvider,
       avatarUrl,
       supabaseAuthId: authUser.id,
+      emailVerified: true,
       favorites: [],
       searchHistory: [],
       createdAt: now,

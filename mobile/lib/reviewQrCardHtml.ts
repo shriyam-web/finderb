@@ -8,25 +8,38 @@ export function reviewQrCardHtml(input: {
   place: string;
   reviewUrl: string;
   qrBase64: string;
+  logoBase64?: string | null;
 }) {
   const name = JSON.stringify(input.businessName);
   const place = JSON.stringify(input.place || 'On FinderB');
   const qrSrc = JSON.stringify(`data:image/png;base64,${input.qrBase64}`);
+  const logoSrc = JSON.stringify(input.logoBase64 ? `data:image/png;base64,${input.logoBase64}` : '');
 
   return `<!DOCTYPE html>
 <html>
-<body style="margin:0;background:#12324c">
+<head>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700&display=swap" rel="stylesheet">
+</head>
+<body style="margin:0;background:#FFFFFF">
 <canvas id="c"></canvas>
 <script>
 (function () {
   var CARD_W = 1080;
-  var CARD_H = 1350;
+  var CARD_H = 1920;
   var canvas = document.getElementById('c');
   var ctx = canvas.getContext('2d');
   canvas.width = CARD_W;
   canvas.height = CARD_H;
   var name = ${name};
   var place = ${place};
+  var logoSrc = ${logoSrc};
+  var BLUE = '#153551';
+  var BLUE_MID = '#215481';
+  var ORANGE = '#E8873A';
+  var MUTED = '#5E6E80';
+  var LINE = '#E7EEF5';
+  var font = 'Inter';
 
   function roundRect(x, y, w, h, r) {
     ctx.beginPath();
@@ -38,96 +51,188 @@ export function reviewQrCardHtml(input: {
     ctx.closePath();
   }
 
-  function wrapText(text, x, y, maxWidth, lineHeight) {
+  function wrapCentered(text, x, y, maxWidth, lineHeight) {
     var words = String(text).split(/\\s+/);
     var line = '';
-    var top = y;
-    var lines = 0;
+    var lines = [];
     for (var i = 0; i < words.length; i++) {
       var next = line ? line + ' ' + words[i] : words[i];
       if (ctx.measureText(next).width > maxWidth && line) {
-        ctx.fillText(line, x, top);
+        lines.push(line);
         line = words[i];
-        top += lineHeight;
-        lines += 1;
-        if (lines >= 2) {
-          ctx.fillText(words[i] + '…', x, top);
-          return;
+        if (lines.length >= 2) {
+          lines.push(words[i] + '…');
+          line = '';
+          break;
         }
       } else {
         line = next;
       }
     }
-    if (line) ctx.fillText(line, x, top);
+    if (line) lines.push(line);
+    for (var l = 0; l < lines.length && l < 2; l++) ctx.fillText(lines[l], x, y + l * lineHeight);
+  }
+
+  function spacedCenter(text, x, y, gap) {
+    ctx.textAlign = 'left';
+    var parts = String(text).split('');
+    var widths = [];
+    var total = 0;
+    for (var i = 0; i < parts.length; i++) {
+      var w = ctx.measureText(parts[i]).width;
+      widths.push(w);
+      total += w + (i ? gap : 0);
+    }
+    var left = x - total / 2;
+    for (var p = 0; p < parts.length; p++) {
+      ctx.fillText(parts[p], left, y);
+      left += widths[p] + gap;
+    }
+    ctx.textAlign = 'center';
+  }
+
+  function tick(x, y, dx, dy, arm) {
+    ctx.beginPath();
+    ctx.moveTo(x + dx * arm, y);
+    ctx.lineTo(x, y);
+    ctx.lineTo(x, y + dy * arm);
+    ctx.stroke();
   }
 
   function fail(message) {
     window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'error', message: message }));
   }
 
-  try {
-    var bg = ctx.createLinearGradient(0, 0, CARD_W, CARD_H);
-    bg.addColorStop(0, '#0b1f33');
-    bg.addColorStop(0.45, '#153551');
-    bg.addColorStop(1, '#215481');
-    ctx.fillStyle = bg;
+  function finish() {
+    var data = canvas.toDataURL('image/png');
+    window.ReactNativeWebView.postMessage(JSON.stringify({
+      type: 'png',
+      data: data.split(',')[1] || ''
+    }));
+  }
+
+  function paint(qr, logo) {
+    var wash = ctx.createLinearGradient(0, 0, CARD_W, CARD_H);
+    wash.addColorStop(0, '#D7E7F6');
+    wash.addColorStop(0.45, '#FFFFFF');
+    wash.addColorStop(1, '#FFE4C4');
+    ctx.fillStyle = wash;
     ctx.fillRect(0, 0, CARD_W, CARD_H);
 
-    ctx.fillStyle = 'rgba(249, 212, 138, 0.14)';
+    ctx.fillStyle = BLUE;
+    ctx.fillRect(0, 0, CARD_W, 22);
+    ctx.fillStyle = ORANGE;
+    ctx.fillRect(0, 22, CARD_W, 12);
+    ctx.fillStyle = ORANGE;
+    ctx.fillRect(0, CARD_H - 34, CARD_W, 12);
+    ctx.fillStyle = BLUE;
+    ctx.fillRect(0, CARD_H - 22, CARD_W, 22);
+
+    var logoHeight = 110;
+    ctx.textAlign = 'center';
+    if (logo) {
+      var logoW = 520;
+      logoHeight = logoW * logo.height / logo.width;
+      ctx.drawImage(logo, (CARD_W - logoW) / 2, 78, logoW, logoHeight);
+    } else {
+      ctx.fillStyle = BLUE;
+      ctx.font = '700 40px ' + font;
+      ctx.fillText('FinderB Business', CARD_W / 2, 150);
+    }
+
+    var ruleY = 78 + logoHeight + 38;
+    ctx.fillStyle = BLUE;
+    ctx.fillRect(CARD_W / 2 - 72, ruleY, 72, 4);
+    ctx.fillStyle = ORANGE;
+    ctx.fillRect(CARD_W / 2, ruleY, 72, 4);
+
+    ctx.fillStyle = ORANGE;
+    ctx.font = '600 26px ' + font;
+    spacedCenter('REVIEW CARD', CARD_W / 2, ruleY + 58, 11);
+
+    ctx.fillStyle = BLUE;
+    ctx.font = '700 64px ' + font;
+    wrapCentered(name, CARD_W / 2, ruleY + 132, 860, 74);
+
+    ctx.fillStyle = MUTED;
+    ctx.font = '500 30px ' + font;
+    ctx.fillText(place, CARD_W / 2, ruleY + 278);
+
+    var plate = 680;
+    var plateX = (CARD_W - plate) / 2;
+    var plateY = 690;
+    ctx.fillStyle = '#F6F9FC';
+    roundRect(plateX, plateY, plate, plate, 36);
+    ctx.fill();
+    ctx.fillStyle = '#FFFFFF';
+    roundRect(plateX + 18, plateY + 18, plate - 36, plate - 36, 28);
+    ctx.fill();
+    ctx.strokeStyle = LINE;
+    ctx.lineWidth = 2;
+    roundRect(plateX + 18, plateY + 18, plate - 36, plate - 36, 28);
+    ctx.stroke();
+
+    ctx.lineWidth = 6;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = ORANGE;
+    tick(plateX + 38, plateY + 38, 1, 1, 42);
+    tick(plateX + plate - 38, plateY + 38, -1, 1, 42);
+    ctx.strokeStyle = BLUE_MID;
+    tick(plateX + 38, plateY + plate - 38, 1, -1, 42);
+    tick(plateX + plate - 38, plateY + plate - 38, -1, -1, 42);
+
+    ctx.drawImage(qr, plateX + 70, plateY + 70, plate - 140, plate - 140);
+
+    ctx.fillStyle = BLUE;
+    ctx.font = '600 36px ' + font;
+    ctx.fillText('Scan to leave a review', CARD_W / 2, plateY + plate + 82);
+    ctx.fillStyle = MUTED;
+    ctx.font = '500 26px ' + font;
+    ctx.fillText('Takes less than a minute', CARD_W / 2, plateY + plate + 122);
+
+    ctx.strokeStyle = LINE;
+    ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.arc(980, 120, 220, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(80, 1280, 260, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.moveTo(180, CARD_H - 168);
+    ctx.lineTo(CARD_W - 180, CARD_H - 168);
+    ctx.stroke();
 
-    ctx.fillStyle = '#f9d48a';
-    ctx.font = '700 28px sans-serif';
-    ctx.fillText('FINDERB', 80, 110);
-    ctx.fillStyle = 'rgba(255,255,255,0.72)';
-    ctx.font = '500 22px sans-serif';
-    ctx.fillText('Trusted local businesses of India', 80, 148);
+    if (logo) {
+      var footerW = 280;
+      var footerH = footerW * logo.height / logo.width;
+      ctx.drawImage(logo, (CARD_W - footerW) / 2, CARD_H - 148, footerW, footerH);
+    }
+    ctx.fillStyle = MUTED;
+    ctx.font = '500 24px ' + font;
+    ctx.fillText('Verified reviews  ·  finderb.com', CARD_W / 2, CARD_H - 48);
+    finish();
+  }
 
-    ctx.fillStyle = '#ffffff';
-    ctx.font = '800 64px sans-serif';
-    wrapText(name, 80, 280, 920, 72);
+  function start() {
+    try {
+      var qr = new Image();
+      qr.onload = function () {
+        if (!logoSrc) {
+          paint(qr, null);
+          return;
+        }
+        var logo = new Image();
+        logo.onload = function () { paint(qr, logo); };
+        logo.onerror = function () { paint(qr, null); };
+        logo.src = logoSrc;
+      };
+      qr.onerror = function () { fail('Could not draw the QR code.'); };
+      qr.src = ${qrSrc};
+    } catch (error) {
+      fail(String(error && error.message ? error.message : error));
+    }
+  }
 
-    ctx.fillStyle = 'rgba(255,255,255,0.78)';
-    ctx.font = '600 28px sans-serif';
-    ctx.fillText(place, 80, 430);
-
-    ctx.fillStyle = '#ffffff';
-    roundRect(90, 500, 900, 620, 36);
-    ctx.fill();
-
-    var qr = new Image();
-    qr.onload = function () {
-      try {
-        ctx.drawImage(qr, 290, 540, 500, 500);
-        ctx.fillStyle = '#153551';
-        ctx.font = '700 30px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('Scan to review us on FinderB', CARD_W / 2, 1080);
-        ctx.textAlign = 'left';
-        ctx.fillStyle = 'rgba(255,255,255,0.86)';
-        ctx.font = '600 26px sans-serif';
-        ctx.fillText('This business is live on FinderB', 80, 1220);
-        ctx.fillStyle = 'rgba(255,255,255,0.58)';
-        ctx.font = '500 22px sans-serif';
-        ctx.fillText('finderb.com', 80, 1260);
-        var data = canvas.toDataURL('image/png');
-        window.ReactNativeWebView.postMessage(JSON.stringify({
-          type: 'png',
-          data: data.split(',')[1] || ''
-        }));
-      } catch (error) {
-        fail(String(error && error.message ? error.message : error));
-      }
-    };
-    qr.onerror = function () { fail('Could not draw the QR code.'); };
-    qr.src = ${qrSrc};
-  } catch (error) {
-    fail(String(error && error.message ? error.message : error));
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(start).catch(start);
+  } else {
+    start();
   }
 })();
 </script>

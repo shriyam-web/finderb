@@ -97,7 +97,9 @@ function RootNavigator() {
 
   useEffect(() => {
     if (loading || !isMerchant) return;
-    if (segments[0] !== '(tabs)' || segments[1] !== 'home') return;
+    if (segments[0] !== '(tabs)') return;
+    const tab = segments[1];
+    if (tab && tab !== 'home') return;
     void getPreferredShell(true).then((shell) => {
       if (shell === 'business') router.replace('/business-console' as Href);
     });
@@ -184,7 +186,7 @@ function RootNavigator() {
           />
           <Stack.Screen
             name="business-console"
-            options={{ animation: 'fade' }}
+            options={{ animation: 'fade', gestureEnabled: false }}
           />
           <Stack.Screen
             name="review/[slug]"

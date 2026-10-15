@@ -42,6 +42,10 @@ export interface Business {
   registrationNumber?: string | null;
   /** True when the merchant has at least one active public job posting. */
   hasActiveJobs?: boolean;
+  phoneVerified?: boolean;
+  emailVerified?: boolean;
+  whatsappVerified?: boolean;
+  hasMapPin?: boolean;
 }
 
 export interface Category {

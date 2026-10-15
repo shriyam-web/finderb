@@ -76,6 +76,15 @@ function ListingBody({ o }: { o: ConsoleOverview }) {
             ? 'Your profile is complete. Keep photos and timings up to date.'
             : `${missing} detail${missing === 1 ? '' : 's'} missing. Complete profiles get more calls.`}
         </Text>
+        {o.stats.competitorAverage != null ? (
+          <Text style={styles.meterNote}>
+            Your competitors have an average profile completion score of {o.stats.competitorAverage}%. Try improving
+            your score to perform good.
+          </Text>
+        ) : null}
+        {o.stats.averageResponse ? (
+          <Text style={styles.meterNote}>Your average response time on leads so far is {o.stats.averageResponse}.</Text>
+        ) : null}
         <View style={styles.actions}>
           <Btn
             small
@@ -142,6 +151,9 @@ function ListingBody({ o }: { o: ConsoleOverview }) {
               <View style={styles.flex}>
                 <View style={styles.sectionHead}>
                   <Text style={styles.sectionTitle}>{row.label}</Text>
+                  {row.verified ? (
+                    <Ionicons name="shield-checkmark" size={16} color="#059669" accessibilityLabel="Verified" />
+                  ) : null}
                   {row.missing ? <Tag label="Add" tone="warning" /> : null}
                 </View>
                 <Text style={styles.sectionSummary} numberOfLines={3}>
@@ -178,6 +190,12 @@ function ListingBody({ o }: { o: ConsoleOverview }) {
             icon="document-text-outline"
             label="Legal business name"
             value={o.business.legalName || 'Not set'}
+            onPress={() => router.push('/business-console/account')}
+          />
+          <Row
+            icon="storefront-outline"
+            label="Display name"
+            value={o.profile.displayName || o.business.name || 'Not set'}
             onPress={() => router.push('/business-console/account')}
             last
           />

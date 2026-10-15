@@ -16,6 +16,7 @@ import {
 import { userOwnsOrManagesBusiness } from '@/lib/reviewIdentity.server';
 import { upsertReviewModerationRow } from '@/lib/reviewModeration.server';
 import { queueBusinessPush } from '@/lib/userNotifications.server';
+import { loadReviewAuthorVerified } from '@/lib/userContactVerified.server';
 
 export type SubmitBusinessReviewInput = {
   userId: string;
@@ -122,6 +123,7 @@ export async function submitBusinessReviewForUser(
       return { success: false, error: 'You have already reviewed this business.' };
     }
 
+    const authorVerified = await loadReviewAuthorVerified(userId);
     const newReview: BusinessReview = {
       id: crypto.randomUUID(),
       author: input.fullName?.trim() || 'FinderB user',
@@ -133,7 +135,7 @@ export async function submitBusinessReviewForUser(
         year: 'numeric',
       }),
       userId,
-      authorVerified: true,
+      authorVerified,
       ...(anonymous
         ? {
             anonymous: true,

@@ -365,6 +365,14 @@ export function PlanBody({ docked = false }: { docked?: boolean }) {
               retail={pricing.monthly.retail}
               onPress={() => setCycle('monthly')}
             />
+            <Btn
+              tone={blocked ? 'outline' : 'primary'}
+              icon={blocked ? 'checkmark-circle' : 'lock-closed-outline'}
+              label={ctaLabel}
+              busy={starting || verifying}
+              disabled={!pricing.checkoutAvailable || blocked}
+              onPress={() => void begin()}
+            />
           </Section>
 
           <Section title="Both plans include">

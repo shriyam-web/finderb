@@ -11,6 +11,7 @@ import {
 } from '@/lib/businessReviews';
 import { enforceRateLimit } from '@/lib/security/enforceRateLimit.server';
 import { assertBusinessSession, getSessionBusinessId, getSessionUserId } from '@/lib/security/session';
+import { assertBusinessTab } from '@/lib/businessTeam/teamActor.server';
 import { revalidateBusinessProfilePaths } from '@/lib/businessRevalidation';
 import { submitBusinessReviewForUser } from '@/lib/submitBusinessReviewCore';
 import { reportBusinessReviewAs } from '@/lib/reportBusinessReviewCore';
@@ -123,7 +124,7 @@ export async function upsertMerchantReviewReply(data: {
       return { success: false as const, error: 'Reply cannot be empty' };
     }
 
-    const auth = await assertBusinessSession(businessId);
+    const auth = await assertBusinessTab(businessId, 'reviews', 'edit');
     if (!auth.ok) {
       return { success: false as const, error: auth.error };
     }
@@ -206,7 +207,7 @@ export async function flagMerchantReview(data: {
   const businessId = data.businessId?.trim();
   if (!businessId) return { success: false as const, error: 'Business ID is required' };
 
-  const auth = await assertBusinessSession(businessId);
+  const auth = await assertBusinessTab(businessId, 'reviews', 'edit');
   if (!auth.ok) {
     return { success: false as const, error: auth.error };
   }

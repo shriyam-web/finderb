@@ -1,6 +1,6 @@
 import { createHmac, timingSafeEqual } from 'crypto';
 
-export type SessionCookieKind = 'user' | 'business';
+export type SessionCookieKind = 'user' | 'business' | 'team-member';
 
 function getSecret(): string {
   const secret =

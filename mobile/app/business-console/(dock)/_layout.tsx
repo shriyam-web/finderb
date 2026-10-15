@@ -1,13 +1,23 @@
-import { Tabs } from 'expo-router';
+import { useEffect } from 'react';
+import { Tabs, useSegments } from 'expo-router';
 import { ConsoleDock } from '../../../components/console/ConsoleDock';
 import { useConsoleColors } from '../../../constants/consoleColors';
+import { rememberDockTab } from '../../../lib/consoleNav';
 
 export default function ConsoleDockLayout() {
   const c = useConsoleColors();
+  const segments = useSegments();
+
+  useEffect(() => {
+    if (segments[0] === 'business-console' && segments[1] === '(dock)') {
+      rememberDockTab(segments[2] || 'index');
+    }
+  }, [segments]);
+
   return (
     <Tabs
       tabBar={(props) => <ConsoleDock {...props} />}
-      backBehavior="history"
+      backBehavior="none"
       safeAreaInsets={{ bottom: 0 }}
       screenOptions={{
         headerShown: false,

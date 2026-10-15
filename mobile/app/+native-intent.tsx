@@ -80,6 +80,13 @@ export function redirectSystemPath({
       return `/merchant/${decodeURIComponent(schemeBusiness[1])}${schemeBusiness[2] || ''}`;
     }
 
+    const schemeReview = raw.match(
+      /^finderb:\/\/(?:\/)?review\/([^/?#]+)([?#][\s\S]*)?$/i,
+    );
+    if (schemeReview?.[1]) {
+      return `/review/${decodeURIComponent(schemeReview[1])}${schemeReview[2] || ''}`;
+    }
+
     // Custom scheme blog links: finderb://blog/slug
     const schemeBlog = raw.match(
       /^finderb:\/\/(?:\/)?blog\/([^/?#]+)([?#][\s\S]*)?$/i,
@@ -107,6 +114,13 @@ export function redirectSystemPath({
       const slug = url.pathname.replace(/^\//, '');
       if (slug) {
         return `/merchant/${decodeURIComponent(slug)}${url.search}${url.hash}`;
+      }
+    }
+
+    if (url.protocol === 'finderb:' && url.hostname === 'review') {
+      const slug = url.pathname.replace(/^\//, '');
+      if (slug) {
+        return `/review/${decodeURIComponent(slug)}${url.search}${url.hash}`;
       }
     }
 

@@ -1,3 +1,5 @@
+import { hasBusinessMapPin, isBusinessWhatsappVerified } from './unverifiedContact';
+
 export type MerchantReview = {
   id: string;
   author: string;
@@ -55,6 +57,10 @@ export type Merchant = {
   paymentModes: string[];
   businessAddress: string | null;
   yearsInBusiness: number | null;
+  phoneVerified: boolean;
+  emailVerified: boolean;
+  whatsappVerified: boolean;
+  hasMapPin: boolean;
 };
 
 function slugify(name: string): string {
@@ -270,7 +276,7 @@ function parseReviews(review: unknown): MerchantReview[] {
       rating: Number.isFinite(rating) ? rating : 5,
       date: String(entry.date || entry.createdAt || '').trim(),
       userId: typeof entry.userId === 'string' ? entry.userId : undefined,
-      authorVerified: anonymous ? false : Boolean(entry.authorVerified),
+      authorVerified: anonymous ? false : entry.authorVerified === true,
       anonymous: anonymous || undefined,
       hidden: Boolean(entry.hidden) || undefined,
       merchantReply:
@@ -382,6 +388,19 @@ export function mapMerchantRow(row: Record<string, unknown>): Merchant {
       typeof row.yearsInBusiness === 'number' && Number.isFinite(row.yearsInBusiness)
         ? row.yearsInBusiness
         : null,
+    phoneVerified: Boolean(row.mobileVerified),
+    emailVerified: Boolean(row.emailVerified),
+    whatsappVerified: isBusinessWhatsappVerified({
+      whatsappVerified: Boolean(row.whatsappVerified),
+      whatsappNumber: firstUrl(row.whatsappNumber),
+      publicPhone: String(row.publicPhone || ''),
+      mobile: String(row.mobile || ''),
+      mobileVerified: Boolean(row.mobileVerified),
+    }),
+    hasMapPin: hasBusinessMapPin({
+      latitude: parseCoordinate(row.latitude),
+      longitude: parseCoordinate(row.longitude),
+    }),
   };
 }
 

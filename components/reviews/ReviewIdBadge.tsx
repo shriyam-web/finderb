@@ -29,7 +29,7 @@ export default function ReviewIdBadge({ reviewId, tone = 'stone' }: ReviewIdBadg
           setCopied(false);
         }
       }}
-      className={`inline-flex items-center rounded-md border bg-transparent px-2 py-0.5 font-mono text-[11px] leading-5 ${border}`}
+      className={`inline-flex items-center rounded-md border bg-white/80 px-2 py-0.5 font-sans text-xs font-medium leading-5 ${border}`}
       title="Copy review ID"
       aria-label={copied ? 'Review ID copied' : `Copy review ID ${shortId}`}
     >

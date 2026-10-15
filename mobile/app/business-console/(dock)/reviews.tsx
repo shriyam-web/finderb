@@ -101,6 +101,15 @@ function ReviewCard({
   };
   return (
     <View style={[styles.card, highlight && styles.cardHighlight]}>
+      <Pressable
+        onPress={() => void copyId()}
+        hitSlop={8}
+        accessibilityRole="button"
+        accessibilityLabel="Copy review ID"
+        style={styles.idBadge}
+      >
+        <Text style={styles.idBadgeText}>{review.id.slice(0, 8)}</Text>
+      </Pressable>
       <View style={styles.cardHead}>
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>{(review.author || 'C').charAt(0).toUpperCase()}</Text>
@@ -114,31 +123,9 @@ function ReviewCard({
             {review.hidden ? <Text style={styles.badgeHidden}>Hidden</Text> : null}
           </View>
           <View style={styles.cardMeta}>
-            <Stars value={review.rating} size={13} />
+            <Stars value={review.rating} size={15} />
             {review.date ? <Text style={styles.date}>{shortDate(review.date)}</Text> : null}
           </View>
-        </View>
-        <View style={styles.cardActions}>
-          <Pressable
-            onPress={() => void copyId()}
-            hitSlop={8}
-            accessibilityRole="button"
-            accessibilityLabel="Copy review ID"
-            style={styles.idBadge}
-          >
-            <Text style={styles.idBadgeText}>{review.id.slice(0, 8)}</Text>
-          </Pressable>
-          <Pressable
-            onPress={onFlag}
-            hitSlop={8}
-            disabled={review.flagged}
-            accessibilityRole="button"
-            style={styles.flagBtn}
-          >
-            <Text style={[styles.flagText, review.flagged && styles.flaggedText]}>
-              {review.flagged ? 'Flagged' : 'Flag'}
-            </Text>
-          </Pressable>
         </View>
       </View>
       {review.content ? <Text style={styles.content}>{review.content}</Text> : null}
@@ -157,6 +144,16 @@ function ReviewCard({
       ) : (
         <Btn small tone="outline" icon="chatbubble-outline" label="Reply" onPress={onReply} style={styles.replyBtn} />
       )}
+      <Pressable
+        onPress={onFlag}
+        hitSlop={10}
+        disabled={review.flagged}
+        accessibilityRole="button"
+        accessibilityLabel={review.flagged ? 'Already flagged' : 'Flag this review'}
+        style={styles.flagBtn}
+      >
+        <Ionicons name={review.flagged ? 'flag' : 'flag-outline'} size={18} color={review.flagged ? '#E11D48' : c.muted} />
+      </Pressable>
     </View>
   );
 }
@@ -288,6 +285,14 @@ function ReviewsBody({ o }: { o: ConsoleOverview }) {
       refreshing={refreshing}
       onRefresh={() => void refresh()}
     >
+      <View style={styles.rankBanner}>
+        <Text style={styles.rankBannerKicker}>Higher visibility</Text>
+        <Text style={styles.rankBannerTitle}>
+          {Math.max(0, 10 - o.stats.reviewCount) > 0
+            ? `${Math.max(0, 10 - o.stats.reviewCount)} more review${Math.max(0, 10 - o.stats.reviewCount) === 1 ? '' : 's'} to unlock a stronger rank`
+            : 'You crossed 10 reviews — keep the momentum'}
+        </Text>
+      </View>
       <Summary o={o} />
 
       <Pressable
@@ -488,36 +493,65 @@ const useStyles = createConsoleStyles((c) => ({
   templateTitle: { fontFamily: fonts.semiBold, fontSize: 14.5, color: c.ink },
   templateBody: { marginTop: 2, fontFamily: fonts.regular, fontSize: 12.5, lineHeight: 17, color: c.muted },
   filters: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  card: {
+  rankBanner: {
     padding: 16,
+    borderRadius: 16,
+    backgroundColor: '#153551',
+    gap: 6,
+  },
+  rankBannerKicker: {
+    fontFamily: fonts.semiBold,
+    fontSize: 11,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    color: '#F9D48A',
+  },
+  rankBannerTitle: {
+    fontFamily: fonts.semiBold,
+    fontSize: 17,
+    lineHeight: 23,
+    color: '#FFFFFF',
+  },
+  card: {
+    position: 'relative',
+    padding: 16,
+    paddingBottom: 44,
     borderRadius: 14,
-    backgroundColor: c.card,
-    borderWidth: c.isDark ? 1 : 0.5,
-    borderColor: c.line,
+    backgroundColor: '#F4F8FC',
+    borderWidth: 1,
+    borderColor: 'rgba(33,84,129,0.18)',
     gap: 12,
   },
   cardHighlight: {
-    borderColor: c.accent,
+    borderColor: '#E8873A',
     borderWidth: 1.5,
-    backgroundColor: c.primarySoft,
+    backgroundColor: '#FFF6EB',
   },
-  cardHead: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-  cardActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  cardHead: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingRight: 72 },
   idBadge: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    zIndex: 2,
     borderWidth: 1,
     borderColor: c.lineStrong,
     borderRadius: 6,
     paddingHorizontal: 8,
-    paddingVertical: 3,
-    backgroundColor: 'transparent',
+    paddingVertical: 4,
+    backgroundColor: '#FFFFFF',
   },
-  idBadgeText: { fontFamily: fonts.medium, fontSize: 11, color: c.muted },
+  idBadgeText: { fontFamily: fonts.medium, fontSize: 12, color: c.ink },
   flagBtn: {
-    borderWidth: 1,
-    borderColor: c.lineStrong,
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+    position: 'absolute',
+    right: 10,
+    bottom: 10,
+    zIndex: 2,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
   },
   avatar: {
     width: 40,
@@ -530,7 +564,7 @@ const useStyles = createConsoleStyles((c) => ({
   avatarText: { fontFamily: fonts.semiBold, fontSize: 15, color: c.body },
   cardMeta: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 3 },
   authorRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6 },
-  author: { fontFamily: fonts.semiBold, fontSize: 15, color: c.ink, flexShrink: 1 },
+  author: { fontFamily: fonts.semiBold, fontSize: 16, color: c.ink, flexShrink: 1 },
   badge: {
     fontFamily: fonts.medium,
     fontSize: 10,
@@ -551,10 +585,8 @@ const useStyles = createConsoleStyles((c) => ({
     paddingHorizontal: 6,
     paddingVertical: 2,
   },
-  flagText: { fontFamily: fonts.semiBold, fontSize: 11, color: c.accent },
-  flaggedText: { color: c.faint },
-  date: { fontFamily: fonts.regular, fontSize: 12, color: c.faint },
-  content: { fontFamily: fonts.regular, fontSize: 14, lineHeight: 21, color: c.body },
+  date: { fontFamily: fonts.regular, fontSize: 14, color: c.faint },
+  content: { fontFamily: fonts.regular, fontSize: 16, lineHeight: 24, color: c.body },
   reply: { padding: 12, borderRadius: 10, backgroundColor: c.sunken, gap: 6 },
   replyHead: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   replyLabel: { fontFamily: fonts.semiBold, fontSize: 13, color: c.accent },

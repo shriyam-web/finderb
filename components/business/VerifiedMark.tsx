@@ -10,7 +10,7 @@ export const VERIFIED_BADGE_DESCRIPTION =
 
 export const VERIFIED_USER_LABEL = 'Verified user';
 export const VERIFIED_USER_DESCRIPTION =
-  'This reviewer signed in to FinderB before posting their review.';
+  'This reviewer verified their email and mobile number on FinderB.';
 
 export function VerifiedUserTick({
   className = '',

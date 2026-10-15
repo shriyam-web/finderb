@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { BackHandler, Pressable, Share, Text, View } from 'react-native';
+import { useState } from 'react';
+import { Pressable, Share, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter, type Href } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -11,11 +11,9 @@ import type { ConsoleOverview, MissingField } from '../../../lib/merchantConsole
 import { ConsoleGate } from '../../../components/console/ConsoleGate';
 import { AlertCarousel, BANNER_ART, type AlertSlide } from '../../../components/console/AlertCarousel';
 import { FinderBQrStudio } from '../../../components/console/FinderBQrStudio';
-import { setPreferredShell } from '../../../lib/preferredShell';
 import { ViewsChart } from '../../../components/console/ViewsChart';
 import {
   Btn,
-  ConsoleHeaderActions,
   ConsolePage,
   HeaderIcon,
   PUBLIC_SITE,
@@ -25,9 +23,11 @@ import {
   createConsoleStyles,
   timeAgo,
 } from '../../../components/console/kit';
+import { useConsoleSearch } from '../../../components/console/ConsoleSearch';
 import { LEAD_STATUS_TONE, pipelineOf } from '../../../components/console/leadStatus';
 import { LeadSourceBadge } from '../../../components/console/LeadSourceBadge';
 import { LISTING_SECTIONS } from '../../../components/console/listingSections';
+import { openConsolePath } from '../../../lib/consoleNav';
 
 type IconName = keyof typeof Ionicons.glyphMap;
 type Go = (href: Href) => void;
@@ -588,44 +588,51 @@ function HomeBody({ o }: { o: ConsoleOverview }) {
   const router = useRouter();
   const { refresh, refreshing } = useMerchantConsole();
   const [qrOpen, setQrOpen] = useState(false);
-  const go: Go = (href) => router.push(href);
+  const go: Go = (href) => openConsolePath(router, href);
+  const search = useConsoleSearch(o);
   const slides = bannersFor(o, go, () => setQrOpen(true));
   const firstName = (o.business.ownerName || '').trim().split(/\s+/)[0];
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
-  const toFinderBHome = () => {
-    void setPreferredShell('user').then(() => router.replace('/(tabs)/home' as Href));
-  };
-
-  useEffect(() => {
-    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
-      void setPreferredShell('user').then(() => router.replace('/(tabs)/home' as Href));
-      return true;
-    });
-    return () => sub.remove();
-  }, [router]);
-
   return (
     <>
     <ConsolePage
       title="Home"
-      subtitle={`${greeting}${firstName ? `, ${firstName}` : ''}`}
-      onBack={toFinderBHome}
+      brand
+      hideBack
       right={
-        <ConsoleHeaderActions>
+        <>
+          {search.input}
           <HeaderIcon
             icon="notifications-outline"
             label="Notifications"
             badge={o.notifications.unread}
             onPress={() => go('/business-console/alerts')}
           />
-        </ConsoleHeaderActions>
+        </>
       }
+      overlay={search.overlay}
       docked
       refreshing={refreshing}
       onRefresh={() => void refresh()}
     >
+      <Text style={styles.greeting}>{`${greeting}${firstName ? `, ${firstName}` : ''}`}</Text>
       <ShopCard o={o} go={go} />
+      {o.stats.competitorAverage != null || o.stats.averageResponse ? (
+        <Panel>
+          {o.stats.competitorAverage != null ? (
+            <Text style={styles.insight}>
+              Your competitors have an average profile completion score of {o.stats.competitorAverage}%. You are at{' '}
+              {o.completion.percent}%. Try improving your score to perform good.
+            </Text>
+          ) : null}
+          {o.stats.averageResponse ? (
+            <Text style={[styles.insight, o.stats.competitorAverage != null && styles.insightGap]}>
+              Your average response time on leads so far is {o.stats.averageResponse}.
+            </Text>
+          ) : null}
+        </Panel>
+      ) : null}
       {slides.length ? <AlertCarousel slides={slides} /> : null}
       <Section title="Performance">
         <Performance o={o} go={go} />
@@ -659,6 +666,9 @@ export default function HomeScreen() {
 
 const useStyles = createConsoleStyles((c) => ({
   flex: { flex: 1, minWidth: 0 },
+  greeting: { fontFamily: fonts.semiBold, fontSize: 16, color: c.ink, paddingHorizontal: 2, marginBottom: -4 },
+  insight: { fontFamily: fonts.regular, fontSize: 13.5, lineHeight: 20, color: c.body },
+  insightGap: { marginTop: 8 },
   pressed: { opacity: 0.75 },
   rowPressed: { backgroundColor: c.sunken },
   rowLine: { borderTopWidth: 1, borderTopColor: c.line },

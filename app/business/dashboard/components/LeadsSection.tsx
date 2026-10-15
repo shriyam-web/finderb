@@ -16,9 +16,11 @@ import {
 import { FaWhatsapp } from 'react-icons/fa';
 import {
   getBusinessLeads,
+  markLeadRead,
   updateLeadStatus,
   type BusinessLead,
 } from '@/app/actions/leads';
+import { isLeadUnread } from '@/lib/leadRead';
 import LeadSourceBadge from '@/components/leads/LeadSourceBadge';
 import {
   LEAD_PIPELINE_STATUSES,
@@ -41,6 +43,8 @@ type LeadsSectionProps = {
   isPaymentPending: boolean;
   variant: 'overview' | 'leads';
   onCountChange?: (count: number) => void;
+  onUnreadChange?: (count: number) => void;
+  canEdit?: boolean;
 };
 
 type LeadTab = 'business' | 'jobs';
@@ -63,7 +67,7 @@ function isDirectLead(lead: BusinessLead) {
 }
 
 function isNewLead(lead: BusinessLead) {
-  return isOpenLead(lead);
+  return isLeadUnread(lead);
 }
 
 function getLeadEnquiryDisplay(lead: BusinessLead) {
@@ -125,6 +129,8 @@ export default function LeadsSection({
   isPaymentPending,
   variant,
   onCountChange,
+  onUnreadChange,
+  canEdit = true,
 }: LeadsSectionProps) {
   const [leads, setLeads] = useState<BusinessLead[]>([]);
   const [loading, setLoading] = useState(true);
@@ -170,6 +176,10 @@ export default function LeadsSection({
   const totalNew = newBusinessCount + newJobCount;
 
   useEffect(() => {
+    onUnreadChange?.(totalNew);
+  }, [totalNew, onUnreadChange]);
+
+  useEffect(() => {
     if (activeTab === 'business' && businessLeads.length === 0 && jobLeads.length > 0) {
       setActiveTab('jobs');
     } else if (activeTab === 'jobs' && jobLeads.length === 0 && businessLeads.length > 0) {
@@ -177,11 +187,28 @@ export default function LeadsSection({
     }
   }, [activeTab, businessLeads.length, jobLeads.length]);
 
+  const markRead = (leadId: string) => {
+    setLeads((prev) =>
+      prev.map((lead) =>
+        lead.id === leadId && !lead.merchant_read_at
+          ? { ...lead, merchant_read_at: new Date().toISOString() }
+          : lead,
+      ),
+    );
+    void markLeadRead(leadId);
+  };
+
   const handleSetStatus = async (leadId: string, status: string) => {
     setUpdatingId(leadId);
     const res = await updateLeadStatus(leadId, status);
     if (res.success) {
-      setLeads((prev) => prev.map((lead) => (lead.id === leadId ? { ...lead, status } : lead)));
+      setLeads((prev) =>
+        prev.map((lead) =>
+          lead.id === leadId
+            ? { ...lead, status, merchant_read_at: lead.merchant_read_at || new Date().toISOString() }
+            : lead,
+        ),
+      );
     }
     setUpdatingId(null);
   };
@@ -228,6 +255,7 @@ export default function LeadsSection({
           <>
             <a
               href={`tel:${phoneDigits(phone)}`}
+              onClick={() => markRead(lead.id)}
               className={`${btnBase} bg-emerald-600 text-white hover:bg-emerald-500`}
             >
               <HiOutlinePhone size={12} />
@@ -237,6 +265,7 @@ export default function LeadsSection({
               href={whatsappLink(phone, contactMessage(lead))}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={() => markRead(lead.id)}
               className={`${btnBase} bg-[#25D366] text-white hover:bg-[#1fb855]`}
             >
               <FaWhatsapp size={12} />
@@ -247,6 +276,7 @@ export default function LeadsSection({
         {email && (
           <a
             href={`mailto:${email}?subject=${encodeURIComponent('Re: Your FinderB enquiry')}&body=${encodeURIComponent(contactMessage(lead))}`}
+            onClick={() => markRead(lead.id)}
             className={`${btnBase} border border-zinc-200 bg-white text-zinc-700 hover:border-[#215481]/30 hover:text-[#215481]`}
           >
             <HiOutlineEnvelope size={12} />
@@ -308,7 +338,7 @@ export default function LeadsSection({
           </div>
         </div>
         <div className="mt-2 flex flex-wrap items-center justify-end gap-1.5">
-          {!isPaymentPending ? (
+          {!isPaymentPending && canEdit ? (
             <label className="inline-flex items-center gap-1 text-[11px] text-zinc-500">
               Status
               <select
@@ -325,7 +355,7 @@ export default function LeadsSection({
               </select>
             </label>
           ) : null}
-          {!isPaymentPending && isNew ? (
+          {!isPaymentPending && canEdit && isNew ? (
             <button
               type="button"
               disabled={updatingId === lead.id}

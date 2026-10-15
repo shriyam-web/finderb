@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Alert, Pressable, Text, View } from 'react-native';
 import { useRouter, type Href } from 'expo-router';
 import { setPreferredShell } from '../../../lib/preferredShell';
@@ -5,9 +6,11 @@ import { fonts } from '../../../constants/typography';
 import { useAuth } from '../../../context/AuthContext';
 import { useTheme } from '../../../context/ThemeContext';
 import { useMerchantConsole } from '../../../context/MerchantConsoleContext';
-import type { ConsoleOverview } from '../../../lib/merchantConsoleApi';
+import { isFailure, type ConsoleOverview } from '../../../lib/merchantConsoleApi';
 import { ConsoleGate } from '../../../components/console/ConsoleGate';
+import { FinderBQrStudio } from '../../../components/console/FinderBQrStudio';
 import { ConsolePage, Panel, Row, createConsoleStyles, useTabBack } from '../../../components/console/kit';
+import { canViewTeamTab } from '../../../lib/teamAccess';
 
 const THEMES = [
   { key: 'light', label: 'Light' },
@@ -21,10 +24,13 @@ function MoreBody({ o }: { o: ConsoleOverview }) {
   const back = useTabBack();
   const { signOut } = useAuth();
   const { preference, setPreference } = useTheme();
-  const { refresh, refreshing } = useMerchantConsole();
+  const { refresh, refreshing, run, notify } = useMerchantConsole();
   const sub = o.subscription;
-  const unread = o.notifications.unread;
   const verified = o.business.emailVerified && o.business.mobileVerified;
+  const [qrOpen, setQrOpen] = useState(false);
+  const isOwner = o.actor?.isOwner !== false;
+  const can = (tab: Parameters<typeof canViewTeamTab>[1]) => canViewTeamTab(o.actor?.access, tab, isOwner);
+  const lastTool = can('jobs') ? 'jobs' : can('reviews') ? 'qr' : can('subscription') ? 'plan' : null;
 
   const logOut = () =>
     Alert.alert('Log out?', 'You can log back in with your business email or mobile.', [
@@ -72,33 +78,34 @@ function MoreBody({ o }: { o: ConsoleOverview }) {
       </View>
 
       <Panel flush>
-        <Row
-          icon="notifications-outline"
-          label="Notifications"
-          value={unread ? `${unread} unread` : undefined}
-          tone={unread ? 'warning' : undefined}
-          onPress={() => router.push('/business-console/alerts')}
-        />
+        {can('subscription') ? (
         <Row
           icon="card-outline"
           label="Plan and billing"
           value={sub.expiresAtDisplay ? `Till ${sub.expiresAtDisplay}` : planLine}
           tone={!sub.isActive || sub.alertLevel === 'urgent' ? 'warning' : undefined}
           onPress={() => router.push('/business-console/plan')}
+          last={lastTool === 'plan'}
         />
+        ) : null}
+        {can('reviews') ? (
         <Row
-          icon="images-outline"
-          label="Photos"
-          value={String(o.photos.images.length)}
-          onPress={() => router.push('/business-console/photos')}
+          icon="qr-code-outline"
+          label="FinderB review card"
+          value="QR + download"
+          onPress={() => setQrOpen(true)}
+          last={lastTool === 'qr'}
         />
+        ) : null}
+        {can('jobs') ? (
         <Row
           icon="briefcase-outline"
           label="Jobs"
           value={o.stats.activeJobs ? String(o.stats.activeJobs) : undefined}
           onPress={() => router.push('/business-console/jobs')}
-          last
+          last={lastTool === 'jobs'}
         />
+        ) : null}
       </Panel>
 
       <Panel flush>
@@ -151,8 +158,45 @@ function MoreBody({ o }: { o: ConsoleOverview }) {
             void setPreferredShell('user').then(() => router.replace('/(tabs)/home' as Href));
           }}
         />
+        {isOwner ? (
+          <Row
+            icon="trash-outline"
+            label="Delete my business"
+            tone="danger"
+            onPress={() =>
+              Alert.alert(
+                'Delete my business?',
+                'This takes your listing down so customers can no longer find it on FinderB.',
+                [
+                  { text: 'Cancel', style: 'cancel' },
+                  {
+                    text: 'Delete',
+                    style: 'destructive',
+                    onPress: async () => {
+                      const result = await run<{ success: true; message?: string }>('hideBusiness');
+                      if (isFailure(result)) {
+                        notify(result.error, 'bad');
+                        return;
+                      }
+                      notify(result.message || 'Your listing is no longer visible to customers.');
+                      void refresh();
+                    },
+                  },
+                ],
+              )
+            }
+          />
+        ) : null}
         <Row icon="log-out-outline" label="Log out" tone="danger" onPress={logOut} last />
       </Panel>
+      <FinderBQrStudio
+        visible={qrOpen}
+        businessName={o.business.name}
+        category={o.business.category}
+        city={o.business.city}
+        slugOrId={o.business.slug || o.business.id}
+        onClose={() => setQrOpen(false)}
+      />
     </ConsolePage>
   );
 }

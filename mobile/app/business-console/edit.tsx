@@ -403,7 +403,8 @@ function EditBody({ o, section }: { o: ConsoleOverview; section: SectionKey }) {
   const navigation = useNavigation();
   const { run, notify } = useMerchantConsole();
   const meta = LISTING_SECTIONS.find((item) => item.key === section) ?? LISTING_SECTIONS[0];
-  const [form, setForm] = useState<ConsoleProfile>(() => ({ ...o.profile, timings: { ...(o.profile.timings || {}) } }));
+  const [form, setForm] = useState<ConsoleProfile>(() => profileSnapshot(o.profile));
+  const [committed, setCommitted] = useState<ConsoleProfile>(() => profileSnapshot(o.profile));
   const [saving, setSaving] = useState(false);
   const [placeMenu, setPlaceMenu] = useState<'state' | 'city' | null>(null);
   const [mapOpen, setMapOpen] = useState(false);
@@ -435,7 +436,8 @@ function EditBody({ o, section }: { o: ConsoleOverview; section: SectionKey }) {
   };
 
   const fields = SECTION_FIELDS[section];
-  const dirty = fields.some((key) => JSON.stringify(form[key]) !== JSON.stringify(o.profile[key]));
+  const dirty = fields.some((key) => !valuesEqual(form[key], committed[key]));
+  if (dirty) saved.current = false;
   const pin: MapPin | null = form.latitude && form.longitude ? { lat: form.latitude, lng: form.longitude } : null;
   const pinMoved = form.latitude !== o.profile.latitude || form.longitude !== o.profile.longitude;
 
@@ -529,15 +531,22 @@ function EditBody({ o, section }: { o: ConsoleOverview; section: SectionKey }) {
     if (section === 'contact' && ownerVerified) patch.ownerMobileVerificationToken = ownerProof?.token;
     if (section === 'contact' && whatsappVerified) patch.whatsappVerificationToken = whatsappProof?.token;
     setSaving(true);
-    const result = await run<ConsoleOverview>('saveProfile', { patch });
-    setSaving(false);
-    if (isFailure(result)) {
-      notify(result.error, 'bad');
-      return;
+    try {
+      const result = await run<ConsoleOverview>('saveProfile', { patch });
+      if (isFailure(result)) {
+        notify(result.error, 'bad');
+        return;
+      }
+      const next = result.profile ? profileSnapshot(result.profile) : profileSnapshot(form);
+      setForm(next);
+      setCommitted(next);
+      saved.current = true;
+      notify(`${meta.title} saved`);
+    } catch {
+      notify('Could not save. Try again.', 'bad');
+    } finally {
+      setSaving(false);
     }
-    saved.current = true;
-    notify(`${meta.title} saved`);
-    router.back();
   };
 
   const services = servicesOf(form.serviceCategory);
@@ -548,7 +557,14 @@ function EditBody({ o, section }: { o: ConsoleOverview; section: SectionKey }) {
       form={section !== 'hours'}
       title={meta.title}
       subtitle="Edit listing"
-      footer={<Btn label={dirty ? 'Save changes' : 'No changes yet'} busy={saving} disabled={!dirty} onPress={() => void save()} />}
+      footer={
+        <Btn
+          label={dirty ? 'Save changes' : saved.current ? 'Saved' : 'No changes yet'}
+          busy={saving}
+          disabled={!dirty || saving}
+          onPress={() => void save()}
+        />
+      }
     >
       {section === 'basics' ? (
         <>
@@ -605,8 +621,15 @@ function EditBody({ o, section }: { o: ConsoleOverview; section: SectionKey }) {
             value={form.whatsappNumber}
             onChangeText={(value) => set('whatsappNumber', mobileInputDigits(value, form.whatsappNumber))}
             maxLength={14}
+            editable={!whatsappVerified}
             error={errors.whatsappNumber}
-            hint={whatsappIsNew ? 'New number — confirm it with a WhatsApp code before saving.' : undefined}
+            hint={
+              whatsappVerified
+                ? 'Verified. Locked until you save, so it isn’t changed by mistake.'
+                : whatsappIsNew
+                  ? 'New number — confirm it with a WhatsApp code before saving.'
+                  : undefined
+            }
           />
           {whatsappIsNew ? (
             whatsappVerified ? (
@@ -654,8 +677,13 @@ function EditBody({ o, section }: { o: ConsoleOverview; section: SectionKey }) {
               value={form.ownerMobile}
               onChangeText={(value) => set('ownerMobile', mobileInputDigits(value, form.ownerMobile))}
               maxLength={14}
+              editable={!ownerVerified}
               error={errors.ownerMobile}
-              hint="Only FinderB sees this. Your login email and mobile are changed under Login & security."
+              hint={
+                ownerVerified
+                  ? 'Verified. Locked until you save, so it isn’t changed by mistake.'
+                  : 'Only FinderB sees this. Your login email and mobile are changed under Login & security.'
+              }
             />
             {ownerMobileIsNew ? (
               ownerVerified ? (
@@ -864,6 +892,24 @@ function EditBody({ o, section }: { o: ConsoleOverview; section: SectionKey }) {
       ) : null}
     </ConsolePage>
   );
+}
+
+function profileSnapshot(profile: ConsoleProfile): ConsoleProfile {
+  return { ...profile, timings: { ...(profile.timings || {}) } };
+}
+
+function valuesEqual(left: unknown, right: unknown) {
+  if (typeof left === 'string' || typeof right === 'string') {
+    return String(left ?? '').trim() === String(right ?? '').trim();
+  }
+  if (typeof left === 'number' || typeof right === 'number') {
+    return Number(left || 0) === Number(right || 0);
+  }
+  try {
+    return JSON.stringify(left ?? null) === JSON.stringify(right ?? null);
+  } catch {
+    return left === right;
+  }
 }
 
 function isSection(value: unknown): value is SectionKey {
