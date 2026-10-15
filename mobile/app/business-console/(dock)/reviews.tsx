@@ -10,6 +10,7 @@ import { getRatingDisplay } from '../../../lib/ratingDisplay';
 import { isFailure, type ConsoleOverview, type ConsoleReview } from '../../../lib/merchantConsoleApi';
 import { ConsoleGate } from '../../../components/console/ConsoleGate';
 import { FinderBQrStudio } from '../../../components/console/FinderBQrStudio';
+import { RankBannerArt } from '../../../components/console/ReviewsRankArt';
 import {
   Btn,
   Chip,
@@ -286,6 +287,7 @@ function ReviewsBody({ o }: { o: ConsoleOverview }) {
       onRefresh={() => void refresh()}
     >
       <View style={styles.rankBanner}>
+        <RankBannerArt />
         <Text style={styles.rankBannerKicker}>Higher visibility</Text>
         <Text style={styles.rankBannerTitle}>
           {Math.max(0, 10 - o.stats.reviewCount) > 0
@@ -494,22 +496,23 @@ const useStyles = createConsoleStyles((c) => ({
   templateBody: { marginTop: 2, fontFamily: fonts.regular, fontSize: 12.5, lineHeight: 17, color: c.muted },
   filters: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   rankBanner: {
+    position: 'relative',
+    overflow: 'hidden',
     padding: 16,
+    paddingRight: 118,
     borderRadius: 16,
-    backgroundColor: '#3F3F46',
-    gap: 6,
+    backgroundColor: '#F59E0B',
+    gap: 4,
   },
   rankBannerKicker: {
-    fontFamily: fonts.semiBold,
-    fontSize: 11,
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
-    color: '#F9D48A',
+    fontFamily: fonts.medium,
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.86)',
   },
   rankBannerTitle: {
-    fontFamily: fonts.semiBold,
-    fontSize: 17,
-    lineHeight: 23,
+    fontFamily: fonts.medium,
+    fontSize: 16,
+    lineHeight: 22,
     color: '#FFFFFF',
   },
   card: {
@@ -517,15 +520,15 @@ const useStyles = createConsoleStyles((c) => ({
     padding: 16,
     paddingBottom: 44,
     borderRadius: 14,
-    backgroundColor: '#F4F8FC',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: 'rgba(33,84,129,0.18)',
+    borderColor: 'rgba(228,228,231,0.95)',
     gap: 12,
   },
   cardHighlight: {
     borderColor: '#E8873A',
     borderWidth: 1.5,
-    backgroundColor: '#FFF6EB',
+    backgroundColor: '#FFFFFF',
   },
   cardHead: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingRight: 72 },
   idBadge: {

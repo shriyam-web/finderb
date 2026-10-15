@@ -1,6 +1,6 @@
 'use client';
 
-import { HiOutlineQrCode, HiOutlineStar } from 'react-icons/hi2';
+import { HiOutlineQrCode } from 'react-icons/hi2';
 
 export default function ReviewsVisibilityBanner({
   reviewCount,
@@ -12,21 +12,17 @@ export default function ReviewsVisibilityBanner({
   const remaining = Math.max(0, 10 - reviewCount);
 
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-orange-300/70 bg-gradient-to-br from-[#FFE8CC] via-[#FFC078] to-[#F59E0B] p-4 text-orange-950 shadow-[inset_0_1px_0_rgba(255,255,255,0.5)] sm:p-5">
-      <div className="pointer-events-none absolute -right-8 -top-10 h-40 w-40 rounded-full bg-white/25" />
-      <div className="pointer-events-none absolute bottom-[-24px] right-24 h-20 w-20 rotate-12 rounded-2xl bg-[#fff4d6]/70" />
+    <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#FFE8CC] via-[#FFC078] to-[#F59E0B] p-4 text-orange-950 sm:p-5">
+      <RankVectors />
       <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0">
-          <p className="inline-flex items-center gap-1.5 rounded-full bg-white/45 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.16em] text-orange-800">
-            <HiOutlineStar size={12} />
-            Higher visibility
-          </p>
-          <h3 className="mt-2 text-lg font-semibold tracking-tight text-orange-950">
+        <div className="min-w-0 max-w-xl">
+          <p className="text-sm font-medium text-orange-900/80">Higher visibility</p>
+          <h3 className="mt-1 text-[17px] font-medium leading-snug text-orange-950">
             {remaining > 0
               ? `${remaining} more review${remaining === 1 ? '' : 's'} to unlock a stronger rank`
               : 'You crossed 10 reviews — keep the momentum'}
           </h3>
-          <p className="mt-1 max-w-xl text-sm text-orange-950/80">
+          <p className="mt-1.5 text-sm font-normal leading-relaxed text-orange-950/75">
             Listings with at least 10 genuine reviews show up more often. Generate your FinderB QR card and
             send a one-tap review link to customers.
           </p>
@@ -34,12 +30,41 @@ export default function ReviewsVisibilityBanner({
         <button
           type="button"
           onClick={onOpenStudio}
-          className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-zinc-800 px-4 py-2.5 text-sm font-semibold text-white hover:bg-zinc-700"
+          className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-zinc-800 px-4 py-2.5 text-sm font-medium text-white hover:bg-zinc-700"
         >
           <HiOutlineQrCode size={18} />
           Create QR card
         </button>
       </div>
     </div>
+  );
+}
+
+function RankVectors() {
+  return (
+    <svg
+      className="pointer-events-none absolute inset-y-0 right-0 h-full w-[46%] max-w-[240px]"
+      viewBox="0 0 240 160"
+      fill="none"
+      aria-hidden
+    >
+      <rect x="150" y="86" width="18" height="46" rx="5" fill="#fff" fillOpacity="0.38" />
+      <rect x="174" y="62" width="18" height="70" rx="5" fill="#fff" fillOpacity="0.55" />
+      <rect x="198" y="36" width="18" height="96" rx="5" fill="#fff" fillOpacity="0.78" />
+      <path
+        d="M48 22l5.2 15.6H70l-13.4 9.6 5.1 15.6L48 53.2 34.3 62.8l5.1-15.6L26 37.6h16.8L48 22z"
+        fill="#FDE68A"
+      />
+      <path
+        d="M92 14l3.6 10.8H107l-9.2 6.6 3.5 10.8-9.3-6.8-9.3 6.8 3.5-10.8-9.2-6.6h11.4L92 14z"
+        fill="#fff"
+        fillOpacity="0.88"
+      />
+      <path
+        d="M78 118c16 0 29-9 29-20s-13-20-29-20-29 9-29 20c0 4.6 2.3 8.8 6.2 12.2-.4 6.6-4.6 11.6-4.6 11.6s8.8-1.2 14.2-5c4 .9 8.4 1.2 13.2 1.2z"
+        fill="#fff"
+        fillOpacity="0.45"
+      />
+    </svg>
   );
 }

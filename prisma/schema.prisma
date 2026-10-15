@@ -54,6 +54,7 @@ model Business {
   state                                                  String?
   country                                                String?
   status                                                 String       @default("Active")
+  deletionScheduledAt                                    DateTime?
   slug                                                   String?      @unique
   images                                                 String[]     @default([])
   profilePictureUrl                                      String?

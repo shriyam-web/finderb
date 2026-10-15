@@ -126,6 +126,7 @@ function DashboardContent() {
   const [teamAccess, setTeamAccess] = useState<TeamAccessMap>(() => ownerTeamAccess());
   const [competitorAverage, setCompetitorAverage] = useState<number | null>(null);
   const [averageResponse, setAverageResponse] = useState<string | null>(null);
+  const [averageResponseMs, setAverageResponseMs] = useState<number | null>(null);
 
   const handleSettingsFocusHandled = useCallback(() => {
     setSettingsFocusField(null);
@@ -521,6 +522,7 @@ function DashboardContent() {
       if (!result.success) return;
       setCompetitorAverage(result.competitorAverage);
       if (result.averageResponse) setAverageResponse(result.averageResponse);
+      if (result.averageResponseMs != null) setAverageResponseMs(result.averageResponseMs);
     });
   }, [businessId, business?.category]);
 
@@ -988,6 +990,7 @@ function DashboardContent() {
               ownPercent={completionPercent}
               competitorAverage={competitorAverage}
               averageResponse={averageResponse}
+              averageResponseMs={averageResponseMs}
             />
 
             {!isListingLiveOnPlatform && (
@@ -1136,6 +1139,10 @@ function DashboardContent() {
             missingFields={listingMissingFields}
             competitorAverage={competitorAverage}
             averageResponse={averageResponse}
+            averageResponseMs={averageResponseMs}
+            registrationNumber={business?.registrationNumber}
+            deletionScheduledAt={business?.deletionScheduledAt}
+            isOwner={isOwner}
             onEditProfile={() => setActiveTab('settings')}
             onOpenSettingsField={openSettingsField}
             onOpenKyc={openKycInfo}

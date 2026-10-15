@@ -8,7 +8,7 @@ import {
 } from '@/app/actions/business';
 import { getBusinessLeads, markLeadRead, updateLeadStatus } from '@/app/actions/leads';
 import { isOpenLead } from '@/lib/leadBadges';
-import { isLeadUnread, averageLeadResponseLabel } from '@/lib/leadRead';
+import { isLeadUnread, averageLeadResponseLabel, averageLeadResponseMs } from '@/lib/leadRead';
 import { loadCompetitorAverageFromClient } from '@/lib/dashboard/competitorInsights';
 import { revalidateBusinessProfilePaths } from '@/lib/businessRevalidation';
 import { isBusinessWhatsappVerified } from '@/lib/unverifiedContact';
@@ -86,6 +86,11 @@ import {
 import { CONSOLE_ACTION_ACCESS, TEAM_OWNER_ONLY, TEAM_TAB_LOCKED } from '@/lib/businessTeam/teamAccess';
 import { resolveBusinessActor } from '@/lib/businessTeam/teamActor.server';
 import { createServiceClient } from '@/lib/supabase/service';
+import {
+  applyDueBusinessDeletion,
+  cancelScheduledBusinessDeletion,
+  scheduleBusinessDeletion,
+} from '@/lib/accountDeletion.server';
 import { escapeIlikePattern } from '@/lib/searchMatch';
 
 type Business = Record<string, unknown>;
@@ -333,6 +338,7 @@ async function viewTrend(businessId: string) {
 async function overview(businessId: string) {
   const actor = await resolveBusinessActor(businessId);
   if (!actor.ok) return fail(actor.error);
+  await applyDueBusinessDeletion(businessId);
   const business = await loadBusiness(businessId);
   if ('success' in business) return business;
 
@@ -382,6 +388,7 @@ async function overview(businessId: string) {
         hasVerifiedBadge: business.hasVerifiedBadge as boolean,
       }),
       registrationNumber: text(business.registrationNumber) || null,
+      deletionScheduledAt: (business.deletionScheduledAt as string) || null,
       profilePath: getBusinessProfilePath({
         id: businessId,
         slug: business.slug as string,
@@ -415,6 +422,7 @@ async function overview(businessId: string) {
       leadsTotal: leads.length,
       leadsNew: leads.filter((lead) => isLeadUnread(lead)).length,
       averageResponse: averageLeadResponseLabel(leads),
+      averageResponseMs: averageLeadResponseMs(leads),
       competitorAverage,
       leads7d: leads.filter(
         (lead) => lead.created_at && Date.now() - new Date(lead.created_at).getTime() <= 7 * 24 * 60 * 60 * 1000,
@@ -578,29 +586,13 @@ async function markLeadReadAction(leadId: unknown) {
 }
 
 async function hideBusiness(businessId: string) {
-  const supabase = createServiceClient();
-  if (!supabase) return fail('Could not take down this listing.');
-  const { data, error } = await supabase
-    .from('Business')
-    .update({
-      status: 'inactive',
-      updatedAt: new Date().toISOString(),
-    })
-    .eq('id', businessId)
-    .select('id, slug, businessName, displayName, city, status')
-    .maybeSingle();
-  if (error || !data) return fail('Could not take down this listing.');
-  revalidateBusinessProfilePaths({
-    id: data.id,
-    slug: data.slug,
-    name: data.displayName,
-    businessName: data.businessName,
-    city: data.city,
-  });
-  return {
-    success: true as const,
-    message: 'Your listing has been taken down and is no longer visible to customers.',
-  };
+  const result = await scheduleBusinessDeletion(businessId);
+  return result.success ? result : fail(result.error);
+}
+
+async function cancelDeletion(businessId: string) {
+  const result = await cancelScheduledBusinessDeletion(businessId);
+  return result.success ? result : fail(result.error);
 }
 
 async function setLeadStatus(leadId: unknown, status: unknown) {
@@ -896,6 +888,8 @@ export async function runConsoleAction(userId: string, businessId: string, body:
       return markLeadReadAction(body.leadId);
     case 'hideBusiness':
       return hideBusiness(businessId);
+    case 'cancelDeletion':
+      return cancelDeletion(businessId);
     case 'replyReview':
       return replyReview(businessId, body.reviewId, body.content);
     case 'flagReview':

@@ -130,6 +130,7 @@ export type ConsoleBusiness = {
   kycStatus: string;
   verifiedBadge: boolean;
   registrationNumber: string | null;
+  deletionScheduledAt: string | null;
   profilePath: string;
   ownerName: string;
   loginEmail: string;
@@ -165,6 +166,7 @@ export type ConsoleOverview = {
     reviewsAwaitingReply: number;
     activeJobs: number;
     averageResponse: string | null;
+    averageResponseMs: number | null;
     competitorAverage: number | null;
   };
   leads: ConsoleLead[];

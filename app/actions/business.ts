@@ -29,6 +29,11 @@ import { getBusinessProfilePath, isLegacyBusinessId, resolveBusinessSlug } from 
 import { queueIndexNow } from '@/lib/indexNow.server';
 import { createServiceClient } from '@/lib/supabase/service';
 import {
+  applyDueBusinessDeletion,
+  cancelScheduledBusinessDeletion,
+  scheduleBusinessDeletion,
+} from '@/lib/accountDeletion.server';
+import {
   CATEGORY_LISTINGS_MAX_PAGE_SIZE,
   CATEGORY_LISTINGS_PAGE_SIZE,
 } from '@/lib/categoryListings';
@@ -691,6 +696,7 @@ export async function getOwnedBusiness(id: string) {
     }
 
     const supabase = await createDataClient();
+    await applyDueBusinessDeletion(id);
 
     const { data: business, error } = await supabase
       .from('Business')
@@ -1700,32 +1706,25 @@ export async function hideOwnBusinessListing(businessId: string) {
     if (!auth.ok) {
       return { success: false as const, error: auth.error };
     }
-    const supabase = createServiceClient() ?? (await createDataClient());
-    const { data, error } = await supabase
-      .from('Business')
-      .update({
-        status: 'inactive',
-        updatedAt: new Date().toISOString(),
-      })
-      .eq('id', businessId)
-      .select('id, slug, businessName, displayName, city, status')
-      .maybeSingle();
-    if (error || !data) {
-      return { success: false as const, error: 'Could not take down this listing.' };
-    }
-    revalidateBusinessProfilePaths({
-      id: data.id,
-      slug: data.slug,
-      name: data.displayName,
-      businessName: data.businessName,
-      city: data.city,
-    });
-    return {
-      success: true as const,
-      message: 'Your listing has been taken down and is no longer visible to customers.',
-    };
+    return scheduleBusinessDeletion(businessId);
   } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : 'Could not take down this listing.';
+    const msg = error instanceof Error ? error.message : 'Could not schedule deletion.';
+    return { success: false as const, error: msg };
+  }
+}
+
+export async function cancelOwnBusinessDeletion(businessId: string) {
+  try {
+    if (!businessId) {
+      return { success: false as const, error: 'Business ID is required' };
+    }
+    const auth = await assertBusinessOwner(businessId);
+    if (!auth.ok) {
+      return { success: false as const, error: auth.error };
+    }
+    return cancelScheduledBusinessDeletion(businessId);
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : 'Could not cancel deletion.';
     return { success: false as const, error: msg };
   }
 }

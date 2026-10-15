@@ -230,10 +230,10 @@ export default function DashboardSidebar({
           onClose();
           onLogout();
         }}
-        className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-sm text-zinc-600 hover:bg-zinc-50 hover:text-rose-700"
+        className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg bg-[#DC2626] px-3 py-2.5 text-sm font-semibold text-white hover:bg-[#B91C1C]"
       >
         <HiOutlineArrowLeftOnRectangle size={16} />
-        Sign out
+        Log out
       </button>
     </div>
   );

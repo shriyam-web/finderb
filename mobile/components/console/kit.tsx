@@ -447,17 +447,18 @@ type FieldProps = TextInputProps & {
   error?: string;
   counter?: string;
   prefix?: string;
+  boxed?: boolean;
 };
 
 /** Underlined text field: label on top, a single bottom rule that thickens on focus. */
-export function Field({ label, hint, error, counter, prefix, style, multiline, onFocus, onBlur, editable, ...input }: FieldProps) {
+export function Field({ label, hint, error, counter, prefix, boxed, style, multiline, onFocus, onBlur, editable, ...input }: FieldProps) {
   const styles = useKitStyles();
   const c = useConsoleColors();
   const [focused, setFocused] = useState(false);
   const locked = editable === false;
   const ruleColor = error ? c.danger : focused ? c.primary : c.lineStrong;
   return (
-    <View style={[styles.field, locked && { opacity: 0.7 }]}>
+    <View style={[styles.field, boxed && styles.fieldBoxed, boxed && focused && { borderColor: c.primary }, locked && { opacity: 0.7 }]}>
       <Text style={[styles.fieldLabel, focused && { color: c.primary }, error ? { color: c.danger } : null]}>
         {label}
       </Text>
@@ -465,7 +466,7 @@ export function Field({ label, hint, error, counter, prefix, style, multiline, o
         style={[
           styles.fieldLine,
           multiline && styles.fieldLineMulti,
-          { borderBottomColor: ruleColor, borderBottomWidth: focused || error ? 2 : 1 },
+          boxed ? styles.fieldLineBoxed : { borderBottomColor: ruleColor, borderBottomWidth: focused || error ? 2 : 1 },
         ]}
       >
         {prefix ? <Text style={styles.prefix}>{prefix}</Text> : null}
@@ -617,7 +618,7 @@ export function Sheet({
       presentationStyle={Platform.OS === 'ios' ? 'fullScreen' : undefined}
     >
       <StatusBar barStyle={c.isDark ? 'light-content' : 'dark-content'} />
-      <KeyboardAvoidingView style={styles.page} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <KeyboardAvoidingView style={styles.page} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={[styles.header, { paddingTop: insets.top }]}>
           <View style={styles.headerRow}>
             <Pressable
@@ -655,7 +656,7 @@ export function Sheet({
         </View>
         <ScrollView
           style={styles.flex}
-          contentContainerStyle={styles.sheetBody}
+          contentContainerStyle={[styles.sheetBody, footer ? { paddingBottom: 28 } : null]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
@@ -954,6 +955,7 @@ const useKitStyles = createConsoleStyles((c) => ({
     borderWidth: 1,
     borderColor: c.line,
     padding: 14,
+    overflow: 'visible',
   },
   panelFlush: { padding: 0, overflow: 'hidden' },
   btn: {
@@ -974,7 +976,16 @@ const useKitStyles = createConsoleStyles((c) => ({
   btnLabel: { fontFamily: fonts.semiBold, fontSize: 15 },
   btnLabelSmall: { fontSize: 13.5 },
   pressed: { opacity: 0.8 },
-  field: { gap: 2 },
+  field: { gap: 2, zIndex: 2 },
+  fieldBoxed: {
+    borderWidth: 1,
+    borderColor: c.lineStrong,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingTop: 8,
+    paddingBottom: 4,
+    backgroundColor: c.card,
+  },
   fieldLabel: { fontFamily: fonts.regular, fontSize: 13, color: c.muted },
   fieldLine: {
     flexDirection: 'row',
@@ -982,6 +993,9 @@ const useKitStyles = createConsoleStyles((c) => ({
     minHeight: 44,
     borderBottomWidth: 1,
     borderBottomColor: c.lineStrong,
+  },
+  fieldLineBoxed: {
+    borderBottomWidth: 0,
   },
   fieldLineMulti: { alignItems: 'flex-start' },
   prefix: { fontFamily: fonts.regular, fontSize: 16, color: c.muted, marginRight: 6 },

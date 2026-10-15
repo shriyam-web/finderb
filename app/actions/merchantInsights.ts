@@ -3,7 +3,7 @@
 import { createServiceClient } from '@/lib/supabase/service';
 import { assertBusinessTab } from '@/lib/businessTeam/teamActor.server';
 import { loadCompetitorAverageFromClient } from '@/lib/dashboard/competitorInsights';
-import { averageLeadResponseLabel } from '@/lib/leadRead';
+import { averageLeadResponseLabel, averageLeadResponseMs } from '@/lib/leadRead';
 
 export async function getMerchantPerformanceInsights(businessId: string, category?: string) {
   const tab = await assertBusinessTab(businessId, 'overview', 'view');
@@ -11,7 +11,12 @@ export async function getMerchantPerformanceInsights(businessId: string, categor
 
   const supabase = createServiceClient();
   if (!supabase) {
-    return { success: true as const, competitorAverage: null as number | null, averageResponse: null as string | null };
+    return {
+      success: true as const,
+      competitorAverage: null as number | null,
+      averageResponse: null as string | null,
+      averageResponseMs: null as number | null,
+    };
   }
 
   const cat = String(category || '').trim();
@@ -27,5 +32,6 @@ export async function getMerchantPerformanceInsights(businessId: string, categor
     success: true as const,
     competitorAverage,
     averageResponse: averageLeadResponseLabel(leads || []),
+    averageResponseMs: averageLeadResponseMs(leads || []),
   };
 }

@@ -31,11 +31,11 @@ export type AlertSlide = {
 
 /* eslint-disable @typescript-eslint/no-require-imports */
 export const BANNER_ART = {
-  leads: require('../../assets/console/leads.jpg'),
-  photos: require('../../assets/console/photos.jpg'),
-  verify: require('../../assets/console/verify.jpg'),
-  growth: require('../../assets/console/growth.jpg'),
-  profile: require('../../assets/console/profile.jpg'),
+  leads: require('../../assets/console/leads.png'),
+  photos: require('../../assets/console/photos.png'),
+  verify: require('../../assets/console/verify.png'),
+  growth: require('../../assets/console/growth.png'),
+  profile: require('../../assets/console/profile.png'),
 } as const;
 /* eslint-enable @typescript-eslint/no-require-imports */
 
@@ -291,7 +291,6 @@ export function AlertCarousel({ slides }: { slides: AlertSlide[] }) {
                       </View>
                     </View>
                     <View style={styles.artWrap}>
-                      <View style={styles.artDisc} />
                       <Image source={item.art} style={styles.art} resizeMode="contain" fadeDuration={0} alt="" />
                     </View>
                   </LinearGradient>
@@ -392,13 +391,6 @@ const useStyles = createConsoleStyles((c) => ({
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 1,
-  },
-  artDisc: {
-    position: 'absolute',
-    width: 108,
-    height: 108,
-    borderRadius: 54,
-    backgroundColor: 'rgba(255,255,255,0.42)',
   },
   art: { width: 124, height: 124 },
   placeholder: { height: SLIDE_HEIGHT },

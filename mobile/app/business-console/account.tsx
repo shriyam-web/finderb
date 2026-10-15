@@ -107,13 +107,6 @@ function ContactSheet({
       visible={Boolean(kind)}
       title={kind === 'email' ? 'Login email' : 'Login mobile'}
       onClose={onClose}
-      footer={
-        sent ? (
-          <Btn label="Verify code" busy={checking} disabled={code.length !== 6} onPress={() => void confirm()} />
-        ) : (
-          <Btn label="Send verification code" busy={sending} disabled={!valid} onPress={() => void send()} />
-        )
-      }
     >
       <Text style={styles.sheetLead}>
         {kind === 'email'
@@ -122,6 +115,7 @@ function ContactSheet({
       </Text>
       {kind === 'email' ? (
         <Field
+          boxed
           label="Email"
           value={value}
           onChangeText={setValue}
@@ -131,19 +125,18 @@ function ContactSheet({
           editable={!checking}
         />
       ) : (
-        <>
-          <Field
-            label="Mobile number"
-            prefix="+91"
-            value={value}
-            onChangeText={(next) => setValue(mobileInputDigits(next, value))}
-            keyboardType="phone-pad"
-            maxLength={14}
-            editable={!checking}
-          />
-          <View style={{ height: 16 }} />
-        </>
+        <Field
+          boxed
+          label="Mobile number"
+          prefix="+91"
+          value={value}
+          onChangeText={(next) => setValue(mobileInputDigits(next, value))}
+          keyboardType="phone-pad"
+          maxLength={14}
+          editable={!checking}
+        />
       )}
+      <View style={{ height: 16 }} />
       {sent ? (
         <View style={styles.otp}>
           {note ? <Text style={styles.note}>{note}</Text> : null}
@@ -162,6 +155,11 @@ function ContactSheet({
           </Pressable>
         </View>
       ) : null}
+      {sent ? (
+        <Btn label="Verify code" busy={checking} disabled={code.length !== 6} onPress={() => void confirm()} />
+      ) : (
+        <Btn label="Send verification code" busy={sending} disabled={!valid} onPress={() => void send()} />
+      )}
     </Sheet>
   );
 }

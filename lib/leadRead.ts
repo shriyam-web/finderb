@@ -12,9 +12,9 @@ export function formatResponseDuration(ms: number): string {
   return days === 1 ? '1 day' : `${days} days`;
 }
 
-export function averageLeadResponseLabel(
+export function averageLeadResponseMs(
   leads: Array<{ created_at?: string | null; merchant_read_at?: string | null }>,
-): string | null {
+): number | null {
   const samples = leads
     .map((lead) => {
       if (!lead.created_at || !lead.merchant_read_at) return null;
@@ -26,6 +26,12 @@ export function averageLeadResponseLabel(
     .filter((value): value is number => value != null);
 
   if (!samples.length) return null;
-  const mean = samples.reduce((sum, value) => sum + value, 0) / samples.length;
-  return formatResponseDuration(mean);
+  return samples.reduce((sum, value) => sum + value, 0) / samples.length;
+}
+
+export function averageLeadResponseLabel(
+  leads: Array<{ created_at?: string | null; merchant_read_at?: string | null }>,
+): string | null {
+  const mean = averageLeadResponseMs(leads);
+  return mean == null ? null : formatResponseDuration(mean);
 }

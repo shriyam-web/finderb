@@ -13,7 +13,6 @@ import {
   type TeamInviteChannel,
   type TeamTabKey,
 } from '../../lib/teamAccess';
-import { OtpCodeBoxes } from '../OtpCodeBoxes';
 import { Btn, Field, Panel, Section, Tag, createConsoleStyles } from './kit';
 
 type Member = {
@@ -27,7 +26,7 @@ type Member = {
   inviteExpiresAt?: string | null;
 };
 
-type Step = 'list' | 'channel' | 'contact' | 'otp' | 'access';
+type Step = 'list' | 'channel' | 'contact' | 'access';
 
 function hoursLeft(member: Pick<Member, 'inviteExpiresAt' | 'lastInviteSentAt'>) {
   const fromExpiry = member.inviteExpiresAt ? new Date(member.inviteExpiresAt).getTime() : Number.POSITIVE_INFINITY;
@@ -51,7 +50,6 @@ export function TeamAccess() {
   const [channel, setChannel] = useState<TeamInviteChannel>('email');
   const [email, setEmail] = useState('');
   const [mobile, setMobile] = useState('');
-  const [code, setCode] = useState('');
   const [access, setAccess] = useState<TeamAccessMap>(defaultInviteAccess);
   const [draftId, setDraftId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -73,7 +71,6 @@ export function TeamAccess() {
     setChannel('email');
     setEmail('');
     setMobile('');
-    setCode('');
     setAccess(defaultInviteAccess());
     setDraftId(null);
   };
@@ -92,21 +89,7 @@ export function TeamAccess() {
       return;
     }
     setDraftId(result.member.id);
-    notify(result.warning || 'Verification code sent.');
-    setStep('otp');
-    await load();
-  };
-
-  const verify = async () => {
-    if (!draftId) return;
-    setBusy(true);
-    const result = await run('verifyTeamOtp', { memberId: draftId, code });
-    setBusy(false);
-    if (isFailure(result)) {
-      notify(result.error, 'bad');
-      return;
-    }
-    setCode('');
+    notify(result.warning || 'Invite link sent.');
     setStep('access');
     await load();
   };
@@ -133,10 +116,7 @@ export function TeamAccess() {
       notify(result.error, 'bad');
       return;
     }
-    setDraftId(memberId);
-    setCode('');
-    setStep('otp');
-    notify(result.warning || 'A fresh code was sent.');
+    notify(result.warning || 'Invite link sent again.');
     await load();
   };
 
@@ -164,7 +144,7 @@ export function TeamAccess() {
       {step === 'list' ? (
         <Panel>
           <Text style={styles.hint}>
-            Invite by email or phone, verify a one-time code, then choose view or edit rights for each tab. Invites
+            Invite by email or phone with a link, then choose view or edit rights for each tab. Invites
             cancel after {TEAM_INVITE_HOURS} hours if they are not accepted. Only you can change these rights.
           </Text>
           <Btn label="Invite teammate" icon="person-add-outline" onPress={() => setStep('channel')} />
@@ -176,11 +156,11 @@ export function TeamAccess() {
           <Text style={styles.title}>Send the invite by</Text>
           <Pressable onPress={() => setChannel('email')} style={[styles.choice, channel === 'email' && styles.choiceOn]}>
             <Text style={styles.choiceTitle}>Email</Text>
-            <Text style={styles.choiceBody}>A 6-digit code and invite link go to their inbox.</Text>
+            <Text style={styles.choiceBody}>An invitation link goes to their inbox.</Text>
           </Pressable>
           <Pressable onPress={() => setChannel('phone')} style={[styles.choice, channel === 'phone' && styles.choiceOn]}>
             <Text style={styles.choiceTitle}>Phone</Text>
-            <Text style={styles.choiceBody}>A WhatsApp verification code goes to their Indian mobile number.</Text>
+            <Text style={styles.choiceBody}>An invitation link goes to their WhatsApp.</Text>
           </Pressable>
           <Btn label="Continue" onPress={() => setStep('contact')} />
           <Btn label="Cancel" tone="text" onPress={reset} />
@@ -189,31 +169,32 @@ export function TeamAccess() {
 
       {step === 'contact' ? (
         <Panel>
-          <Text style={styles.title}>{channel === 'email' ? 'Enter their email' : 'Enter their mobile'}</Text>
-          {channel === 'email' ? (
-            <Field label="Email" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" />
-          ) : (
-            <Field label="Mobile" value={mobile} onChangeText={setMobile} keyboardType="phone-pad" prefix="+91" />
-          )}
-          <Btn label={busy ? 'Sending…' : 'Send verification code'} busy={busy} onPress={() => void sendCode()} />
-          <Btn label="Back" tone="text" onPress={() => setStep('channel')} />
-        </Panel>
-      ) : null}
-
-      {step === 'otp' ? (
-        <Panel>
-          <Text style={styles.title}>Enter the 6-digit code</Text>
-          <Text style={styles.hint}>
-            If they are with you, type it here. Otherwise they can verify from the invite they received.
-          </Text>
-          <OtpCodeBoxes value={code} onChange={setCode} accent={c.accent} />
-          <Btn
-            label="Verify code"
-            busy={busy}
-            disabled={code.length !== 6 || !draftId}
-            onPress={() => void verify()}
-          />
-          <Btn label="They will verify themselves" tone="text" onPress={() => setStep('access')} />
+          <View style={styles.inviteForm}>
+            <Text style={styles.title}>{channel === 'email' ? 'Enter their email' : 'Enter their mobile'}</Text>
+            {channel === 'email' ? (
+              <Field
+                boxed
+                label="Email"
+                value={email}
+                onChangeText={setEmail}
+                autoCapitalize="none"
+                keyboardType="email-address"
+                placeholder="name@business.com"
+              />
+            ) : (
+              <Field
+                boxed
+                label="Mobile"
+                value={mobile}
+                onChangeText={setMobile}
+                keyboardType="phone-pad"
+                prefix="+91"
+                placeholder="98765 43210"
+              />
+            )}
+            <Btn label={busy ? 'Sending…' : 'Send invite'} busy={busy} onPress={() => void sendCode()} />
+            <Btn label="Back" tone="text" onPress={() => setStep('channel')} />
+          </View>
         </Panel>
       ) : null}
 
@@ -355,7 +336,8 @@ function AccessEditor({
 
 const useStyles = createConsoleStyles((c) => ({
   hint: { fontFamily: fonts.regular, fontSize: 13, lineHeight: 18, color: c.muted, marginBottom: 12 },
-  title: { fontFamily: fonts.semiBold, fontSize: 16, color: c.ink, marginBottom: 10 },
+  inviteForm: { gap: 16, zIndex: 2, position: 'relative' },
+  title: { fontFamily: fonts.semiBold, fontSize: 16, color: c.ink },
   choice: {
     borderWidth: 1,
     borderColor: c.line,

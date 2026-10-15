@@ -88,6 +88,7 @@ export const CONSOLE_ACTION_ACCESS: Record<
   setLeadStatus: { tab: 'leads', mode: 'edit' },
   markLeadRead: { tab: 'leads', mode: 'view' },
   hideBusiness: { owner: true },
+  cancelDeletion: { owner: true },
   replyReview: { tab: 'reviews', mode: 'edit' },
   flagReview: { tab: 'reviews', mode: 'edit' },
   jobs: { tab: 'jobs', mode: 'view' },

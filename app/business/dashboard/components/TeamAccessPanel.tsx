@@ -14,10 +14,8 @@ import {
   resendBusinessTeamInvite,
   revokeBusinessTeamMember,
   updateBusinessTeamAccess,
-  verifyBusinessTeamInviteOtp,
 } from '@/app/actions/businessTeam';
 import TeamAccessMatrix from '@/components/business/TeamAccessMatrix';
-import OtpCodeBoxes from '@/components/auth/OtpCodeBoxes';
 import IndianPhoneInput from '@/components/IndianPhoneInput';
 import {
   TEAM_INVITE_HOURS,
@@ -40,7 +38,7 @@ type Member = {
   inviteExpiresAt: string | null;
 };
 
-type Step = 'list' | 'channel' | 'contact' | 'otp' | 'access';
+type Step = 'list' | 'channel' | 'contact' | 'access';
 
 function hoursLeft(member: Pick<Member, 'inviteExpiresAt' | 'lastInviteSentAt'>) {
   const fromExpiry = member.inviteExpiresAt ? new Date(member.inviteExpiresAt).getTime() : Number.POSITIVE_INFINITY;
@@ -60,7 +58,6 @@ export default function TeamAccessPanel({ businessId }: { businessId: string }) 
   const [channel, setChannel] = useState<TeamInviteChannel>('email');
   const [email, setEmail] = useState('');
   const [mobile, setMobile] = useState('');
-  const [code, setCode] = useState('');
   const [access, setAccess] = useState<TeamAccessMap>(defaultInviteAccess);
   const [draftId, setDraftId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -83,7 +80,6 @@ export default function TeamAccessPanel({ businessId }: { businessId: string }) 
     setChannel('email');
     setEmail('');
     setMobile('');
-    setCode('');
     setAccess(defaultInviteAccess());
     setDraftId(null);
     setError('');
@@ -112,27 +108,7 @@ export default function TeamAccessPanel({ businessId }: { businessId: string }) 
       return;
     }
     setDraftId(result.member.id);
-    setMessage(
-      result.warning ||
-        (channel === 'email'
-          ? 'A 6-digit code was emailed. Enter it here if they are with you, or they can verify from the invite.'
-          : 'A 6-digit WhatsApp code was sent. Enter it here if they are with you, or they can verify from the invite.'),
-    );
-    setStep('otp');
-    await load();
-  };
-
-  const verifyCode = async (nextCode = code) => {
-    if (!draftId) return;
-    setBusy(true);
-    setError('');
-    const result = await verifyBusinessTeamInviteOtp(businessId, draftId, nextCode);
-    setBusy(false);
-    if (!result.success) {
-      setError(result.error);
-      return;
-    }
-    setCode('');
+    setMessage(result.warning || 'Invite link sent. They can open it and create a password.');
     setStep('access');
     await load();
   };
@@ -169,10 +145,7 @@ export default function TeamAccessPanel({ businessId }: { businessId: string }) 
       setError(result.error);
       return;
     }
-    setDraftId(memberId);
-    setCode('');
-    setStep('otp');
-    setMessage(result.warning || 'A fresh code was sent. It expires in 48 hours.');
+    setMessage(result.warning || 'Invite link sent again. It expires in 48 hours.');
     await load();
   };
 
@@ -191,7 +164,6 @@ export default function TeamAccessPanel({ businessId }: { businessId: string }) 
     await load();
   };
 
-  const contactLabel = channel === 'email' ? email : mobile ? `+91 ${mobile}` : '';
   const editingMember = useMemo(
     () => members.find((member) => member.id === editingId) || null,
     [members, editingId],
@@ -216,7 +188,7 @@ export default function TeamAccessPanel({ businessId }: { businessId: string }) 
       </div>
 
       {step !== 'list' ? (
-        <div className={`mt-3 ${dashboard.panel} overflow-hidden`}>
+        <div className={`mt-3 ${dashboard.panel}`}>
           <div className={dashboard.accentBar} />
           <div className="px-4 py-4">
             <div className="mb-4 flex items-center justify-between gap-3">
@@ -225,8 +197,7 @@ export default function TeamAccessPanel({ businessId }: { businessId: string }) 
                 onClick={() => {
                   if (step === 'channel') resetWizard();
                   else if (step === 'contact') setStep('channel');
-                  else if (step === 'otp') setStep('contact');
-                  else setStep('otp');
+                  else setStep('contact');
                 }}
                 className="inline-flex items-center gap-1 text-sm font-semibold text-[#3F3F46]"
               >
@@ -241,21 +212,21 @@ export default function TeamAccessPanel({ businessId }: { businessId: string }) 
                 <div>
                   <h3 className="text-base font-semibold text-zinc-900">How should we send the invite?</h3>
                   <p className="mt-1 text-sm text-zinc-500">
-                    We will send a one-time code to prove they own that inbox or phone, then you choose which tabs they can view or edit.
+                    We will send an invitation link. They open it, create a password, then you choose which tabs they can view or edit.
                   </p>
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <ChannelCard
                     icon={HiOutlineEnvelope}
                     title="Email"
-                    body="Send a 6-digit code and invite link to their email."
+                    body="Send an invitation link to their email."
                     active={channel === 'email'}
                     onClick={() => setChannel('email')}
                   />
                   <ChannelCard
                     icon={HiOutlineDevicePhoneMobile}
                     title="Phone"
-                    body="Send a WhatsApp verification code to an Indian mobile number."
+                    body="Send an invitation link on WhatsApp to an Indian mobile number."
                     active={channel === 'phone'}
                     onClick={() => setChannel('phone')}
                   />
@@ -267,68 +238,36 @@ export default function TeamAccessPanel({ businessId }: { businessId: string }) 
             ) : null}
 
             {step === 'contact' ? (
-              <div className="space-y-4">
+              <div className="relative z-10 flex flex-col gap-5">
                 <div>
                   <h3 className="text-base font-semibold text-zinc-900">
                     {channel === 'email' ? 'Enter their email' : 'Enter their mobile number'}
                   </h3>
                   <p className="mt-1 text-sm text-zinc-500">
-                    They stay pending until the code is verified and they create a password. Unused invites cancel in {TEAM_INVITE_HOURS} hours.
+                    They stay pending until they open the invite link and create a password. Unused invites cancel in {TEAM_INVITE_HOURS} hours.
                   </p>
                 </div>
-                {channel === 'email' ? (
-                  <input
-                    value={email}
-                    onChange={(event) => setEmail(event.target.value)}
-                    placeholder="name@business.com"
-                    autoComplete="email"
-                    className="w-full rounded-lg border border-zinc-200 px-3 py-2.5 text-sm"
-                  />
-                ) : (
-                  <IndianPhoneInput id="team-invite-mobile" value={mobile} onChange={setMobile} />
-                )}
-                <button type="button" disabled={busy} onClick={() => void sendCode()} className={dashboard.btnPrimary}>
-                  {busy ? 'Sending…' : 'Send verification code'}
+                <div className="relative z-20 w-full">
+                  {channel === 'email' ? (
+                    <input
+                      value={email}
+                      onChange={(event) => setEmail(event.target.value)}
+                      placeholder="name@business.com"
+                      autoComplete="email"
+                      className="relative z-20 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2.5 text-sm"
+                    />
+                  ) : (
+                    <IndianPhoneInput id="team-invite-mobile" value={mobile} onChange={setMobile} className="relative z-20 w-full" />
+                  )}
+                </div>
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => void sendCode()}
+                  className={`relative z-0 shrink-0 ${dashboard.btnPrimary}`}
+                >
+                  {busy ? 'Sending…' : 'Send invite'}
                 </button>
-              </div>
-            ) : null}
-
-            {step === 'otp' ? (
-              <div className="space-y-4">
-                <div>
-                  <h3 className="text-base font-semibold text-zinc-900">Verify the code</h3>
-                  <p className="mt-1 text-sm text-zinc-500">
-                    Sent to {contactLabel || 'them'}. If they are standing with you, enter the code now. Otherwise they can verify from the invite link.
-                  </p>
-                </div>
-                <OtpCodeBoxes
-                  value={code}
-                  onChange={setCode}
-                  onComplete={(value) => {
-                    setCode(value);
-                    if (draftId && value.length === 6) void verifyCode(value);
-                  }}
-                  autoFocus
-                  tone="neutral"
-                />
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    disabled={busy || code.length !== 6 || !draftId}
-                    onClick={() => void verifyCode()}
-                    className={dashboard.btnPrimary}
-                  >
-                    Verify code
-                  </button>
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={() => setStep('access')}
-                    className={dashboard.btnSecondary}
-                  >
-                    They will verify themselves
-                  </button>
-                </div>
               </div>
             ) : null}
 
@@ -448,7 +387,6 @@ function WizardSteps({ current }: { current: Step }) {
   const items = [
     { id: 'channel', label: 'Send by' },
     { id: 'contact', label: 'Details' },
-    { id: 'otp', label: 'Verify' },
     { id: 'access', label: 'Access' },
   ] as const;
   const index = items.findIndex((item) => item.id === current);

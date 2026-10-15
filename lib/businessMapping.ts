@@ -237,6 +237,7 @@ export function mapOwnedBusinessRecord(business: Record<string, unknown>) {
   return {
     ...mapBusinessRecord(business),
     status: String(business.status || 'Pending'),
+    deletionScheduledAt: (business.deletionScheduledAt as string | null) || null,
     ownerName: String(business.owner_name || '').trim(),
     ownerMobile: String(business.owner_mobile || '').trim(),
     kycStatus: String(business.kycStatus || 'pending'),

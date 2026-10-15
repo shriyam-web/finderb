@@ -28,6 +28,7 @@ import { LEAD_STATUS_TONE, pipelineOf } from '../../../components/console/leadSt
 import { LeadSourceBadge } from '../../../components/console/LeadSourceBadge';
 import { LISTING_SECTIONS } from '../../../components/console/listingSections';
 import { openConsolePath } from '../../../lib/consoleNav';
+import { competitorScoreIsGood, insightCardColors, leadResponseIsGood } from '../../../lib/insightTones';
 
 type IconName = keyof typeof Ionicons.glyphMap;
 type Go = (href: Href) => void;
@@ -289,7 +290,7 @@ function Performance({ o, go }: { o: ConsoleOverview; go: Go }) {
     { label: 'Leads', value: n(s.leadsTotal), note: `${s.leads7d} this week`, href: '/business-console/leads' },
     { label: 'To contact', value: n(s.leadsNew), note: s.leadsNew ? 'Reply now' : 'All caught up', href: '/business-console/leads' },
     {
-      label: 'Won',
+      label: 'Conversion',
       value: n(s.leadsConverted),
       note: s.leadsTotal ? `${Math.round((s.leadsConverted / s.leadsTotal) * 100)}% rate` : '—',
       href: '/business-console/leads',
@@ -618,22 +619,46 @@ function HomeBody({ o }: { o: ConsoleOverview }) {
     >
       <Text style={styles.greeting}>{`${greeting}${firstName ? `, ${firstName}` : ''}`}</Text>
       <ShopCard o={o} go={go} />
-      <Panel>
-        <Text style={styles.insight}>
-          {o.stats.competitorAverage != null
-            ? `Your competitors have an average profile completion score of ${o.stats.competitorAverage}%. You are at ${o.completion.percent}%. ${
-                o.completion.percent < o.stats.competitorAverage
-                  ? 'Fill the missing details so you stay ahead in your category.'
-                  : 'Keep this up to stay ahead in your category.'
-              }`
-            : `We are still gathering competitor profile scores in your category. You are at ${o.completion.percent}% complete — finish the missing details so you stay ready.`}
-        </Text>
-        <Text style={[styles.insight, styles.insightGap]}>
-          {o.stats.averageResponse
-            ? `Your average response time on leads so far is ${o.stats.averageResponse}.`
-            : 'Open new leads promptly — we will show your average response time after the first few replies.'}
-        </Text>
-      </Panel>
+      <View style={styles.insightRow}>
+        <View
+          style={[
+            styles.insightCard,
+            insightCardColors(competitorScoreIsGood(o.completion.percent, o.stats.competitorAverage)),
+          ]}
+        >
+          <Text
+            style={[
+              styles.insight,
+              { color: insightCardColors(competitorScoreIsGood(o.completion.percent, o.stats.competitorAverage)).color },
+            ]}
+          >
+            {o.stats.competitorAverage != null
+              ? `Your competitors have an average profile completion score of ${o.stats.competitorAverage}%. You are at ${o.completion.percent}%. ${
+                  o.completion.percent < o.stats.competitorAverage
+                    ? 'Fill the missing details so you stay ahead in your category.'
+                    : 'Keep this up to stay ahead in your category.'
+                }`
+              : `We are still gathering competitor profile scores in your category. You are at ${o.completion.percent}% complete — finish the missing details so you stay ready.`}
+          </Text>
+        </View>
+        <View
+          style={[
+            styles.insightCard,
+            insightCardColors(leadResponseIsGood(o.stats.averageResponse, o.stats.averageResponseMs)),
+          ]}
+        >
+          <Text
+            style={[
+              styles.insight,
+              { color: insightCardColors(leadResponseIsGood(o.stats.averageResponse, o.stats.averageResponseMs)).color },
+            ]}
+          >
+            {o.stats.averageResponse
+              ? `Your average response time on leads so far is ${o.stats.averageResponse}.`
+              : 'Open new leads promptly — we will show your average response time after the first few replies.'}
+          </Text>
+        </View>
+      </View>
       {slides.length ? <AlertCarousel slides={slides} /> : null}
       <Section title="Performance">
         <Performance o={o} go={go} />
@@ -669,7 +694,8 @@ const useStyles = createConsoleStyles((c) => ({
   flex: { flex: 1, minWidth: 0 },
   greeting: { fontFamily: fonts.semiBold, fontSize: 16, color: c.ink, paddingHorizontal: 2, marginBottom: -4 },
   insight: { fontFamily: fonts.regular, fontSize: 13.5, lineHeight: 20, color: c.body },
-  insightGap: { marginTop: 8 },
+  insightRow: { gap: 8 },
+  insightCard: { padding: 14, borderRadius: 14, borderWidth: 1 },
   pressed: { opacity: 0.75 },
   rowPressed: { backgroundColor: c.sunken },
   rowLine: { borderTopWidth: 1, borderTopColor: c.line },

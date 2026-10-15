@@ -36,6 +36,8 @@ import { formatTimingRange12h } from '@/lib/formatBusinessHours';
 import { getBusinessGalleryImages } from '@/lib/businessMapping';
 import { parseBusinessServices } from '@/lib/parseBusinessServices';
 import type { MissingProfileField } from '@/lib/dashboard/profileCompletion';
+import { competitorScoreIsGood, insightCardClass, leadResponseIsGood } from '@/lib/dashboard/insightTones';
+import { cancelOwnBusinessDeletion, hideOwnBusinessListing } from '@/app/actions/business';
 import { dashboard } from './dashboard-ui';
 
 const WEEKDAYS = [
@@ -99,6 +101,10 @@ type MyListingTabProps = {
   completionPercent: number;
   competitorAverage?: number | null;
   averageResponse?: string | null;
+  averageResponseMs?: number | null;
+  registrationNumber?: string | null;
+  deletionScheduledAt?: string | null;
+  isOwner?: boolean;
   missingFields: MissingProfileField[];
   phoneVerified?: boolean;
   emailVerified?: boolean;
@@ -170,6 +176,10 @@ export default function MyListingTab({
   completionPercent,
   competitorAverage = null,
   averageResponse = null,
+  averageResponseMs = null,
+  registrationNumber = null,
+  deletionScheduledAt = null,
+  isOwner = false,
   missingFields,
   phoneVerified,
   emailVerified,
@@ -181,6 +191,9 @@ export default function MyListingTab({
   const [activeImage, setActiveImage] = useState(0);
   const [activeSection, setActiveSection] = useState<SectionId>('about');
   const [copiedMerchantId, setCopiedMerchantId] = useState(false);
+  const [hideConfirm, setHideConfirm] = useState(false);
+  const [hideBusy, setHideBusy] = useState(false);
+  const merchantId = String(registrationNumber || '').trim();
 
   const galleryImages = useMemo(
     () => getGalleryImages(profilePictureUrl, images),
@@ -290,22 +303,6 @@ export default function MyListingTab({
           <p className="mt-0.5 text-xs text-zinc-500">
             This is how customers see your business on FinderB — including map and location.
           </p>
-          <div className="mt-2 flex flex-wrap items-center gap-2">
-            <span className="text-[11px] font-medium text-zinc-500">Merchant ID</span>
-            <code className="rounded bg-zinc-100 px-1.5 py-0.5 font-mono text-[11px] text-zinc-800">{businessId}</code>
-            <button
-              type="button"
-              onClick={() => {
-                void navigator.clipboard.writeText(businessId).then(() => {
-                  setCopiedMerchantId(true);
-                  window.setTimeout(() => setCopiedMerchantId(false), 1800);
-                });
-              }}
-              className="rounded-md border border-zinc-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-zinc-800 hover:bg-zinc-50"
-            >
-              {copiedMerchantId ? 'Copied' : 'Copy'}
-            </button>
-          </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-2 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2">
@@ -347,12 +344,12 @@ export default function MyListingTab({
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
-        <p className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-xs leading-relaxed text-zinc-700">
+        <p className={`${insightCardClass(competitorScoreIsGood(completionPercent, competitorAverage))} text-xs leading-relaxed`}>
           {competitorAverage != null
             ? `Your competitors have an average profile completion score of ${competitorAverage}%. You are at ${completionPercent}%.`
             : `We are still gathering competitor profile scores in your category. You are at ${completionPercent}% complete.`}
         </p>
-        <p className="rounded-xl border border-orange-200/80 bg-[#fff8ef] px-3 py-2.5 text-xs leading-relaxed text-zinc-700">
+        <p className={`${insightCardClass(leadResponseIsGood(averageResponse, averageResponseMs))} text-xs leading-relaxed`}>
           {averageResponse
             ? `Your average response time on leads so far is ${averageResponse}.`
             : 'Open new leads promptly — we will show your average response time after the first few replies.'}
@@ -876,8 +873,104 @@ export default function MyListingTab({
               </button>
             </li>
           ))}
+          <li className="flex items-start gap-3 px-4 py-3">
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-zinc-900">Merchant ID</p>
+              <p className="mt-0.5 font-mono text-xs text-zinc-500">{merchantId || 'Not generated'}</p>
+            </div>
+            {merchantId ? (
+              <button
+                type="button"
+                onClick={() => {
+                  void navigator.clipboard.writeText(merchantId).then(() => {
+                    setCopiedMerchantId(true);
+                    window.setTimeout(() => setCopiedMerchantId(false), 1800);
+                  });
+                }}
+                className="rounded-md border border-zinc-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-zinc-800 hover:bg-zinc-50"
+              >
+                {copiedMerchantId ? 'Copied' : 'Copy'}
+              </button>
+            ) : null}
+          </li>
         </ul>
       </section>
+
+      {isOwner ? (
+        <section className="rounded-xl border border-rose-200 bg-white p-4">
+          <h2 className="text-sm font-medium text-zinc-900">Delete account</h2>
+          {deletionScheduledAt ? (
+            <>
+              <p className="mt-1 text-sm leading-relaxed text-zinc-600">
+                Your public page is down. This account will be completely deleted on{' '}
+                {new Date(deletionScheduledAt).toLocaleDateString('en-IN', {
+                  day: 'numeric',
+                  month: 'short',
+                  year: 'numeric',
+                })}
+                . Log in before then to cancel.
+              </p>
+              <button
+                type="button"
+                disabled={hideBusy}
+                onClick={async () => {
+                  setHideBusy(true);
+                  const result = await cancelOwnBusinessDeletion(businessId);
+                  setHideBusy(false);
+                  if (!result.success) {
+                    window.alert(result.error);
+                    return;
+                  }
+                  window.alert(result.message);
+                  window.location.reload();
+                }}
+                className={`mt-3 ${dashboard.btnPrimary}`}
+              >
+                {hideBusy ? 'Cancelling…' : 'Cancel deletion'}
+              </button>
+            </>
+          ) : (
+            <>
+              <p className="mt-1 text-sm leading-relaxed text-zinc-600">
+                This will take your public page down. The account will be completely deleted after 90 days. Until then you can log in to cancel the deletion.
+              </p>
+              {hideConfirm ? (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    disabled={hideBusy}
+                    onClick={async () => {
+                      setHideBusy(true);
+                      const result = await hideOwnBusinessListing(businessId);
+                      setHideBusy(false);
+                      if (!result.success) {
+                        window.alert(result.error);
+                        return;
+                      }
+                      window.alert(result.message);
+                      window.location.reload();
+                    }}
+                    className="rounded-lg bg-rose-700 px-3 py-2 text-xs font-semibold text-white disabled:opacity-60"
+                  >
+                    {hideBusy ? 'Scheduling…' : 'Yes, delete after 90 days'}
+                  </button>
+                  <button type="button" onClick={() => setHideConfirm(false)} className={dashboard.btnSecondary}>
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setHideConfirm(true)}
+                  className="mt-3 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs font-semibold text-zinc-800"
+                >
+                  Delete my business
+                </button>
+              )}
+            </>
+          )}
+        </section>
+      ) : null}
     </div>
   );
 }

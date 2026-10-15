@@ -322,7 +322,7 @@ export function PlanBody({ docked = false }: { docked?: boolean }) {
                   </View>
                   <View style={styles.statCell}>
                     <Text style={styles.statValue}>{overview.stats.leadsConverted}</Text>
-                    <Text style={styles.statLabel}>Won</Text>
+                    <Text style={styles.statLabel}>Conversion</Text>
                   </View>
                   <View style={styles.statCell}>
                     <Text style={styles.statValue}>{overview.stats.reviewCount}</Text>

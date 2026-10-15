@@ -5,19 +5,13 @@ import { createServiceClient } from '@/lib/supabase/service';
 import { SITE_URL } from '@/lib/businessSeo';
 import { sendTeamInviteEmail } from '@/lib/email/sendTeamInviteEmail';
 import { sendTeamInviteWhatsApp } from '@/lib/whatsapp/sendTeamInviteWhatsApp';
-import { sendWhatsAppOtp } from '@/lib/whatsapp/sendWhatsAppOtp';
 import { extractIndianMobileDigits, isValidIndianMobileDigits } from '@/lib/indianPhone';
 import { hashPassword, validatePasswordLength, PASSWORD_MIN_LENGTH_MERCHANT } from '@/lib/security/password';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/security/rateLimit';
 import { setBusinessSessionCookie } from '@/lib/security/session';
 import type { LinkedBusiness } from '@/lib/auth/merchantPortal.server';
 import { getEffectivePlanKey } from '@/lib/subscription/merchantSubscription';
-import {
-  consumeOtpChallenge,
-  discardOtpChallenge,
-  issueOtpChallenge,
-  otpIssueErrorMessage,
-} from '@/lib/auth/otpChallenge.server';
+import { consumeOtpChallenge, discardOtpChallenge } from '@/lib/auth/otpChallenge.server';
 import { enforceRateLimit } from '@/lib/security/enforceRateLimit.server';
 import {
   TEAM_INVITE_HOURS,
@@ -229,25 +223,20 @@ async function dispatchInvite(input: {
   email: string | null;
   mobile: string | null;
   token: string;
-  code: string;
   businessName: string;
   inviterName: string;
 }) {
   const acceptUrl = inviteUrl(input.token);
-  const sent = { email: false, whatsapp: false, otp: false };
+  const sent = { email: false, whatsapp: false };
   if (input.email) {
     sent.email = await sendTeamInviteEmail({
       to: input.email,
       businessName: input.businessName,
       inviterName: input.inviterName,
       acceptUrl,
-      code: input.code,
     });
-    sent.otp = sent.email;
   }
   if (input.mobile) {
-    const otp = await sendWhatsAppOtp(`91${input.mobile}`, input.code);
-    sent.otp = otp.ok;
     sent.whatsapp = await sendTeamInviteWhatsApp({
       mobile: input.mobile,
       inviterName: input.inviterName,
@@ -259,34 +248,26 @@ async function dispatchInvite(input: {
 }
 
 async function issueAndSendInvite(member: MemberRow, token: string, business: LinkedBusiness) {
-  const subject = otpSubject(member);
-  if (!subject) return { success: false as const, error: 'This invite has no email or mobile.' };
-
-  let code = '';
-  try {
-    code = await issueOtpChallenge(otpPurpose(member.id), subject);
-  } catch (error) {
-    return {
-      success: false as const,
-      error: otpIssueErrorMessage(error, 'Could not send the verification code. Try again shortly.'),
-    };
-  }
+  if (!otpSubject(member)) return { success: false as const, error: 'This invite has no email or mobile.' };
 
   const sent = await dispatchInvite({
     email: member.email,
     mobile: member.mobile,
     token,
-    code,
     businessName: business.businessName || 'your business',
     inviterName: inviteSenderName(business),
   });
 
   const warnings: string[] = [];
   if (member.email && !sent.email) warnings.push('Email could not be sent. Try resend in a minute.');
-  if (member.mobile && !sent.otp) {
-    warnings.push('WhatsApp could not deliver the verification code. Confirm the number and try resend.');
-  } else if (member.mobile && !sent.whatsapp) {
-    warnings.push('The invite link on WhatsApp needs the finderb_team_invite template. The verification code was still sent.');
+  if (member.mobile && !sent.whatsapp) {
+    warnings.push('WhatsApp could not deliver the invite link. Confirm the number and try resend.');
+  }
+
+  if ((member.email && !sent.email) || (member.mobile && !sent.whatsapp)) {
+    if (!sent.email && !sent.whatsapp) {
+      return { success: false as const, error: warnings.join(' ') || 'Could not send the invite.' };
+    }
   }
 
   return { success: true as const, warning: warnings.join(' ') || undefined };
@@ -661,10 +642,7 @@ export async function acceptTeamInvite(input: {
     return { success: false, error: 'That email or mobile is already tied to another business.' };
   }
 
-  if (!member.contact_verified_at) {
-    const verified = await verifyTeamInviteOtp({ token: input.token, code: input.code || '' });
-    if (!verified.success) return verified;
-  }
+  // Opening the unique invite link is the verification — no separate OTP.
 
   const now = new Date().toISOString();
   const passwordHash = await hashPassword(input.password.trim());

@@ -36,7 +36,6 @@ import DisplayNameChangeRequestPanel from './DisplayNameChangeRequestPanel';
 import {
   getPendingChangeRequest,
 } from '@/app/actions/businessChangeRequests';
-import { hideOwnBusinessListing } from '@/app/actions/business';
 import {
   CATEGORY_CHANGE_FIELD,
   DISPLAY_NAME_FIELD,
@@ -287,9 +286,6 @@ export default function SettingsTab({
   const [pendingCategoryRequest, setPendingCategoryRequest] = useState<BusinessChangeRequest | null>(null);
   const [pendingLegalNameRequest, setPendingLegalNameRequest] = useState<BusinessChangeRequest | null>(null);
   const [pendingDisplayNameRequest, setPendingDisplayNameRequest] = useState<BusinessChangeRequest | null>(null);
-  const [hideBusy, setHideBusy] = useState(false);
-  const [hideConfirm, setHideConfirm] = useState(false);
-
   useEffect(() => setMounted(true), []);
 
   useEffect(() => {
@@ -1396,48 +1392,6 @@ export default function SettingsTab({
           </section>
         );
       })}
-
-      {isOwner && business?.id ? (
-        <section className="rounded-xl border border-rose-200 bg-rose-50/60 p-4">
-          <h2 className="text-sm font-semibold text-rose-900">Delete my business</h2>
-          <p className="mt-1 text-xs leading-relaxed text-rose-800/90">
-            This takes your listing down so customers can no longer find it on FinderB.
-          </p>
-          {hideConfirm ? (
-            <div className="mt-3 flex flex-wrap gap-2">
-              <button
-                type="button"
-                disabled={hideBusy}
-                onClick={async () => {
-                  setHideBusy(true);
-                  const result = await hideOwnBusinessListing(business.id);
-                  setHideBusy(false);
-                  if (!result.success) {
-                    window.alert(result.error);
-                    return;
-                  }
-                  window.alert(result.message);
-                  window.location.reload();
-                }}
-                className="rounded-lg bg-rose-700 px-3 py-2 text-xs font-semibold text-white disabled:opacity-60"
-              >
-                {hideBusy ? 'Taking down…' : 'Yes, take it down'}
-              </button>
-              <button type="button" onClick={() => setHideConfirm(false)} className={dashboard.btnSecondary}>
-                Cancel
-              </button>
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setHideConfirm(true)}
-              className="mt-3 rounded-lg border border-rose-300 bg-white px-3 py-2 text-xs font-semibold text-rose-800"
-            >
-              Delete my business
-            </button>
-          )}
-        </section>
-      ) : null}
 
       {modal}
       {deleteModal}

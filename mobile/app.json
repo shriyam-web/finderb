@@ -27,7 +27,7 @@
     },
     "android": {
       "package": "com.finderb.app",
-      "versionCode": 23,
+      "versionCode": 24,
       "googleServicesFile": "./google-services.json",
       "softwareKeyboardLayoutMode": "pan",
       "permissions": [

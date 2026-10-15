@@ -7,6 +7,9 @@ import {
 import { parseBusinessReviews, serializeBusinessReviewsForStorage } from '@/lib/businessReviews';
 import { escapeIlikePattern } from '@/lib/searchMatch';
 import { createServiceClient } from '@/lib/supabase/service';
+import { revalidateBusinessProfilePaths } from '@/lib/businessRevalidation';
+
+export const BUSINESS_DELETION_GRACE_DAYS = 90;
 
 type ServiceClient = NonNullable<ReturnType<typeof createServiceClient>>;
 
@@ -80,6 +83,97 @@ export async function deleteUserAccountById(
   }
 
   return { success: true };
+}
+
+function listingPathsOf(row: {
+  id: string;
+  slug?: string | null;
+  displayName?: string | null;
+  businessName?: string | null;
+  city?: string | null;
+}) {
+  revalidateBusinessProfilePaths({
+    id: row.id,
+    slug: row.slug,
+    name: row.displayName,
+    businessName: row.businessName,
+    city: row.city,
+  });
+}
+
+export async function applyDueBusinessDeletion(businessId: string): Promise<boolean> {
+  const id = businessId.trim();
+  if (!id) return false;
+  const supabase = createServiceClient();
+  if (!supabase) return false;
+  const { data, error } = await supabase
+    .from('Business')
+    .select('id, deletionScheduledAt')
+    .eq('id', id)
+    .maybeSingle();
+  if (error) {
+    console.warn('[account-delete] schedule lookup', error.message);
+    return false;
+  }
+  const due = data?.deletionScheduledAt ? new Date(String(data.deletionScheduledAt)).getTime() : NaN;
+  if (!Number.isFinite(due) || due > Date.now()) return false;
+  const result = await deleteBusinessAccountById(id);
+  return result.success;
+}
+
+export async function scheduleBusinessDeletion(businessId: string): Promise<
+  { success: true; message: string; deletionScheduledAt: string } | { success: false; error: string }
+> {
+  const id = businessId.trim();
+  if (!id) return { success: false, error: 'Business ID is required' };
+  const supabase = createServiceClient();
+  if (!supabase) return { success: false, error: 'Could not schedule deletion.' };
+  const deletionScheduledAt = new Date(
+    Date.now() + BUSINESS_DELETION_GRACE_DAYS * 24 * 60 * 60 * 1000,
+  ).toISOString();
+  const { data, error } = await supabase
+    .from('Business')
+    .update({
+      status: 'inactive',
+      deletionScheduledAt,
+      updatedAt: new Date().toISOString(),
+    })
+    .eq('id', id)
+    .select('id, slug, businessName, displayName, city, status, deletionScheduledAt')
+    .maybeSingle();
+  if (error || !data) return { success: false, error: 'Could not schedule deletion.' };
+  listingPathsOf(data);
+  return {
+    success: true,
+    deletionScheduledAt: String(data.deletionScheduledAt || deletionScheduledAt),
+    message:
+      'Your public page is down. The account will be completely deleted after 90 days. Until then you can log in to cancel the deletion.',
+  };
+}
+
+export async function cancelScheduledBusinessDeletion(businessId: string): Promise<
+  { success: true; message: string } | { success: false; error: string }
+> {
+  const id = businessId.trim();
+  if (!id) return { success: false, error: 'Business ID is required' };
+  const supabase = createServiceClient();
+  if (!supabase) return { success: false, error: 'Could not cancel deletion.' };
+  const { data, error } = await supabase
+    .from('Business')
+    .update({
+      status: 'Active',
+      deletionScheduledAt: null,
+      updatedAt: new Date().toISOString(),
+    })
+    .eq('id', id)
+    .select('id, slug, businessName, displayName, city, status')
+    .maybeSingle();
+  if (error || !data) return { success: false, error: 'Could not cancel deletion.' };
+  listingPathsOf(data);
+  return {
+    success: true,
+    message: 'Deletion cancelled. Your public page can show again.',
+  };
 }
 
 /**
@@ -179,6 +273,7 @@ export async function deleteBusinessAccountById(
       aadharUrl: null,
       msmeGstUrl: null,
       autoRenewEnabled: false,
+      deletionScheduledAt: null,
       updatedAt: new Date().toISOString(),
     })
     .eq('id', id);

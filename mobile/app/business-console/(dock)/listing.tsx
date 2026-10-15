@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Pressable, Share, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, Share, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import * as Clipboard from 'expo-clipboard';
@@ -23,14 +23,21 @@ import {
   useTabBack,
 } from '../../../components/console/kit';
 import { listingDetailRows } from '../../../components/console/listingSections';
+import { competitorScoreIsGood, insightCardColors, leadResponseIsGood } from '../../../lib/insightTones';
+import { isFailure } from '../../../lib/merchantConsoleApi';
 
 function ListingBody({ o }: { o: ConsoleOverview }) {
   const styles = useStyles();
   const c = useConsoleColors();
   const router = useRouter();
   const back = useTabBack();
-  const { refresh, refreshing, notify } = useMerchantConsole();
+  const { refresh, refreshing, notify, run } = useMerchantConsole();
   const [copiedId, setCopiedId] = useState(false);
+  const [hideStep, setHideStep] = useState<0 | 1 | 2>(0);
+  const [hideBusy, setHideBusy] = useState(false);
+  const isOwner = o.actor?.isOwner !== false;
+  const merchantId = o.business.registrationNumber || '';
+  const deletionAt = o.business.deletionScheduledAt;
   const pct = o.completion.percent;
   const publicUrl = `${PUBLIC_SITE}${o.business.profilePath}`;
   const photoCount = o.photos.images.length;
@@ -79,38 +86,39 @@ function ListingBody({ o }: { o: ConsoleOverview }) {
             ? 'Your profile is complete. Keep photos and timings up to date.'
             : `${missing} detail${missing === 1 ? '' : 's'} missing. Complete profiles get more calls.`}
         </Text>
-        <Text style={styles.meterNote}>
-          {o.stats.competitorAverage != null
-            ? `Your competitors have an average profile completion score of ${o.stats.competitorAverage}%. Try improving your score to stay ahead.`
-            : 'We are still gathering competitor profile scores in your category. Complete yours so you stay ready.'}
-        </Text>
-        <Text style={styles.meterNote}>
-          {o.stats.averageResponse
-            ? `Your average response time on leads so far is ${o.stats.averageResponse}.`
-            : 'Open new leads promptly — we will show your average response time after the first few replies.'}
-        </Text>
-        <View style={styles.idRow}>
-          <View style={styles.flex}>
-            <Text style={styles.idLabel}>Merchant ID</Text>
-            <Text style={styles.idValue} selectable>
-              {o.business.id}
-            </Text>
-          </View>
-          <Pressable
-            onPress={() => {
-              void Clipboard.setStringAsync(o.business.id).then(() => {
-                setCopiedId(true);
-                notify('Merchant ID copied');
-                setTimeout(() => setCopiedId(false), 1800);
-              });
-            }}
-            style={({ pressed }) => [styles.copyBtn, pressed && styles.pressed]}
-            accessibilityRole="button"
-            accessibilityLabel="Copy merchant ID"
+        <View
+          style={[
+            styles.insightCard,
+            insightCardColors(competitorScoreIsGood(pct, o.stats.competitorAverage)),
+          ]}
+        >
+          <Text
+            style={[
+              styles.insightText,
+              { color: insightCardColors(competitorScoreIsGood(pct, o.stats.competitorAverage)).color },
+            ]}
           >
-            <Ionicons name={copiedId ? 'checkmark' : 'copy-outline'} size={16} color={c.ink} />
-            <Text style={styles.copyText}>{copiedId ? 'Copied' : 'Copy'}</Text>
-          </Pressable>
+            {o.stats.competitorAverage != null
+              ? `Your competitors have an average profile completion score of ${o.stats.competitorAverage}%. Try improving your score to stay ahead.`
+              : 'We are still gathering competitor profile scores in your category. Complete yours so you stay ready.'}
+          </Text>
+        </View>
+        <View
+          style={[
+            styles.insightCard,
+            insightCardColors(leadResponseIsGood(o.stats.averageResponse, o.stats.averageResponseMs)),
+          ]}
+        >
+          <Text
+            style={[
+              styles.insightText,
+              { color: insightCardColors(leadResponseIsGood(o.stats.averageResponse, o.stats.averageResponseMs)).color },
+            ]}
+          >
+            {o.stats.averageResponse
+              ? `Your average response time on leads so far is ${o.stats.averageResponse}.`
+              : 'Open new leads promptly — we will show your average response time after the first few replies.'}
+          </Text>
         </View>
         <View style={styles.actions}>
           <Btn
@@ -190,6 +198,31 @@ function ListingBody({ o }: { o: ConsoleOverview }) {
               <Ionicons name="chevron-forward" size={18} color={c.faint} />
             </Pressable>
           ))}
+          <View style={[styles.section, styles.sectionLine]}>
+            <View style={styles.flex}>
+              <Text style={styles.sectionTitle}>Merchant ID</Text>
+              <Text style={styles.sectionSummary} selectable>
+                {merchantId || 'Not generated'}
+              </Text>
+            </View>
+            {merchantId ? (
+              <Pressable
+                onPress={() => {
+                  void Clipboard.setStringAsync(merchantId).then(() => {
+                    setCopiedId(true);
+                    notify('Merchant ID copied');
+                    setTimeout(() => setCopiedId(false), 1800);
+                  });
+                }}
+                style={({ pressed }) => [styles.copyBtn, pressed && styles.pressed]}
+                accessibilityRole="button"
+                accessibilityLabel="Copy merchant ID"
+              >
+                <Ionicons name={copiedId ? 'checkmark' : 'copy-outline'} size={16} color={c.ink} />
+                <Text style={styles.copyText}>{copiedId ? 'Copied' : 'Copy'}</Text>
+              </Pressable>
+            ) : null}
+          </View>
         </Panel>
       </Section>
 
@@ -228,6 +261,92 @@ function ListingBody({ o }: { o: ConsoleOverview }) {
           />
         </Panel>
       </Section>
+
+      {isOwner ? (
+        <Section title="Delete account">
+          <Panel>
+            {deletionAt ? (
+              <>
+                <Text style={styles.deleteHint}>
+                  Your public page is down. This account will be completely deleted on{' '}
+                  {new Date(deletionAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  . Log in before then to cancel.
+                </Text>
+                <Btn
+                  label={hideBusy ? 'Cancelling…' : 'Cancel deletion'}
+                  busy={hideBusy}
+                  onPress={() => {
+                    void (async () => {
+                      setHideBusy(true);
+                      const result = await run<{ success: true; message?: string }>('cancelDeletion');
+                      setHideBusy(false);
+                      if (isFailure(result)) {
+                        notify(result.error, 'bad');
+                        return;
+                      }
+                      notify(result.message || 'Deletion cancelled. Your listing can go live again.');
+                      void refresh();
+                    })();
+                  }}
+                />
+              </>
+            ) : (
+              <>
+                <Text style={styles.deleteHint}>
+                  This will take your public page down. The account will be completely deleted after 90 days. Until then you can log in to cancel the deletion.
+                </Text>
+                <Btn label="Delete my business" tone="outline" onPress={() => setHideStep(1)} />
+              </>
+            )}
+          </Panel>
+        </Section>
+      ) : null}
+
+      <Modal visible={hideStep > 0} transparent animationType="fade" onRequestClose={() => !hideBusy && setHideStep(0)}>
+        <Pressable style={styles.hideScrim} onPress={() => !hideBusy && setHideStep(0)}>
+          <Pressable style={styles.hideCard} onPress={(event) => event.stopPropagation()}>
+            <Text style={styles.hideTitle}>
+              {hideStep === 1 ? 'Delete this business?' : 'Confirm 90-day deletion'}
+            </Text>
+            <Text style={styles.hideBody}>
+              {hideStep === 1
+                ? 'This will take your public page down. The account will be completely deleted after 90 days. Until then you can log in to cancel the deletion.'
+                : 'Customers will stop seeing your page now. After 90 days the account is removed for good. Log in before then if you want to cancel.'}
+            </Text>
+            <View style={styles.hideActions}>
+              <Pressable disabled={hideBusy} onPress={() => setHideStep(hideStep === 2 ? 1 : 0)} style={styles.hideCancel}>
+                <Text style={styles.hideCancelText}>{hideStep === 2 ? 'Go back' : 'Cancel'}</Text>
+              </Pressable>
+              <Pressable
+                disabled={hideBusy}
+                onPress={() => {
+                  if (hideStep === 1) {
+                    setHideStep(2);
+                    return;
+                  }
+                  void (async () => {
+                    setHideBusy(true);
+                    const result = await run<{ success: true; message?: string }>('hideBusiness');
+                    setHideBusy(false);
+                    if (isFailure(result)) {
+                      notify(result.error, 'bad');
+                      return;
+                    }
+                    setHideStep(0);
+                    notify(result.message || 'Your public page is down. You have 90 days to cancel.');
+                    void refresh();
+                  })();
+                }}
+                style={styles.hideConfirm}
+              >
+                <Text style={styles.hideConfirmText}>
+                  {hideBusy ? 'Scheduling…' : hideStep === 1 ? 'Continue' : 'Yes, delete after 90 days'}
+                </Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </ConsolePage>
   );
 }
@@ -245,17 +364,8 @@ const useStyles = createConsoleStyles((c) => ({
   meter: { marginTop: 12, height: 6, borderRadius: 3, backgroundColor: c.sunken, overflow: 'hidden' },
   meterFill: { height: 6, borderRadius: 3, backgroundColor: c.primary },
   meterNote: { marginTop: 10, fontFamily: fonts.regular, fontSize: 13, lineHeight: 19, color: c.body },
-  idRow: {
-    marginTop: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingTop: 12,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: c.line,
-  },
-  idLabel: { fontFamily: fonts.regular, fontSize: 12, color: c.muted },
-  idValue: { marginTop: 2, fontFamily: fonts.medium, fontSize: 13, color: c.ink },
+  insightCard: { marginTop: 10, padding: 12, borderRadius: 12, borderWidth: 1 },
+  insightText: { fontFamily: fonts.regular, fontSize: 13, lineHeight: 19 },
   copyBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -307,4 +417,30 @@ const useStyles = createConsoleStyles((c) => ({
   sectionHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   sectionTitle: { fontFamily: fonts.semiBold, fontSize: 15, color: c.ink },
   sectionSummary: { marginTop: 2, fontFamily: fonts.regular, fontSize: 13, color: c.muted },
+  deleteHint: { fontFamily: fonts.regular, fontSize: 13, lineHeight: 19, color: c.muted, marginBottom: 12 },
+  hideScrim: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+    backgroundColor: 'rgba(24,24,27,0.45)',
+  },
+  hideCard: {
+    borderRadius: 16,
+    backgroundColor: c.card,
+    padding: 18,
+    gap: 10,
+  },
+  hideTitle: { fontFamily: fonts.semiBold, fontSize: 17, color: c.ink },
+  hideBody: { fontFamily: fonts.regular, fontSize: 13.5, lineHeight: 20, color: c.body },
+  hideActions: { marginTop: 8, flexDirection: 'row', justifyContent: 'flex-end', gap: 8 },
+  hideCancel: { height: 40, paddingHorizontal: 14, borderRadius: 10, justifyContent: 'center' },
+  hideCancelText: { fontFamily: fonts.semiBold, fontSize: 14, color: c.muted },
+  hideConfirm: {
+    height: 40,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    justifyContent: 'center',
+    backgroundColor: c.danger,
+  },
+  hideConfirmText: { fontFamily: fonts.semiBold, fontSize: 14, color: '#FFFFFF' },
 }));
