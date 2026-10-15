@@ -17,6 +17,7 @@ import { submitBusinessReviewForUser } from '@/lib/submitBusinessReviewCore';
 import { reportBusinessReviewAs } from '@/lib/reportBusinessReviewCore';
 import { countBusinessReviewFlagsThisMonth } from '@/lib/reviewModeration.server';
 import { userOwnsOrManagesBusiness } from '@/lib/reviewIdentity.server';
+import { createServiceClient } from '@/lib/supabase/service';
 
 async function getLoggedInUser() {
   const userId = await getSessionUserId();
@@ -54,6 +55,30 @@ export async function getBusinessReviewEligibility(businessId: string) {
   }
 
   return { canReview: true as const, reason: null };
+}
+
+export async function getMerchantReviewFlags(businessId: string) {
+  const listingId = businessId?.trim();
+  if (!listingId) {
+    return { success: false as const, error: 'Business ID is required' };
+  }
+  const auth = await assertBusinessSession(listingId);
+  if (!auth.ok) return { success: false as const, error: auth.error };
+  const supabase = createServiceClient();
+  if (!supabase) {
+    return { success: true as const, flags: [] as Array<{ reviewId: string; status: string }> };
+  }
+  const { data } = await supabase
+    .from('review_reports')
+    .select('review_id, status')
+    .eq('reporter_key', `business:${listingId}`);
+  return {
+    success: true as const,
+    flags: (data || []).map((row) => ({
+      reviewId: String(row.review_id),
+      status: String(row.status || 'open'),
+    })),
+  };
 }
 
 export async function getMerchantReviewFlagQuota(businessId: string) {

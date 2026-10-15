@@ -5,6 +5,7 @@ import {
   isMerchantPortalPath,
   MERCHANT_HOME_PATH,
 } from '@/lib/authRedirect';
+import { withLoginRole } from '@/lib/loginRole';
 import { mobileAuthSuccessForUserId } from '@/lib/auth/mobileAuth.server';
 import { isValidTruecallerRequestId } from '@/lib/auth/truecallerConfig';
 import { getTruecallerAuthRequest } from '@/lib/auth/truecallerPendingStore.server';
@@ -69,7 +70,7 @@ export async function GET(request: Request) {
       if (linked && (merchantLogin || redirectPath === '/dashboard')) {
         return NextResponse.json({
           status: 'completed',
-          redirectUrl: MERCHANT_HOME_PATH,
+          redirectUrl: withLoginRole(MERCHANT_HOME_PATH, 'business'),
           isNewUser: Boolean(record.isNewUser),
         });
       }
@@ -80,7 +81,7 @@ export async function GET(request: Request) {
       }
       return NextResponse.json({
         status: 'completed',
-        redirectUrl: `${redirectUrl.pathname}${redirectUrl.search}`,
+        redirectUrl: withLoginRole(`${redirectUrl.pathname}${redirectUrl.search}`, 'user'),
         isNewUser: Boolean(record.isNewUser),
       });
     }

@@ -17,6 +17,7 @@ import {
   isMerchantPortalPath,
   MERCHANT_HOME_PATH,
 } from '@/lib/authRedirect';
+import { withLoginRole } from '@/lib/loginRole';
 import {
   extractIndianMobileDigits,
   isValidIndianMobileDigits,
@@ -332,12 +333,12 @@ export async function completeWhatsAppLogin(input: {
       };
     }
     if (linked && (merchantLogin || redirectPath === '/dashboard')) {
-      return { success: true, redirectUrl: MERCHANT_HOME_PATH };
+      return { success: true, redirectUrl: withLoginRole(MERCHANT_HOME_PATH, 'business') };
     }
     const redirectUrl = established.isNewUser
       ? `${redirectPath}${redirectPath.includes('?') ? '&' : '?'}welcome=1`
       : redirectPath;
-    return { success: true, redirectUrl };
+    return { success: true, redirectUrl: withLoginRole(redirectUrl, 'user') };
   }
 
   const auth = await mobileAuthSuccessForUserId(established.userId, established.isNewUser);

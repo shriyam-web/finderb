@@ -21,6 +21,8 @@ import {
   hasCompletedBusinessOnboarding,
   markNewBusinessOnboarding,
 } from '@/lib/businessOnboarding';
+import { markLoginRole } from '@/lib/loginRoleToast';
+import { withLoginRole } from '@/lib/loginRole';
 
 function supportLoginErrorMessage(raw: string): string {
   const value = raw.trim();
@@ -79,11 +81,13 @@ export default function BusinessLoginPage() {
         }
 
         const qs = params.toString();
-        const destination = qs
-          ? `/business/dashboard?${qs}`
-          : '/business/dashboard';
+        const destination = withLoginRole(
+          qs ? `/business/dashboard?${qs}` : '/business/dashboard',
+          'business',
+        );
 
         if (typeof window !== 'undefined') {
+          markLoginRole('business');
           window.dispatchEvent(
             new CustomEvent('finderb-session-change', { detail: { type: 'business' } })
           );

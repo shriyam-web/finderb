@@ -20,7 +20,6 @@ import {
   REVIEW_REPLY_MAX_LENGTH,
   REVIEW_REPLY_MIN_LENGTH,
   toMerchantReview,
-  visibleMerchantReviews,
 } from '@/lib/businessReviews';
 import { countBusinessReviewFlagsThisMonth } from '@/lib/reviewModeration.server';
 import { createJob, deleteJob, getJobsByBusiness, updateJob } from '@/app/actions/job';
@@ -172,10 +171,15 @@ function photosOf(business: Business) {
 
 function reviewsOf(
   business: Business,
-  flaggedIds: Set<string> = new Set()
+  flagState: { flaggedIds: Set<string>; byId: Map<string, { status: string }> }
 ) {
-  return visibleMerchantReviews(parseBusinessReviews(business.review)).map((review) => {
+  const parsed = parseBusinessReviews(business.review);
+  const kept = parsed.filter(
+    (review) => !review.deleted || flagState.flaggedIds.has(review.id),
+  );
+  return kept.map((review) => {
     const view = toMerchantReview(review);
+    const flag = flagState.byId.get(view.id);
     return {
       id: view.id,
       author: view.author,
@@ -184,7 +188,9 @@ function reviewsOf(
       date: view.date,
       anonymous: Boolean(view.anonymous),
       hidden: Boolean(view.hidden),
-      flagged: flaggedIds.has(view.id),
+      deleted: Boolean(review.deleted),
+      flagged: flagState.flaggedIds.has(view.id),
+      flagStatus: flag?.status || null,
       reply: review.merchantReply?.content?.trim()
         ? { content: review.merchantReply.content.trim(), date: review.merchantReply.date || null }
         : null,
@@ -196,20 +202,36 @@ async function reviewFlagState(businessId: string) {
   const supabase = createServiceClient();
   const limit = BUSINESS_REVIEW_FLAGS_PER_MONTH;
   if (!supabase) {
-    return { used: 0, remaining: limit, limit, flaggedIds: new Set<string>() };
+    return {
+      used: 0,
+      remaining: limit,
+      limit,
+      flaggedIds: new Set<string>(),
+      byId: new Map<string, { status: string; adminNote: string | null }>(),
+    };
   }
   const [{ data }, used] = await Promise.all([
     supabase
       .from('review_reports')
-      .select('review_id')
+      .select('review_id, status, admin_note')
       .eq('reporter_key', `business:${businessId}`),
     countBusinessReviewFlagsThisMonth(businessId),
   ]);
+  const byId = new Map<string, { status: string; adminNote: string | null }>();
+  for (const row of data || []) {
+    const id = String(row.review_id || '');
+    if (!id) continue;
+    byId.set(id, {
+      status: String(row.status || 'open'),
+      adminNote: row.admin_note ? String(row.admin_note) : null,
+    });
+  }
   return {
     used,
     remaining: Math.max(0, limit - used),
     limit,
-    flaggedIds: new Set((data || []).map((row) => String(row.review_id))),
+    flaggedIds: new Set(byId.keys()),
+    byId,
   };
 }
 
@@ -355,7 +377,7 @@ async function overview(businessId: string) {
   });
   const ratingStats = getBusinessPublicRatingStats(business.review);
   const flagState = await reviewFlagState(businessId);
-  const reviews = reviewsOf(business, flagState.flaggedIds);
+  const reviews = reviewsOf(business, flagState);
   const status = String(business.status || 'Pending');
   const category = text(business.category);
 

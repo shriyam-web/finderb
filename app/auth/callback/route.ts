@@ -10,6 +10,7 @@ import {
   isMerchantPortalPath,
   MERCHANT_HOME_PATH,
 } from '@/lib/authRedirect';
+import { withLoginRole } from '@/lib/loginRole';
 
 export const dynamic = 'force-dynamic';
 
@@ -62,10 +63,11 @@ export async function GET(request: Request) {
   }
   // Business owners signing in from the customer page land in their panel too.
   if (linked && (merchantLogin || next === '/dashboard')) {
-    return NextResponse.redirect(`${origin}${MERCHANT_HOME_PATH}`);
+    return NextResponse.redirect(`${origin}${withLoginRole(MERCHANT_HOME_PATH, 'business')}`);
   }
 
   const redirectUrl = new URL(next, origin);
+  redirectUrl.searchParams.set('as', linked ? 'business' : 'user');
   if (syncResult.isNewUser) {
     redirectUrl.searchParams.set('welcome', '1');
   }

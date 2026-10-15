@@ -17,6 +17,12 @@ import {
   sortReviewsNewest,
   type AdminReviewListRow,
 } from '@/lib/reviewAdminList';
+import { recordMerchantNotification } from '@/lib/merchantAlert.server';
+import {
+  reviewFlagOutcomeTitle,
+  reviewFlagReplyBody,
+} from '@/lib/reviewFlagOutcome';
+import { queueBusinessPush } from '@/lib/userNotifications.server';
 
 type ServiceClient = NonNullable<ReturnType<typeof createServiceClient>>;
 
@@ -30,6 +36,48 @@ export type ReviewModerationAction =
 
 function db(): ServiceClient | null {
   return createServiceClient();
+}
+
+async function notifyBusinessFlagOutcome(input: {
+  businessId: string;
+  reviewId: string;
+  status: 'hidden' | 'deleted' | 'dismissed';
+  author?: string | null;
+}) {
+  const supabase = db();
+  if (!supabase) return;
+  const { data } = await supabase
+    .from('review_reports')
+    .select('id')
+    .eq('business_id', input.businessId)
+    .eq('review_id', input.reviewId)
+    .eq('reporter_type', 'business')
+    .limit(1);
+  if (!data?.length) return;
+
+  const author = input.author?.trim() || 'a customer';
+  const title = reviewFlagOutcomeTitle(input.status);
+  const body = reviewFlagReplyBody(author);
+  const notificationId = await recordMerchantNotification({
+    businessId: input.businessId,
+    type: 'review_flag_outcome',
+    title,
+    body,
+    metadata: {
+      reviewId: input.reviewId,
+      author,
+      status: input.status,
+    },
+  });
+  queueBusinessPush({
+    businessId: input.businessId,
+    type: 'review',
+    title,
+    body,
+    url: `/business/dashboard?tab=reviews&reviewId=${encodeURIComponent(input.reviewId)}`,
+    reviewId: input.reviewId,
+    notificationId: notificationId || undefined,
+  });
 }
 
 function anonymityStatusOf(review: BusinessReview): ReviewAnonymityStatus {
@@ -202,6 +250,14 @@ export async function moderateStoredReview(input: {
         .eq('business_id', businessId)
         .eq('review_id', reviewId)
         .eq('status', 'open');
+      if (reportStatus === 'hidden' || reportStatus === 'deleted') {
+        await notifyBusinessFlagOutcome({
+          businessId,
+          reviewId,
+          status: reportStatus,
+          author: publicReviewAuthor(next),
+        });
+      }
     }
 
     if (input.action === 'allowAnonymous' || input.action === 'revealAnonymous') {
@@ -232,6 +288,15 @@ export async function dismissReviewReport(input: {
   const supabase = db();
   if (!supabase) return { success: false, error: 'Moderation is unavailable.' };
 
+  const { data: report, error: loadError } = await supabase
+    .from('review_reports')
+    .select('id, business_id, review_id, reporter_type')
+    .eq('id', input.reportId)
+    .maybeSingle();
+  if (loadError || !report) {
+    return { success: false, error: 'Could not update this flag.' };
+  }
+
   const { error } = await supabase
     .from('review_reports')
     .update({
@@ -246,6 +311,18 @@ export async function dismissReviewReport(input: {
     console.error('[review-moderation] dismiss report', error);
     return { success: false, error: 'Could not update this flag.' };
   }
+
+  let author = 'a customer';
+  const loaded = await loadBusinessReviews(String(report.business_id));
+  const review = loaded?.reviews.find((item) => item.id === String(report.review_id));
+  if (review) author = publicReviewAuthor(review);
+
+  await notifyBusinessFlagOutcome({
+    businessId: String(report.business_id),
+    reviewId: String(report.review_id),
+    status: 'dismissed',
+    author,
+  });
   return { success: true };
 }
 

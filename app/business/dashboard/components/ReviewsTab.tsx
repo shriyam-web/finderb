@@ -2,7 +2,13 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { HiOutlineFlag, HiOutlineStar } from 'react-icons/hi2';
-import { flagMerchantReview, getMerchantReviewFlagQuota, upsertMerchantReviewReply } from '@/app/actions/reviews';
+import {
+  flagMerchantReview,
+  getMerchantReviewFlagQuota,
+  getMerchantReviewFlags,
+  upsertMerchantReviewReply,
+} from '@/app/actions/reviews';
+import { reviewFlagOutcomeLabel } from '@/lib/reviewFlagOutcome';
 import ReviewIdBadge from '@/components/reviews/ReviewIdBadge';
 import {
   BUSINESS_REVIEW_FLAGS_PER_MONTH,
@@ -11,7 +17,6 @@ import {
   publicReviewAuthor,
   REVIEW_REPLY_MAX_LENGTH,
   REVIEW_REPLY_MIN_LENGTH,
-  visibleMerchantReviews,
   type BusinessReview,
 } from '@/lib/businessReviews';
 import { DashboardPanel, DashboardSectionHeader } from './DashboardShell';
@@ -165,17 +170,18 @@ export default function ReviewsTab({
   onReviewsChange,
   canEdit = true,
 }: ReviewsTabProps) {
-  const reviews = useMemo(
-    () => visibleMerchantReviews(parseBusinessReviews(reviewData)),
-    [reviewData]
-  );
   const [flagTarget, setFlagTarget] = useState<BusinessReview | null>(null);
   const [flagReason, setFlagReason] = useState<string>(FLAG_REASONS[0]);
   const [flagDetails, setFlagDetails] = useState('');
   const [flagError, setFlagError] = useState<string | null>(null);
   const [flagging, setFlagging] = useState(false);
-  const [flaggedIds, setFlaggedIds] = useState<Set<string>>(() => new Set());
+  const [flagById, setFlagById] = useState<Record<string, string>>({});
   const [flagsLeft, setFlagsLeft] = useState<number | null>(null);
+  const flaggedIds = useMemo(() => new Set(Object.keys(flagById)), [flagById]);
+  const reviews = useMemo(() => {
+    const parsed = parseBusinessReviews(reviewData);
+    return parsed.filter((review) => !review.deleted || flaggedIds.has(review.id));
+  }, [reviewData, flaggedIds]);
 
   useEffect(() => {
     if (!highlightReviewId) return;
@@ -184,8 +190,17 @@ export default function ReviewsTab({
 
   useEffect(() => {
     let cancelled = false;
-    void getMerchantReviewFlagQuota(businessId).then((result) => {
-      if (!cancelled && result.success) setFlagsLeft(result.flagsRemaining);
+    void Promise.all([
+      getMerchantReviewFlagQuota(businessId),
+      getMerchantReviewFlags(businessId),
+    ]).then(([quota, flags]) => {
+      if (cancelled) return;
+      if (quota.success) setFlagsLeft(quota.flagsRemaining);
+      if (flags.success) {
+        const next: Record<string, string> = {};
+        for (const row of flags.flags) next[row.reviewId] = row.status;
+        setFlagById(next);
+      }
     });
     return () => {
       cancelled = true;
@@ -219,7 +234,7 @@ export default function ReviewsTab({
       setFlagError(result.error);
       return;
     }
-    setFlaggedIds((prev) => new Set(prev).add(flagTarget.id));
+    setFlagById((prev) => ({ ...prev, [flagTarget.id]: 'open' }));
     if ('flagsRemaining' in result) setFlagsLeft(result.flagsRemaining);
     setFlagTarget(null);
     setFlagDetails('');
@@ -274,11 +289,12 @@ export default function ReviewsTab({
             const author = publicReviewAuthor(review);
             const anonymous = isAnonymousPublic(review);
             const flagged = flaggedIds.has(review.id);
+            const flagLabel = reviewFlagOutcomeLabel(flagById[review.id]);
             return (
               <article
                 key={review.id}
                 id={`review-${review.id}`}
-                className={`relative overflow-hidden rounded-xl border border-zinc-200 bg-white p-5 pb-14 font-sans ${highlightReviewId === review.id ? 'ring-1 ring-amber-200' : ''}`}
+                className={`relative overflow-hidden rounded-xl border border-zinc-200 bg-white p-5 pb-14 font-sans ${highlightReviewId === review.id ? 'ring-1 ring-amber-200' : ''} ${review.deleted ? 'opacity-80' : ''}`}
               >
                 <div className="absolute right-3 top-3">
                   <ReviewIdBadge reviewId={review.id} tone="zinc" />
@@ -291,9 +307,14 @@ export default function ReviewsTab({
                           Anonymous
                         </span>
                       ) : null}
-                      {review.hidden ? (
+                      {review.hidden && !review.deleted ? (
                         <span className="rounded bg-amber-50 px-1.5 py-0.5 text-[11px] font-medium uppercase tracking-wide text-amber-700">
                           Hidden from public
+                        </span>
+                      ) : null}
+                      {review.deleted ? (
+                        <span className="rounded bg-rose-50 px-1.5 py-0.5 text-[11px] font-medium uppercase tracking-wide text-rose-700">
+                          Removed
                         </span>
                       ) : null}
                     </div>
@@ -304,20 +325,27 @@ export default function ReviewsTab({
                 </div>
                 <p className="mt-3 text-base leading-relaxed text-zinc-700">{review.content}</p>
                 {canEdit ? (
-                  <button
-                    type="button"
-                    disabled={flagged}
-                    onClick={() => {
-                      setFlagTarget(review);
-                      setFlagError(null);
-                    }}
-                    className="absolute bottom-3 right-3 rounded-full p-2 text-zinc-400 hover:bg-rose-50 hover:text-rose-600 disabled:opacity-60"
-                    aria-label={flagged ? 'Already flagged' : 'Flag this review'}
-                  >
-                    <HiOutlineFlag size={18} className={flagged ? 'text-rose-500' : ''} />
-                  </button>
+                  <div className="absolute bottom-3 right-3 flex items-center gap-1.5">
+                    {flagLabel ? (
+                      <span className="max-w-[9.5rem] text-right text-[11px] font-semibold leading-tight text-rose-700">
+                        {flagLabel}
+                      </span>
+                    ) : null}
+                    <button
+                      type="button"
+                      disabled={flagged || review.deleted}
+                      onClick={() => {
+                        setFlagTarget(review);
+                        setFlagError(null);
+                      }}
+                      className="rounded-full p-2 text-zinc-400 hover:bg-rose-50 hover:text-rose-600 disabled:opacity-60"
+                      aria-label={flagged ? `Flagged — ${flagLabel || 'submitted'}` : 'Flag this review'}
+                    >
+                      <HiOutlineFlag size={18} className={flagged ? 'text-rose-500' : ''} />
+                    </button>
+                  </div>
                 ) : null}
-                {canEdit ? (
+                {canEdit && !review.deleted ? (
                 <ReviewReplyEditor
                   review={review}
                   businessId={businessId}

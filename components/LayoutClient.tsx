@@ -55,6 +55,7 @@ import PWAInstallPrompt from "@/components/pwa/PWAInstallPrompt";
 import ScrollRestoration from "@/components/ScrollRestoration";
 import ScrollToTopButton from "@/components/ScrollToTopButton";
 import { UserLocationProvider } from '@/hooks/useUserCoords';
+import LoginRoleToast from '@/components/LoginRoleToast';
 import { useMobileGate } from '@/hooks/useMobileGate';
 import { VERIFY_MOBILE_PATH } from '@/lib/mobileGate';
 
@@ -133,6 +134,9 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
       >
         <Suspense fallback={null}>
           <ScrollRestoration />
+        </Suspense>
+        <Suspense fallback={null}>
+          <LoginRoleToast />
         </Suspense>
         {!hideTopNavFooter && <Navbar />}
         <Suspense fallback={<div className="flex-grow bg-white" />}>
