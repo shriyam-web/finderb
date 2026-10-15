@@ -68,10 +68,10 @@ export default function DashboardStatsGrid({ stats, completionPercent, leadCount
         <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm lg:col-span-3 md:p-6">
           <div className="mb-5 flex items-center justify-between">
             <div>
-              <p className="text-xs font-bold uppercase tracking-wide text-[#215481]">Health check</p>
+              <p className="text-xs font-bold uppercase tracking-wide text-[#3F3F46]">Health check</p>
               <h3 className="text-base font-bold text-slate-900">Performance metrics</h3>
             </div>
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#215481] to-[#4f8dc3] text-white">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#3F3F46] to-[#71717A] text-white">
               <HiOutlineArrowTrendingUp size={20} />
             </div>
           </div>
@@ -96,14 +96,14 @@ export default function DashboardStatsGrid({ stats, completionPercent, leadCount
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#f9b864] via-[#f5c078] to-[#e8a045] p-5 shadow-lg shadow-amber-500/20 lg:col-span-2 md:p-6">
           <div className="pointer-events-none absolute -right-4 -top-4 h-24 w-24 rounded-full bg-white/30 blur-2xl" aria-hidden />
           <div className="relative">
-            <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-[#153551]/15">
-              <HiOutlineSparkles size={22} className="text-[#153551]" />
+            <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-[#27272A]/15">
+              <HiOutlineSparkles size={22} className="text-[#27272A]" />
             </div>
-            <h3 className="text-lg font-bold text-[#153551]">Grow on FinderB</h3>
-            <p className="mt-2 text-sm font-medium leading-relaxed text-[#153551]/85">
+            <h3 className="text-lg font-bold text-[#27272A]">Grow on FinderB</h3>
+            <p className="mt-2 text-sm font-medium leading-relaxed text-[#27272A]/85">
               Reply to leads within 30 minutes and keep your profile above 80% complete for better search ranking.
             </p>
-            <p className="mt-4 inline-flex rounded-lg bg-[#153551]/10 px-3 py-1.5 text-xs font-bold text-[#153551]">
+            <p className="mt-4 inline-flex rounded-lg bg-[#27272A]/10 px-3 py-1.5 text-xs font-bold text-[#27272A]">
               3× more visibility for complete profiles
             </p>
           </div>
@@ -128,7 +128,7 @@ export function ProfileCompletionCard({
 
   return (
     <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
-      <div className="h-1.5 bg-gradient-to-r from-[#f9b864] via-[#215481] to-violet-500" aria-hidden />
+      <div className="h-1.5 bg-gradient-to-r from-[#f9b864] via-[#3F3F46] to-violet-500" aria-hidden />
       <div className="p-6 md:p-8">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
           <div className="max-w-xl space-y-4">
@@ -161,7 +161,7 @@ export function ProfileCompletionCard({
             <button
               type="button"
               onClick={onOpenSettings}
-              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#215481] to-[#4f8dc3] px-5 py-2.5 text-sm font-bold text-white shadow-md hover:brightness-110"
+              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#3F3F46] to-[#71717A] px-5 py-2.5 text-sm font-bold text-white shadow-md hover:brightness-110"
             >
               Complete profile <HiOutlineChevronRight size={16} />
             </button>
@@ -186,7 +186,7 @@ export function ProfileCompletionCard({
                 <defs>
                   <linearGradient id="profileRing" x1="0%" y1="0%" x2="100%" y2="0%">
                     <stop offset="0%" stopColor="#f9b864" />
-                    <stop offset="50%" stopColor="#215481" />
+                    <stop offset="50%" stopColor="#3F3F46" />
                     <stop offset="100%" stopColor="#7c3aed" />
                   </linearGradient>
                 </defs>
@@ -237,7 +237,7 @@ export function MerchantInfoPanel({
         className="flex w-full items-center justify-between gap-4 bg-gradient-to-r from-[#f0f7ff] via-white to-[#fff9f0] px-5 py-4 text-left hover:brightness-[0.99] md:px-6"
       >
         <div>
-          <p className="text-xs font-bold uppercase tracking-wide text-[#215481]">Your account</p>
+          <p className="text-xs font-bold uppercase tracking-wide text-[#3F3F46]">Your account</p>
           <h3 className="text-base font-bold text-slate-900">Merchant credentials</h3>
         </div>
         <div className="flex items-center gap-3">
@@ -247,7 +247,7 @@ export function MerchantInfoPanel({
               target="_blank"
               rel="noreferrer"
               onClick={(e) => e.stopPropagation()}
-              className="hidden items-center gap-1.5 rounded-lg bg-[#215481] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#153551] sm:inline-flex"
+              className="hidden items-center gap-1.5 rounded-lg bg-[#3F3F46] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#27272A] sm:inline-flex"
             >
               <HiOutlineEye size={14} />
               Live profile

@@ -87,7 +87,7 @@ export default function SubscriptionExpiryAlert({
               ? 'bg-gradient-to-r from-rose-500 to-orange-500 text-white'
               : isUrgent
                 ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white'
-                : 'bg-gradient-to-r from-amber-500 to-[#f9b864] text-[#153551]'
+                : 'bg-gradient-to-r from-amber-500 to-[#f9b864] text-[#27272A]'
           }`}
         >
           <div className="flex items-start justify-between gap-3">
@@ -144,7 +144,7 @@ export default function SubscriptionExpiryAlert({
               email={email}
               mobile={mobile}
               label={isExpired ? 'Recharge now' : 'Renew plan'}
-              className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#153551] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#215481]"
+              className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#27272A] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#3F3F46]"
             />
             <button
               type="button"
@@ -163,7 +163,7 @@ export default function SubscriptionExpiryAlert({
             Alerts show once per day when your plan is within {EXPIRY_WARNING_DAYS} days of expiry
             {EXPIRY_URGENT_DAYS < EXPIRY_WARNING_DAYS ? ` (${EXPIRY_URGENT_DAYS} days for urgent reminders)` : ''}.
             {' '}
-            <Link href="/pricing" className="text-[#215481] hover:underline">
+            <Link href="/pricing" className="text-[#3F3F46] hover:underline">
               Compare plans
             </Link>
           </p>

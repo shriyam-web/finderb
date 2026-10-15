@@ -45,8 +45,8 @@ export default function DashboardActionCenter({
       <div className="bg-gradient-to-r from-amber-500 via-[#f9b864] to-orange-400 px-5 py-3.5 md:px-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-wider text-[#153551]/70">Action needed</p>
-            <h2 className="text-base font-bold text-[#153551]">Unlock your full partner access</h2>
+            <p className="text-[11px] font-bold uppercase tracking-wider text-[#27272A]/70">Action needed</p>
+            <h2 className="text-base font-bold text-[#27272A]">Unlock your full partner access</h2>
           </div>
           <div className="flex flex-wrap gap-2">
             {isPaymentDue && <PaymentStatusBadge status={paymentStatus} size="sm" />}
@@ -85,7 +85,7 @@ export default function DashboardActionCenter({
                       mobile={mobile}
                       label="Choose plan"
                       onError={onPaymentError}
-                      className="inline-flex items-center rounded-xl bg-gradient-to-r from-[#153551] to-[#215481] px-5 py-2.5 text-sm font-bold text-white shadow-md hover:brightness-110 disabled:opacity-60"
+                      className="inline-flex items-center rounded-xl bg-gradient-to-r from-[#27272A] to-[#3F3F46] px-5 py-2.5 text-sm font-bold text-white shadow-md hover:brightness-110 disabled:opacity-60"
                     />
                   )}
                 </div>

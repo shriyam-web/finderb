@@ -65,7 +65,7 @@ export default function DashboardAtAGlance({
             <button
               type="button"
               onClick={item.onClick}
-              className="inline-flex items-center gap-1.5 text-zinc-600 hover:text-[#215481]"
+              className="inline-flex items-center gap-1.5 text-zinc-600 hover:text-[#3F3F46]"
             >
               <Icon size={15} className="shrink-0" />
               <span className="font-medium text-zinc-800">{item.label}</span>

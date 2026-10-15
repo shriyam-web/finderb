@@ -74,7 +74,7 @@ export default function MessagesTab({ businessId }: MessagesTabProps) {
               <button
                 type="button"
                 disabled
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#153551] text-white"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#27272A] text-white"
                 aria-label="Send message"
               >
                 <HiOutlinePaperAirplane size={18} />

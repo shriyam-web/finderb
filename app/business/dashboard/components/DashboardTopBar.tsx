@@ -113,10 +113,10 @@ export default function DashboardTopBar({
           className="inline-flex items-center gap-2 text-sm font-medium text-zinc-700 hover:text-zinc-900"
           aria-expanded={isNotificationsOpen}
         >
-          <HiOutlineBell size={18} className="text-[#215481]" />
+          <HiOutlineBell size={18} className="text-[#3F3F46]" />
           Alerts
           {unreadCount > 0 && (
-            <span className="rounded-full bg-[#f9b864] px-1.5 py-0.5 text-[10px] font-bold text-[#153551]">
+            <span className="rounded-full bg-[#f9b864] px-1.5 py-0.5 text-[10px] font-bold text-[#27272A]">
               {unreadCount > 9 ? '9+' : unreadCount}
             </span>
           )}
@@ -132,7 +132,7 @@ export default function DashboardTopBar({
                   <button
                     type="button"
                     onClick={onMarkAllRead}
-                    className="text-[11px] font-semibold text-[#215481] hover:underline"
+                    className="text-[11px] font-semibold text-[#3F3F46] hover:underline"
                   >
                     Mark all as read
                   </button>
@@ -152,7 +152,7 @@ export default function DashboardTopBar({
                       <p className="text-sm font-medium text-zinc-900">{n.title || 'Notification'}</p>
                       <p className="mt-0.5 text-xs text-zinc-600">{n.message}</p>
                       {cta ? (
-                        <span className="mt-2 inline-flex rounded-md bg-[#215481] px-2.5 py-1 text-[11px] font-semibold text-white">
+                        <span className="mt-2 inline-flex rounded-md bg-[#3F3F46] px-2.5 py-1 text-[11px] font-semibold text-white">
                           {cta.label}
                         </span>
                       ) : null}

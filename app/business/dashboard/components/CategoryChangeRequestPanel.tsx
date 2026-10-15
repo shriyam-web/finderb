@@ -209,7 +209,7 @@ export default function CategoryChangeRequestPanel({
   if (loadingPending) {
     return (
       <div className={`${dashboard.emptyState} py-10`}>
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#215481] border-t-transparent" />
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#3F3F46] border-t-transparent" />
         <p className="mt-3 text-sm text-zinc-500">Loading category settings…</p>
       </div>
     );
@@ -224,14 +224,14 @@ export default function CategoryChangeRequestPanel({
             splitBusinessCategories(currentCategory).map((label) => (
               <span
                 key={label}
-                className="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-white px-2 py-0.5 text-xs font-medium text-[#153551]"
+                className="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-white px-2 py-0.5 text-xs font-medium text-[#27272A]"
               >
                 <HiOutlineTag size={12} className="text-zinc-400" />
                 {label}
               </span>
             ))
           ) : (
-            <p className="flex items-center gap-2 text-sm font-semibold text-[#153551]">
+            <p className="flex items-center gap-2 text-sm font-semibold text-[#27272A]">
               <HiOutlineTag size={16} className="shrink-0 text-zinc-400" />
               Not set
             </p>
@@ -283,7 +283,7 @@ export default function CategoryChangeRequestPanel({
               {requestedLabels.map((label) => (
                 <span
                   key={label}
-                  className="inline-flex items-center gap-1 rounded-full border border-[#215481]/20 bg-[#215481]/[0.06] px-2 py-0.5 text-xs font-medium text-[#153551]"
+                  className="inline-flex items-center gap-1 rounded-full border border-[#3F3F46]/20 bg-[#3F3F46]/[0.06] px-2 py-0.5 text-xs font-medium text-[#27272A]"
                 >
                   {label}
                   <button
@@ -293,7 +293,7 @@ export default function CategoryChangeRequestPanel({
                         prev.filter((item) => item.toLowerCase() !== label.toLowerCase()),
                       )
                     }
-                    className="text-zinc-500 hover:text-[#153551]"
+                    className="text-zinc-500 hover:text-[#27272A]"
                     aria-label={`Remove ${label}`}
                   >
                     ×
@@ -304,15 +304,15 @@ export default function CategoryChangeRequestPanel({
           )}
 
           {draftCategory ? (
-            <div className="flex items-center justify-between gap-3 rounded-lg border border-[#215481]/15 bg-[#215481]/[0.04] px-3 py-2.5 text-xs text-zinc-700">
+            <div className="flex items-center justify-between gap-3 rounded-lg border border-[#3F3F46]/15 bg-[#3F3F46]/[0.04] px-3 py-2.5 text-xs text-zinc-700">
               <span className="min-w-0 truncate">
                 Ready to add:{' '}
-                <span className="font-semibold text-[#153551]">{draftCategory}</span>
+                <span className="font-semibold text-[#27272A]">{draftCategory}</span>
               </span>
               <button
                 type="button"
                 onClick={addDraftCategory}
-                className="shrink-0 rounded-md bg-[#215481] px-2.5 py-1 text-[11px] font-semibold text-white"
+                className="shrink-0 rounded-md bg-[#3F3F46] px-2.5 py-1 text-[11px] font-semibold text-white"
               >
                 Add
               </button>
@@ -320,9 +320,9 @@ export default function CategoryChangeRequestPanel({
           ) : null}
 
           {requestedCategory && (
-            <div className="rounded-lg border border-[#215481]/15 bg-[#215481]/[0.04] px-3 py-2.5 text-xs text-zinc-700">
+            <div className="rounded-lg border border-[#3F3F46]/15 bg-[#3F3F46]/[0.04] px-3 py-2.5 text-xs text-zinc-700">
               Request will include:{' '}
-              <span className="font-semibold text-[#153551]">
+              <span className="font-semibold text-[#27272A]">
                 {splitBusinessCategories(requestedCategory).join(' · ')}
               </span>
             </div>
@@ -338,7 +338,7 @@ export default function CategoryChangeRequestPanel({
               onChange={(e) => setMerchantNote(e.target.value)}
               rows={3}
               placeholder="e.g. We expanded from retail into wholesale…"
-              className="w-full rounded-lg border border-zinc-200 px-3 py-2.5 text-sm outline-none focus:border-[#215481] focus:ring-2 focus:ring-[#215481]/10"
+              className="w-full rounded-lg border border-zinc-200 px-3 py-2.5 text-sm outline-none focus:border-[#3F3F46] focus:ring-2 focus:ring-[#3F3F46]/10"
             />
           </div>
 

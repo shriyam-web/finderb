@@ -7,13 +7,10 @@ import {
   updateBusinessProfile,
 } from '@/app/actions/business';
 import { getBusinessLeads, markLeadRead, updateLeadStatus } from '@/app/actions/leads';
-import { hideOwnBusinessListing } from '@/app/actions/business';
 import { isOpenLead } from '@/lib/leadBadges';
 import { isLeadUnread, averageLeadResponseLabel } from '@/lib/leadRead';
-import {
-  averageCompletionPercent,
-  COMPETITOR_COMPLETION_SELECT,
-} from '@/lib/dashboard/competitorInsights';
+import { loadCompetitorAverageFromClient } from '@/lib/dashboard/competitorInsights';
+import { revalidateBusinessProfilePaths } from '@/lib/businessRevalidation';
 import { isBusinessWhatsappVerified } from '@/lib/unverifiedContact';
 import {
   BUSINESS_REVIEW_FLAGS_PER_MONTH,
@@ -212,16 +209,7 @@ async function reviewFlagState(businessId: string) {
 }
 
 async function loadCompetitorAverage(businessId: string, category: string) {
-  const supabase = createServiceClient();
-  if (!supabase || !category) return null;
-  const { data } = await supabase
-    .from('Business')
-    .select(COMPETITOR_COMPLETION_SELECT)
-    .eq('category', category)
-    .neq('id', businessId)
-    .eq('status', 'Active')
-    .limit(200);
-  return averageCompletionPercent((data || []) as Record<string, unknown>[]);
+  return loadCompetitorAverageFromClient(createServiceClient(), businessId, category);
 }
 
 function maskLeads<T extends { email: string | null; phone: string | null }>(leads: T[], unlocked: boolean) {
@@ -590,9 +578,29 @@ async function markLeadReadAction(leadId: unknown) {
 }
 
 async function hideBusiness(businessId: string) {
-  const result = await hideOwnBusinessListing(businessId);
-  if (!result.success) return fail(result.error);
-  return { success: true as const, message: result.message };
+  const supabase = createServiceClient();
+  if (!supabase) return fail('Could not take down this listing.');
+  const { data, error } = await supabase
+    .from('Business')
+    .update({
+      status: 'inactive',
+      updatedAt: new Date().toISOString(),
+    })
+    .eq('id', businessId)
+    .select('id, slug, businessName, displayName, city, status')
+    .maybeSingle();
+  if (error || !data) return fail('Could not take down this listing.');
+  revalidateBusinessProfilePaths({
+    id: data.id,
+    slug: data.slug,
+    name: data.displayName,
+    businessName: data.businessName,
+    city: data.city,
+  });
+  return {
+    success: true as const,
+    message: 'Your listing has been taken down and is no longer visible to customers.',
+  };
 }
 
 async function setLeadStatus(leadId: unknown, status: unknown) {

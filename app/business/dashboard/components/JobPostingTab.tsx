@@ -200,7 +200,7 @@ export default function JobPostingTab({ businessId, canEdit = true }: JobPosting
       <div className={`${dashboard.panel} p-4 sm:p-5`}>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
-            <p className="text-xs font-bold uppercase tracking-wider text-[#215481]">Job postings</p>
+            <p className="text-xs font-bold uppercase tracking-wider text-[#3F3F46]">Job postings</p>
             <p className="mt-1 text-sm text-zinc-600">
               Live roles appear on FinderB Jobs — applications flow into your Leads tab.
             </p>
@@ -219,13 +219,13 @@ export default function JobPostingTab({ businessId, canEdit = true }: JobPosting
         <div className="mt-5 grid gap-4 sm:grid-cols-3">
           <div className="rounded-lg border border-zinc-200 bg-zinc-50/80 px-4 py-3">
             <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Live slots</p>
-            <p className="mt-1 text-2xl font-bold tabular-nums text-[#153551]">
+            <p className="mt-1 text-2xl font-bold tabular-nums text-[#27272A]">
               {activeJobsCount}
               <span className="text-base font-medium text-zinc-400"> / {MAX_ACTIVE_JOBS}</span>
             </p>
             <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-zinc-200">
               <div
-                className="h-full rounded-full bg-gradient-to-r from-[#215481] to-[#f9b864] transition-all duration-500"
+                className="h-full rounded-full bg-gradient-to-r from-[#3F3F46] to-[#f9b864] transition-all duration-500"
                 style={{ width: `${slotPercent}%` }}
               />
             </div>
@@ -250,7 +250,7 @@ export default function JobPostingTab({ businessId, canEdit = true }: JobPosting
         </div>
       ) : jobs.length === 0 ? (
         <div className={`${dashboard.panel} ${dashboard.emptyState} py-14`}>
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-[#153551] to-[#215481] text-[#f9b864] shadow-lg">
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-[#27272A] to-[#3F3F46] text-[#f9b864] shadow-lg">
             <HiOutlineBriefcase size={30} />
           </div>
           <h3 className="mt-5 text-lg font-bold text-zinc-900">No jobs posted yet</h3>
@@ -288,7 +288,7 @@ export default function JobPostingTab({ businessId, canEdit = true }: JobPosting
                         {job.type}
                       </span>
                       {job.department && (
-                        <span className="rounded-md bg-[#215481]/8 px-2 py-0.5 text-[11px] font-semibold text-[#215481]">
+                        <span className="rounded-md bg-[#3F3F46]/8 px-2 py-0.5 text-[11px] font-semibold text-[#3F3F46]">
                           {job.department}
                         </span>
                       )}
@@ -331,7 +331,7 @@ export default function JobPostingTab({ businessId, canEdit = true }: JobPosting
                       <button
                         type="button"
                         onClick={() => setExpandedId(isExpanded ? null : job.id)}
-                        className="mt-2 inline-flex items-center gap-0.5 text-xs font-semibold text-[#215481] hover:underline"
+                        className="mt-2 inline-flex items-center gap-0.5 text-xs font-semibold text-[#3F3F46] hover:underline"
                       >
                         {isExpanded ? (
                           <>
@@ -351,7 +351,7 @@ export default function JobPostingTab({ businessId, canEdit = true }: JobPosting
                     <button
                       type="button"
                       onClick={() => handleOpenModal(job)}
-                      className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-zinc-200 px-4 py-2 text-xs font-semibold text-zinc-700 hover:border-[#215481]/30 hover:bg-zinc-50 sm:flex-none"
+                      className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-zinc-200 px-4 py-2 text-xs font-semibold text-zinc-700 hover:border-[#3F3F46]/30 hover:bg-zinc-50 sm:flex-none"
                     >
                       <HiOutlinePencilSquare size={15} />
                       Edit
@@ -382,7 +382,7 @@ export default function JobPostingTab({ businessId, canEdit = true }: JobPosting
             aria-hidden
           />
           <div className="relative flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-t-2xl bg-white shadow-2xl sm:rounded-xl">
-            <div className="border-b border-zinc-100 bg-gradient-to-r from-[#153551]/5 to-transparent px-5 py-4">
+            <div className="border-b border-zinc-100 bg-gradient-to-r from-[#27272A]/5 to-transparent px-5 py-4">
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-base font-bold text-zinc-900">
@@ -408,7 +408,7 @@ export default function JobPostingTab({ businessId, canEdit = true }: JobPosting
                     required
                     type="text"
                     placeholder="e.g. Sales Executive"
-                    className="mt-1.5 w-full rounded-lg border border-zinc-200 px-3 py-2.5 text-sm outline-none focus:border-[#215481] focus:ring-2 focus:ring-[#215481]/10"
+                    className="mt-1.5 w-full rounded-lg border border-zinc-200 px-3 py-2.5 text-sm outline-none focus:border-[#3F3F46] focus:ring-2 focus:ring-[#3F3F46]/10"
                     value={formData.title}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                   />
@@ -418,7 +418,7 @@ export default function JobPostingTab({ businessId, canEdit = true }: JobPosting
                   <label className="block">
                     <span className="text-xs font-semibold text-zinc-600">Type</span>
                     <select
-                      className="mt-1.5 w-full rounded-lg border border-zinc-200 px-3 py-2.5 text-sm outline-none focus:border-[#215481] focus:ring-2 focus:ring-[#215481]/10"
+                      className="mt-1.5 w-full rounded-lg border border-zinc-200 px-3 py-2.5 text-sm outline-none focus:border-[#3F3F46] focus:ring-2 focus:ring-[#3F3F46]/10"
                       value={formData.type}
                       onChange={(e) => setFormData({ ...formData, type: e.target.value })}
                     >
@@ -434,7 +434,7 @@ export default function JobPostingTab({ businessId, canEdit = true }: JobPosting
                     <input
                       type="text"
                       placeholder="Optional"
-                      className="mt-1.5 w-full rounded-lg border border-zinc-200 px-3 py-2.5 text-sm outline-none focus:border-[#215481] focus:ring-2 focus:ring-[#215481]/10"
+                      className="mt-1.5 w-full rounded-lg border border-zinc-200 px-3 py-2.5 text-sm outline-none focus:border-[#3F3F46] focus:ring-2 focus:ring-[#3F3F46]/10"
                       value={formData.department}
                       onChange={(e) => setFormData({ ...formData, department: e.target.value })}
                     />
@@ -447,7 +447,7 @@ export default function JobPostingTab({ businessId, canEdit = true }: JobPosting
                     required
                     type="text"
                     placeholder="City or Remote"
-                    className="mt-1.5 w-full rounded-lg border border-zinc-200 px-3 py-2.5 text-sm outline-none focus:border-[#215481] focus:ring-2 focus:ring-[#215481]/10"
+                    className="mt-1.5 w-full rounded-lg border border-zinc-200 px-3 py-2.5 text-sm outline-none focus:border-[#3F3F46] focus:ring-2 focus:ring-[#3F3F46]/10"
                     value={formData.location}
                     onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                   />
@@ -458,7 +458,7 @@ export default function JobPostingTab({ businessId, canEdit = true }: JobPosting
                   <input
                     type="text"
                     placeholder="e.g. ₹3L – ₹5L per year"
-                    className="mt-1.5 w-full rounded-lg border border-zinc-200 px-3 py-2.5 text-sm outline-none focus:border-[#215481] focus:ring-2 focus:ring-[#215481]/10"
+                    className="mt-1.5 w-full rounded-lg border border-zinc-200 px-3 py-2.5 text-sm outline-none focus:border-[#3F3F46] focus:ring-2 focus:ring-[#3F3F46]/10"
                     value={formData.salary}
                     onChange={(e) => setFormData({ ...formData, salary: e.target.value })}
                   />
@@ -470,7 +470,7 @@ export default function JobPostingTab({ businessId, canEdit = true }: JobPosting
                     required
                     rows={5}
                     placeholder="Role, requirements, how to apply…"
-                    className="mt-1.5 w-full resize-none rounded-lg border border-zinc-200 px-3 py-2.5 text-sm leading-relaxed outline-none focus:border-[#215481] focus:ring-2 focus:ring-[#215481]/10"
+                    className="mt-1.5 w-full resize-none rounded-lg border border-zinc-200 px-3 py-2.5 text-sm leading-relaxed outline-none focus:border-[#3F3F46] focus:ring-2 focus:ring-[#3F3F46]/10"
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   />

@@ -66,7 +66,7 @@ export default function DashboardHeader({
 
   return (
     <header className="relative z-20 mb-7 overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-[0_8px_30px_-12px_rgba(33,84,129,0.15)] md:mb-8">
-      <div className="relative overflow-hidden bg-gradient-to-br from-[#153551] via-[#215481] to-[#1a4367] px-5 py-5 md:px-7 md:py-6">
+      <div className="relative overflow-hidden bg-gradient-to-br from-[#27272A] via-[#3F3F46] to-[#18181B] px-5 py-5 md:px-7 md:py-6">
         <div
           className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-[#f9b864]/35 blur-3xl"
           aria-hidden
@@ -78,7 +78,7 @@ export default function DashboardHeader({
 
         <div className="relative flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0 space-y-2">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#f9b864] px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-[#153551]">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#f9b864] px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-[#27272A]">
               <HiOutlineCalendarDays size={13} />
               {today}
             </span>
@@ -101,7 +101,7 @@ export default function DashboardHeader({
             >
               <HiOutlineBell size={20} />
               {unreadCount > 0 && (
-                <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#f9b864] px-1 text-[10px] font-bold text-[#153551] ring-2 ring-[#215481]">
+                <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#f9b864] px-1 text-[10px] font-bold text-[#27272A] ring-2 ring-[#3F3F46]">
                   {unreadCount > 9 ? '9+' : unreadCount}
                 </span>
               )}
@@ -127,7 +127,7 @@ export default function DashboardHeader({
                               href={cta.url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="mt-2 inline-flex rounded-md bg-[#215481] px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-[#1a4367]"
+                              className="mt-2 inline-flex rounded-md bg-[#3F3F46] px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-[#18181B]"
                             >
                               {cta.label}
                             </a>

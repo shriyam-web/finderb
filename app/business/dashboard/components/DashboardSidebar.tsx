@@ -127,10 +127,10 @@ export default function DashboardSidebar({
         {active && (
           <span className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-[#f9b864]" aria-hidden />
         )}
-        <Icon size={18} className={active ? 'text-[#215481]' : 'text-zinc-400 group-hover:text-zinc-600'} />
+        <Icon size={18} className={active ? 'text-[#3F3F46]' : 'text-zinc-400 group-hover:text-zinc-600'} />
         <span className={`flex-1 text-sm ${active ? 'font-semibold' : 'font-medium'}`}>{item.label}</span>
         {typeof item.badge === 'number' && item.badge > 0 && (
-          <span className="rounded-md bg-[#153551] px-1.5 py-0.5 text-[10px] font-semibold text-[#f9b864] tabular-nums">
+          <span className="rounded-md bg-[#27272A] px-1.5 py-0.5 text-[10px] font-semibold text-[#f9b864] tabular-nums">
             {item.badge > 99 ? '99+' : item.badge}
           </span>
         )}
@@ -151,7 +151,7 @@ export default function DashboardSidebar({
         <button
           type="button"
           onClick={() => handleNavSelect('overview')}
-          className="truncate text-left text-sm font-semibold text-zinc-900 hover:text-[#215481]"
+          className="truncate text-left text-sm font-semibold text-zinc-900 hover:text-[#3F3F46]"
           title="Open dashboard overview"
         >
           {businessName}
@@ -165,7 +165,7 @@ export default function DashboardSidebar({
               <button
                 type="button"
                 onClick={() => onCopyMerchantId(registrationNumber)}
-                className="shrink-0 text-[10px] font-medium text-[#215481] hover:underline"
+                className="shrink-0 text-[10px] font-medium text-[#3F3F46] hover:underline"
               >
                 {copiedId ? 'Copied' : 'Copy'}
               </button>
@@ -184,7 +184,7 @@ export default function DashboardSidebar({
   const paymentCta =
     (isPaymentPending || showRenewalCta) && businessId ? (
       <div className="mt-4 overflow-hidden rounded-lg border border-amber-200/80 bg-gradient-to-br from-amber-50/80 to-white p-3">
-        <p className="text-xs font-semibold text-[#153551]">
+        <p className="text-xs font-semibold text-[#27272A]">
           {isPaymentPending ? `${planName} — upgrade to unlock leads` : 'Plan renewal due soon'}
         </p>
         <p className="mt-1 text-xs text-zinc-600">
@@ -199,7 +199,7 @@ export default function DashboardSidebar({
           email={businessEmail}
           mobile={businessMobile}
           label={isPaymentPending ? 'Choose plan' : 'Renew plan'}
-          className="mt-3 w-full rounded-lg bg-[#153551] py-2 text-xs font-semibold text-white hover:bg-[#215481] disabled:opacity-60"
+          className="mt-3 w-full rounded-lg bg-[#27272A] py-2 text-xs font-semibold text-white hover:bg-[#3F3F46] disabled:opacity-60"
         />
       </div>
     ) : null;
@@ -273,7 +273,7 @@ export default function DashboardSidebar({
           <button
             type="button"
             onClick={() => handleNavSelect('overview')}
-            className="truncate text-sm font-semibold text-zinc-900 hover:text-[#215481]"
+            className="truncate text-sm font-semibold text-zinc-900 hover:text-[#3F3F46]"
             title="Open dashboard overview"
           >
             {businessName}
@@ -302,7 +302,7 @@ export default function DashboardSidebar({
               type="button"
               onClick={() => handleNavSelect(item.id)}
               className={`relative flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] font-medium ${
-                active ? 'text-[#215481]' : 'text-zinc-400'
+                active ? 'text-[#3F3F46]' : 'text-zinc-400'
               }`}
             >
               {active && (

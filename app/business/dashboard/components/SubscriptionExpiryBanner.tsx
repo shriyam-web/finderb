@@ -70,7 +70,7 @@ export default function SubscriptionExpiryBanner({
             email={email}
             mobile={mobile}
             label="Renew plan"
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#153551] px-4 py-2 text-sm font-semibold text-white hover:bg-[#215481]"
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-zinc-800 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-700"
           />
           <Link
             href="/pricing"

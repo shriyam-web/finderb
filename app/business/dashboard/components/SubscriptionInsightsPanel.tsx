@@ -64,7 +64,7 @@ function BillingTooltip({ active, payload, mode }: ChartTooltipProps) {
       {mode === 'cumulative' && (
         <p className="mt-1 border-t border-zinc-100 pt-1 text-zinc-600">
           Running total:{' '}
-          <span className="font-medium text-[#215481]">{formatInr(point.cumulative)}</span>
+          <span className="font-medium text-[#3F3F46]">{formatInr(point.cumulative)}</span>
         </p>
       )}
     </div>
@@ -115,13 +115,13 @@ function BillingTrendChart({
         <ComposedChart data={data} margin={{ top: 8, right: 8, left: -8, bottom: 0 }}>
           <defs>
             <linearGradient id="billingAreaFill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#215481" stopOpacity={0.42} />
-              <stop offset="55%" stopColor="#4f8dc3" stopOpacity={0.14} />
-              <stop offset="100%" stopColor="#4f8dc3" stopOpacity={0} />
+              <stop offset="0%" stopColor="#3F3F46" stopOpacity={0.42} />
+              <stop offset="55%" stopColor="#71717A" stopOpacity={0.14} />
+              <stop offset="100%" stopColor="#71717A" stopOpacity={0} />
             </linearGradient>
             <linearGradient id="billingBarFill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#153551" stopOpacity={0.9} />
-              <stop offset="100%" stopColor="#215481" stopOpacity={0.55} />
+              <stop offset="0%" stopColor="#27272A" stopOpacity={0.9} />
+              <stop offset="100%" stopColor="#3F3F46" stopOpacity={0.55} />
             </linearGradient>
             <filter id="billingGlow" x="-20%" y="-20%" width="140%" height="140%">
               <feGaussianBlur stdDeviation="2" result="blur" />
@@ -163,7 +163,7 @@ function BillingTrendChart({
           )}
 
           <Tooltip
-            cursor={{ stroke: '#215481', strokeWidth: 1, strokeDasharray: '4 4' }}
+            cursor={{ stroke: '#3F3F46', strokeWidth: 1, strokeDasharray: '4 4' }}
             content={<BillingTooltip mode={mode} />}
           />
 
@@ -180,10 +180,10 @@ function BillingTrendChart({
             yAxisId="amount"
             type="monotone"
             dataKey="amount"
-            stroke="#215481"
+            stroke="#3F3F46"
             strokeWidth={2.5}
             fill="url(#billingAreaFill)"
-            activeDot={{ r: 5, fill: '#153551', stroke: '#fff', strokeWidth: 2 }}
+            activeDot={{ r: 5, fill: '#27272A', stroke: '#fff', strokeWidth: 2 }}
           />
 
           {mode === 'cumulative' && (
@@ -278,7 +278,7 @@ function PeriodRadialGauge({
   remainingDays: number;
   planName: string;
 }) {
-  const gaugeData = [{ name: 'used', value: percentUsed, fill: '#215481' }];
+  const gaugeData = [{ name: 'used', value: percentUsed, fill: '#3F3F46' }];
 
   return (
     <div className="flex items-center gap-5">
@@ -298,7 +298,7 @@ function PeriodRadialGauge({
               background={{ fill: '#f4f4f5' }}
               dataKey="value"
               cornerRadius={8}
-              fill="#215481"
+              fill="#3F3F46"
             />
           </RadialBarChart>
         </ResponsiveContainer>
@@ -333,7 +333,7 @@ function CoverageTimeline({
         {segments.map((segment, index) => {
           const left = ((segment.startMs - rangeStart) / span) * 100;
           const width = ((segment.endMs - segment.startMs) / span) * 100;
-          const tone = index % 2 === 0 ? 'bg-[#215481]' : 'bg-[#4f8dc3]';
+          const tone = index % 2 === 0 ? 'bg-[#3F3F46]' : 'bg-[#71717A]';
 
           return (
             <div

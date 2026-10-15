@@ -106,7 +106,7 @@ export default function OwnerMobileVerify({
             type="button"
             onClick={() => void verify()}
             disabled={verifying || code.length !== 6}
-            className="w-full rounded-lg bg-[#153551] px-3 py-2.5 text-sm font-semibold text-white transition hover:bg-[#0f2840] disabled:cursor-not-allowed disabled:opacity-50"
+            className="w-full rounded-lg bg-[#27272A] px-3 py-2.5 text-sm font-semibold text-white transition hover:bg-[#18181B] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {verifying ? 'Verifying…' : 'Verify mobile'}
           </button>

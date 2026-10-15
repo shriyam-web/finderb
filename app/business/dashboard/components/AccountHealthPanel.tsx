@@ -95,7 +95,7 @@ export default function AccountHealthPanel({
           <p className={dashboard.sectionDesc}>{health.headline}</p>
         </div>
         <div className="text-right">
-          <p className="text-2xl font-bold tabular-nums text-[#153551]">{health.score}%</p>
+          <p className="text-2xl font-bold tabular-nums text-[#27272A]">{health.score}%</p>
           <p className="text-xs text-zinc-500">Ready</p>
         </div>
       </div>
@@ -154,7 +154,7 @@ export default function AccountHealthPanel({
                 key={field.key}
                 type="button"
                 onClick={() => handleMissingClick(field)}
-                className="rounded-md border border-zinc-200 bg-zinc-50 px-2.5 py-1 text-xs font-medium text-zinc-800 hover:border-[#215481]/40 hover:bg-white"
+                className="rounded-md border border-zinc-200 bg-zinc-50 px-2.5 py-1 text-xs font-medium text-zinc-800 hover:border-[#3F3F46]/40 hover:bg-white"
               >
                 {field.label}
               </button>
@@ -169,7 +169,7 @@ export default function AccountHealthPanel({
             href={businessProfilePath}
             target="_blank"
             rel="noreferrer"
-            className="text-sm font-medium text-[#215481] hover:underline"
+            className="text-sm font-medium text-[#3F3F46] hover:underline"
           >
             View live public profile →
           </Link>

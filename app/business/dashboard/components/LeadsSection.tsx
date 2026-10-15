@@ -113,12 +113,12 @@ function LeadStatChip({
         accent === 'gold'
           ? 'border-[#f9b864]/40 bg-[#fff9ed]/80'
           : accent === 'navy'
-            ? 'border-[#215481]/15 bg-[#215481]/[0.04]'
+            ? 'border-[#3F3F46]/15 bg-[#3F3F46]/[0.04]'
             : 'border-zinc-200 bg-white'
       }`}
     >
       <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">{label}</p>
-      <p className="mt-0.5 text-2xl font-bold tabular-nums text-[#153551]">{value}</p>
+      <p className="mt-0.5 text-2xl font-bold tabular-nums text-[#27272A]">{value}</p>
     </div>
   );
 }
@@ -241,7 +241,7 @@ export default function LeadsSection({
       return (
         <Link
           href={`/pricing?businessId=${businessId}`}
-          className={`${btnBase} bg-[#f9b864] text-[#153551] hover:bg-[#ffcc70]`}
+          className={`${btnBase} bg-[#f9b864] text-[#27272A] hover:bg-[#ffcc70]`}
         >
           <HiOutlineRocketLaunch size={12} />
           Activate to unlock
@@ -277,7 +277,7 @@ export default function LeadsSection({
           <a
             href={`mailto:${email}?subject=${encodeURIComponent('Re: Your FinderB enquiry')}&body=${encodeURIComponent(contactMessage(lead))}`}
             onClick={() => markRead(lead.id)}
-            className={`${btnBase} border border-zinc-200 bg-white text-zinc-700 hover:border-[#215481]/30 hover:text-[#215481]`}
+            className={`${btnBase} border border-zinc-200 bg-white text-zinc-700 hover:border-[#3F3F46]/30 hover:text-[#3F3F46]`}
           >
             <HiOutlineEnvelope size={12} />
             Email
@@ -303,7 +303,7 @@ export default function LeadsSection({
         <div className="flex items-start gap-2.5">
           <div
             className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold ${
-              isNew ? 'bg-[#f9b864] text-[#153551]' : 'bg-zinc-100 text-zinc-700'
+              isNew ? 'bg-[#f9b864] text-[#27272A]' : 'bg-zinc-100 text-zinc-700'
             }`}
           >
             {initials(lead.name)}
@@ -323,7 +323,7 @@ export default function LeadsSection({
                 {leadPipelineOf(lead)}
               </span>
               {isJob ? (
-                <span className="text-[10px] font-medium text-[#215481]">Job</span>
+                <span className="text-[10px] font-medium text-[#3F3F46]">Job</span>
               ) : null}
               <span className="min-w-0 truncate text-[12px] text-zinc-600">{enquiry.primary}</span>
             </div>
@@ -345,7 +345,7 @@ export default function LeadsSection({
                 value={leadPipelineOf(lead)}
                 disabled={updatingId === lead.id}
                 onChange={(event) => void handleSetStatus(lead.id, event.target.value)}
-                className="rounded-full border border-zinc-200 bg-white px-2 py-1 text-[11px] font-semibold text-[#215481] outline-none"
+                className="rounded-full border border-zinc-200 bg-white px-2 py-1 text-[11px] font-semibold text-[#3F3F46] outline-none"
               >
                 {LEAD_PIPELINE_STATUSES.map((status) => (
                   <option key={status} value={status}>
@@ -360,7 +360,7 @@ export default function LeadsSection({
               type="button"
               disabled={updatingId === lead.id}
               onClick={() => handleMarkContacted(lead.id)}
-              className="inline-flex items-center gap-1 rounded-full border border-zinc-200 px-2.5 py-1 text-[11px] font-semibold text-[#215481] hover:bg-zinc-50 disabled:opacity-50"
+              className="inline-flex items-center gap-1 rounded-full border border-zinc-200 px-2.5 py-1 text-[11px] font-semibold text-[#3F3F46] hover:bg-zinc-50 disabled:opacity-50"
             >
               <HiOutlineCheckCircle size={12} />
               {updatingId === lead.id ? 'Saving…' : 'Contacted'}
@@ -405,7 +405,7 @@ export default function LeadsSection({
   if (loading) {
     return (
       <div className={`${dashboard.panel} ${dashboard.emptyState} py-16`}>
-        <div className="h-9 w-9 animate-spin rounded-full border-2 border-[#215481] border-t-transparent" />
+        <div className="h-9 w-9 animate-spin rounded-full border-2 border-[#3F3F46] border-t-transparent" />
         <p className="mt-3 text-sm text-zinc-500">Loading your leads…</p>
       </div>
     );
@@ -430,7 +430,7 @@ export default function LeadsSection({
           <Link
             href={businessProfilePath ?? '#'}
             target="_blank"
-            className="mt-5 inline-flex items-center gap-1 text-sm font-semibold text-[#215481] hover:underline"
+            className="mt-5 inline-flex items-center gap-1 text-sm font-semibold text-[#3F3F46] hover:underline"
           >
             View public profile <HiOutlineChevronRight size={16} />
           </Link>
@@ -447,7 +447,7 @@ export default function LeadsSection({
           description={`Upgrade to ${getPaidPlansLabel()} to view contact details.`}
         />
         <div className={`${dashboard.panel} ${dashboard.emptyState} py-12`}>
-          <p className="text-5xl font-bold text-[#153551]">{leads.length}</p>
+          <p className="text-5xl font-bold text-[#27272A]">{leads.length}</p>
           <p className="mt-2 text-sm text-zinc-600">people enquired — upgrade to see their phone and email</p>
           <Link href={`/pricing?businessId=${businessId}`} className={`mt-5 ${dashboard.btnPrimary}`}>
             <HiOutlineRocketLaunch size={16} />
@@ -467,7 +467,7 @@ export default function LeadsSection({
               <div className="flex items-start gap-3">
                 <HiOutlineSparkles size={20} className="mt-0.5 shrink-0 text-[#f69e32]" />
                 <div>
-                  <p className="text-sm font-bold text-[#153551]">You have enquiries waiting</p>
+                  <p className="text-sm font-bold text-[#27272A]">You have enquiries waiting</p>
                   <p className="mt-0.5 text-xs text-zinc-600">
                     Upgrade to {getPaidPlansLabel()} to see names, phone numbers, and email for {leads.length} lead
                     {leads.length === 1 ? '' : 's'}.
@@ -503,7 +503,7 @@ export default function LeadsSection({
               Business enquiries
               <span
                 className={`rounded-full px-1.5 py-px text-[10px] ${
-                  activeTab === 'business' ? 'bg-[#215481]/10 text-[#215481]' : 'bg-zinc-200/80 text-zinc-600'
+                  activeTab === 'business' ? 'bg-[#3F3F46]/10 text-[#3F3F46]' : 'bg-zinc-200/80 text-zinc-600'
                 }`}
               >
                 {businessLeads.length}
@@ -521,7 +521,7 @@ export default function LeadsSection({
               Job applications
               <span
                 className={`rounded-full px-1.5 py-px text-[10px] ${
-                  activeTab === 'jobs' ? 'bg-[#215481]/10 text-[#215481]' : 'bg-zinc-200/80 text-zinc-600'
+                  activeTab === 'jobs' ? 'bg-[#3F3F46]/10 text-[#3F3F46]' : 'bg-zinc-200/80 text-zinc-600'
                 }`}
               >
                 {jobLeads.length}
@@ -569,7 +569,7 @@ export default function LeadsSection({
             <div className="flex justify-end">
               <Link
                 href="/business/dashboard?tab=leads"
-                className="inline-flex items-center gap-1 text-sm font-semibold text-[#215481] hover:underline"
+                className="inline-flex items-center gap-1 text-sm font-semibold text-[#3F3F46] hover:underline"
               >
                 View all leads
                 <HiOutlineChevronRight size={16} />

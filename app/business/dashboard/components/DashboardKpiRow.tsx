@@ -27,7 +27,7 @@ export type DashboardRatingStats = {
 };
 
 const kpiAccent: Record<string, string> = {
-  views: 'from-[#153551] to-[#215481]',
+  views: 'from-[#27272A] to-[#3F3F46]',
   leads: 'from-[#c1621a] to-[#f9b864]',
   rating: 'from-violet-700 to-indigo-600',
 };

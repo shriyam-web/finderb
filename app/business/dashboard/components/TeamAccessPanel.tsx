@@ -228,7 +228,7 @@ export default function TeamAccessPanel({ businessId }: { businessId: string }) 
                   else if (step === 'otp') setStep('contact');
                   else setStep('otp');
                 }}
-                className="inline-flex items-center gap-1 text-sm font-semibold text-[#215481]"
+                className="inline-flex items-center gap-1 text-sm font-semibold text-[#3F3F46]"
               >
                 <HiOutlineChevronLeft className="h-4 w-4" />
                 Back
@@ -380,7 +380,7 @@ export default function TeamAccessPanel({ businessId }: { businessId: string }) 
                         type="button"
                         disabled={busy}
                         onClick={() => void resend(member.id)}
-                        className="text-xs font-semibold text-[#215481]"
+                        className="text-xs font-semibold text-[#3F3F46]"
                       >
                         {member.status === 'expired' ? 'Invite again' : 'Resend'}
                       </button>
@@ -393,7 +393,7 @@ export default function TeamAccessPanel({ businessId }: { businessId: string }) 
                           setEditingId(editingId === member.id ? null : member.id);
                           setError('');
                         }}
-                        className="text-xs font-semibold text-[#215481]"
+                        className="text-xs font-semibold text-[#3F3F46]"
                       >
                         {editingId === member.id ? 'Close' : 'Edit access'}
                       </button>
@@ -436,7 +436,7 @@ export default function TeamAccessPanel({ businessId }: { businessId: string }) 
           </ul>
         )}
         <p className="mt-3 flex items-center gap-1.5 text-[11px] text-zinc-400">
-          <HiOutlineShieldCheck className="h-3.5 w-3.5 text-[#215481]" />
+          <HiOutlineShieldCheck className="h-3.5 w-3.5 text-[#3F3F46]" />
           Teammates never receive owner-only rights such as inviting others or changing login email and password.
         </p>
       </div>
@@ -459,9 +459,9 @@ function WizardSteps({ current }: { current: Step }) {
         return (
           <li key={item.id} className="flex items-center gap-1.5">
             <span
-              className={`h-1.5 w-6 rounded-full ${on ? 'bg-[#215481]' : 'bg-zinc-200'} ${itemIndex === index ? 'bg-[#E8873A]' : ''}`}
+              className={`h-1.5 w-6 rounded-full ${on ? 'bg-[#3F3F46]' : 'bg-zinc-200'} ${itemIndex === index ? 'bg-[#E8873A]' : ''}`}
             />
-            <span className={`hidden text-[10px] font-semibold uppercase tracking-[0.12em] sm:inline ${on ? 'text-[#215481]' : 'text-zinc-400'}`}>
+            <span className={`hidden text-[10px] font-semibold uppercase tracking-[0.12em] sm:inline ${on ? 'text-[#3F3F46]' : 'text-zinc-400'}`}>
               {item.label}
             </span>
           </li>
@@ -499,10 +499,10 @@ function ChannelCard({
       type="button"
       onClick={onClick}
       className={`rounded-xl border px-4 py-4 text-left transition ${
-        active ? 'border-[#215481] bg-[#215481]/5 shadow-sm' : 'border-zinc-200 bg-white hover:border-zinc-300'
+        active ? 'border-[#3F3F46] bg-[#3F3F46]/5 shadow-sm' : 'border-zinc-200 bg-white hover:border-zinc-300'
       }`}
     >
-      <Icon className={`h-5 w-5 ${active ? 'text-[#215481]' : 'text-zinc-400'}`} />
+      <Icon className={`h-5 w-5 ${active ? 'text-[#3F3F46]' : 'text-zinc-400'}`} />
       <p className="mt-3 text-sm font-semibold text-zinc-900">{title}</p>
       <p className="mt-1 text-xs leading-5 text-zinc-500">{body}</p>
     </button>

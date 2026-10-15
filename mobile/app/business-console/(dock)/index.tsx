@@ -618,21 +618,22 @@ function HomeBody({ o }: { o: ConsoleOverview }) {
     >
       <Text style={styles.greeting}>{`${greeting}${firstName ? `, ${firstName}` : ''}`}</Text>
       <ShopCard o={o} go={go} />
-      {o.stats.competitorAverage != null || o.stats.averageResponse ? (
-        <Panel>
-          {o.stats.competitorAverage != null ? (
-            <Text style={styles.insight}>
-              Your competitors have an average profile completion score of {o.stats.competitorAverage}%. You are at{' '}
-              {o.completion.percent}%. Try improving your score to perform good.
-            </Text>
-          ) : null}
-          {o.stats.averageResponse ? (
-            <Text style={[styles.insight, o.stats.competitorAverage != null && styles.insightGap]}>
-              Your average response time on leads so far is {o.stats.averageResponse}.
-            </Text>
-          ) : null}
-        </Panel>
-      ) : null}
+      <Panel>
+        <Text style={styles.insight}>
+          {o.stats.competitorAverage != null
+            ? `Your competitors have an average profile completion score of ${o.stats.competitorAverage}%. You are at ${o.completion.percent}%. ${
+                o.completion.percent < o.stats.competitorAverage
+                  ? 'Fill the missing details so you stay ahead in your category.'
+                  : 'Keep this up to stay ahead in your category.'
+              }`
+            : `We are still gathering competitor profile scores in your category. You are at ${o.completion.percent}% complete — finish the missing details so you stay ready.`}
+        </Text>
+        <Text style={[styles.insight, styles.insightGap]}>
+          {o.stats.averageResponse
+            ? `Your average response time on leads so far is ${o.stats.averageResponse}.`
+            : 'Open new leads promptly — we will show your average response time after the first few replies.'}
+        </Text>
+      </Panel>
       {slides.length ? <AlertCarousel slides={slides} /> : null}
       <Section title="Performance">
         <Performance o={o} go={go} />
@@ -646,7 +647,7 @@ function HomeBody({ o }: { o: ConsoleOverview }) {
       <Section title="Manage">
         <QuickActions go={go} />
       </Section>
-      <Text style={styles.footNote}>Pull down to refresh · Numbers update every few minutes</Text>
+      <Text style={styles.footNote}>App is managed by FinderB Business.</Text>
     </ConsolePage>
       <FinderBQrStudio
         visible={qrOpen}

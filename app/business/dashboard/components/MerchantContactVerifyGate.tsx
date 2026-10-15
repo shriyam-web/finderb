@@ -45,7 +45,7 @@ const COPY: Record<ContactKind, { title: string; missing: string; channel: strin
     title: 'Login email',
     missing: 'No email on your account yet. Add one to receive login codes, invoices and alerts.',
     channel: 'email',
-    accent: 'bg-[#153551] hover:bg-[#0f2840]',
+    accent: 'bg-[#27272A] hover:bg-[#18181B]',
   },
   mobile: {
     title: 'Mobile number',
@@ -163,7 +163,7 @@ export function ContactVerifyCard({
         <div className="flex items-center gap-3">
           <span
             className={`flex h-10 w-10 items-center justify-center rounded-xl ${
-              verified ? 'bg-emerald-50 text-emerald-600' : 'bg-[#eef3f9] text-[#153551]'
+              verified ? 'bg-emerald-50 text-emerald-600' : 'bg-[#eef3f9] text-[#27272A]'
             }`}
           >
             <Icon size={19} strokeWidth={2.2} />
@@ -192,7 +192,7 @@ export function ContactVerifyCard({
             <button
               type="button"
               onClick={() => setEditing(true)}
-              className="text-sm font-semibold text-[#215481] hover:underline"
+              className="text-sm font-semibold text-[#3F3F46] hover:underline"
             >
               Change
             </button>
@@ -289,7 +289,7 @@ export function ContactVerifyCard({
                 setHint('');
                 cooldown.clearSent();
               }}
-              className="text-sm font-semibold text-[#64748b] hover:text-[#153551]"
+              className="text-sm font-semibold text-[#64748b] hover:text-[#27272A]"
             >
               Cancel
             </button>
@@ -326,13 +326,13 @@ export default function MerchantContactVerifyGate({
       <MerchantAuthMain className="pb-16">
         <div className="mx-auto max-w-xl py-6 sm:py-10">
           <div className="mb-6 flex items-center justify-between gap-3">
-            <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#153551] text-white">
+            <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#27272A] text-white">
               <ShieldCheck size={24} strokeWidth={2.2} />
             </span>
             <button
               type="button"
               onClick={onLogout}
-              className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold text-[#64748b] transition-colors hover:bg-white/80 hover:text-[#153551]"
+              className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold text-[#64748b] transition-colors hover:bg-white/80 hover:text-[#27272A]"
             >
               <LogOut size={16} />
               Log out
@@ -342,7 +342,7 @@ export default function MerchantContactVerifyGate({
             Verify your contact details
           </h1>
           <p className="mt-2 text-[15px] leading-relaxed text-[#475569]">
-            To keep <span className="font-semibold text-[#153551]">{businessName}</span> secure, confirm the email
+            To keep <span className="font-semibold text-[#27272A]">{businessName}</span> secure, confirm the email
             and mobile number on your FinderB Business account. If either is missing or wrong, enter the
             correct one and verify it with the code we send.
           </p>
@@ -360,7 +360,7 @@ export default function MerchantContactVerifyGate({
               <button
                 type="button"
                 onClick={onContinue}
-                className="w-full rounded-xl px-4 py-2.5 text-sm font-semibold text-[#64748b] transition-colors hover:bg-white/80 hover:text-[#153551]"
+                className="w-full rounded-xl px-4 py-2.5 text-sm font-semibold text-[#64748b] transition-colors hover:bg-white/80 hover:text-[#27272A]"
               >
                 Skip for now
               </button>

@@ -496,7 +496,7 @@ const useStyles = createConsoleStyles((c) => ({
   rankBanner: {
     padding: 16,
     borderRadius: 16,
-    backgroundColor: '#153551',
+    backgroundColor: '#3F3F46',
     gap: 6,
   },
   rankBannerKicker: {

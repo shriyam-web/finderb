@@ -736,7 +736,7 @@ export default function SettingsTab({
                             <button
                               type="button"
                               onClick={() => open()}
-                              className="flex aspect-square flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-zinc-300 text-zinc-400 hover:border-[#215481] hover:text-[#215481]"
+                              className="flex aspect-square flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-zinc-300 text-zinc-400 hover:border-[#3F3F46] hover:text-[#3F3F46]"
                             >
                               <HiOutlinePlus size={22} />
                               <span className="text-[10px] font-medium">Add / crop</span>
@@ -756,7 +756,7 @@ export default function SettingsTab({
                           updateField('about', trimAboutToWordLimit(e.target.value));
                         }}
                         rows={8}
-                        className="w-full rounded-lg border border-zinc-200 px-3 py-2.5 text-sm outline-none focus:border-[#215481] focus:ring-2 focus:ring-[#215481]/10"
+                        className="w-full rounded-lg border border-zinc-200 px-3 py-2.5 text-sm outline-none focus:border-[#3F3F46] focus:ring-2 focus:ring-[#3F3F46]/10"
                         placeholder="Tell customers about your business, services, and what makes you different…"
                       />
                       {(() => {
@@ -781,7 +781,7 @@ export default function SettingsTab({
                     </div>
                   ) : activeModal === 'reviewReply' ? (
                     <div className="space-y-2">
-                      <p className="rounded-lg border border-[#215481]/15 bg-[#215481]/[0.04] px-3 py-2.5 text-xs leading-relaxed text-zinc-700">
+                      <p className="rounded-lg border border-[#3F3F46]/15 bg-[#3F3F46]/[0.04] px-3 py-2.5 text-xs leading-relaxed text-zinc-700">
                         Used as your thank-you under reviews that don’t have a custom reply yet. It
                         won’t appear when there are no reviews, and it won’t duplicate a reply you’ve
                         already posted on a review. You can update it anytime.
@@ -798,7 +798,7 @@ export default function SettingsTab({
                         className={`w-full rounded-lg border px-3 py-2.5 text-sm outline-none focus:ring-2 ${
                           fieldError
                             ? 'border-rose-300 focus:border-rose-400 focus:ring-rose-100'
-                            : 'border-zinc-200 focus:border-[#215481] focus:ring-[#215481]/10'
+                            : 'border-zinc-200 focus:border-[#3F3F46] focus:ring-[#3F3F46]/10'
                         }`}
                         placeholder="Thank you for your feedback! We appreciate you taking the time to share your experience…"
                         autoFocus
@@ -863,7 +863,7 @@ export default function SettingsTab({
                           value={profileData.ownerName ?? ''}
                           onChange={(e) => updateField('ownerName', e.target.value)}
                           placeholder="Full name of business owner"
-                          className="w-full rounded-lg border border-zinc-200 px-3 py-2.5 text-sm outline-none focus:border-[#215481] focus:ring-2 focus:ring-[#215481]/10"
+                          className="w-full rounded-lg border border-zinc-200 px-3 py-2.5 text-sm outline-none focus:border-[#3F3F46] focus:ring-2 focus:ring-[#3F3F46]/10"
                           autoFocus
                         />
                       </div>
@@ -911,7 +911,7 @@ export default function SettingsTab({
                             : profileData.discountRange
                         }
                         onChange={(e) => updateField('discountRange', e.target.value)}
-                        className="w-full rounded-lg border border-zinc-200 px-3 py-2.5 text-sm outline-none focus:border-[#215481]"
+                        className="w-full rounded-lg border border-zinc-200 px-3 py-2.5 text-sm outline-none focus:border-[#3F3F46]"
                       >
                         <option value={NO_DISCOUNT}>{NO_DISCOUNT}</option>
                         {discountOptions.map((opt) => (
@@ -954,7 +954,7 @@ export default function SettingsTab({
                         onChange={(e) =>
                           updateField('yearsInBusiness', parseEstablishmentYearFromDate(e.target.value))
                         }
-                        className="w-full rounded-lg border border-zinc-200 px-3 py-2.5 text-sm outline-none focus:border-[#215481] focus:ring-2 focus:ring-[#215481]/10"
+                        className="w-full rounded-lg border border-zinc-200 px-3 py-2.5 text-sm outline-none focus:border-[#3F3F46] focus:ring-2 focus:ring-[#3F3F46]/10"
                       />
                       {isValidEstablishmentYear(profileData.yearsInBusiness) && (
                         <p className="text-sm text-zinc-600">
@@ -1065,7 +1065,7 @@ export default function SettingsTab({
                                     }
                                     setSyncMondayToAll(false);
                                   }}
-                                  className="rounded border-zinc-300 text-[#215481] focus:ring-[#215481]/20"
+                                  className="rounded border-zinc-300 text-[#3F3F46] focus:ring-[#3F3F46]/20"
                                 />
                                 Apply same to all days
                               </label>
@@ -1087,7 +1087,7 @@ export default function SettingsTab({
                               key={mode}
                               className={`flex cursor-pointer items-center gap-2.5 rounded-lg border px-3 py-2.5 text-sm transition-colors ${
                                 checked
-                                  ? 'border-[#215481] bg-[#215481]/5 text-[#153551]'
+                                  ? 'border-[#3F3F46] bg-[#3F3F46]/5 text-[#27272A]'
                                   : 'border-zinc-200 bg-white text-zinc-700 hover:border-zinc-300'
                               }`}
                             >
@@ -1095,7 +1095,7 @@ export default function SettingsTab({
                                 type="checkbox"
                                 checked={checked}
                                 onChange={() => togglePaymentMode(mode)}
-                                className="h-4 w-4 rounded border-zinc-300 text-[#215481] focus:ring-[#215481]/20"
+                                className="h-4 w-4 rounded border-zinc-300 text-[#3F3F46] focus:ring-[#3F3F46]/20"
                               />
                               {mode}
                             </label>
@@ -1123,7 +1123,7 @@ export default function SettingsTab({
                         className={`w-full rounded-lg border px-3 py-2.5 text-sm outline-none focus:ring-2 ${
                           fieldError
                             ? 'border-rose-300 focus:border-rose-400 focus:ring-rose-100'
-                            : 'border-zinc-200 focus:border-[#215481] focus:ring-[#215481]/10'
+                            : 'border-zinc-200 focus:border-[#3F3F46] focus:ring-[#3F3F46]/10'
                         }`}
                         autoFocus
                       />
@@ -1185,7 +1185,7 @@ export default function SettingsTab({
                         className={`w-full rounded-lg border px-3 py-2.5 text-sm outline-none focus:ring-2 ${
                           fieldError
                             ? 'border-rose-300 focus:border-rose-400 focus:ring-rose-100'
-                            : 'border-zinc-200 focus:border-[#215481] focus:ring-[#215481]/10'
+                            : 'border-zinc-200 focus:border-[#3F3F46] focus:ring-[#3F3F46]/10'
                         }`}
                         autoFocus
                       />
@@ -1210,7 +1210,7 @@ export default function SettingsTab({
                           e.target.type === 'number' ? parseFloat(e.target.value) : e.target.value
                         )
                       }
-                      className="w-full rounded-lg border border-zinc-200 px-3 py-2.5 text-sm outline-none focus:border-[#215481] focus:ring-2 focus:ring-[#215481]/10"
+                      className="w-full rounded-lg border border-zinc-200 px-3 py-2.5 text-sm outline-none focus:border-[#3F3F46] focus:ring-2 focus:ring-[#3F3F46]/10"
                       autoFocus
                     />
                   )}
@@ -1338,7 +1338,7 @@ export default function SettingsTab({
                 key={field.key}
                 type="button"
                 onClick={() => openField(field.key)}
-                className="rounded-md border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-medium text-[#153551] hover:bg-amber-100"
+                className="rounded-md border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-medium text-[#27272A] hover:bg-amber-100"
               >
                 {field.label}
               </button>

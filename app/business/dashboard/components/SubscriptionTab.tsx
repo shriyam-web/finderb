@@ -403,11 +403,11 @@ export default function SubscriptionTab({
 
       <p className="text-sm text-zinc-500">
         Billing help:{' '}
-        <a href="mailto:support@finderb.com" className="text-[#215481] hover:underline">
+        <a href="mailto:support@finderb.com" className="text-[#3F3F46] hover:underline">
           support@finderb.com
         </a>
         {' · '}
-        <Link href="/pricing" className="text-[#215481] hover:underline">
+        <Link href="/pricing" className="text-[#3F3F46] hover:underline">
           Pricing
         </Link>
       </p>

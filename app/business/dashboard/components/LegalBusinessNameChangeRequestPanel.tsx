@@ -86,7 +86,7 @@ export default function LegalBusinessNameChangeRequestPanel({
   if (loadingPending) {
     return (
       <div className={`${dashboard.emptyState} py-10`}>
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#215481] border-t-transparent" />
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#3F3F46] border-t-transparent" />
         <p className="mt-3 text-sm text-zinc-500">Loading legal name settings…</p>
       </div>
     );
@@ -98,7 +98,7 @@ export default function LegalBusinessNameChangeRequestPanel({
         <p className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
           Current legal business name
         </p>
-        <p className="mt-1 flex items-center gap-2 text-sm font-semibold text-[#153551]">
+        <p className="mt-1 flex items-center gap-2 text-sm font-semibold text-[#27272A]">
           <HiOutlineBriefcase size={16} className="shrink-0 text-zinc-400" />
           {currentLegalName || 'Not set'}
         </p>
@@ -131,7 +131,7 @@ export default function LegalBusinessNameChangeRequestPanel({
               value={requestedName}
               onChange={(e) => setRequestedName(e.target.value)}
               placeholder="As on GST / registration certificate"
-              className="w-full rounded-lg border border-zinc-200 px-3 py-2.5 text-sm outline-none focus:border-[#215481] focus:ring-2 focus:ring-[#215481]/10"
+              className="w-full rounded-lg border border-zinc-200 px-3 py-2.5 text-sm outline-none focus:border-[#3F3F46] focus:ring-2 focus:ring-[#3F3F46]/10"
             />
           </div>
 
@@ -145,7 +145,7 @@ export default function LegalBusinessNameChangeRequestPanel({
               onChange={(e) => setMerchantNote(e.target.value)}
               rows={3}
               placeholder="e.g. Business was rebranded after registration…"
-              className="w-full rounded-lg border border-zinc-200 px-3 py-2.5 text-sm outline-none focus:border-[#215481] focus:ring-2 focus:ring-[#215481]/10"
+              className="w-full rounded-lg border border-zinc-200 px-3 py-2.5 text-sm outline-none focus:border-[#3F3F46] focus:ring-2 focus:ring-[#3F3F46]/10"
             />
           </div>
 

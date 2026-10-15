@@ -278,7 +278,7 @@ export default function ReviewsTab({
               <article
                 key={review.id}
                 id={`review-${review.id}`}
-                className={`relative overflow-hidden rounded-xl border border-[#215481]/20 bg-gradient-to-br from-[#dceaf7] via-white to-[#ffe8cc] p-5 pb-14 font-sans shadow-[inset_0_0_0_1px_rgba(232,135,58,0.12)] ${highlightReviewId === review.id ? 'ring-1 ring-amber-200' : ''}`}
+                className={`relative overflow-hidden rounded-xl border border-[#3F3F46]/20 bg-gradient-to-br from-[#dceaf7] via-white to-[#ffe8cc] p-5 pb-14 font-sans shadow-[inset_0_0_0_1px_rgba(232,135,58,0.12)] ${highlightReviewId === review.id ? 'ring-1 ring-amber-200' : ''}`}
               >
                 <div className="absolute right-3 top-3">
                   <ReviewIdBadge reviewId={review.id} tone="zinc" />

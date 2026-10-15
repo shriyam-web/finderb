@@ -934,6 +934,16 @@ function DashboardContent() {
           notifications={notifications}
         />
 
+        {!isPlanActive && activeTab !== 'subscription' ? (
+          <button
+            type="button"
+            onClick={() => setActiveTab('subscription')}
+            className="-mt-3 mb-4 flex h-[18px] w-full items-center justify-center bg-[#FF2A2A] text-[11px] font-semibold tracking-wide text-white hover:bg-[#ef2222]"
+          >
+            You don't have any active subscription.
+          </button>
+        ) : null}
+
         <DashboardBannerCarousel banners={dashboardBanners} />
         {qrStudioOpen && business && canView('reviews') ? (
           <FinderBQrStudio
@@ -1083,7 +1093,7 @@ function DashboardContent() {
             />
             {averageResponse ? (
               <p className="text-sm text-zinc-600">
-                Average response time so far: <span className="font-semibold text-[#153551]">{averageResponse}</span>
+                Average response time so far: <span className="font-semibold text-zinc-900">{averageResponse}</span>
               </p>
             ) : null}
           </DashboardTabShell>
@@ -1124,6 +1134,8 @@ function DashboardContent() {
               mobileVerified: business?.mobileVerified,
             })}
             missingFields={listingMissingFields}
+            competitorAverage={competitorAverage}
+            averageResponse={averageResponse}
             onEditProfile={() => setActiveTab('settings')}
             onOpenSettingsField={openSettingsField}
             onOpenKyc={openKycInfo}

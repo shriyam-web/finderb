@@ -1,7 +1,7 @@
 import type { ColorTokens } from './colors';
 import { useTheme } from '../context/ThemeContext';
 
-/** Business panel palette: the website dashboard's white and zinc with navy actions, plus the app's warm night set. */
+/** Business panel palette: white and zinc with gray actions, plus the app's warm night set. */
 export type ConsoleColors = {
   page: string;
   card: string;
@@ -40,10 +40,10 @@ const day: ConsoleColors = {
   body: '#3F3F46',
   muted: '#71717A',
   faint: '#A1A1AA',
-  primary: '#153551',
+  primary: '#3F3F46',
   primaryInk: '#FFFFFF',
   primarySoft: '#F4F4F5',
-  accent: '#215481',
+  accent: '#52525B',
   success: '#067647',
   successSoft: '#ECFDF3',
   warning: '#B54708',
@@ -67,10 +67,10 @@ const night: ConsoleColors = {
   body: '#D6D3D1',
   muted: '#A8A29E',
   faint: '#7E7771',
-  primary: '#7AB2FF',
-  primaryInk: '#0B1A2B',
-  primarySoft: 'rgba(122,178,255,0.14)',
-  accent: '#8DBDFF',
+  primary: '#E7E5E4',
+  primaryInk: '#1C1917',
+  primarySoft: 'rgba(231,229,228,0.14)',
+  accent: '#A8A29E',
   success: '#6EE7A8',
   successSoft: 'rgba(34,197,94,0.14)',
   warning: '#FBBF24',

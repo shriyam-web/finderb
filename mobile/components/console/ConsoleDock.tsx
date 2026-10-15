@@ -19,7 +19,7 @@ type DockItem = {
 const ITEMS: DockItem[] = [
   { name: 'index', label: 'Home', icon: 'home-outline', activeIcon: 'home' },
   { name: 'leads', label: 'Leads', icon: 'people-outline', activeIcon: 'people' },
-  { name: 'listing', label: 'Listing', icon: 'storefront-outline', activeIcon: 'storefront' },
+  { name: 'listing', label: 'My Business', icon: 'storefront-outline', activeIcon: 'storefront' },
   { name: 'reviews', label: 'Reviews', icon: 'star-outline', activeIcon: 'star' },
   { name: 'subscription', label: 'Plan', icon: 'card-outline', activeIcon: 'card' },
 ];

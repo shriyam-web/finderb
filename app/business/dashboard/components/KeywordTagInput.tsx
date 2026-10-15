@@ -75,8 +75,8 @@ export default function KeywordTagInput({ value, onChange }: KeywordTagInputProp
 
   return (
     <div className="space-y-3">
-      <div className="rounded-lg border border-[#215481]/15 bg-[#215481]/[0.04] px-3 py-2.5 text-sm">
-        <p className="font-medium text-[#153551]">{impact.title}</p>
+      <div className="rounded-lg border border-[#3F3F46]/15 bg-[#3F3F46]/[0.04] px-3 py-2.5 text-sm">
+        <p className="font-medium text-[#27272A]">{impact.title}</p>
         <p className="mt-1 text-xs leading-relaxed text-zinc-600">{impact.message}</p>
       </div>
 
@@ -84,18 +84,18 @@ export default function KeywordTagInput({ value, onChange }: KeywordTagInputProp
         Type a keyword and press comma to turn it into a tag. Up to {MAX_SEARCH_KEYWORDS} keywords.
       </p>
 
-      <div className="min-h-[42px] rounded-lg border border-zinc-200 bg-white px-2 py-2 focus-within:border-[#215481] focus-within:ring-2 focus-within:ring-[#215481]/10">
+      <div className="min-h-[42px] rounded-lg border border-zinc-200 bg-white px-2 py-2 focus-within:border-[#3F3F46] focus-within:ring-2 focus-within:ring-[#3F3F46]/10">
         <div className="flex flex-wrap items-center gap-1.5">
           {tags.map((tag, index) => (
             <span
               key={`${tag}-${index}`}
-              className="inline-flex items-center gap-1 rounded-md bg-[#f9b864]/20 px-2 py-1 text-xs font-medium text-[#153551]"
+              className="inline-flex items-center gap-1 rounded-md bg-[#f9b864]/20 px-2 py-1 text-xs font-medium text-[#27272A]"
             >
               {tag}
               <button
                 type="button"
                 onClick={() => removeTag(index)}
-                className="rounded p-0.5 text-[#153551]/70 hover:bg-[#f9b864]/30 hover:text-[#153551]"
+                className="rounded p-0.5 text-[#27272A]/70 hover:bg-[#f9b864]/30 hover:text-[#27272A]"
                 aria-label={`Remove ${tag}`}
               >
                 <HiOutlineXMark size={12} />

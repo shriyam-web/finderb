@@ -1,6 +1,8 @@
-import { Pressable, Share, Text, View } from 'react-native';
+import { useState } from 'react';
+import { Pressable, Share, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
+import * as Clipboard from 'expo-clipboard';
 import { Ionicons } from '@expo/vector-icons';
 import { fonts } from '../../../constants/typography';
 import { useConsoleColors } from '../../../constants/consoleColors';
@@ -27,7 +29,8 @@ function ListingBody({ o }: { o: ConsoleOverview }) {
   const c = useConsoleColors();
   const router = useRouter();
   const back = useTabBack();
-  const { refresh, refreshing } = useMerchantConsole();
+  const { refresh, refreshing, notify } = useMerchantConsole();
+  const [copiedId, setCopiedId] = useState(false);
   const pct = o.completion.percent;
   const publicUrl = `${PUBLIC_SITE}${o.business.profilePath}`;
   const photoCount = o.photos.images.length;
@@ -76,15 +79,39 @@ function ListingBody({ o }: { o: ConsoleOverview }) {
             ? 'Your profile is complete. Keep photos and timings up to date.'
             : `${missing} detail${missing === 1 ? '' : 's'} missing. Complete profiles get more calls.`}
         </Text>
-        {o.stats.competitorAverage != null ? (
-          <Text style={styles.meterNote}>
-            Your competitors have an average profile completion score of {o.stats.competitorAverage}%. Try improving
-            your score to perform good.
-          </Text>
-        ) : null}
-        {o.stats.averageResponse ? (
-          <Text style={styles.meterNote}>Your average response time on leads so far is {o.stats.averageResponse}.</Text>
-        ) : null}
+        <Text style={styles.meterNote}>
+          {o.stats.competitorAverage != null
+            ? `Your competitors have an average profile completion score of ${o.stats.competitorAverage}%. Try improving your score to stay ahead.`
+            : 'We are still gathering competitor profile scores in your category. Complete yours so you stay ready.'}
+        </Text>
+        <Text style={styles.meterNote}>
+          {o.stats.averageResponse
+            ? `Your average response time on leads so far is ${o.stats.averageResponse}.`
+            : 'Open new leads promptly — we will show your average response time after the first few replies.'}
+        </Text>
+        <View style={styles.idRow}>
+          <View style={styles.flex}>
+            <Text style={styles.idLabel}>Merchant ID</Text>
+            <Text style={styles.idValue} selectable>
+              {o.business.id}
+            </Text>
+          </View>
+          <Pressable
+            onPress={() => {
+              void Clipboard.setStringAsync(o.business.id).then(() => {
+                setCopiedId(true);
+                notify('Merchant ID copied');
+                setTimeout(() => setCopiedId(false), 1800);
+              });
+            }}
+            style={({ pressed }) => [styles.copyBtn, pressed && styles.pressed]}
+            accessibilityRole="button"
+            accessibilityLabel="Copy merchant ID"
+          >
+            <Ionicons name={copiedId ? 'checkmark' : 'copy-outline'} size={16} color={c.ink} />
+            <Text style={styles.copyText}>{copiedId ? 'Copied' : 'Copy'}</Text>
+          </Pressable>
+        </View>
         <View style={styles.actions}>
           <Btn
             small
@@ -218,6 +245,29 @@ const useStyles = createConsoleStyles((c) => ({
   meter: { marginTop: 12, height: 6, borderRadius: 3, backgroundColor: c.sunken, overflow: 'hidden' },
   meterFill: { height: 6, borderRadius: 3, backgroundColor: c.primary },
   meterNote: { marginTop: 10, fontFamily: fonts.regular, fontSize: 13, lineHeight: 19, color: c.body },
+  idRow: {
+    marginTop: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingTop: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: c.line,
+  },
+  idLabel: { fontFamily: fonts.regular, fontSize: 12, color: c.muted },
+  idValue: { marginTop: 2, fontFamily: fonts.medium, fontSize: 13, color: c.ink },
+  copyBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    height: 34,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: c.lineStrong,
+    backgroundColor: c.sunken,
+  },
+  copyText: { fontFamily: fonts.semiBold, fontSize: 12.5, color: c.ink },
   actions: { flexDirection: 'row', gap: 10, marginTop: 14 },
   photos: {
     padding: 12,

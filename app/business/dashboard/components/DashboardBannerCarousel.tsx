@@ -70,7 +70,7 @@ export default function DashboardBannerCarousel({ banners }: { banners: Dashboar
               aria-label={`Show alert ${i + 1}: ${banner.label}`}
               aria-current={i === active ? 'true' : undefined}
               className={`h-1.5 rounded-full transition-all ${
-                i === active ? 'w-5 bg-[#153551]' : 'w-1.5 bg-zinc-300 hover:bg-zinc-400'
+                i === active ? 'w-5 bg-zinc-800' : 'w-1.5 bg-zinc-300 hover:bg-zinc-400'
               }`}
             />
           ))}

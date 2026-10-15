@@ -20,7 +20,7 @@ import {
   type TextStyle,
   type ViewStyle,
 } from 'react-native';
-import { useFocusEffect, useRouter, type Href } from 'expo-router';
+import { useFocusEffect, usePathname, useRouter, type Href } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
@@ -147,13 +147,70 @@ function PageGlow() {
           <Stop offset="1" stopColor="#F9B864" stopOpacity={0} />
         </RadialGradient>
         <RadialGradient id="navy" cx="95%" cy="5%" rx="55%" ry="45%" gradientUnits="objectBoundingBox">
-          <Stop offset="0" stopColor="#215481" stopOpacity={0.08} />
-          <Stop offset="1" stopColor="#215481" stopOpacity={0} />
+          <Stop offset="0" stopColor="#71717A" stopOpacity={0.08} />
+          <Stop offset="1" stopColor="#71717A" stopOpacity={0} />
         </RadialGradient>
       </Defs>
       <Rect width="100%" height="100%" fill="url(#amber)" />
       <Rect width="100%" height="100%" fill="url(#navy)" />
     </Svg>
+  );
+}
+
+function RefreshBurst() {
+  const styles = useKitStyles();
+  const c = useConsoleColors();
+  const spin = useRef(new Animated.Value(0)).current;
+  const bounce = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const spinLoop = Animated.loop(
+      Animated.timing(spin, {
+        toValue: 1,
+        duration: 780,
+        easing: Easing.inOut(Easing.cubic),
+        useNativeDriver: true,
+      }),
+    );
+    const bounceLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(bounce, {
+          toValue: 1,
+          duration: 420,
+          easing: Easing.out(Easing.quad),
+          useNativeDriver: true,
+        }),
+        Animated.timing(bounce, {
+          toValue: 0,
+          duration: 420,
+          easing: Easing.in(Easing.quad),
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+    spinLoop.start();
+    bounceLoop.start();
+    return () => {
+      spinLoop.stop();
+      bounceLoop.stop();
+    };
+  }, [bounce, spin]);
+
+  const rotate = spin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
+  const scale = bounce.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1.12] });
+
+  return (
+    <View pointerEvents="none" style={styles.refreshHud}>
+      <Animated.View style={[styles.refreshOrb, { transform: [{ scale }] }]}>
+        <Animated.View style={{ transform: [{ rotate }] }}>
+          <Ionicons name="sync" size={22} color={c.brand} />
+        </Animated.View>
+      </Animated.View>
+      <View style={styles.refreshCopy}>
+        <Text style={styles.refreshTitle}>Refreshing</Text>
+        <Text style={styles.refreshBody}>Pulling the latest numbers…</Text>
+      </View>
+    </View>
   );
 }
 
@@ -180,12 +237,16 @@ export function ConsolePage({
   const c = useConsoleColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const pathname = usePathname();
+  const { overview } = useMerchantConsole();
   const goBack = useConsoleBack();
   const dockPad = useDockPadding();
   const bottomInset = useBottomInset();
   const footerLift = (docked ? DOCK_HEIGHT : 0) + bottomInset + 12;
   const bottomPad = docked ? dockPad + (footer ? 72 : 0) : footer ? 24 : bottomInset + 28;
   const scrollRef = useRef<ScrollView>(null);
+  const onPlan = /\/(plan|subscription)\b/.test(pathname || '');
+  const showSubStrip = Boolean(overview && !overview.subscription.isActive && !onPlan);
 
   useFocusEffect(
     useCallback(() => {
@@ -212,9 +273,11 @@ export function ConsolePage({
           <RefreshControl
             refreshing={Boolean(refreshing)}
             onRefresh={onRefresh}
-            tintColor={c.primary}
-            colors={[c.primary]}
+            tintColor={c.brand}
+            colors={[c.brand, c.ink, c.success]}
             progressBackgroundColor={c.card}
+            title="Refreshing…"
+            titleColor={c.muted}
           />
         ) : undefined
       }
@@ -270,8 +333,19 @@ export function ConsolePage({
           {right ? <View style={[styles.headerRight, brand && styles.headerRightGrow]}>{right}</View> : null}
         </View>
       </View>
+      {showSubStrip ? (
+        <Pressable
+          onPress={() => router.push('/business-console/plan' as Href)}
+          style={styles.subStrip}
+          accessibilityRole="button"
+          accessibilityLabel="You don't have any active subscription. Open plans."
+        >
+          <Text style={styles.subStripText}>You don't have any active subscription.</Text>
+        </Pressable>
+      ) : null}
       <View style={[styles.flex, styles.bodyWrap]}>
         {form ? null : <PageGlow />}
+        {refreshing && onRefresh ? <RefreshBurst /> : null}
         {body}
         {overlay}
       </View>
@@ -771,6 +845,50 @@ const useKitStyles = createConsoleStyles((c) => ({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: c.line,
   },
+  subStrip: {
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FF2A2A',
+  },
+  subStripText: {
+    fontFamily: fonts.semiBold,
+    fontSize: 11,
+    letterSpacing: 0.15,
+    color: '#FFFFFF',
+  },
+  refreshHud: {
+    position: 'absolute',
+    top: 10,
+    left: 14,
+    right: 14,
+    zIndex: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 14,
+    backgroundColor: c.card,
+    borderWidth: 1,
+    borderColor: c.line,
+    shadowColor: '#18181B',
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 5,
+  },
+  refreshOrb: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: c.brandSoft,
+  },
+  refreshCopy: { flex: 1, minWidth: 0 },
+  refreshTitle: { fontFamily: fonts.semiBold, fontSize: 13.5, color: c.ink },
+  refreshBody: { marginTop: 1, fontFamily: fonts.regular, fontSize: 12, color: c.muted },
   headerRow: {
     height: 56,
     flexDirection: 'row',

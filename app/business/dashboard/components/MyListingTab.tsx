@@ -97,6 +97,8 @@ type MyListingTabProps = {
   images: string[];
   profilePictureUrl: string | null;
   completionPercent: number;
+  competitorAverage?: number | null;
+  averageResponse?: string | null;
   missingFields: MissingProfileField[];
   phoneVerified?: boolean;
   emailVerified?: boolean;
@@ -166,6 +168,8 @@ export default function MyListingTab({
   images,
   profilePictureUrl,
   completionPercent,
+  competitorAverage = null,
+  averageResponse = null,
   missingFields,
   phoneVerified,
   emailVerified,
@@ -176,6 +180,7 @@ export default function MyListingTab({
 }: MyListingTabProps) {
   const [activeImage, setActiveImage] = useState(0);
   const [activeSection, setActiveSection] = useState<SectionId>('about');
+  const [copiedMerchantId, setCopiedMerchantId] = useState(false);
 
   const galleryImages = useMemo(
     () => getGalleryImages(profilePictureUrl, images),
@@ -276,7 +281,7 @@ export default function MyListingTab({
       <div className="flex flex-col gap-4 border-b border-zinc-200 pb-5 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#215481]">Public listing preview</p>
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#3F3F46]">Public listing preview</p>
             <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 ring-1 ring-emerald-200">
               Matches live page
             </span>
@@ -285,6 +290,22 @@ export default function MyListingTab({
           <p className="mt-0.5 text-xs text-zinc-500">
             This is how customers see your business on FinderB — including map and location.
           </p>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <span className="text-[11px] font-medium text-zinc-500">Merchant ID</span>
+            <code className="rounded bg-zinc-100 px-1.5 py-0.5 font-mono text-[11px] text-zinc-800">{businessId}</code>
+            <button
+              type="button"
+              onClick={() => {
+                void navigator.clipboard.writeText(businessId).then(() => {
+                  setCopiedMerchantId(true);
+                  window.setTimeout(() => setCopiedMerchantId(false), 1800);
+                });
+              }}
+              className="rounded-md border border-zinc-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-zinc-800 hover:bg-zinc-50"
+            >
+              {copiedMerchantId ? 'Copied' : 'Copy'}
+            </button>
+          </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-2 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2">
@@ -302,7 +323,7 @@ export default function MyListingTab({
                   strokeLinecap="round"
                 />
               </svg>
-              <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-[#153551]">
+              <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-[#27272A]">
                 {completionPercent}%
               </span>
             </div>
@@ -323,6 +344,19 @@ export default function MyListingTab({
             Edit listing
           </button>
         </div>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        <p className="rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2.5 text-xs leading-relaxed text-zinc-700">
+          {competitorAverage != null
+            ? `Your competitors have an average profile completion score of ${competitorAverage}%. You are at ${completionPercent}%.`
+            : `We are still gathering competitor profile scores in your category. You are at ${completionPercent}% complete.`}
+        </p>
+        <p className="rounded-xl border border-orange-200/80 bg-[#fff8ef] px-3 py-2.5 text-xs leading-relaxed text-zinc-700">
+          {averageResponse
+            ? `Your average response time on leads so far is ${averageResponse}.`
+            : 'Open new leads promptly — we will show your average response time after the first few replies.'}
+        </p>
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_248px]">
@@ -348,10 +382,10 @@ export default function MyListingTab({
               />
 
               <div className="flex flex-col gap-2 md:border-l md:border-zinc-100 md:pl-6">
-                <h2 className="text-xl font-bold leading-snug text-[#153551] sm:text-2xl">{businessName}</h2>
+                <h2 className="text-xl font-bold leading-snug text-[#27272A] sm:text-2xl">{businessName}</h2>
 
                 {profileData.category && (
-                  <p className="text-sm font-medium text-[#215481]">{profileData.category}</p>
+                  <p className="text-sm font-medium text-[#3F3F46]">{profileData.category}</p>
                 )}
 
                 {locationLabel && <p className="text-sm text-zinc-600">{locationLabel}</p>}
@@ -363,7 +397,7 @@ export default function MyListingTab({
 
                 <div className="flex flex-wrap items-center gap-2 pt-1">
                   {profileData.isFinderBVerified && (
-                    <span className="inline-flex items-center gap-1 rounded-md bg-[#215481]/8 px-2 py-0.5 text-xs font-semibold text-[#215481]">
+                    <span className="inline-flex items-center gap-1 rounded-md bg-[#3F3F46]/8 px-2 py-0.5 text-xs font-semibold text-[#3F3F46]">
                       <HiOutlineShieldCheck size={13} />
                       FinderB Verified
                     </span>
@@ -404,7 +438,7 @@ export default function MyListingTab({
                 onClick={() => scrollToSection(section.id)}
                 className={`shrink-0 border-b-2 px-3 py-3 text-xs font-semibold transition-colors sm:text-sm ${
                   activeSection === section.id
-                    ? 'border-[#215481] text-[#215481]'
+                    ? 'border-[#3F3F46] text-[#3F3F46]'
                     : 'border-transparent text-zinc-500 hover:text-zinc-800'
                 }`}
               >
@@ -416,14 +450,14 @@ export default function MyListingTab({
           <div className="space-y-0 p-4 sm:p-6">
             {/* About */}
             <section id="listing-preview-about" className="scroll-mt-24 pb-8">
-              <h3 className="text-sm font-bold text-[#153551]">About</h3>
+              <h3 className="text-sm font-bold text-[#27272A]">About</h3>
               {profileData.about?.trim() ? (
                 <p className="mt-3 text-sm leading-7 text-zinc-600">{profileData.about}</p>
               ) : (
                 <button
                   type="button"
                   onClick={onEditProfile}
-                  className="mt-3 text-sm text-zinc-400 hover:text-[#215481]"
+                  className="mt-3 text-sm text-zinc-400 hover:text-[#3F3F46]"
                 >
                   No description yet — add one in Settings
                 </button>
@@ -441,7 +475,7 @@ export default function MyListingTab({
               id="listing-preview-services"
               className="scroll-mt-24 border-t border-zinc-100 py-8"
             >
-              <h3 className="text-sm font-bold text-[#153551]">Services</h3>
+              <h3 className="text-sm font-bold text-[#27272A]">Services</h3>
               {services.length > 0 ? (
                 <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                   {services.map((service) => (
@@ -449,7 +483,7 @@ export default function MyListingTab({
                       key={service}
                       className="flex items-start gap-2.5 rounded-lg border border-zinc-200/80 bg-zinc-50/50 px-3.5 py-3"
                     >
-                      <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-[#215481]/8 text-[#215481]">
+                      <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-[#3F3F46]/8 text-[#3F3F46]">
                         <Tag size={11} />
                       </span>
                       <span className="text-sm leading-snug text-zinc-700">{service}</span>
@@ -460,7 +494,7 @@ export default function MyListingTab({
                 <button
                   type="button"
                   onClick={() => onOpenSettingsField?.('serviceCategory') ?? onEditProfile()}
-                  className="mt-3 text-sm text-zinc-400 hover:text-[#215481]"
+                  className="mt-3 text-sm text-zinc-400 hover:text-[#3F3F46]"
                 >
                   No services listed — add service categories in Settings
                 </button>
@@ -472,7 +506,7 @@ export default function MyListingTab({
               id="listing-preview-location"
               className="scroll-mt-24 border-t border-zinc-100 py-8"
             >
-              <h3 className="text-sm font-bold text-[#153551]">Location & hours</h3>
+              <h3 className="text-sm font-bold text-[#27272A]">Location & hours</h3>
 
               {fullAddress ? (
                 <div className="mt-4 flex items-start gap-3 rounded-lg border border-zinc-200/80 bg-white px-3.5 py-3">
@@ -496,7 +530,7 @@ export default function MyListingTab({
                         href={directionsLink}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-xs font-semibold text-[#215481] hover:underline"
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-[#3F3F46] hover:underline"
                       >
                         <Navigation size={12} />
                         Get directions
@@ -508,7 +542,7 @@ export default function MyListingTab({
                 <button
                   type="button"
                   onClick={() => onOpenSettingsField?.('businessAddress') ?? onEditProfile()}
-                  className="mt-4 flex w-full items-center gap-3 rounded-lg border border-dashed border-zinc-200 px-4 py-4 text-left text-sm text-zinc-500 hover:border-[#215481]/30 hover:bg-zinc-50"
+                  className="mt-4 flex w-full items-center gap-3 rounded-lg border border-dashed border-zinc-200 px-4 py-4 text-left text-sm text-zinc-500 hover:border-[#3F3F46]/30 hover:bg-zinc-50"
                 >
                   <HiOutlineMapPin size={18} className="shrink-0 text-zinc-300" />
                   <span>Add your business address and map pin in Settings</span>
@@ -534,7 +568,7 @@ export default function MyListingTab({
               {profileData.timings && Object.keys(profileData.timings).length > 0 ? (
                 <div className="mt-4 overflow-hidden rounded-lg border border-zinc-200/80 bg-white">
                   <div className="flex items-center gap-2 border-b border-zinc-100 px-3.5 py-2.5">
-                    <HiOutlineClock size={14} className="text-[#215481]" />
+                    <HiOutlineClock size={14} className="text-[#3F3F46]" />
                     <span className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
                       Opening hours
                     </span>
@@ -551,13 +585,13 @@ export default function MyListingTab({
                         <li
                           key={day}
                           className={`flex items-center justify-between gap-4 px-3.5 py-2.5 text-sm ${
-                            isToday ? 'bg-[#215481]/[0.04] font-medium text-zinc-900' : 'text-zinc-600'
+                            isToday ? 'bg-[#3F3F46]/[0.04] font-medium text-zinc-900' : 'text-zinc-600'
                           }`}
                         >
                           <span>
                             {day}
                             {isToday && (
-                              <span className="ml-2 rounded-full border border-[#215481]/20 bg-[#215481]/8 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#215481]">
+                              <span className="ml-2 rounded-full border border-[#3F3F46]/20 bg-[#3F3F46]/8 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#3F3F46]">
                                 Today
                               </span>
                             )}
@@ -574,7 +608,7 @@ export default function MyListingTab({
                 <button
                   type="button"
                   onClick={() => onOpenSettingsField?.('timings') ?? onEditProfile()}
-                  className="mt-4 text-sm text-zinc-400 hover:text-[#215481]"
+                  className="mt-4 text-sm text-zinc-400 hover:text-[#3F3F46]"
                 >
                   Hours not listed — set opening hours in Settings
                 </button>
@@ -586,12 +620,12 @@ export default function MyListingTab({
               id="listing-preview-contact"
               className="scroll-mt-24 border-t border-zinc-100 py-8"
             >
-              <h3 className="text-sm font-bold text-[#153551]">Contact</h3>
+              <h3 className="text-sm font-bold text-[#27272A]">Contact</h3>
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 <div className="rounded-lg border border-zinc-200/80 p-4">
                   <p className="text-[11px] font-semibold uppercase tracking-wide text-zinc-400">Phone</p>
                   {telLink ? (
-                    <a href={telLink} className="mt-1.5 flex items-center gap-2 text-sm font-medium text-[#215481]">
+                    <a href={telLink} className="mt-1.5 flex items-center gap-2 text-sm font-medium text-[#3F3F46]">
                       <HiOutlinePhone size={15} />
                       {profileData.publicPhone}
                     </a>
@@ -613,7 +647,7 @@ export default function MyListingTab({
                       href={normalizeExternalHref(profileData.website) ?? '#'}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="mt-1.5 flex items-center gap-2 truncate text-sm font-medium text-[#215481]"
+                      className="mt-1.5 flex items-center gap-2 truncate text-sm font-medium text-[#3F3F46]"
                     >
                       <HiOutlineGlobeAlt size={15} />
                       {profileData.website}
@@ -686,7 +720,7 @@ export default function MyListingTab({
               className="scroll-mt-24 border-t border-zinc-100 py-8"
             >
               <div className="flex items-baseline justify-between gap-3">
-                <h3 className="text-sm font-bold text-[#153551]">Reviews</h3>
+                <h3 className="text-sm font-bold text-[#27272A]">Reviews</h3>
                 {displayRating != null && (
                   <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800">
                     <HiOutlineStar size={10} className="text-amber-500" />
@@ -723,13 +757,13 @@ export default function MyListingTab({
                 <button
                   type="button"
                   onClick={openReviewReplySettings}
-                  className="mt-4 w-full rounded-lg border-l-[3px] border-[#215481] bg-[#215481]/5 px-4 py-3 text-left hover:bg-[#215481]/10"
+                  className="mt-4 w-full rounded-lg border-l-[3px] border-[#3F3F46] bg-[#3F3F46]/5 px-4 py-3 text-left hover:bg-[#3F3F46]/10"
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <p className="text-[11px] font-semibold uppercase tracking-wide text-[#215481]">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-[#3F3F46]">
                       Your default reply
                     </p>
-                    <HiOutlinePencilSquare size={14} className="shrink-0 text-[#215481]/70" />
+                    <HiOutlinePencilSquare size={14} className="shrink-0 text-[#3F3F46]/70" />
                   </div>
                   <p className="mt-2 text-sm leading-relaxed text-zinc-700">&ldquo;{ownerReply.content}&rdquo;</p>
                   <p className="mt-2 text-[11px] text-zinc-500">Tap to edit in Settings</p>
@@ -738,7 +772,7 @@ export default function MyListingTab({
                 <button
                   type="button"
                   onClick={openReviewReplySettings}
-                  className="mt-4 w-full rounded-lg border border-dashed border-zinc-200 px-4 py-3 text-left text-xs text-zinc-500 hover:border-[#215481]/30 hover:bg-zinc-50"
+                  className="mt-4 w-full rounded-lg border border-dashed border-zinc-200 px-4 py-3 text-left text-xs text-zinc-500 hover:border-[#3F3F46]/30 hover:bg-zinc-50"
                 >
                   <span className="font-semibold text-zinc-700">Add a default review reply</span>
                   <span className="mt-0.5 block">Opens Settings — thank-you shown under reviews without a custom reply</span>
@@ -792,7 +826,7 @@ export default function MyListingTab({
                           onEditProfile();
                         }
                       }}
-                      className="rounded-md border border-amber-200/80 bg-amber-50/60 px-2 py-1 text-[10px] font-semibold text-[#153551] hover:bg-amber-50"
+                      className="rounded-md border border-amber-200/80 bg-amber-50/60 px-2 py-1 text-[10px] font-semibold text-[#27272A] hover:bg-amber-50"
                     >
                       {field.label}
                     </button>

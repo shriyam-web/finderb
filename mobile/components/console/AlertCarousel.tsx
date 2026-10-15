@@ -10,9 +10,9 @@ import {
   type NativeScrollEvent,
   type NativeSyntheticEvent,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { fonts } from '../../constants/typography';
-import { useConsoleColors } from '../../constants/consoleColors';
 import { createConsoleStyles } from './kit';
 
 export type AlertTone = 'danger' | 'warning' | 'info' | 'success';
@@ -42,10 +42,171 @@ export const BANNER_ART = {
 const ROTATE_MS = 6000;
 const SLIDE_HEIGHT = 148;
 
+type SlideLook = {
+  colors: [string, string, string];
+  ink: string;
+  muted: string;
+  kickerBg: string;
+  kickerInk: string;
+  cta: string;
+  ctaInk: string;
+  blob: string;
+  blobTwo: string;
+};
+
+const DAY_LOOKS: Record<string, SlideLook> = {
+  photo: {
+    colors: ['#FFE4D6', '#FFB199', '#FF7A59'],
+    ink: '#4A140C',
+    muted: '#7A3328',
+    kickerBg: 'rgba(255,255,255,0.62)',
+    kickerInk: '#C2410C',
+    cta: '#C2410C',
+    ctaInk: '#FFFFFF',
+    blob: 'rgba(255,255,255,0.28)',
+    blobTwo: 'rgba(255,90,60,0.28)',
+  },
+  verify: {
+    colors: ['#FFF4CC', '#FFD56A', '#F5A524'],
+    ink: '#4A2E00',
+    muted: '#7A5410',
+    kickerBg: 'rgba(255,255,255,0.58)',
+    kickerInk: '#B45309',
+    cta: '#B45309',
+    ctaInk: '#FFFFFF',
+    blob: 'rgba(255,255,255,0.32)',
+    blobTwo: 'rgba(255,180,40,0.35)',
+  },
+  leads: {
+    colors: ['#D8F8E8', '#8EE0B8', '#34C77B'],
+    ink: '#064E3B',
+    muted: '#0F766E',
+    kickerBg: 'rgba(255,255,255,0.58)',
+    kickerInk: '#047857',
+    cta: '#047857',
+    ctaInk: '#FFFFFF',
+    blob: 'rgba(255,255,255,0.3)',
+    blobTwo: 'rgba(16,185,129,0.28)',
+  },
+  'pending-payment': {
+    colors: ['#E4F4FF', '#A8D4F5', '#5BA8E0'],
+    ink: '#0C4A6E',
+    muted: '#155E75',
+    kickerBg: 'rgba(255,255,255,0.58)',
+    kickerInk: '#0369A1',
+    cta: '#0F766E',
+    ctaInk: '#FFFFFF',
+    blob: 'rgba(255,255,255,0.3)',
+    blobTwo: 'rgba(56,189,248,0.28)',
+  },
+  expired: {
+    colors: ['#FFE0E0', '#FF9B9B', '#F04343'],
+    ink: '#7F1D1D',
+    muted: '#9F2A2A',
+    kickerBg: 'rgba(255,255,255,0.6)',
+    kickerInk: '#B91C1C',
+    cta: '#B91C1C',
+    ctaInk: '#FFFFFF',
+    blob: 'rgba(255,255,255,0.28)',
+    blobTwo: 'rgba(248,113,113,0.32)',
+  },
+  renew: {
+    colors: ['#FFE8CC', '#FFC078', '#F59E0B'],
+    ink: '#7C2D12',
+    muted: '#9A3412',
+    kickerBg: 'rgba(255,255,255,0.58)',
+    kickerInk: '#C2410C',
+    cta: '#C2410C',
+    ctaInk: '#FFFFFF',
+    blob: 'rgba(255,255,255,0.3)',
+    blobTwo: 'rgba(251,146,60,0.32)',
+  },
+  upgrade: {
+    colors: ['#D9F6F0', '#7EDFD0', '#2DD4BF'],
+    ink: '#134E4A',
+    muted: '#0F766E',
+    kickerBg: 'rgba(255,255,255,0.58)',
+    kickerInk: '#0F766E',
+    cta: '#0F766E',
+    ctaInk: '#FFFFFF',
+    blob: 'rgba(255,255,255,0.3)',
+    blobTwo: 'rgba(45,212,191,0.3)',
+  },
+  'reviews-visibility': {
+    colors: ['#EDE4FF', '#C4B0F5', '#A78BFA'],
+    ink: '#4C1D95',
+    muted: '#6D28D9',
+    kickerBg: 'rgba(255,255,255,0.58)',
+    kickerInk: '#6D28D9',
+    cta: '#6D28D9',
+    ctaInk: '#FFFFFF',
+    blob: 'rgba(255,255,255,0.3)',
+    blobTwo: 'rgba(167,139,250,0.32)',
+  },
+  profile: {
+    colors: ['#E0EEFF', '#93C5FD', '#60A5FA'],
+    ink: '#1E3A8A',
+    muted: '#1D4ED8',
+    kickerBg: 'rgba(255,255,255,0.58)',
+    kickerInk: '#1D4ED8',
+    cta: '#1E40AF',
+    ctaInk: '#FFFFFF',
+    blob: 'rgba(255,255,255,0.3)',
+    blobTwo: 'rgba(96,165,250,0.3)',
+  },
+  danger: {
+    colors: ['#FFE4E0', '#FFB4A8', '#FB7185'],
+    ink: '#9F1239',
+    muted: '#BE123C',
+    kickerBg: 'rgba(255,255,255,0.58)',
+    kickerInk: '#BE123C',
+    cta: '#BE123C',
+    ctaInk: '#FFFFFF',
+    blob: 'rgba(255,255,255,0.28)',
+    blobTwo: 'rgba(251,113,133,0.3)',
+  },
+  warning: {
+    colors: ['#FEF3C7', '#FCD34D', '#F59E0B'],
+    ink: '#78350F',
+    muted: '#92400E',
+    kickerBg: 'rgba(255,255,255,0.58)',
+    kickerInk: '#B45309',
+    cta: '#B45309',
+    ctaInk: '#FFFFFF',
+    blob: 'rgba(255,255,255,0.3)',
+    blobTwo: 'rgba(251,191,36,0.32)',
+  },
+  info: {
+    colors: ['#E0F2FE', '#7DD3FC', '#38BDF8'],
+    ink: '#0C4A6E',
+    muted: '#0369A1',
+    kickerBg: 'rgba(255,255,255,0.58)',
+    kickerInk: '#0369A1',
+    cta: '#0E7490',
+    ctaInk: '#FFFFFF',
+    blob: 'rgba(255,255,255,0.3)',
+    blobTwo: 'rgba(56,189,248,0.3)',
+  },
+  success: {
+    colors: ['#D1FAE5', '#6EE7B7', '#34D399'],
+    ink: '#064E3B',
+    muted: '#047857',
+    kickerBg: 'rgba(255,255,255,0.58)',
+    kickerInk: '#047857',
+    cta: '#047857',
+    ctaInk: '#FFFFFF',
+    blob: 'rgba(255,255,255,0.3)',
+    blobTwo: 'rgba(52,211,153,0.3)',
+  },
+};
+
+function lookFor(slide: AlertSlide): SlideLook {
+  return DAY_LOOKS[slide.key] || DAY_LOOKS[slide.tone] || DAY_LOOKS.info;
+}
+
 /** Account banners that rotate on their own, like the website dashboard; swipe or tap a dot to jump. */
 export function AlertCarousel({ slides }: { slides: AlertSlide[] }) {
   const styles = useStyles();
-  const c = useConsoleColors();
   const list = useRef<FlatList<AlertSlide>>(null);
   const shown = useRef(0);
   const [width, setWidth] = useState(0);
@@ -66,14 +227,6 @@ export function AlertCarousel({ slides }: { slides: AlertSlide[] }) {
   }, [count, width, pausedAt]);
 
   if (!count) return null;
-
-  const palette = (tone: AlertTone) =>
-    ({
-      danger: { wash: c.dangerSoft, ink: c.danger },
-      warning: { wash: c.warningSoft, ink: c.warning },
-      info: { wash: c.brandSoft, ink: c.brand },
-      success: { wash: c.successSoft, ink: c.success },
-    })[tone];
 
   const onSettle = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     if (!width) return;
@@ -106,7 +259,7 @@ export function AlertCarousel({ slides }: { slides: AlertSlide[] }) {
           onMomentumScrollEnd={onSettle}
           getItemLayout={(_, i) => ({ length: width, offset: width * i, index: i })}
           renderItem={({ item, index: i }) => {
-            const tone = palette(item.tone);
+            const look = lookFor(item);
             return (
               <View style={{ width }}>
                 <Pressable
@@ -115,27 +268,33 @@ export function AlertCarousel({ slides }: { slides: AlertSlide[] }) {
                   accessibilityRole="button"
                   accessibilityLabel={`Update ${i + 1} of ${count}. ${item.title}. ${item.body}`}
                 >
-                  <View style={styles.copy}>
-                    <View style={[styles.kicker, { backgroundColor: tone.wash }]}>
-                      <View style={[styles.kickerDot, { backgroundColor: tone.ink }]} />
-                      <Text style={[styles.kickerText, { color: tone.ink }]} numberOfLines={1}>
-                        {item.kicker}
+                  <LinearGradient colors={look.colors} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.wash}>
+                    <View style={[styles.blob, { backgroundColor: look.blob }]} />
+                    <View style={[styles.blobTwo, { backgroundColor: look.blobTwo }]} />
+                    <View style={[styles.ribbon, { backgroundColor: look.blob }]} />
+                    <View style={styles.copy}>
+                      <View style={[styles.kicker, { backgroundColor: look.kickerBg }]}>
+                        <View style={[styles.kickerDot, { backgroundColor: look.kickerInk }]} />
+                        <Text style={[styles.kickerText, { color: look.kickerInk }]} numberOfLines={1}>
+                          {item.kicker}
+                        </Text>
+                      </View>
+                      <Text style={[styles.title, { color: look.ink }]} numberOfLines={2}>
+                        {item.title}
                       </Text>
+                      <Text style={[styles.body, { color: look.muted }]} numberOfLines={2}>
+                        {item.body}
+                      </Text>
+                      <View style={[styles.cta, { backgroundColor: look.cta }]}>
+                        <Text style={[styles.ctaText, { color: look.ctaInk }]}>{item.cta}</Text>
+                        <Ionicons name="arrow-forward" size={14} color={look.ctaInk} />
+                      </View>
                     </View>
-                    <Text style={styles.title} numberOfLines={2}>
-                      {item.title}
-                    </Text>
-                    <Text style={styles.body} numberOfLines={2}>
-                      {item.body}
-                    </Text>
-                    <View style={styles.cta}>
-                      <Text style={styles.ctaText}>{item.cta}</Text>
-                      <Ionicons name="arrow-forward" size={14} color={c.primaryInk} />
+                    <View style={styles.artWrap}>
+                      <View style={styles.artDisc} />
+                      <Image source={item.art} style={styles.art} resizeMode="contain" fadeDuration={0} alt="" />
                     </View>
-                  </View>
-                  <View style={styles.artWrap}>
-                    <Image source={item.art} style={styles.art} resizeMode="contain" fadeDuration={0} alt="" />
-                  </View>
+                  </LinearGradient>
                 </Pressable>
               </View>
             );
@@ -165,17 +324,43 @@ export function AlertCarousel({ slides }: { slides: AlertSlide[] }) {
 const useStyles = createConsoleStyles((c) => ({
   slide: {
     height: SLIDE_HEIGHT,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: c.line,
-    backgroundColor: c.isDark ? c.card : '#FFFFFF',
-    paddingLeft: 14,
+    borderRadius: 16,
     overflow: 'hidden',
   },
-  pressed: { opacity: 0.88 },
-  copy: { flex: 1, minWidth: 0, paddingVertical: 12, gap: 4 },
+  wash: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingLeft: 14,
+  },
+  blob: {
+    position: 'absolute',
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    top: -48,
+    right: 72,
+  },
+  blobTwo: {
+    position: 'absolute',
+    width: 90,
+    height: 90,
+    borderRadius: 28,
+    bottom: -28,
+    right: 8,
+    transform: [{ rotate: '18deg' }],
+  },
+  ribbon: {
+    position: 'absolute',
+    width: 220,
+    height: 18,
+    left: -40,
+    bottom: 22,
+    transform: [{ rotate: '-8deg' }],
+    opacity: 0.35,
+  },
+  pressed: { opacity: 0.92 },
+  copy: { flex: 1, minWidth: 0, paddingVertical: 12, gap: 4, zIndex: 1 },
   kicker: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -187,8 +372,8 @@ const useStyles = createConsoleStyles((c) => ({
   },
   kickerDot: { width: 6, height: 6, borderRadius: 3 },
   kickerText: { fontFamily: fonts.semiBold, fontSize: 10.5, letterSpacing: 0.2 },
-  title: { fontFamily: fonts.semiBold, fontSize: 15, lineHeight: 20, color: c.ink },
-  body: { fontFamily: fonts.regular, fontSize: 12, lineHeight: 16, color: c.muted },
+  title: { fontFamily: fonts.semiBold, fontSize: 15, lineHeight: 20 },
+  body: { fontFamily: fonts.regular, fontSize: 12, lineHeight: 16 },
   cta: {
     marginTop: 4,
     flexDirection: 'row',
@@ -198,20 +383,26 @@ const useStyles = createConsoleStyles((c) => ({
     paddingHorizontal: 12,
     height: 30,
     borderRadius: 8,
-    backgroundColor: c.primary,
   },
-  ctaText: { fontFamily: fonts.semiBold, fontSize: 12.5, color: c.primaryInk },
+  ctaText: { fontFamily: fonts.semiBold, fontSize: 12.5 },
   artWrap: {
     width: 128,
-    height: SLIDE_HEIGHT - 2,
-    marginLeft: 6,
+    height: SLIDE_HEIGHT,
+    marginLeft: 4,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
+    zIndex: 1,
+  },
+  artDisc: {
+    position: 'absolute',
+    width: 108,
+    height: 108,
+    borderRadius: 54,
+    backgroundColor: 'rgba(255,255,255,0.42)',
   },
   art: { width: 124, height: 124 },
   placeholder: { height: SLIDE_HEIGHT },
   dots: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 5, marginTop: 8 },
   dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: c.lineStrong },
-  dotOn: { width: 16, backgroundColor: c.primary },
+  dotOn: { width: 16, backgroundColor: c.ink },
 }));

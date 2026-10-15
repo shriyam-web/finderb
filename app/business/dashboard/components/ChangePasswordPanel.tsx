@@ -47,7 +47,7 @@ function PasswordField({
           autoComplete={id === 'current-password' ? 'current-password' : 'new-password'}
           maxLength={PASSWORD_MAX_LENGTH}
           autoFocus={autoFocus}
-          className="w-full rounded-lg border border-zinc-200 px-3 py-2.5 pr-10 text-sm outline-none focus:border-[#215481] focus:ring-2 focus:ring-[#215481]/10"
+          className="w-full rounded-lg border border-zinc-200 px-3 py-2.5 pr-10 text-sm outline-none focus:border-[#3F3F46] focus:ring-2 focus:ring-[#3F3F46]/10"
         />
         <button
           type="button"

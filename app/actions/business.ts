@@ -1700,7 +1700,7 @@ export async function hideOwnBusinessListing(businessId: string) {
     if (!auth.ok) {
       return { success: false as const, error: auth.error };
     }
-    const supabase = await createDataClient();
+    const supabase = createServiceClient() ?? (await createDataClient());
     const { data, error } = await supabase
       .from('Business')
       .update({
