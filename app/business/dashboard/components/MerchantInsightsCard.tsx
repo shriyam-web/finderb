@@ -1,6 +1,47 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { competitorScoreIsGood, insightCardClass, leadResponseIsGood } from '@/lib/dashboard/insightTones';
+
+function MetricCarousel({
+  eyebrow,
+  value,
+  body,
+  good,
+}: {
+  eyebrow: string;
+  value: string;
+  body: string;
+  good: boolean | null;
+}) {
+  const [page, setPage] = useState(0);
+  const slides = [value, body];
+
+  useEffect(() => {
+    const timer = setInterval(() => setPage((current) => (current === 0 ? 1 : 0)), 3800);
+    return () => clearInterval(timer);
+  }, []);
+
+  return (
+    <div>
+      <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-zinc-500">{eyebrow}</p>
+      <div className={`${insightCardClass(good)} min-h-[120px]`}>
+        <p className={page === 0 ? 'text-3xl font-semibold tracking-tight' : 'text-sm leading-relaxed'}>{slides[page]}</p>
+      </div>
+      <div className="mt-2 flex gap-2">
+        {slides.map((slide, index) => (
+          <button
+            key={slide.slice(0, 12)}
+            type="button"
+            aria-label={`${eyebrow} ${index + 1}`}
+            onClick={() => setPage(index)}
+            className={`h-1.5 rounded-full ${page === index ? 'w-5 bg-zinc-800' : 'w-1.5 bg-zinc-300'}`}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export default function MerchantInsightsCard({
   ownPercent,
@@ -17,40 +58,27 @@ export default function MerchantInsightsCard({
   const responseGood = leadResponseIsGood(averageResponse, averageResponseMs);
 
   return (
-    <div className="grid gap-3 sm:grid-cols-2">
-      <div className={insightCardClass(competitorGood)}>
-        <p className="text-sm font-medium opacity-80">Category competitors</p>
-        <p className="mt-2 text-sm leading-relaxed">
-          {competitorAverage != null ? (
-            <>
-              Your competitors have an average profile completion score of{' '}
-              <span className="font-semibold">{competitorAverage}%</span>. You are at{' '}
-              <span className="font-semibold">{ownPercent}%</span>
-              {ownPercent < competitorAverage
-                ? ' — fill the missing details so you stay ahead in your category.'
-                : '. Keep this up to stay ahead in your category.'}
-            </>
-          ) : (
-            <>
-              We are still gathering competitor profile scores in your category. You are at{' '}
-              <span className="font-semibold">{ownPercent}%</span> complete — finish the missing details
-              so you stay ready.
-            </>
-          )}
-        </p>
-      </div>
-      <div className={insightCardClass(responseGood)}>
-        <p className="text-sm font-medium opacity-80">Lead response</p>
-        <p className="mt-2 text-sm leading-relaxed">
-          {averageResponse ? (
-            <>
-              Your average response time on leads so far is <span className="font-semibold">{averageResponse}</span>.
-            </>
-          ) : (
-            'Open new leads promptly — we will show your average response time after the first few replies.'
-          )}
-        </p>
-      </div>
+    <div className="grid gap-3">
+      <MetricCarousel
+        eyebrow="Average response"
+        good={responseGood}
+        value={averageResponse || '—'}
+        body={
+          averageResponse
+            ? 'This is how quickly you open new leads. Faster replies keep you ahead of nearby businesses.'
+            : 'Open new leads promptly. Your average response time appears after the first few replies.'
+        }
+      />
+      <MetricCarousel
+        eyebrow="Competitor score"
+        good={competitorGood}
+        value={competitorAverage != null ? `${competitorAverage}%` : '—'}
+        body={
+          competitorAverage != null
+            ? `Nearby competitors average ${competitorAverage}% profile completion. You are at ${ownPercent}%.`
+            : `Competitor scores in your category are still coming in. You are at ${ownPercent}% complete.`
+        }
+      />
     </div>
   );
 }

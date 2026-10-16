@@ -1,5 +1,5 @@
-import { isSupabaseConfigured, supabase } from './supabase';
-import { submitJobApplicationLead } from './leadsApi';
+import { isSupabaseConfigured, SITE_URL, supabase } from './supabase';
+import { getStoredToken } from './session';
 import { createSessionMemo } from './sessionMemo';
 
 export type JobListing = {
@@ -241,6 +241,7 @@ export async function submitJobApplication(input: {
   email: string;
   phone: string;
   message?: string;
+  cv?: { uri: string; name: string; mime: string } | null;
 }): Promise<{ success: boolean; error?: string }> {
   const fullName = input.fullName.trim();
   const email = input.email.trim();
@@ -250,8 +251,37 @@ export async function submitJobApplication(input: {
     return { success: false, error: 'Name, email, and phone are required' };
   }
 
-  const result = await submitJobApplicationLead({ ...input, fullName, email, phone });
-  return result.success ? { success: true } : { success: false, error: result.error };
+  const token = await getStoredToken();
+  if (!token) return { success: false, error: 'Sign in to apply.' };
+
+  const form = new FormData();
+  form.append('jobId', input.jobId);
+  form.append('businessId', input.businessId);
+  form.append('jobTitle', input.jobTitle || '');
+  form.append('fullName', fullName);
+  form.append('email', email);
+  form.append('phone', phone);
+  form.append('message', input.message || '');
+  if (input.cv) {
+    form.append('cv', {
+      uri: input.cv.uri,
+      name: input.cv.name,
+      type: input.cv.mime,
+    } as unknown as Blob);
+  }
+
+  try {
+    const res = await fetch(`${SITE_URL}/api/jobs/apply`, {
+      method: 'POST',
+      headers: { Accept: 'application/json', Authorization: `Bearer ${token}` },
+      body: form,
+    });
+    const data = (await res.json().catch(() => null)) as { success?: boolean; error?: string } | null;
+    if (!res.ok || !data?.success) return { success: false, error: data?.error || 'Could not submit application' };
+    return { success: true };
+  } catch {
+    return { success: false, error: 'Network error. Check your connection.' };
+  }
 }
 
 export function formatJobPosted(iso: string | null | undefined): string {

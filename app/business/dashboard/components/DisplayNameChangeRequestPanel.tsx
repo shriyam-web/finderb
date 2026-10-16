@@ -131,6 +131,7 @@ export default function DisplayNameChangeRequestPanel({
               value={requestedName}
               onChange={(e) => setRequestedName(e.target.value)}
               placeholder="e.g. Sharma Electronics"
+              maxLength={50}
               className="w-full rounded-lg border border-zinc-200 px-3 py-2.5 text-sm outline-none focus:border-[#3F3F46] focus:ring-2 focus:ring-[#3F3F46]/10"
             />
           </div>

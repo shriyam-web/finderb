@@ -178,6 +178,7 @@ export function MerchantAuthField({
   autoComplete,
   hideLabel,
   error,
+  maxLength,
 }: {
   id: string;
   label: string;
@@ -191,6 +192,7 @@ export function MerchantAuthField({
   autoComplete?: string;
   hideLabel?: boolean;
   error?: string;
+  maxLength?: number;
 }) {
   return (
     <div id={`field-${id}`}>
@@ -214,6 +216,7 @@ export function MerchantAuthField({
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
           autoComplete={autoComplete}
+          maxLength={maxLength}
           aria-invalid={Boolean(error)}
           aria-describedby={error ? `${id}-error` : undefined}
           className={`${merchantAuthFieldClass} ${endAction ? '!pr-28' : trailing ? 'pr-11' : ''} ${error ? 'merchant-auth-field-invalid' : ''}`}

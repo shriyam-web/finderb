@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { getBearerToken, verifyMobileSessionToken } from '@/lib/auth/mobileToken';
 import {
   dispatchPendingBroadcastPushes,
   listUserNotifications,
@@ -7,9 +8,11 @@ import {
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const notifications = await listUserNotifications(50);
+    const bearer = getBearerToken(request);
+    const mobileUserId = bearer ? verifyMobileSessionToken(bearer) : null;
+    const notifications = await listUserNotifications(50, mobileUserId);
     void dispatchPendingBroadcastPushes().catch(() => undefined);
     return NextResponse.json({ success: true, notifications });
   } catch (error) {

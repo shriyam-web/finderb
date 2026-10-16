@@ -56,6 +56,8 @@ const BLUE = '#44403C';
 export const HEADER_GRADIENT = ['#1C1917', '#292524', '#44403C'] as const;
 
 const GRID_ROWS_COLLAPSED = 3;
+/** Collapsed hero rail: live parent categories only, never empty or child leaves. */
+const HERO_LIVE_PARENT_LIMIT = 12;
 
 function columnsForWidth(width: number): number {
   if (width < 340) return 3;
@@ -88,8 +90,8 @@ function categoryGridMetrics(width: number, height: number) {
   const iconBox = Math.round(Math.min(rowBudget * 0.38, (compact ? 22 : 25) * scale));
   const iconImg = Math.round(iconBox * 0.88);
   const ionSize = Math.round(iconBox * 0.78);
-  const fontSize = 12;
-  const lineHeight = 16;
+  const fontSize = 10;
+  const lineHeight = 13;
   const labelLines = 2;
   const cellPadV = Math.max(2, Math.round(2 * scale));
   const cellGap = Math.max(2, Math.round(2 * scale));
@@ -666,6 +668,18 @@ function flattenCatalog(items: HomeCategory[]): HomeCategory[] {
   return out;
 }
 
+/** Top-level parents only — hero cells should never be child categories. */
+function parentCategories(items: HomeCategory[]): HomeCategory[] {
+  const seen = new Set<string>();
+  const out: HomeCategory[] = [];
+  for (const node of items) {
+    if (!node.id || node.id.startsWith('all:') || seen.has(node.id)) continue;
+    seen.add(node.id);
+    out.push({ ...node, children: undefined });
+  }
+  return out;
+}
+
 /** Always-visible expand control with a clear blink. */
 function PulsingExpandArrow({
   expanded,
@@ -892,7 +906,7 @@ export function InteractiveCategoryDeck({
   const styles = useStyles();
   const allItems = useMemo(
     () =>
-      flattenCatalog(categories).sort(
+      parentCategories(categories).sort(
         (a, b) => (b.businessCount || 0) - (a.businessCount || 0) || a.name.localeCompare(b.name),
       ),
     [categories],
@@ -925,15 +939,14 @@ export function InteractiveCategoryDeck({
     headerTopInset != null ? headerTopInset : Math.max(insets.top, 0);
 
   useEffect(() => {
-    const pool = populatedItems.length > 0 ? populatedItems : allItems;
-    if (pool.length === 0) {
+    if (populatedItems.length === 0) {
       setActiveId(null);
       return;
     }
     setActiveId((prev) =>
-      prev && pool.some((cat) => cat.id === prev) ? prev : pool[0].id,
+      prev && populatedItems.some((cat) => cat.id === prev) ? prev : populatedItems[0].id,
     );
-  }, [allItems, populatedItems]);
+  }, [populatedItems]);
 
   const active =
     populatedItems.find((cat) => cat.id === activeId) ||
@@ -946,12 +959,12 @@ export function InteractiveCategoryDeck({
   }, [active, onSelectCategory]);
 
   const railItems = useMemo(() => {
-    const pool = populatedItems.length > 0 ? populatedItems : allItems;
-    const selected = pool.find((cat) => cat.id === activeId) ?? null;
-    const rest = pool.filter((cat) => cat.id !== selected?.id);
-    const ordered = selected ? [selected, ...rest] : pool;
-    return ordered.slice(0, grid.railLimit);
-  }, [activeId, allItems, grid.railLimit, populatedItems]);
+    const cap = Math.min(grid.railLimit, HERO_LIVE_PARENT_LIMIT);
+    const selected = populatedItems.find((cat) => cat.id === activeId) ?? null;
+    const rest = populatedItems.filter((cat) => cat.id !== selected?.id);
+    const ordered = selected ? [selected, ...rest] : populatedItems;
+    return ordered.slice(0, cap);
+  }, [activeId, grid.railLimit, populatedItems]);
   const expandPool = useMemo(
     () =>
       flattenCatalog(catalog && catalog.length > 0 ? catalog : categories).sort(

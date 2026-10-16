@@ -70,8 +70,9 @@ export default function DashboardKpiRow({ kpis }: DashboardKpiRowProps) {
 
 export function buildDefaultKpis(
   leadCount: number,
-  profileViews30d: number,
-  ratingStats: DashboardRatingStats
+  profileViews: number,
+  ratingStats: DashboardRatingStats,
+  viewPeriod = 'Last 30 days',
 ) {
   const hasReviews = ratingStats.reviewCount > 0 && ratingStats.rating != null;
 
@@ -79,11 +80,11 @@ export function buildDefaultKpis(
     {
       id: 'views',
       label: 'Profile views',
-      value: formatCount(profileViews30d),
-      delta: profileViews30d > 0 ? 'Last 30 days' : '—',
-      deltaUp: profileViews30d > 0,
+      value: formatCount(profileViews),
+      delta: profileViews > 0 ? viewPeriod : '—',
+      deltaUp: profileViews > 0,
       context:
-        profileViews30d > 0 ? 'Visits to your public listing' : 'No profile views in the last 30 days',
+        profileViews > 0 ? 'Visits to your public listing' : `No profile views for ${viewPeriod.toLowerCase()}`,
       icon: HiOutlineEye,
     },
     {

@@ -47,7 +47,7 @@ export async function POST(request: Request) {
       actor: {
         name: user.fullName || 'FinderB user',
         email: user.email || null,
-        phone: null,
+        phone: user.phone || null,
       },
     });
 

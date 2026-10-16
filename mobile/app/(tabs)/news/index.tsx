@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NewsImagePlaceholder } from '../../../components/NewsImagePlaceholder';
+import { PullRefreshMark } from '../../../components/PullRefreshMark';
 import { ScreenHeader } from '../../../components/ScreenHeader';
 import { isUsableNewsImage } from '../../../constants/newsCategories';
 import { fonts } from '../../../constants/typography';
@@ -184,6 +185,8 @@ export default function NewsScreen() {
             <ActivityIndicator color={colors.primary} />
           </View>
         ) : (
+          <View style={{ flex: 1 }}>
+          <PullRefreshMark active={refreshing} />
           <FlatList
             data={rest}
             keyExtractor={(item) => item.id}
@@ -264,6 +267,7 @@ export default function NewsScreen() {
             )}
             ItemSeparatorComponent={() => <View style={styles.sep} />}
           />
+          </View>
         )}
       </SafeAreaView>
     </View>

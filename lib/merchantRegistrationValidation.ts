@@ -95,6 +95,7 @@ export function scrollToFirstRegistrationError(errors: RegistrationFieldErrors) 
 export const MIN_PERSON_NAME_LENGTH = 2;
 export const MIN_BUSINESS_NAME_LENGTH = 2;
 export const MIN_DISPLAY_NAME_LENGTH = 2;
+export const MAX_BUSINESS_NAME_LENGTH = 50;
 
 export type RegistrationStep1Input = {
   fullName: string;
@@ -157,6 +158,9 @@ function validateBusinessName(value: string, label = 'your legal business name')
   if (trimmed.length < MIN_BUSINESS_NAME_LENGTH) {
     return `Legal business name must be at least ${MIN_BUSINESS_NAME_LENGTH} characters.`;
   }
+  if (trimmed.length > MAX_BUSINESS_NAME_LENGTH) {
+    return `Business name must be ${MAX_BUSINESS_NAME_LENGTH} characters or fewer.`;
+  }
   return null;
 }
 
@@ -165,6 +169,9 @@ function validateDisplayName(value: string | undefined, fallbackLegalName: strin
   if (!trimmed) return null;
   if (trimmed.length < MIN_DISPLAY_NAME_LENGTH) {
     return `Business display name must be at least ${MIN_DISPLAY_NAME_LENGTH} characters.`;
+  }
+  if (trimmed.length > MAX_BUSINESS_NAME_LENGTH) {
+    return `Business display name must be ${MAX_BUSINESS_NAME_LENGTH} characters or fewer.`;
   }
   if (trimmed.toLowerCase() === fallbackLegalName.trim().toLowerCase()) {
     return null;

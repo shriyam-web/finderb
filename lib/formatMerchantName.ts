@@ -53,12 +53,16 @@ function normalizeWord(word: string): string {
  * Formats merchant names for display: title-cases plain ALL CAPS / lowercase input,
  * but preserves intentional casing from the DB (FinderB, YRS, B2B, etc.).
  */
+const PUBLIC_NAME_MAX = 50;
+
 export function formatMerchantName(name: string | null | undefined): string {
   if (!name?.trim()) return '';
 
-  return name
+  const formatted = name
     .trim()
     .split(/\s+/)
     .map((word) => normalizeWord(word))
     .join(' ');
+  if (formatted.length <= PUBLIC_NAME_MAX) return formatted;
+  return `${formatted.slice(0, PUBLIC_NAME_MAX - 1).trimEnd()}…`;
 }

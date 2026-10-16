@@ -47,7 +47,6 @@ import {
   maskReviewAuthorName,
   parseBusinessReviewReply,
   parseBusinessReviews,
-  validateAnonymousReason,
   visiblePublicReviews,
   type BusinessReview,
 } from '@/lib/businessReviews';
@@ -60,6 +59,8 @@ import {
   whatsAppHref,
 } from '@/lib/businessContact';
 import { formatYearsInBusinessShort } from '@/lib/establishmentYear';
+import { extraCategoryLeaves, primaryCategoryLabel } from '@/lib/alsoServes';
+import OwnThisBusiness from '@/components/business/OwnThisBusiness';
 import { getBusinessGalleryImages } from '@/lib/businessMapping';
 import { buildLoginHref } from '@/lib/authRedirect';
 import {
@@ -123,7 +124,7 @@ function StarPicker({
 }
 
 function categoryYearsLine(category: string, year: number | null | undefined) {
-  const cat = category.trim() || 'Business';
+  const cat = primaryCategoryLabel(category) || category.trim() || 'Business';
   const label = formatYearsInBusinessShort(year);
   return label ? `${cat} · ${label}` : cat;
 }
@@ -175,7 +176,6 @@ export default function BusinessProfilePage({
     initialBusiness ? visiblePublicReviews(parseBusinessReviews(initialBusiness.review)) : []
   );
   const [reviewAnonymous, setReviewAnonymous] = useState(false);
-  const [reviewAnonymousReason, setReviewAnonymousReason] = useState('');
   const [sessionUser, setSessionUser] = useState<SessionUser | null>(null);
   const [sessionBusiness, setSessionBusiness] = useState<SessionBusiness | null>(null);
   const [notFound, setNotFound] = useState(false);
@@ -468,8 +468,9 @@ export default function BusinessProfilePage({
     () => (business ? getBusinessProfilePath(business) : ''),
     [business],
   );
+  const visitorPreview = searchParams.get('view') === 'visitor';
   const contactRevealed = Boolean(sessionUser || sessionBusiness);
-  const managesThisProfile = Boolean(
+  const managesThisProfile = !visitorPreview && Boolean(
     ownsThisListing ||
       (sessionBusiness?.id && business?.id === sessionBusiness.id) ||
       (sessionUser?.businessId && business?.id === sessionUser.businessId)
@@ -615,20 +616,11 @@ export default function BusinessProfilePage({
     setReviewError(null);
     setReviewSuccess(null);
 
-    if (reviewAnonymous) {
-      const reasonError = validateAnonymousReason(reviewAnonymousReason);
-      if (reasonError) {
-        setReviewError(reasonError);
-        return;
-      }
-    }
-
     const result = await submitBusinessReview({
       businessId: business.id,
       rating: reviewRating,
       content: reviewContent,
       anonymous: reviewAnonymous,
-      anonymousReason: reviewAnonymousReason,
     });
 
     if (result.success) {
@@ -638,7 +630,6 @@ export default function BusinessProfilePage({
       );
       setReviewContent('');
       setReviewAnonymous(false);
-      setReviewAnonymousReason('');
       setReviewSuccess(reviewAnonymous ? 'Your anonymous review was posted.' : 'Your review was posted.');
     } else {
       setReviewError(result.error);
@@ -1148,17 +1139,6 @@ export default function BusinessProfilePage({
                     </span>
                   </span>
                 </label>
-                {reviewAnonymous ? (
-                  <textarea
-                    value={reviewAnonymousReason}
-                    onChange={(event) => setReviewAnonymousReason(event.target.value)}
-                    placeholder="Why do you need to post anonymously?"
-                    rows={2}
-                    minLength={10}
-                    className="mt-3 w-full rounded-lg border border-stone-200 px-3 py-2 text-sm outline-none focus:border-[#215481]"
-                    required
-                  />
-                ) : null}
                 {reviewError && <p className="mt-2 text-xs text-red-600">{reviewError}</p>}
                 {reviewSuccess && <p className="mt-2 text-xs text-emerald-700">{reviewSuccess}</p>}
                 <button
@@ -1199,6 +1179,16 @@ export default function BusinessProfilePage({
           </div>
 
           <BusinessProfileRelatedRail businesses={related} userCoords={userCoords} />
+
+          {extraCategoryLeaves(business.category).length ? (
+            <p className="px-4 pt-2 text-sm text-stone-600">
+              This business also serves in: {extraCategoryLeaves(business.category).join(', ')}
+            </p>
+          ) : null}
+
+          {!managesThisProfile ? (
+            <OwnThisBusiness businessId={business.id} businessName={business.name} />
+          ) : null}
 
           <div className="border-t border-stone-200/80 px-4 pb-8 pt-4">
             <BusinessProfileBreadcrumb business={business} categoryBreadcrumb={categoryBreadcrumb} />

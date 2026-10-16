@@ -16,8 +16,12 @@ export async function fetchUserNotifications(): Promise<
   { notifications: AppNotification[] } | { success: false; error: string }
 > {
   try {
+    const token = await getStoredToken();
     const res = await fetch(`${SITE_URL}/api/notifications`, {
-      headers: { Accept: 'application/json' },
+      headers: {
+        Accept: 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
     });
     const data = (await res.json()) as {
       success?: boolean;

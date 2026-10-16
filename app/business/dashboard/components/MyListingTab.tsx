@@ -32,11 +32,12 @@ import {
 } from '@/lib/businessReviews';
 import { getDiscountOfferDisplay } from '@/lib/discountOffer';
 import { formatEstablishmentYearsLabel } from '@/lib/establishmentYear';
+import PreviewProfileLink from '@/components/business/PreviewProfileLink';
 import { formatTimingRange12h } from '@/lib/formatBusinessHours';
 import { getBusinessGalleryImages } from '@/lib/businessMapping';
 import { parseBusinessServices } from '@/lib/parseBusinessServices';
 import type { MissingProfileField } from '@/lib/dashboard/profileCompletion';
-import { competitorScoreIsGood, insightCardClass, leadResponseIsGood } from '@/lib/dashboard/insightTones';
+import MerchantInsightsCard from './MerchantInsightsCard';
 import { cancelOwnBusinessDeletion, hideOwnBusinessListing } from '@/app/actions/business';
 import { dashboard } from './dashboard-ui';
 
@@ -327,10 +328,10 @@ export default function MyListingTab({
             <span className="text-xs font-medium text-zinc-600">Complete</span>
           </div>
           {Boolean(profilePictureUrl?.trim()) || images.some((url) => Boolean(url?.trim())) ? (
-            <Link href={businessProfilePath ?? '#'} target="_blank" className={dashboard.btnSecondary}>
+            <PreviewProfileLink href={businessProfilePath ?? '/'} className={`${dashboard.btnSecondary} inline-flex items-center gap-1`}>
               View live
               <HiOutlineArrowTopRightOnSquare size={14} />
-            </Link>
+            </PreviewProfileLink>
           ) : (
             <span className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-medium text-rose-800">
               Hidden until photos added
@@ -343,18 +344,12 @@ export default function MyListingTab({
         </div>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        <p className={`${insightCardClass(competitorScoreIsGood(completionPercent, competitorAverage))} text-xs leading-relaxed`}>
-          {competitorAverage != null
-            ? `Your competitors have an average profile completion score of ${competitorAverage}%. You are at ${completionPercent}%.`
-            : `We are still gathering competitor profile scores in your category. You are at ${completionPercent}% complete.`}
-        </p>
-        <p className={`${insightCardClass(leadResponseIsGood(averageResponse, averageResponseMs))} text-xs leading-relaxed`}>
-          {averageResponse
-            ? `Your average response time on leads so far is ${averageResponse}.`
-            : 'Open new leads promptly — we will show your average response time after the first few replies.'}
-        </p>
-      </div>
+      <MerchantInsightsCard
+        ownPercent={completionPercent}
+        competitorAverage={competitorAverage}
+        averageResponse={averageResponse}
+        averageResponseMs={averageResponseMs}
+      />
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_248px]">
         <div className={`${dashboard.panel} overflow-hidden`}>
@@ -859,6 +854,11 @@ export default function MyListingTab({
                     {row.label}
                     {'verified' in row && row.verified ? (
                       <HiOutlineShieldCheck size={15} className="shrink-0 text-emerald-600" aria-label="Verified" />
+                    ) : 'verified' in row && row.verified === false && row.value !== 'Not set' ? (
+                      <span className="relative inline-flex h-4 w-4 shrink-0 items-center justify-center text-rose-600" aria-label="Not verified">
+                        <HiOutlineShieldCheck size={15} />
+                        <span className="absolute text-[9px] font-bold leading-none">×</span>
+                      </span>
                     ) : null}
                   </p>
                   <p className={`mt-0.5 text-xs ${row.value === 'Not set' ? 'text-amber-700' : 'text-zinc-500'}`}>

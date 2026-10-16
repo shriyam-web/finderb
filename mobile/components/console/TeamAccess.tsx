@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, Pressable, Switch, Text, View } from 'react-native';
+import { Alert, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { fonts } from '../../constants/typography';
 import { useConsoleColors } from '../../constants/consoleColors';
 import { useMerchantConsole } from '../../context/MerchantConsoleContext';
@@ -27,6 +28,12 @@ type Member = {
 };
 
 type Step = 'list' | 'channel' | 'contact' | 'access';
+
+function openWhatsAppHandoff(handoff?: { mobile: string; message: string }) {
+  if (!handoff?.mobile || !handoff.message) return false;
+  void Linking.openURL(`https://wa.me/91${handoff.mobile}?text=${encodeURIComponent(handoff.message)}`);
+  return true;
+}
 
 function hoursLeft(member: Pick<Member, 'inviteExpiresAt' | 'lastInviteSentAt'>) {
   const fromExpiry = member.inviteExpiresAt ? new Date(member.inviteExpiresAt).getTime() : Number.POSITIVE_INFINITY;
@@ -77,7 +84,7 @@ export function TeamAccess() {
 
   const sendCode = async () => {
     setBusy(true);
-    const result = await run<{ success: true; member: Member; warning?: string }>('inviteTeam', {
+    const result = await run<{ success: true; member: Member; warning?: string; handoff?: { mobile: string; message: string } }>('inviteTeam', {
       channel,
       email,
       mobile,
@@ -89,7 +96,11 @@ export function TeamAccess() {
       return;
     }
     setDraftId(result.member.id);
-    notify(result.warning || 'Invite link sent.');
+    if (openWhatsAppHandoff(result.handoff)) {
+      notify('WhatsApp is open. Tap Send so they get a working invite link.');
+    } else {
+      notify(result.warning || 'Invite link sent.');
+    }
     setStep('access');
     await load();
   };
@@ -110,21 +121,25 @@ export function TeamAccess() {
 
   const resend = async (memberId: string) => {
     setBusy(true);
-    const result = await run<{ success: true; warning?: string }>('resendTeam', { memberId });
+    const result = await run<{ success: true; warning?: string; handoff?: { mobile: string; message: string } }>('resendTeam', { memberId });
     setBusy(false);
     if (isFailure(result)) {
       notify(result.error, 'bad');
       return;
     }
-    notify(result.warning || 'Invite link sent again.');
+    if (openWhatsAppHandoff(result.handoff)) {
+      notify('WhatsApp is open. Tap Send so they get a working invite link.');
+    } else {
+      notify(result.warning || 'Invite link sent again.');
+    }
     await load();
   };
 
   const revoke = (member: Member) => {
-    Alert.alert('Revoke access?', 'They will no longer be able to sign in to this business.', [
+    Alert.alert('Remove this person?', 'They will no longer be able to sign in to this business.', [
       { text: 'Cancel', style: 'cancel' },
       {
-        text: 'Revoke',
+        text: 'Remove',
         style: 'destructive',
         onPress: async () => {
           const result = await run('revokeTeam', { memberId: member.id });
@@ -144,7 +159,7 @@ export function TeamAccess() {
       {step === 'list' ? (
         <Panel>
           <Text style={styles.hint}>
-            Invite by email or phone with a link, then choose view or edit rights for each tab. Invites
+            Invite by email or phone with a link, then tick View or Edit for each tab. Invites
             cancel after {TEAM_INVITE_HOURS} hours if they are not accepted. Only you can change these rights.
           </Text>
           <Btn label="Invite teammate" icon="person-add-outline" onPress={() => setStep('channel')} />
@@ -160,7 +175,7 @@ export function TeamAccess() {
           </Pressable>
           <Pressable onPress={() => setChannel('phone')} style={[styles.choice, channel === 'phone' && styles.choiceOn]}>
             <Text style={styles.choiceTitle}>Phone</Text>
-            <Text style={styles.choiceBody}>An invitation link goes to their WhatsApp.</Text>
+            <Text style={styles.choiceBody}>WhatsApp opens with the invite. Tap Send on the next screen.</Text>
           </Pressable>
           <Btn label="Continue" onPress={() => setStep('contact')} />
           <Btn label="Cancel" tone="text" onPress={reset} />
@@ -201,6 +216,7 @@ export function TeamAccess() {
       {step === 'access' ? (
         <Panel>
           <Text style={styles.title}>Choose tab access</Text>
+          <Text style={styles.hint}>Tick View to open a tab. Tick Edit to change data on it.</Text>
           <AccessEditor access={access} onChange={setAccess} />
           <Btn
             label="Save access and finish"
@@ -238,21 +254,23 @@ export function TeamAccess() {
                 </View>
                 <View style={styles.actions}>
                 {member.status === 'pending' || member.status === 'expired' ? (
-                  <Pressable onPress={() => void resend(member.id)} hitSlop={8}>
-                    <Text style={[styles.link, { color: c.accent }]}>
-                      {member.status === 'expired' ? 'Invite again' : 'Resend'}
-                    </Text>
-                  </Pressable>
+                  <Btn
+                    small
+                    tone="outline"
+                    label={member.status === 'expired' ? 'Resend Invite' : 'Resend Invite'}
+                    onPress={() => void resend(member.id)}
+                  />
                 ) : null}
                 {member.status !== 'expired' ? (
-                  <Pressable onPress={() => setEditingId(editingId === member.id ? null : member.id)} hitSlop={8}>
-                    <Text style={[styles.link, { color: c.accent }]}>{editingId === member.id ? 'Close' : 'Access'}</Text>
-                  </Pressable>
+                  <Btn
+                    small
+                    tone="outline"
+                    label={editingId === member.id ? 'Close' : 'Modify Access'}
+                    onPress={() => setEditingId(editingId === member.id ? null : member.id)}
+                  />
                 ) : null}
                 {member.status !== 'expired' ? (
-                <Pressable onPress={() => revoke(member)} hitSlop={8}>
-                  <Text style={[styles.link, { color: c.danger }]}>Revoke</Text>
-                </Pressable>
+                  <Btn small tone="danger" label="Remove" onPress={() => revoke(member)} />
                 ) : null}
                 </View>
                 {editingId === member.id ? (
@@ -286,6 +304,49 @@ export function TeamAccess() {
   );
 }
 
+function TickBox({
+  checked,
+  disabled,
+  label,
+  onChange,
+}: {
+  checked: boolean;
+  disabled?: boolean;
+  label: string;
+  onChange: (value: boolean) => void;
+}) {
+  const c = useConsoleColors();
+  return (
+    <Pressable
+      onPress={() => {
+        if (!disabled) onChange(!checked);
+      }}
+      disabled={disabled}
+      accessibilityRole="checkbox"
+      accessibilityState={{ checked, disabled: Boolean(disabled) }}
+      accessibilityLabel={label}
+      hitSlop={6}
+      style={{ width: 44, height: 36, alignItems: 'center', justifyContent: 'center' }}
+    >
+      <View
+        style={{
+          width: 22,
+          height: 22,
+          borderRadius: 6,
+          borderWidth: 1.5,
+          borderColor: checked ? '#2563EB' : c.lineStrong,
+          backgroundColor: checked ? '#2563EB' : c.card,
+          alignItems: 'center',
+          justifyContent: 'center',
+          opacity: disabled ? 0.35 : 1,
+        }}
+      >
+        {checked ? <Ionicons name="checkmark" size={14} color="#FFFFFF" /> : null}
+      </View>
+    </Pressable>
+  );
+}
+
 function AccessEditor({
   access,
   onChange,
@@ -307,26 +368,62 @@ function AccessEditor({
   };
 
   return (
-    <View style={{ gap: 10, paddingVertical: 8 }}>
-      {TEAM_TABS.map((tab) => {
+    <View style={{ overflow: 'hidden', borderWidth: 1, borderColor: c.line, borderRadius: 12 }}>
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          backgroundColor: c.sunken,
+          paddingHorizontal: 12,
+          paddingVertical: 8,
+        }}
+      >
+        <Text style={{ flex: 1, fontFamily: fonts.semiBold, fontSize: 11, letterSpacing: 0.6, color: c.muted }}>
+          TAB
+        </Text>
+        <Text style={{ width: 44, textAlign: 'center', fontFamily: fonts.semiBold, fontSize: 11, letterSpacing: 0.6, color: c.muted }}>
+          VIEW
+        </Text>
+        <Text style={{ width: 44, textAlign: 'center', fontFamily: fonts.semiBold, fontSize: 11, letterSpacing: 0.6, color: c.muted }}>
+          EDIT
+        </Text>
+      </View>
+      {TEAM_TABS.map((tab, index) => {
         const row = access[tab.key];
         return (
-          <View key={tab.key} style={{ gap: 6 }}>
-            <Text style={{ fontFamily: fonts.semiBold, fontSize: 14, color: c.ink }}>{tab.label}</Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-              <Text style={{ fontFamily: fonts.regular, fontSize: 13, color: c.muted }}>View</Text>
-              <Switch value={row.view} onValueChange={(value) => setRight(tab.key, 'view', value)} />
+          <View
+            key={tab.key}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              paddingHorizontal: 12,
+              paddingVertical: 6,
+              borderTopWidth: index === 0 ? 0 : StyleSheet.hairlineWidth,
+              borderTopColor: c.line,
+              backgroundColor: c.card,
+            }}
+          >
+            <View style={{ flex: 1, minWidth: 0, paddingRight: 8 }}>
+              <Text style={{ fontFamily: fonts.semiBold, fontSize: 14, color: c.ink }}>{tab.label}</Text>
+              <Text style={{ marginTop: 1, fontFamily: fonts.regular, fontSize: 11, color: c.muted }}>{tab.hint}</Text>
             </View>
+            <TickBox
+              checked={row.view}
+              label={`${tab.label} view`}
+              onChange={(value) => setRight(tab.key, 'view', value)}
+            />
             {tab.allowsEdit ? (
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Text style={{ fontFamily: fonts.regular, fontSize: 13, color: c.muted }}>Edit</Text>
-                <Switch
-                  value={row.edit}
-                  disabled={!row.view}
-                  onValueChange={(value) => setRight(tab.key, 'edit', value)}
-                />
-              </View>
-            ) : null}
+              <TickBox
+                checked={row.edit}
+                disabled={!row.view}
+                label={`${tab.label} edit`}
+                onChange={(value) => setRight(tab.key, 'edit', value)}
+              />
+            ) : (
+              <Text style={{ width: 44, textAlign: 'center', fontFamily: fonts.regular, fontSize: 12, color: c.faint }}>
+                —
+              </Text>
+            )}
           </View>
         );
       })}

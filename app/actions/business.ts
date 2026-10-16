@@ -83,6 +83,8 @@ import {
   setBusinessSessionCookie,
 } from '@/lib/security/session';
 import { assertBusinessOwner, assertBusinessTab, resolveBusinessActor } from '@/lib/businessTeam/teamActor.server';
+import { PROFILE_LINK_FIELDS, validateProfileLink } from '@/lib/validateProfileUrl';
+import { socialProfileError } from '@/lib/profileLinkExists.server';
 import { removeUserAccountsMovedToBusiness } from '@/lib/accountDeletion.server';
 import { enforceRateLimit } from '@/lib/security/enforceRateLimit.server';
 import { redactPublicBusinessFields } from '@/lib/security/businessFields';
@@ -1477,6 +1479,28 @@ export async function updateBusinessProfile(id: string, profileData: any) {
     }
 
     const supabase = await createDataClient();
+    const socialFields = ['instagramUrl', 'facebookUrl', 'youtubeUrl'] as const;
+    const { data: currentLinks } = await supabase
+      .from('Business')
+      .select('instagramUrl, facebookUrl, youtubeUrl')
+      .eq('id', id)
+      .maybeSingle();
+    for (const field of socialFields) {
+      if (!(field in (profileData || {}))) continue;
+      const checked = validateProfileLink(field, String(profileData[field] ?? ''));
+      if (!checked.ok) return { success: false, error: checked.error };
+      const previous = String(currentLinks?.[field] || '').trim();
+      if (checked.value && checked.value !== previous) {
+        const existsError = await socialProfileError(field, checked.value);
+        if (existsError) return { success: false, error: existsError };
+      }
+      profileData[field] = checked.value;
+    }
+    if (PROFILE_LINK_FIELDS.has('website') && 'website' in (profileData || {})) {
+      const checked = validateProfileLink('website', String(profileData.website ?? ''));
+      if (!checked.ok) return { success: false, error: checked.error };
+      profileData.website = checked.value;
+    }
 
     const lat = parseCoordinate(profileData.latitude);
     const lng = parseCoordinate(profileData.longitude);

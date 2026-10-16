@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   FlatList,
-  Image,
   Pressable,
   Text,
   View,
@@ -10,6 +9,7 @@ import {
   type NativeScrollEvent,
   type NativeSyntheticEvent,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { fonts } from '../../constants/typography';
@@ -291,7 +291,15 @@ export function AlertCarousel({ slides }: { slides: AlertSlide[] }) {
                       </View>
                     </View>
                     <View style={styles.artWrap}>
-                      <Image source={item.art} style={styles.art} resizeMode="contain" fadeDuration={0} alt="" />
+                      <Image
+                        source={item.art}
+                        style={styles.art}
+                        contentFit="contain"
+                        cachePolicy="none"
+                        recyclingKey={String(item.key)}
+                        transition={0}
+                        pointerEvents="none"
+                      />
                     </View>
                   </LinearGradient>
                 </Pressable>
@@ -392,7 +400,7 @@ const useStyles = createConsoleStyles((c) => ({
     justifyContent: 'center',
     zIndex: 1,
   },
-  art: { width: 124, height: 124 },
+  art: { width: 124, height: 124, backgroundColor: 'transparent' },
   placeholder: { height: SLIDE_HEIGHT },
   dots: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 5, marginTop: 8 },
   dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: c.lineStrong },

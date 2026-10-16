@@ -19,6 +19,7 @@ import {
   JobFilterTrigger,
   type JobFilterState,
 } from '../../../components/JobFilterSheet';
+import { PullRefreshMark } from '../../../components/PullRefreshMark';
 import { ScreenHeader } from '../../../components/ScreenHeader';
 import { fonts } from '../../../constants/typography';
 import { useTheme } from '../../../context/ThemeContext';
@@ -221,11 +222,13 @@ export default function JobsBoardScreen() {
             <Text style={styles.loadingText}>Fetching openings…</Text>
           </View>
         ) : (
+          <View style={styles.listHost}>
+          <PullRefreshMark active={refreshing} />
           <FlatList
             data={filtered}
             keyExtractor={(item) => item.id}
             refreshControl={
-              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.brand} colors={[colors.brand]} />
             }
             contentContainerStyle={[
               styles.list,
@@ -304,6 +307,7 @@ export default function JobsBoardScreen() {
               );
             }}
           />
+          </View>
         )}
 
         <JobFilterSheet
@@ -349,6 +353,7 @@ const useStyles = createThemedStyles((colors) => ({
     paddingVertical: 10,
   },
 
+  listHost: { flex: 1 },
   list: {
     paddingTop: 0,
   },

@@ -146,10 +146,6 @@ export function reviewQrCardHtml(input: {
     ctx.fillStyle = ORANGE;
     ctx.fillRect(CARD_W / 2, ruleY, 72, 4);
 
-    ctx.fillStyle = ORANGE;
-    ctx.font = '600 26px ' + font;
-    spacedCenter('REVIEW CARD', CARD_W / 2, ruleY + 58, 11);
-
     ctx.fillStyle = BLUE;
     ctx.font = '700 64px ' + font;
     wrapCentered(name, CARD_W / 2, ruleY + 132, 860, 74);

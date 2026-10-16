@@ -82,6 +82,7 @@ import {
   updateTeamAccess,
   verifyTeamInviteOtp,
 } from '@/lib/businessTeam/teamInvites.server';
+import { readAlsoServes, writeAlsoServes } from '@/lib/alsoServes.server';
 import { CONSOLE_ACTION_ACCESS, TEAM_OWNER_ONLY, TEAM_TAB_LOCKED } from '@/lib/businessTeam/teamAccess';
 import { resolveBusinessActor } from '@/lib/businessTeam/teamActor.server';
 import { createServiceClient } from '@/lib/supabase/service';
@@ -316,19 +317,19 @@ async function loadNotifications(businessId: string, category: string) {
   return { items, unread: own.filter((item) => !item.read).length };
 }
 
-const TREND_DAYS = 14;
+const TREND_DAYS = 90;
 const IST_OFFSET_MS = 330 * 60 * 1000;
 
 function istDayKey(time: number): string {
   return new Date(time + IST_OFFSET_MS).toISOString().slice(0, 10);
 }
 
-/** Daily views for the last two weeks (India time), plus today, 7-day and distinct-visitor counts. */
+/** Daily views for the selected home chart (India time), plus today, 7-day and 30-day visitor counts. */
 async function viewTrend(businessId: string) {
   const empty = { today: 0, last7: 0, uniqueVisitors30d: 0, daily: [] as { day: string; views: number }[] };
   const supabase = createServiceClient();
   if (!supabase) return empty;
-  const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  const since = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
   const { data, error } = await supabase
     .from('profile_views')
     .select('viewed_at, session_hash')
@@ -348,7 +349,9 @@ async function viewTrend(businessId: string) {
     const key = istDayKey(at);
     counts.set(key, (counts.get(key) ?? 0) + 1);
     if (now - at <= 7 * 24 * 60 * 60 * 1000) last7 += 1;
-    visitors.add(row.session_hash || `anon:${row.viewed_at}`);
+    if (now - at <= 30 * 24 * 60 * 60 * 1000) {
+      visitors.add(row.session_hash || `anon:${row.viewed_at}`);
+    }
   }
   const daily = Array.from({ length: TREND_DAYS }, (_, index) => {
     const day = istDayKey(now - (TREND_DAYS - 1 - index) * 24 * 60 * 60 * 1000);
@@ -898,6 +901,15 @@ export async function runConsoleAction(userId: string, businessId: string, body:
       return storefront(businessId);
     case 'saveProfile':
       return saveProfile(businessId, body.patch);
+    case 'alsoServes':
+      return readAlsoServes(businessId);
+    case 'saveAlsoServes':
+      return (async () => {
+        const leaves = Array.isArray(body.leaves) ? body.leaves.map((item) => String(item)) : [];
+        const saved = await writeAlsoServes(businessId, leaves);
+        if (!saved.success) return fail(saved.error);
+        return overview(businessId);
+      })();
     case 'uploadPhoto':
       return uploadPhoto(businessId, body.image);
     case 'setPhotos':
@@ -918,6 +930,32 @@ export async function runConsoleAction(userId: string, businessId: string, body:
       return flagReview(businessId, body.reviewId, body.reason);
     case 'jobs':
       return jobs(businessId);
+    case 'hrContact':
+      return (async () => {
+        const { loadHrContact } = await import('@/lib/jobBoard.server');
+        const hr = await loadHrContact(businessId);
+        return { success: true as const, hr };
+      })();
+    case 'saveHrContact':
+      return (async () => {
+        const { saveHrContact } = await import('@/lib/jobBoard.server');
+        return saveHrContact(businessId, String(body.email || ''), String(body.mobile || ''));
+      })();
+    case 'jobApplications':
+      return (async () => {
+        const { listJobApplications } = await import('@/lib/jobBoard.server');
+        return listJobApplications(businessId, String(body.jobId || ''));
+      })();
+    case 'shortlistApplication':
+      return (async () => {
+        const { shortlistApplication } = await import('@/lib/jobBoard.server');
+        return shortlistApplication(businessId, String(body.applicationId || ''));
+      })();
+    case 'applicationFile':
+      return (async () => {
+        const { applicationDownload } = await import('@/lib/jobBoard.server');
+        return applicationDownload(businessId, String(body.applicationId || ''));
+      })();
     case 'saveJob':
       return saveJob(businessId, body.jobId, (body.job || {}) as JobInput);
     case 'setJobStatus':

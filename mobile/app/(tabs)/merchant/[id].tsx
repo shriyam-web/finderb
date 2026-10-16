@@ -45,6 +45,7 @@ import {
 } from '../../../lib/merchants';
 import { getDiscountOfferDisplay } from '../../../lib/discountOffer';
 import { fetchFavoriteIds, toggleFavorite } from '../../../lib/favoritesApi';
+import { OwnThisBusiness } from '../../../components/OwnThisBusiness';
 import { recordDirectLead } from '../../../lib/leadsApi';
 import { reportBusinessReview } from '../../../lib/reviewsApi';
 import { goBackOrHome } from '../../../lib/navigation';
@@ -230,6 +231,17 @@ function RelatedMeta({ item }: { item: Merchant }) {
   );
 }
 
+function splitMappedCategories(value?: string | null) {
+  return (value || '')
+    .split(/\s*\|\|\|\s*/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
+function categoryLeafLabel(value: string) {
+  return value.split('›').pop()?.trim() || value;
+}
+
 export default function MerchantProfileScreen() {
   const windowWidth = useWindowDimensions().width;
   const [heroW, setHeroW] = useState(windowWidth > 0 ? windowWidth : FALLBACK_W);
@@ -247,7 +259,8 @@ export default function MerchantProfileScreen() {
   const { requestLogin: promptLogin } = useLoginPrompt();
   const params = useLocalSearchParams<{ id?: string | string[]; preview?: string }>();
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
-  const ownerPreview = params.preview === '1';
+  const previewMode = params.preview === 'visitor' ? 'visitor' : params.preview === '1' || params.preview === 'owner' ? 'owner' : '';
+  const ownerPreview = previewMode === 'owner';
   const location = useUserLocation(true);
   const bottomPad = useTabScrollPadding(16);
   const galleryRef = useRef<ScrollView>(null);
@@ -315,7 +328,7 @@ export default function MerchantProfileScreen() {
         const [jobResult, relatedResult] = await Promise.all([
           fetchJobsByBusinessId(result.merchant.id),
           result.merchant.category
-            ? fetchBusinessesByCategory(result.merchant.category, {
+            ? fetchBusinessesByCategory(splitMappedCategories(result.merchant.category)[0] || result.merchant.category, {
                 page: 1,
                 pageSize: 8,
               })
@@ -460,6 +473,7 @@ export default function MerchantProfileScreen() {
   };
 
   const isOwnBusiness =
+    previewMode !== 'visitor' &&
     Boolean(merchant) &&
     (user?.businessId === merchant?.id ||
       (!!user?.isBusinessAccount &&
@@ -648,7 +662,7 @@ export default function MerchantProfileScreen() {
               {merchant.name}
             </Text>
             <Text style={styles.compactSub} numberOfLines={1}>
-              {merchant.category || 'Business'}
+              {splitMappedCategories(merchant.category)[0] || merchant.category || 'Business'}
               {openStatus.status !== 'Unknown' ? ` · ${openStatus.label}` : ''}
             </Text>
           </View>
@@ -933,7 +947,7 @@ export default function MerchantProfileScreen() {
 
             <View style={styles.identityBody}>
               <Text style={styles.categoryLine} numberOfLines={1}>
-                {merchant.category || 'Business'}
+                {splitMappedCategories(merchant.category)[0] || merchant.category || 'Business'}
                 {formatYearsInBusinessShort(merchant.yearsInBusiness)
                   ? ` · ${formatYearsInBusinessShort(merchant.yearsInBusiness)}`
                   : ''}
@@ -1120,7 +1134,13 @@ export default function MerchantProfileScreen() {
               {merchant.contact ? (
                 <Pressable
                   style={styles.contactRow}
-                  onPress={() => handleContactAction('call')}
+                  onPress={() => {
+                    if (!merchant.phoneVerified && !isOwnBusiness) {
+                      showUnverified('phone');
+                      return;
+                    }
+                    handleContactAction('call');
+                  }}
                 >
                   <View style={styles.contactIcon}>
                     <Ionicons name="call-outline" size={16} color={colors.ink} />
@@ -1128,9 +1148,11 @@ export default function MerchantProfileScreen() {
                   <View style={styles.contactCopy}>
                     <Text style={styles.contactLabel}>Phone</Text>
                     <Text style={styles.contactValue}>
-                      {contactRevealed && (merchant.phoneVerified || isOwnBusiness)
-                        ? merchant.contact
-                        : maskPhone(merchant.contact)}
+                      {!merchant.phoneVerified && !isOwnBusiness
+                        ? 'Not shown'
+                        : contactRevealed
+                          ? merchant.contact
+                          : maskPhone(merchant.contact)}
                     </Text>
                   </View>
                   <Ionicons
@@ -1162,9 +1184,11 @@ export default function MerchantProfileScreen() {
                   <View style={styles.contactCopy}>
                     <Text style={styles.contactLabel}>Email</Text>
                     <Text style={styles.contactValue}>
-                      {contactRevealed && (merchant.emailVerified || isOwnBusiness)
-                        ? merchant.email
-                        : maskEmail(merchant.email)}
+                      {!merchant.emailVerified && !isOwnBusiness
+                        ? 'Not shown'
+                        : contactRevealed
+                          ? merchant.email
+                          : maskEmail(merchant.email)}
                     </Text>
                   </View>
                   <Ionicons
@@ -1642,6 +1666,27 @@ export default function MerchantProfileScreen() {
                   );
                 })}
               </ScrollView>
+            </View>
+          ) : null}
+
+          {splitMappedCategories(merchant.category).length > 1 ? (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>This business also serves in</Text>
+              <Text style={{ marginTop: 6, fontFamily: fonts.regular, fontSize: 14, lineHeight: 20, color: colors.textSoft }}>
+                {splitMappedCategories(merchant.category).slice(1).map(categoryLeafLabel).join(', ')}
+              </Text>
+            </View>
+          ) : null}
+
+          {!isOwnBusiness ? (
+            <View style={styles.section}>
+              <OwnThisBusiness
+                businessId={merchant.id}
+                businessName={merchant.name}
+                defaultName={user?.fullName}
+                defaultEmail={user?.email}
+                defaultPhone={user?.phone || ''}
+              />
             </View>
           ) : null}
         </View>

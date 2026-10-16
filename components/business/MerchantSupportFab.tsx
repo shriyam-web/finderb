@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { HiOutlineChatBubbleLeftRight, HiOutlineXMark, HiOutlineEnvelope, HiOutlinePhone } from 'react-icons/hi2';
 
 const FAQS = [
@@ -41,14 +41,53 @@ const FAQS = [
 export default function MerchantSupportFab() {
   const [open, setOpen] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(FAQS[0]?.q ?? null);
+  const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
+  const drag = useRef<{ x: number; y: number; left: number; top: number; moved: boolean } | null>(null);
+
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem('finderb-support-fab');
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as { x?: number; y?: number };
+      if (typeof parsed.x === 'number' && typeof parsed.y === 'number') setPos({ x: parsed.x, y: parsed.y });
+    } catch {
+      // ignore a bad saved position
+    }
+  }, []);
 
   return (
     <>
       <button
         type="button"
-        onClick={() => setOpen(true)}
-        className="fixed bottom-[5.5rem] right-4 z-[70] flex h-12 w-12 items-center justify-center rounded-full bg-zinc-800 text-white shadow-lg shadow-zinc-900/20 hover:bg-zinc-700 lg:bottom-8"
-        aria-label="Business support"
+        onPointerDown={(event) => {
+          const rect = event.currentTarget.getBoundingClientRect();
+          drag.current = { x: event.clientX, y: event.clientY, left: rect.left, top: rect.top, moved: false };
+          event.currentTarget.setPointerCapture(event.pointerId);
+        }}
+        onPointerMove={(event) => {
+          if (!drag.current) return;
+          const dx = event.clientX - drag.current.x;
+          const dy = event.clientY - drag.current.y;
+          if (Math.hypot(dx, dy) > 4) drag.current.moved = true;
+          const x = Math.min(window.innerWidth - 56, Math.max(8, drag.current.left + dx));
+          const y = Math.min(window.innerHeight - 56, Math.max(8, drag.current.top + dy));
+          setPos({ x, y });
+        }}
+        onPointerUp={() => {
+          const moved = drag.current?.moved;
+          drag.current = null;
+          if (moved) {
+            setPos((current) => {
+              if (current) window.localStorage.setItem('finderb-support-fab', JSON.stringify(current));
+              return current;
+            });
+            return;
+          }
+          setOpen(true);
+        }}
+        className="fixed z-[70] flex h-12 w-12 cursor-grab touch-none items-center justify-center rounded-full bg-zinc-800 text-white shadow-lg shadow-zinc-900/20 hover:bg-zinc-700 active:cursor-grabbing"
+        style={pos ? { left: pos.x, top: pos.y } : { right: 16, bottom: 88 }}
+        aria-label="Business support. Drag to move."
       >
         <HiOutlineChatBubbleLeftRight size={22} />
       </button>

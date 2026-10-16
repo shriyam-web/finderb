@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   ActivityIndicator,
   Animated,
   Easing,
+  Keyboard,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -31,6 +32,8 @@ import { useMerchantConsole } from '../../context/MerchantConsoleContext';
 import { useBottomInset } from '../../hooks/useAppSafeArea';
 import { FinderBLogo } from '../BrandMark';
 import { openConsolePath, useConsoleBackAction } from '../../lib/consoleNav';
+import { useConsoleSearch } from './ConsoleSearch';
+import { MerchantSupportFab } from './MerchantSupportFab';
 
 type NamedStyles<T> = { [P in keyof T]: ViewStyle | TextStyle | ImageStyle };
 type IconName = keyof typeof Ionicons.glyphMap;
@@ -66,6 +69,13 @@ export function useTabBack() {
   return () => {
     goBack('header');
   };
+}
+
+const ConsoleScrollContext = createContext({ scrollTo: (_y: number) => {} });
+
+/** Scroll the current console page body. Used when search opens a section mid-page. */
+export function useConsoleScroll() {
+  return useContext(ConsoleScrollContext);
 }
 
 export function ConsoleHeaderActions({ children }: { children?: ReactNode }) {
@@ -121,6 +131,8 @@ type PageProps = {
   right?: ReactNode;
   /** Drawn over the scroll body (Home search results). */
   overlay?: ReactNode;
+  /** Hide the console-wide search control. Forms hide it automatically. */
+  search?: boolean;
   children: ReactNode;
   docked?: boolean;
   refreshing?: boolean;
@@ -232,6 +244,7 @@ export function ConsolePage({
   scroll = true,
   bodyStyle,
   form,
+  search = true,
 }: PageProps) {
   const styles = useKitStyles();
   const c = useConsoleColors();
@@ -242,9 +255,14 @@ export function ConsolePage({
   const goBack = useConsoleBack();
   const dockPad = useDockPadding();
   const bottomInset = useBottomInset();
+  const showSearch = Boolean(overview) && search && !form;
+  const searchCtl = useConsoleSearch(overview, { embedQuery: !brand });
   const footerLift = (docked ? DOCK_HEIGHT : 0) + bottomInset + 12;
   const bottomPad = docked ? dockPad + (footer ? 72 : 0) : footer ? 24 : bottomInset + 28;
   const scrollRef = useRef<ScrollView>(null);
+  const scrollTo = useCallback((y: number) => {
+    scrollRef.current?.scrollTo({ y: Math.max(0, y - 12), animated: true });
+  }, []);
   const onPlan = /\/(plan|subscription)\b/.test(pathname || '');
   const showSubStrip = Boolean(overview && !overview.subscription.isActive && !onPlan);
 
@@ -289,6 +307,7 @@ export function ConsolePage({
   );
 
   return (
+    <ConsoleScrollContext.Provider value={{ scrollTo }}>
     <KeyboardAvoidingView style={[styles.page, form && styles.formPage]} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <View style={styles.headerRow}>
@@ -330,7 +349,12 @@ export function ConsolePage({
               ) : null}
             </View>
           )}
-          {right ? <View style={[styles.headerRight, brand && styles.headerRightGrow]}>{right}</View> : null}
+          {showSearch || right ? (
+            <View style={[styles.headerRight, brand && styles.headerRightGrow]}>
+              {showSearch ? (brand ? searchCtl.input : searchCtl.icon) : null}
+              {right}
+            </View>
+          ) : null}
         </View>
       </View>
       {showSubStrip ? (
@@ -347,10 +371,17 @@ export function ConsolePage({
         {form ? null : <PageGlow />}
         {refreshing && onRefresh ? <RefreshBurst /> : null}
         {body}
+        {showSearch ? searchCtl.overlay : null}
         {overlay}
       </View>
       {footer ? <View style={[styles.footer, { paddingBottom: footerLift }]}>{footer}</View> : null}
+      {showSearch && searchCtl.open ? null : (
+        <MerchantSupportFab
+          bottomOffset={(docked ? DOCK_HEIGHT : 0) + (footer ? 64 : 0) + bottomInset + 16}
+        />
+      )}
     </KeyboardAvoidingView>
+    </ConsoleScrollContext.Provider>
   );
 }
 
@@ -388,7 +419,7 @@ export function Panel({ children, style, flush }: { children: ReactNode; style?:
   return <View style={[styles.panel, flush && styles.panelFlush, style]}>{children}</View>;
 }
 
-type BtnTone = 'primary' | 'outline' | 'text' | 'danger';
+type BtnTone = 'primary' | 'outline' | 'text' | 'danger' | 'success';
 
 export function Btn({
   label,
@@ -412,7 +443,15 @@ export function Btn({
   const styles = useKitStyles();
   const c = useConsoleColors();
   const ink =
-    tone === 'primary' ? c.primaryInk : tone === 'danger' ? c.danger : tone === 'text' ? c.accent : c.ink;
+    tone === 'success'
+      ? '#FFFFFF'
+      : tone === 'primary'
+        ? c.primaryInk
+        : tone === 'danger'
+          ? c.danger
+          : tone === 'text'
+            ? c.accent
+            : c.ink;
   return (
     <Pressable
       onPress={onPress}
@@ -423,6 +462,7 @@ export function Btn({
         styles.btn,
         small && styles.btnSmall,
         tone === 'primary' && styles.btnPrimary,
+        tone === 'success' && styles.btnSuccess,
         tone === 'outline' && styles.btnOutline,
         tone === 'danger' && styles.btnDanger,
         tone === 'text' && styles.btnText,
@@ -543,12 +583,14 @@ export function Chip({
   onPress,
   icon,
   count,
+  small,
 }: {
   label: string;
   active?: boolean;
   onPress?: () => void;
   icon?: IconName;
   count?: number;
+  small?: boolean;
 }) {
   const styles = useKitStyles();
   const c = useConsoleColors();
@@ -558,11 +600,18 @@ export function Chip({
       disabled={!onPress}
       accessibilityRole={onPress ? 'button' : undefined}
       accessibilityState={onPress ? { selected: Boolean(active) } : undefined}
-      style={({ pressed }) => [styles.chip, active && styles.chipActive, pressed && styles.pressed]}
+      style={({ pressed }) => [
+        styles.chip,
+        small && styles.chipSmall,
+        active && styles.chipActive,
+        pressed && styles.pressed,
+      ]}
     >
-      {icon ? <Ionicons name={icon} size={14} color={active ? c.primary : c.body} /> : null}
-      <Text style={[styles.chipText, active && styles.chipTextActive]}>{label}</Text>
-      {count != null ? <Text style={[styles.chipCount, active && styles.chipTextActive]}>{count}</Text> : null}
+      {icon ? <Ionicons name={icon} size={small ? 12 : 14} color={active ? c.primary : c.body} /> : null}
+      <Text style={[styles.chipText, small && styles.chipTextSmall, active && styles.chipTextActive]}>{label}</Text>
+      {count != null ? (
+        <Text style={[styles.chipCount, small && styles.chipCountSmall, active && styles.chipTextActive]}>{count}</Text>
+      ) : null}
     </Pressable>
   );
 }
@@ -609,6 +658,22 @@ export function Sheet({
   const c = useConsoleColors();
   const insets = useSafeAreaInsets();
   const bottomInset = useBottomInset();
+  const scrollRef = useRef<ScrollView>(null);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  useEffect(() => {
+    if (!visible) return;
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const show = Keyboard.addListener(showEvent, (event) => {
+      setKeyboardHeight(event.endCoordinates.height);
+    });
+    const hide = Keyboard.addListener(hideEvent, () => setKeyboardHeight(0));
+    return () => {
+      show.remove();
+      hide.remove();
+      setKeyboardHeight(0);
+    };
+  }, [visible]);
   return (
     <Modal
       visible={visible}
@@ -618,7 +683,7 @@ export function Sheet({
       presentationStyle={Platform.OS === 'ios' ? 'fullScreen' : undefined}
     >
       <StatusBar barStyle={c.isDark ? 'light-content' : 'dark-content'} />
-      <KeyboardAvoidingView style={styles.page} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardAvoidingView style={styles.page} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <View style={[styles.header, { paddingTop: insets.top }]}>
           <View style={styles.headerRow}>
             <Pressable
@@ -655,9 +720,15 @@ export function Sheet({
           </View>
         </View>
         <ScrollView
+          ref={scrollRef}
           style={styles.flex}
-          contentContainerStyle={[styles.sheetBody, footer ? { paddingBottom: 28 } : null]}
+          contentContainerStyle={[
+            styles.sheetBody,
+            { paddingBottom: 48 + keyboardHeight + (footer ? 28 : 0) },
+          ]}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+          automaticallyAdjustKeyboardInsets
           showsVerticalScrollIndicator={false}
         >
           {children}
@@ -840,7 +911,7 @@ export function inr(amount: number): string {
 const useKitStyles = createConsoleStyles((c) => ({
   flex: { flex: 1 },
   bodyWrap: { position: 'relative' },
-  page: { flex: 1, backgroundColor: c.page },
+  page: { flex: 1, backgroundColor: c.page, position: 'relative', overflow: 'visible' },
   header: {
     backgroundColor: c.card,
     borderBottomWidth: StyleSheet.hairlineWidth,
@@ -969,6 +1040,7 @@ const useKitStyles = createConsoleStyles((c) => ({
   },
   btnSmall: { minHeight: 38, borderRadius: 9, paddingHorizontal: 14, gap: 6 },
   btnPrimary: { backgroundColor: c.primary },
+  btnSuccess: { backgroundColor: '#067647' },
   btnOutline: { backgroundColor: c.card, borderWidth: 1, borderColor: c.lineStrong },
   btnDanger: { backgroundColor: c.dangerSoft },
   btnText: { backgroundColor: 'transparent', paddingHorizontal: 8 },
@@ -1019,10 +1091,13 @@ const useKitStyles = createConsoleStyles((c) => ({
     borderColor: c.line,
     backgroundColor: c.card,
   },
+  chipSmall: { height: 28, paddingHorizontal: 10, borderRadius: 14, gap: 4 },
   chipActive: { backgroundColor: c.primarySoft, borderColor: c.primary },
   chipText: { fontFamily: fonts.regular, fontSize: 13.5, color: c.body },
+  chipTextSmall: { fontSize: 12 },
   chipTextActive: { color: c.primary, fontFamily: fonts.semiBold },
   chipCount: { fontFamily: fonts.regular, fontSize: 12.5, color: c.muted },
+  chipCountSmall: { fontSize: 11 },
   tag: {
     flexDirection: 'row',
     alignItems: 'center',

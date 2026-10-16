@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 import { createClient, type SupportedStorage } from '@supabase/supabase-js';
@@ -84,5 +85,36 @@ export const supabase = isSupabaseConfigured
     })
   : null;
 
+function localDevSiteUrl() {
+  const raw = [
+    Constants.expoConfig?.hostUri,
+    (Constants as { expoGoConfig?: { debuggerHost?: string } }).expoGoConfig?.debuggerHost,
+    Constants.linkingUri,
+  ]
+    .filter(Boolean)
+    .join(' ');
+  const host = raw
+    .replace(/^exp:\/\//, '')
+    .replace(/^https?:\/\//, '')
+    .split(/[/:?]/)[0]
+    .replace(/^\[|\]$/g, '');
+  if (host && host !== 'localhost' && host !== '127.0.0.1' && host !== '::1') {
+    return `http://${host}:3200`;
+  }
+  if (Platform.OS === 'android') return 'http://10.0.2.2:3200';
+  return 'http://localhost:3200';
+}
+
+function isPrivateSite(url: string) {
+  return /localhost|127\.0\.0\.1|10\.0\.2\.2|192\.168\.|10\.\d+\.|172\.(1[6-9]|2\d|3[0-1])\./.test(url);
+}
+
+const envSite = process.env.EXPO_PUBLIC_SITE_URL?.replace(/\/$/, '') || '';
+
+/** Release builds talk to finderb.com. Expo/dev always uses the local Next server on :3200. */
 export const SITE_URL =
-  process.env.EXPO_PUBLIC_SITE_URL?.replace(/\/$/, '') || 'https://finderb.com';
+  typeof __DEV__ !== 'undefined' && __DEV__
+    ? isPrivateSite(envSite)
+      ? envSite
+      : localDevSiteUrl()
+    : envSite || 'https://finderb.com';

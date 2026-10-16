@@ -86,6 +86,12 @@ export async function submitChangeRequest(params: {
     if (!businessId || !requestedValue) {
       return { success: false as const, error: 'Please provide the requested value.' };
     }
+    if (
+      (params.field === 'legal_business_name' || params.field === 'display_name') &&
+      requestedValue.length > 50
+    ) {
+      return { success: false as const, error: 'Business name must be 50 characters or fewer.' };
+    }
 
     const auth = await assertBusinessTab(businessId, 'settings', 'edit');
     if (!auth.ok) {

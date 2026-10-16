@@ -3,6 +3,8 @@
 import { createDataClient } from '@/utils/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { buildJobApplicationMessage } from '@/lib/jobLeadMessage';
+import { recordJobApplication, requireHrContact } from '@/lib/jobBoard.server';
+import { getSessionUserId } from '@/lib/security/session';
 import { formatMerchantName } from '@/lib/formatMerchantName';
 import { businessHasPublicPhoto } from '@/lib/businessMapping';
 import { assertBusinessTab } from '@/lib/businessTeam/teamActor.server';
@@ -37,6 +39,9 @@ export async function createJob(data: {
     if (count !== null && count >= 3) {
       return { success: false, error: 'Maximum limit of 3 active job postings reached.' };
     }
+
+    const hr = await requireHrContact(data.businessId);
+    if (!hr.ok) return { success: false, error: hr.error };
 
     const { data: job, error } = await supabase
       .from('jobs')
@@ -251,6 +256,8 @@ export async function submitJobApplication(data: {
   email: string;
   phone: string;
   message?: string;
+  userId?: string | null;
+  cv?: { filename: string; bytes: Buffer } | null;
 }) {
   try {
     const writeLimit = await enforceRateLimit('write', 'job-application');
@@ -281,6 +288,19 @@ export async function submitJobApplication(data: {
       jobTitle = job.title?.trim() || 'Job posting';
     }
 
+    const userId = data.userId ?? (await getSessionUserId());
+    const recorded = await recordJobApplication({
+      jobId: data.jobId,
+      businessId: data.businessId,
+      userId,
+      fullName: data.fullName,
+      email: data.email,
+      phone: data.phone,
+      message: data.message,
+      cv: data.cv,
+    });
+    if (!recorded.success) return recorded;
+
     const { error } = await supabase
       .from('leads')
       .insert({
@@ -289,7 +309,10 @@ export async function submitJobApplication(data: {
         phone: data.phone,
         category: 'Job Application',
         business_id: data.businessId,
-        message: buildJobApplicationMessage(jobTitle, data.message),
+        message: buildJobApplicationMessage(
+          jobTitle,
+          [data.message, data.cv ? 'CV attached.' : ''].filter(Boolean).join('\n'),
+        ),
         status: 'New',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
@@ -303,4 +326,22 @@ export async function submitJobApplication(data: {
     console.error('Submit Application Error:', error);
     return { success: false, error: message };
   }
+}
+
+export async function submitJobApplicationForm(formData: FormData) {
+  const file = formData.get('cv');
+  let cv: { filename: string; bytes: Buffer } | null = null;
+  if (file instanceof File && file.size > 0) {
+    cv = { filename: file.name, bytes: Buffer.from(await file.arrayBuffer()) };
+  }
+  return submitJobApplication({
+    jobId: String(formData.get('jobId') || ''),
+    businessId: String(formData.get('businessId') || ''),
+    jobTitle: String(formData.get('jobTitle') || ''),
+    fullName: String(formData.get('fullName') || ''),
+    email: String(formData.get('email') || ''),
+    phone: String(formData.get('phone') || ''),
+    message: String(formData.get('message') || ''),
+    cv,
+  });
 }

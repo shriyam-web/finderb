@@ -368,7 +368,7 @@ function HomeClientView({
 
   const excludedSlugs = ['real-estate', 'b2b', 'job'];
   const sortedCategories = [...realCategories]
-    .filter(cat => !excludedSlugs.includes(cat.slug))
+    .filter((cat) => !excludedSlugs.includes(cat.slug) && (cat.businessCount || 0) > 0)
     .sort((a, b) => b.businessCount - a.businessCount);
   const popularCategories = sortedCategories.slice(0, 18);
   const otherCategories = sortedCategories.slice(18);
@@ -639,7 +639,7 @@ function HomeClientView({
                               imageClassName="object-contain"
                             />
                           </div>
-                          <p className="line-clamp-1 text-[13px] font-semibold leading-tight text-[#1e293b]">
+                          <p className="line-clamp-1 text-[11px] font-semibold leading-tight text-[#1e293b]">
                             {cat.name}
                           </p>
                           <p className="mt-1 line-clamp-2 text-[11px] leading-snug text-[#94a3b8]">

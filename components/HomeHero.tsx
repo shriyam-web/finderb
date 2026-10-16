@@ -610,11 +610,11 @@ export default function HomeHero({
             <div className="scrollbar-hide flex gap-2 overflow-x-auto pb-0.5">
               {popularSearches.map(({ term, icon: Icon, iconColor, href }) => {
                 const pillClassName =
-                  'flex shrink-0 items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3.5 py-2 text-[12px] font-semibold text-[#334155] shadow-[0_1px_3px_rgba(0,0,0,0.06)]';
+                  'flex shrink-0 items-center gap-1 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-[#334155] shadow-[0_1px_3px_rgba(0,0,0,0.06)]';
 
                 const pillContent = (
                   <>
-                    <Icon size={15} className={`shrink-0 ${iconColor}`} strokeWidth={2} />
+                    <Icon size={13} className={`shrink-0 ${iconColor}`} strokeWidth={2} />
                     {term}
                   </>
                 );

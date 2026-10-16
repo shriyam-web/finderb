@@ -18,7 +18,7 @@ import {
   verifyRazorpaySubscriptionSignature,
 } from '@/lib/razorpay/subscriptions';
 import { getRazorpayPayment, ensureRazorpayPaymentCaptured, verifyRazorpayPaymentSignature } from '@/lib/razorpay/server';
-import { addBillingCycle } from '@/lib/subscription/merchantSubscription';
+import { computeRenewalDates } from '@/lib/subscription/merchantSubscription';
 import {
   syncSubscriptionInvoiceTrails,
   upsertMerchantPaymentTrail,
@@ -237,7 +237,7 @@ export async function finalizeSubscriptionAuthorization(
 
   const { data: business, error: businessError } = await supabase
     .from('Business')
-    .select('id, razorpaySubscriptionId')
+    .select('id, razorpaySubscriptionId, planExpiresAt')
     .eq('id', businessId)
     .single();
 
@@ -252,10 +252,16 @@ export async function finalizeSubscriptionAuthorization(
     return { success: false, error: 'Subscription does not match merchant account' };
   }
 
-  const { planStartedAt, planExpiresAt } = subscriptionPeriodFromEntity(
-    remoteSubscription,
-    billingCycle as BillingCycle
-  );
+  const currentExpiresAt = business.planExpiresAt ? new Date(String(business.planExpiresAt)) : null;
+  const stillPaid = Boolean(currentExpiresAt && currentExpiresAt > new Date());
+  const purchasedWindow = stillPaid
+    ? computeRenewalDates({
+        currentExpiresAt,
+        billingCycle: billingCycle as BillingCycle,
+      })
+    : subscriptionPeriodFromEntity(remoteSubscription, billingCycle as BillingCycle);
+  const planStartedAt = purchasedWindow.planStartedAt;
+  const planExpiresAt = purchasedWindow.planExpiresAt;
   const nowIso = new Date().toISOString();
 
   if (!alreadyCompleted) {
@@ -379,12 +385,19 @@ export async function finalizeSubscriptionRenewal(
     ? subscriptionPeriodFromEntity(remoteSubscription, billingCycle as BillingCycle)
     : null;
 
-  const currentExpiresAt = business.planExpiresAt ? new Date(business.planExpiresAt) : new Date();
-  const planStartedAt =
-    period?.planStartedAt ??
-    (currentExpiresAt > new Date() ? currentExpiresAt : new Date());
-  const planExpiresAt =
-    period?.planExpiresAt ?? addBillingCycle(planStartedAt, billingCycle as BillingCycle);
+  const currentExpiresAt = business.planExpiresAt ? new Date(business.planExpiresAt) : null;
+  const stillPaid = Boolean(currentExpiresAt && currentExpiresAt > new Date());
+  const stacked = stillPaid
+    ? computeRenewalDates({
+        currentExpiresAt,
+        billingCycle: billingCycle as BillingCycle,
+      })
+    : null;
+  const planStartedAt = stacked?.planStartedAt ?? period?.planStartedAt ?? new Date();
+  const planExpiresAt = stacked?.planExpiresAt ?? period?.planExpiresAt ?? computeRenewalDates({
+    currentExpiresAt: null,
+    billingCycle: billingCycle as BillingCycle,
+  }).planExpiresAt;
 
   const nowIso = new Date().toISOString();
 

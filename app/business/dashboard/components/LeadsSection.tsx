@@ -94,6 +94,25 @@ function getLeadEnquiryDisplay(lead: BusinessLead) {
   };
 }
 
+function LeadIdCopy({ id }: { id: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        void navigator.clipboard.writeText(id).then(() => {
+          setCopied(true);
+          window.setTimeout(() => setCopied(false), 1200);
+        });
+      }}
+      className="mt-0.5 block max-w-full truncate text-left font-mono text-[9px] leading-none text-zinc-400 hover:text-zinc-600"
+      title="Copy lead id"
+    >
+      {copied ? 'Copied' : id}
+    </button>
+  );
+}
+
 function maskName(name: string, locked: boolean) {
   return locked ? name.replace(/(?<=.)./g, '•') : name;
 }
@@ -109,7 +128,7 @@ function LeadStatChip({
 }) {
   return (
     <div
-      className={`rounded-lg border px-4 py-3 ${
+      className={`rounded-md border px-2.5 py-1.5 ${
         accent === 'gold'
           ? 'border-[#f9b864]/40 bg-[#fff9ed]/80'
           : accent === 'navy'
@@ -117,8 +136,8 @@ function LeadStatChip({
             : 'border-zinc-200 bg-white'
       }`}
     >
-      <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">{label}</p>
-      <p className="mt-0.5 text-2xl font-bold tabular-nums text-[#27272A]">{value}</p>
+      <p className="text-[9px] font-bold uppercase tracking-wider text-zinc-500">{label}</p>
+      <p className="text-base font-bold tabular-nums leading-tight text-[#27272A]">{value}</p>
     </div>
   );
 }
@@ -178,14 +197,6 @@ export default function LeadsSection({
   useEffect(() => {
     onUnreadChange?.(totalNew);
   }, [totalNew, onUnreadChange]);
-
-  useEffect(() => {
-    if (activeTab === 'business' && businessLeads.length === 0 && jobLeads.length > 0) {
-      setActiveTab('jobs');
-    } else if (activeTab === 'jobs' && jobLeads.length === 0 && businessLeads.length > 0) {
-      setActiveTab('business');
-    }
-  }, [activeTab, businessLeads.length, jobLeads.length]);
 
   const markRead = (leadId: string) => {
     setLeads((prev) =>
@@ -315,6 +326,7 @@ export default function LeadsSection({
               </h4>
               <span className="shrink-0 text-[11px] text-zinc-400">{formatRelativeTime(lead.created_at)}</span>
             </div>
+            <LeadIdCopy id={lead.id} />
             <div className="mt-1 flex flex-wrap items-center gap-1.5">
               <LeadSourceBadge source={leadSourceOf(lead)} />
               <span
@@ -328,12 +340,7 @@ export default function LeadsSection({
               <span className="min-w-0 truncate text-[12px] text-zinc-600">{enquiry.primary}</span>
             </div>
             {enquiry.secondary ? (
-              <p className="mt-0.5 line-clamp-1 text-[12px] text-zinc-500">{enquiry.secondary}</p>
-            ) : null}
-            {!isPaymentPending && (lead.phone || lead.email) ? (
-              <p className="mt-0.5 truncate text-[11px] text-zinc-400">
-                {[lead.phone, lead.email].filter(Boolean).join(' · ')}
-              </p>
+              <p className="mt-0.5 whitespace-pre-wrap text-[12px] text-zinc-500">{enquiry.secondary}</p>
             ) : null}
           </div>
         </div>
@@ -484,7 +491,7 @@ export default function LeadsSection({
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             <LeadStatChip label="Total leads" value={leads.length} accent="navy" />
             <LeadStatChip label="To contact" value={totalNew} accent={totalNew > 0 ? 'gold' : undefined} />
             <LeadStatChip label="Direct" value={directLeadCount} />
@@ -495,12 +502,12 @@ export default function LeadsSection({
             <button
               type="button"
               onClick={() => setActiveTab('business')}
-              className={`${dashboard.segmentBtn} ${
+              className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-semibold transition-colors ${
                 activeTab === 'business' ? dashboard.segmentActive : dashboard.segmentInactive
               }`}
             >
-              <HiOutlineBuildingStorefront size={14} />
-              Business enquiries
+              <HiOutlineBuildingStorefront size={12} />
+              Customers
               <span
                 className={`rounded-full px-1.5 py-px text-[10px] ${
                   activeTab === 'business' ? 'bg-[#3F3F46]/10 text-[#3F3F46]' : 'bg-zinc-200/80 text-zinc-600'
@@ -513,11 +520,11 @@ export default function LeadsSection({
             <button
               type="button"
               onClick={() => setActiveTab('jobs')}
-              className={`${dashboard.segmentBtn} ${
+              className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-semibold transition-colors ${
                 activeTab === 'jobs' ? dashboard.segmentActive : dashboard.segmentInactive
               }`}
             >
-              <HiOutlineBriefcase size={14} />
+              <HiOutlineBriefcase size={12} />
               Job applications
               <span
                 className={`rounded-full px-1.5 py-px text-[10px] ${

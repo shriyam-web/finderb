@@ -62,7 +62,7 @@ export async function sendTeamInviteWhatsApp(params: {
                 type: 'button',
                 sub_type: 'url',
                 index: '0',
-                parameters: [{ type: 'text', text: params.token }],
+                parameters: [{ type: 'text', text: params.token.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 15) }],
               },
             ],
           },

@@ -101,7 +101,9 @@ export type ConsoleReview = {
   date?: string;
   anonymous?: boolean;
   hidden?: boolean;
+  deleted?: boolean;
   flagged?: boolean;
+  flagStatus?: string | null;
   reply: { content: string; date: string | null } | null;
 };
 

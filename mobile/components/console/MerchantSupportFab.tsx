@@ -1,10 +1,8 @@
-import { useState } from 'react';
-import { Linking, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useMemo, useRef, useState } from 'react';
+import { Animated, Dimensions, Linking, Modal, PanResponder, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { fonts } from '../../constants/typography';
-import { useConsoleColors } from '../../constants/consoleColors';
-import { createConsoleStyles, DOCK_HEIGHT } from './kit';
+import { useConsoleColors, type ConsoleColors } from '../../constants/consoleColors';
 
 const FAQS = [
   {
@@ -41,23 +39,73 @@ const FAQS = [
   },
 ];
 
-export function MerchantSupportFab() {
-  const styles = useStyles();
+const FAB = 52;
+
+let fabShift = { x: 0, y: 0 };
+
+function clampShift(x: number, y: number, bottomOffset: number) {
+  const { width, height } = Dimensions.get('window');
+  const minX = -(width - FAB - 32);
+  const maxX = 8;
+  const minY = -(height - bottomOffset - FAB - 96);
+  const maxY = Math.max(0, bottomOffset - 24);
+  return {
+    x: Math.min(maxX, Math.max(minX, x)),
+    y: Math.min(maxY, Math.max(minY, y)),
+  };
+}
+
+export function MerchantSupportFab({ bottomOffset }: { bottomOffset: number }) {
   const c = useConsoleColors();
-  const insets = useSafeAreaInsets();
+  const styles = useMemo(() => makeStyles(c), [c]);
   const [open, setOpen] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(FAQS[0]?.q ?? null);
+  const bottomRef = useRef(bottomOffset);
+  bottomRef.current = bottomOffset;
+  const shift = useRef(new Animated.ValueXY(fabShift)).current;
+  const pos = useRef({ ...fabShift });
+  const grant = useRef({ ...fabShift });
+  const moved = useRef(false);
+
+  const pan = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderTerminationRequest: () => false,
+      onPanResponderGrant: () => {
+        moved.current = false;
+        grant.current = { ...pos.current };
+      },
+      onPanResponderMove: (_event, gesture) => {
+        if (Math.abs(gesture.dx) > 5 || Math.abs(gesture.dy) > 5) moved.current = true;
+        const next = clampShift(grant.current.x + gesture.dx, grant.current.y + gesture.dy, bottomRef.current);
+        pos.current = next;
+        shift.setValue(next);
+      },
+      onPanResponderRelease: () => {
+        fabShift = pos.current;
+        if (!moved.current) setOpen(true);
+      },
+    }),
+  ).current;
 
   return (
     <>
-      <Pressable
-        onPress={() => setOpen(true)}
-        style={[styles.fab, { bottom: DOCK_HEIGHT + insets.bottom + 18 }]}
-        accessibilityRole="button"
-        accessibilityLabel="Business support"
-      >
-        <Ionicons name="chatbubbles" size={22} color="#FFFFFF" />
-      </Pressable>
+      <View pointerEvents="box-none" collapsable={false} style={fabHostStyles.host}>
+        <Animated.View
+          {...pan.panHandlers}
+          style={[
+            styles.fab,
+            fabHostStyles.fab,
+            { bottom: bottomOffset },
+            { transform: shift.getTranslateTransform() },
+          ]}
+          accessibilityRole="button"
+          accessibilityLabel="Business support. Drag to move."
+        >
+          <Ionicons name="chatbubbles" size={22} color="#FFFFFF" />
+        </Animated.View>
+      </View>
       <Modal visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>
         <Pressable style={styles.scrim} onPress={() => setOpen(false)}>
           <Pressable style={styles.sheet} onPress={(event) => event.stopPropagation()}>
@@ -125,23 +173,34 @@ export function MerchantSupportFab() {
   );
 }
 
-const useStyles = createConsoleStyles((c) => ({
-  flex: { flex: 1, minWidth: 0 },
+const fabHostStyles = StyleSheet.create({
+  host: {
+    ...StyleSheet.absoluteFill,
+    zIndex: 9999,
+    elevation: 24,
+  },
   fab: {
     position: 'absolute',
     right: 16,
-    zIndex: 40,
+    zIndex: 9999,
+    elevation: 24,
+  },
+});
+
+function makeStyles(c: ConsoleColors) {
+  return StyleSheet.create({
+  flex: { flex: 1, minWidth: 0 },
+  fab: {
     width: 52,
     height: 52,
     borderRadius: 26,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: c.primary,
-    elevation: 6,
     shadowColor: '#18181B',
-    shadowOpacity: 0.22,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.28,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 5 },
   },
   scrim: {
     flex: 1,
@@ -196,4 +255,5 @@ const useStyles = createConsoleStyles((c) => ({
   helpBody: { marginTop: 4, fontFamily: fonts.regular, fontSize: 13, lineHeight: 19, color: c.muted },
   helpLink: { marginTop: 12, flexDirection: 'row', alignItems: 'center', gap: 8 },
   helpLinkText: { fontFamily: fonts.medium, fontSize: 14, color: c.ink },
-}));
+  });
+}

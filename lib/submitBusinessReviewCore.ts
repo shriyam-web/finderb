@@ -10,7 +10,6 @@ import {
   publicReviewAuthor,
   serializeBusinessReviewsForStorage,
   toPublicReviews,
-  validateAnonymousReason,
   type BusinessReview,
 } from '@/lib/businessReviews';
 import { userOwnsOrManagesBusiness } from '@/lib/reviewIdentity.server';
@@ -98,10 +97,6 @@ export async function submitBusinessReviewForUser(
 
     const anonymous = Boolean(input.anonymous);
     const anonymousReason = input.anonymousReason?.trim() || '';
-    if (anonymous) {
-      const reasonError = validateAnonymousReason(anonymousReason);
-      if (reasonError) return { success: false, error: reasonError };
-    }
 
     if (await userOwnsOrManagesBusiness(userId, businessId)) {
       return { success: false, error: 'You cannot review your own business.' };

@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { CategoryMerchantRow } from '../components/CategoryMerchantRow';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { ScreenHeader } from '../components/ScreenHeader';
+import { PullRefreshMark } from '../components/PullRefreshMark';
 import { fonts } from '../constants/typography';
 import { useAuth } from '../context/AuthContext';
 import { useLoginPrompt } from '../context/LoginPromptContext';
@@ -100,6 +101,8 @@ export default function FavouritesScreen() {
             <ActivityIndicator color={colors.ink} />
           </View>
         ) : (
+          <View style={{ flex: 1 }}>
+          <PullRefreshMark active={refreshing} />
           <ScrollView
             contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: pad, gap: 8 }}
             refreshControl={
@@ -145,6 +148,7 @@ export default function FavouritesScreen() {
               ))
             )}
           </ScrollView>
+          </View>
         )}
       </SafeAreaView>
     </View>

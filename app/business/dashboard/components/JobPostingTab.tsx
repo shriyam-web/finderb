@@ -15,7 +15,10 @@ import {
   HiOutlineSignal,
 } from 'react-icons/hi2';
 import { createJob, getJobsByBusiness, deleteJob, updateJob } from '@/app/actions/job';
+import { getHrContact, updateHrContact } from '@/app/actions/jobBoard';
+import { parseSalaryRange, salaryFromInputs, type SalaryPeriod } from '@/lib/jobSalary';
 import { dashboard } from './dashboard-ui';
+import JobApplicationsPanel from './JobApplicationsPanel';
 
 interface Job {
   id: string;
@@ -59,10 +62,14 @@ export default function JobPostingTab({ businessId, canEdit = true }: JobPosting
     title: '',
     type: 'Full-time',
     location: '',
-    salary: '',
+    salaryMin: '',
+    salaryMax: '',
+    salaryPeriod: 'month' as SalaryPeriod,
     description: '',
     department: '',
   });
+  const [hr, setHr] = useState({ email: '', mobile: '' });
+  const [applicationsFor, setApplicationsFor] = useState('');
 
   const fetchJobs = useCallback(async () => {
     try {
@@ -80,7 +87,10 @@ export default function JobPostingTab({ businessId, canEdit = true }: JobPosting
 
   useEffect(() => {
     fetchJobs();
-  }, [fetchJobs]);
+    void getHrContact(businessId).then((result) => {
+      if (result.success) setHr(result.hr);
+    });
+  }, [fetchJobs, businessId]);
 
   const showToast = (type: 'success' | 'error', message: string) => {
     setToast({ type, message });
@@ -99,7 +109,9 @@ export default function JobPostingTab({ businessId, canEdit = true }: JobPosting
         title: job.title,
         type: job.type,
         location: job.location,
-        salary: job.salary || '',
+        salaryMin: parseSalaryRange(job.salary).min,
+        salaryMax: parseSalaryRange(job.salary).max,
+        salaryPeriod: parseSalaryRange(job.salary).period,
         description: job.description,
         department: job.department || '',
       });
@@ -117,7 +129,9 @@ export default function JobPostingTab({ businessId, canEdit = true }: JobPosting
       title: '',
       type: 'Full-time',
       location: '',
-      salary: '',
+      salaryMin: '',
+      salaryMax: '',
+      salaryPeriod: 'month',
       description: '',
       department: '',
     });
@@ -129,9 +143,18 @@ export default function JobPostingTab({ businessId, canEdit = true }: JobPosting
     setSubmitting(true);
 
     try {
+      const salary = salaryFromInputs(formData.salaryMin, formData.salaryMax, formData.salaryPeriod);
+      const payload = {
+        title: formData.title,
+        type: formData.type,
+        location: formData.location,
+        salary,
+        description: formData.description,
+        department: formData.department,
+      };
       const res = editingJob
-        ? await updateJob(editingJob.id, formData)
-        : await createJob({ ...formData, businessId });
+        ? await updateJob(editingJob.id, payload)
+        : await createJob({ ...payload, businessId });
 
       if (res.success) {
         showToast('success', editingJob ? 'Job updated' : 'Job posted');
@@ -182,8 +205,51 @@ export default function JobPostingTab({ businessId, canEdit = true }: JobPosting
     }
   };
 
-  return (
+      return (
     <div className="space-y-5">
+      <form
+        className="rounded-xl border border-zinc-200 bg-white p-4"
+        onSubmit={(event) => {
+          event.preventDefault();
+          void (async () => {
+            const result = await updateHrContact(businessId, hr.email, hr.mobile);
+            if (!result.success) {
+              showToast('error', result.error || 'Could not save HR contact');
+              return;
+            }
+            if ('hr' in result && result.hr) setHr(result.hr);
+            showToast('success', 'HR contact saved');
+          })();
+        }}
+      >
+        <p className="text-sm font-semibold text-zinc-900">HR contact</p>
+        <p className="mt-1 text-xs leading-relaxed text-zinc-500">
+          Set this before posting a job. Shortlisted candidates receive the HR email and mobile by email and notification.
+        </p>
+        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          <input
+            type="email"
+            required
+            value={hr.email}
+            onChange={(event) => setHr((current) => ({ ...current, email: event.target.value }))}
+            placeholder="HR email"
+            className="rounded-lg border border-zinc-200 px-3 py-2 text-sm"
+          />
+          <input
+            inputMode="numeric"
+            required
+            value={hr.mobile}
+            onChange={(event) => setHr((current) => ({ ...current, mobile: event.target.value.replace(/[^\d]/g, '').slice(0, 10) }))}
+            placeholder="HR mobile"
+            className="rounded-lg border border-zinc-200 px-3 py-2 text-sm"
+          />
+        </div>
+        {canEdit ? (
+          <button type="submit" className="mt-3 rounded-full bg-zinc-900 px-4 py-2 text-xs font-semibold text-white">
+            Save HR contact
+          </button>
+        ) : null}
+      </form>
       {toast && (
         <div
           className={`fixed bottom-24 left-1/2 z-[200] max-w-sm -translate-x-1/2 rounded-lg border px-4 py-3 text-sm font-medium shadow-lg lg:bottom-8 ${
@@ -350,6 +416,13 @@ export default function JobPostingTab({ businessId, canEdit = true }: JobPosting
                   <div className="flex shrink-0 gap-2 sm:flex-col sm:items-stretch">
                     <button
                       type="button"
+                      onClick={() => setApplicationsFor(applicationsFor === job.id ? '' : job.id)}
+                      className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-zinc-200 px-4 py-2 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 sm:flex-none"
+                    >
+                      Applications
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => handleOpenModal(job)}
                       className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-zinc-200 px-4 py-2 text-xs font-semibold text-zinc-700 hover:border-[#3F3F46]/30 hover:bg-zinc-50 sm:flex-none"
                     >
@@ -365,8 +438,19 @@ export default function JobPostingTab({ businessId, canEdit = true }: JobPosting
                       <HiOutlineTrash size={15} />
                     </button>
                   </div>
-                  ) : null}
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setApplicationsFor(applicationsFor === job.id ? '' : job.id)}
+                      className="inline-flex items-center justify-center rounded-lg border border-zinc-200 px-4 py-2 text-xs font-semibold text-zinc-700"
+                    >
+                      Applications
+                    </button>
+                  )}
                 </div>
+                {applicationsFor === job.id ? (
+                  <JobApplicationsPanel businessId={businessId} jobId={job.id} canEdit={canEdit} />
+                ) : null}
               </article>
             );
           })}
@@ -437,6 +521,7 @@ export default function JobPostingTab({ businessId, canEdit = true }: JobPosting
                       className="mt-1.5 w-full rounded-lg border border-zinc-200 px-3 py-2.5 text-sm outline-none focus:border-[#3F3F46] focus:ring-2 focus:ring-[#3F3F46]/10"
                       value={formData.department}
                       onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                      onFocus={(event) => event.currentTarget.scrollIntoView({ block: 'center', behavior: 'smooth' })}
                     />
                   </label>
                 </div>
@@ -453,16 +538,43 @@ export default function JobPostingTab({ businessId, canEdit = true }: JobPosting
                   />
                 </label>
 
-                <label className="block">
+                <div>
                   <span className="text-xs font-semibold text-zinc-600">Salary range</span>
-                  <input
-                    type="text"
-                    placeholder="e.g. ₹3L – ₹5L per year"
-                    className="mt-1.5 w-full rounded-lg border border-zinc-200 px-3 py-2.5 text-sm outline-none focus:border-[#3F3F46] focus:ring-2 focus:ring-[#3F3F46]/10"
-                    value={formData.salary}
-                    onChange={(e) => setFormData({ ...formData, salary: e.target.value })}
-                  />
-                </label>
+                  <div className="mt-1.5 grid grid-cols-2 gap-3">
+                    <input
+                      inputMode="numeric"
+                      placeholder="Minimum ₹"
+                      className="w-full rounded-lg border border-zinc-200 px-3 py-2.5 text-sm outline-none focus:border-[#3F3F46]"
+                      value={formData.salaryMin}
+                      onChange={(e) => setFormData({ ...formData, salaryMin: e.target.value.replace(/[^\d]/g, '') })}
+                    />
+                    <input
+                      inputMode="numeric"
+                      placeholder="Maximum ₹"
+                      className="w-full rounded-lg border border-zinc-200 px-3 py-2.5 text-sm outline-none focus:border-[#3F3F46]"
+                      value={formData.salaryMax}
+                      onChange={(e) => setFormData({ ...formData, salaryMax: e.target.value.replace(/[^\d]/g, '') })}
+                    />
+                  </div>
+                  <div className="mt-2 flex gap-2">
+                    {(['month', 'year'] as const).map((period) => (
+                      <button
+                        key={period}
+                        type="button"
+                        onClick={() => setFormData({ ...formData, salaryPeriod: period })}
+                        className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                          formData.salaryPeriod === period ? 'bg-zinc-900 text-white' : 'bg-zinc-100 text-zinc-600'
+                        }`}
+                      >
+                        {period === 'month' ? 'Per month' : 'Per year'}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="mt-2 text-xs text-zinc-500">
+                    {salaryFromInputs(formData.salaryMin, formData.salaryMax, formData.salaryPeriod) ||
+                      'Leave blank if pay is not disclosed. This is how the public listing will read it.'}
+                  </p>
+                </div>
 
                 <label className="block">
                   <span className="text-xs font-semibold text-zinc-600">Description</span>
@@ -473,6 +585,7 @@ export default function JobPostingTab({ businessId, canEdit = true }: JobPosting
                     className="mt-1.5 w-full resize-none rounded-lg border border-zinc-200 px-3 py-2.5 text-sm leading-relaxed outline-none focus:border-[#3F3F46] focus:ring-2 focus:ring-[#3F3F46]/10"
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    onFocus={(event) => event.currentTarget.scrollIntoView({ block: 'center', behavior: 'smooth' })}
                   />
                 </label>
               </div>

@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, Linking, Pressable, Text, View } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { fonts } from '../../../constants/typography';
@@ -30,6 +31,28 @@ import { LeadSourceBadge } from '../../../components/console/LeadSourceBadge';
 
 type Filter = 'All' | LeadStatus;
 
+function LeadId({ id }: { id: string }) {
+  const styles = useStyles();
+  const [copied, setCopied] = useState(false);
+  return (
+    <Pressable
+      onPress={() => {
+        void Clipboard.setStringAsync(id).then(() => {
+          setCopied(true);
+          setTimeout(() => setCopied(false), 1200);
+        });
+      }}
+      hitSlop={6}
+      accessibilityRole="button"
+      accessibilityLabel={`Copy lead id ${id}`}
+    >
+      <Text style={styles.leadId} numberOfLines={1}>
+        {copied ? 'Copied' : id}
+      </Text>
+    </Pressable>
+  );
+}
+
 function LeadCard({
   lead,
   busy,
@@ -59,6 +82,7 @@ function LeadCard({
             </Text>
             <Tag label={pipelineOf(lead.status)} tone={LEAD_STATUS_TONE[pipelineOf(lead.status)] ?? 'neutral'} />
           </View>
+          <LeadId id={lead.id} />
           <View style={styles.sourceWrap}>
             <LeadSourceBadge lead={lead} />
           </View>
@@ -68,11 +92,7 @@ function LeadCard({
         </View>
       </View>
 
-      {lead.message ? (
-        <Text style={styles.message} numberOfLines={2}>
-          {lead.message}
-        </Text>
-      ) : null}
+      {lead.message ? <Text style={styles.message}>{lead.message}</Text> : null}
 
       {lead.locked ? (
         <View style={styles.locked}>
@@ -81,13 +101,7 @@ function LeadCard({
         </View>
       ) : (
         <View style={styles.contactRow}>
-          {lead.phone || lead.email ? (
-            <Text style={styles.contactText} numberOfLines={1} selectable>
-              {[lead.phone, lead.email].filter(Boolean).join(' · ')}
-            </Text>
-          ) : (
-            <Text style={styles.contactText}>No contact on file</Text>
-          )}
+          {phone || lead.email ? (
           <View style={styles.iconRow}>
             {phone ? (
               <Pressable
@@ -121,6 +135,9 @@ function LeadCard({
               </Pressable>
             ) : null}
           </View>
+          ) : (
+            <Text style={styles.contactText}>No contact on file</Text>
+          )}
         </View>
       )}
 
@@ -157,6 +174,7 @@ function LeadsBody() {
   const [unlocked, setUnlocked] = useState(true);
   const [error, setError] = useState('');
   const [filter, setFilter] = useState<Filter>('All');
+  const [kind, setKind] = useState<'customers' | 'jobs'>('customers');
   const [busyId, setBusyId] = useState('');
   const [refreshing, setRefreshing] = useState(false);
 
@@ -177,16 +195,21 @@ function LeadsBody() {
     }, [load]),
   );
 
+  const isJobLead = (lead: ConsoleLead) => (lead.category || '').trim().toLowerCase() === 'job application';
+  const customerLeads = (leads ?? []).filter((lead) => !isJobLead(lead));
+  const jobLeads = (leads ?? []).filter(isJobLead);
+  const scoped = kind === 'jobs' ? jobLeads : customerLeads;
+
   const counts = useMemo(() => {
-    const out: Record<string, number> = { All: leads?.length ?? 0 };
-    for (const lead of leads ?? []) {
+    const out: Record<string, number> = { All: scoped.length };
+    for (const lead of scoped) {
       const status = pipelineOf(lead.status);
       out[status] = (out[status] ?? 0) + 1;
     }
     return out;
-  }, [leads]);
+  }, [scoped]);
 
-  const visible = (leads ?? []).filter((lead) => filter === 'All' || pipelineOf(lead.status) === filter);
+  const visible = scoped.filter((lead) => filter === 'All' || pipelineOf(lead.status) === filter);
 
   const changeStatus = async (lead: ConsoleLead, status: LeadStatus) => {
     setBusyId(lead.id);
@@ -232,7 +255,7 @@ function LeadsBody() {
       title="Leads"
       subtitle={
         leads
-          ? `${leads.length} total · ${leads.filter((lead) => isOpenPipeline(lead.status)).length} to contact`
+          ? `${customerLeads.length} customers · ${jobLeads.length} job applications`
           : 'Customer enquiries'
       }
       onBack={back}
@@ -271,11 +294,35 @@ function LeadsBody() {
         </Pressable>
       ) : null}
 
-      {leads && leads.length ? (
+      {leads ? (
+        <View style={styles.kindRow}>
+          <Chip
+            label="Customers"
+            count={customerLeads.length}
+            active={kind === 'customers'}
+            onPress={() => {
+              setKind('customers');
+              setFilter('All');
+            }}
+          />
+          <Chip
+            label="Job applications"
+            count={jobLeads.length}
+            active={kind === 'jobs'}
+            onPress={() => {
+              setKind('jobs');
+              setFilter('All');
+            }}
+          />
+        </View>
+      ) : null}
+
+      {scoped.length ? (
         <View style={styles.filters}>
           {(['All', ...LEAD_STATUSES] as Filter[]).map((option) => (
             <Chip
               key={option}
+              small
               label={option}
               count={counts[option] ?? 0}
               active={filter === option}
@@ -294,6 +341,16 @@ function LeadsBody() {
           icon="people-outline"
           title="No leads yet"
           body="When a customer contacts your business on FinderB, they show up here instantly. A complete profile with photos brings more."
+        />
+      ) : !scoped.length ? (
+        <Empty
+          icon={kind === 'jobs' ? 'briefcase-outline' : 'people-outline'}
+          title={kind === 'jobs' ? 'No job applications' : 'No customer leads'}
+          body={
+            kind === 'jobs'
+              ? 'Applications to your job posts show up here, separate from customer enquiries.'
+              : 'Customer enquiries stay here. Job applications are on the next tab.'
+          }
         />
       ) : !visible.length ? (
         <Empty icon="filter-outline" title={`No ${filter.toLowerCase()} leads`} body="Pick another filter to see the rest." />
@@ -340,7 +397,8 @@ const useStyles = createConsoleStyles((c) => ({
   },
   unlockTitle: { fontFamily: fonts.semiBold, fontSize: 15, color: c.ink },
   unlockBody: { marginTop: 2, fontFamily: fonts.regular, fontSize: 12.5, lineHeight: 17, color: c.muted },
-  filters: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  kindRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 },
+  filters: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   card: {
     paddingHorizontal: 12,
     paddingVertical: 11,
@@ -376,6 +434,7 @@ const useStyles = createConsoleStyles((c) => ({
     gap: 6,
   },
   lockedText: { flex: 1, fontFamily: fonts.regular, fontSize: 12, color: c.warning },
+  leadId: { marginTop: 1, fontFamily: fonts.regular, fontSize: 9, color: c.faint },
   contactRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   contactText: { flex: 1, fontFamily: fonts.regular, fontSize: 12.5, color: c.muted },
   iconRow: { flexDirection: 'row', gap: 6 },

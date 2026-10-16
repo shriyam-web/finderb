@@ -1,5 +1,5 @@
 import { StatusBar } from 'expo-status-bar';
-import { Href, useRouter, useScrollToTop } from 'expo-router';
+import { Href, useFocusEffect, useRouter, useScrollToTop } from 'expo-router';
 import { Image } from 'expo-image';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { PullRefreshMark } from '../../components/PullRefreshMark';
 import { AnimatedBrandMark } from '../../components/AnimatedBrandMark';
 import { BusinessRegisterBanner } from '../../components/BusinessRegisterBanner';
 import { HeaderWeatherChip } from '../../components/HeaderWeatherChip';
@@ -38,6 +39,7 @@ import { peekBusinessesByCategory, subscribeCategoryCatalog } from '../../lib/ap
 import {
   clearHomeSessionCaches,
   getHomeBootstrapCache,
+  isTemplateHomeCategories,
   loadHomeBootstrap,
   prefetchAppBackground,
 } from '../../lib/homeBootstrap';
@@ -131,8 +133,14 @@ export default function HomeScreen() {
 
   const loadHomeData = useCallback(async (force = false) => {
     const data = await loadHomeBootstrap(force);
-    setHomeCategories(data.categories);
-    setCatalog(data.catalog);
+    setHomeCategories((current) => {
+      if (isTemplateHomeCategories(data.categories) && current.length > 0) return current;
+      return data.categories;
+    });
+    setCatalog((current) => {
+      if (isTemplateHomeCategories(data.categories) && current.length > 0) return current;
+      return data.catalog;
+    });
     setCategoriesLoading(false);
     return data;
   }, []);
@@ -148,6 +156,14 @@ export default function HomeScreen() {
       cancelled = true;
     };
   }, [initialCache, loadHomeData]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (homeCategories.length > 0 && isTemplateHomeCategories(homeCategories)) {
+        void loadHomeData(true);
+      }
+    }, [homeCategories, loadHomeData]),
+  );
 
   useEffect(() => {
     return subscribeCategoryCatalog(() => {
@@ -408,6 +424,7 @@ export default function HomeScreen() {
         edges={['left', 'right']}
       >
         <View style={styles.homeBody}>
+          {refreshing ? <PullRefreshMark active /> : null}
           <ScrollView
             ref={scrollRef}
             style={styles.scrollFlex}

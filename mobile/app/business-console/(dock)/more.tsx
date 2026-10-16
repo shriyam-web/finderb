@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Alert, Pressable, Text, View } from 'react-native';
+import { Image } from 'expo-image';
 import { useRouter, type Href } from 'expo-router';
 import { setPreferredShell } from '../../../lib/preferredShell';
 import { fonts } from '../../../constants/typography';
@@ -60,13 +61,22 @@ function MoreBody({ o }: { o: ConsoleOverview }) {
       docked
       refreshing={refreshing}
       onRefresh={() => void refresh()}
+      bodyStyle={{ gap: 8, paddingTop: 6 }}
     >
       <View style={styles.identity}>
-        <View style={styles.identityMark}>
-          <Text style={styles.identityLetter}>
-            {(o.business.name || 'B').trim().charAt(0).toUpperCase()}
-          </Text>
-        </View>
+        {o.photos.cover || o.photos.images[0] ? (
+          <Image
+            source={{ uri: o.photos.cover || o.photos.images[0] || '' }}
+            style={styles.identityPhoto}
+            contentFit="cover"
+          />
+        ) : (
+          <View style={styles.identityMark}>
+            <Text style={styles.identityLetter}>
+              {(o.business.name || 'B').trim().charAt(0).toUpperCase()}
+            </Text>
+          </View>
+        )}
         <View style={styles.flex}>
           <Text style={styles.identityName} numberOfLines={1}>
             {o.business.name}
@@ -116,14 +126,39 @@ function MoreBody({ o }: { o: ConsoleOverview }) {
           tone={verified ? undefined : 'warning'}
           onPress={() => router.push('/business-console/account')}
         />
+        {isOwner ? (
+          <Row
+            icon="person-add-outline"
+            label="Team access"
+            value="Invite staff"
+            onPress={() =>
+              router.push({ pathname: '/business-console/account', params: { focus: 'team' } })
+            }
+          />
+        ) : null}
         <Row
           icon="storefront-outline"
           label="Preview storefront"
           onPress={() =>
-            router.push({
-              pathname: '/(tabs)/merchant/[id]',
-              params: { id: o.business.id, preview: '1' },
-            })
+            Alert.alert('Preview storefront', 'Choose how this listing should open.', [
+              {
+                text: 'As your business',
+                onPress: () =>
+                  router.push({
+                    pathname: '/(tabs)/merchant/[id]',
+                    params: { id: o.business.id, preview: 'owner' },
+                  }),
+              },
+              {
+                text: 'As a visitor',
+                onPress: () =>
+                  router.push({
+                    pathname: '/(tabs)/merchant/[id]',
+                    params: { id: o.business.id, preview: 'visitor' },
+                  }),
+              },
+              { text: 'Cancel', style: 'cancel' },
+            ])
           }
           last
         />
@@ -191,22 +226,27 @@ const useStyles = createConsoleStyles((c) => ({
   identity: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    paddingVertical: 4,
+    gap: 10,
   },
   identityMark: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: c.primarySoft,
   },
-  identityLetter: { fontFamily: fonts.semiBold, fontSize: 18, color: c.primary },
-  identityName: { fontFamily: fonts.semiBold, fontSize: 17, color: c.ink },
-  identityMeta: { marginTop: 2, fontFamily: fonts.regular, fontSize: 13, color: c.muted },
-  themeBlock: { gap: 8 },
-  themeLabel: { fontFamily: fonts.medium, fontSize: 12, color: c.muted },
+  identityPhoto: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: c.sunken,
+  },
+  identityLetter: { fontFamily: fonts.semiBold, fontSize: 15, color: c.primary },
+  identityName: { fontFamily: fonts.semiBold, fontSize: 15, color: c.ink },
+  identityMeta: { marginTop: 1, fontFamily: fonts.regular, fontSize: 12, color: c.muted },
+  themeBlock: { gap: 6 },
+  themeLabel: { fontFamily: fonts.medium, fontSize: 11, color: c.muted },
   themes: {
     flexDirection: 'row',
     padding: 3,
@@ -223,8 +263,7 @@ const useStyles = createConsoleStyles((c) => ({
   themeText: { fontFamily: fonts.regular, fontSize: 13, color: c.muted },
   themeTextActive: { fontFamily: fonts.semiBold, color: c.ink },
   logoutBtn: {
-    marginTop: 8,
-    height: 48,
+    height: 42,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',

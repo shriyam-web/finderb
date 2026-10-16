@@ -91,7 +91,6 @@ export function FinderBQrStudio({
       <View style={styles.card}>
         <View style={styles.topRibbon} />
         <Image source={{ uri: `${PUBLIC_SITE}/businesslogo.png` }} style={styles.logo} resizeMode="contain" />
-        <Text style={styles.tag}>REVIEW CARD</Text>
         <Text style={styles.name}>{businessName}</Text>
         {place ? <Text style={styles.place}>{place}</Text> : null}
         <View style={styles.qrPlate}>

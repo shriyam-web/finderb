@@ -108,7 +108,16 @@ export default function TeamAccessPanel({ businessId }: { businessId: string }) 
       return;
     }
     setDraftId(result.member.id);
-    setMessage(result.warning || 'Invite link sent. They can open it and create a password.');
+    if (result.handoff?.mobile && result.handoff.message) {
+      window.open(
+        `https://wa.me/91${result.handoff.mobile}?text=${encodeURIComponent(result.handoff.message)}`,
+        '_blank',
+        'noopener,noreferrer',
+      );
+      setMessage('WhatsApp is open. Tap Send so they get a working invite link.');
+    } else {
+      setMessage(result.warning || 'Invite link sent. They can open it and create a password.');
+    }
     setStep('access');
     await load();
   };
@@ -145,12 +154,21 @@ export default function TeamAccessPanel({ businessId }: { businessId: string }) 
       setError(result.error);
       return;
     }
-    setMessage(result.warning || 'Invite link sent again. It expires in 48 hours.');
+    if (result.handoff?.mobile && result.handoff.message) {
+      window.open(
+        `https://wa.me/91${result.handoff.mobile}?text=${encodeURIComponent(result.handoff.message)}`,
+        '_blank',
+        'noopener,noreferrer',
+      );
+      setMessage('WhatsApp is open. Tap Send so they get a working invite link.');
+    } else {
+      setMessage(result.warning || 'Invite link sent again. It expires in 48 hours.');
+    }
     await load();
   };
 
   const revoke = async (memberId: string) => {
-    if (!window.confirm('Revoke this person’s access? They will not be able to sign in until you invite them again.')) {
+    if (!window.confirm('Remove this person’s access? They will not be able to sign in until you invite them again.')) {
       return;
     }
     setBusy(true);
@@ -226,7 +244,7 @@ export default function TeamAccessPanel({ businessId }: { businessId: string }) 
                   <ChannelCard
                     icon={HiOutlineDevicePhoneMobile}
                     title="Phone"
-                    body="Send an invitation link on WhatsApp to an Indian mobile number."
+                    body="WhatsApp opens with the invite. Tap Send so the link is the real one."
                     active={channel === 'phone'}
                     onClick={() => setChannel('phone')}
                   />
@@ -319,9 +337,9 @@ export default function TeamAccessPanel({ businessId }: { businessId: string }) 
                         type="button"
                         disabled={busy}
                         onClick={() => void resend(member.id)}
-                        className="text-xs font-semibold text-[#3F3F46]"
+                        className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-xs font-semibold text-zinc-800 disabled:opacity-50"
                       >
-                        {member.status === 'expired' ? 'Invite again' : 'Resend'}
+                        Resend Invite
                       </button>
                     ) : null}
                     {member.status !== 'expired' ? (
@@ -332,9 +350,9 @@ export default function TeamAccessPanel({ businessId }: { businessId: string }) 
                           setEditingId(editingId === member.id ? null : member.id);
                           setError('');
                         }}
-                        className="text-xs font-semibold text-[#3F3F46]"
+                        className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-xs font-semibold text-zinc-800 disabled:opacity-50"
                       >
-                        {editingId === member.id ? 'Close' : 'Edit access'}
+                        {editingId === member.id ? 'Close' : 'Modify Access'}
                       </button>
                     ) : null}
                     {member.status !== 'expired' ? (
@@ -342,9 +360,9 @@ export default function TeamAccessPanel({ businessId }: { businessId: string }) 
                       type="button"
                       disabled={busy}
                       onClick={() => void revoke(member.id)}
-                      className="text-xs font-semibold text-rose-700"
+                      className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700 disabled:opacity-50"
                     >
-                      Revoke
+                      Remove
                     </button>
                     ) : null}
                   </div>

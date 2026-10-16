@@ -144,7 +144,7 @@ export default function BusinessProfileContactAside({
               <ContactRow
                 icon={<Phone size={16} />}
                 label="Phone"
-                value={contactRevealed && phoneVerified ? phone : getMaskedPhoneNumber(phone)}
+                value={!phoneVerified ? 'Not shown' : contactRevealed ? phone : getMaskedPhoneNumber(phone)}
                 onClick={onCall}
               />
             ) : null}
@@ -152,7 +152,7 @@ export default function BusinessProfileContactAside({
               <ContactRow
                 icon={<Mail size={16} />}
                 label="Email"
-                value={contactRevealed && emailVerified ? email : getMaskedEmail(email)}
+                value={!emailVerified ? 'Not shown' : contactRevealed ? email : getMaskedEmail(email)}
                 onClick={() => {
                   if (onEmail) {
                     onEmail();

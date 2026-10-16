@@ -11,6 +11,7 @@ import {
 } from '@/lib/broadcastFields';
 import { sendExpoPushMessages } from '@/lib/expoPush.server';
 import { sendFcmPushMessages } from '@/lib/fcmPush.server';
+import { getSessionUserId } from '@/lib/security/session';
 
 export type UserNotification = {
   id: string;
@@ -225,7 +226,7 @@ async function sendPush(
   return { sent: expoResult.sent + fcmResult.sent, error: error || undefined };
 }
 
-export async function listUserNotifications(limit = 50): Promise<UserNotification[]> {
+export async function listUserNotifications(limit = 50, userId?: string | null): Promise<UserNotification[]> {
   const supabase = db() ?? createClient(await cookies());
   const take = Math.min(100, Math.max(1, limit));
   const full = await supabase
@@ -248,10 +249,34 @@ export async function listUserNotifications(limit = 50): Promise<UserNotificatio
     return [];
   }
 
-  return ((used.data || []) as BroadcastRow[])
+  const broadcasts = ((used.data || []) as BroadcastRow[])
     .filter((row) => broadcastTargetsUsers(row.target_audience))
     .map(toUserNotification)
     .filter((row): row is UserNotification => Boolean(row));
+
+  const directUserId = (userId || (await getSessionUserId()) || '').trim();
+  if (!directUserId) return broadcasts;
+
+  const direct = await supabase
+    .from('user_direct_notifications')
+    .select('id, title, message, created_at, cta_url, cta_label, show_datetime')
+    .eq('user_id', directUserId)
+    .order('created_at', { ascending: false })
+    .limit(take);
+  if (direct.error) {
+    if (!/does not exist|schema cache/i.test(direct.error.message || '')) {
+      console.error('[direct notifications]', direct.error);
+    }
+    return broadcasts;
+  }
+
+  const personal = ((direct.data || []) as BroadcastRow[])
+    .map(toUserNotification)
+    .filter((row): row is UserNotification => Boolean(row));
+
+  return [...broadcasts, ...personal]
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .slice(0, take);
 }
 
 function isMissingBusinessColumn(error: { message?: string } | null | undefined) {
@@ -449,7 +474,7 @@ export async function dispatchBroadcastPush(broadcastId: string): Promise<{
 /** Lead / review alerts for one merchant, delivered only to devices signed in to that business. */
 export async function sendBusinessPush(input: {
   businessId: string;
-  type: 'lead' | 'review';
+  type: 'lead' | 'review' | 'job';
   title: string;
   body: string;
   url: string;
@@ -514,4 +539,48 @@ export async function dispatchPendingBroadcastPushes(): Promise<void> {
     if (!id) continue;
     await dispatchBroadcastPush(id).catch(() => undefined);
   }
+}
+
+/** Inbox + push for one signed-in user. Never a broadcast. */
+export async function recordDirectUserNotification(input: {
+  userId: string;
+  title: string;
+  message: string;
+  pushBody?: string;
+  ctaUrl?: string;
+  ctaLabel?: string;
+}): Promise<boolean> {
+  const supabase = db();
+  const userId = input.userId.trim();
+  const message = input.message.trim();
+  if (!supabase || !userId || !message) return false;
+
+  const title = input.title.trim() || 'FinderB';
+  const { error } = await supabase.from('user_direct_notifications').insert({
+    user_id: userId,
+    title,
+    message,
+    cta_url: input.ctaUrl?.trim() || null,
+    cta_label: input.ctaLabel?.trim() || null,
+    show_datetime: true,
+  });
+  if (error) {
+    console.error('[direct notification]', error);
+    return false;
+  }
+
+  const tokens = await supabase
+    .from('user_push_tokens')
+    .select('user_id, token, platform, business_id')
+    .eq('user_id', userId);
+  const rows = ((tokens.data || []) as PushTokenRow[]).filter((row) => !row.business_id);
+  if (rows.length) {
+    await sendPush(rows, {
+      title,
+      body: (input.pushBody || 'Open FinderB to read this update.').trim(),
+      collapseId: `direct-${userId}`,
+      data: { url: input.ctaUrl?.trim() || '/dashboard?tab=messages' },
+    }).catch((pushError) => console.error('[direct push]', pushError));
+  }
+  return true;
 }

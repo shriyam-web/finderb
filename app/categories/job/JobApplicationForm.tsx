@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { submitJobApplication } from '@/app/actions/job';
+import { submitJobApplicationForm } from '@/app/actions/job';
 import { Loader2, CheckCircle2 } from 'lucide-react';
 
 interface Job {
@@ -27,15 +27,10 @@ export default function JobApplicationForm({
     setError(null);
 
     const formData = new FormData(e.currentTarget);
-    const result = await submitJobApplication({
-      jobId: job.id,
-      businessId: job.business_id,
-      jobTitle: job.title,
-      fullName: formData.get('fullName') as string,
-      email: formData.get('email') as string,
-      phone: formData.get('phone') as string,
-      message: formData.get('message') as string,
-    });
+    formData.set('jobId', job.id);
+    formData.set('businessId', job.business_id);
+    formData.set('jobTitle', job.title);
+    const result = await submitJobApplicationForm(formData);
 
     if (result.success) {
       setSuccess(true);
@@ -95,6 +90,13 @@ export default function JobApplicationForm({
             className={inputClass}
           />
         </div>
+      </div>
+
+      <div>
+        <label className="mb-1.5 block text-sm font-medium text-neutral-800">
+          CV <span className="font-normal text-neutral-400">(PDF, DOC, or DOCX)</span>
+        </label>
+        <input name="cv" type="file" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" className={inputClass} />
       </div>
 
       <div>

@@ -11,12 +11,21 @@ import {
 type KeywordTagInputProps = {
   value: string[];
   onChange: (value: string[]) => void;
+  suggestions?: string[];
+  max?: number;
+  placeholder?: string;
 };
 
-export default function KeywordTagInput({ value, onChange }: KeywordTagInputProps) {
+export default function KeywordTagInput({
+  value,
+  onChange,
+  suggestions = [],
+  max = MAX_SEARCH_KEYWORDS,
+  placeholder = 'Type a keyword and press comma',
+}: KeywordTagInputProps) {
   const [draft, setDraft] = useState('');
-  const tags = normalizeSearchKeywords(value);
-  const atLimit = tags.length >= MAX_SEARCH_KEYWORDS;
+  const tags = normalizeSearchKeywords(value).slice(0, max);
+  const atLimit = tags.length >= max;
   const impact = getSearchKeywordsImpact(tags.length);
 
   useEffect(() => {
@@ -81,7 +90,7 @@ export default function KeywordTagInput({ value, onChange }: KeywordTagInputProp
       </div>
 
       <p className="text-xs text-zinc-500">
-        Type a keyword and press comma to turn it into a tag. Up to {MAX_SEARCH_KEYWORDS} keywords.
+        Type and press comma to add a tag. Up to {max}.
       </p>
 
       <div className="min-h-[42px] rounded-lg border border-zinc-200 bg-white px-2 py-2 focus-within:border-[#3F3F46] focus-within:ring-2 focus-within:ring-[#3F3F46]/10">
@@ -109,14 +118,34 @@ export default function KeywordTagInput({ value, onChange }: KeywordTagInputProp
             onChange={(event) => handleDraftChange(event.target.value)}
             onKeyDown={handleKeyDown}
             onBlur={() => commitDraft(draft)}
-            placeholder={atLimit ? 'Maximum reached' : tags.length ? 'Add another…' : 'e.g. AC repair'}
+            placeholder={atLimit ? 'Maximum reached' : tags.length ? 'Add another…' : placeholder}
             className="min-w-[8rem] flex-1 border-0 bg-transparent px-1 py-1 text-sm outline-none placeholder:text-zinc-400 disabled:cursor-not-allowed"
           />
         </div>
       </div>
 
+      {suggestions.length ? (
+        <div className="flex flex-wrap gap-1.5">
+          {suggestions
+            .filter((item) => !tags.some((tag) => tag.toLowerCase() === item.toLowerCase()))
+            .filter((item) => !draft.trim() || item.toLowerCase().includes(draft.trim().toLowerCase()))
+            .slice(0, 8)
+            .map((item) => (
+              <button
+                key={item}
+                type="button"
+                disabled={atLimit}
+                onClick={() => commitTags([...tags, item])}
+                className="rounded-full border border-zinc-200 bg-white px-2.5 py-1 text-xs font-medium text-zinc-700 hover:border-zinc-400 disabled:opacity-40"
+              >
+                {item}
+              </button>
+            ))}
+        </div>
+      ) : null}
+
       <p className="text-xs text-zinc-500">
-        {tags.length}/{MAX_SEARCH_KEYWORDS} keywords
+        {tags.length}/{max}
       </p>
     </div>
   );

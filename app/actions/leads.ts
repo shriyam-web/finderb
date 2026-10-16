@@ -1,6 +1,7 @@
 'use server';
 
 import { createDataClient } from '@/utils/supabase/server';
+import { createServiceClient } from '@/lib/supabase/service';
 
 import { type ContactIntent } from '@/lib/directLead';
 import {
@@ -53,6 +54,38 @@ async function getLoggedInBusinessProfile() {
   };
 }
 
+/** Older contact taps stored the account email only. Fill the verified mobile so Call and WhatsApp appear. */
+async function attachVerifiedAccountPhones(leads: BusinessLead[]): Promise<BusinessLead[]> {
+  const emails = [
+    ...new Set(
+      leads
+        .filter((lead) => !String(lead.phone || '').trim() && lead.email?.includes('@'))
+        .map((lead) => String(lead.email).trim())
+    ),
+  ];
+  if (!emails.length) return leads;
+
+  const supabase = createServiceClient();
+  if (!supabase) return leads;
+
+  const { data, error } = await supabase.from('User').select('email, phone').in('email', emails);
+  if (error || !data?.length) return leads;
+
+  const phoneByEmail = new Map<string, string>();
+  for (const row of data) {
+    const email = String(row.email || '').trim().toLowerCase();
+    const phone = String(row.phone || '').trim();
+    if (email && phone) phoneByEmail.set(email, phone);
+  }
+  if (!phoneByEmail.size) return leads;
+
+  return leads.map((lead) => {
+    if (String(lead.phone || '').trim()) return lead;
+    const phone = phoneByEmail.get(String(lead.email || '').trim().toLowerCase());
+    return phone ? { ...lead, phone } : lead;
+  });
+}
+
 export async function getBusinessLeads(businessId: string) {
   try {
     if (!businessId) {
@@ -75,7 +108,7 @@ export async function getBusinessLeads(businessId: string) {
 
     if (error) throw error;
 
-    let leads = (data ?? []) as BusinessLead[];
+    let leads = await attachVerifiedAccountPhones((data ?? []) as BusinessLead[]);
 
     const legacyJobIds = [
       ...new Set(
@@ -225,9 +258,10 @@ export async function recordDirectLead(params: {
       return { success: false as const, error: 'Could not load your account.' };
     }
 
-    const actorName = userResult?.user?.fullName || loggedInBusiness?.name || 'FinderB user';
-    const actorEmail = userResult?.user?.email || loggedInBusiness?.email || null;
-    const actorPhone = loggedInBusiness?.phone || null;
+    const account = userResult?.user as { fullName?: string | null; email?: string | null; phone?: string | null } | undefined;
+    const actorName = account?.fullName || loggedInBusiness?.name || 'FinderB user';
+    const actorEmail = account?.email || loggedInBusiness?.email || null;
+    const actorPhone = account?.phone || loggedInBusiness?.phone || null;
 
     return recordDirectLeadForActor({
       businessId: params.businessId,
@@ -266,7 +300,15 @@ export async function submitBroadcastEnquiry(data: {
       return { success: false, error: 'Sign in to send an enquiry.' };
     }
 
-    return submitBroadcastEnquiryForUser(data);
+    let phone = data.phone?.trim() || '';
+    if (!phone) {
+      const account = await getUser(userId);
+      phone = String(
+        (account.success && account.user ? (account.user as { phone?: string | null }).phone : '') || ''
+      ).trim();
+    }
+
+    return submitBroadcastEnquiryForUser({ ...data, phone });
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : 'Failed to submit enquiry';
     console.error('Submit Broadcast Enquiry Error:', error);

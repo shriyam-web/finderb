@@ -138,10 +138,9 @@ function RegisterFormContent() {
   const [whatsappOtpVerifying, setWhatsappOtpVerifying] = useState(false);
   const whatsappOtpCooldown = useOtpCooldown();
   const whatsappDigits = (useMobileForWhatsApp ? mobileDigits : whatsapp.replace(/\D/g, '').slice(-10));
-  const whatsappVerified =
-    (useMobileForWhatsApp && mobileVerified) ||
-    (Boolean(whatsappProof) && whatsappProofFor === whatsappDigits) ||
-    (mobileVerified && whatsappDigits === mobileDigits);
+  const whatsappVerified = useMobileForWhatsApp
+    ? mobileVerified
+    : Boolean(whatsappProof) && whatsappProofFor === whatsappDigits;
   const [reuseContact, setReuseContact] = useState<ReusableContact | null>(null);
   const [reuseApproved, setReuseApproved] = useState<string[]>([]);
   const [formData, setFormData] = useState({
@@ -370,7 +369,7 @@ function RegisterFormContent() {
       setMobileProof(result.phoneVerificationToken);
       setMobileProofFor(mobileDigits);
       setMobileOtpCode('');
-      if (useMobileForWhatsApp || whatsapp.replace(/\D/g, '').slice(-10) === mobileDigits) {
+      if (useMobileForWhatsApp) {
         setWhatsappProof(result.phoneVerificationToken);
         setWhatsappProofFor(mobileDigits);
       }
@@ -400,12 +399,7 @@ function RegisterFormContent() {
   };
 
   const handleSendWhatsappOtp = async () => {
-    if (whatsappOtpSending || whatsappOtpCooldown.isWaiting(whatsappDigits)) return;
-    if (whatsappDigits === mobileDigits && mobileVerified) {
-      setWhatsappProof(mobileProof);
-      setWhatsappProofFor(mobileDigits);
-      return;
-    }
+    if (useMobileForWhatsApp || whatsappOtpSending || whatsappOtpCooldown.isWaiting(whatsappDigits)) return;
     if (whatsappDigits.length !== 10) {
       setFieldErrors({ whatsappNumber: 'Enter a 10-digit WhatsApp number.' });
       return;

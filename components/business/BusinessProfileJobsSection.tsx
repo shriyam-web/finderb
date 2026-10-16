@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ArrowUpRight, Briefcase, MapPin, X } from 'lucide-react';
 import JobApplicationForm from '@/app/categories/job/JobApplicationForm';
+import JobListingDisclaimer from '@/components/jobs/JobListingDisclaimer';
+import ReportJobButton from '@/components/jobs/ReportJobButton';
 
 export type ProfileJob = {
   id: string;
@@ -243,6 +245,8 @@ export default function BusinessProfileJobsSection({ jobs }: { jobs: ProfileJob[
                           {job.description}
                         </p>
                       ) : null}
+                      <JobListingDisclaimer />
+                      <ReportJobButton jobId={job.id} />
 
                       <div className="mt-3.5 flex items-center justify-between gap-3 border-t border-dashed border-stone-200/90 pt-3">
                         <div

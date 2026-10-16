@@ -52,7 +52,6 @@ export function MerchantReviewComposer({
   const [rating, setRating] = useState(0);
   const [content, setContent] = useState('');
   const [anonymous, setAnonymous] = useState(false);
-  const [anonymousReason, setAnonymousReason] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -102,10 +101,6 @@ export function MerchantReviewComposer({
       setError('Please write at least 10 characters');
       return;
     }
-    if (anonymous && anonymousReason.trim().length < 10) {
-      setError('Please tell us why you want to post anonymously (at least 10 characters).');
-      return;
-    }
 
     setSubmitting(true);
     const result = await submitBusinessReview({
@@ -113,7 +108,6 @@ export function MerchantReviewComposer({
       rating,
       content,
       anonymous,
-      anonymousReason,
     });
     setSubmitting(false);
 
@@ -130,7 +124,6 @@ export function MerchantReviewComposer({
     setContent('');
     setRating(0);
     setAnonymous(false);
-    setAnonymousReason('');
     onSubmitted({ reviews: result.reviews, rating: result.rating });
   };
 
@@ -200,20 +193,6 @@ export function MerchantReviewComposer({
           </Text>
         </View>
       </Pressable>
-
-      {anonymous ? (
-        <TextInput
-          value={anonymousReason}
-          onChangeText={setAnonymousReason}
-          placeholder="Why do you need to post anonymously?"
-          placeholderTextColor={colors.textSoft}
-          multiline
-          textAlignVertical="top"
-          style={styles.reasonInput}
-          maxLength={500}
-          editable={!submitting}
-        />
-      ) : null}
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {success ? <Text style={styles.success}>{success}</Text> : null}
@@ -352,19 +331,6 @@ const useStyles = createThemedStyles((colors) => ({
     fontSize: 12,
     lineHeight: 16,
     color: colors.textMuted,
-  },
-  reasonInput: {
-    minHeight: 72,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontFamily: fonts.regular,
-    fontSize: 14,
-    lineHeight: 20,
-    color: colors.ink,
-    backgroundColor: colors.surfaceSoft,
   },
   doneRow: {
     flexDirection: 'row',

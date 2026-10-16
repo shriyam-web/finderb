@@ -112,8 +112,13 @@ export function redirectSystemPath({
       (url.hostname === 'business' || url.hostname === 'merchant')
     ) {
       const slug = url.pathname.replace(/^\//, '');
+      const inviteToken =
+        url.hostname === 'business' ? slug.match(/^invite\/([^/?#]+)/i)?.[1] : undefined;
+      if (inviteToken) {
+        return `/business-invite/${decodeURIComponent(inviteToken)}`;
+      }
       if (slug) {
-        return `/merchant/${decodeURIComponent(slug)}${url.search}${url.hash}`;
+        return `/merchant/${decodeURIComponent(slug.split('/')[0])}${url.search}${url.hash}`;
       }
     }
 

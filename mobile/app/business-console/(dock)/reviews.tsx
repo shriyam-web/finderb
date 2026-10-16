@@ -8,6 +8,7 @@ import { useConsoleColors } from '../../../constants/consoleColors';
 import { useMerchantConsole } from '../../../context/MerchantConsoleContext';
 import { getRatingDisplay } from '../../../lib/ratingDisplay';
 import { isFailure, type ConsoleOverview, type ConsoleReview } from '../../../lib/merchantConsoleApi';
+import { reviewFlagOutcomeLabel } from '../../../lib/reviewFlagOutcome';
 import { ConsoleGate } from '../../../components/console/ConsoleGate';
 import { FinderBQrStudio } from '../../../components/console/FinderBQrStudio';
 import { RankBannerArt } from '../../../components/console/ReviewsRankArt';
@@ -121,7 +122,8 @@ function ReviewCard({
               {review.author || 'Customer'}
             </Text>
             {review.anonymous ? <Text style={styles.badge}>Anonymous</Text> : null}
-            {review.hidden ? <Text style={styles.badgeHidden}>Hidden</Text> : null}
+            {review.hidden && !review.deleted ? <Text style={styles.badgeHidden}>Hidden</Text> : null}
+            {review.deleted ? <Text style={styles.badgeRemoved}>Removed</Text> : null}
           </View>
           <View style={styles.cardMeta}>
             <Stars value={review.rating} size={15} />
@@ -136,25 +138,38 @@ function ReviewCard({
             <Ionicons name="return-down-forward-outline" size={15} color={c.accent} />
             <Text style={styles.replyLabel}>Your reply</Text>
             <View style={styles.flex} />
+            {!review.deleted ? (
             <Pressable onPress={onReply} hitSlop={8} accessibilityRole="button" accessibilityLabel="Edit reply">
               <Text style={styles.edit}>Edit</Text>
             </Pressable>
+            ) : null}
           </View>
           <Text style={styles.replyText}>{review.reply.content}</Text>
         </View>
-      ) : (
+      ) : review.deleted ? null : (
         <Btn small tone="outline" icon="chatbubble-outline" label="Reply" onPress={onReply} style={styles.replyBtn} />
       )}
-      <Pressable
-        onPress={onFlag}
-        hitSlop={10}
-        disabled={review.flagged}
-        accessibilityRole="button"
-        accessibilityLabel={review.flagged ? 'Already flagged' : 'Flag this review'}
-        style={styles.flagBtn}
-      >
-        <Ionicons name={review.flagged ? 'flag' : 'flag-outline'} size={18} color={review.flagged ? '#E11D48' : c.muted} />
-      </Pressable>
+      <View style={styles.flagRow}>
+        {review.flagged && reviewFlagOutcomeLabel(review.flagStatus) ? (
+          <Text style={styles.flagResult} numberOfLines={2}>
+            {reviewFlagOutcomeLabel(review.flagStatus)}
+          </Text>
+        ) : null}
+        <Pressable
+          onPress={onFlag}
+          hitSlop={10}
+          disabled={review.flagged || review.deleted}
+          accessibilityRole="button"
+          accessibilityLabel={
+            review.flagged
+              ? `Flagged — ${reviewFlagOutcomeLabel(review.flagStatus) || 'submitted'}`
+              : 'Flag this review'
+          }
+          style={styles.flagBtn}
+        >
+          <Ionicons name={review.flagged ? 'flag' : 'flag-outline'} size={18} color={review.flagged ? '#E11D48' : c.muted} />
+        </Pressable>
+      </View>
     </View>
   );
 }
@@ -179,7 +194,7 @@ function ReviewsBody({ o }: { o: ConsoleOverview }) {
   const [template, setTemplate] = useState(o.profile.reviewReply || '');
   const { replyMin, replyMax } = o.limits;
 
-  const open = o.reviews.filter((review) => !review.reply);
+  const open = o.reviews.filter((review) => !review.reply && !review.deleted);
   const list = (() => {
     const base = filter === 'open' ? open : o.reviews;
     if (!focusReviewId) return base;
@@ -518,7 +533,7 @@ const useStyles = createConsoleStyles((c) => ({
   card: {
     position: 'relative',
     padding: 16,
-    paddingBottom: 44,
+    paddingBottom: 52,
     borderRadius: 14,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
@@ -544,17 +559,40 @@ const useStyles = createConsoleStyles((c) => ({
     backgroundColor: '#FFFFFF',
   },
   idBadgeText: { fontFamily: fonts.medium, fontSize: 12, color: c.ink },
-  flagBtn: {
+  flagRow: {
     position: 'absolute',
     right: 10,
     bottom: 10,
     zIndex: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    maxWidth: '70%',
+  },
+  flagResult: {
+    flexShrink: 1,
+    fontFamily: fonts.semiBold,
+    fontSize: 11,
+    color: '#BE123C',
+    textAlign: 'right',
+  },
+  flagBtn: {
     width: 36,
     height: 36,
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#FFFFFF',
+  },
+  badgeRemoved: {
+    fontFamily: fonts.medium,
+    fontSize: 11,
+    color: '#BE123C',
+    backgroundColor: '#FFF1F2',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    overflow: 'hidden',
   },
   avatar: {
     width: 40,

@@ -45,7 +45,7 @@ export function validateReviewReplyContent(content: string): string | null {
 
 export function validateAnonymousReason(reason: string): string | null {
   const trimmed = reason.trim();
-  if (!trimmed) return 'Please tell us why you want to post anonymously.';
+  if (!trimmed) return null;
   if (trimmed.length < ANONYMOUS_REASON_MIN_LENGTH) {
     return `Please write at least ${ANONYMOUS_REASON_MIN_LENGTH} characters.`;
   }

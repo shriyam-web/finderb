@@ -35,6 +35,9 @@ export default function TeamAccessMatrix({
 
   return (
     <div className="overflow-hidden rounded-xl border border-zinc-200">
+      <p className="border-b border-zinc-100 bg-zinc-50 px-4 py-2 text-xs text-zinc-500">
+        Tick View to open a tab. Tick Edit to change data on it.
+      </p>
       <div className="grid grid-cols-[1fr_72px_72px] bg-[#153551] px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-white">
         <span>Tab</span>
         <span className="text-center">View</span>
@@ -57,7 +60,7 @@ export default function TeamAccessMatrix({
                 checked={row.view}
                 disabled={disabled}
                 onChange={(event) => setRight(tab.key, 'view', event.target.checked)}
-                className="h-4 w-4 accent-[#215481]"
+                className="h-5 w-5 accent-[#2563EB]"
               />
             </span>
             <span className="flex justify-center">
@@ -67,7 +70,7 @@ export default function TeamAccessMatrix({
                   checked={row.edit}
                   disabled={disabled || !row.view}
                   onChange={(event) => setRight(tab.key, 'edit', event.target.checked)}
-                  className="h-4 w-4 accent-[#E8873A]"
+                  className="h-5 w-5 accent-[#2563EB]"
                 />
               ) : (
                 <span className="text-[11px] text-zinc-400">—</span>

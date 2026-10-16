@@ -26,6 +26,8 @@ import {
   Tag,
   createConsoleStyles,
 } from '../../components/console/kit';
+import { offeringsForCategory } from '../../lib/categoryOfferings';
+import { EstablishmentDateField } from '../../components/console/EstablishmentDateField';
 import {
   DAYS,
   DISCOUNT_OPTIONS,
@@ -71,6 +73,7 @@ function TagInput({
   values,
   max,
   placeholder,
+  suggestions = [],
   onChange,
 }: {
   label: string;
@@ -78,14 +81,15 @@ function TagInput({
   values: string[];
   max: number;
   placeholder: string;
+  suggestions?: string[];
   onChange: (next: string[]) => void;
 }) {
   const styles = useStyles();
   const c = useConsoleColors();
   const [draft, setDraft] = useState('');
   const [focused, setFocused] = useState(false);
-  const add = () => {
-    const parts = draft
+  const add = (raw = draft) => {
+    const parts = raw
       .split(',')
       .map((part) => part.trim())
       .filter(Boolean);
@@ -103,6 +107,14 @@ function TagInput({
     setDraft('');
   };
   const full = values.length >= max;
+  const needle = draft.trim().toLowerCase();
+  const ideas = suggestions
+    .filter((item) => {
+      const key = item.toLowerCase();
+      if (values.some((value) => value.toLowerCase() === key)) return false;
+      return !needle || key.includes(needle);
+    })
+    .slice(0, 8);
   return (
     <View style={styles.tagInput}>
       <View style={styles.tagTop}>
@@ -132,7 +144,7 @@ function TagInput({
           <TextInput
             value={draft}
             onChangeText={setDraft}
-            onSubmitEditing={add}
+            onSubmitEditing={() => add()}
             onFocus={() => setFocused(true)}
             onBlur={() => setFocused(false)}
             placeholder={placeholder}
@@ -145,7 +157,7 @@ function TagInput({
             style={styles.tagField}
           />
           <Pressable
-            onPress={add}
+            onPress={() => add()}
             disabled={!draft.trim()}
             hitSlop={8}
             accessibilityRole="button"
@@ -154,6 +166,21 @@ function TagInput({
           >
             <Ionicons name="add" size={20} color={c.primaryInk} />
           </Pressable>
+        </View>
+      ) : null}
+      {!full && ideas.length ? (
+        <View style={styles.ideas}>
+          {ideas.map((item) => (
+            <Pressable
+              key={item}
+              onPress={() => add(item)}
+              style={styles.idea}
+              accessibilityRole="button"
+              accessibilityLabel={`Add ${item}`}
+            >
+              <Text style={styles.ideaText}>{item}</Text>
+            </Pressable>
+          ))}
         </View>
       ) : null}
       <Text style={styles.hint}>{hint}</Text>
@@ -396,6 +423,69 @@ function PhoneVerifySheet({
   );
 }
 
+function AlsoServesEditor({
+  run,
+  notify,
+}: {
+  run: ReturnType<typeof useMerchantConsole>['run'];
+  notify: ReturnType<typeof useMerchantConsole>['notify'];
+}) {
+  const c = useConsoleColors();
+  const [primary, setPrimary] = useState('');
+  const [options, setOptions] = useState<string[]>([]);
+  const [selected, setSelected] = useState<string[]>([]);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    void run<{ success: true; state: { primary: string; selected: string[]; options: string[] } }>('alsoServes').then((result) => {
+      if (isFailure(result) || !('state' in result)) return;
+      setPrimary(result.state.primary);
+      setOptions(result.state.options);
+      setSelected(result.state.selected);
+    });
+  }, [run]);
+
+  if (!primary || (!options.length && !selected.length)) return null;
+
+  const toggle = async (leaf: string) => {
+    const has = selected.some((item) => item.toLowerCase() === leaf.toLowerCase());
+    const next = has ? selected.filter((item) => item.toLowerCase() !== leaf.toLowerCase()) : [...selected, leaf];
+    setBusy(true);
+    const result = await run('saveAlsoServes', { leaves: next });
+    setBusy(false);
+    if (isFailure(result)) {
+      notify(result.error, 'bad');
+      return;
+    }
+    setSelected(next);
+    notify('Extra categories saved');
+  };
+
+  return (
+    <Section title="Also works in">
+      <Text style={{ fontFamily: fonts.regular, fontSize: 13, lineHeight: 18, color: c.muted }}>
+        {primary} stays your main category. Add other subcategories in the same group. These show on your public page without a review.
+      </Text>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+        {options.map((leaf) => {
+          const active = selected.some((item) => item.toLowerCase() === leaf.toLowerCase());
+          return (
+            <Chip
+              key={leaf}
+              label={leaf}
+              active={active}
+              icon={active ? 'checkmark' : undefined}
+              onPress={() => {
+                if (!busy) void toggle(leaf);
+              }}
+            />
+          );
+        })}
+      </View>
+    </Section>
+  );
+}
+
 function EditBody({ o, section }: { o: ConsoleOverview; section: SectionKey }) {
   const styles = useStyles();
   const c = useConsoleColors();
@@ -436,7 +526,8 @@ function EditBody({ o, section }: { o: ConsoleOverview; section: SectionKey }) {
   };
 
   const fields = SECTION_FIELDS[section];
-  const dirty = fields.some((key) => !valuesEqual(form[key], committed[key]));
+  const whatsappProofPending = Boolean(whatsappProof) && !o.business.whatsappVerified;
+  const dirty = fields.some((key) => !valuesEqual(form[key], committed[key])) || whatsappProofPending;
   if (dirty) saved.current = false;
   const pin: MapPin | null = form.latitude && form.longitude ? { lat: form.latitude, lng: form.longitude } : null;
   const pinMoved = form.latitude !== o.profile.latitude || form.longitude !== o.profile.longitude;
@@ -571,10 +662,13 @@ function EditBody({ o, section }: { o: ConsoleOverview; section: SectionKey }) {
           <Field
             label="Name customers see"
             value={form.displayName}
-            onChangeText={(value) => set('displayName', value)}
-            maxLength={80}
-            error={errors.displayName}
-            hint={`Your legal name (${o.business.legalName}) stays on record separately.`}
+            editable={false}
+            hint="This name is locked so customers are not misled. Request a change and FinderB will review it."
+          />
+          <Btn
+            label="Request name change"
+            tone="outline"
+            onPress={() => router.push({ pathname: '/business-console/account', params: { focus: 'displayName' } })}
           />
           <Field
             label="About your business"
@@ -587,10 +681,11 @@ function EditBody({ o, section }: { o: ConsoleOverview; section: SectionKey }) {
           />
           <TagInput
             label="Services you offer"
-            hint="Shown as chips on your storefront. Separate several with commas."
+            hint="Shown as chips on your storefront. Tap a suggestion or type your own."
             values={services}
             max={10}
             placeholder="e.g. Home delivery"
+            suggestions={offeringsForCategory(o.business.category).services}
             onChange={(next) => set('serviceCategory', next.join(', '))}
           />
           <TagInput
@@ -599,8 +694,10 @@ function EditBody({ o, section }: { o: ConsoleOverview; section: SectionKey }) {
             values={form.keywords}
             max={o.limits.maxKeywords}
             placeholder="e.g. biryani"
+            suggestions={offeringsForCategory(o.business.category).keywords}
             onChange={(next) => set('keywords', next)}
           />
+          <AlsoServesEditor run={run} notify={notify} />
         </>
       ) : null}
 
@@ -614,6 +711,32 @@ function EditBody({ o, section }: { o: ConsoleOverview; section: SectionKey }) {
             hint="Same as your login mobile. Customers tap this to call you. Change it under Login & security with an OTP."
             onPress={() => router.push('/business-console/account')}
           />
+          {o.business.mobileVerified ? (
+            <Tag label="Mobile verified" tone="success" icon="shield-checkmark" />
+          ) : (
+            <Btn
+              label="Verify mobile"
+              tone="outline"
+              icon="shield-outline"
+              onPress={() => router.push({ pathname: '/business-console/account', params: { focus: 'mobile' } })}
+            />
+          )}
+          <Field
+            label="Public email"
+            value={o.profile.email || o.business.loginEmail || ''}
+            editable={false}
+            hint="Same as your login email. Shown to customers only after it is verified."
+          />
+          {o.business.emailVerified ? (
+            <Tag label="Email verified" tone="success" icon="shield-checkmark" />
+          ) : (
+            <Btn
+              label="Verify email"
+              tone="outline"
+              icon="shield-outline"
+              onPress={() => router.push({ pathname: '/business-console/account', params: { focus: 'email' } })}
+            />
+          )}
           <Field
             label="WhatsApp number"
             prefix="+91"
@@ -624,19 +747,17 @@ function EditBody({ o, section }: { o: ConsoleOverview; section: SectionKey }) {
             editable={!whatsappVerified}
             error={errors.whatsappNumber}
             hint={
-              whatsappVerified
-                ? 'Verified. Locked until you save, so it isn’t changed by mistake.'
+              whatsappVerified || o.business.whatsappVerified
+                ? 'Verified. Locked until you change it.'
                 : whatsappIsNew
                   ? 'New number — confirm it with a WhatsApp code before saving.'
-                  : undefined
+                  : 'Customers only see this number after it is verified.'
             }
           />
-          {whatsappIsNew ? (
-            whatsappVerified ? (
-              <Tag label="Verified on WhatsApp" tone="success" />
-            ) : (
-              <Btn label="Verify on WhatsApp" tone="outline" onPress={() => setWhatsappSheet(true)} />
-            )
+          {whatsappVerified || (o.business.whatsappVerified && !whatsappIsNew) ? (
+            <Tag label="WhatsApp verified" tone="success" icon="shield-checkmark" />
+          ) : validMobile(whatsapp) ? (
+            <Btn label="Verify WhatsApp" tone="outline" icon="shield-outline" onPress={() => setWhatsappSheet(true)} />
           ) : (
             <Pressable
               onPress={() => set('whatsappNumber', loginMobile)}
@@ -849,13 +970,9 @@ function EditBody({ o, section }: { o: ConsoleOverview; section: SectionKey }) {
               ))}
             </View>
           </Section>
-          <Field
-            label="Year you started"
-            keyboardType="number-pad"
-            maxLength={4}
-            value={form.yearsInBusiness ? String(form.yearsInBusiness) : ''}
-            onChangeText={(value) => set('yearsInBusiness', Number(value.replace(/\D/g, '')) || 0)}
-            placeholder="e.g. 2012"
+          <EstablishmentDateField
+            year={Number(form.yearsInBusiness) || 0}
+            onChange={(value) => set('yearsInBusiness', value)}
             error={errors.yearsInBusiness}
           />
         </>
@@ -962,6 +1079,16 @@ const useStyles = createConsoleStyles((c) => ({
     justifyContent: 'center',
     backgroundColor: c.primary,
   },
+  ideas: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  idea: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: c.line,
+    backgroundColor: c.card,
+  },
+  ideaText: { fontFamily: fonts.medium, fontSize: 12.5, color: c.body },
   option: { paddingVertical: 14, borderBottomWidth: 0.5, borderBottomColor: c.line },
   optionPressed: { backgroundColor: c.sunken },
   optionText: { fontFamily: fonts.regular, fontSize: 15.5, color: c.ink },

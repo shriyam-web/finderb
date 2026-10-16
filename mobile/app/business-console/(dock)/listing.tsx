@@ -188,6 +188,11 @@ function ListingBody({ o }: { o: ConsoleOverview }) {
                   <Text style={styles.sectionTitle}>{row.label}</Text>
                   {row.verified ? (
                     <Ionicons name="shield-checkmark" size={16} color="#059669" accessibilityLabel="Verified" />
+                  ) : row.verified === false && row.value !== 'Not set' ? (
+                    <View style={styles.unverifiedMark} accessibilityLabel="Not verified">
+                      <Ionicons name="shield" size={16} color="#E11D48" />
+                      <Ionicons name="close" size={9} color="#FFFFFF" style={styles.unverifiedX} />
+                    </View>
                   ) : null}
                   {row.missing ? <Tag label="Add" tone="warning" /> : null}
                 </View>
@@ -415,6 +420,8 @@ const useStyles = createConsoleStyles((c) => ({
   },
   sectionIconGap: { backgroundColor: c.warningSoft },
   sectionHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  unverifiedMark: { width: 16, height: 16, alignItems: 'center', justifyContent: 'center' },
+  unverifiedX: { position: 'absolute' },
   sectionTitle: { fontFamily: fonts.semiBold, fontSize: 15, color: c.ink },
   sectionSummary: { marginTop: 2, fontFamily: fonts.regular, fontSize: 13, color: c.muted },
   deleteHint: { fontFamily: fonts.regular, fontSize: 13, lineHeight: 19, color: c.muted, marginBottom: 12 },

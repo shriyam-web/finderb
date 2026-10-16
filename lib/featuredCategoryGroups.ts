@@ -112,11 +112,12 @@ export function buildFeaturedCategoryGroups(
         collectDescendantNames(parent.id, childrenByParent),
         businessLabels
       );
+      if (merchantCount === 0) return null;
+
       const subs = childrenByParent.get(parent.id) ?? [];
       const parentIcon = dbSymbol(parent.symbol) ?? '';
 
       if (subs.length === 0) {
-        if (merchantCount === 0) return null;
 
         return {
           id: parent.id,

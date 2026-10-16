@@ -36,6 +36,7 @@ import {
   markJobApplied,
 } from '../../../lib/jobApplications';
 import { SITE_URL } from '../../../lib/supabase';
+import { JOB_LISTING_DISCLAIMER } from '../../../lib/jobDisclaimer';
 
 function param(value: string | string[] | undefined): string {
   return typeof value === 'string'
@@ -67,6 +68,10 @@ export default function JobDetailScreen() {
   const [formError, setFormError] = useState('');
   const [formSuccess, setFormSuccess] = useState(false);
   const [alreadyApplied, setAlreadyApplied] = useState(false);
+  const [cv, setCv] = useState<{ uri: string; name: string; mime: string } | null>(null);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportReason, setReportReason] = useState('');
+  const [reportNote, setReportNote] = useState('');
   const latestId = useRef(id);
 
   const load = useCallback(async () => {
@@ -177,6 +182,7 @@ export default function JobDetailScreen() {
       email,
       phone,
       message,
+      cv,
     });
     setSubmitting(false);
     if (!result.success) {
@@ -297,6 +303,17 @@ export default function JobDetailScreen() {
                     about responsibilities and requirements.
                   </Text>
                 )}
+                <View style={styles.disclaimer}>
+                  <Text style={styles.disclaimerTitle}>{JOB_LISTING_DISCLAIMER.title}</Text>
+                  {JOB_LISTING_DISCLAIMER.paragraphs.map((paragraph) => (
+                    <Text key={paragraph} style={styles.disclaimerBody}>
+                      {paragraph}
+                    </Text>
+                  ))}
+                </View>
+                <Pressable onPress={() => setReportOpen(true)} style={styles.reportBtn}>
+                  <Text style={styles.reportText}>Report this job</Text>
+                </Pressable>
               </View>
 
               <Text style={styles.tipText}>
@@ -425,6 +442,35 @@ export default function JobDetailScreen() {
                   style={[styles.input, styles.textarea]}
                 />
 
+                <Text style={styles.label}>CV (PDF, DOC, or DOCX)</Text>
+                <Pressable
+                  onPress={() => {
+                    void (async () => {
+                      const DocumentPicker = await import('expo-document-picker');
+                      const picked = await DocumentPicker.getDocumentAsync({
+                        type: [
+                          'application/pdf',
+                          'application/msword',
+                          'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                        ],
+                        copyToCacheDirectory: true,
+                      });
+                      if (picked.canceled || !picked.assets?.[0]) return;
+                      const asset = picked.assets[0];
+                      const name = asset.name || 'cv.pdf';
+                      if (!/\.(pdf|doc|docx)$/i.test(name)) {
+                        setFormError('Upload a PDF, DOC, or DOCX only.');
+                        return;
+                      }
+                      setFormError('');
+                      setCv({ uri: asset.uri, name, mime: asset.mimeType || 'application/octet-stream' });
+                    })();
+                  }}
+                  style={styles.input}
+                >
+                  <Text style={styles.body}>{cv ? cv.name : 'Attach your CV'}</Text>
+                </Pressable>
+
                 <Pressable
                   onPress={() => void onSubmit()}
                   disabled={submitting}
@@ -446,6 +492,51 @@ export default function JobDetailScreen() {
               </ScrollView>
             )}
           </KeyboardAvoidingView>
+        </SafeAreaView>
+      </Modal>
+
+      <Modal visible={reportOpen} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setReportOpen(false)}>
+        <SafeAreaView style={styles.modalRoot} edges={['top', 'bottom']}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Report this job</Text>
+            <Pressable onPress={() => setReportOpen(false)} hitSlop={8}>
+              <Ionicons name="close" size={22} color={colors.ink} />
+            </Pressable>
+          </View>
+          <View style={styles.form}>
+            <Text style={styles.label}>Reason</Text>
+            <TextInput
+              value={reportReason}
+              onChangeText={setReportReason}
+              placeholder="What is wrong with this posting?"
+              placeholderTextColor={colors.textSoft}
+              multiline
+              style={[styles.input, styles.textarea]}
+            />
+            {reportNote ? <Text style={styles.successText}>{reportNote}</Text> : null}
+            <Pressable
+              style={styles.applyBtn}
+              onPress={() => {
+                void (async () => {
+                  if (!job) return;
+                  const res = await fetch(`${SITE_URL}/api/jobs/report`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+                    body: JSON.stringify({ jobId: job.id, reason: reportReason }),
+                  });
+                  const data = (await res.json().catch(() => null)) as { success?: boolean; error?: string } | null;
+                  if (!data?.success) {
+                    setReportNote(data?.error || 'Could not send this report.');
+                    return;
+                  }
+                  setReportNote('Report sent. FinderB will review this posting.');
+                  setReportReason('');
+                })();
+              }}
+            >
+              <Text style={styles.applyBtnText}>Submit report</Text>
+            </Pressable>
+          </View>
         </SafeAreaView>
       </Modal>
     </View>
@@ -536,6 +627,17 @@ const useStyles = createThemedStyles((colors) => ({
     color: colors.success,
   },
   section: { gap: 8 },
+  disclaimer: {
+    marginTop: 16,
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: colors.surface,
+    gap: 8,
+  },
+  disclaimerTitle: { fontFamily: fonts.semiBold, fontSize: 13, color: colors.heading },
+  disclaimerBody: { fontFamily: fonts.regular, fontSize: 12.5, lineHeight: 18, color: colors.textMuted },
+  reportBtn: { marginTop: 8, alignSelf: 'flex-start' },
+  reportText: { fontFamily: fonts.semiBold, fontSize: 13, color: '#b42318' },
   sectionTitle: {
     fontFamily: fonts.semiBold,
     fontSize: 16,

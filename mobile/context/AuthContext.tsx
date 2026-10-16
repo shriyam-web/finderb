@@ -28,9 +28,13 @@ import { registerDevicePushToken } from '../lib/pushNotifications';
 import { stampNotificationSince } from '../lib/notificationInbox';
 import { setPreferredShell } from '../lib/preferredShell';
 
+type LoginRoleNotice = 'business' | 'user';
+
 type AuthContextValue = {
   user: AuthUser | null;
   loading: boolean;
+  loginRoleNotice: LoginRoleNotice | null;
+  clearLoginRoleNotice: () => void;
   signIn: (email: string, password: string) => Promise<AuthResult>;
   signUp: (input: {
     fullName: string;
@@ -57,6 +61,8 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loginRoleNotice, setLoginRoleNotice] = useState<LoginRoleNotice | null>(null);
+  const clearLoginRoleNotice = useCallback(() => setLoginRoleNotice(null), []);
 
   const refresh = useCallback(async () => {
     try {
@@ -125,7 +131,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const applySuccess = useCallback(async (result: AuthResult): Promise<AuthResult> => {
+  const applySuccess = useCallback(async (result: AuthResult, announceRole = false): Promise<AuthResult> => {
     if (!result.success) return result;
     try {
       await saveSession(result.token, result.user);
@@ -133,6 +139,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { success: false, error: 'Could not save your sign-in on this phone. Please try again.' };
     }
     setUser(result.user);
+    if (announceRole) {
+      setLoginRoleNotice(result.user.isBusinessAccount ? 'business' : 'user');
+    }
     await clearGuestMode().catch(() => undefined);
     if (result.isNewUser) {
       await stampNotificationSince(result.user.id, result.user.createdAt).catch(() => undefined);
@@ -145,9 +154,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     () => ({
       user,
       loading,
+      loginRoleNotice,
+      clearLoginRoleNotice,
       signIn: async (email, password) =>
         applySuccess(
           await loginWithPassword(email.trim().toLowerCase(), password.trim()),
+          true,
         ),
       signUp: async (input) =>
         applySuccess(
@@ -156,12 +168,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             email: input.email.trim().toLowerCase(),
             password: input.password.trim(),
           }),
+          true,
         ),
-      signInWithGoogle: async () => applySuccess(await loginWithGoogle()),
-      signInWithTruecaller: async () => applySuccess(await loginWithTruecaller()),
-      applyAuthResult: applySuccess,
+      signInWithGoogle: async () => applySuccess(await loginWithGoogle(), true),
+      signInWithTruecaller: async () => applySuccess(await loginWithTruecaller(), true),
+      applyAuthResult: async (result) => applySuccess(result, true),
       updateProfile: async (patch) => applySuccess(await updateMobileProfile(patch)),
       signOut: async () => {
+        setLoginRoleNotice(null);
         await clearSession();
         await clearGuestMode();
         await setPreferredShell('user').catch(() => undefined);
@@ -169,7 +183,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
       refresh,
     }),
-    [user, loading, applySuccess, refresh],
+    [user, loading, loginRoleNotice, clearLoginRoleNotice, applySuccess, refresh],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

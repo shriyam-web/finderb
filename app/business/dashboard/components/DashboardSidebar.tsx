@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import Link from 'next/link';
+import PreviewProfileLink from '@/components/business/PreviewProfileLink';
 import Image from 'next/image';
 import MerchantRechargeButton from '@/components/business/MerchantRechargeButton';
 import { PricingPlanIcon } from '@/components/pricing/PricingPlanIcon';
@@ -207,15 +208,13 @@ export default function DashboardSidebar({
   const footerLinks = (
     <div className="shrink-0 border-t border-zinc-200 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
       {businessProfilePath && (
-        <Link
+        <PreviewProfileLink
           href={businessProfilePath}
-          target="_blank"
-          onClick={onClose}
-          className="flex items-center gap-2 rounded-md px-2 py-2 text-sm text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900"
+          className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900"
         >
           <HiOutlineArrowTopRightOnSquare size={16} />
           Public profile
-        </Link>
+        </PreviewProfileLink>
       )}
       <Link
         href="/"

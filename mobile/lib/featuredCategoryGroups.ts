@@ -74,9 +74,9 @@ export function buildHomeFeaturedGroups(
 
   const groups: HomeCategory[] = [];
   for (const parent of parents) {
+    if ((parent.businessCount || 0) === 0) continue;
     const kids = byParent.get(parent.id) ?? [];
     if (kids.length === 0) {
-      if ((parent.businessCount || 0) === 0) continue;
       groups.push({
         ...parent,
         queryName: parent.name,

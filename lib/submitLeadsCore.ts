@@ -13,6 +13,8 @@ import {
 import { escapeIlikePattern } from '@/lib/searchMatch';
 import { recordMerchantNotification } from '@/lib/merchantAlert.server';
 import { queueBusinessPush } from '@/lib/userNotifications.server';
+import { pickPublicBusinessEmail } from '@/lib/placeholderEmail';
+import { sendNewLeadEmail } from '@/lib/email/sendNewLeadEmail';
 
 const LEADS_URL = '/business/dashboard?tab=leads';
 
@@ -55,7 +57,7 @@ export async function recordDirectLeadForActor(params: {
     const supabase = dbClient() ?? createClient(await cookies());
     const { data: business, error: businessError } = await supabase
       .from('Business')
-      .select('category')
+      .select('category, businessName, displayName, email, workEmail, emailVerified')
       .eq('id', businessId)
       .maybeSingle();
 
@@ -113,6 +115,7 @@ export async function recordDirectLeadForActor(params: {
       url: LEADS_URL,
       notificationId: notificationId || undefined,
     });
+    await emailVerifiedLead(business, leadTitle, leadBody);
     return { success: true, duplicate: false };
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : 'Could not record lead';
@@ -216,10 +219,52 @@ export async function submitBroadcastEnquiryForUser(data: {
       });
     }
 
+    await emailVerifiedLeads([...merchantIds], enquiryTitle, enquiryBody);
     return { success: true, merchantCount: merchantIds.size };
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : 'Failed to submit enquiry';
     console.error('Submit Broadcast Enquiry Error:', error);
     return { success: false, error: msg };
+  }
+}
+
+type LeadMailBusiness = {
+  businessName?: string | null;
+  displayName?: string | null;
+  email?: string | null;
+  workEmail?: string | null;
+  emailVerified?: boolean | null;
+};
+
+async function emailVerifiedLead(
+  business: LeadMailBusiness,
+  title: string,
+  body: string,
+) {
+  if (!business.emailVerified) return;
+  const to = pickPublicBusinessEmail(business.workEmail, business.email);
+  if (!to) return;
+  try {
+    await sendNewLeadEmail({
+      to,
+      businessName: business.displayName || business.businessName || 'your business',
+      title,
+      body,
+    });
+  } catch (error) {
+    console.error('[lead email]', error);
+  }
+}
+
+async function emailVerifiedLeads(businessIds: string[], title: string, body: string) {
+  if (!businessIds.length) return;
+  const supabase = dbClient();
+  if (!supabase) return;
+  const { data } = await supabase
+    .from('Business')
+    .select('businessName, displayName, email, workEmail, emailVerified')
+    .in('id', businessIds);
+  for (const row of data || []) {
+    await emailVerifiedLead(row, title, body);
   }
 }

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   Modal,
@@ -137,6 +138,15 @@ export default function BusinessRegisterScreen() {
   const [mobileOtpSending, setMobileOtpSending] = useState(false);
   const [mobileOtpVerifying, setMobileOtpVerifying] = useState(false);
   const mobileOtp = useOtpCooldown();
+  const [useMobileForWhatsApp, setUseMobileForWhatsApp] = useState(true);
+  const [whatsapp, setWhatsapp] = useState('');
+  const [whatsappCode, setWhatsappCode] = useState('');
+  const [whatsappProof, setWhatsappProof] = useState('');
+  const [whatsappProofFor, setWhatsappProofFor] = useState('');
+  const [whatsappOtpSending, setWhatsappOtpSending] = useState(false);
+  const [whatsappOtpVerifying, setWhatsappOtpVerifying] = useState(false);
+  const whatsappOtp = useOtpCooldown();
+  const scrollRef = useRef<ScrollView>(null);
   const [form, setForm] = useState({
     fullName: '',
     mobile: '',
@@ -329,6 +339,54 @@ export default function BusinessRegisterScreen() {
   const mobileVerified = Boolean(mobileProof) && mobileProofFor === form.mobile;
   const mobileCodeOpen = mobileOtp.isSentTo(form.mobile);
   const mobileCodeWaiting = mobileOtp.isWaiting(form.mobile);
+  const whatsappDigits = useMobileForWhatsApp
+    ? form.mobile
+    : mobileInputDigits(whatsapp, whatsapp, '91');
+  const whatsappOk = /^[6-9]\d{9}$/.test(whatsappDigits);
+  const whatsappVerified = useMobileForWhatsApp
+    ? mobileVerified
+    : Boolean(whatsappProof) && whatsappProofFor === whatsappDigits && whatsappOk;
+  const whatsappCodeOpen = whatsappOtp.isSentTo(whatsappDigits);
+  const whatsappCodeWaiting = whatsappOtp.isWaiting(whatsappDigits);
+
+  const setSameWhatsApp = (same: boolean) => {
+    setUseMobileForWhatsApp(same);
+    setError('');
+    setWhatsappCode('');
+    setWhatsappProof('');
+    setWhatsappProofFor('');
+    if (!same) setWhatsapp('');
+  };
+
+  const sendWhatsappCode = async () => {
+    if (useMobileForWhatsApp || !whatsappOk || whatsappVerified || whatsappCodeWaiting || whatsappOtpSending) return;
+    setError('');
+    setWhatsappCode('');
+    setWhatsappOtpSending(true);
+    const result = await requestBusinessPhoneOtp(whatsappDigits);
+    setWhatsappOtpSending(false);
+    if (!result.success) {
+      setError(result.error);
+      return;
+    }
+    whatsappOtp.markSent(whatsappDigits);
+  };
+
+  const verifyWhatsappCode = async (value = whatsappCode) => {
+    if (value.length !== 6 || whatsappOtpVerifying) return;
+    setError('');
+    setWhatsappOtpVerifying(true);
+    const result = await verifyBusinessPhoneOtp(whatsappDigits, value);
+    setWhatsappOtpVerifying(false);
+    if (!result.success || !result.phoneVerificationToken) {
+      setWhatsappCode('');
+      setError(result.success ? 'Could not verify that WhatsApp number.' : result.error);
+      return;
+    }
+    setWhatsappProof(result.phoneVerificationToken);
+    setWhatsappProofFor(whatsappDigits);
+    setWhatsappCode('');
+  };
 
   const sendMobileCode = async () => {
     if (!mobileOk || country.iso !== 'IN' || mobileCodeWaiting || mobileOtpSending) return;
@@ -470,6 +528,20 @@ export default function BusinessRegisterScreen() {
     setStep(next);
   };
 
+  useEffect(() => {
+    Keyboard.dismiss();
+    const jump = () => scrollRef.current?.scrollTo({ x: 0, y: 0, animated: false });
+    jump();
+    const frame = requestAnimationFrame(jump);
+    const later = setTimeout(jump, 80);
+    const afterKeyboard = setTimeout(jump, 280);
+    return () => {
+      cancelAnimationFrame(frame);
+      clearTimeout(later);
+      clearTimeout(afterKeyboard);
+    };
+  }, [step]);
+
   const goBack = () => {
     setError('');
     if (step === 2) setStep(1);
@@ -550,12 +622,28 @@ export default function BusinessRegisterScreen() {
       setError('Enter the name on the signboard.');
       return;
     }
+    if (form.businessName.trim().length > 50) {
+      setError('Business name must be 50 characters or fewer.');
+      return;
+    }
     if (!parent) {
       setError('Pick a category.');
       return;
     }
     if (subs.length > 0 && !sub) {
       setError('Pick a subcategory.');
+      return;
+    }
+    if (!whatsappOk) {
+      setError('Enter a 10-digit WhatsApp number starting with 6, 7, 8, or 9.');
+      return;
+    }
+    if (!whatsappVerified) {
+      setError(
+        useMobileForWhatsApp
+          ? 'Verify your mobile number first — it will be used as your WhatsApp number.'
+          : 'Verify your WhatsApp number with the OTP before continuing.',
+      );
       return;
     }
     setError('');
@@ -615,7 +703,8 @@ export default function BusinessRegisterScreen() {
       phoneVerificationToken: mobileVerified ? mobileProof : '',
       password: form.password.trim(),
       mobile: form.mobile,
-      whatsappNumber: form.mobile,
+      whatsappNumber: whatsappDigits,
+      whatsappVerificationToken: useMobileForWhatsApp ? undefined : whatsappProof,
       businessName: form.businessName.trim(),
       displayName: form.businessName.trim(),
       category: categoryLabel,
@@ -634,6 +723,8 @@ export default function BusinessRegisterScreen() {
       if (result.taken) {
         takenCache.set(takenKey(result.taken, result.taken === 'email' ? form.email : form.mobile), 'taken');
         setStep(1);
+      } else if (/whatsapp number/i.test(result.error || '')) {
+        setStep(2);
       } else if (/whatsapp otp|mobile verification/i.test(result.error || '')) {
         setMobileProof('');
         setStep(1);
@@ -673,10 +764,15 @@ export default function BusinessRegisterScreen() {
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
       >
         <ScrollView
-          contentContainerStyle={[styles.scroll, { paddingBottom: bottomPad }]}
+          key={`register-step-${step}`}
+          ref={scrollRef}
+          contentContainerStyle={[styles.scroll, { paddingBottom: bottomPad + 16 }]}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.topBar}>
@@ -1042,11 +1138,135 @@ export default function BusinessRegisterScreen() {
 
           {step === 2 ? (
             <>
+              {Platform.OS === 'ios' ? (
+                <Pressable
+                  style={styles.toggle}
+                  onPress={() => setSameWhatsApp(!useMobileForWhatsApp)}
+                  accessibilityRole="checkbox"
+                  accessibilityState={{ checked: useMobileForWhatsApp }}
+                >
+                  <Ionicons
+                    name={useMobileForWhatsApp ? 'checkbox' : 'square-outline'}
+                    size={22}
+                    color={useMobileForWhatsApp ? biz.blue : biz.faint}
+                  />
+                  <Text style={styles.toggleText}>Use my mobile number for WhatsApp</Text>
+                </Pressable>
+              ) : (
+                <Pressable
+                  style={styles.toggle}
+                  onPress={() => setSameWhatsApp(!useMobileForWhatsApp)}
+                  accessibilityRole="checkbox"
+                  accessibilityState={{ checked: !useMobileForWhatsApp }}
+                >
+                  <Ionicons
+                    name={!useMobileForWhatsApp ? 'checkbox' : 'square-outline'}
+                    size={22}
+                    color={!useMobileForWhatsApp ? biz.blue : biz.faint}
+                  />
+                  <Text style={styles.toggleText}>I have a different WhatsApp number</Text>
+                </Pressable>
+              )}
+              <AuthField
+                fontFamily={UI}
+                label={whatsappVerified ? 'Verified WhatsApp' : 'WhatsApp number'}
+                value={useMobileForWhatsApp ? form.mobile : whatsapp}
+                onChangeText={(v) => {
+                  setWhatsapp(mobileInputDigits(v, whatsapp, '91'));
+                  setWhatsappProof('');
+                  setWhatsappProofFor('');
+                  setError('');
+                }}
+                placeholder="WhatsApp number"
+                keyboardType="phone-pad"
+                editable={!useMobileForWhatsApp && !whatsappVerified}
+                dimmed={useMobileForWhatsApp || whatsappVerified}
+                maxLength={PHONE_INPUT_MAX_LENGTH}
+                leftSlot={
+                  <View style={dialStyles.btn}>
+                    <Text style={dialStyles.flag}>{flagEmoji('IN')}</Text>
+                    <Text style={[dialStyles.code, { color: biz.ink }]}>+91</Text>
+                  </View>
+                }
+                rightSlot={
+                  whatsappVerified ? (
+                    <Ionicons name="checkmark-circle" size={22} color={biz.success} />
+                  ) : useMobileForWhatsApp ? null : (
+                    <Pressable
+                      onPress={() => void sendWhatsappCode()}
+                      disabled={whatsappOtpSending || whatsappCodeWaiting || !whatsappOk}
+                      style={[
+                        styles.otpInline,
+                        styles.otpInlineWhatsApp,
+                        (whatsappOtpSending || whatsappCodeWaiting || !whatsappOk) && styles.disabled,
+                      ]}
+                    >
+                      <Text style={styles.otpInlineText}>
+                        {whatsappOtpSending
+                          ? '…'
+                          : otpSendLabel(whatsappCodeOpen, whatsappCodeWaiting, whatsappOtp.secondsLeft)}
+                      </Text>
+                    </Pressable>
+                  )
+                }
+              />
+              {whatsappVerified ? (
+                <Text style={styles.otpHint}>
+                  {useMobileForWhatsApp
+                    ? 'This verified mobile will be used as your WhatsApp number.'
+                    : 'WhatsApp number verified.'}
+                </Text>
+              ) : useMobileForWhatsApp ? (
+                <Text style={styles.otpLead}>
+                  {mobileVerified
+                    ? 'This verified mobile will be used as your WhatsApp number.'
+                    : 'Verify your mobile first. We will use it as your WhatsApp number.'}
+                </Text>
+              ) : whatsappCodeOpen ? (
+                <View style={styles.otpBox}>
+                  <Text style={styles.otpSentText}>
+                    OTP has been sent to the WhatsApp account linked to{' '}
+                    <Text style={styles.otpSentPhone}>
+                      +91 {whatsappDigits.slice(0, 5)} {whatsappDigits.slice(5)}
+                    </Text>
+                  </Text>
+                  <OtpCodeBoxes
+                    value={whatsappCode}
+                    onChange={(value) => {
+                      setWhatsappCode(value);
+                      setError('');
+                    }}
+                    onComplete={(value) => void verifyWhatsappCode(value)}
+                    disabled={whatsappOtpVerifying}
+                    autoFocus
+                  />
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.otpWhatsAppBtn,
+                      pressed && styles.pressed,
+                      (whatsappOtpVerifying || whatsappCode.length !== 6) && styles.disabled,
+                    ]}
+                    disabled={whatsappOtpVerifying || whatsappCode.length !== 6}
+                    onPress={() => void verifyWhatsappCode()}
+                  >
+                    {whatsappOtpVerifying ? (
+                      <ActivityIndicator color="#FFFFFF" />
+                    ) : (
+                      <Text style={styles.otpWhatsAppBtnText}>Verify WhatsApp</Text>
+                    )}
+                  </Pressable>
+                </View>
+              ) : (
+                <Text style={styles.otpLead}>
+                  Customers will message this number. Tap Send OTP to confirm it on WhatsApp.
+                </Text>
+              )}
               <AuthField fontFamily={UI}
                 label="Business name"
                 value={form.businessName}
                 onChangeText={(v) => set('businessName', v)}
                 placeholder="Name on the signboard"
+                maxLength={50}
               />
               <AuthField
                 fontFamily={UI}

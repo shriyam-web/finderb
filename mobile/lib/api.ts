@@ -21,8 +21,11 @@ import { consoleCall, isFailure } from './merchantConsoleApi';
 /** Job listings have a dedicated home shelf; other parents match the website. */
 const EXCLUDED_HOME_CATEGORY_SLUGS = new Set(['job']);
 
+/** Public listing columns only — anon GRANT in supabase/security_lockdown.sql. Extra columns 400 the whole query. */
 const MERCHANT_SELECT =
-  'id, slug, businessName, displayName, category, location, city, state, about, profilePictureUrl, images, publicPhone, mobile, email, workEmail, website, whatsappNumber, instagramUrl, facebookUrl, youtubeUrl, review, isFinderBVerified, hasVerifiedBadge, discountRange, status, latitude, longitude, timings, serviceCategory, keywords, paymentModes, businessAddress, yearsInBusiness, emailVerified, mobileVerified, whatsappVerified';
+  'id, slug, businessName, displayName, category, location, city, state, about, profilePictureUrl, images, publicPhone, mobile, email, workEmail, website, whatsappNumber, instagramUrl, facebookUrl, youtubeUrl, review, isFinderBVerified, hasVerifiedBadge, discountRange, status, latitude, longitude, timings, serviceCategory, keywords, paymentModes, businessAddress, yearsInBusiness, createdAt';
+
+const MERCHANT_SELECT_WITH_FLAGS = `${MERCHANT_SELECT}, emailVerified, mobileVerified, whatsappVerified`;
 
 const CATEGORY_SELECT =
   'id, name, slug, symbol, banner, items_count, position, status, parent_id, level';
@@ -1399,7 +1402,8 @@ export async function fetchMerchantBySlugOrId(
   merchant: Merchant | null;
   error?: string;
 }> {
-  if (!isSupabaseConfigured || !supabase) {
+  const client = supabase;
+  if (!isSupabaseConfigured || !client) {
     return { merchant: null, error: 'Supabase is not configured' };
   }
 
@@ -1414,30 +1418,30 @@ export async function fetchMerchantBySlugOrId(
     }
   }
 
-  const bySlug = await supabase
-    .from('Business')
-    .select(MERCHANT_SELECT)
-    .eq('slug', key)
-    .eq('status', 'Active')
-    .maybeSingle();
-
-  if (bySlug.data) {
-    return { merchant: mapMerchantRow(bySlug.data as Record<string, unknown>) };
-  }
-
-  const byId = await supabase
-    .from('Business')
-    .select(MERCHANT_SELECT)
-    .eq('id', key)
-    .eq('status', 'Active')
-    .maybeSingle();
-
-  if (byId.data) {
-    return { merchant: mapMerchantRow(byId.data as Record<string, unknown>) };
-  }
-
-  return {
-    merchant: null,
-    error: bySlug.error?.message || byId.error?.message || 'Merchant not found',
+  const loadRow = async (column: 'slug' | 'id') => {
+    const flagged = await client
+      .from('Business')
+      .select(MERCHANT_SELECT_WITH_FLAGS)
+      .eq(column, key)
+      .eq('status', 'Active')
+      .maybeSingle();
+    if (!flagged.error) return flagged.data;
+    const message = flagged.error.message || '';
+    if (!/emailVerified|mobileVerified|whatsappVerified/i.test(message)) return null;
+    const plain = await client
+      .from('Business')
+      .select(MERCHANT_SELECT)
+      .eq(column, key)
+      .eq('status', 'Active')
+      .maybeSingle();
+    return plain.data;
   };
+
+  const bySlug = await loadRow('slug');
+  if (bySlug) return { merchant: mapMerchantRow(bySlug as Record<string, unknown>) };
+
+  const byId = await loadRow('id');
+  if (byId) return { merchant: mapMerchantRow(byId as Record<string, unknown>) };
+
+  return { merchant: null, error: 'Merchant not found' };
 }

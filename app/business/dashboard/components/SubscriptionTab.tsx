@@ -115,6 +115,7 @@ export default function SubscriptionTab({
   const [error, setError] = useState('');
   const [subscription, setSubscription] = useState<SubscriptionView | null>(null);
   const [history, setHistory] = useState<MerchantPaymentHistoryItem[]>([]);
+  const [historyCount, setHistoryCount] = useState(10);
   const [cancelMessage, setCancelMessage] = useState<string | null>(null);
   const [cancelling, setCancelling] = useState(false);
 
@@ -309,7 +310,40 @@ export default function SubscriptionTab({
             )}
           </dl>
 
-          {showRenewCta && (
+          {subscription.isActive && subscription.billingCycle === 'annual' && subscription.canRenew ? (
+            <div className="border-t border-zinc-100 py-4">
+              <p className="text-sm text-zinc-600">
+                Pro stays as it is. A renewal starts after {subscription.expiresAtDisplay || 'this plan ends'}, so the days you already paid are kept.
+              </p>
+              <Link
+                href={`/business/payment/${businessId}?checkout=1&billing=annual`}
+                className={`${dashboard.btnPrimary} mt-3 inline-flex`}
+              >
+                Renew Pro — {formatInr(GROWTH_PRO_OFFER_ANNUAL)}/yr
+              </Link>
+            </div>
+          ) : subscription.isActive && subscription.billingCycle === 'monthly' ? (
+            <div className="border-t border-zinc-100 py-4">
+              <p className="text-sm font-medium text-zinc-900">Yearly Pro</p>
+              <p className="mt-1 text-sm text-zinc-600">
+                {formatInr(Math.round(GROWTH_PRO_OFFER_ANNUAL / 12))} a month when you pay {formatInr(GROWTH_PRO_OFFER_ANNUAL)} for the year, instead of {formatInr(GROWTH_PRO_OFFER_MONTHLY)} every month. The Pro year starts after {subscription.expiresAtDisplay || 'Growth ends'}, so this month is not cut short.
+              </p>
+              <Link
+                href={`/business/payment/${businessId}?checkout=1&billing=annual`}
+                className={`${dashboard.btnPrimary} mt-3 inline-flex`}
+              >
+                Pay {formatInr(GROWTH_PRO_OFFER_ANNUAL)} for Pro
+              </Link>
+              {subscription.canRenew ? (
+                <Link
+                  href={`/business/payment/${businessId}?checkout=1&billing=monthly`}
+                  className={`${dashboard.btnSecondary} mt-2 inline-flex`}
+                >
+                  Renew Growth — {formatInr(GROWTH_PRO_OFFER_MONTHLY)}/mo
+                </Link>
+              ) : null}
+            </div>
+          ) : showRenewCta ? (
             <div className="flex flex-wrap gap-2 border-t border-zinc-100 py-4">
               <Link href={`/business/payment/${businessId}?checkout=1&billing=monthly`} className={dashboard.btnPrimary}>
                 Growth — {formatInr(GROWTH_PRO_OFFER_MONTHLY)}/mo
@@ -321,7 +355,7 @@ export default function SubscriptionTab({
                 Pro — {formatInr(GROWTH_PRO_OFFER_ANNUAL)}/yr
               </Link>
             </div>
-          )}
+          ) : null}
         </div>
       </section>
 
@@ -365,7 +399,7 @@ export default function SubscriptionTab({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-100">
-                  {history.map((item) => (
+                  {history.slice(0, historyCount).map((item) => (
                     <tr key={item.id}>
                       <td className="whitespace-nowrap px-5 py-3 text-zinc-700 md:px-6">
                         {formatDateTime(item.createdAt)}
@@ -396,6 +430,17 @@ export default function SubscriptionTab({
                   ))}
                 </tbody>
               </table>
+              {historyCount < history.length ? (
+                <div className="border-t border-zinc-100 px-5 py-3 md:px-6">
+                  <button
+                    type="button"
+                    onClick={() => setHistoryCount((count) => count + 10)}
+                    className="text-sm font-medium text-zinc-700 hover:underline"
+                  >
+                    Load more ({history.length - historyCount} left)
+                  </button>
+                </div>
+              ) : null}
             </div>
           )}
         </div>

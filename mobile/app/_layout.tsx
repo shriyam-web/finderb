@@ -1,4 +1,5 @@
 import 'react-native-gesture-handler';
+import '../lib/installLongFetch';
 import { useEffect } from 'react';
 import { Stack, useRouter, useSegments, type Href } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -10,6 +11,7 @@ import {
   initialWindowMetrics,
 } from 'react-native-safe-area-context';
 import { AuthProvider, useAuth } from '../context/AuthContext';
+import { LoginRoleToast } from '../components/LoginRoleToast';
 import { LocationProvider } from '../context/LocationContext';
 import { LoginPromptProvider } from '../context/LoginPromptContext';
 import { NotificationInboxProvider } from '../context/NotificationInboxContext';
@@ -228,6 +230,7 @@ export default function RootLayout() {
             <NotificationInboxProvider>
               <LocationProvider>
                 <RootNavigator />
+                <LoginRoleToast />
               </LocationProvider>
             </NotificationInboxProvider>
           </LoginPromptProvider>

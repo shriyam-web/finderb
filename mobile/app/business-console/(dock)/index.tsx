@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Pressable, Share, Text, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Modal, Pressable, ScrollView, Share, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter, type Href } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -23,7 +23,6 @@ import {
   createConsoleStyles,
   timeAgo,
 } from '../../../components/console/kit';
-import { useConsoleSearch } from '../../../components/console/ConsoleSearch';
 import { LEAD_STATUS_TONE, pipelineOf } from '../../../components/console/leadStatus';
 import { LeadSourceBadge } from '../../../components/console/LeadSourceBadge';
 import { LISTING_SECTIONS } from '../../../components/console/listingSections';
@@ -273,13 +272,31 @@ function ShopCard({ o, go }: { o: ConsoleOverview; go: Go }) {
   );
 }
 
+const VIEW_RANGES = [
+  { id: 'today', label: 'Today', days: 1 },
+  { id: 'week', label: 'This week', days: 7 },
+  { id: '30', label: '30 days', days: 30 },
+  { id: '90', label: 'Past 3 months', days: 90 },
+] as const;
+
+function healthHref(id: string): Href {
+  if (id === 'subscription') return '/business-console/plan';
+  if (id === 'profile') return '/business-console/listing';
+  return '/business-console/account';
+}
+
 function Performance({ o, go }: { o: ConsoleOverview; go: Go }) {
   const styles = useStyles();
   const c = useConsoleColors();
   const s = o.stats;
+  const [rangeId, setRangeId] = useState<(typeof VIEW_RANGES)[number]['id']>('30');
+  const [menu, setMenu] = useState(false);
+  const range = VIEW_RANGES.find((item) => item.id === rangeId) ?? VIEW_RANGES[2];
+  const daily = s.viewsDaily.slice(-range.days);
+  const total = daily.reduce((sum, day) => sum + day.views, 0);
   // Average week across the 23 days before this one.
   const priorWeekly = (Math.max(0, s.views30d - s.views7d) * 7) / 23;
-  const trend = priorWeekly >= 1 ? Math.round(((s.views7d - priorWeekly) / priorWeekly) * 100) : null;
+  const trend = rangeId === '30' && priorWeekly >= 1 ? Math.round(((s.views7d - priorWeekly) / priorWeekly) * 100) : null;
   const figures = [
     { label: 'Today', value: n(s.viewsToday) },
     { label: '7 days', value: n(s.views7d) },
@@ -304,12 +321,21 @@ function Performance({ o, go }: { o: ConsoleOverview; go: Go }) {
   ];
 
   return (
+    <>
     <Panel>
       <View style={styles.perfHead}>
         <View style={styles.flex}>
-          <Text style={styles.label}>Profile views · 30 days</Text>
+        <Pressable
+          onPress={() => setMenu(true)}
+          style={styles.rangeBtn}
+          accessibilityRole="button"
+          accessibilityLabel={`Profile views, ${range.label}. Change period.`}
+        >
+          <Text style={styles.label}>Profile views · {range.label}</Text>
+          <Ionicons name="chevron-down" size={14} color={c.muted} />
+        </Pressable>
           <View style={styles.perfValueRow}>
-            <Text style={styles.perfValue}>{n(s.views30d)}</Text>
+            <Text style={styles.perfValue}>{n(total)}</Text>
             {trend != null ? (
               <View style={[styles.trend, { backgroundColor: trend >= 0 ? c.successSoft : c.dangerSoft }]}>
                 <Ionicons
@@ -326,7 +352,7 @@ function Performance({ o, go }: { o: ConsoleOverview; go: Go }) {
         </View>
       </View>
       <View style={styles.chart}>
-        <ViewsChart days={s.viewsDaily} />
+        <ViewsChart days={daily} />
       </View>
       <View style={styles.figures}>
         {figures.map((figure, index) => (
@@ -353,7 +379,126 @@ function Performance({ o, go }: { o: ConsoleOverview; go: Go }) {
           </Pressable>
         ))}
       </View>
+      <InsightCards o={o} />
     </Panel>
+    <Modal visible={menu} transparent animationType="fade" onRequestClose={() => setMenu(false)}>
+      <Pressable style={styles.menuScrim} onPress={() => setMenu(false)}>
+        <View style={styles.menuCard}>
+          <Text style={styles.menuTitle}>Show views for</Text>
+          {VIEW_RANGES.map((item) => {
+            const on = item.id === rangeId;
+            return (
+              <Pressable
+                key={item.id}
+                onPress={() => {
+                  setRangeId(item.id);
+                  setMenu(false);
+                }}
+                style={[styles.menuRow, on && styles.menuRowOn]}
+                accessibilityRole="button"
+                accessibilityState={{ selected: on }}
+              >
+                <Text style={[styles.menuLabel, on && styles.menuLabelOn]}>{item.label}</Text>
+                {on ? <Ionicons name="checkmark" size={16} color={c.primary} /> : null}
+              </Pressable>
+            );
+          })}
+        </View>
+      </Pressable>
+    </Modal>
+    </>
+  );
+}
+
+function MetricCarousel({
+  eyebrow,
+  value,
+  body,
+  tone,
+}: {
+  eyebrow: string;
+  value: string;
+  body: string;
+  tone: { color: string; backgroundColor: string; borderColor: string };
+}) {
+  const styles = useStyles();
+  const scroller = useRef<ScrollView>(null);
+  const [width, setWidth] = useState(0);
+  const [page, setPage] = useState(0);
+  const slides = [
+    { key: 'value', node: <Text style={[styles.insightValue, { color: tone.color }]}>{value}</Text> },
+    { key: 'body', node: <Text style={[styles.insight, { color: tone.color }]}>{body}</Text> },
+  ];
+
+  useEffect(() => {
+    if (!width) return;
+    const timer = setInterval(() => {
+      setPage((current) => {
+        const next = current === 0 ? 1 : 0;
+        scroller.current?.scrollTo({ x: next * width, animated: true });
+        return next;
+      });
+    }, 3800);
+    return () => clearInterval(timer);
+  }, [width]);
+
+  return (
+    <View onLayout={(event) => setWidth(event.nativeEvent.layout.width)}>
+      <Text style={[styles.insightEyebrow, { color: tone.color }]}>{eyebrow}</Text>
+      {width ? (
+        <ScrollView
+          ref={scroller}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          style={{ marginTop: 8 }}
+          onMomentumScrollEnd={(event) => setPage(Math.round(event.nativeEvent.contentOffset.x / width) === 1 ? 1 : 0)}
+        >
+          {slides.map((slide) => (
+            <View key={slide.key} style={[styles.insightCard, tone, { width, marginTop: 0 }]}>
+              {slide.node}
+            </View>
+          ))}
+        </ScrollView>
+      ) : (
+        <View style={[styles.insightCard, tone]}>{slides[0]?.node}</View>
+      )}
+      <View style={styles.insightDots}>
+        {slides.map((slide, index) => (
+          <View key={slide.key} style={[styles.insightDot, page === index && styles.insightDotOn]} />
+        ))}
+      </View>
+    </View>
+  );
+}
+
+function InsightCards({ o }: { o: ConsoleOverview }) {
+  const styles = useStyles();
+  const competitor = insightCardColors(competitorScoreIsGood(o.completion.percent, o.stats.competitorAverage));
+  const response = insightCardColors(leadResponseIsGood(o.stats.averageResponse, o.stats.averageResponseMs));
+  return (
+    <View style={styles.insightRow}>
+      <MetricCarousel
+        eyebrow="Average response"
+        value={o.stats.averageResponse || '—'}
+        body={
+          o.stats.averageResponse
+            ? 'This is how quickly you open new leads. Faster replies keep you ahead of nearby businesses.'
+            : 'Open new leads promptly. Your average response time appears after the first few replies.'
+        }
+        tone={response}
+      />
+      <MetricCarousel
+        eyebrow="Competitor score"
+        value={o.stats.competitorAverage != null ? `${o.stats.competitorAverage}%` : '—'}
+        body={
+          o.stats.competitorAverage != null
+            ? `Nearby competitors average ${o.stats.competitorAverage}% profile completion. You are at ${o.completion.percent}%.`
+            : `Competitor scores in your category are still coming in. You are at ${o.completion.percent}% complete.`
+        }
+        tone={competitor}
+      />
+    </View>
   );
 }
 
@@ -362,8 +507,11 @@ function MissingInfo({ o, go }: { o: ConsoleOverview; go: Go }) {
   const c = useConsoleColors();
   const pct = o.completion.percent;
   const missing = o.completion.missing;
-  const blocked = o.health.items.filter((item) => item.status === 'blocked' || item.status === 'review');
-  if (pct >= 100 && !blocked.length) return null;
+  const focus = o.health.items.filter((item) => item.id === 'subscription' || item.id === 'profile');
+  const blocked = o.health.items.filter(
+    (item) => item.id !== 'subscription' && item.id !== 'profile' && (item.status === 'blocked' || item.status === 'review'),
+  );
+  if (pct >= 100 && !focus.length && !blocked.length && !missing.length) return null;
   const shown = missing.slice(0, 6);
 
   return (
@@ -382,8 +530,37 @@ function MissingInfo({ o, go }: { o: ConsoleOverview; go: Go }) {
             <View style={[styles.meterFill, { width: `${Math.max(3, pct)}%` }]} />
           </View>
         </View>
+        {focus.map((item) => (
+          <Pressable
+            key={item.id}
+            onPress={() => go(healthHref(item.id))}
+            style={({ pressed }) => [styles.missingRow, styles.rowLine, pressed && styles.rowPressed]}
+            accessibilityRole="button"
+            accessibilityLabel={`${item.label}. ${item.detail}`}
+          >
+            <View style={[styles.missingIcon, { backgroundColor: item.status === 'complete' ? c.successSoft : item.status === 'blocked' ? c.dangerSoft : c.sunken }]}>
+              <Ionicons
+                name={item.id === 'subscription' ? 'call-outline' : 'storefront-outline'}
+                size={17}
+                color={item.status === 'complete' ? c.success : item.status === 'blocked' ? c.danger : c.body}
+              />
+            </View>
+            <View style={styles.flex}>
+              <Text style={styles.missingLabel}>{item.label}</Text>
+              <Text style={styles.missingDetail} numberOfLines={2}>
+                {item.detail}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color={c.faint} />
+          </Pressable>
+        ))}
         {blocked.map((item) => (
-          <View key={item.id} style={[styles.missingRow, styles.rowLine]}>
+          <Pressable
+            key={item.id}
+            onPress={() => go(healthHref(item.id))}
+            style={({ pressed }) => [styles.missingRow, styles.rowLine, pressed && styles.rowPressed]}
+            accessibilityRole="button"
+          >
             <View style={[styles.missingIcon, { backgroundColor: item.status === 'blocked' ? c.dangerSoft : c.sunken }]}>
               <Ionicons
                 name={item.status === 'blocked' ? 'close-circle-outline' : 'time-outline'}
@@ -397,7 +574,8 @@ function MissingInfo({ o, go }: { o: ConsoleOverview; go: Go }) {
                 {item.detail}
               </Text>
             </View>
-          </View>
+            <Ionicons name="chevron-forward" size={16} color={c.faint} />
+          </Pressable>
         ))}
         {shown.map((field) => (
           <Pressable
@@ -443,7 +621,7 @@ function RecentLeads({ o, go }: { o: ConsoleOverview; go: Go }) {
                   {lead.name || 'Customer'}
                 </Text>
                 <Text style={styles.leadMeta} numberOfLines={1}>
-                  {lead.locked ? 'Upgrade to see contact' : lead.phone || lead.email || lead.category}
+                  {lead.locked ? 'Upgrade to see contact' : lead.category || 'Customer enquiry'}
                   {lead.created_at ? ` · ${timeAgo(lead.created_at)}` : ''}
                 </Text>
               </View>
@@ -590,7 +768,6 @@ function HomeBody({ o }: { o: ConsoleOverview }) {
   const { refresh, refreshing } = useMerchantConsole();
   const [qrOpen, setQrOpen] = useState(false);
   const go: Go = (href) => openConsolePath(router, href);
-  const search = useConsoleSearch(o);
   const slides = bannersFor(o, go, () => setQrOpen(true));
   const firstName = (o.business.ownerName || '').trim().split(/\s+/)[0];
   const hour = new Date().getHours();
@@ -602,63 +779,19 @@ function HomeBody({ o }: { o: ConsoleOverview }) {
       brand
       hideBack
       right={
-        <>
-          {search.input}
-          <HeaderIcon
-            icon="notifications-outline"
-            label="Notifications"
-            badge={o.notifications.unread}
-            onPress={() => go('/business-console/alerts')}
-          />
-        </>
+        <HeaderIcon
+          icon="notifications-outline"
+          label="Notifications"
+          badge={o.notifications.unread}
+          onPress={() => go('/business-console/alerts')}
+        />
       }
-      overlay={search.overlay}
       docked
       refreshing={refreshing}
       onRefresh={() => void refresh()}
     >
       <Text style={styles.greeting}>{`${greeting}${firstName ? `, ${firstName}` : ''}`}</Text>
       <ShopCard o={o} go={go} />
-      <View style={styles.insightRow}>
-        <View
-          style={[
-            styles.insightCard,
-            insightCardColors(competitorScoreIsGood(o.completion.percent, o.stats.competitorAverage)),
-          ]}
-        >
-          <Text
-            style={[
-              styles.insight,
-              { color: insightCardColors(competitorScoreIsGood(o.completion.percent, o.stats.competitorAverage)).color },
-            ]}
-          >
-            {o.stats.competitorAverage != null
-              ? `Your competitors have an average profile completion score of ${o.stats.competitorAverage}%. You are at ${o.completion.percent}%. ${
-                  o.completion.percent < o.stats.competitorAverage
-                    ? 'Fill the missing details so you stay ahead in your category.'
-                    : 'Keep this up to stay ahead in your category.'
-                }`
-              : `We are still gathering competitor profile scores in your category. You are at ${o.completion.percent}% complete — finish the missing details so you stay ready.`}
-          </Text>
-        </View>
-        <View
-          style={[
-            styles.insightCard,
-            insightCardColors(leadResponseIsGood(o.stats.averageResponse, o.stats.averageResponseMs)),
-          ]}
-        >
-          <Text
-            style={[
-              styles.insight,
-              { color: insightCardColors(leadResponseIsGood(o.stats.averageResponse, o.stats.averageResponseMs)).color },
-            ]}
-          >
-            {o.stats.averageResponse
-              ? `Your average response time on leads so far is ${o.stats.averageResponse}.`
-              : 'Open new leads promptly — we will show your average response time after the first few replies.'}
-          </Text>
-        </View>
-      </View>
       {slides.length ? <AlertCarousel slides={slides} /> : null}
       <Section title="Performance">
         <Performance o={o} go={go} />
@@ -694,12 +827,25 @@ const useStyles = createConsoleStyles((c) => ({
   flex: { flex: 1, minWidth: 0 },
   greeting: { fontFamily: fonts.semiBold, fontSize: 16, color: c.ink, paddingHorizontal: 2, marginBottom: -4 },
   insight: { fontFamily: fonts.regular, fontSize: 13.5, lineHeight: 20, color: c.body },
-  insightRow: { gap: 8 },
-  insightCard: { padding: 14, borderRadius: 14, borderWidth: 1 },
+  insightRow: { gap: 8, marginTop: 12 },
+  insightCard: { padding: 16, borderRadius: 16, borderWidth: 1, minHeight: 132, justifyContent: 'center' },
+  insightEyebrow: { fontFamily: fonts.semiBold, fontSize: 12, letterSpacing: 0.4, textTransform: 'uppercase' },
+  insightValue: { marginTop: 6, fontFamily: fonts.semiBold, fontSize: 28 },
+  insightDots: { flexDirection: 'row', justifyContent: 'center', gap: 6, marginTop: 8 },
+  insightDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: c.lineStrong },
+  insightDotOn: { width: 16, backgroundColor: c.primary },
   pressed: { opacity: 0.75 },
   rowPressed: { backgroundColor: c.sunken },
   rowLine: { borderTopWidth: 1, borderTopColor: c.line },
   label: { fontFamily: fonts.regular, fontSize: 12.5, color: c.muted },
+  rangeBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start' },
+  menuScrim: { flex: 1, justifyContent: 'center', padding: 28, backgroundColor: 'rgba(24,24,27,0.4)' },
+  menuCard: { borderRadius: 16, backgroundColor: c.card, padding: 8 },
+  menuTitle: { paddingHorizontal: 12, paddingVertical: 8, fontFamily: fonts.semiBold, fontSize: 13, color: c.muted },
+  menuRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, paddingVertical: 12, borderRadius: 10 },
+  menuRowOn: { backgroundColor: c.sunken },
+  menuLabel: { fontFamily: fonts.medium, fontSize: 15, color: c.ink },
+  menuLabelOn: { fontFamily: fonts.semiBold, color: c.primary },
 
   warn: {
     flexDirection: 'row',

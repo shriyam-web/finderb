@@ -340,7 +340,8 @@ function completenessScore(m: Merchant): number {
 export function mapMerchantRow(row: Record<string, unknown>): Merchant {
   const displayName = String(row.displayName || '').trim();
   const businessName = String(row.businessName || '').trim();
-  const name = displayName || businessName || 'Business';
+  const rawName = displayName || businessName || 'Business';
+  const name = rawName.length <= 50 ? rawName : `${rawName.slice(0, 49).trimEnd()}…`;
   const reviews = parseReviews(row.review).filter((review) => !review.hidden);
   const { rating, reviewsCount } = ratingStats(reviews);
   const profile = firstUrl(row.profilePictureUrl);

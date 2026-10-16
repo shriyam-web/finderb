@@ -153,7 +153,7 @@ export default function MobileHome({
                   imageClassName="object-contain"
                 />
               </div>
-              <p className="line-clamp-2 text-center text-[11px] font-semibold leading-tight text-[#334155]">
+              <p className="line-clamp-2 text-center text-[10px] font-semibold leading-tight text-[#334155]">
                 {cat.name}
               </p>
             </Link>
@@ -165,7 +165,7 @@ export default function MobileHome({
             <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-[#f1f5f9]">
               <Grid3X3 size={22} className="text-[#64748b]" />
             </div>
-            <p className="text-center text-[11px] font-semibold text-[#334155]">More</p>
+            <p className="text-center text-[10px] font-semibold text-[#334155]">More</p>
           </Link>
         </div>
       </section>

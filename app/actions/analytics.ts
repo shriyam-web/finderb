@@ -66,44 +66,61 @@ export async function recordProfileView(businessId: string, sessionHash?: string
 export async function getBusinessProfileViewStats(businessId: string) {
   const session = await assertBusinessSession(businessId);
   if (!session.ok) {
-    return { success: false as const, error: 'Unauthorized', viewsLast30Days: 0, viewsAllTime: 0 };
+    return { success: false as const, error: 'Unauthorized', viewsToday: 0, viewsLast7Days: 0, viewsLast30Days: 0, viewsLast90Days: 0, viewsAllTime: 0 };
   }
 
   const supabase = createServiceClient();
   if (!supabase) {
-    return { success: true as const, viewsLast30Days: 0, viewsAllTime: 0, configured: false };
+    return { success: true as const, viewsToday: 0, viewsLast7Days: 0, viewsLast30Days: 0, viewsLast90Days: 0, viewsAllTime: 0, configured: false };
   }
 
   try {
-    const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+    const now = Date.now();
+    const istNow = now + 330 * 60 * 1000;
+    const todayStart = new Date(istNow - (istNow % (24 * 60 * 60 * 1000)) - 330 * 60 * 1000).toISOString();
+    const since7 = new Date(now - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const since30 = new Date(now - 30 * 24 * 60 * 60 * 1000).toISOString();
+    const since90 = new Date(now - 90 * 24 * 60 * 60 * 1000).toISOString();
 
-    const [last30Result, allTimeResult] = await Promise.all([
-      supabase
-        .from('profile_views')
-        .select('id', { count: 'exact', head: true })
-        .eq('business_id', businessId)
-        .gte('viewed_at', since),
-      supabase
-        .from('profile_views')
-        .select('id', { count: 'exact', head: true })
-        .eq('business_id', businessId),
+    const countSince = (since?: string) => {
+      let query = supabase.from('profile_views').select('id', { count: 'exact', head: true }).eq('business_id', businessId);
+      if (since) query = query.gte('viewed_at', since);
+      return query;
+    };
+
+    const [todayResult, last7Result, last30Result, last90Result, allTimeResult] = await Promise.all([
+      countSince(todayStart),
+      countSince(since7),
+      countSince(since30),
+      countSince(since90),
+      countSince(),
     ]);
 
-    if (isMissingTableError(last30Result.error, 'profile_views') || isMissingTableError(allTimeResult.error, 'profile_views')) {
-      return { success: true as const, viewsLast30Days: 0, viewsAllTime: 0, configured: false };
+    if (
+      isMissingTableError(todayResult.error, 'profile_views') ||
+      isMissingTableError(last30Result.error, 'profile_views') ||
+      isMissingTableError(allTimeResult.error, 'profile_views')
+    ) {
+      return { success: true as const, viewsToday: 0, viewsLast7Days: 0, viewsLast30Days: 0, viewsLast90Days: 0, viewsAllTime: 0, configured: false };
     }
 
+    if (todayResult.error) throw todayResult.error;
+    if (last7Result.error) throw last7Result.error;
     if (last30Result.error) throw last30Result.error;
+    if (last90Result.error) throw last90Result.error;
     if (allTimeResult.error) throw allTimeResult.error;
 
     return {
       success: true as const,
+      viewsToday: todayResult.count ?? 0,
+      viewsLast7Days: last7Result.count ?? 0,
       viewsLast30Days: last30Result.count ?? 0,
+      viewsLast90Days: last90Result.count ?? 0,
       viewsAllTime: allTimeResult.count ?? 0,
       configured: true,
     };
   } catch {
-    return { success: true as const, viewsLast30Days: 0, viewsAllTime: 0, configured: false };
+    return { success: true as const, viewsToday: 0, viewsLast7Days: 0, viewsLast30Days: 0, viewsLast90Days: 0, viewsAllTime: 0, configured: false };
   }
 }
 

@@ -4,8 +4,8 @@ import { createHash, randomBytes } from 'crypto';
 import { createServiceClient } from '@/lib/supabase/service';
 import { SITE_URL } from '@/lib/businessSeo';
 import { sendTeamInviteEmail } from '@/lib/email/sendTeamInviteEmail';
-import { sendTeamInviteWhatsApp } from '@/lib/whatsapp/sendTeamInviteWhatsApp';
 import { extractIndianMobileDigits, isValidIndianMobileDigits } from '@/lib/indianPhone';
+import { isPlaceholderEmail } from '@/lib/placeholderEmail';
 import { hashPassword, validatePasswordLength, PASSWORD_MIN_LENGTH_MERCHANT } from '@/lib/security/password';
 import { checkRateLimit, RATE_LIMITS } from '@/lib/security/rateLimit';
 import { setBusinessSessionCookie } from '@/lib/security/session';
@@ -65,8 +65,72 @@ function hashToken(token: string) {
   return createHash('sha256').update(token).digest('hex');
 }
 
+/** 12 hex chars: WhatsApp URL-button variables are often capped at 15 characters. */
 function newToken() {
-  return randomBytes(24).toString('base64url');
+  return randomBytes(6).toString('hex');
+}
+
+function publicInviteOrigin() {
+  const candidates = [process.env.NEXT_PUBLIC_SITE_URL, SITE_URL, 'https://finderb.com'];
+  for (const raw of candidates) {
+    const value = raw?.replace(/\/$/, '').trim();
+    if (!value) continue;
+    try {
+      const url = new URL(value.includes('://') ? value : `https://${value}`);
+      if (['localhost', '127.0.0.1', '10.0.2.2', '::1'].includes(url.hostname)) continue;
+      if (url.hostname.endsWith('.local')) continue;
+      return `${url.protocol}//${url.host}`;
+    } catch {
+      continue;
+    }
+  }
+  return 'https://finderb.com';
+}
+
+function inviteTokenCandidates(raw: string): string[] {
+  const seen = new Set<string>();
+  const add = (value: string) => {
+    const next = value.trim();
+    if (next) seen.add(next);
+  };
+  add(raw);
+  let value = raw.trim();
+  for (let i = 0; i < 2; i += 1) {
+    try {
+      const decoded = decodeURIComponent(value);
+      if (decoded === value) break;
+      value = decoded;
+      add(value);
+    } catch {
+      break;
+    }
+  }
+  const pathOnly = value.split('?')[0].split('#')[0];
+  const marker = '/business/invite/';
+  const at = pathOnly.toLowerCase().lastIndexOf(marker);
+  const tail = (at >= 0 ? pathOnly.slice(at + marker.length) : pathOnly).replace(/^\/+|\/+$/g, '');
+  add(tail);
+  const last = tail.split('/').filter(Boolean).pop();
+  if (last) {
+    add(last);
+    add(last.replace(/[^a-zA-Z0-9_-]/g, ''));
+  }
+  return [...seen];
+}
+
+async function findMemberByInviteToken(token: string): Promise<MemberRow | null> {
+  const supabase = db();
+  if (!supabase || !token.trim()) return null;
+  const hashes = [...new Set(inviteTokenCandidates(token).map((item) => hashToken(item)))];
+  for (const hash of hashes) {
+    const { data } = await supabase
+      .from('business_team_members')
+      .select('*')
+      .eq('invite_token_hash', hash)
+      .maybeSingle();
+    if (data) return data as MemberRow;
+  }
+  return null;
 }
 
 function otpPurpose(memberId: string) {
@@ -99,7 +163,17 @@ function mapMember(row: MemberRow): TeamMember {
 }
 
 function inviteUrl(token: string) {
-  return `${SITE_URL}/business/invite/${encodeURIComponent(token)}`;
+  return `${publicInviteOrigin()}/business/invite/${encodeURIComponent(token)}`;
+}
+
+export type TeamInviteHandoff = {
+  mobile: string;
+  message: string;
+};
+
+/** Plain WhatsApp text. The Cloud template button was opening a token the invite page rejected. */
+function whatsappHandoffMessage(inviterName: string, businessName: string, acceptUrl: string) {
+  return `${inviterName} invited you to manage ${businessName} on FinderB. Open this link and create your password. It expires in ${TEAM_INVITE_HOURS} hours: ${acceptUrl}`;
 }
 
 export function inviteSenderName(business: { businessName?: string | null; ownerName?: string | null }) {
@@ -141,7 +215,7 @@ async function loadBusinessCard(businessId: string): Promise<LinkedBusiness | nu
   };
 }
 
-async function identityTakenByBusiness(email: string, mobile: string, exceptBusinessId?: string) {
+async function identityTakenByBusiness(email: string, mobile: string) {
   const supabase = db();
   if (!supabase) return false;
   if (email) {
@@ -149,7 +223,7 @@ async function identityTakenByBusiness(email: string, mobile: string, exceptBusi
       supabase.from('Business').select('id').ilike('email', email).limit(3),
       supabase.from('Business').select('id').ilike('workEmail', email).limit(3),
     ]);
-    if ([...(byEmail || []), ...(byWork || [])].some((row) => row.id !== exceptBusinessId)) return true;
+    if ([...(byEmail || []), ...(byWork || [])].some((row) => row.id)) return true;
   }
   if (mobile) {
     const { data } = await supabase
@@ -158,18 +232,62 @@ async function identityTakenByBusiness(email: string, mobile: string, exceptBusi
       .or(`mobile.eq.${mobile},owner_mobile.eq.${mobile},publicPhone.eq.${mobile}`)
       .limit(8);
     if (
-      (data || []).some(
-        (row) =>
-          row.id !== exceptBusinessId &&
-          [row.mobile, row.owner_mobile, row.publicPhone].some(
-            (value) => extractIndianMobileDigits(value) === mobile,
-          ),
+      (data || []).some((row) =>
+        [row.mobile, row.owner_mobile, row.publicPhone].some(
+          (value) => extractIndianMobileDigits(value) === mobile,
+        ),
       )
     ) {
       return true;
     }
   }
   return false;
+}
+
+async function inviteIdentityBlocker(input: {
+  email: string;
+  mobile: string;
+  businessId: string;
+  exceptMemberId?: string;
+}): Promise<string | null> {
+  const { email, mobile, businessId, exceptMemberId } = input;
+  if (email && isPlaceholderEmail(email)) {
+    return 'FinderB placeholder emails cannot be used as teammate logins. Invite a real inbox they can open.';
+  }
+
+  const supabase = db();
+  if (!supabase) return 'Could not check this email or mobile.';
+
+  const { data: own } = await supabase
+    .from('Business')
+    .select('email, workEmail, mobile, owner_mobile, publicPhone')
+    .eq('id', businessId)
+    .maybeSingle();
+
+  if (email) {
+    const ownEmails = [own?.email, own?.workEmail]
+      .map((value) => value?.trim().toLowerCase())
+      .filter((value): value is string => Boolean(value));
+    if (ownEmails.includes(email)) {
+      return 'That email is already the login for this business, so it cannot be used for a teammate.';
+    }
+  }
+  if (mobile) {
+    const ownPhones = [own?.mobile, own?.owner_mobile, own?.publicPhone].map((value) =>
+      extractIndianMobileDigits(value),
+    );
+    if (ownPhones.includes(mobile)) {
+      return 'That mobile number is already the login for this business, so it cannot be used for a teammate.';
+    }
+  }
+
+  if (await identityTakenByBusiness(email, mobile)) {
+    return 'That email or mobile already belongs to a FinderB business login, so a teammate account cannot be created with it.';
+  }
+  if (await identityTakenByTeam(email, mobile, exceptMemberId)) {
+    return 'That email or mobile already has a pending or active invite.';
+  }
+  return null;
 }
 
 async function identityTakenByTeam(email: string, mobile: string, exceptId?: string) {
@@ -227,7 +345,8 @@ async function dispatchInvite(input: {
   inviterName: string;
 }) {
   const acceptUrl = inviteUrl(input.token);
-  const sent = { email: false, whatsapp: false };
+  const sent = { email: false };
+  let handoff: TeamInviteHandoff | undefined;
   if (input.email) {
     sent.email = await sendTeamInviteEmail({
       to: input.email,
@@ -236,21 +355,20 @@ async function dispatchInvite(input: {
       acceptUrl,
     });
   }
-  if (input.mobile) {
-    sent.whatsapp = await sendTeamInviteWhatsApp({
-      mobile: input.mobile,
-      inviterName: input.inviterName,
-      businessName: input.businessName,
-      token: input.token,
-    });
+  const mobile = extractIndianMobileDigits(input.mobile || '');
+  if (mobile) {
+    handoff = {
+      mobile,
+      message: whatsappHandoffMessage(input.inviterName, input.businessName, acceptUrl),
+    };
   }
-  return sent;
+  return { sent, handoff };
 }
 
 async function issueAndSendInvite(member: MemberRow, token: string, business: LinkedBusiness) {
   if (!otpSubject(member)) return { success: false as const, error: 'This invite has no email or mobile.' };
 
-  const sent = await dispatchInvite({
+  const { sent, handoff } = await dispatchInvite({
     email: member.email,
     mobile: member.mobile,
     token,
@@ -260,17 +378,11 @@ async function issueAndSendInvite(member: MemberRow, token: string, business: Li
 
   const warnings: string[] = [];
   if (member.email && !sent.email) warnings.push('Email could not be sent. Try resend in a minute.');
-  if (member.mobile && !sent.whatsapp) {
-    warnings.push('WhatsApp could not deliver the invite link. Confirm the number and try resend.');
+  if (member.email && !sent.email && !handoff) {
+    return { success: false as const, error: warnings.join(' ') || 'Could not send the invite.' };
   }
 
-  if ((member.email && !sent.email) || (member.mobile && !sent.whatsapp)) {
-    if (!sent.email && !sent.whatsapp) {
-      return { success: false as const, error: warnings.join(' ') || 'Could not send the invite.' };
-    }
-  }
-
-  return { success: true as const, warning: warnings.join(' ') || undefined };
+  return { success: true as const, warning: warnings.join(' ') || undefined, handoff };
 }
 
 export async function getTeamMemberRecord(businessId: string, memberId: string): Promise<TeamMember | null> {
@@ -309,7 +421,9 @@ export async function inviteTeamMember(input: {
   mobile?: string;
   access?: unknown;
   invitedBy?: string | null;
-}): Promise<{ success: true; member: TeamMember; warning?: string } | { success: false; error: string }> {
+}): Promise<
+  { success: true; member: TeamMember; warning?: string; handoff?: TeamInviteHandoff } | { success: false; error: string }
+> {
   const email = input.channel === 'email' ? input.email?.trim().toLowerCase() || '' : '';
   const mobile = input.channel === 'phone' ? extractIndianMobileDigits(input.mobile || '') : '';
   if (input.channel === 'email' && !EMAIL_RE.test(email)) {
@@ -329,12 +443,12 @@ export async function inviteTeamMember(input: {
 
   await expireStaleInvites(input.businessId);
 
-  if (await identityTakenByBusiness(email, mobile, input.businessId)) {
-    return { success: false, error: 'That email or mobile is already tied to another business.' };
-  }
-  if (await identityTakenByTeam(email, mobile)) {
-    return { success: false, error: 'That email or mobile already has a pending or active invite.' };
-  }
+  const identityError = await inviteIdentityBlocker({
+    email,
+    mobile,
+    businessId: input.businessId,
+  });
+  if (identityError) return { success: false, error: identityError };
 
   const business = await loadBusinessCard(input.businessId);
   if (!business) return { success: false, error: 'Business not found.' };
@@ -405,13 +519,14 @@ export async function inviteTeamMember(input: {
     success: true,
     member: mapMember(row),
     warning: sent.warning,
+    handoff: sent.handoff,
   };
 }
 
 export async function resendTeamInvite(input: {
   businessId: string;
   memberId: string;
-}): Promise<{ success: true; warning?: string } | { success: false; error: string }> {
+}): Promise<{ success: true; warning?: string; handoff?: TeamInviteHandoff } | { success: false; error: string }> {
   const perMember = checkRateLimit(`teamInvite:${input.memberId}`, RATE_LIMITS.teamInvite);
   if (!perMember.allowed) {
     return { success: false, error: `You can resend in ${perMember.retryAfterSec} seconds.` };
@@ -444,6 +559,14 @@ export async function resendTeamInvite(input: {
     }
   }
 
+  const identityError = await inviteIdentityBlocker({
+    email: member.email || '',
+    mobile: member.mobile || '',
+    businessId: input.businessId,
+    exceptMemberId: member.id,
+  });
+  if (identityError) return { success: false, error: identityError };
+
   const business = await loadBusinessCard(input.businessId);
   if (!business) return { success: false, error: 'Business not found.' };
 
@@ -467,7 +590,7 @@ export async function resendTeamInvite(input: {
 
   const sent = await issueAndSendInvite(updated as MemberRow, token, business);
   if (!sent.success) return sent;
-  return { success: true, warning: sent.warning };
+  return { success: true, warning: sent.warning, handoff: sent.handoff };
 }
 
 export async function verifyTeamInviteOtp(input: {
@@ -484,12 +607,7 @@ export async function verifyTeamInviteOtp(input: {
 
   let member: MemberRow | null = null;
   if (input.token?.trim()) {
-    const { data } = await supabase
-      .from('business_team_members')
-      .select('*')
-      .eq('invite_token_hash', hashToken(input.token.trim()))
-      .maybeSingle();
-    member = (data as MemberRow) || null;
+    member = await findMemberByInviteToken(input.token);
   } else if (input.businessId && input.memberId) {
     const { data } = await supabase
       .from('business_team_members')
@@ -588,13 +706,8 @@ export async function getTeamInvitePreview(token: string): Promise<
 > {
   const supabase = db();
   if (!supabase || !token.trim()) return { success: false, error: INVITE_LINK_INVALID };
-  const { data } = await supabase
-    .from('business_team_members')
-    .select('*')
-    .eq('invite_token_hash', hashToken(token.trim()))
-    .maybeSingle();
-  if (!data) return { success: false, error: INVITE_LINK_INVALID };
-  const member = data as MemberRow;
+  const member = await findMemberByInviteToken(token);
+  if (!member) return { success: false, error: INVITE_LINK_INVALID };
   if (member.status === 'expired' || inviteTimedOut(member)) {
     await expireStaleInvites(member.business_id);
     return { success: false, error: INVITE_LINK_EXPIRED };
@@ -624,13 +737,8 @@ export async function acceptTeamInvite(input: {
   const supabase = db();
   if (!supabase) return { success: false, error: 'Could not accept the invite.' };
 
-  const { data } = await supabase
-    .from('business_team_members')
-    .select('*')
-    .eq('invite_token_hash', hashToken(input.token.trim()))
-    .maybeSingle();
-  if (!data) return { success: false, error: INVITE_LINK_INVALID };
-  const member = data as MemberRow;
+  const member = await findMemberByInviteToken(input.token);
+  if (!member) return { success: false, error: INVITE_LINK_INVALID };
   if (member.status === 'expired' || inviteTimedOut(member)) {
     await expireStaleInvites(member.business_id);
     return { success: false, error: INVITE_LINK_EXPIRED };
@@ -638,8 +746,8 @@ export async function acceptTeamInvite(input: {
   if (member.status !== 'pending') {
     return { success: false, error: 'This invite has already been used or cancelled.' };
   }
-  if (await identityTakenByBusiness(member.email || '', member.mobile || '', member.business_id)) {
-    return { success: false, error: 'That email or mobile is already tied to another business.' };
+  if (await identityTakenByBusiness(member.email || '', member.mobile || '')) {
+    return { success: false, error: 'That email or mobile already belongs to a FinderB business login, so this invite cannot be accepted.' };
   }
 
   // Opening the unique invite link is the verification — no separate OTP.

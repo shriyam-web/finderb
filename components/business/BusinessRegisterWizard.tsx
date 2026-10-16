@@ -607,6 +607,7 @@ export default function BusinessRegisterWizard({
                     onChange={(v) => onFormPatch({ businessName: v })}
                     placeholder="As on registration / GST certificate"
                     icon={Building2}
+                    maxLength={50}
                     error={fieldErrors.businessName}
                   />
                   <p className="-mt-2 text-xs leading-relaxed text-[#64748b]">
@@ -619,6 +620,7 @@ export default function BusinessRegisterWizard({
                     onChange={(v) => onFormPatch({ displayName: v })}
                     placeholder="Name shown on your public profile"
                     icon={Building2}
+                    maxLength={50}
                     error={fieldErrors.displayName}
                   />
                   <p className="-mt-2 text-xs leading-relaxed text-[#64748b]">

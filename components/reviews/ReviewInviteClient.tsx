@@ -6,7 +6,7 @@ import { submitBusinessReview } from '@/app/actions/reviews';
 import { getSession } from '@/app/actions/user';
 import { buildLoginHref } from '@/lib/authRedirect';
 import { REVIEW_STAR_EMOJI, reviewTemplatesForCategory } from '@/lib/reviewInvite';
-import { maskReviewAuthorName, validateAnonymousReason } from '@/lib/businessReviews';
+import { maskReviewAuthorName } from '@/lib/businessReviews';
 
 function reviewSlugFromPath(reviewPath: string) {
   return decodeURIComponent(reviewPath.replace(/^\/review\//, '').split(/[?#]/)[0] || '');
@@ -44,7 +44,6 @@ export default function ReviewInviteClient({
   const [rating, setRating] = useState(0);
   const [content, setContent] = useState('');
   const [anonymous, setAnonymous] = useState(false);
-  const [anonymousReason, setAnonymousReason] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -70,13 +69,6 @@ export default function ReviewInviteClient({
   const onSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!userName) return;
-    if (anonymous) {
-      const reasonError = validateAnonymousReason(anonymousReason);
-      if (reasonError) {
-        setError(reasonError);
-        return;
-      }
-    }
     setSubmitting(true);
     setError(null);
     const result = await submitBusinessReview({
@@ -84,7 +76,6 @@ export default function ReviewInviteClient({
       rating,
       content,
       anonymous,
-      anonymousReason,
     });
     setSubmitting(false);
     if (!result.success) {
@@ -200,17 +191,6 @@ export default function ReviewInviteClient({
               />
               Post anonymously
             </label>
-            {anonymous ? (
-              <textarea
-                value={anonymousReason}
-                onChange={(event) => setAnonymousReason(event.target.value)}
-                rows={2}
-                minLength={10}
-                required
-                placeholder="Why do you need to post anonymously?"
-                className="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm outline-none focus:border-[#215481]"
-              />
-            ) : null}
             {error ? <p className="text-xs text-rose-600">{error}</p> : null}
             {success ? <p className="text-xs text-emerald-700">{success}</p> : null}
             <button

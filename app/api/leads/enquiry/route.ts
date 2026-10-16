@@ -50,7 +50,7 @@ export async function POST(request: Request) {
       area: String(body.area || ''),
       name: String(body.name || user.fullName || ''),
       email: String(body.email || user.email || ''),
-      phone: String(body.phone || ''),
+      phone: String(body.phone || user.phone || ''),
       lookingFor: String(body.lookingFor || ''),
     });
 

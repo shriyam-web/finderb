@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { ScreenHeader } from '../../components/ScreenHeader';
+import { PullRefreshMark } from '../../components/PullRefreshMark';
 import { fonts } from '../../constants/typography';
 import { useAuth } from '../../context/AuthContext';
 import { useLoginPrompt } from '../../context/LoginPromptContext';
@@ -150,6 +151,8 @@ export default function NotificationsScreen() {
             ) : null}
           </View>
         ) : (
+          <View style={{ flex: 1 }}>
+          <PullRefreshMark active={refreshing} />
           <ScrollView
             contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: bottomPad, paddingTop: 8 }}
             refreshControl={
@@ -203,6 +206,7 @@ export default function NotificationsScreen() {
               );
             })}
           </ScrollView>
+          </View>
         )}
       </SafeAreaView>
     </View>

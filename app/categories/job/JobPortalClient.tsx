@@ -15,6 +15,8 @@ import {
   ArrowLeft,
 } from 'lucide-react';
 import JobApplicationForm from './JobApplicationForm';
+import JobListingDisclaimer from '@/components/jobs/JobListingDisclaimer';
+import ReportJobButton from '@/components/jobs/ReportJobButton';
 import { cities } from '@/lib/mockData';
 import { getBusinessProfilePath } from '@/lib/businessSlug';
 
@@ -316,6 +318,8 @@ export default function JobPortalClient({ initialJobs }: { initialJobs: Job[] })
                   <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-[#64748b]">
                     {job.description}
                   </p>
+                  <JobListingDisclaimer />
+                  <ReportJobButton jobId={job.id} />
 
                   <button
                     type="button"

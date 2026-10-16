@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import PreviewProfileLink from '@/components/business/PreviewProfileLink';
 import {
   type AccountHealthItem,
   type AccountHealthSummary,
@@ -31,6 +31,8 @@ type AccountHealthPanelProps = {
   onPaymentError: (msg: string) => void;
   onOpenSettingsField: (settingsKey: string) => void;
   onOpenKyc: () => void;
+  onOpenPlan?: () => void;
+  onOpenListing?: () => void;
 };
 
 function HealthRow({
@@ -72,6 +74,8 @@ export default function AccountHealthPanel({
   onPaymentError,
   onOpenSettingsField,
   onOpenKyc,
+  onOpenPlan,
+  onOpenListing,
 }: AccountHealthPanelProps) {
   const subscription = health.items.find((i) => i.id === 'subscription');
   const kyc = health.items.find((i) => i.id === 'kyc');
@@ -105,21 +109,28 @@ export default function AccountHealthPanel({
           <HealthRow
             item={subscription}
             action={
-              subscription.status !== 'complete' && businessId ? (
-                <div className="flex flex-col items-stretch gap-2 sm:items-end">
-                  {paymentError && <p className="text-xs text-rose-700">{paymentError}</p>}
-                  <MerchantRechargeButton
-                    businessId={businessId}
-                    businessName={businessName}
-                    fullName={fullName}
-                    email={email}
-                    mobile={mobile}
-                    label="Choose plan"
-                    onError={onPaymentError}
-                    className={dashboard.btnPrimary}
-                  />
-                </div>
-              ) : undefined
+              <div className="flex flex-col items-stretch gap-2 sm:items-end">
+                {subscription.status !== 'complete' && businessId ? (
+                  <>
+                    {paymentError && <p className="text-xs text-rose-700">{paymentError}</p>}
+                    <MerchantRechargeButton
+                      businessId={businessId}
+                      businessName={businessName}
+                      fullName={fullName}
+                      email={email}
+                      mobile={mobile}
+                      label="Choose plan"
+                      onError={onPaymentError}
+                      className={dashboard.btnPrimary}
+                    />
+                  </>
+                ) : null}
+                {onOpenPlan ? (
+                  <button type="button" onClick={onOpenPlan} className={dashboard.btnSecondary}>
+                    Open plans
+                  </button>
+                ) : null}
+              </div>
             }
           />
         )}
@@ -137,7 +148,18 @@ export default function AccountHealthPanel({
           />
         )}
 
-        {profile && <HealthRow item={profile} />}
+        {profile && (
+          <HealthRow
+            item={profile}
+            action={
+              onOpenListing ? (
+                <button type="button" onClick={onOpenListing} className={dashboard.btnSecondary}>
+                  Open listing
+                </button>
+              ) : undefined
+            }
+          />
+        )}
       </div>
 
       {missingFields.filter((f) => f.action === 'settings').length > 0 && profile?.status !== 'complete' && (
@@ -165,14 +187,12 @@ export default function AccountHealthPanel({
 
       {businessProfilePath && hasPublicPhotos ? (
         <p className="mt-4 border-t border-zinc-100 pt-4">
-          <Link
+          <PreviewProfileLink
             href={businessProfilePath}
-            target="_blank"
-            rel="noreferrer"
             className="text-sm font-medium text-[#3F3F46] hover:underline"
           >
             View live public profile →
-          </Link>
+          </PreviewProfileLink>
         </p>
       ) : (
         <p className="mt-4 border-t border-zinc-100 pt-4 text-sm text-rose-700">

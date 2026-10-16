@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { fonts } from '../../constants/typography';
 import { useConsoleColors } from '../../constants/consoleColors';
@@ -24,6 +24,7 @@ import {
   Tag,
   createConsoleStyles,
   shortDate,
+  useConsoleScroll,
 } from '../../components/console/kit';
 
 type ContactKind = 'email' | 'mobile';
@@ -53,10 +54,12 @@ function categoryLabel(item: HomeCategory, byId: Map<string, HomeCategory>): str
 function ContactSheet({
   kind,
   current,
+  verified,
   onClose,
 }: {
   kind: ContactKind | null;
   current: string;
+  verified: boolean;
   onClose: () => void;
 }) {
   const styles = useStyles();
@@ -70,12 +73,14 @@ function ContactSheet({
   const [note, setNote] = useState('');
 
   const clean = kind === 'email' ? value.trim().toLowerCase() : value;
+  const original = kind === 'email' ? current.trim().toLowerCase() : current;
+  const unchangedVerified = Boolean(verified && clean === original);
   const valid = kind === 'email' ? EMAIL_RE.test(clean) : /^[6-9]\d{9}$/.test(clean);
   const sent = otp.isSentTo(clean);
   const waiting = otp.isWaiting(clean);
 
   const send = async () => {
-    if (!kind || !valid) return;
+    if (!kind || !valid || unchangedVerified) return;
     setSending(true);
     const result = await run<{ success: true; message: string }>('sendContactCode', { kind, value: clean });
     setSending(false);
@@ -158,7 +163,17 @@ function ContactSheet({
       {sent ? (
         <Btn label="Verify code" busy={checking} disabled={code.length !== 6} onPress={() => void confirm()} />
       ) : (
-        <Btn label="Send verification code" busy={sending} disabled={!valid} onPress={() => void send()} />
+        <>
+        <Btn
+          label="Send verification code"
+          busy={sending}
+          disabled={!valid || unchangedVerified}
+          onPress={() => void send()}
+        />
+        {unchangedVerified ? (
+          <Text style={styles.note}>This email is already verified. Change it before sending a new code.</Text>
+        ) : null}
+        </>
       )}
     </Sheet>
   );
@@ -324,7 +339,7 @@ function RequestSheet({
           value={value}
           onChangeText={setValue}
           placeholder="The name customers should see"
-          maxLength={80}
+          maxLength={50}
         />
       ) : (
         <Field
@@ -332,7 +347,7 @@ function RequestSheet({
           value={value}
           onChangeText={setValue}
           placeholder="As on your GST / shop licence"
-          maxLength={120}
+          maxLength={50}
         />
       )}
       <Field
@@ -387,6 +402,8 @@ function AccountBody({ o }: { o: ConsoleOverview }) {
   const c = useConsoleColors();
   const iconTint = c.accent;
   const { run } = useMerchantConsole();
+  const { scrollTo } = useConsoleScroll();
+  const { focus } = useLocalSearchParams<{ focus?: string }>();
   const [contact, setContact] = useState<ContactKind | null>(null);
   const [passwordOpen, setPasswordOpen] = useState(false);
   const [requestField, setRequestField] = useState<'category' | 'legalName' | 'displayName' | null>(null);
@@ -405,6 +422,12 @@ function AccountBody({ o }: { o: ConsoleOverview }) {
   const kycReview = /review|pending|submitted/i.test(b.kycStatus || '');
   const isOwner = o.actor?.isOwner !== false;
   const canEditSettings = canEditTeamTab(o.actor?.access, 'settings', isOwner);
+
+  useEffect(() => {
+    if (!isOwner) return;
+    if (focus === 'email' || focus === 'mobile') setContact(focus);
+    if (focus === 'displayName') setRequestField('displayName');
+  }, [focus, isOwner]);
 
   return (
     <ConsolePage title="Login & security" subtitle="Account">
@@ -488,7 +511,15 @@ function AccountBody({ o }: { o: ConsoleOverview }) {
       </Panel>
       ) : null}
 
-      {isOwner ? <TeamAccess /> : null}
+      {isOwner ? (
+        <View
+          onLayout={(event) => {
+            if (focus === 'team') scrollTo(event.nativeEvent.layout.y);
+          }}
+        >
+          <TeamAccess />
+        </View>
+      ) : null}
 
       <Section title="Needs FinderB approval">
         <Panel flush>
@@ -534,6 +565,7 @@ function AccountBody({ o }: { o: ConsoleOverview }) {
           key={contact}
           kind={contact}
           current={contact === 'email' ? b.loginEmail : b.loginMobile}
+          verified={contact === 'email' ? b.emailVerified : b.mobileVerified}
           onClose={() => setContact(null)}
         />
       ) : null}

@@ -1,3 +1,5 @@
+import { categorySegments } from './alsoServes';
+
 type BusinessCategoryQueryClient = {
   from: (table: string) => {
     select: (columns: string) => {
@@ -59,10 +61,12 @@ export function countBusinessesForTopLevelCategory(
   const name = normalizeLabel(categoryName);
   if (!name) return 0;
 
-  return labels.filter((label) => {
-    const normalized = normalizeLabel(label);
-    return normalized === name || normalized.startsWith(`${name} ›`);
-  }).length;
+  return labels.filter((label) =>
+    categorySegments(label).some((segment) => {
+      const normalized = normalizeLabel(segment);
+      return normalized === name || normalized.startsWith(`${name} ›`);
+    }),
+  ).length;
 }
 
 export function countBusinessesForSubCategory(
@@ -76,10 +80,12 @@ export function countBusinessesForSubCategory(
 
   const combined = parent ? `${parent} › ${sub}` : sub;
 
-  return labels.filter((label) => {
-    const normalized = normalizeLabel(label);
-    return normalized === combined || normalized === sub || normalized.endsWith(` › ${sub}`);
-  }).length;
+  return labels.filter((label) =>
+    categorySegments(label).some((segment) => {
+      const normalized = normalizeLabel(segment);
+      return normalized === combined || normalized === sub || normalized.endsWith(` › ${sub}`);
+    }),
+  ).length;
 }
 
 export function countBusinessesForCategoryTree(
@@ -92,15 +98,17 @@ export function countBusinessesForCategoryTree(
     .filter(Boolean);
   if (!names.length) return 0;
 
-  return labels.filter((label) => {
-    const normalized = normalizeLabel(label);
-    return names.some(
-      (name) =>
-        normalized === name ||
-        normalized.startsWith(`${name} ›`) ||
-        normalized.endsWith(` › ${name}`)
-    );
-  }).length;
+  return labels.filter((label) =>
+    categorySegments(label).some((segment) => {
+      const normalized = normalizeLabel(segment);
+      return names.some(
+        (name) =>
+          normalized === name ||
+          normalized.startsWith(`${name} ›`) ||
+          normalized.endsWith(` › ${name}`),
+      );
+    }),
+  ).length;
 }
 
 export function attachDescendantBusinessCounts<

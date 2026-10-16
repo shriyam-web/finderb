@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScreenHeader } from '../../../components/ScreenHeader';
+import { PullRefreshMark } from '../../../components/PullRefreshMark';
 import { fonts } from '../../../constants/typography';
 import { useTheme } from '../../../context/ThemeContext';
 import { useTabScrollPadding } from '../../../hooks/useAppSafeArea';
@@ -63,6 +64,8 @@ export default function BlogListScreen() {
             <ActivityIndicator color={colors.ink} />
           </View>
         ) : (
+          <View style={{ flex: 1 }}>
+          <PullRefreshMark active={refreshing} />
           <FlatList
             data={blogs}
             keyExtractor={(item) => item.id}
@@ -110,6 +113,7 @@ export default function BlogListScreen() {
               </Pressable>
             )}
           />
+          </View>
         )}
       </SafeAreaView>
     </View>

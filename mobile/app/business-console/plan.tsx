@@ -135,7 +135,7 @@ function PlanOption({
             : `Pay once for 12 months${perMonth ? `, just ${inr(perMonth)}/month` : ''}. No auto-debit.`}
         </Text>
       </View>
-      {selected ? <Ionicons name="checkmark-circle" size={20} color={c.primary} /> : null}
+      {selected ? <Ionicons name="checkmark-circle" size={20} color={c.isDark ? '#60A5FA' : '#2563EB'} /> : null}
     </Pressable>
   );
 }
@@ -162,6 +162,7 @@ export function PlanBody({ docked = false }: { docked?: boolean }) {
   const [paid, setPaid] = useState<SubscriptionStatus | null>(null);
   const [cancelling, setCancelling] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [historyCount, setHistoryCount] = useState(10);
 
   const load = useCallback(async () => {
     const result = await run<SubscriptionDetails>('subscription');
@@ -198,16 +199,18 @@ export function PlanBody({ docked = false }: { docked?: boolean }) {
           ? `${onThis ? 'Renew' : 'Pay'} ${inr(amount)} for ${planName}`
           : `${onThis ? 'Renew' : 'Start'} ${planName} at ${inr(amount)}/month`;
 
-  const begin = async () => {
-    if (!pricing || blocked) return;
+  const begin = async (override?: Cycle) => {
+    const next = override ?? chosen;
+    const samePlan = Boolean(sub?.isActive && sub.billingCycle === next);
+    if (!pricing || (samePlan && !sub?.canRenew)) return;
     setStarting(true);
-    const result = await run<CheckoutStart>('startCheckout', { billingCycle: chosen });
+    const result = await run<CheckoutStart>('startCheckout', { billingCycle: next });
     setStarting(false);
     if (isFailure(result)) {
       notify(result.error, 'bad');
       return;
     }
-    setCheckout({ start: result, cycle: chosen });
+    setCheckout({ start: result, cycle: next });
   };
 
   const finish = async (payment: CheckoutSuccess) => {
@@ -290,7 +293,7 @@ export function PlanBody({ docked = false }: { docked?: boolean }) {
       footer={
         details ? (
           <Btn
-            tone={blocked ? 'outline' : 'primary'}
+            tone={blocked ? 'outline' : 'success'}
             icon={blocked ? 'checkmark-circle' : 'lock-closed-outline'}
             label={ctaLabel}
             busy={starting || verifying}
@@ -339,6 +342,71 @@ export function PlanBody({ docked = false }: { docked?: boolean }) {
             </Panel>
           ) : null}
 
+          {sub.isActive && sub.billingCycle === 'annual' ? (
+            sub.canRenew ? (
+              <Section title="Renew Pro">
+                <Panel>
+                  <Text style={styles.currentLine}>
+                    Pro stays as it is. A renewal starts after {sub.expiresAtDisplay || 'this plan ends'}, so the days you already paid are kept.
+                  </Text>
+                </Panel>
+                <PlanOption
+                  cycle="annual"
+                  selected
+                  current
+                  name={pricing.annual.name}
+                  price={pricing.annual.price}
+                  retail={pricing.annual.retail}
+                  perMonth={pricing.annual.perMonth}
+                  onPress={() => setCycle('annual')}
+                />
+                <Btn
+                  tone="success"
+                  icon="lock-closed-outline"
+                  label={ctaLabel}
+                  busy={starting || verifying}
+                  disabled={!pricing.checkoutAvailable}
+                  onPress={() => void begin('annual')}
+                />
+              </Section>
+            ) : null
+          ) : sub.isActive && sub.billingCycle === 'monthly' ? (
+            <Section title="Pro, after this plan">
+              <Panel>
+                <Text style={styles.currentName}>Yearly Pro</Text>
+                <Text style={styles.currentLine}>
+                  {inr(pricing.annual.perMonth || 0)} a month when you pay {inr(pricing.annual.price)} for the year, instead of {inr(pricing.monthly.price)} every month. The Pro year starts after {sub.expiresAtDisplay || 'Growth ends'}, so this month is not cut short.
+                </Text>
+              </Panel>
+              <PlanOption
+                cycle="annual"
+                selected={chosen === 'annual'}
+                current={false}
+                name={pricing.annual.name}
+                price={pricing.annual.price}
+                retail={pricing.annual.retail}
+                perMonth={pricing.annual.perMonth}
+                onPress={() => setCycle('annual')}
+              />
+              <Btn
+                tone="success"
+                icon="lock-closed-outline"
+                label={`Pay ${inr(pricing.annual.price)} for Pro`}
+                busy={starting || verifying}
+                disabled={!pricing.checkoutAvailable}
+                onPress={() => void begin('annual')}
+              />
+              {sub.canRenew ? (
+                <Btn
+                  tone="outline"
+                  label={`Renew Growth · ${inr(pricing.monthly.price)}/mo`}
+                  busy={starting || verifying}
+                  disabled={!pricing.checkoutAvailable}
+                  onPress={() => void begin('monthly')}
+                />
+              ) : null}
+            </Section>
+          ) : (
           <Section title={sub.isActive ? 'Renew or switch' : 'Choose a plan'}>
             {pricing.offerName ? (
               <View style={styles.offer}>
@@ -366,7 +434,7 @@ export function PlanBody({ docked = false }: { docked?: boolean }) {
               onPress={() => setCycle('monthly')}
             />
             <Btn
-              tone={blocked ? 'outline' : 'primary'}
+              tone={blocked ? 'outline' : 'success'}
               icon={blocked ? 'checkmark-circle' : 'lock-closed-outline'}
               label={ctaLabel}
               busy={starting || verifying}
@@ -374,7 +442,10 @@ export function PlanBody({ docked = false }: { docked?: boolean }) {
               onPress={() => void begin()}
             />
           </Section>
+          )}
 
+          {!sub.isActive ? (
+          <>
           <Section title="Both plans include">
             <Panel style={styles.features}>
               {pricing.features.map((feature) => (
@@ -412,6 +483,8 @@ export function PlanBody({ docked = false }: { docked?: boolean }) {
               </Panel>
             </Section>
           ) : null}
+          </>
+          ) : null}
 
           {sub.canCancelAutoRenew ? (
             <Btn tone="danger" icon="close-circle-outline" label="Turn off auto-renew" busy={cancelling} onPress={cancelAutoRenew} />
@@ -420,7 +493,7 @@ export function PlanBody({ docked = false }: { docked?: boolean }) {
           <Section title="Payment history">
             {details.history.length ? (
               <Panel flush>
-                {details.history.map((item, index) => (
+                {details.history.slice(0, historyCount).map((item, index) => (
                   <View key={item.id} style={[styles.bill, index > 0 && styles.billLine]}>
                     <View style={styles.flex}>
                       <Text style={styles.billName}>
@@ -446,6 +519,14 @@ export function PlanBody({ docked = false }: { docked?: boolean }) {
                     </View>
                   </View>
                 ))}
+                {historyCount < details.history.length ? (
+                  <Btn
+                    small
+                    tone="text"
+                    label={`Load more (${details.history.length - historyCount} left)`}
+                    onPress={() => setHistoryCount((count) => count + 10)}
+                  />
+                ) : null}
               </Panel>
             ) : (
               <Text style={styles.muted}>No payments yet.</Text>
@@ -548,7 +629,12 @@ const useStyles = createConsoleStyles((c) => ({
     borderColor: c.line,
     backgroundColor: c.card,
   },
-  optionOn: { borderColor: c.primary, borderWidth: 2, padding: 15, backgroundColor: c.card },
+  optionOn: {
+    borderColor: c.isDark ? '#60A5FA' : '#2563EB',
+    borderWidth: 2,
+    padding: 15,
+    backgroundColor: c.isDark ? 'rgba(37,99,235,0.16)' : '#EFF6FF',
+  },
   radio: {
     width: 22,
     height: 22,
@@ -559,8 +645,8 @@ const useStyles = createConsoleStyles((c) => ({
     justifyContent: 'center',
     marginTop: 2,
   },
-  radioOn: { borderColor: c.primary },
-  radioDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: c.primary },
+  radioOn: { borderColor: c.isDark ? '#60A5FA' : '#2563EB' },
+  radioDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: c.isDark ? '#60A5FA' : '#2563EB' },
   optionHead: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
   optionName: { fontFamily: fonts.semiBold, fontSize: 17, color: c.ink },
   priceRow: { flexDirection: 'row', alignItems: 'baseline', gap: 4, marginTop: 6 },

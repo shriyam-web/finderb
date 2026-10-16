@@ -13,10 +13,26 @@ import {
   MerchantAuthSubmitButton,
 } from '@/components/business/MerchantAuthForm';
 
+function inviteTokenFromParam(raw: unknown): string {
+  const text = Array.isArray(raw) ? raw[0] : raw;
+  if (typeof text !== 'string') return '';
+  let value = text.trim();
+  try {
+    value = decodeURIComponent(value);
+  } catch {
+    // Next.js already decoded the path segment.
+  }
+  const pathOnly = value.split('?')[0].split('#')[0];
+  const marker = '/business/invite/';
+  const at = pathOnly.toLowerCase().lastIndexOf(marker);
+  const tail = at >= 0 ? pathOnly.slice(at + marker.length) : pathOnly;
+  return tail.replace(/^\/+|\/+$/g, '').trim();
+}
+
 export default function BusinessTeamInvitePage() {
   const params = useParams<{ token: string }>();
   const router = useRouter();
-  const token = decodeURIComponent(params.token || '');
+  const token = inviteTokenFromParam(params.token);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');

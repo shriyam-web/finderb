@@ -42,7 +42,8 @@ grant select (
   "whatsappNumber", "instagramUrl", "facebookUrl", "youtubeUrl", review, "reviewReply",
   rating, "googleRating", "isFinderBVerified", "hasVerifiedBadge", "discountRange", status,
   latitude, longitude, timings, "serviceCategory", keywords, "paymentModes",
-  "businessAddress", "yearsInBusiness", "createdAt", "updatedAt"
+  "businessAddress", "yearsInBusiness", "createdAt", "updatedAt",
+  "emailVerified", "mobileVerified", "whatsappVerified"
 ) on public."Business" to anon, authenticated;
 drop policy if exists business_public_read on public."Business";
 create policy business_public_read on public."Business"

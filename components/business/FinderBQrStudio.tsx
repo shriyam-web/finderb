@@ -92,10 +92,6 @@ export default function FinderBQrStudio({
       ctx.fillRect(CARD_W / 2, ruleY, 72, 4);
 
       ctx.textAlign = 'center';
-      ctx.fillStyle = ORANGE;
-      ctx.font = `600 26px ${FONT}`;
-      spacedCenter(ctx, 'REVIEW CARD', CARD_W / 2, ruleY + 58, 11);
-
       ctx.fillStyle = BLUE;
       ctx.font = `700 64px ${FONT}`;
       wrapCentered(ctx, businessName, CARD_W / 2, ruleY + 132, 860, 74);
@@ -339,17 +335,4 @@ function wrapCentered(
 
 function slugify(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'business';
-}
-
-function spacedCenter(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, gap: number) {
-  ctx.textAlign = 'left';
-  const parts = text.split('');
-  const widths = parts.map((letter) => ctx.measureText(letter).width);
-  const total = widths.reduce((sum, width) => sum + width, 0) + gap * (parts.length - 1);
-  let left = x - total / 2;
-  for (let i = 0; i < parts.length; i += 1) {
-    ctx.fillText(parts[i], left, y);
-    left += widths[i] + gap;
-  }
-  ctx.textAlign = 'center';
 }

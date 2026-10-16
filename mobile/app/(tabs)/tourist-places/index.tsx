@@ -13,6 +13,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScreenHeader } from '../../../components/ScreenHeader';
+import { PullRefreshMark } from '../../../components/PullRefreshMark';
 import { fonts } from '../../../constants/typography';
 import { useAppLocation } from '../../../context/LocationContext';
 import { useTheme } from '../../../context/ThemeContext';
@@ -77,6 +78,8 @@ export default function TouristPlacesScreen() {
             <ActivityIndicator color={colors.ink} />
           </View>
         ) : (
+          <View style={{ flex: 1 }}>
+          <PullRefreshMark active={refreshing} />
           <FlatList
             data={places}
             keyExtractor={(item) => item.id}
@@ -136,6 +139,7 @@ export default function TouristPlacesScreen() {
               </Pressable>
             )}
           />
+          </View>
         )}
       </SafeAreaView>
     </View>

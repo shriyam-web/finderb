@@ -85,8 +85,8 @@ function BillingOption({
       onClick={onSelect}
       className={`relative w-full rounded-2xl border-2 p-4 text-left transition-all sm:p-5 ${
         active
-          ? 'border-[#153551] bg-gradient-to-br from-[#fff9ed] to-white shadow-[0_12px_40px_-20px_rgba(21,53,81,0.35)]'
-          : 'border-[#e8dfd4] bg-white hover:border-[#153551]/25 hover:bg-[#fffdf9]'
+          ? 'border-[#2563EB] bg-gradient-to-br from-[#EFF6FF] to-white shadow-[0_12px_40px_-20px_rgba(37,99,235,0.35)]'
+          : 'border-[#e8dfd4] bg-white hover:border-[#2563EB]/25 hover:bg-[#fffdf9]'
       }`}
     >
       {badge && (
@@ -101,7 +101,7 @@ function BillingOption({
         </div>
         <span
           className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 ${
-            active ? 'border-[#153551] bg-[#153551]' : 'border-[#d4c4b0] bg-white'
+            active ? 'border-[#2563EB] bg-[#2563EB]' : 'border-[#d4c4b0] bg-white'
           }`}
         >
           {active && <span className="h-2 w-2 rounded-full bg-white" />}
@@ -436,7 +436,7 @@ export default function MerchantPaymentCheckout({
                   type="button"
                   onClick={onPay}
                   disabled={paying || !isAuthorized || !razorpayConfigured}
-                  className="register-hero-cta-btn mt-6 flex w-full items-center justify-center gap-2 py-4 text-sm font-bold text-[#153551] disabled:cursor-not-allowed disabled:opacity-60"
+                  className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-[#067647] py-4 text-sm font-bold text-white shadow-sm hover:bg-[#05663d] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <CreditCard size={18} />
                   {isAnnual ? 'Pay now' : 'Set up auto-debit & pay'}

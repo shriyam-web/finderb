@@ -118,7 +118,8 @@ function DashboardContent() {
   const [copiedId, setCopiedId] = useState(false);
   const [leadCount, setLeadCount] = useState(0);
   const [newLeadCount, setNewLeadCount] = useState(0);
-  const [profileViews30d, setProfileViews30d] = useState(0);
+  const [viewCounts, setViewCounts] = useState({ today: 0, week: 0, d30: 0, d90: 0 });
+  const [viewRange, setViewRange] = useState<'today' | 'week' | '30' | '90'>('30');
   const [activeJobsCount, setActiveJobsCount] = useState(0);
   const [settingsFocusField, setSettingsFocusField] = useState<string | null>(null);
   const [merchantAlertCount, setMerchantAlertCount] = useState(0);
@@ -495,7 +496,12 @@ function DashboardContent() {
     if (!businessId) return;
     getBusinessProfileViewStats(businessId).then((res) => {
       if (res.success) {
-        setProfileViews30d(res.viewsLast30Days);
+        setViewCounts({
+          today: res.viewsToday,
+          week: res.viewsLast7Days,
+          d30: res.viewsLast30Days,
+          d90: res.viewsLast90Days,
+        });
       }
     });
   }, [businessId]);
@@ -745,7 +751,15 @@ function DashboardContent() {
     subscription: subscriptionStatus,
   });
   const ratingStats = getBusinessPublicRatingStats(business?.review);
-  const kpis = buildDefaultKpis(leadCount, profileViews30d, ratingStats);
+  const viewPeriod =
+    viewRange === 'today'
+      ? { count: viewCounts.today, label: 'Today' }
+      : viewRange === 'week'
+        ? { count: viewCounts.week, label: 'This week' }
+        : viewRange === '90'
+          ? { count: viewCounts.d90, label: 'Past 3 months' }
+          : { count: viewCounts.d30, label: 'Last 30 days' };
+  const kpis = buildDefaultKpis(leadCount, viewPeriod.count, ratingStats, viewPeriod.label);
 
   const openSettingsField = (fieldKey: string) => {
     setSettingsFocusField(fieldKey);
@@ -973,7 +987,31 @@ function DashboardContent() {
 
         {activeTab === 'overview' && (
           <DashboardTabShell>
-            <DashboardKpiRow kpis={kpis} />
+            <section className="space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <h2 className="text-base font-semibold tracking-tight text-zinc-900">Performance</h2>
+                <label className="text-sm text-zinc-600">
+                  <span className="sr-only">Profile views period</span>
+                  <select
+                    value={viewRange}
+                    onChange={(event) => setViewRange(event.target.value as 'today' | 'week' | '30' | '90')}
+                    className="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-sm text-zinc-800"
+                  >
+                    <option value="today">Today</option>
+                    <option value="week">This week</option>
+                    <option value="30">30 days</option>
+                    <option value="90">Past 3 months</option>
+                  </select>
+                </label>
+              </div>
+              <DashboardKpiRow kpis={kpis} />
+              <MerchantInsightsCard
+                ownPercent={completionPercent}
+                competitorAverage={competitorAverage}
+                averageResponse={averageResponse}
+                averageResponseMs={averageResponseMs}
+              />
+            </section>
 
             <DashboardAtAGlance
               isPaymentActive={isPlanActive}
@@ -984,13 +1022,6 @@ function DashboardContent() {
               onOpenJobs={() => setActiveTab('jobs')}
               onOpenListing={() => setActiveTab('listings')}
               onOpenBilling={() => setActiveTab('subscription')}
-            />
-
-            <MerchantInsightsCard
-              ownPercent={completionPercent}
-              competitorAverage={competitorAverage}
-              averageResponse={averageResponse}
-              averageResponseMs={averageResponseMs}
             />
 
             {!isListingLiveOnPlatform && (
@@ -1022,6 +1053,8 @@ function DashboardContent() {
                   onPaymentError={setPaymentError}
                   onOpenSettingsField={openSettingsField}
                   onOpenKyc={openKycInfo}
+                  onOpenPlan={() => setActiveTab('subscription')}
+                  onOpenListing={() => setActiveTab('listings')}
                 />
 
                 {businessId && canView('leads') ? (

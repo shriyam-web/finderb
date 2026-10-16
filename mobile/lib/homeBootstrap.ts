@@ -70,6 +70,16 @@ export function getHomeBootstrapCache(): HomeBootstrapData | null {
   return cache;
 }
 
+const TEMPLATE_CATEGORY_IDS = new Set([
+  '2', '3', '4', '5', '7', '8', '9', '10', '11', '12', '13', '14', '23', '25', '29', '31',
+]);
+
+/** Starter icons from constants/categories — shown only until the live catalog arrives. */
+export function isTemplateHomeCategories(categories: HomeCategory[]): boolean {
+  if (!categories.length) return true;
+  return categories.every((cat) => TEMPLATE_CATEGORY_IDS.has(cat.id) && !cat.icon);
+}
+
 export function clearHomeBootstrapCache() {
   cache = null;
 }
@@ -95,13 +105,13 @@ export async function loadHomeBootstrap(force = false): Promise<HomeBootstrapDat
         : fallbackCats();
 
     const data: HomeBootstrapData = {
-      categories: orderParents(categories, force),
+      categories: orderParents(categories, force || categoryResult.categories.length === 0),
       catalog:
         categoryResult.catalog && categoryResult.catalog.length > 0
           ? categoryResult.catalog
           : uniqueCatalogCategories(categories),
     };
-    cache = data;
+    if (categoryResult.categories.length > 0) cache = data;
     return data;
   })();
 

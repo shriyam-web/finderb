@@ -21,6 +21,7 @@ import {
   HiOutlineCreditCard,
   HiOutlineChatBubbleLeftRight,
   HiOutlineLockClosed,
+  HiOutlineEnvelope,
 } from 'react-icons/hi2';
 import { FaInstagram, FaFacebook, FaYoutube, FaWhatsapp } from 'react-icons/fa';
 import { useState, useEffect } from 'react';
@@ -30,6 +31,7 @@ import { CldUploadWidget } from 'next-cloudinary';
 import GoogleMapsLocationEditor from './GoogleMapsLocationEditor';
 import { validateMapPinAgainstAddress } from '@/app/actions/location';
 import KeywordTagInput from './KeywordTagInput';
+import { offeringsForCategory } from '@/lib/categoryOfferings';
 import CategoryChangeRequestPanel from './CategoryChangeRequestPanel';
 import LegalBusinessNameChangeRequestPanel from './LegalBusinessNameChangeRequestPanel';
 import DisplayNameChangeRequestPanel from './DisplayNameChangeRequestPanel';
@@ -74,12 +76,14 @@ import { dashboard } from './dashboard-ui';
 import { ContactVerifyCard, type VerifiedContact } from './MerchantContactVerifyGate';
 import OwnerMobileVerify from './OwnerMobileVerify';
 import { pickPublicBusinessEmail } from '@/lib/placeholderEmail';
+import { isBusinessWhatsappVerified } from '@/lib/unverifiedContact';
 import {
   businessHasPublicPhoto,
   syncBusinessImagesWithCover,
 } from '@/lib/businessMapping';
 import ChangePasswordPanel from './ChangePasswordPanel';
 import TeamAccessPanel from './TeamAccessPanel';
+import AlsoServesEditor from './AlsoServesEditor';
 
 const discountOptions = [
   '5% - 10% OFF',
@@ -175,6 +179,7 @@ const SETTINGS_FIELDS: FieldDef[] = [
   { key: 'displayName', label: 'Business Display Name', icon: HiOutlineUser, type: 'displayNameRequest' },
   { key: 'category', label: 'Business Category', icon: HiOutlineTag, type: 'categoryRequest' },
   { key: 'about', label: 'About Business', icon: HiOutlineInformationCircle, type: 'textarea' },
+  { key: 'serviceCategory', label: 'Services', icon: HiOutlineTag, type: 'services' },
   { key: 'keywords', label: 'Search Keywords', icon: HiOutlineHashtag, type: 'keywords' },
   { key: 'ownerInfo', label: 'Owner Information', icon: HiOutlineUser, type: 'ownerInfo' },
   { key: 'publicPhone', label: 'Public Phone', icon: HiOutlinePhone, type: 'text' },
@@ -209,7 +214,7 @@ const SETTINGS_FIELDS: FieldDef[] = [
 const LOGIN_CONTACT_FOCUS = new Set(['email', 'mobile', 'loginContact', 'publicPhone']);
 
 const FIELD_SECTIONS = [
-  { id: 'brand', title: 'Brand & discovery', keys: ['media', 'businessName', 'displayName', 'category', 'about', 'keywords'] },
+  { id: 'brand', title: 'Brand & discovery', keys: ['media', 'businessName', 'displayName', 'category', 'about', 'serviceCategory', 'keywords'] },
   { id: 'contact', title: 'Contact', keys: ['ownerInfo', 'publicPhone', 'whatsappNumber', 'website'] },
   { id: 'location', title: 'Location', keys: ['businessAddress', 'city', 'state', 'country', 'mapLocation'] },
   { id: 'social', title: 'Social media', keys: ['instagramUrl', 'facebookUrl', 'youtubeUrl'] },
@@ -811,7 +816,19 @@ export default function SettingsTab({
                   ) : activeModal === 'keywords' ? (
                     <KeywordTagInput
                       value={normalizeSearchKeywords(profileData.keywords)}
+                      suggestions={offeringsForCategory(profileData.category).keywords}
                       onChange={(nextKeywords) => updateField('keywords', nextKeywords)}
+                    />
+                  ) : activeModal === 'services' || activeModal === 'serviceCategory' ? (
+                    <KeywordTagInput
+                      value={String(profileData.serviceCategory || '')
+                        .split(/[,|]/)
+                        .map((item: string) => item.trim())
+                        .filter(Boolean)}
+                      max={10}
+                      placeholder="e.g. Home delivery"
+                      suggestions={offeringsForCategory(profileData.category).services}
+                      onChange={(next) => updateField('serviceCategory', next.join(', '))}
                     />
                   ) : activeModal === 'category' ? (
                     business?.id ? (
@@ -1147,7 +1164,18 @@ export default function SettingsTab({
                       ) : (
                         <p className="text-xs text-zinc-500">{INDIAN_PHONE_FIELD_HINT}</p>
                       )}
-                      {activeModal === 'whatsappNumber' && whatsappIsNew ? (
+                      {activeModal === 'whatsappNumber' &&
+                      isValidIndianMobileDigits(editedWhatsapp) &&
+                      !whatsappVerified &&
+                      !(
+                        editedWhatsapp === extractIndianMobileDigits(business?.whatsappNumber) &&
+                        isBusinessWhatsappVerified({
+                          whatsappVerified: business?.whatsappVerified,
+                          whatsappNumber: business?.whatsappNumber,
+                          mobile: business?.mobile,
+                          mobileVerified: business?.mobileVerified,
+                        })
+                      ) ? (
                         <OwnerMobileVerify
                           key={editedWhatsapp}
                           mobile={editedWhatsapp}
@@ -1362,13 +1390,32 @@ export default function SettingsTab({
               {sectionFields.map((field) => {
                 const isMissing = checkIsMissing(field);
                 const Icon = field.icon;
+                const savedWhatsappOk = isBusinessWhatsappVerified({
+                  whatsappVerified: business?.whatsappVerified,
+                  whatsappNumber: business?.whatsappNumber,
+                  mobile: business?.mobile,
+                  mobileVerified: business?.mobileVerified,
+                });
+                const verifyAction =
+                  field.key === 'publicPhone' && loginMobile && !business?.mobileVerified
+                    ? () =>
+                        document
+                          .getElementById('settings-login-contact')
+                          ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                    : field.key === 'whatsappNumber' &&
+                        isValidIndianMobileDigits(editedWhatsapp) &&
+                        !whatsappVerified &&
+                        !savedWhatsappOk
+                      ? () => openField('whatsappNumber')
+                      : null;
                 return (
                   <li key={field.key}>
+                    <div className="flex items-center">
                     <button
                       type="button"
                       onClick={() => openField(field.key)}
                       disabled={!canEdit}
-                      className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-zinc-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                      className="flex min-w-0 flex-1 items-center gap-3 px-4 py-3 text-left hover:bg-zinc-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
                     >
                       <Icon size={18} className={isMissing ? 'text-amber-600' : 'text-zinc-400'} />
                       <div className="min-w-0 flex-1">
@@ -1379,12 +1426,52 @@ export default function SettingsTab({
                           {getDisplayValue(field)}
                         </p>
                       </div>
-                      {isMissing ? (
+                      {isMissing && !verifyAction ? (
                         <span className="shrink-0 text-[10px] font-medium text-amber-700">Add</span>
-                      ) : (
+                      ) : !verifyAction ? (
                         <HiOutlineChevronRight size={16} className="shrink-0 text-zinc-300" />
-                      )}
+                      ) : null}
                     </button>
+                    {verifyAction ? (
+                      <button
+                        type="button"
+                        onClick={verifyAction}
+                        className="mr-3 shrink-0 rounded-full border border-amber-300 bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-800"
+                      >
+                        Verify
+                      </button>
+                    ) : null}
+                    </div>
+                    {field.key === 'category' && business?.id ? (
+                      <AlsoServesEditor
+                        businessId={business.id}
+                        onSaved={(category) => updateField('category', category)}
+                      />
+                    ) : null}
+                    {field.key === 'publicPhone' ? (
+                      <div className="flex w-full items-center gap-3 border-t border-zinc-100 px-4 py-3">
+                        <HiOutlineEnvelope size={18} className="text-zinc-400" />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-zinc-900">Public email</p>
+                          <p className="truncate text-xs text-zinc-500">{loginEmail || 'Not set'}</p>
+                        </div>
+                        {loginEmail && !business?.emailVerified ? (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              document
+                                .getElementById('settings-login-contact')
+                                ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                            }
+                            className="shrink-0 rounded-full border border-amber-300 bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-800"
+                          >
+                            Verify
+                          </button>
+                        ) : business?.emailVerified ? (
+                          <HiOutlineShieldCheck size={16} className="shrink-0 text-emerald-600" />
+                        ) : null}
+                      </div>
+                    ) : null}
                   </li>
                 );
               })}
