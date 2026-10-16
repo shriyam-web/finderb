@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { createServiceClient } from '@/lib/supabase/service';
+import { ownershipDetailsLock } from '@/lib/ownershipRequest.server';
 import {
   categoryHead,
   categoryLeaf,
@@ -73,6 +74,8 @@ export async function writeAlsoServes(
   businessId: string,
   leaves: string[],
 ): Promise<{ success: true; category: string } | { success: false; error: string }> {
+  const locked = await ownershipDetailsLock(businessId);
+  if (locked.locked) return { success: false, error: locked.error };
   const current = await readAlsoServes(businessId);
   if (!current.success) return current;
   if (!current.state.primary) return { success: false, error: 'Set a category before adding more.' };

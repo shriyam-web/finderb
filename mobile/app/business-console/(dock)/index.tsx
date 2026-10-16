@@ -807,6 +807,14 @@ function HomeBody({ o }: { o: ConsoleOverview }) {
       onRefresh={() => void refresh()}
     >
       <Text style={styles.greeting}>{`${greeting}${firstName ? `, ${firstName}` : ''}`}</Text>
+      {o.detailsLockedUntil ? (
+        <View style={styles.lockBanner}>
+          <Text style={styles.lockTitle}>Details locked for 15 days</Text>
+          <Text style={styles.lockBody}>
+            {`This listing was just transferred. You can change business details after ${new Date(o.detailsLockedUntil).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}.`}
+          </Text>
+        </View>
+      ) : null}
       <ShopCard o={o} go={go} />
       {slides.length ? <AlertCarousel slides={slides} /> : null}
       <Section title="Performance">
@@ -842,6 +850,18 @@ export default function HomeScreen() {
 const useStyles = createConsoleStyles((c) => ({
   flex: { flex: 1, minWidth: 0 },
   greeting: { fontFamily: fonts.semiBold, fontSize: 16, color: c.ink, paddingHorizontal: 2, marginBottom: -4 },
+  lockBanner: {
+    marginTop: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: c.warning,
+    backgroundColor: c.warningSoft,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 4,
+  },
+  lockTitle: { fontFamily: fonts.semiBold, fontSize: 13, color: c.ink },
+  lockBody: { fontFamily: fonts.regular, fontSize: 12.5, lineHeight: 18, color: c.body },
   insight: { fontFamily: fonts.regular, fontSize: 12.5, lineHeight: 17 },
   insightShell: {
     marginTop: 12,

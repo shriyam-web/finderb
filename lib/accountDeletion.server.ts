@@ -126,6 +126,9 @@ export async function scheduleBusinessDeletion(businessId: string): Promise<
 > {
   const id = businessId.trim();
   if (!id) return { success: false, error: 'Business ID is required' };
+  const { ownershipDetailsLock } = await import('@/lib/ownershipRequest.server');
+  const locked = await ownershipDetailsLock(id);
+  if (locked.locked) return { success: false, error: locked.error };
   const supabase = createServiceClient();
   if (!supabase) return { success: false, error: 'Could not schedule deletion.' };
   const deletionScheduledAt = new Date(

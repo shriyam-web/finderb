@@ -189,6 +189,7 @@ export type ConsoleOverview = {
     maxActiveJobs: number;
   };
   kycMessage: string;
+  detailsLockedUntil?: string | null;
   actor?: {
     isOwner: boolean;
     teamMemberId: string | null;

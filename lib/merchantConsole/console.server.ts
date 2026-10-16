@@ -25,7 +25,7 @@ import { countBusinessReviewFlagsThisMonth } from '@/lib/reviewModeration.server
 import { createJob, deleteJob, getJobsByBusiness, updateJob } from '@/app/actions/job';
 import { getBusinessProfileViewStats } from '@/app/actions/analytics';
 import { merchantNotificationCta } from '@/lib/merchantNotificationCta';
-import { ownershipPromptsById, recordOwnerOwnershipDecision } from '@/lib/ownershipRequest.server';
+import { ownershipDetailsLock, ownershipPromptsById, recordOwnerOwnershipDecision } from '@/lib/ownershipRequest.server';
 import { cancelMerchantAutoRenew, getMerchantSubscriptionDetails } from '@/app/actions/subscription';
 import {
   abandonMerchantCheckout,
@@ -423,13 +423,14 @@ async function overview(businessId: string) {
   const status = String(business.status || 'Pending');
   const category = text(business.category);
 
-  const [leadsResult, jobsResult, views, notifications, trend, competitorAverage] = await Promise.all([
+  const [leadsResult, jobsResult, views, notifications, trend, competitorAverage, detailsLock] = await Promise.all([
     getBusinessLeads(businessId),
     getJobsByBusiness(businessId),
     getBusinessProfileViewStats(businessId),
     loadNotifications(businessId, category),
     viewTrend(businessId),
     loadCompetitorAverage(businessId, category),
+    ownershipDetailsLock(businessId),
   ]);
   const leads = leadsResult.success ? leadsResult.leads : [];
   const jobs = jobsResult.success && jobsResult.jobs ? jobsResult.jobs : [];
@@ -517,6 +518,7 @@ async function overview(businessId: string) {
       maxActiveJobs: 3,
     },
     kycMessage: KYC_OUTSOURCED_MESSAGE,
+    detailsLockedUntil: detailsLock.locked ? detailsLock.until : null,
     actor: {
       isOwner: actor.isOwner,
       teamMemberId: actor.isOwner ? null : actor.teamMemberId,

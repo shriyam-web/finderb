@@ -11,6 +11,7 @@ import {
 import { assertBusinessSession } from '@/lib/security/session';
 import { assertBusinessTab } from '@/lib/businessTeam/teamActor.server';
 import { enforceRateLimit } from '@/lib/security/enforceRateLimit.server';
+import { ownershipDetailsLock } from '@/lib/ownershipRequest.server';
 
 async function loadCurrentValue(
   supabase: Awaited<ReturnType<typeof createDataClient>>,
@@ -97,6 +98,8 @@ export async function submitChangeRequest(params: {
     if (!auth.ok) {
       return { success: false as const, error: auth.error };
     }
+    const locked = await ownershipDetailsLock(businessId);
+    if (locked.locked) return { success: false as const, error: locked.error };
 
     const supabase = await createDataClient();
     const currentValue = await loadCurrentValue(supabase, businessId, params.field);

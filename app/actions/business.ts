@@ -28,6 +28,7 @@ import { ensureBusinessSlug } from '@/lib/businessSlug.server';
 import { getBusinessProfilePath, isLegacyBusinessId, resolveBusinessSlug } from '@/lib/businessSlug';
 import { queueIndexNow } from '@/lib/indexNow.server';
 import { createServiceClient } from '@/lib/supabase/service';
+import { ownershipDetailsLock } from '@/lib/ownershipRequest.server';
 import {
   applyDueBusinessDeletion,
   cancelScheduledBusinessDeletion,
@@ -488,6 +489,8 @@ export async function updateBusinessImages(id: string, images: string[], profile
     if (!auth.ok) {
       return { success: false, error: auth.error };
     }
+    const locked = await ownershipDetailsLock(id);
+    if (locked.locked) return { success: false, error: locked.error };
 
     console.log('Updating images for business:', id);
 
@@ -968,6 +971,8 @@ export async function changeBusinessPassword(
     if (!auth.ok) {
       return { success: false, error: auth.error };
     }
+    const locked = await ownershipDetailsLock(businessId);
+    if (locked.locked) return { success: false, error: locked.error };
 
     const currentPassword = input.currentPassword?.trim() ?? '';
     if (!currentPassword) {
@@ -1486,6 +1491,8 @@ export async function updateBusinessProfile(id: string, profileData: any) {
     if (!auth.ok) {
       return { success: false, error: auth.error };
     }
+    const locked = await ownershipDetailsLock(id);
+    if (locked.locked) return { success: false, error: locked.error };
 
     const supabase = await createDataClient();
     const socialFields = ['instagramUrl', 'facebookUrl', 'youtubeUrl'] as const;
@@ -1754,6 +1761,8 @@ export async function hideOwnBusinessListing(businessId: string) {
     if (!auth.ok) {
       return { success: false as const, error: auth.error };
     }
+    const locked = await ownershipDetailsLock(businessId);
+    if (locked.locked) return { success: false as const, error: locked.error };
     return scheduleBusinessDeletion(businessId);
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : 'Could not schedule deletion.';

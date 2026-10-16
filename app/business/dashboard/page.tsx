@@ -57,6 +57,7 @@ import PlanPurchaseBanner from './components/PlanPurchaseBanner';
 import ProfileIncompleteBanner from './components/ProfileIncompleteBanner';
 import ReviewsTab from './components/ReviewsTab';
 import { getMerchantNotifications, markMerchantNotificationsRead } from '@/app/actions/merchantNotifications';
+import { ownershipDetailsHold } from '@/app/actions/ownershipRequest';
 import { merchantNotificationCta } from '@/lib/merchantNotificationCta';
 import { broadcastTargetsMerchants } from '@/lib/broadcastAudience';
 import { getMerchantSubscriptionStatus } from '@/lib/subscription/merchantSubscription';
@@ -123,6 +124,7 @@ function DashboardContent() {
   const [activeJobsCount, setActiveJobsCount] = useState(0);
   const [settingsFocusField, setSettingsFocusField] = useState<string | null>(null);
   const [merchantAlertCount, setMerchantAlertCount] = useState(0);
+  const [detailsLockMessage, setDetailsLockMessage] = useState('');
   const [isOwner, setIsOwner] = useState(true);
   const [teamAccess, setTeamAccess] = useState<TeamAccessMap>(() => ownerTeamAccess());
   const [competitorAverage, setCompetitorAverage] = useState<number | null>(null);
@@ -500,6 +502,17 @@ function DashboardContent() {
       void fetchNotifications();
     }
   }, [business, businessId]);
+
+  useEffect(() => {
+    if (!businessId) return;
+    let cancelled = false;
+    void ownershipDetailsHold(businessId).then((hold) => {
+      if (!cancelled) setDetailsLockMessage(hold.locked ? hold.message : '');
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [businessId]);
 
   useEffect(() => {
     if (!businessId) return;
@@ -902,6 +915,12 @@ function DashboardContent() {
               });
             }}
           />
+        ) : null}
+        {detailsLockMessage ? (
+          <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+            <p className="font-semibold">Business details are locked</p>
+            <p className="mt-1">{detailsLockMessage}</p>
+          </div>
         ) : null}
         {businessId && subscriptionStatus.alertLevel !== 'none' && (
           <SubscriptionExpiryAlert

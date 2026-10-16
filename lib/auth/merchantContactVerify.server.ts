@@ -13,6 +13,7 @@ import { REGISTRATION_EMAIL_REGEX } from '@/lib/merchantRegistrationValidation';
 import { isPlaceholderEmail } from '@/lib/placeholderEmail';
 import { enforceRateLimit } from '@/lib/security/enforceRateLimit.server';
 import { getSessionBusinessId, isBusinessSupportSession } from '@/lib/security/session';
+import { ownershipDetailsLock } from '@/lib/ownershipRequest.server';
 import { createServiceClient } from '@/lib/supabase/service';
 import { sendWhatsAppOtp } from '@/lib/whatsapp/sendWhatsAppOtp';
 
@@ -160,6 +161,8 @@ export async function confirmMerchantEmailVerifyCode(
   if (!(await consumeOtpChallenge(emailPurpose(session.id), email, code))) {
     return { success: false, error: 'Invalid or expired code. Check the email and try again.' };
   }
+  const emailLock = await ownershipDetailsLock(session.id);
+  if (emailLock.locked) return { success: false, error: emailLock.error };
 
   try {
     if (await emailUsedElsewhere(session.id, email)) return { success: false, error: EMAIL_TAKEN };
@@ -310,6 +313,8 @@ export async function confirmMerchantMobileVerifyCode(
   if (!(await consumeOtpChallenge(mobilePurpose(session.id), mobile, code))) {
     return { success: false, error: 'Invalid or expired code. Check WhatsApp and try again.' };
   }
+  const mobileLock = await ownershipDetailsLock(session.id);
+  if (mobileLock.locked) return { success: false, error: mobileLock.error };
 
   try {
     if (await mobileUsedElsewhere(session.id, mobile)) return { success: false, error: MOBILE_TAKEN };

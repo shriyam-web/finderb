@@ -379,6 +379,31 @@ export function ownershipPromptFromRow(row: {
   };
 }
 
+export async function ownershipDetailsLock(businessId: string): Promise<
+  { locked: false } | { locked: true; until: string; error: string }
+> {
+  const id = businessId.trim();
+  const supabase = createServiceClient();
+  if (!supabase || !id) return { locked: false };
+  const { data, error } = await supabase
+    .from('business_ownership_requests')
+    .select('reversible_until')
+    .eq('business_id', id)
+    .eq('status', 'approved')
+    .is('reversed_at', null)
+    .gt('reversible_until', new Date().toISOString())
+    .order('reversible_until', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error || !data?.reversible_until) return { locked: false };
+  const until = String(data.reversible_until);
+  return {
+    locked: true,
+    until,
+    error: `This listing was transferred recently. Business details stay locked until ${formatIst(until)}. After that you can edit them.`,
+  };
+}
+
 export async function ownershipPromptsById(requestIds: string[]) {
   const ids = [...new Set(requestIds.map((id) => id.trim()).filter(Boolean))];
   const prompts = new Map<string, OwnershipPrompt>();

@@ -1,8 +1,8 @@
 'use server';
 
-import { pendingOwnershipForViewer, recordOwnerOwnershipDecision, submitOwnershipRequest } from '@/lib/ownershipRequest.server';
+import { ownershipDetailsLock, pendingOwnershipForViewer, recordOwnerOwnershipDecision, submitOwnershipRequest } from '@/lib/ownershipRequest.server';
 import { assertBusinessOwner } from '@/lib/businessTeam/teamActor.server';
-import { isBusinessSupportSession } from '@/lib/security/session';
+import { getSessionBusinessId, isBusinessSupportSession } from '@/lib/security/session';
 import { getSession } from '@/app/actions/user';
 
 export async function requestBusinessOwnership(input: {
@@ -37,6 +37,16 @@ export async function respondToOwnershipRequest(input: {
   const owner = await assertBusinessOwner(input.businessId);
   if (!owner.ok) return { success: false as const, error: owner.error };
   return recordOwnerOwnershipDecision(input);
+}
+
+export async function ownershipDetailsHold(businessId: string) {
+  const sessionId = await getSessionBusinessId();
+  if (!sessionId || sessionId !== businessId.trim()) {
+    return { locked: false as const, until: null, message: '' };
+  }
+  const lock = await ownershipDetailsLock(businessId);
+  if (!lock.locked) return { locked: false as const, until: null, message: '' };
+  return { locked: true as const, until: lock.until, message: lock.error };
 }
 
 export async function ownershipRequestDefaults() {
