@@ -522,7 +522,7 @@ export async function dispatchBroadcastPush(broadcastId: string): Promise<{
 /** Lead / review alerts for one merchant, delivered only to devices signed in to that business. */
 export async function sendBusinessPush(input: {
   businessId: string;
-  type: 'lead' | 'review' | 'job';
+  type: 'lead' | 'review' | 'job' | 'ownership';
   title: string;
   body: string;
   url: string;

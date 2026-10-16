@@ -1,11 +1,13 @@
 'use client';
 
+import { useState } from 'react';
 import { HiOutlineBars3, HiOutlineBell } from 'react-icons/hi2';
 import { formatDateTimeInr } from '@/lib/formatDateTime';
 import {
   broadcastShowsDatetime,
   resolveBroadcastCta,
 } from '@/lib/broadcastFields';
+import { respondToOwnershipRequest } from '@/app/actions/ownershipRequest';
 
 const tabMeta: Record<string, { title: string; description: string }> = {
   overview: {
@@ -51,6 +53,11 @@ type DashboardNotification = {
   cta_label?: string | null;
   show_datetime?: boolean | null;
   read?: boolean;
+  type?: string;
+  ownershipRequestId?: string;
+  ownershipDeadline?: string;
+  ownershipDecision?: string;
+  ownershipCanDecide?: boolean;
 };
 
 type DashboardTopBarProps = {
@@ -63,7 +70,76 @@ type DashboardTopBarProps = {
   onMarkAllRead?: () => void;
   notifications: DashboardNotification[];
   onOpenMenu?: () => void;
+  businessId?: string;
+  onOwnershipAnswered?: () => void;
 };
+
+function OwnershipAnswer({
+  businessId,
+  requestId,
+  onAnswered,
+}: {
+  businessId: string;
+  requestId: string;
+  onAnswered?: () => void;
+}) {
+  const [note, setNote] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  const send = async (decision: 'approved' | 'denied') => {
+    if (decision === 'denied' && note.trim().length < 3) {
+      setError('Write a short reason before denying.');
+      return;
+    }
+    setBusy(true);
+    setError('');
+    const result = await respondToOwnershipRequest({
+      businessId,
+      requestId,
+      decision,
+      note: note.trim(),
+    });
+    setBusy(false);
+    if (!result.success) {
+      setError(result.error || 'Could not save your answer.');
+      return;
+    }
+    onAnswered?.();
+  };
+
+  return (
+    <div className="mt-2 space-y-2" onClick={(event) => event.stopPropagation()}>
+      <p className="text-[11px] font-semibold text-amber-700">High priority · answer within 48 hours</p>
+      <textarea
+        value={note}
+        onChange={(event) => setNote(event.target.value)}
+        rows={2}
+        placeholder="Reason, required if you deny"
+        className="w-full rounded-md border border-zinc-200 px-2 py-1.5 text-xs text-zinc-800 outline-none"
+      />
+      {error ? <p className="text-[11px] text-rose-600">{error}</p> : null}
+      <div className="flex gap-2">
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => void send('approved')}
+          className="rounded-full bg-zinc-900 px-3 py-1 text-[11px] font-semibold text-white disabled:opacity-50"
+        >
+          Approve
+        </button>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => void send('denied')}
+          className="rounded-full border border-rose-200 px-3 py-1 text-[11px] font-semibold text-rose-700 disabled:opacity-50"
+        >
+          Deny
+        </button>
+      </div>
+    </div>
+  );
+}
 
 function itemCta(n: DashboardNotification) {
   const url = (n.cta_url || '').trim();
@@ -84,6 +160,8 @@ export default function DashboardTopBar({
   onMarkAllRead,
   notifications,
   onOpenMenu,
+  businessId,
+  onOwnershipAnswered,
 }: DashboardTopBarProps) {
   const meta = tabMeta[activeTab] || { title: activeTab, description: '' };
 
@@ -141,27 +219,55 @@ export default function DashboardTopBar({
               <div className="max-h-80 overflow-y-auto">
                 {notifications.length > 0 ? (
                   notifications.map((n) => {
-                    const cta = itemCta(n);
+                    const cta = n.ownershipCanDecide ? null : itemCta(n);
+                    const answer =
+                      n.ownershipCanDecide && businessId && n.ownershipRequestId ? (
+                        <OwnershipAnswer
+                          businessId={businessId}
+                          requestId={n.ownershipRequestId}
+                          onAnswered={onOwnershipAnswered}
+                        />
+                      ) : n.type === 'ownership_request' && n.ownershipDecision ? (
+                        <p className="mt-1 text-[11px] font-medium text-zinc-500">
+                          {n.ownershipDecision === 'approved'
+                            ? 'You approved this request'
+                            : n.ownershipDecision === 'denied'
+                              ? 'You denied this request'
+                              : 'The 48-hour window has closed'}
+                        </p>
+                      ) : null;
                     return (
-                    <button
-                      type="button"
+                    <div
                       key={n.id || `${n.title}-${n.created_at}`}
-                      onClick={() => onOpenNotification?.(n)}
-                      className={`block w-full border-b border-zinc-50 px-4 py-3 text-left last:border-0 hover:bg-amber-50/40 ${n.read === false ? 'bg-[#fff8ee]' : ''}`}
+                      className={`block w-full border-b border-zinc-50 px-4 py-3 text-left last:border-0 ${n.ownershipCanDecide ? 'bg-amber-50' : n.read === false ? 'bg-[#fff8ee]' : ''}`}
                     >
-                      <p className="text-sm font-medium text-zinc-900">{n.title || 'Notification'}</p>
-                      <p className="mt-0.5 text-xs text-zinc-600">{n.message}</p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (n.ownershipCanDecide) return;
+                          onOpenNotification?.(n);
+                        }}
+                        className="block w-full text-left"
+                      >
+                        <p className="text-sm font-medium text-zinc-900">{n.title || 'Notification'}</p>
+                        <p className="mt-0.5 text-xs text-zinc-600">{n.message}</p>
+                      </button>
+                      {answer}
                       {cta ? (
-                        <span className="mt-2 inline-flex rounded-md bg-[#3F3F46] px-2.5 py-1 text-[11px] font-semibold text-white">
+                        <button
+                          type="button"
+                          onClick={() => onOpenNotification?.(n)}
+                          className="mt-2 inline-flex rounded-md bg-[#3F3F46] px-2.5 py-1 text-[11px] font-semibold text-white"
+                        >
                           {cta.label}
-                        </span>
+                        </button>
                       ) : null}
                       {broadcastShowsDatetime(n.show_datetime) ? (
                         <p className="mt-1 text-[11px] text-zinc-400">
                           {formatDateTimeInr(n.created_at)}
                         </p>
                       ) : null}
-                    </button>
+                    </div>
                     );
                   })
                 ) : (

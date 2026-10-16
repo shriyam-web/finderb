@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { ownershipRequestDefaults, requestBusinessOwnership } from '@/app/actions/ownershipRequest';
+import { ownershipRequestDefaults, ownershipRequestPending, requestBusinessOwnership } from '@/app/actions/ownershipRequest';
 
 export default function OwnThisBusiness({ businessId, businessName }: { businessId: string; businessName: string }) {
   const [open, setOpen] = useState(false);
@@ -11,6 +11,17 @@ export default function OwnThisBusiness({ businessId, businessName }: { business
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [pending, setPending] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    void ownershipRequestPending(businessId).then((state) => {
+      if (!cancelled && state.pending) setPending(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [businessId]);
 
   useEffect(() => {
     if (!open) return;
@@ -31,6 +42,7 @@ export default function OwnThisBusiness({ businessId, businessName }: { business
       setError(result.error);
       return;
     }
+    setPending(true);
     setMessage(result.alreadyPending ? 'You already have a request waiting for review.' : 'Request sent. FinderB will review it.');
     setOpen(false);
   };
@@ -45,9 +57,10 @@ export default function OwnThisBusiness({ businessId, businessName }: { business
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="mt-3 rounded-full border border-zinc-300 px-3 py-1.5 text-xs font-semibold text-zinc-800"
+        disabled={pending}
+        className="mt-3 rounded-full border border-zinc-300 px-3 py-1.5 text-xs font-semibold text-zinc-800 disabled:cursor-not-allowed disabled:opacity-50"
       >
-        Request access
+        {pending ? 'Request sent' : 'Request access'}
       </button>
       {open ? (
         <form

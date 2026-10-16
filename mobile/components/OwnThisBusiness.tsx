@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
 import { fonts } from '../constants/typography';
 import { useTheme } from '../context/ThemeContext';
@@ -26,6 +26,28 @@ export function OwnThisBusiness({
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [pending, setPending] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const token = await getStoredToken();
+        if (!token) return;
+        const res = await fetch(
+          `${SITE_URL}/api/ownership-request?businessId=${encodeURIComponent(businessId)}`,
+          { headers: { Accept: 'application/json', Authorization: `Bearer ${token}` } },
+        );
+        const data = (await res.json()) as { pending?: boolean };
+        if (!cancelled && data.pending) setPending(true);
+      } catch {
+        // The button stays available if the status check cannot reach the server.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [businessId]);
 
   const submit = async () => {
     setBusy(true);
@@ -46,6 +68,7 @@ export function OwnThisBusiness({
         setError(data.error || 'Could not submit the request.');
         return;
       }
+      setPending(true);
       setMessage(data.alreadyPending ? 'You already have a request waiting.' : 'Request sent. FinderB will review it.');
       setOpen(false);
     } catch {
@@ -73,8 +96,14 @@ export function OwnThisBusiness({
           </Pressable>
         </View>
       ) : (
-        <Pressable onPress={() => setOpen(true)} style={{ alignSelf: 'flex-start', borderWidth: 1, borderColor: colors.border, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8 }}>
-          <Text style={{ fontFamily: fonts.semiBold, fontSize: 13, color: colors.ink }}>Request access</Text>
+        <Pressable
+          onPress={() => setOpen(true)}
+          disabled={pending}
+          style={{ alignSelf: 'flex-start', borderWidth: 1, borderColor: colors.border, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8, opacity: pending ? 0.5 : 1 }}
+        >
+          <Text style={{ fontFamily: fonts.semiBold, fontSize: 13, color: colors.ink }}>
+            {pending ? 'Request sent' : 'Request access'}
+          </Text>
         </Pressable>
       )}
     </View>

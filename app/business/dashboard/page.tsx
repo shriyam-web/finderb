@@ -440,6 +440,7 @@ function DashboardContent() {
         merchantResult?.success
           ? merchantResult.notifications.map((item) => {
               const cta = merchantNotificationCta(item.type, item.metadata);
+              const prompt = item.ownership;
               return {
                 id: item.id,
                 title: item.title || 'Alert',
@@ -448,9 +449,13 @@ function DashboardContent() {
                 source: 'merchant' as const,
                 type: item.type,
                 read: Boolean(item.read_at),
-                cta_url: cta.url,
-                cta_label: cta.label,
+                cta_url: prompt?.canDecide ? null : cta.url,
+                cta_label: prompt?.canDecide ? null : cta.label,
                 show_datetime: true,
+                ownershipRequestId: prompt?.requestId || '',
+                ownershipDeadline: prompt?.deadline || '',
+                ownershipDecision: prompt?.decision || '',
+                ownershipCanDecide: Boolean(prompt?.canDecide),
               };
             })
           : [];
@@ -477,9 +482,13 @@ function DashboardContent() {
         }),
       );
 
-      const merged = [...merchantItems, ...broadcastNotifications].sort(
-        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      );
+      const merged = [...merchantItems, ...broadcastNotifications].sort((a, b) => {
+        const rank = (item: { created_at: string; ownershipCanDecide?: boolean }) =>
+          item.ownershipCanDecide ? 1 : 0;
+        const byPriority = rank(b) - rank(a);
+        if (byPriority) return byPriority;
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      });
 
       setNotifications(merged);
       const unreadMerchant = merchantResult?.success ? merchantResult.unreadCount : 0;
@@ -948,6 +957,10 @@ function DashboardContent() {
           onNotificationsClose={() => setIsNotificationsOpen(false)}
           onOpenMenu={() => setIsSidebarOpen(true)}
           notifications={notifications}
+          businessId={businessId || undefined}
+          onOwnershipAnswered={() => {
+            setBusiness((prev: typeof business) => (prev ? { ...prev } : prev));
+          }}
         />
 
         {!isPlanActive && activeTab !== 'subscription' ? (

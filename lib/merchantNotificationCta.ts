@@ -19,6 +19,12 @@ export function merchantNotificationCta(
       label: 'View review',
     };
   }
+  if (kind.includes('ownership')) {
+    return {
+      url: '/business/dashboard?alert=ownership',
+      label: 'Review request',
+    };
+  }
   if (kind.includes('lead')) {
     return {
       url: '/business/dashboard?tab=leads',

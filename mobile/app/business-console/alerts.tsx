@@ -1,5 +1,5 @@
-import { useEffect, useRef } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Pressable, Text, TextInput, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,8 +18,60 @@ function iconFor(item: ConsoleNotification): keyof typeof Ionicons.glyphMap {
   if (/payment|plan|subscription|renew/.test(type)) return 'card-outline';
   if (/lead/.test(type)) return 'people-outline';
   if (/review/.test(type)) return 'star-outline';
+  if (/ownership/.test(type)) return 'key-outline';
   if (/approv|status|live/.test(type)) return 'storefront-outline';
   return 'notifications-outline';
+}
+
+function OwnershipAnswer({
+  requestId,
+  onDone,
+}: {
+  requestId: string;
+  onDone: () => void;
+}) {
+  const styles = useStyles();
+  const c = useConsoleColors();
+  const { run, notify } = useMerchantConsole();
+  const [note, setNote] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const send = async (decision: 'approved' | 'denied') => {
+    if (decision === 'denied' && note.trim().length < 3) {
+      notify('Write a short reason before denying.');
+      return;
+    }
+    setBusy(true);
+    const result = await run<{ success: true }>('respondOwnership', { requestId, decision, note: note.trim() });
+    setBusy(false);
+    if (!result.success) {
+      notify(result.error || 'Could not save your answer.');
+      return;
+    }
+    notify(decision === 'approved' ? 'You approved this request.' : 'You denied this request.');
+    onDone();
+  };
+
+  return (
+    <View style={styles.answer}>
+      <Text style={styles.answerLabel}>High priority · answer within 48 hours</Text>
+      <TextInput
+        value={note}
+        onChangeText={setNote}
+        placeholder="Reason, required if you deny"
+        placeholderTextColor={c.faint}
+        style={styles.answerInput}
+      />
+      <View style={styles.answerRow}>
+        <Pressable disabled={busy} onPress={() => void send('approved')} style={[styles.answerBtn, styles.answerYes]}>
+          <Text style={styles.answerYesText}>{busy ? 'Saving' : 'Approve'}</Text>
+        </Pressable>
+        <Pressable disabled={busy} onPress={() => void send('denied')} style={[styles.answerBtn, styles.answerNo]}>
+          <Text style={styles.answerNoText}>Deny</Text>
+        </Pressable>
+      </View>
+    </View>
+  );
 }
 
 function AlertsBody({ o }: { o: ConsoleOverview }) {
@@ -76,7 +128,7 @@ function AlertsBody({ o }: { o: ConsoleOverview }) {
             <Pressable
               key={`${item.kind}-${item.id}`}
               onPress={() => open(item)}
-              disabled={!item.ctaUrl}
+              disabled={!item.ctaUrl || Boolean(item.ownership?.canDecide)}
               style={({ pressed }) => [
                 styles.item,
                 index > 0 && styles.itemLine,
@@ -100,6 +152,17 @@ function AlertsBody({ o }: { o: ConsoleOverview }) {
                   {!item.read ? <View style={styles.dot} /> : null}
                 </View>
                 {item.body ? <Text style={styles.body}>{item.body}</Text> : null}
+                {item.ownership?.canDecide ? (
+                  <OwnershipAnswer requestId={item.ownership.requestId} onDone={() => void refresh()} />
+                ) : item.type === 'ownership_request' && item.ownership ? (
+                  <Text style={styles.time}>
+                    {item.ownership.decision === 'approved'
+                      ? 'You approved this request'
+                      : item.ownership.decision === 'denied'
+                        ? 'You denied this request'
+                        : 'The 48-hour window has closed'}
+                  </Text>
+                ) : null}
                 <View style={styles.foot}>
                   <Text style={styles.time}>
                     {item.kind === 'broadcast' ? 'Announcement · ' : ''}
@@ -156,4 +219,23 @@ const useStyles = createConsoleStyles((c) => ({
   time: { fontFamily: fonts.regular, fontSize: 12, color: c.faint },
   cta: { fontFamily: fonts.semiBold, fontSize: 13, color: c.accent },
   markAll: { fontFamily: fonts.semiBold, fontSize: 13, color: c.accent },
+  answer: { marginTop: 10, gap: 8 },
+  answerLabel: { fontFamily: fonts.semiBold, fontSize: 12, color: c.warning },
+  answerInput: {
+    borderWidth: 1,
+    borderColor: c.line,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    fontFamily: fonts.regular,
+    fontSize: 13,
+    color: c.ink,
+    backgroundColor: c.card,
+  },
+  answerRow: { flexDirection: 'row', gap: 8 },
+  answerBtn: { borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8 },
+  answerYes: { backgroundColor: c.primary },
+  answerNo: { borderWidth: 1, borderColor: c.danger },
+  answerYesText: { fontFamily: fonts.semiBold, fontSize: 13, color: c.primaryInk },
+  answerNoText: { fontFamily: fonts.semiBold, fontSize: 13, color: c.danger },
 }));

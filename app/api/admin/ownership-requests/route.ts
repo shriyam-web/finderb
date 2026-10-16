@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { enforceRateLimit } from '@/lib/security/enforceRateLimit.server';
-import { listOwnershipRequests, moderateOwnershipRequest } from '@/lib/ownershipRequest.server';
+import { listOwnershipRequests, moderateOwnershipRequest, reverseOwnershipTransfer } from '@/lib/ownershipRequest.server';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -46,6 +46,17 @@ export async function POST(request: Request) {
       adminId?: string;
       adminNote?: string;
     } | null;
+    if (body?.action === 'reverse') {
+      if (!body.requestId) {
+        return NextResponse.json({ success: false, error: 'Missing request.' }, { status: 400 });
+      }
+      const reversed = await reverseOwnershipTransfer({
+        requestId: body.requestId,
+        adminId: body.adminId,
+        adminNote: body.adminNote,
+      });
+      return NextResponse.json(reversed, { status: reversed.success ? 200 : 400 });
+    }
     const action = body?.action === 'deny' ? 'deny' : body?.action === 'approve' ? 'approve' : null;
     if (!action || !body?.requestId) {
       return NextResponse.json({ success: false, error: 'Choose approve or deny.' }, { status: 400 });

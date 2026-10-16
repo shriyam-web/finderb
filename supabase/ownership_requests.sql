@@ -12,7 +12,21 @@ CREATE TABLE IF NOT EXISTS business_ownership_requests (
   admin_note TEXT,
   reviewed_by TEXT,
   created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-  reviewed_at TIMESTAMPTZ
+  reviewed_at TIMESTAMPTZ,
+  owner_decision TEXT,
+  owner_note TEXT,
+  owner_decided_at TIMESTAMPTZ,
+  owner_deadline_at TIMESTAMPTZ,
+  previous_email TEXT,
+  previous_work_email TEXT,
+  previous_mobile TEXT,
+  previous_password TEXT,
+  previous_email_verified BOOLEAN,
+  previous_mobile_verified BOOLEAN,
+  transferred_at TIMESTAMPTZ,
+  reversible_until TIMESTAMPTZ,
+  reversed_at TIMESTAMPTZ,
+  reversed_by TEXT
 );
 
 CREATE INDEX IF NOT EXISTS idx_ownership_requests_status

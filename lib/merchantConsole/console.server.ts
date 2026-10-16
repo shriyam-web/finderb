@@ -25,6 +25,7 @@ import { countBusinessReviewFlagsThisMonth } from '@/lib/reviewModeration.server
 import { createJob, deleteJob, getJobsByBusiness, updateJob } from '@/app/actions/job';
 import { getBusinessProfileViewStats } from '@/app/actions/analytics';
 import { merchantNotificationCta } from '@/lib/merchantNotificationCta';
+import { ownershipPromptsById, recordOwnerOwnershipDecision } from '@/lib/ownershipRequest.server';
 import { cancelMerchantAutoRenew, getMerchantSubscriptionDetails } from '@/app/actions/subscription';
 import {
   abandonMerchantCheckout,
@@ -279,7 +280,7 @@ async function loadNotifications(businessId: string, category: string) {
     console.error('[merchant alerts]', merchantRows.error);
   }
 
-  const own = ((merchantRows.data ?? []) as Array<{
+  const ownSource = (merchantRows.data ?? []) as Array<{
     id: string;
     type: string;
     title: string | null;
@@ -287,8 +288,15 @@ async function loadNotifications(businessId: string, category: string) {
     metadata: Record<string, unknown> | null;
     read_at: string | null;
     created_at: string;
-  }>).map((item) => {
+  }>;
+  const ownershipIds = ownSource
+    .filter((item) => item.type === 'ownership_request')
+    .map((item) => String(item.metadata?.requestId || ''));
+  const prompts = await ownershipPromptsById(ownershipIds);
+  const own = ownSource.map((item) => {
     const cta = merchantNotificationCta(item.type, item.metadata);
+    const requestId = String(item.metadata?.requestId || '');
+    const prompt = item.type === 'ownership_request' ? prompts.get(requestId) || null : null;
     return {
       id: item.id,
       kind: 'alert' as const,
@@ -297,8 +305,9 @@ async function loadNotifications(businessId: string, category: string) {
       body: item.body,
       createdAt: item.created_at,
       read: Boolean(item.read_at),
-      ctaUrl: cta.url,
-      ctaLabel: cta.label,
+      ctaUrl: prompt?.canDecide ? null : cta.url,
+      ctaLabel: prompt?.canDecide ? null : cta.label,
+      ownership: prompt,
     };
   });
 
@@ -337,9 +346,13 @@ async function loadNotifications(businessId: string, category: string) {
       ctaLabel: text(row.cta_label) || null,
     }));
 
-  const items = [...own, ...news].sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-  );
+  const items = [...own, ...news].sort((a, b) => {
+    const rank = (item: { createdAt: string; ownership?: { canDecide: boolean } | null }) =>
+      item.ownership?.canDecide ? 1 : 0;
+    const byPriority = rank(b) - rank(a);
+    if (byPriority) return byPriority;
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+  });
   return { items, unread: own.filter((item) => !item.read).length };
 }
 
@@ -1034,6 +1047,13 @@ export async function runConsoleAction(userId: string, businessId: string, body:
       return confirmMerchantOwnerMobileCode(body.value, String(body.code || '').trim());
     case 'changePassword':
       return changePassword(businessId, body);
+    case 'respondOwnership':
+      return recordOwnerOwnershipDecision({
+        businessId,
+        requestId: String(body.requestId || ''),
+        decision: body.decision === 'denied' ? 'denied' : 'approved',
+        note: String(body.note || ''),
+      });
     case 'markNotificationsRead':
       return markRead(businessId);
     case 'notifications': {

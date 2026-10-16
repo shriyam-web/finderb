@@ -114,6 +114,7 @@ export const CONSOLE_ACTION_ACCESS: Record<
   sendOwnerMobileCode: { owner: true },
   confirmOwnerMobile: { owner: true },
   changePassword: { owner: true },
+  respondOwnership: { owner: true },
   markNotificationsRead: { tab: 'overview', mode: 'view' },
   notifications: { tab: 'overview', mode: 'view' },
   listTeam: { owner: true },

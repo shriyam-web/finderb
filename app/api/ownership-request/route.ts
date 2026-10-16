@@ -1,10 +1,33 @@
 import { NextResponse } from 'next/server';
 import { getBearerToken, verifyMobileSessionToken } from '@/lib/auth/mobileToken';
-import { submitOwnershipRequest } from '@/lib/ownershipRequest.server';
+import { pendingOwnershipForViewer, submitOwnershipRequest } from '@/lib/ownershipRequest.server';
+import { createServiceClient } from '@/lib/supabase/service';
 import { enforceRateLimit } from '@/lib/security/enforceRateLimit.server';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
+
+export async function GET(request: Request) {
+  try {
+    const businessId = new URL(request.url).searchParams.get('businessId')?.trim() || '';
+    const bearer = getBearerToken(request);
+    const userId = bearer ? verifyMobileSessionToken(bearer) : null;
+    if (!businessId || !userId) {
+      return NextResponse.json({ success: true, pending: false });
+    }
+    const supabase = createServiceClient();
+    let email: string | null = null;
+    if (supabase) {
+      const { data } = await supabase.from('User').select('email').eq('id', userId).maybeSingle();
+      email = data?.email ? String(data.email) : null;
+    }
+    const pending = await pendingOwnershipForViewer(businessId, { userId, email });
+    return NextResponse.json({ success: true, pending });
+  } catch (error) {
+    console.error('[ownership request status]', error);
+    return NextResponse.json({ success: true, pending: false });
+  }
+}
 
 export async function POST(request: Request) {
   try {

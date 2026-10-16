@@ -117,6 +117,12 @@ export type ConsoleNotification = {
   read: boolean;
   ctaUrl: string | null;
   ctaLabel: string | null;
+  ownership?: {
+    requestId: string;
+    deadline: string | null;
+    decision: string | null;
+    canDecide: boolean;
+  } | null;
 };
 
 export type ConsoleBusiness = {

@@ -1,6 +1,7 @@
 'use server';
 
 import { createServiceClient } from '@/lib/supabase/service';
+import { ownershipPromptsById } from '@/lib/ownershipRequest.server';
 import { assertBusinessSession } from '@/lib/security/session';
 
 export type MerchantNotification = {
@@ -12,6 +13,12 @@ export type MerchantNotification = {
   metadata: Record<string, unknown> | null;
   read_at: string | null;
   created_at: string;
+  ownership?: {
+    requestId: string;
+    deadline: string | null;
+    decision: string | null;
+    canDecide: boolean;
+  } | null;
 };
 
 export async function getMerchantNotifications(businessId: string) {
@@ -40,6 +47,15 @@ export async function getMerchantNotifications(businessId: string) {
     if (error) throw error;
 
     const notifications = (data ?? []) as MerchantNotification[];
+    const prompts = await ownershipPromptsById(
+      notifications
+        .filter((item) => item.type === 'ownership_request')
+        .map((item) => String(item.metadata?.requestId || '')),
+    );
+    for (const item of notifications) {
+      if (item.type !== 'ownership_request') continue;
+      item.ownership = prompts.get(String(item.metadata?.requestId || '')) || null;
+    }
     const unreadCount = notifications.filter((item) => !item.read_at).length;
 
     return { success: true as const, notifications, unreadCount };
