@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { BackHandler } from 'react-native';
+import { Alert, BackHandler } from 'react-native';
 import { type Href, useRouter, useSegments } from 'expo-router';
 
 export const CONSOLE_HOME = '/business-console' as Href;
@@ -30,6 +30,14 @@ function peekDockTab() {
   return dockHistory[dockHistory.length - 1] || 'index';
 }
 
+export function lastDockTab() {
+  return peekDockTab();
+}
+
+export function dockTabHref(name: string): Href {
+  return dockHref(name);
+}
+
 function dockHref(name: string): Href {
   return DOCK_HREF[name] || CONSOLE_HOME;
 }
@@ -38,6 +46,23 @@ function hrefPath(href: Href) {
   if (typeof href === 'string') return href.split('?')[0];
   const path = (href as { pathname?: string }).pathname || '';
   return path.split('?')[0];
+}
+
+export function askStorefrontPreview(
+  router: { push: (href: Href) => void },
+  id: string,
+) {
+  Alert.alert('Preview storefront', 'Open this page as your business, or the way a visitor sees it?', [
+    {
+      text: 'As your business',
+      onPress: () => router.push({ pathname: '/(tabs)/merchant/[id]', params: { id, preview: 'owner' } }),
+    },
+    {
+      text: 'As a visitor',
+      onPress: () => router.push({ pathname: '/(tabs)/merchant/[id]', params: { id, preview: 'visitor' } }),
+    },
+    { text: 'Cancel', style: 'cancel' },
+  ]);
 }
 
 /** Dock tabs switch in place. Stack screens (alerts, edit, …) still push. */

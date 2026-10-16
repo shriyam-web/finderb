@@ -12,28 +12,24 @@ export default function ReviewsVisibilityBanner({
   const remaining = Math.max(0, 10 - reviewCount);
 
   return (
-    <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#FFE8CC] via-[#FFC078] to-[#F59E0B] p-4 text-orange-950 sm:p-5">
+    <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-[#FFE8CC] via-[#FFC078] to-[#F59E0B] px-3 py-2.5 text-orange-950">
       <RankVectors />
-      <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0 max-w-xl">
-          <p className="text-sm font-medium text-orange-900/80">Higher visibility</p>
-          <h3 className="mt-1 text-[17px] font-medium leading-snug text-orange-950">
+      <div className="relative flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[11px] font-medium text-orange-900/80">Higher visibility</p>
+          <h3 className="text-[13px] font-medium leading-snug text-orange-950">
             {remaining > 0
               ? `${remaining} more review${remaining === 1 ? '' : 's'} to unlock a stronger rank`
               : 'You crossed 10 reviews — keep the momentum'}
           </h3>
-          <p className="mt-1.5 text-sm font-normal leading-relaxed text-orange-950/75">
-            Listings with at least 10 genuine reviews show up more often. Generate your FinderB QR card and
-            send a one-tap review link to customers.
-          </p>
         </div>
         <button
           type="button"
           onClick={onOpenStudio}
-          className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-zinc-800 px-4 py-2.5 text-sm font-medium text-white hover:bg-zinc-700"
+          className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg bg-zinc-800 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-zinc-700"
         >
-          <HiOutlineQrCode size={18} />
-          Create QR card
+          <HiOutlineQrCode size={14} />
+          QR card
         </button>
       </div>
     </div>
@@ -43,8 +39,9 @@ export default function ReviewsVisibilityBanner({
 function RankVectors() {
   return (
     <svg
-      className="pointer-events-none absolute inset-y-0 right-0 h-full w-[46%] max-w-[240px]"
-      viewBox="0 0 240 160"
+      className="pointer-events-none absolute right-1 top-1/2 h-11 w-28 -translate-y-1/2"
+      viewBox="10 8 220 140"
+      preserveAspectRatio="xMidYMid meet"
       fill="none"
       aria-hidden
     >

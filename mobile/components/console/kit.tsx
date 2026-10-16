@@ -812,6 +812,7 @@ export function Row({
   tone,
   last,
   right,
+  compact,
 }: {
   icon: IconName;
   label: string;
@@ -820,6 +821,7 @@ export function Row({
   tone?: 'danger' | 'warning' | 'success';
   last?: boolean;
   right?: ReactNode;
+  compact?: boolean;
 }) {
   const styles = useKitStyles();
   const c = useConsoleColors();
@@ -829,13 +831,13 @@ export function Row({
       onPress={onPress}
       disabled={!onPress}
       accessibilityRole={onPress ? 'button' : undefined}
-      style={({ pressed }) => [styles.row, !last && styles.rowLine, pressed && styles.rowPressed]}
+      style={({ pressed }) => [styles.row, compact && styles.rowCompact, !last && styles.rowLine, pressed && styles.rowPressed]}
     >
-      <View style={[styles.rowIcon, tone ? { backgroundColor: tone === 'danger' ? c.dangerSoft : tone === 'warning' ? c.warningSoft : c.successSoft } : null]}>
-        <Ionicons name={icon} size={18} color={accent} />
+      <View style={[styles.rowIcon, compact && styles.rowIconCompact, tone ? { backgroundColor: tone === 'danger' ? c.dangerSoft : tone === 'warning' ? c.warningSoft : c.successSoft } : null]}>
+        <Ionicons name={icon} size={compact ? 18 : 18} color={accent} />
       </View>
       <View style={styles.rowCopy}>
-        <Text style={styles.rowLabel}>{label}</Text>
+        <Text style={[styles.rowLabel, compact && styles.rowLabelCompact]}>{label}</Text>
         {value ? (
           <Text style={[styles.rowValue, tone ? { color: accent } : null]} numberOfLines={2}>
             {value}
@@ -1161,6 +1163,7 @@ const useKitStyles = createConsoleStyles((c) => ({
     maxWidth: 290,
   },
   row: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 16, paddingVertical: 13 },
+  rowCompact: { gap: 12, paddingHorizontal: 14, paddingVertical: 9 },
   rowLine: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: c.line },
   rowPressed: { backgroundColor: c.sunken },
   rowIcon: {
@@ -1171,8 +1174,10 @@ const useKitStyles = createConsoleStyles((c) => ({
     justifyContent: 'center',
     backgroundColor: c.primarySoft,
   },
+  rowIconCompact: { width: 32, height: 32, borderRadius: 10 },
   rowCopy: { flex: 1, minWidth: 0 },
   rowLabel: { fontFamily: fonts.semiBold, fontSize: 15, color: c.ink },
+  rowLabelCompact: { fontSize: 15 },
   rowValue: { marginTop: 2, fontFamily: fonts.regular, fontSize: 13, color: c.muted },
   toast: {
     position: 'absolute',

@@ -2,7 +2,7 @@ import { Image } from 'expo-image';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import type { Merchant } from '../lib/merchants';
+import { listingThumbUrl, type Merchant } from '../lib/merchants';
 import { getRatingDisplay, UNRATED_LABEL } from '../lib/ratingDisplay';
 import { fonts } from '../constants/typography';
 import { useTheme } from '../context/ThemeContext';
@@ -53,10 +53,13 @@ export function MerchantCard({
       >
         {merchant.image ? (
           <Image
-            source={{ uri: merchant.image }}
+            source={{ uri: listingThumbUrl(merchant.image) || merchant.image }}
             style={styles.image}
             contentFit="cover"
-            transition={200}
+            cachePolicy="memory-disk"
+            priority="high"
+            recyclingKey={merchant.id}
+            transition={0}
           />
         ) : (
           <LinearGradient

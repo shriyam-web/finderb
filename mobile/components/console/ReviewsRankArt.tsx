@@ -5,10 +5,10 @@ export function RankBannerArt() {
   return (
     <Svg
       pointerEvents="none"
-      width={118}
-      height={78}
+      width={64}
+      height={40}
       viewBox="0 0 118 78"
-      style={{ position: 'absolute', right: 8, top: 10 }}
+      style={{ position: 'absolute', right: 8, top: 3 }}
     >
       <Rect x="62" y="44" width="12" height="22" rx="3" fill="#FFFFFF" fillOpacity={0.42} />
       <Rect x="78" y="30" width="12" height="36" rx="3" fill="#FFFFFF" fillOpacity={0.58} />

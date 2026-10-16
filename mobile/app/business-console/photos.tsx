@@ -112,6 +112,7 @@ function PhotosBody({ o }: { o: ConsoleOverview }) {
   return (
     <ConsolePage
       title="Photos"
+      docked
       subtitle={`${images.length} uploaded`}
       footer={
         <View style={{ gap: 8 }}>

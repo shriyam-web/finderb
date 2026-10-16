@@ -1127,11 +1127,6 @@ function DashboardContent() {
               onUnreadChange={setNewLeadCount}
               canEdit={canEdit('leads')}
             />
-            {averageResponse ? (
-              <p className="text-sm text-zinc-600">
-                Average response time so far: <span className="font-semibold text-zinc-900">{averageResponse}</span>
-              </p>
-            ) : null}
           </DashboardTabShell>
         )}
 
@@ -1170,9 +1165,6 @@ function DashboardContent() {
               mobileVerified: business?.mobileVerified,
             })}
             missingFields={listingMissingFields}
-            competitorAverage={competitorAverage}
-            averageResponse={averageResponse}
-            averageResponseMs={averageResponseMs}
             registrationNumber={business?.registrationNumber}
             deletionScheduledAt={business?.deletionScheduledAt}
             isOwner={isOwner}

@@ -261,6 +261,10 @@ export default function MerchantProfileScreen() {
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
   const previewMode = params.preview === 'visitor' ? 'visitor' : params.preview === '1' || params.preview === 'owner' ? 'owner' : '';
   const ownerPreview = previewMode === 'owner';
+  const [asVisitor, setAsVisitor] = useState(params.preview === 'visitor');
+  useEffect(() => {
+    setAsVisitor(params.preview === 'visitor');
+  }, [params.preview]);
   const location = useUserLocation(true);
   const bottomPad = useTabScrollPadding(16);
   const galleryRef = useRef<ScrollView>(null);
@@ -472,8 +476,7 @@ export default function MerchantProfileScreen() {
     promptLogin(`/merchant/${slug}`);
   };
 
-  const isOwnBusiness =
-    previewMode !== 'visitor' &&
+  const ownsListing =
     Boolean(merchant) &&
     (user?.businessId === merchant?.id ||
       (!!user?.isBusinessAccount &&
@@ -483,6 +486,7 @@ export default function MerchantProfileScreen() {
       (!!user?.email &&
         !!merchant?.email &&
         user.email.toLowerCase() === merchant.email.toLowerCase()));
+  const isOwnBusiness = ownsListing && !asVisitor;
 
   const openBusinessEdit = () => {
     router.push('/business-console/edit' as Href);
@@ -707,12 +711,22 @@ export default function MerchantProfileScreen() {
           },
         )}
       >
-        {isOwnBusiness ? (
+        {ownsListing ? (
           <SafeAreaView edges={['top']} style={styles.manageBannerSafe}>
-            <View style={styles.manageBanner}>
+            <Pressable
+              onPress={() => setAsVisitor((value) => !value)}
+              style={styles.manageBanner}
+              accessibilityRole="button"
+              accessibilityLabel={asVisitor ? 'Switch to your business view' : 'Switch to the visitor view'}
+            >
               <Ionicons name="storefront-outline" size={16} color="#047857" />
-              <Text style={styles.manageBannerText}>You manage this profile</Text>
-            </View>
+              <Text style={styles.manageBannerText}>
+                {asVisitor ? 'Viewing as a visitor' : 'Viewing as your business'}
+              </Text>
+              <Text style={styles.manageSwitch}>
+                {asVisitor ? 'Switch' : 'See as visitor'}
+              </Text>
+            </Pressable>
           </SafeAreaView>
         ) : null}
         <View
@@ -1899,6 +1913,12 @@ const useStyles = createThemedStyles((colors, gradients) => ({
     fontFamily: fonts.semiBold,
     fontSize: 14,
     color: '#047857',
+  },
+  manageSwitch: {
+    fontFamily: fonts.semiBold,
+    fontSize: 13,
+    color: '#065F46',
+    textDecorationLine: 'underline',
   },
   sheet: {
     marginTop: -18,

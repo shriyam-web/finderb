@@ -44,7 +44,7 @@ export function validateProfileLink(
   field: string,
   raw: string,
 ): { ok: true; value: string } | { ok: false; error: string } {
-  const trimmed = raw.trim();
+  const trimmed = raw.replace(/[\u200B-\u200D\uFEFF]/g, '').trim();
   if (!trimmed) return { ok: true, value: '' };
 
   const meta = LINK_FIELD_META[field];
@@ -65,7 +65,14 @@ export function validateProfileLink(
   }
 
   if (!parsed.hostname || !parsed.hostname.includes('.')) {
-    return { ok: false, error: 'Enter a complete website address' };
+    const name = meta.label.toLowerCase();
+    return {
+      ok: false,
+      error:
+        field === 'website'
+          ? 'Enter a complete website address, like https://yourshop.com'
+          : `Enter a complete ${name} link`,
+    };
   }
 
   if (meta.hosts && !hostMatchesAllowed(parsed.hostname, meta.hosts)) {

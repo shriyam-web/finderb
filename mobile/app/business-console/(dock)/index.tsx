@@ -26,8 +26,8 @@ import {
 import { LEAD_STATUS_TONE, pipelineOf } from '../../../components/console/leadStatus';
 import { LeadSourceBadge } from '../../../components/console/LeadSourceBadge';
 import { LISTING_SECTIONS } from '../../../components/console/listingSections';
-import { openConsolePath } from '../../../lib/consoleNav';
-import { competitorScoreIsGood, insightCardColors, leadResponseIsGood } from '../../../lib/insightTones';
+import { askStorefrontPreview, openConsolePath } from '../../../lib/consoleNav';
+import { competitorScoreIsGood, leadResponseIsGood } from '../../../lib/insightTones';
 
 type IconName = keyof typeof Ionicons.glyphMap;
 type Go = (href: Href) => void;
@@ -210,7 +210,7 @@ function ShopCard({ o, go }: { o: ConsoleOverview; go: Go }) {
     {
       label: 'Preview',
       icon: 'eye-outline',
-      onPress: () => router.push({ pathname: '/(tabs)/merchant/[id]', params: { id: business.id, preview: '1' } }),
+      onPress: () => askStorefrontPreview(router, business.id),
     },
     {
       label: 'Share',
@@ -379,7 +379,7 @@ function Performance({ o, go }: { o: ConsoleOverview; go: Go }) {
           </Pressable>
         ))}
       </View>
-      <InsightCards o={o} />
+      <InsightCarousel o={o} />
     </Panel>
     <Modal visible={menu} transparent animationType="fade" onRequestClose={() => setMenu(false)}>
       <Pressable style={styles.menuScrim} onPress={() => setMenu(false)}>
@@ -410,94 +410,95 @@ function Performance({ o, go }: { o: ConsoleOverview; go: Go }) {
   );
 }
 
-function MetricCarousel({
-  eyebrow,
-  value,
-  body,
-  tone,
-}: {
-  eyebrow: string;
-  value: string;
-  body: string;
-  tone: { color: string; backgroundColor: string; borderColor: string };
-}) {
+function InsightCarousel({ o }: { o: ConsoleOverview }) {
   const styles = useStyles();
   const scroller = useRef<ScrollView>(null);
   const [width, setWidth] = useState(0);
   const [page, setPage] = useState(0);
+  const responseGood = leadResponseIsGood(o.stats.averageResponse, o.stats.averageResponseMs);
+  const scoreGood = competitorScoreIsGood(o.completion.percent, o.stats.competitorAverage);
   const slides = [
-    { key: 'value', node: <Text style={[styles.insightValue, { color: tone.color }]}>{value}</Text> },
-    { key: 'body', node: <Text style={[styles.insight, { color: tone.color }]}>{body}</Text> },
+    {
+      key: 'response',
+      eyebrow: 'Average response',
+      value: o.stats.averageResponse || '—',
+      body: o.stats.averageResponse
+        ? 'How quickly you open new leads. Faster replies stay ahead of nearby businesses.'
+        : 'Open new leads promptly. This appears after the first few replies.',
+      good: responseGood,
+      fill: responseGood === false ? '#E11D48' : responseGood === true ? '#059669' : '#0F766E',
+    },
+    {
+      key: 'score',
+      eyebrow: 'Competitor score',
+      value: o.stats.competitorAverage != null ? `${o.stats.competitorAverage}%` : '—',
+      body:
+        o.stats.competitorAverage != null
+          ? `Nearby businesses average ${o.stats.competitorAverage}% complete. You are at ${o.completion.percent}%.`
+          : `Scores in your category are still coming in. You are at ${o.completion.percent}% complete.`,
+      good: scoreGood,
+      fill: scoreGood === false ? '#E11D48' : scoreGood === true ? '#059669' : '#6D28D9',
+    },
   ];
+
+  const go = (index: number) => {
+    const next = ((index % slides.length) + slides.length) % slides.length;
+    setPage(next);
+    if (width) scroller.current?.scrollTo({ x: next * width, animated: true });
+  };
 
   useEffect(() => {
     if (!width) return;
-    const timer = setInterval(() => {
-      setPage((current) => {
-        const next = current === 0 ? 1 : 0;
-        scroller.current?.scrollTo({ x: next * width, animated: true });
-        return next;
-      });
-    }, 3800);
+    const timer = setInterval(() => go(page + 1), 3800);
     return () => clearInterval(timer);
-  }, [width]);
+  }, [width, page]);
+
+  const slide = slides[page] || slides[0];
 
   return (
-    <View onLayout={(event) => setWidth(event.nativeEvent.layout.width)}>
-      <Text style={[styles.insightEyebrow, { color: tone.color }]}>{eyebrow}</Text>
+    <View style={[styles.insightShell, { backgroundColor: slide.fill }]}>
+      <View style={styles.insightStripHead}>
+        <Text style={styles.insightEyebrowLight}>{slide.eyebrow}</Text>
+        <View style={styles.insightDots}>
+          {slides.map((item, index) => (
+            <Pressable key={item.key} onPress={() => go(index)} hitSlop={8} accessibilityLabel={item.eyebrow}>
+              <View style={[styles.insightDotLight, page === index && styles.insightDotLightOn]} />
+            </Pressable>
+          ))}
+        </View>
+      </View>
+      <View onLayout={(event) => setWidth(event.nativeEvent.layout.width)}>
       {width ? (
         <ScrollView
           ref={scroller}
           horizontal
           pagingEnabled
           showsHorizontalScrollIndicator={false}
-          style={{ marginTop: 8 }}
-          onMomentumScrollEnd={(event) => setPage(Math.round(event.nativeEvent.contentOffset.x / width) === 1 ? 1 : 0)}
+          onMomentumScrollEnd={(event) => {
+            const next = Math.round(event.nativeEvent.contentOffset.x / width);
+            setPage(next === 1 ? 1 : 0);
+          }}
         >
-          {slides.map((slide) => (
-            <View key={slide.key} style={[styles.insightCard, tone, { width, marginTop: 0 }]}>
-              {slide.node}
+          {slides.map((item) => (
+            <View key={item.key} style={{ width }}>
+              <View style={styles.insightSlideRow}>
+                <View style={styles.flex}>
+                  <Text style={styles.insightValueLight} numberOfLines={1}>{item.value}</Text>
+                  <Text style={styles.insightBodyLight} numberOfLines={2}>{item.body}</Text>
+                </View>
+                <View style={styles.insightVote}>
+                  <Ionicons
+                    name={item.good === false ? 'thumbs-down' : item.good === true ? 'thumbs-up' : 'remove'}
+                    size={26}
+                    color="#FFFFFF"
+                  />
+                </View>
+              </View>
             </View>
           ))}
         </ScrollView>
-      ) : (
-        <View style={[styles.insightCard, tone]}>{slides[0]?.node}</View>
-      )}
-      <View style={styles.insightDots}>
-        {slides.map((slide, index) => (
-          <View key={slide.key} style={[styles.insightDot, page === index && styles.insightDotOn]} />
-        ))}
+      ) : null}
       </View>
-    </View>
-  );
-}
-
-function InsightCards({ o }: { o: ConsoleOverview }) {
-  const styles = useStyles();
-  const competitor = insightCardColors(competitorScoreIsGood(o.completion.percent, o.stats.competitorAverage));
-  const response = insightCardColors(leadResponseIsGood(o.stats.averageResponse, o.stats.averageResponseMs));
-  return (
-    <View style={styles.insightRow}>
-      <MetricCarousel
-        eyebrow="Average response"
-        value={o.stats.averageResponse || '—'}
-        body={
-          o.stats.averageResponse
-            ? 'This is how quickly you open new leads. Faster replies keep you ahead of nearby businesses.'
-            : 'Open new leads promptly. Your average response time appears after the first few replies.'
-        }
-        tone={response}
-      />
-      <MetricCarousel
-        eyebrow="Competitor score"
-        value={o.stats.competitorAverage != null ? `${o.stats.competitorAverage}%` : '—'}
-        body={
-          o.stats.competitorAverage != null
-            ? `Nearby competitors average ${o.stats.competitorAverage}% profile completion. You are at ${o.completion.percent}%.`
-            : `Competitor scores in your category are still coming in. You are at ${o.completion.percent}% complete.`
-        }
-        tone={competitor}
-      />
     </View>
   );
 }
@@ -511,18 +512,33 @@ function MissingInfo({ o, go }: { o: ConsoleOverview; go: Go }) {
   const blocked = o.health.items.filter(
     (item) => item.id !== 'subscription' && item.id !== 'profile' && (item.status === 'blocked' || item.status === 'review'),
   );
-  if (pct >= 100 && !focus.length && !blocked.length && !missing.length) return null;
-  const shown = missing.slice(0, 6);
+  const profileGaps = missing.filter((field) => field.key !== 'kyc');
+  const celebrated = pct >= 100 && o.subscription.isActive && profileGaps.length === 0;
+  if (celebrated) {
+    return (
+      <Section title="Missing info">
+        <Panel>
+          <Text style={styles.celebrateMark}>🎉</Text>
+          <Text style={styles.celebrateTitle}>Well done</Text>
+          <Text style={styles.celebrateBody}>
+            Your profile is complete and your plan is active. That helps you rank better in search results.
+          </Text>
+        </Panel>
+      </Section>
+    );
+  }
+  if (pct >= 100 && !focus.length && !blocked.length && !profileGaps.length) return null;
+  const shown = profileGaps.slice(0, 6);
 
   return (
-    <Section title="Missing info" action={missing.length > shown.length ? `+${missing.length - shown.length} more` : 'All details'} onAction={() => go('/business-console/listing')}>
+    <Section title="Missing info" action={profileGaps.length > shown.length ? `+${profileGaps.length - shown.length} more` : 'All details'} onAction={() => go('/business-console/listing')}>
       <Panel flush>
         <View style={styles.strength}>
           <View style={styles.strengthHead}>
             <Text style={styles.strengthValue}>{pct}%</Text>
             <Text style={styles.strengthNote} numberOfLines={2}>
-              {missing.length
-                ? `${missing.length} detail${missing.length === 1 ? '' : 's'} missing. Each one you add helps you show up in more searches.`
+              {profileGaps.length
+                ? `${profileGaps.length} detail${profileGaps.length === 1 ? '' : 's'} missing. Each one you add helps you show up in more searches.`
                 : o.health.headline}
             </Text>
           </View>
@@ -826,14 +842,34 @@ export default function HomeScreen() {
 const useStyles = createConsoleStyles((c) => ({
   flex: { flex: 1, minWidth: 0 },
   greeting: { fontFamily: fonts.semiBold, fontSize: 16, color: c.ink, paddingHorizontal: 2, marginBottom: -4 },
-  insight: { fontFamily: fonts.regular, fontSize: 13.5, lineHeight: 20, color: c.body },
-  insightRow: { gap: 8, marginTop: 12 },
-  insightCard: { padding: 16, borderRadius: 16, borderWidth: 1, minHeight: 132, justifyContent: 'center' },
-  insightEyebrow: { fontFamily: fonts.semiBold, fontSize: 12, letterSpacing: 0.4, textTransform: 'uppercase' },
-  insightValue: { marginTop: 6, fontFamily: fonts.semiBold, fontSize: 28 },
-  insightDots: { flexDirection: 'row', justifyContent: 'center', gap: 6, marginTop: 8 },
-  insightDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: c.lineStrong },
-  insightDotOn: { width: 16, backgroundColor: c.primary },
+  insight: { fontFamily: fonts.regular, fontSize: 12.5, lineHeight: 17 },
+  insightShell: {
+    marginTop: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 16,
+    overflow: 'hidden',
+    minHeight: 108,
+  },
+  insightStripHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  insightEyebrowLight: { fontFamily: fonts.semiBold, fontSize: 11, letterSpacing: 0.4, textTransform: 'uppercase', color: 'rgba(255,255,255,0.86)' },
+  insightValueLight: { marginTop: 4, fontFamily: fonts.semiBold, fontSize: 26, color: '#FFFFFF' },
+  insightBodyLight: { marginTop: 2, fontFamily: fonts.regular, fontSize: 12.5, lineHeight: 17, color: 'rgba(255,255,255,0.92)' },
+  insightSlideRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingRight: 4 },
+  insightVote: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.22)',
+  },
+  insightDots: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  insightDotLight: { width: 6, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.4)' },
+  insightDotLightOn: { width: 16, backgroundColor: '#FFFFFF' },
+  celebrateMark: { fontSize: 28 },
+  celebrateTitle: { marginTop: 4, fontFamily: fonts.semiBold, fontSize: 18, color: c.ink },
+  celebrateBody: { marginTop: 4, fontFamily: fonts.regular, fontSize: 13.5, lineHeight: 19, color: c.muted },
   pressed: { opacity: 0.75 },
   rowPressed: { backgroundColor: c.sunken },
   rowLine: { borderTopWidth: 1, borderTopColor: c.line },

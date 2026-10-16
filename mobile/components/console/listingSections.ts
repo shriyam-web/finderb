@@ -124,6 +124,7 @@ export function listingDetailRows(o: ConsoleOverview): ListingDetailRow[] {
     { label: 'About', value: dash(p.about), section: 'basics', missing: isMissing('about') },
     { label: 'Keywords', value: p.keywords.length ? p.keywords.join(', ') : 'Not set', section: 'basics', missing: isMissing('keywords') },
     { label: 'Services', value: dash(p.serviceCategory), section: 'basics', missing: isMissing('serviceCategory') },
+    { label: 'Add more subcategories', value: 'Extra categories in the same group', section: 'basics', missing: false },
     { label: 'Public phone', value: dash(p.publicPhone), section: 'contact', missing: isMissing('publicPhone'), verified: o.business.mobileVerified },
     { label: 'WhatsApp', value: dash(p.whatsappNumber), section: 'contact', missing: isMissing('whatsappNumber'), verified: o.business.whatsappVerified },
     { label: 'Owner', value: [p.ownerName, p.ownerMobile].filter(Boolean).join(' · ') || 'Not set', section: 'contact', missing: isMissing('ownerInfo') },

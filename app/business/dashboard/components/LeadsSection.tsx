@@ -105,10 +105,10 @@ function LeadIdCopy({ id }: { id: string }) {
           window.setTimeout(() => setCopied(false), 1200);
         });
       }}
-      className="mt-0.5 block max-w-full truncate text-left font-mono text-[9px] leading-none text-zinc-400 hover:text-zinc-600"
+      className="shrink-0 rounded-md border border-zinc-300 bg-zinc-50 px-1.5 py-1 text-[10px] font-semibold leading-none text-zinc-700 hover:bg-zinc-100"
       title="Copy lead id"
     >
-      {copied ? 'Copied' : id}
+      {copied ? 'Copied' : 'Lead ID'}
     </button>
   );
 }
@@ -320,13 +320,17 @@ export default function LeadsSection({
             {initials(lead.name)}
           </div>
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
-              <h4 className="min-w-0 flex-1 truncate text-[13px] font-semibold text-zinc-900">
-                {maskName(lead.name, isPaymentPending)}
-              </h4>
-              <span className="shrink-0 text-[11px] text-zinc-400">{formatRelativeTime(lead.created_at)}</span>
+            <div className="flex items-start gap-2">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <h4 className="min-w-0 flex-1 truncate text-[13px] font-semibold text-zinc-900">
+                    {maskName(lead.name, isPaymentPending)}
+                  </h4>
+                  <span className="shrink-0 text-[11px] text-zinc-400">{formatRelativeTime(lead.created_at)}</span>
+                </div>
+              </div>
+              <LeadIdCopy id={lead.id} />
             </div>
-            <LeadIdCopy id={lead.id} />
             <div className="mt-1 flex flex-wrap items-center gap-1.5">
               <LeadSourceBadge source={leadSourceOf(lead)} />
               <span

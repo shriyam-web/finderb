@@ -30,7 +30,7 @@ import {
   sortByUserLocation,
   type Coords,
 } from '../lib/geo';
-import type { Merchant } from '../lib/merchants';
+import { listingThumbUrl, type Merchant } from '../lib/merchants';
 import {
   alertVoiceUnavailable,
   startVoiceSearch,
@@ -787,10 +787,13 @@ function BusinessCard({
       <View style={styles.photo}>
         {merchant.image ? (
           <Image
-            source={{ uri: merchant.image }}
+            source={{ uri: listingThumbUrl(merchant.image) || merchant.image }}
             style={styles.photoImg}
             contentFit="cover"
-            transition={160}
+            cachePolicy="memory-disk"
+            priority="high"
+            recyclingKey={merchant.id}
+            transition={0}
           />
         ) : (
           <LinearGradient colors={[...gradients.spotlight]} style={styles.photoImg}>

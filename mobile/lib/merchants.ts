@@ -134,14 +134,21 @@ function forceCloudinaryJpeg(url: string): string {
     (first.includes(',') ||
       /^(f_|w_|h_|q_|c_|g_|e_|dpr_|fl_|b_|a_|ar_|bo_|t_|l_|o_)/.test(first));
   if (!looksLikeTransform) {
-    return `${url.slice(0, idx + marker.length)}f_jpg,q_auto,c_limit,w_1600/${after}`;
+    return `${url.slice(0, idx + marker.length)}f_jpg,q_auto,c_limit,w_720/${after}`;
   }
   let chain = /(^|,)f_[a-z0-9]+/.test(first)
     ? first.replace(/(^|,)f_[a-z0-9]+/, '$1f_jpg')
     : `f_jpg,${first}`;
   if (!/(^|,)q_/.test(chain)) chain = `${chain},q_auto`;
-  if (!/(^|,)w_/.test(chain) && !/(^|,)h_/.test(chain)) chain = `${chain},c_limit,w_1600`;
+  if (!/(^|,)w_/.test(chain) && !/(^|,)h_/.test(chain)) chain = `${chain},c_limit,w_720`;
   return `${url.slice(0, idx + marker.length)}${chain}${rest ? `/${rest}` : ''}`;
+}
+
+/** Smaller JPEG for list cards so photos appear with the business, not after it. */
+export function listingThumbUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  if (!url.includes('res.cloudinary.com') || !url.includes('/upload/')) return url;
+  return url.replace(/w_\d+/, 'w_360').replace('c_limit', 'c_fill');
 }
 
 /** Make a stored photo URL loadable in the app, including Cloudinary originals. */

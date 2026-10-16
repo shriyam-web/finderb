@@ -207,6 +207,10 @@ export default function ReviewsTab({
     };
   }, [businessId]);
 
+  const [shown, setShown] = useState(50);
+  const highlightIndex = highlightReviewId ? reviews.findIndex((review) => review.id === highlightReviewId) : -1;
+  const visibleCount = Math.max(shown, highlightIndex >= 0 ? Math.ceil((highlightIndex + 1) / 50) * 50 : 0);
+  const visibleReviews = reviews.slice(0, visibleCount);
   const repliedCount = reviews.filter((review) => review.merchantReply?.content).length;
   const pendingReplyCount = reviews.length - repliedCount;
 
@@ -284,8 +288,8 @@ export default function ReviewsTab({
           </div>
         </DashboardPanel>
       ) : (
-        <div className="space-y-3">
-          {reviews.map((review) => {
+        <div className="space-y-2">
+          {visibleReviews.map((review) => {
             const author = publicReviewAuthor(review);
             const anonymous = isAnonymousPublic(review);
             const flagged = flaggedIds.has(review.id);
@@ -294,14 +298,14 @@ export default function ReviewsTab({
               <article
                 key={review.id}
                 id={`review-${review.id}`}
-                className={`relative overflow-hidden rounded-xl border border-zinc-200 bg-white p-5 pb-14 font-sans ${highlightReviewId === review.id ? 'ring-1 ring-amber-200' : ''} ${review.deleted ? 'opacity-80' : ''}`}
+                className={`relative overflow-hidden rounded-lg border border-zinc-200 bg-white p-3 pb-10 font-sans ${highlightReviewId === review.id ? 'ring-1 ring-amber-200' : ''} ${review.deleted ? 'opacity-80' : ''}`}
               >
                 <div className="absolute right-3 top-3">
                   <ReviewIdBadge reviewId={review.id} tone="zinc" />
                 </div>
                 <div className="min-w-0 pr-24">
                     <div className="flex flex-wrap items-center gap-2">
-                      <p className="text-base font-semibold text-zinc-900">{author}</p>
+                      <p className="text-sm font-semibold text-zinc-900">{author}</p>
                       {anonymous ? (
                         <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-[11px] font-medium uppercase tracking-wide text-zinc-500">
                           Anonymous
@@ -320,10 +324,10 @@ export default function ReviewsTab({
                     </div>
                     <div className="mt-1 flex flex-wrap items-center gap-2">
                       <StarRow rating={review.rating} />
-                      {review.date ? <p className="text-[15px] text-zinc-500">{review.date}</p> : null}
+                      {review.date ? <p className="text-xs text-zinc-500">{review.date}</p> : null}
                     </div>
                 </div>
-                <p className="mt-3 text-base leading-relaxed text-zinc-700">{review.content}</p>
+                <p className="mt-1.5 text-sm leading-snug text-zinc-700">{review.content}</p>
                 {canEdit ? (
                   <div className="absolute bottom-3 right-3 flex items-center gap-1.5">
                     {flagLabel ? (
@@ -357,6 +361,15 @@ export default function ReviewsTab({
               </article>
             );
           })}
+          {visibleCount < reviews.length ? (
+            <button
+              type="button"
+              onClick={() => setShown((count) => count + 50)}
+              className="text-sm font-medium text-zinc-700 hover:underline"
+            >
+              Load more ({reviews.length - visibleCount} left)
+            </button>
+          ) : null}
         </div>
       )}
 

@@ -57,6 +57,7 @@ function AlertsBody({ o }: { o: ConsoleOverview }) {
   return (
     <ConsolePage
       title="Notifications"
+      docked
       subtitle={o.notifications.unread ? `${o.notifications.unread} unread` : 'Updates from FinderB'}
       refreshing={refreshing}
       onRefresh={() => void refresh()}

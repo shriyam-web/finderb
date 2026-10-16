@@ -1482,13 +1482,25 @@ export async function updateBusinessProfile(id: string, profileData: any) {
     const socialFields = ['instagramUrl', 'facebookUrl', 'youtubeUrl'] as const;
     const { data: currentLinks } = await supabase
       .from('Business')
-      .select('instagramUrl, facebookUrl, youtubeUrl')
+      .select('instagramUrl, facebookUrl, youtubeUrl, website')
       .eq('id', id)
       .maybeSingle();
+    const keepUnchanged = (field: string) => {
+      const previous = String(currentLinks?.[field as keyof typeof currentLinks] || '').trim();
+      const submitted = String(profileData[field] ?? '').trim();
+      if (submitted === previous) {
+        profileData[field] = previous;
+        return true;
+      }
+      return false;
+    };
     for (const field of socialFields) {
       if (!(field in (profileData || {}))) continue;
       const checked = validateProfileLink(field, String(profileData[field] ?? ''));
-      if (!checked.ok) return { success: false, error: checked.error };
+      if (!checked.ok) {
+        if (keepUnchanged(field)) continue;
+        return { success: false, error: checked.error };
+      }
       const previous = String(currentLinks?.[field] || '').trim();
       if (checked.value && checked.value !== previous) {
         const existsError = await socialProfileError(field, checked.value);
@@ -1498,8 +1510,11 @@ export async function updateBusinessProfile(id: string, profileData: any) {
     }
     if (PROFILE_LINK_FIELDS.has('website') && 'website' in (profileData || {})) {
       const checked = validateProfileLink('website', String(profileData.website ?? ''));
-      if (!checked.ok) return { success: false, error: checked.error };
-      profileData.website = checked.value;
+      if (!checked.ok) {
+        if (!keepUnchanged('website')) return { success: false, error: checked.error };
+      } else {
+        profileData.website = checked.value;
+      }
     }
 
     const lat = parseCoordinate(profileData.latitude);

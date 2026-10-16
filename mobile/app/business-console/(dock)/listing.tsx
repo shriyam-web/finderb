@@ -23,7 +23,7 @@ import {
   useTabBack,
 } from '../../../components/console/kit';
 import { listingDetailRows } from '../../../components/console/listingSections';
-import { competitorScoreIsGood, insightCardColors, leadResponseIsGood } from '../../../lib/insightTones';
+import { askStorefrontPreview } from '../../../lib/consoleNav';
 import { isFailure } from '../../../lib/merchantConsoleApi';
 
 function ListingBody({ o }: { o: ConsoleOverview }) {
@@ -58,7 +58,7 @@ function ListingBody({ o }: { o: ConsoleOverview }) {
           <HeaderIcon
             icon="eye-outline"
             label="Preview storefront"
-            onPress={() => router.push({ pathname: '/(tabs)/merchant/[id]', params: { id: o.business.id, preview: '1' } })}
+            onPress={() => askStorefrontPreview(router, o.business.id)}
           />
         </ConsoleHeaderActions>
       }
@@ -86,47 +86,13 @@ function ListingBody({ o }: { o: ConsoleOverview }) {
             ? 'Your profile is complete. Keep photos and timings up to date.'
             : `${missing} detail${missing === 1 ? '' : 's'} missing. Complete profiles get more calls.`}
         </Text>
-        <View
-          style={[
-            styles.insightCard,
-            insightCardColors(competitorScoreIsGood(pct, o.stats.competitorAverage)),
-          ]}
-        >
-          <Text
-            style={[
-              styles.insightText,
-              { color: insightCardColors(competitorScoreIsGood(pct, o.stats.competitorAverage)).color },
-            ]}
-          >
-            {o.stats.competitorAverage != null
-              ? `Your competitors have an average profile completion score of ${o.stats.competitorAverage}%. Try improving your score to stay ahead.`
-              : 'We are still gathering competitor profile scores in your category. Complete yours so you stay ready.'}
-          </Text>
-        </View>
-        <View
-          style={[
-            styles.insightCard,
-            insightCardColors(leadResponseIsGood(o.stats.averageResponse, o.stats.averageResponseMs)),
-          ]}
-        >
-          <Text
-            style={[
-              styles.insightText,
-              { color: insightCardColors(leadResponseIsGood(o.stats.averageResponse, o.stats.averageResponseMs)).color },
-            ]}
-          >
-            {o.stats.averageResponse
-              ? `Your average response time on leads so far is ${o.stats.averageResponse}.`
-              : 'Open new leads promptly — we will show your average response time after the first few replies.'}
-          </Text>
-        </View>
         <View style={styles.actions}>
           <Btn
             small
             tone="outline"
             icon="eye-outline"
             label="Preview"
-            onPress={() => router.push({ pathname: '/(tabs)/merchant/[id]', params: { id: o.business.id, preview: '1' } })}
+            onPress={() => askStorefrontPreview(router, o.business.id)}
             style={styles.flex}
           />
           <Btn

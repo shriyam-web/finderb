@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Alert, Pressable, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useRouter, type Href } from 'expo-router';
 import { setPreferredShell } from '../../../lib/preferredShell';
@@ -14,9 +15,9 @@ import { ConsolePage, Panel, Row, createConsoleStyles, useTabBack } from '../../
 import { canViewTeamTab } from '../../../lib/teamAccess';
 
 const THEMES = [
-  { key: 'light', label: 'Light' },
-  { key: 'dark', label: 'Dark' },
-  { key: 'system', label: 'System' },
+  { key: 'light', label: 'Light', icon: 'sunny' },
+  { key: 'dark', label: 'Dark', icon: 'moon' },
+  { key: 'system', label: 'System', icon: 'phone-portrait-outline' },
 ] as const;
 
 function MoreBody({ o }: { o: ConsoleOverview }) {
@@ -61,7 +62,7 @@ function MoreBody({ o }: { o: ConsoleOverview }) {
       docked
       refreshing={refreshing}
       onRefresh={() => void refresh()}
-      bodyStyle={{ gap: 8, paddingTop: 6 }}
+      bodyStyle={{ gap: 10, paddingTop: 6 }}
     >
       <View style={styles.identity}>
         {o.photos.cover || o.photos.images[0] ? (
@@ -90,6 +91,7 @@ function MoreBody({ o }: { o: ConsoleOverview }) {
       <Panel flush>
         {can('subscription') ? (
         <Row
+          compact
           icon="card-outline"
           label="Plan and billing"
           value={sub.expiresAtDisplay ? `Till ${sub.expiresAtDisplay}` : planLine}
@@ -100,6 +102,7 @@ function MoreBody({ o }: { o: ConsoleOverview }) {
         ) : null}
         {can('reviews') ? (
         <Row
+          compact
           icon="qr-code-outline"
           label="FinderB review card"
           value="QR + download"
@@ -109,6 +112,7 @@ function MoreBody({ o }: { o: ConsoleOverview }) {
         ) : null}
         {can('jobs') ? (
         <Row
+          compact
           icon="briefcase-outline"
           label="Jobs"
           value={o.stats.activeJobs ? String(o.stats.activeJobs) : undefined}
@@ -120,6 +124,7 @@ function MoreBody({ o }: { o: ConsoleOverview }) {
 
       <Panel flush>
         <Row
+          compact
           icon="shield-checkmark-outline"
           label="Login and security"
           value={verified ? 'Verified' : 'Action needed'}
@@ -128,6 +133,7 @@ function MoreBody({ o }: { o: ConsoleOverview }) {
         />
         {isOwner ? (
           <Row
+          compact
             icon="person-add-outline"
             label="Team access"
             value="Invite staff"
@@ -137,6 +143,7 @@ function MoreBody({ o }: { o: ConsoleOverview }) {
           />
         ) : null}
         <Row
+          compact
           icon="storefront-outline"
           label="Preview storefront"
           onPress={() =>
@@ -178,6 +185,7 @@ function MoreBody({ o }: { o: ConsoleOverview }) {
                 accessibilityState={{ selected: active }}
                 accessibilityLabel={`${theme.label} theme`}
               >
+                <Ionicons name={theme.icon} size={16} color={active ? '#FFFFFF' : '#71717A'} />
                 <Text style={[styles.themeText, active && styles.themeTextActive]}>{theme.label}</Text>
               </Pressable>
             );
@@ -187,6 +195,7 @@ function MoreBody({ o }: { o: ConsoleOverview }) {
 
       <Panel flush>
         <Row
+          compact
           icon="compass-outline"
           label="Browse FinderB"
           onPress={() => {
@@ -226,7 +235,7 @@ const useStyles = createConsoleStyles((c) => ({
   identity: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 8,
   },
   identityMark: {
     width: 36,
@@ -243,32 +252,36 @@ const useStyles = createConsoleStyles((c) => ({
     backgroundColor: c.sunken,
   },
   identityLetter: { fontFamily: fonts.semiBold, fontSize: 15, color: c.primary },
-  identityName: { fontFamily: fonts.semiBold, fontSize: 15, color: c.ink },
-  identityMeta: { marginTop: 1, fontFamily: fonts.regular, fontSize: 12, color: c.muted },
-  themeBlock: { gap: 6 },
-  themeLabel: { fontFamily: fonts.medium, fontSize: 11, color: c.muted },
+  identityName: { fontFamily: fonts.semiBold, fontSize: 16, color: c.ink },
+  identityMeta: { fontFamily: fonts.regular, fontSize: 12.5, color: c.muted },
+  themeBlock: { gap: 8 },
+  themeLabel: { fontFamily: fonts.medium, fontSize: 13, color: c.muted },
   themes: {
     flexDirection: 'row',
-    padding: 3,
-    borderRadius: 10,
+    padding: 4,
+    gap: 4,
+    borderRadius: 14,
     backgroundColor: c.sunken,
   },
   theme: {
     flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 8,
-    borderRadius: 8,
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 11,
   },
-  themeActive: { backgroundColor: c.card },
-  themeText: { fontFamily: fonts.regular, fontSize: 13, color: c.muted },
-  themeTextActive: { fontFamily: fonts.semiBold, color: c.ink },
+  themeActive: { backgroundColor: c.primary },
+  themeText: { fontFamily: fonts.medium, fontSize: 13.5, color: c.muted },
+  themeTextActive: { fontFamily: fonts.semiBold, color: '#FFFFFF' },
   logoutBtn: {
-    height: 42,
+    height: 44,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#DC2626',
   },
   logoutPressed: { opacity: 0.88 },
-  logoutText: { fontFamily: fonts.semiBold, fontSize: 15.5, color: '#FFFFFF' },
+  logoutText: { fontFamily: fonts.semiBold, fontSize: 14, color: '#FFFFFF' },
 }));

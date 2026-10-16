@@ -578,7 +578,7 @@ export function PlanBody({ docked = false }: { docked?: boolean }) {
 }
 
 export default function PlanScreen() {
-  return <PlanBody />;
+  return <PlanBody docked />;
 }
 
 const useStyles = createConsoleStyles((c) => ({

@@ -5,7 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { getBusinessOpenStatus } from '../lib/businessHours';
 import { getRatingDisplay, UNRATED_LABEL } from '../lib/ratingDisplay';
 import type { HomeCategory } from '../lib/api';
-import type { Merchant } from '../lib/merchants';
+import { listingThumbUrl, type Merchant } from '../lib/merchants';
 import { fonts } from '../constants/typography';
 import { useTheme } from '../context/ThemeContext';
 import { createThemedStyles } from '../hooks/useThemedStyles';
@@ -54,10 +54,13 @@ function ShelfMerchantCard({
       <View style={styles.photo}>
         {merchant.image ? (
           <Image
-            source={{ uri: merchant.image }}
+            source={{ uri: listingThumbUrl(merchant.image) || merchant.image }}
             style={styles.photoImg}
             contentFit="cover"
-            transition={160}
+            cachePolicy="memory-disk"
+            priority="high"
+            recyclingKey={merchant.id}
+            transition={0}
           />
         ) : (
           <LinearGradient colors={[...gradients.spotlight]} style={styles.photoImg}>

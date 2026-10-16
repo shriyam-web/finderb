@@ -16,6 +16,7 @@ import {
 } from 'react-icons/hi2';
 import { FaFacebook, FaInstagram, FaWhatsapp, FaYoutube } from 'react-icons/fa';
 import { Navigation, Tag } from 'lucide-react';
+import AlsoServesEditor from './AlsoServesEditor';
 import StackedPhotoGallery from '@/components/business/StackedPhotoGallery';
 import BusinessProfileOfferBanner from '@/components/business/BusinessProfileOfferBanner';
 import { getBusinessLocationLabel } from '@/lib/businessBreadcrumb';
@@ -37,7 +38,6 @@ import { formatTimingRange12h } from '@/lib/formatBusinessHours';
 import { getBusinessGalleryImages } from '@/lib/businessMapping';
 import { parseBusinessServices } from '@/lib/parseBusinessServices';
 import type { MissingProfileField } from '@/lib/dashboard/profileCompletion';
-import MerchantInsightsCard from './MerchantInsightsCard';
 import { cancelOwnBusinessDeletion, hideOwnBusinessListing } from '@/app/actions/business';
 import { dashboard } from './dashboard-ui';
 
@@ -100,9 +100,6 @@ type MyListingTabProps = {
   images: string[];
   profilePictureUrl: string | null;
   completionPercent: number;
-  competitorAverage?: number | null;
-  averageResponse?: string | null;
-  averageResponseMs?: number | null;
   registrationNumber?: string | null;
   deletionScheduledAt?: string | null;
   isOwner?: boolean;
@@ -175,9 +172,6 @@ export default function MyListingTab({
   images,
   profilePictureUrl,
   completionPercent,
-  competitorAverage = null,
-  averageResponse = null,
-  averageResponseMs = null,
   registrationNumber = null,
   deletionScheduledAt = null,
   isOwner = false,
@@ -344,13 +338,6 @@ export default function MyListingTab({
         </div>
       </div>
 
-      <MerchantInsightsCard
-        ownPercent={completionPercent}
-        competitorAverage={competitorAverage}
-        averageResponse={averageResponse}
-        averageResponseMs={averageResponseMs}
-      />
-
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_248px]">
         <div className={`${dashboard.panel} overflow-hidden`}>
           {/* Browser chrome */}
@@ -492,6 +479,12 @@ export default function MyListingTab({
                 </button>
               )}
             </section>
+
+            {businessId ? (
+              <section className="scroll-mt-24 border-t border-zinc-100 py-6">
+                <AlsoServesEditor businessId={businessId} />
+              </section>
+            ) : null}
 
             {/* Location & hours */}
             <section

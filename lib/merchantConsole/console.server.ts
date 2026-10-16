@@ -519,7 +519,9 @@ async function saveProfile(businessId: string, patch: unknown) {
   next.category = editable.category;
   next.displayName = editable.displayName;
 
+  const patchKeys = new Set(Object.keys(patch as Record<string, unknown>));
   for (const field of PROFILE_LINK_FIELDS) {
+    if (!patchKeys.has(field)) continue;
     const checked = validateProfileLink(field, String(next[field] ?? ''));
     if (!checked.ok) return fail(checked.error);
     next[field] = checked.value;

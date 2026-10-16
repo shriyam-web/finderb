@@ -1,11 +1,12 @@
 import { Pressable, Text, View } from 'react-native';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
+import { useRouter, useSegments } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { fonts } from '../../constants/typography';
 import { useConsoleColors } from '../../constants/consoleColors';
 import { useMerchantConsole } from '../../context/MerchantConsoleContext';
 import { useBottomInset } from '../../hooks/useAppSafeArea';
-import { rememberDockTab } from '../../lib/consoleNav';
+import { dockTabHref, lastDockTab, rememberDockTab } from '../../lib/consoleNav';
 import { canViewTeamTab, MOBILE_ROUTE_TAB } from '../../lib/teamAccess';
 import { createConsoleStyles, DOCK_HEIGHT } from './kit';
 
@@ -52,6 +53,62 @@ export function ConsoleDock({ state, navigation }: BottomTabBarProps) {
             onPress={() => {
               const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
               if (!focused && !event.defaultPrevented) navigation.navigate(route.name);
+            }}
+            style={styles.slot}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: focused }}
+            accessibilityLabel={badge ? `${item.label}, ${badge} new` : item.label}
+          >
+            <View style={[styles.pill, focused && styles.pillOn]}>
+              <Ionicons name={focused ? item.activeIcon : item.icon} size={21} color={tint} />
+              {badge > 0 ? (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>{badge > 9 ? '9+' : badge}</Text>
+                </View>
+              ) : null}
+            </View>
+            <Text style={[styles.label, { color: tint }, focused && styles.labelOn]} numberOfLines={1}>
+              {item.label}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+/** Same dock, drawn over screens that sit outside the tab navigator (More destinations). */
+export function StackConsoleDock() {
+  const segments = useSegments();
+  const router = useRouter();
+  const styles = useStyles();
+  const c = useConsoleColors();
+  const bottomInset = useBottomInset();
+  const { overview } = useMerchantConsole();
+  const onDock = segments[0] === 'business-console' && segments[1] === '(dock)';
+  if (onDock || !overview) return null;
+
+  const isOwner = overview.actor?.isOwner !== false;
+  const active = lastDockTab();
+  const badges: Record<string, number> = {
+    leads: overview.stats.leadsNew ?? 0,
+    reviews: overview.stats.reviewsAwaitingReply ?? 0,
+  };
+
+  return (
+    <View style={[styles.wrap, { paddingBottom: bottomInset }]}>
+      {ITEMS.map((item) => {
+        const tabKey = MOBILE_ROUTE_TAB[item.name];
+        if (tabKey && !canViewTeamTab(overview.actor?.access, tabKey, isOwner)) return null;
+        const focused = active === item.name;
+        const badge = badges[item.name] ?? 0;
+        const tint = focused ? c.primary : c.muted;
+        return (
+          <Pressable
+            key={item.name}
+            onPress={() => {
+              rememberDockTab(item.name);
+              router.navigate(dockTabHref(item.name));
             }}
             style={styles.slot}
             accessibilityRole="tab"

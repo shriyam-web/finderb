@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Modal, Pressable, Text, View } from 'react-native';
+import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { fonts } from '../../constants/typography';
 import { useConsoleColors } from '../../constants/consoleColors';
@@ -26,8 +26,14 @@ export function EstablishmentDateField({
   const max = new Date();
   const initial = isValidEstablishmentYear(year) ? new Date(year, 0, 1) : max;
   const [open, setOpen] = useState(false);
+  const [pickingYear, setPickingYear] = useState(false);
   const [cursor, setCursor] = useState(startOfMonth(initial.getFullYear(), initial.getMonth()));
   const [picked, setPicked] = useState<Date | null>(isValidEstablishmentYear(year) ? initial : null);
+  const years = useMemo(() => {
+    const list: number[] = [];
+    for (let value = max.getFullYear(); value >= EARLIEST_YEAR; value -= 1) list.push(value);
+    return list;
+  }, [max]);
 
   const cells = useMemo(() => {
     const first = startOfMonth(cursor.getFullYear(), cursor.getMonth());
@@ -79,27 +85,55 @@ export function EstablishmentDateField({
         <Pressable style={{ flex: 1, backgroundColor: 'rgba(15,23,42,0.45)', justifyContent: 'flex-end' }} onPress={() => setOpen(false)}>
           <Pressable
             onPress={(event) => event.stopPropagation()}
-            style={{ backgroundColor: c.card, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 16, paddingBottom: 28 }}
+            style={{ backgroundColor: c.card, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 16, paddingBottom: 40 }}
           >
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-              <Pressable onPress={() => shift(-1)} hitSlop={8} accessibilityLabel="Previous month">
+              <Pressable onPress={() => (pickingYear ? setCursor(new Date(cursor.getFullYear() - 12, cursor.getMonth(), 1)) : shift(-1))} hitSlop={8} accessibilityLabel={pickingYear ? 'Earlier years' : 'Previous month'}>
                 <Ionicons name="chevron-back" size={20} color={c.ink} />
               </Pressable>
-              <Text style={{ fontFamily: fonts.semiBold, fontSize: 16, color: c.ink }}>
-                {cursor.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}
-              </Text>
-              <Pressable onPress={() => shift(1)} hitSlop={8} accessibilityLabel="Next month">
+              <Pressable onPress={() => setPickingYear((value) => !value)} hitSlop={8} accessibilityLabel="Choose year">
+                <Text style={{ fontFamily: fonts.semiBold, fontSize: 16, color: c.primary }}>
+                  {pickingYear ? 'Pick a year' : cursor.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}
+                </Text>
+              </Pressable>
+              <Pressable onPress={() => (pickingYear ? setCursor(new Date(Math.min(max.getFullYear(), cursor.getFullYear() + 12), cursor.getMonth(), 1)) : shift(1))} hitSlop={8} accessibilityLabel={pickingYear ? 'Later years' : 'Next month'}>
                 <Ionicons name="chevron-forward" size={20} color={c.ink} />
               </Pressable>
             </View>
-            <View style={{ flexDirection: 'row' }}>
+            {pickingYear ? (
+              <ScrollView style={{ maxHeight: 280 }} contentContainerStyle={{ flexDirection: 'row', flexWrap: 'wrap', paddingBottom: 8 }}>
+                {years.map((value) => {
+                  const selected = value === cursor.getFullYear();
+                  return (
+                    <Pressable
+                      key={value}
+                      onPress={() => {
+                        const month = Math.min(cursor.getMonth(), value === max.getFullYear() ? max.getMonth() : 11);
+                        setCursor(new Date(value, month, 1));
+                        setPickingYear(false);
+                      }}
+                      style={{
+                        width: '25%',
+                        paddingVertical: 10,
+                        alignItems: 'center',
+                        borderRadius: 10,
+                        backgroundColor: selected ? c.primary : 'transparent',
+                      }}
+                    >
+                      <Text style={{ fontFamily: fonts.medium, fontSize: 15, color: selected ? c.primaryInk : c.ink }}>{value}</Text>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+            ) : null}
+            {pickingYear ? null : <View style={{ flexDirection: 'row' }}>
               {WEEKDAYS.map((day) => (
                 <Text key={day} style={{ flex: 1, textAlign: 'center', fontFamily: fonts.medium, fontSize: 12, color: c.muted }}>
                   {day}
                 </Text>
               ))}
-            </View>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 8 }}>
+            </View>}
+            {pickingYear ? null : <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 8 }}>
               {cells.map((day, index) => {
                 const disabled = !day || day < min || day > max;
                 const selected = Boolean(day && picked && day.toDateString() === picked.toDateString());
@@ -128,7 +162,7 @@ export function EstablishmentDateField({
                   </Pressable>
                 );
               })}
-            </View>
+            </View>}
           </Pressable>
         </Pressable>
       </Modal>

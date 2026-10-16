@@ -15,17 +15,27 @@ export default function AlsoServesEditor({
   const [selected, setSelected] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState('');
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
     void getAlsoServesState(businessId).then((result) => {
-      if (!result.success || !('state' in result)) return;
-      setPrimary(result.state.primary);
-      setOptions(result.state.options);
-      setSelected(result.state.selected);
+      if (result.success && 'state' in result) {
+        setPrimary(result.state.primary);
+        setOptions(result.state.options);
+        setSelected(result.state.selected);
+      }
+      setReady(true);
     });
   }, [businessId]);
 
-  if (!primary || (!options.length && !selected.length)) return null;
+  if (!ready) {
+    return (
+      <div className="border-t border-zinc-100 px-4 py-3">
+        <p className="text-sm font-medium text-zinc-900">Add more subcategories</p>
+        <p className="mt-1 text-xs leading-relaxed text-zinc-500">Loading other subcategories in this category group.</p>
+      </div>
+    );
+  }
 
   const toggle = async (leaf: string) => {
     const has = selected.some((item) => item.toLowerCase() === leaf.toLowerCase());
@@ -45,9 +55,11 @@ export default function AlsoServesEditor({
 
   return (
     <div className="border-t border-zinc-100 px-4 py-3">
-      <p className="text-sm font-medium text-zinc-900">Also works in</p>
+      <p className="text-sm font-medium text-zinc-900">Add more subcategories</p>
       <p className="mt-1 text-xs leading-relaxed text-zinc-500">
-        {primary} stays the main category. Add other subcategories in the same group. No admin review.
+        {options.length
+          ? `${primary} stays the main category. Add other subcategories in the same group. They go live without a review.`
+          : 'This category group has no extra subcategories to add.'}
       </p>
       <div className="mt-2 flex flex-wrap gap-2">
         {options.map((leaf) => {

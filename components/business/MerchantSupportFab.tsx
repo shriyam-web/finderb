@@ -34,7 +34,59 @@ const FAQS = [
   },
   {
     q: 'How are competitor score and average response time calculated?',
-    a: 'Competitor score is the average profile-completion percentage of other live listings in your category. Response time is how long you typically take to open a new lead after it arrives. Both sit on Overview and My Listing so you can see whether you are ahead of nearby shops or leaving enquiries waiting.',
+    a: 'Competitor score is the average profile-completion percentage of other live listings in your category. Response time is how long you typically take to open a new lead after it arrives. Both sit together on Overview. They are not repeated inside profile completion on My Listing.',
+  },
+  {
+    q: 'Why does a lead show Call and WhatsApp for one customer and only Email for another?',
+    a: 'Call and WhatsApp appear when the customer’s FinderB account has a verified mobile, or when they typed a phone number on the enquiry. Email is always there if we have an address. On the free plan those buttons stay locked until you upgrade. Job applications are on their own tab, so a hiring enquiry will not sit in the customer list.',
+  },
+  {
+    q: 'What is the Lead ID box for?',
+    a: 'Every lead card has a small Lead ID box at the top right. Click it to copy the full id. Paste that id when you write to business@finderb.com so we can open the exact enquiry instead of searching by name.',
+  },
+  {
+    q: 'How do customer leads differ from job applications?',
+    a: 'Leads has two tabs. Customers is for people who called, messaged, or sent an enquiry about your shop. Job applications is only for people who applied to a job you posted. Reply to customers first — that is what average response time measures.',
+  },
+  {
+    q: 'How do I post a job and see who applied?',
+    a: 'Open Jobs and save an HR email and mobile before the first post. Salary is a minimum and maximum, per month or per year. Applicants can attach a PDF or Word CV. Open a job to see applications, then open one to shortlist. Shortlist emails the candidate and, if they have a FinderB account, sends a notification with your HR contact.',
+  },
+  {
+    q: 'Which files can a candidate upload?',
+    a: 'Only PDF, DOC, and DOCX, up to 5 MB. FinderB rejects executables, APKs, and files that contain scripts. You can preview a PDF in the dashboard and download Word files. Do not ask candidates to pay anyone to apply.',
+  },
+  {
+    q: 'Can a customer review my business without showing their name?',
+    a: 'Yes. They tick Post anonymously and the review goes up without a reason box. The public name is masked. You still see it in Reviews and can reply or flag it if it is abusive. Flagging is limited each month, so keep flags for real problems.',
+  },
+  {
+    q: 'Why was my business name shortened or rejected?',
+    a: 'Legal name and the name customers see are both limited to 50 characters, on registration and on a change request. Very long names break the public profile. If the name is already live, request a change from Settings rather than editing the locked field.',
+  },
+  {
+    q: 'I paid again before my plan ended. When does the new period start?',
+    a: 'The new period is added after the current expiry, so days you already paid are kept. A business on Pro is not asked to upgrade. Growth can move to yearly Pro, and that year starts after the current Growth month ends. Payment history shows the latest 10 charges, then Load more.',
+  },
+  {
+    q: 'What happens when my plan expires?',
+    a: 'The listing can stay visible, but lead phone numbers and WhatsApp hide again until you renew. Reviews and photos stay. Renew from My Subscription before the date on the card if you want no gap in lead access. Turning off auto-renew stops the next debit; it does not cut the days you have already paid.',
+  },
+  {
+    q: 'How do I update hours, photos, or the map pin?',
+    a: 'My Listing is the public page. Photos need at least one image or the listing stays hidden. Hours, about, services, and the map pin save without admin review. Category, legal name, and display name need a change request. Extra sibling categories can be added as “also serves” without waiting for approval.',
+  },
+  {
+    q: 'My WhatsApp number is different from my mobile. How do I verify it?',
+    a: 'On registration, tick “I have a different WhatsApp number”. The field becomes editable. Send the WhatsApp OTP to that number and enter it before you continue. If you leave the box unticked, the verified mobile is used as WhatsApp and no second code is required.',
+  },
+  {
+    q: 'A social link would not save. Why?',
+    a: 'Instagram, Facebook, and YouTube links are checked when you change them. If the profile does not exist, or the site cannot confirm it, the save is rejected so a dead link never reaches customers. Paste the public profile URL, not a share-sheet link that expires.',
+  },
+  {
+    q: 'How do team invites reach my staff?',
+    a: 'From Settings → Team access, invite by email or mobile and choose which tabs they can view or edit. A phone invite opens WhatsApp with the link ready — you tap Send. The link lasts 48 hours. Staff never need your password. Only the owner can hide the listing or change billing.',
   },
 ];
 

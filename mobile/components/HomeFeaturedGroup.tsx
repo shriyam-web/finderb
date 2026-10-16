@@ -33,7 +33,7 @@ import {
   type FilterState,
 } from '../lib/merchantFilters';
 import { getRatingDisplay, UNRATED_LABEL } from '../lib/ratingDisplay';
-import type { Merchant } from '../lib/merchants';
+import { listingThumbUrl, type Merchant } from '../lib/merchants';
 import { fonts } from '../constants/typography';
 import { useTheme } from '../context/ThemeContext';
 import { createThemedStyles } from '../hooks/useThemedStyles';
@@ -187,9 +187,12 @@ function MerchantCard({
       >
         {merchant.image ? (
           <Image
-            source={{ uri: merchant.image }}
+            source={{ uri: listingThumbUrl(merchant.image) || merchant.image }}
             style={styles.photoImg}
             contentFit="cover"
+            cachePolicy="memory-disk"
+            priority="high"
+            recyclingKey={merchant.id}
           />
         ) : (
           <LinearGradient

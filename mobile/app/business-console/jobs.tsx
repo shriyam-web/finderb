@@ -224,6 +224,7 @@ function JobsBody({ o }: { o: ConsoleOverview }) {
   return (
     <ConsolePage
       title="Jobs"
+      docked
       subtitle={jobs ? `${activeCount} of ${max} open` : 'Hiring'}
       footer={
         <Btn

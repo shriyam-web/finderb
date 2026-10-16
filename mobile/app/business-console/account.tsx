@@ -430,7 +430,7 @@ function AccountBody({ o }: { o: ConsoleOverview }) {
   }, [focus, isOwner]);
 
   return (
-    <ConsolePage title="Login & security" subtitle="Account">
+    <ConsolePage title="Login & security" subtitle="Account" docked>
       {!isOwner ? (
         <Text style={styles.footnote}>
           Login email, mobile, password, and team invites stay with the original business owner.

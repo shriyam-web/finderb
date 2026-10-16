@@ -4,6 +4,7 @@ import { Stack, useRouter, type Href } from 'expo-router';
 import { useAuth } from '../../context/AuthContext';
 import { MerchantConsoleProvider } from '../../context/MerchantConsoleContext';
 import { useConsoleColors } from '../../constants/consoleColors';
+import { StackConsoleDock } from '../../components/console/ConsoleDock';
 import { ToastHost } from '../../components/console/kit';
 import { useConsoleBackAction } from '../../lib/consoleNav';
 import { setPreferredShell } from '../../lib/preferredShell';
@@ -51,6 +52,7 @@ export default function BusinessConsoleLayout() {
           <Stack.Screen name="(dock)" options={{ animation: 'fade' }} />
           <Stack.Screen name="plan" options={{ animation: 'slide_from_bottom' }} />
         </Stack>
+        <StackConsoleDock />
         <ToastHost />
       </View>
     </MerchantConsoleProvider>

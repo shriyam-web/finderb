@@ -435,17 +435,18 @@ function AlsoServesEditor({
   const [options, setOptions] = useState<string[]>([]);
   const [selected, setSelected] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
     void run<{ success: true; state: { primary: string; selected: string[]; options: string[] } }>('alsoServes').then((result) => {
-      if (isFailure(result) || !('state' in result)) return;
-      setPrimary(result.state.primary);
-      setOptions(result.state.options);
-      setSelected(result.state.selected);
+      if (!isFailure(result) && 'state' in result) {
+        setPrimary(result.state.primary);
+        setOptions(result.state.options);
+        setSelected(result.state.selected);
+      }
+      setReady(true);
     });
   }, [run]);
-
-  if (!primary || (!options.length && !selected.length)) return null;
 
   const toggle = async (leaf: string) => {
     const has = selected.some((item) => item.toLowerCase() === leaf.toLowerCase());
@@ -462,10 +463,19 @@ function AlsoServesEditor({
   };
 
   return (
-    <Section title="Also works in">
+    <Section title="Add more subcategories">
       <Text style={{ fontFamily: fonts.regular, fontSize: 13, lineHeight: 18, color: c.muted }}>
-        {primary} stays your main category. Add other subcategories in the same group. These show on your public page without a review.
+        {!ready
+          ? 'Loading the other subcategories in your category group.'
+          : primary
+            ? `${primary} stays your main category. Tap any extra subcategory in the same group. These show on your public page right away.`
+            : 'Extra subcategories could not be loaded. Pull to refresh and open this screen again.'}
       </Text>
+      {!ready || !primary ? null : options.length || selected.length ? null : (
+        <Text style={{ fontFamily: fonts.regular, fontSize: 13, lineHeight: 18, color: c.muted }}>
+          This category group has no extra subcategories to add.
+        </Text>
+      )}
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
         {options.map((leaf) => {
           const active = selected.some((item) => item.toLowerCase() === leaf.toLowerCase());
@@ -646,6 +656,7 @@ function EditBody({ o, section }: { o: ConsoleOverview; section: SectionKey }) {
   return (
     <ConsolePage
       form={section !== 'hours'}
+      docked
       title={meta.title}
       subtitle="Edit listing"
       footer={
@@ -659,6 +670,7 @@ function EditBody({ o, section }: { o: ConsoleOverview; section: SectionKey }) {
     >
       {section === 'basics' ? (
         <>
+          <AlsoServesEditor run={run} notify={notify} />
           <Field
             label="Name customers see"
             value={form.displayName}
@@ -697,7 +709,6 @@ function EditBody({ o, section }: { o: ConsoleOverview; section: SectionKey }) {
             suggestions={offeringsForCategory(o.business.category).keywords}
             onChange={(next) => set('keywords', next)}
           />
-          <AlsoServesEditor run={run} notify={notify} />
         </>
       ) : null}
 

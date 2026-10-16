@@ -126,7 +126,7 @@ function ReviewCard({
             {review.deleted ? <Text style={styles.badgeRemoved}>Removed</Text> : null}
           </View>
           <View style={styles.cardMeta}>
-            <Stars value={review.rating} size={15} />
+            <Stars value={review.rating} size={12} />
             {review.date ? <Text style={styles.date}>{shortDate(review.date)}</Text> : null}
           </View>
         </View>
@@ -183,6 +183,7 @@ function ReviewsBody({ o }: { o: ConsoleOverview }) {
   const back = useTabBack();
   const { run, notify, refresh, refreshing } = useMerchantConsole();
   const [filter, setFilter] = useState<'all' | 'open'>('all');
+  const [shown, setShown] = useState(50);
   const openedFocus = useRef('');
   const [target, setTarget] = useState<ConsoleReview | null>(null);
   const [flagTarget, setFlagTarget] = useState<ConsoleReview | null>(null);
@@ -332,11 +333,11 @@ function ReviewsBody({ o }: { o: ConsoleOverview }) {
       {o.reviews.length ? (
         <Section title="Customer reviews">
           <View style={styles.filters}>
-            <Chip label="All" count={o.reviews.length} active={filter === 'all'} onPress={() => setFilter('all')} />
-            <Chip label="Needs reply" count={open.length} active={filter === 'open'} onPress={() => setFilter('open')} />
+            <Chip label="All" count={o.reviews.length} active={filter === 'all'} onPress={() => { setFilter('all'); setShown(50); }} />
+            <Chip label="Needs reply" count={open.length} active={filter === 'open'} onPress={() => { setFilter('open'); setShown(50); }} />
           </View>
           {list.length ? (
-            list.map((review) => (
+            list.slice(0, shown).map((review) => (
               <ReviewCard
                 key={review.id}
                 review={review}
@@ -351,6 +352,14 @@ function ReviewsBody({ o }: { o: ConsoleOverview }) {
           ) : (
             <Empty icon="checkmark-done-outline" title="Every review has a reply" body="Nice work. New ones will show up here." />
           )}
+          {shown < list.length ? (
+            <Btn
+              small
+              tone="text"
+              label={`Load more (${list.length - shown} left)`}
+              onPress={() => setShown((count) => count + 50)}
+            />
+          ) : null}
         </Section>
       ) : (
         <Empty
@@ -513,39 +522,40 @@ const useStyles = createConsoleStyles((c) => ({
   rankBanner: {
     position: 'relative',
     overflow: 'hidden',
-    padding: 16,
-    paddingRight: 118,
-    borderRadius: 16,
+    paddingVertical: 8,
+    paddingLeft: 12,
+    paddingRight: 88,
+    borderRadius: 12,
     backgroundColor: '#F59E0B',
-    gap: 4,
+    gap: 1,
   },
   rankBannerKicker: {
     fontFamily: fonts.medium,
-    fontSize: 13,
+    fontSize: 11,
     color: 'rgba(255,255,255,0.86)',
   },
   rankBannerTitle: {
     fontFamily: fonts.medium,
-    fontSize: 16,
-    lineHeight: 22,
+    fontSize: 13,
+    lineHeight: 17,
     color: '#FFFFFF',
   },
   card: {
     position: 'relative',
-    padding: 16,
-    paddingBottom: 52,
-    borderRadius: 14,
+    padding: 10,
+    paddingBottom: 36,
+    borderRadius: 12,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: 'rgba(228,228,231,0.95)',
-    gap: 12,
+    gap: 6,
   },
   cardHighlight: {
     borderColor: '#E8873A',
     borderWidth: 1.5,
     backgroundColor: '#FFFFFF',
   },
-  cardHead: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingRight: 72 },
+  cardHead: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, paddingRight: 64 },
   idBadge: {
     position: 'absolute',
     top: 12,
@@ -577,9 +587,9 @@ const useStyles = createConsoleStyles((c) => ({
     textAlign: 'right',
   },
   flagBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#FFFFFF',
@@ -595,17 +605,17 @@ const useStyles = createConsoleStyles((c) => ({
     overflow: 'hidden',
   },
   avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: c.sunken,
   },
-  avatarText: { fontFamily: fonts.semiBold, fontSize: 15, color: c.body },
+  avatarText: { fontFamily: fonts.semiBold, fontSize: 12, color: c.body },
   cardMeta: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 3 },
   authorRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6 },
-  author: { fontFamily: fonts.semiBold, fontSize: 16, color: c.ink, flexShrink: 1 },
+  author: { fontFamily: fonts.semiBold, fontSize: 14, color: c.ink, flexShrink: 1 },
   badge: {
     fontFamily: fonts.medium,
     fontSize: 10,
@@ -626,9 +636,9 @@ const useStyles = createConsoleStyles((c) => ({
     paddingHorizontal: 6,
     paddingVertical: 2,
   },
-  date: { fontFamily: fonts.regular, fontSize: 14, color: c.faint },
-  content: { fontFamily: fonts.regular, fontSize: 16, lineHeight: 24, color: c.body },
-  reply: { padding: 12, borderRadius: 10, backgroundColor: c.sunken, gap: 6 },
+  date: { fontFamily: fonts.regular, fontSize: 12, color: c.faint },
+  content: { fontFamily: fonts.regular, fontSize: 13.5, lineHeight: 18, color: c.body },
+  reply: { padding: 8, borderRadius: 8, backgroundColor: c.sunken, gap: 4 },
   replyHead: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   replyLabel: { fontFamily: fonts.semiBold, fontSize: 13, color: c.accent },
   replyText: { fontFamily: fonts.regular, fontSize: 13.5, lineHeight: 20, color: c.body },

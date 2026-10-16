@@ -45,10 +45,9 @@ function LeadId({ id }: { id: string }) {
       hitSlop={6}
       accessibilityRole="button"
       accessibilityLabel={`Copy lead id ${id}`}
+      style={styles.leadIdBox}
     >
-      <Text style={styles.leadId} numberOfLines={1}>
-        {copied ? 'Copied' : id}
-      </Text>
+      <Text style={styles.leadId}>{copied ? 'Copied' : 'Lead ID'}</Text>
     </Pressable>
   );
 }
@@ -70,7 +69,7 @@ function LeadCard({
   const firstName = (lead.name || '').split(/\s+/)[0] || 'there';
 
   return (
-    <View style={styles.card}>
+      <View style={styles.card}>
       <View style={styles.cardHead}>
         <View style={styles.mark}>
           <Text style={styles.markText}>{(lead.name || '?').charAt(0).toUpperCase()}</Text>
@@ -82,7 +81,6 @@ function LeadCard({
             </Text>
             <Tag label={pipelineOf(lead.status)} tone={LEAD_STATUS_TONE[pipelineOf(lead.status)] ?? 'neutral'} />
           </View>
-          <LeadId id={lead.id} />
           <View style={styles.sourceWrap}>
             <LeadSourceBadge lead={lead} />
           </View>
@@ -90,6 +88,7 @@ function LeadCard({
             {[lead.category, timeAgo(lead.created_at)].filter(Boolean).join(' · ')}
           </Text>
         </View>
+        <LeadId id={lead.id} />
       </View>
 
       {lead.message ? <Text style={styles.message}>{lead.message}</Text> : null}
@@ -273,10 +272,6 @@ function LeadsBody() {
       refreshing={refreshing}
       onRefresh={() => void onRefresh()}
     >
-      {overview?.stats.averageResponse ? (
-        <Text style={styles.meta}>Average response time so far: {overview.stats.averageResponse}</Text>
-      ) : null}
-
       {!unlocked ? (
         <Pressable
           onPress={() => router.push('/business-console/plan')}
@@ -408,7 +403,7 @@ const useStyles = createConsoleStyles((c) => ({
     borderColor: c.line,
     gap: 8,
   },
-  cardHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  cardHead: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
   mark: {
     width: 32,
     height: 32,
@@ -434,7 +429,19 @@ const useStyles = createConsoleStyles((c) => ({
     gap: 6,
   },
   lockedText: { flex: 1, fontFamily: fonts.regular, fontSize: 12, color: c.warning },
-  leadId: { marginTop: 1, fontFamily: fonts.regular, fontSize: 9, color: c.faint },
+  leadIdBox: {
+    borderWidth: 1,
+    borderColor: c.lineStrong,
+    borderRadius: 6,
+    paddingHorizontal: 7,
+    paddingVertical: 4,
+    backgroundColor: c.sunken,
+  },
+  leadId: {
+    fontFamily: fonts.semiBold,
+    fontSize: 10,
+    color: c.body,
+  },
   contactRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   contactText: { flex: 1, fontFamily: fonts.regular, fontSize: 12.5, color: c.muted },
   iconRow: { flexDirection: 'row', gap: 6 },

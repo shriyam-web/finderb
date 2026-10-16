@@ -5,7 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { getBusinessOpenStatus } from '../lib/businessHours';
 import { getRatingDisplay, UNRATED_LABEL } from '../lib/ratingDisplay';
 import { useDrivingDistanceLabel } from '../lib/drivingDistance';
-import type { Merchant } from '../lib/merchants';
+import { listingThumbUrl, type Merchant } from '../lib/merchants';
 import { fonts } from '../constants/typography';
 import { useTheme } from '../context/ThemeContext';
 import { createThemedStyles } from '../hooks/useThemedStyles';
@@ -51,10 +51,13 @@ export function CategoryMerchantRow({
       <View style={styles.thumbWrap}>
         {merchant.image ? (
           <Image
-            source={{ uri: merchant.image }}
+            source={{ uri: listingThumbUrl(merchant.image) || merchant.image }}
             style={styles.thumb}
             contentFit="cover"
-            transition={180}
+            cachePolicy="memory-disk"
+            priority="high"
+            recyclingKey={merchant.id}
+            transition={0}
           />
         ) : (
           <LinearGradient
