@@ -236,9 +236,7 @@ export async function registerBusiness(formData: any) {
       ? await hashPassword(normalized.password)
       : null;
 
-    const { data: business, error } = await supabase
-      .from('Business')
-      .insert({
+    const insertRow = {
         id: crypto.randomUUID(),
         fullName: normalized.fullName,
         workEmail: normalizedEmail,
@@ -267,12 +265,23 @@ export async function registerBusiness(formData: any) {
         ...(passwordValue ? { password: passwordValue } : {}),
         createdAt: now,
         updatedAt: now,
-      })
+        onboardSource: 'self',
+    };
+    let { data: business, error } = await supabase
+      .from('Business')
+      .insert(insertRow)
       .select()
       .single();
+    if (error && /onboardSource/i.test(error.message || '')) {
+      const withoutSource = { ...insertRow } as Record<string, unknown>;
+      delete withoutSource.onboardSource;
+      const retry = await supabase.from('Business').insert(withoutSource).select().single();
+      business = retry.data;
+      error = retry.error;
+    }
 
-    if (error) {
-      throw error;
+    if (error || !business) {
+      throw error || new Error('Registration failed.');
     }
 
     let slug = String(business.slug || '');
