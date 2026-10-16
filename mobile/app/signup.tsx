@@ -249,7 +249,7 @@ const useStyles = createThemedStyles((colors) => ({
   skipText: {
     fontFamily: fonts.semiBold,
     fontSize: 13,
-    color: colors.white,
+    color: colors.frost,
   },
   hero: {
     flex: 1,
@@ -317,7 +317,7 @@ const useStyles = createThemedStyles((colors) => ({
     borderColor: '#1E8ADB',
   },
   checkMark: {
-    color: colors.white,
+    color: colors.frost,
     fontSize: 12,
     fontFamily: fonts.bold,
     lineHeight: 14,

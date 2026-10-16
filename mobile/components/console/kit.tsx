@@ -989,7 +989,7 @@ const useKitStyles = createConsoleStyles((c) => ({
     borderRadius: 9,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: c.danger,
+    backgroundColor: c.isDark ? '#B91C1C' : c.danger,
     borderWidth: 1.5,
     borderColor: c.card,
   },

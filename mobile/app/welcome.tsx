@@ -143,7 +143,7 @@ export default function WelcomeTourScreen() {
           {SLIDES.map((slide) => (
             <View key={slide.key} style={[styles.slide, { width: SCREEN_W }]}>
               <View style={styles.iconPlate}>
-                <Ionicons name={slide.icon} size={34} color={colors.onDark} />
+                <Ionicons name={slide.icon} size={34} color={colors.frost} />
               </View>
               <Text style={styles.title}>{slide.title}</Text>
               <Text style={styles.body}>{slide.body}</Text>
@@ -224,7 +224,7 @@ const useStyles = createThemedStyles((colors) => ({
     fontFamily: fonts.bold,
     fontSize: 22,
     letterSpacing: -0.4,
-    color: colors.onDark,
+    color: colors.frost,
   },
   brandSub: {
     fontFamily: fonts.medium,
@@ -255,7 +255,7 @@ const useStyles = createThemedStyles((colors) => ({
     fontSize: 28,
     lineHeight: 34,
     letterSpacing: -0.5,
-    color: colors.onDark,
+    color: colors.frost,
     marginBottom: 10,
   },
   body: {
@@ -290,14 +290,14 @@ const useStyles = createThemedStyles((colors) => ({
   primaryBtn: {
     minHeight: 52,
     borderRadius: 14,
-    backgroundColor: colors.white,
+    backgroundColor: colors.frost,
     alignItems: 'center',
     justifyContent: 'center',
   },
   primaryText: {
     fontFamily: fonts.semiBold,
     fontSize: 16,
-    color: colors.ink,
+    color: '#0A3056',
   },
   secondaryBtn: {
     minHeight: 48,
@@ -310,7 +310,7 @@ const useStyles = createThemedStyles((colors) => ({
   secondaryText: {
     fontFamily: fonts.semiBold,
     fontSize: 15,
-    color: colors.onDark,
+    color: colors.frost,
   },
   pressed: { opacity: 0.9 },
   guestTap: {

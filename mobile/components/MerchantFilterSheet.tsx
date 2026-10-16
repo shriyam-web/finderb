@@ -351,13 +351,13 @@ const useStyles = createThemedStyles((colors) => ({
     paddingRight: 8,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: '#D7E6E2',
-    backgroundColor: '#F3F8F6',
+    borderColor: colors.teal,
+    backgroundColor: colors.tealSoft,
   },
   filterEditText: {
     fontFamily: fonts.semiBold,
     fontSize: 12,
-    color: '#0F766E',
+    color: colors.teal,
   },
   filterEditCount: {
     minWidth: 18,

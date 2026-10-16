@@ -3,9 +3,11 @@
 import { use, useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
+  abandonMerchantCheckout,
   completeMerchantPayment,
   createMerchantPaymentOrder,
   getPaymentPageData,
+  recordMerchantCheckoutFailure,
 } from '@/app/actions/payment';
 import { MERCHANT_PLANS } from '@/lib/razorpay/plans';
 import { openRazorpayCheckout, openRazorpaySubscriptionCheckout } from '@/lib/razorpay/client';
@@ -157,9 +159,21 @@ function PaymentPageContent({ id }: { id: string }) {
                   setPaying(false);
                 }
               },
-              modal: { ondismiss: () => setPaying(false) },
+              modal: {
+                ondismiss: () => {
+                  void abandonMerchantCheckout({
+                    businessId: id,
+                    subscriptionId: orderResult.subscription.id,
+                  });
+                  setPaying(false);
+                },
+              },
             },
             (message) => {
+              void recordMerchantCheckoutFailure({
+                businessId: id,
+                subscriptionId: orderResult.subscription.id,
+              });
               setError(message);
               setPaying(false);
             }
@@ -201,10 +215,20 @@ function PaymentPageContent({ id }: { id: string }) {
               }
             },
             modal: {
-              ondismiss: () => setPaying(false),
+              ondismiss: () => {
+                void abandonMerchantCheckout({
+                  businessId: id,
+                  orderId: orderResult.order.id,
+                });
+                setPaying(false);
+              },
             },
           },
           (message) => {
+            void recordMerchantCheckoutFailure({
+              businessId: id,
+              orderId: orderResult.order.id,
+            });
             setError(message);
             setPaying(false);
           }

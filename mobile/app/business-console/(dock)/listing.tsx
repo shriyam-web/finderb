@@ -413,7 +413,7 @@ const useStyles = createConsoleStyles((c) => ({
     paddingHorizontal: 14,
     borderRadius: 10,
     justifyContent: 'center',
-    backgroundColor: c.danger,
+    backgroundColor: c.isDark ? '#B91C1C' : c.danger,
   },
   hideConfirmText: { fontFamily: fonts.semiBold, fontSize: 14, color: '#FFFFFF' },
 }));

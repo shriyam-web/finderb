@@ -155,7 +155,7 @@ export function MerchantSupportFab({ bottomOffset }: { bottomOffset: number }) {
           accessibilityRole="button"
           accessibilityLabel="Business support. Drag to move."
         >
-          <Ionicons name="chatbubbles" size={22} color="#FFFFFF" />
+          <Ionicons name="chatbubbles" size={22} color={c.primaryInk} />
         </Animated.View>
       </View>
       <Modal visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>

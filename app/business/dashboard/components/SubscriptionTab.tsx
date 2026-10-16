@@ -75,7 +75,16 @@ function statusTextClass(status: string) {
   if (status === 'completed') return 'text-emerald-700';
   if (status === 'pending') return 'text-amber-700';
   if (status === 'failed') return 'text-rose-700';
+  if (status === 'cancelled') return 'text-zinc-500';
   return 'text-zinc-600';
+}
+
+function paymentStatusLabel(status: string) {
+  if (status === 'completed') return 'Paid';
+  if (status === 'pending') return 'Pending';
+  if (status === 'cancelled') return 'Cancelled';
+  if (status === 'failed') return 'Failed';
+  return status;
 }
 
 function PaymentReferencesCell({ item }: { item: MerchantPaymentHistoryItem }) {
@@ -415,7 +424,7 @@ export default function SubscriptionTab({
                         {paymentTypeLabel(item.paymentType)}
                       </td>
                       <td className={`px-5 py-3 font-medium md:px-6 ${statusTextClass(item.status)}`}>
-                        {item.status === 'completed' ? 'Paid' : item.status === 'pending' ? 'Pending' : item.status}
+                        {paymentStatusLabel(item.status)}
                       </td>
                       <td className="whitespace-nowrap px-5 py-3 text-zinc-600 md:px-6">
                         {item.planStartedAt ? formatDateTime(item.planStartedAt) : '—'}

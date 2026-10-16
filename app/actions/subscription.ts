@@ -9,6 +9,8 @@ import { cancelRazorpaySubscription, getRazorpaySubscription, TERMINAL_RAZORPAY_
 import { applySubscriptionCancellation } from '@/lib/razorpay/finalizeMerchantSubscription';
 import { getPlanAmountInPaise, isValidBillingCycle, isValidMerchantPlan } from '@/lib/razorpay/plans';
 import { getRazorpayPayment } from '@/lib/razorpay/server';
+import { settleCheckoutStatus } from '@/lib/razorpay/checkoutStatus';
+import { settleAbandonedCheckouts } from '@/app/actions/payment';
 import {
   formatAmountInr,
   formatSubscriptionDate,
@@ -63,7 +65,12 @@ function mapPaymentRow(row: PaymentRow): MerchantPaymentHistoryItem {
     amountPaise: Number(row.amount_paise),
     amountDisplay: formatAmountInr(Number(row.amount_paise)),
     currency: row.currency ? String(row.currency) : 'INR',
-    status: String(row.status),
+    status: settleCheckoutStatus({
+      status: String(row.status),
+      createdAt: row.created_at ? String(row.created_at) : null,
+      paymentId: row.payment_id ? String(row.payment_id) : null,
+      paymentType: row.payment_type ? String(row.payment_type) : null,
+    }),
     paymentType: String(row.payment_type || 'one_time'),
     orderId: row.order_id ? String(row.order_id) : null,
     paymentId: row.payment_id ? String(row.payment_id) : null,
@@ -277,6 +284,8 @@ export async function getMerchantSubscriptionDetails(businessId: string) {
   if (!supabase) {
     return { success: false as const, error: 'Payment history is temporarily unavailable.' };
   }
+
+  await settleAbandonedCheckouts(businessId);
 
   const { data: payments, error } = await supabase
     .from('merchant_payments')

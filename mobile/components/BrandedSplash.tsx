@@ -1,13 +1,12 @@
 import { useEffect, useRef } from 'react';
-import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, Text, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FinderBLogo } from './BrandMark';
 import { fonts } from '../constants/typography';
+import { useTheme } from '../context/ThemeContext';
+import { createThemedStyles } from '../hooks/useThemedStyles';
 
-const INK = '#153551';
-const MUTED = '#5B6B7C';
-const TRACK = '#E4EBF3';
 const RUNNER = '#215481';
 
 type Props = {
@@ -21,6 +20,8 @@ export function BrandedSplash({
   message = 'Preparing your local guide',
 }: Props) {
   const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
+  const styles = useStyles();
   const enter = useRef(new Animated.Value(0)).current;
   const run = useRef(new Animated.Value(0)).current;
 
@@ -47,7 +48,7 @@ export function BrandedSplash({
 
   return (
     <View style={styles.root}>
-      <StatusBar style="dark" />
+      <StatusBar style={colors.statusBarStyle} />
       <Animated.View
         style={[
           styles.stage,
@@ -82,15 +83,15 @@ export function BrandedSplash({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = createThemedStyles((colors) => ({
   root: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: colors.canvas,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
   },
   stage: {
-    alignItems: 'center',
+    alignItems: 'center' as const,
     marginTop: -36,
   },
   word: {
@@ -98,28 +99,28 @@ const styles = StyleSheet.create({
     fontFamily: fonts.extraBold,
     fontSize: 40,
     letterSpacing: -1.2,
-    color: INK,
+    color: colors.heading,
   },
   tag: {
     marginTop: 8,
     fontFamily: fonts.medium,
     fontSize: 15,
-    color: MUTED,
+    color: colors.textMuted,
   },
   foot: {
-    position: 'absolute',
+    position: 'absolute' as const,
     left: 0,
     right: 0,
     bottom: 0,
-    alignItems: 'center',
+    alignItems: 'center' as const,
     gap: 12,
   },
   track: {
     width: 132,
     height: 3,
     borderRadius: 2,
-    overflow: 'hidden',
-    backgroundColor: TRACK,
+    overflow: 'hidden' as const,
+    backgroundColor: colors.border,
   },
   runner: {
     width: 48,
@@ -131,6 +132,6 @@ const styles = StyleSheet.create({
     fontFamily: fonts.medium,
     fontSize: 12,
     letterSpacing: 0.4,
-    color: MUTED,
+    color: colors.textMuted,
   },
-});
+}));

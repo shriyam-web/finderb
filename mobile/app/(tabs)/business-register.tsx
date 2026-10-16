@@ -2192,7 +2192,7 @@ const useStyles = createThemedStyles((colors) => {
     minWidth: 76,
     height: 34,
     borderRadius: 8,
-    backgroundColor: b.blue,
+    backgroundColor: b.blueFill,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 8,

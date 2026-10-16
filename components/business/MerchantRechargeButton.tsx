@@ -4,9 +4,11 @@ import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import {
+  abandonMerchantCheckout,
   completeMerchantPayment,
   createMerchantPaymentOrder,
   getRazorpayGatewayStatus,
+  recordMerchantCheckoutFailure,
 } from '@/app/actions/payment';
 import {
   openRazorpayCheckout,
@@ -139,10 +141,20 @@ export default function MerchantRechargeButton({
               }
             },
             modal: {
-              ondismiss: () => setPaying(false),
+              ondismiss: () => {
+                void abandonMerchantCheckout({
+                  businessId,
+                  subscriptionId: checkoutResult.subscription.id,
+                });
+                setPaying(false);
+              },
             },
           },
           (message) => {
+            void recordMerchantCheckoutFailure({
+              businessId,
+              subscriptionId: checkoutResult.subscription.id,
+            });
             onError?.(message);
             setPaying(false);
           }
@@ -185,10 +197,20 @@ export default function MerchantRechargeButton({
             }
           },
           modal: {
-            ondismiss: () => setPaying(false),
+            ondismiss: () => {
+              void abandonMerchantCheckout({
+                businessId,
+                orderId: checkoutResult.order.id,
+              });
+              setPaying(false);
+            },
           },
         },
         (message) => {
+          void recordMerchantCheckoutFailure({
+            businessId,
+            orderId: checkoutResult.order.id,
+          });
           onError?.(message);
           setPaying(false);
         }

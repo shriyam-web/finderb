@@ -389,6 +389,6 @@ const useStyles = createThemedStyles((colors) => ({
   applyText: {
     fontFamily: fonts.semiBold,
     fontSize: 14,
-    color: colors.frost,
+    color: colors.onDark,
   },
 }));

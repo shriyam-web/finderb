@@ -26,7 +26,12 @@ import { createJob, deleteJob, getJobsByBusiness, updateJob } from '@/app/action
 import { getBusinessProfileViewStats } from '@/app/actions/analytics';
 import { merchantNotificationCta } from '@/lib/merchantNotificationCta';
 import { cancelMerchantAutoRenew, getMerchantSubscriptionDetails } from '@/app/actions/subscription';
-import { completeMerchantPayment, createMerchantPaymentOrder } from '@/app/actions/payment';
+import {
+  abandonMerchantCheckout,
+  completeMerchantPayment,
+  createMerchantPaymentOrder,
+  recordMerchantCheckoutFailure,
+} from '@/app/actions/payment';
 import { getPendingChangeRequest, submitChangeRequest } from '@/app/actions/businessChangeRequests';
 import {
   confirmMerchantEmailVerifyCode,
@@ -57,7 +62,7 @@ import { MAX_SEARCH_KEYWORDS } from '@/lib/businessKeywords';
 import { flagMerchantReview, upsertMerchantReviewReply } from '@/app/actions/reviews';
 import { businessHasPublicPhoto, normalizeBusinessImages } from '@/lib/businessMapping';
 import { getBusinessProfilePath } from '@/lib/businessSlug';
-import { broadcastTargetsMerchants } from '@/lib/broadcastAudience';
+import { broadcastIsHeld, broadcastTargetsMerchants } from '@/lib/broadcastAudience';
 import { buildGoogleMapsUrl } from '@/lib/googleMapsLocation';
 import { pickPublicBusinessEmail } from '@/lib/placeholderEmail';
 import { extractIndianMobileDigits } from '@/lib/indianPhone';
@@ -264,7 +269,7 @@ async function loadNotifications(businessId: string, category: string) {
     supabase
       ? supabase
           .from('broadcasts')
-          .select('id, title, message, created_at, cta_url, cta_label, target_audience')
+          .select('id, title, message, created_at, cta_url, cta_label, target_audience, target_business_id, status, scheduled_at')
           .order('created_at', { ascending: false })
           .limit(40)
       : Promise.resolve({ data: [] as Record<string, unknown>[] }),
@@ -297,8 +302,29 @@ async function loadNotifications(businessId: string, category: string) {
     };
   });
 
-  const news = ((broadcasts.data ?? []) as Record<string, unknown>[])
-    .filter((row) => broadcastTargetsMerchants(row.target_audience, category))
+  let broadcastRows = (broadcasts.data ?? []) as Record<string, unknown>[];
+  if (
+    supabase &&
+    'error' in broadcasts &&
+    broadcasts.error &&
+    /target_business_id|status|scheduled_at|schema cache|does not exist/i.test(broadcasts.error.message || '')
+  ) {
+    const retry = await supabase
+      .from('broadcasts')
+      .select('id, title, message, created_at, cta_url, cta_label, target_audience')
+      .order('created_at', { ascending: false })
+      .limit(40);
+    broadcastRows = (retry.data ?? []) as Record<string, unknown>[];
+  }
+
+  const news = broadcastRows
+    .filter((row) => !broadcastIsHeld(row))
+    .filter((row) => {
+      const target = String(row.target_business_id || '').trim();
+      if (target) return target === businessId;
+      if (row.target_user_id) return false;
+      return broadcastTargetsMerchants(row.target_audience, category);
+    })
     .map((row) => ({
       id: String(row.id),
       kind: 'broadcast' as const,
@@ -768,6 +794,22 @@ async function completeCheckout(businessId: string, input: Record<string, unknow
   return subscription(businessId);
 }
 
+async function closeCheckout(
+  businessId: string,
+  input: Record<string, unknown>,
+  kind: 'abandon' | 'fail',
+) {
+  const params = {
+    businessId,
+    orderId: text(input.orderId) || undefined,
+    subscriptionId: text(input.subscriptionId) || undefined,
+  };
+  const result =
+    kind === 'fail' ? await recordMerchantCheckoutFailure(params) : await abandonMerchantCheckout(params);
+  if (!result.success) return fail(result.error);
+  return subscription(businessId);
+}
+
 async function cancelAutoRenew(businessId: string) {
   const result = await cancelMerchantAutoRenew(businessId);
   if (!result.success) return fail(result.error);
@@ -970,6 +1012,10 @@ export async function runConsoleAction(userId: string, businessId: string, body:
       return startCheckout(businessId, body.billingCycle);
     case 'completeCheckout':
       return completeCheckout(businessId, body);
+    case 'abandonCheckout':
+      return closeCheckout(businessId, body, 'abandon');
+    case 'failCheckout':
+      return closeCheckout(businessId, body, 'fail');
     case 'cancelAutoRenew':
       return cancelAutoRenew(businessId);
     case 'changeRequests':

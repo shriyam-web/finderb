@@ -4,7 +4,7 @@ import { createServiceClient } from '@/lib/supabase/service';
 import { createClient } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';
 import { after } from 'next/server';
-import { broadcastTargetsMerchants, broadcastTargetsUsers } from '@/lib/broadcastAudience';
+import { broadcastIsHeld, broadcastTargetsMerchants, broadcastTargetsUsers } from '@/lib/broadcastAudience';
 import {
   broadcastShowsDatetime,
   resolveBroadcastCta,
@@ -24,10 +24,10 @@ export type UserNotification = {
 };
 
 const LIST_SELECT =
-  'id, title, message, target_audience, created_at, cta_url, cta_label, show_datetime';
+  'id, title, message, target_audience, created_at, cta_url, cta_label, show_datetime, status, scheduled_at, target_user_id, target_business_id';
 const LIST_SELECT_FALLBACK = 'id, title, message, target_audience, created_at';
 const PUSH_SELECT =
-  'id, title, message, target_audience, created_at, push_sent_at, cta_url, cta_label';
+  'id, title, message, target_audience, created_at, push_sent_at, cta_url, cta_label, status, scheduled_at, target_user_id, target_business_id';
 const PUSH_SELECT_FALLBACK = 'id, title, message, target_audience, created_at, push_sent_at';
 const PUSH_SELECT_MIN = 'id, title, message, target_audience, created_at';
 
@@ -41,6 +41,10 @@ type BroadcastRow = {
   cta_url?: string | null;
   cta_label?: string | null;
   show_datetime?: boolean | null;
+  status?: string | null;
+  scheduled_at?: string | null;
+  target_user_id?: string | null;
+  target_business_id?: string | null;
 };
 
 function toUserNotification(row: BroadcastRow): UserNotification | null {
@@ -236,7 +240,7 @@ export async function listUserNotifications(limit = 50, userId?: string | null):
     .limit(take);
 
   const used =
-    full.error && /cta_url|cta_label|show_datetime|schema cache/i.test(full.error.message || '')
+    full.error && /cta_url|cta_label|show_datetime|status|scheduled_at|target_user_id|target_business_id|schema cache/i.test(full.error.message || '')
       ? await supabase
           .from('broadcasts')
           .select(LIST_SELECT_FALLBACK)
@@ -249,12 +253,18 @@ export async function listUserNotifications(limit = 50, userId?: string | null):
     return [];
   }
 
+  const directUserId = (userId || (await getSessionUserId()) || '').trim();
   const broadcasts = ((used.data || []) as BroadcastRow[])
-    .filter((row) => broadcastTargetsUsers(row.target_audience))
+    .filter((row) => !broadcastIsHeld(row))
+    .filter((row) => {
+      const targetUser = String(row.target_user_id || '').trim();
+      if (targetUser) return Boolean(directUserId) && targetUser === directUserId;
+      if (row.target_business_id) return false;
+      return broadcastTargetsUsers(row.target_audience);
+    })
     .map(toUserNotification)
     .filter((row): row is UserNotification => Boolean(row));
 
-  const directUserId = (userId || (await getSessionUserId()) || '').trim();
   if (!directUserId) return broadcasts;
 
   const direct = await supabase
@@ -368,7 +378,7 @@ export async function dispatchBroadcastPush(broadcastId: string): Promise<{
     .maybeSingle();
 
   const withoutCta =
-    full.error && /cta_url|cta_label|schema cache/i.test(full.error.message || '')
+    full.error && /cta_url|cta_label|status|scheduled_at|target_user_id|target_business_id|schema cache/i.test(full.error.message || '')
       ? await supabase
           .from('broadcasts')
           .select(PUSH_SELECT_FALLBACK)
@@ -389,21 +399,37 @@ export async function dispatchBroadcastPush(broadcastId: string): Promise<{
   if (used.error || !row) {
     return { success: false, error: 'Broadcast not found.' };
   }
+  if (broadcastIsHeld(row)) {
+    return { success: true, sent: 0, skipped: 'scheduled' };
+  }
   if (row.push_sent_at) {
     return { success: true, sent: 0, skipped: 'already-sent' };
   }
 
-  const markSent = () =>
-    supabase.from('broadcasts').update({ push_sent_at: new Date().toISOString() }).eq('id', id);
+  const markSent = async () => {
+    const stamped = new Date().toISOString();
+    const withStatus = await supabase
+      .from('broadcasts')
+      .update({ push_sent_at: stamped, status: 'sent' })
+      .eq('id', id);
+    if (
+      withStatus.error &&
+      /status|schema cache|does not exist/i.test(withStatus.error.message || '')
+    ) {
+      await supabase.from('broadcasts').update({ push_sent_at: stamped }).eq('id', id);
+    }
+  };
 
+  const targetUserId = String(row.target_user_id || '').trim();
+  const targetBusinessId = String(row.target_business_id || '').trim();
   const forUsers = broadcastTargetsUsers(row.target_audience);
   const forMerchants = broadcastTargetsMerchants(row.target_audience) || hasCategoryAudience(row.target_audience);
-  if (!forUsers && !forMerchants) {
+  if (!targetUserId && !targetBusinessId && !forUsers && !forMerchants) {
     return { success: true, sent: 0, skipped: 'no-audience' };
   }
 
   const createdAt = Date.parse(row.created_at || '');
-  if (Number.isFinite(createdAt) && Date.now() - createdAt > PUSH_FRESH_MS) {
+  if (!row.scheduled_at && Number.isFinite(createdAt) && Date.now() - createdAt > PUSH_FRESH_MS) {
     await markSent();
     return { success: true, sent: 0, skipped: 'stale' };
   }
@@ -425,6 +451,28 @@ export async function dispatchBroadcastPush(broadcastId: string): Promise<{
   if (cta) {
     baseData.ctaUrl = cta.url;
     baseData.ctaLabel = cta.label;
+  }
+
+  if (targetUserId || targetBusinessId) {
+    const loaded = await loadPushTokens(
+      supabase,
+      targetBusinessId ? { businessId: targetBusinessId } : 'users',
+    );
+    const rows = targetUserId
+      ? loaded.rows.filter((item) => String(item.user_id || '') === targetUserId && !item.business_id)
+      : loaded.rows;
+    const result = await sendPush(rows, {
+      title,
+      body,
+      collapseId: row.id,
+      data: {
+        ...baseData,
+        audience: targetBusinessId ? 'business' : 'user',
+        ...(targetBusinessId ? { businessId: targetBusinessId } : {}),
+      },
+    });
+    await markSent();
+    return { success: true, sent: result.sent };
   }
 
   let sent = 0;
@@ -524,18 +572,29 @@ export async function dispatchPendingBroadcastPushes(): Promise<void> {
   const supabase = db();
   if (!supabase) return;
 
-  const { data, error } = await supabase
+  const due = await supabase
     .from('broadcasts')
-    .select('id')
+    .select('id, status, scheduled_at')
     .is('push_sent_at', null)
-    .gte('created_at', new Date(Date.now() - PUSH_FRESH_MS).toISOString())
     .order('created_at', { ascending: false })
-    .limit(8);
+    .limit(20);
+  const { data, error } =
+    due.error && /status|scheduled_at|schema cache/i.test(due.error.message || '')
+      ? await supabase
+          .from('broadcasts')
+          .select('id')
+          .is('push_sent_at', null)
+          .gte('created_at', new Date(Date.now() - PUSH_FRESH_MS).toISOString())
+          .order('created_at', { ascending: false })
+          .limit(8)
+      : due;
 
   if (error || !data?.length) return;
 
   for (const row of data) {
-    const id = String((row as { id?: string }).id || '').trim();
+    const item = row as { id?: string; status?: string | null; scheduled_at?: string | null };
+    if (broadcastIsHeld(item)) continue;
+    const id = String(item.id || '').trim();
     if (!id) continue;
     await dispatchBroadcastPush(id).catch(() => undefined);
   }

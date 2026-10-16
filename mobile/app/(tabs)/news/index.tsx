@@ -345,7 +345,8 @@ const useStyles = createThemedStyles((colors, gradients) => ({
     fontSize: 22,
     lineHeight: 28,
     letterSpacing: -0.4,
-    color: colors.onDark,
+    // Overlay stays dark in both themes — frost never flips to ink.
+    color: colors.frost,
   },
   featuredExcerpt: {
     marginTop: 6,

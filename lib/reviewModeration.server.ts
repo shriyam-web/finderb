@@ -81,8 +81,8 @@ async function notifyBusinessFlagOutcome(input: {
 }
 
 function anonymityStatusOf(review: BusinessReview): ReviewAnonymityStatus {
-  if (review.anonymityStatus) return review.anonymityStatus;
-  return review.anonymous ? 'pending' : 'allowed';
+  if (review.anonymityStatus === 'revealed') return 'revealed';
+  return 'allowed';
 }
 
 export async function upsertReviewModerationRow(input: {

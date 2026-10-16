@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useRouter, type Href } from 'expo-router';
 import { setPreferredShell } from '../../../lib/preferredShell';
+import { useConsoleColors } from '../../../constants/consoleColors';
 import { fonts } from '../../../constants/typography';
 import { useAuth } from '../../../context/AuthContext';
 import { useTheme } from '../../../context/ThemeContext';
@@ -22,6 +23,7 @@ const THEMES = [
 
 function MoreBody({ o }: { o: ConsoleOverview }) {
   const styles = useStyles();
+  const c = useConsoleColors();
   const router = useRouter();
   const back = useTabBack();
   const { signOut } = useAuth();
@@ -185,7 +187,7 @@ function MoreBody({ o }: { o: ConsoleOverview }) {
                 accessibilityState={{ selected: active }}
                 accessibilityLabel={`${theme.label} theme`}
               >
-                <Ionicons name={theme.icon} size={16} color={active ? '#FFFFFF' : '#71717A'} />
+                <Ionicons name={theme.icon} size={16} color={active ? c.primaryInk : c.muted} />
                 <Text style={[styles.themeText, active && styles.themeTextActive]}>{theme.label}</Text>
               </Pressable>
             );
@@ -274,7 +276,7 @@ const useStyles = createConsoleStyles((c) => ({
   },
   themeActive: { backgroundColor: c.primary },
   themeText: { fontFamily: fonts.medium, fontSize: 13.5, color: c.muted },
-  themeTextActive: { fontFamily: fonts.semiBold, color: '#FFFFFF' },
+  themeTextActive: { fontFamily: fonts.semiBold, color: c.primaryInk },
   logoutBtn: {
     height: 44,
     borderRadius: 12,

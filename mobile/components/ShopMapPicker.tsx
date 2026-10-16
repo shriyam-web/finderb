@@ -606,7 +606,7 @@ const useStyles = createThemedStyles((colors) => {
     paddingHorizontal: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: b.blue,
+    backgroundColor: b.blueFill,
   },
   findGoOff: { opacity: 0.5 },
   findGoText: {

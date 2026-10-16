@@ -135,7 +135,7 @@ export async function submitBusinessReviewForUser(
         ? {
             anonymous: true,
             anonymousReason,
-            anonymityStatus: 'pending' as const,
+            anonymityStatus: 'allowed' as const,
           }
         : {}),
     };

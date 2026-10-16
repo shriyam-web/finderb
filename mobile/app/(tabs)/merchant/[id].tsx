@@ -1896,7 +1896,7 @@ const useStyles = createThemedStyles((colors, gradients) => ({
     color: colors.frost,
   },
   manageBannerSafe: {
-    backgroundColor: '#ECFDF5',
+    backgroundColor: colors.successBg,
   },
   manageBanner: {
     flexDirection: 'row',
@@ -1905,19 +1905,19 @@ const useStyles = createThemedStyles((colors, gradients) => ({
     gap: 8,
     paddingHorizontal: 16,
     paddingVertical: 10,
-    backgroundColor: '#ECFDF5',
+    backgroundColor: colors.successBg,
     borderBottomWidth: 1,
-    borderBottomColor: '#A7F3D0',
+    borderBottomColor: colors.border,
   },
   manageBannerText: {
     fontFamily: fonts.semiBold,
     fontSize: 14,
-    color: '#047857',
+    color: colors.success,
   },
   manageSwitch: {
     fontFamily: fonts.semiBold,
     fontSize: 13,
-    color: '#065F46',
+    color: colors.success,
     textDecorationLine: 'underline',
   },
   sheet: {
@@ -2717,7 +2717,7 @@ const useStyles = createThemedStyles((colors, gradients) => ({
   relatedFallbackText: {
     fontFamily: fonts.bold,
     fontSize: 28,
-    color: colors.frost,
+    color: colors.onDark,
   },
   relatedScrim: {
     ...StyleSheet.absoluteFill,

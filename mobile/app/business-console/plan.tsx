@@ -507,7 +507,17 @@ export function PlanBody({ docked = false }: { docked?: boolean }) {
                     <View style={styles.billRight}>
                       <Text style={styles.billAmount}>{item.amountDisplay}</Text>
                       <Tag
-                        label={item.status}
+                        label={
+                          item.status === 'completed'
+                            ? 'Paid'
+                            : item.status === 'pending'
+                              ? 'Pending'
+                              : item.status === 'cancelled'
+                                ? 'Cancelled'
+                                : item.status === 'failed'
+                                  ? 'Failed'
+                                  : item.status
+                        }
                         tone={
                           /paid|captured|completed|success|active/i.test(item.status)
                             ? 'success'
@@ -548,11 +558,27 @@ export function PlanBody({ docked = false }: { docked?: boolean }) {
             : `${pricing?.annual.name ?? 'Pro'} — 12 months`
         }
         onSuccess={(payment) => void finish(payment)}
-        onClose={() => setCheckout(null)}
+        onClose={() => {
+          const used = checkout;
+          setCheckout(null);
+          if (!used) return;
+          void run('abandonCheckout', {
+            orderId: used.start.order?.id,
+            subscriptionId: used.start.subscription?.id,
+          }).then(() => load());
+        }}
         onFailed={(message) => {
+          const used = checkout;
           setCheckout(null);
           notify(message, 'bad');
-          void load();
+          if (!used) {
+            void load();
+            return;
+          }
+          void run('failCheckout', {
+            orderId: used.start.order?.id,
+            subscriptionId: used.start.subscription?.id,
+          }).then(() => load());
         }}
       />
 

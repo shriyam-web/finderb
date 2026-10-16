@@ -38,7 +38,7 @@ export function ConsoleGate({ children }: { children: (overview: ConsoleOverview
     return (
       <View style={styles.offlinePage}>
         <View style={styles.offlineMark}>
-          <Ionicons name="wifi-outline" size={26} color="#6B7280" />
+          <Ionicons name="wifi-outline" size={26} color={c.muted} />
         </View>
         <Text style={styles.offlineTitle}>No internet connection</Text>
         <Text style={styles.offlineBody}>
@@ -110,7 +110,7 @@ const useStyles = createConsoleStyles((c) => ({
   errorActions: { marginTop: 22, alignSelf: 'stretch', gap: 6 },
   offlinePage: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: c.page,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 32,
@@ -121,13 +121,13 @@ const useStyles = createConsoleStyles((c) => ({
     borderRadius: 32,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F4F4F5',
+    backgroundColor: c.sunken,
   },
   offlineTitle: {
     marginTop: 18,
     fontFamily: fonts.semiBold,
     fontSize: 22,
-    color: '#6B7280',
+    color: c.ink,
     textAlign: 'center',
   },
   offlineBody: {
@@ -136,7 +136,7 @@ const useStyles = createConsoleStyles((c) => ({
     fontFamily: fonts.regular,
     fontSize: 15,
     lineHeight: 22,
-    color: '#9CA3AF',
+    color: c.muted,
     textAlign: 'center',
   },
 }));

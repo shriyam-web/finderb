@@ -24,8 +24,8 @@ export type AdminReviewListRow = {
 };
 
 export function anonymityStatusOf(review: BusinessReview): string {
-  if (review.anonymityStatus) return review.anonymityStatus;
-  return review.anonymous ? 'pending' : 'allowed';
+  if (review.anonymityStatus === 'revealed') return 'revealed';
+  return 'allowed';
 }
 
 export function flattenBusinessReviews(row: {
@@ -79,10 +79,8 @@ export function visibilityLabel(row: Pick<AdminReviewListRow, 'hidden' | 'delete
 }
 
 export function anonymousLabel(status: string): string {
-  if (status === 'pending') return 'Waiting: keep anonymous or show name';
-  if (status === 'allowed') return 'Kept anonymous';
   if (status === 'revealed') return 'Real name shown';
-  return status;
+  return 'Anonymous';
 }
 
 export function sortReviewsNewest(rows: AdminReviewListRow[]): AdminReviewListRow[] {

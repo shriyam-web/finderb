@@ -1173,7 +1173,7 @@ const useStyles = createThemedStyles((colors) => ({
     color: colors.textMuted,
   },
   pillTextOn: {
-    color: colors.frost,
+    color: colors.onDark,
   },
   folderPanel: {
     backgroundColor: colors.surface,
@@ -1411,7 +1411,7 @@ const useStyles = createThemedStyles((colors) => ({
   initial: {
     fontFamily: fonts.bold,
     fontSize: 28,
-    color: colors.onDark,
+    color: colors.frost,
   },
   body: {
     paddingTop: 8,

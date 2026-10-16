@@ -2312,7 +2312,7 @@ const useStyles = createThemedStyles((colors) => ({
   initial: {
     fontFamily: fonts.semiBold,
     fontSize: 28,
-    color: colors.onDark,
+    color: colors.frost,
   },
   body: {
     paddingHorizontal: 10,

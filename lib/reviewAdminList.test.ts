@@ -56,7 +56,9 @@ assert.equal(rows.find((row) => row.review_id === 'rev-anon')?.public_name.start
 assert.equal(visibilityLabel(rows.find((row) => row.review_id === 'rev-live')!), 'Visible on listing');
 assert.equal(visibilityLabel(rows.find((row) => row.review_id === 'rev-hidden')!), 'Hidden from public');
 assert.equal(visibilityLabel(rows.find((row) => row.review_id === 'rev-deleted')!), 'Removed');
-assert.equal(anonymousLabel('pending'), 'Waiting: keep anonymous or show name');
+assert.equal(rows.find((row) => row.review_id === 'rev-anon')?.anonymity_status, 'allowed');
+assert.equal(anonymousLabel('pending'), 'Anonymous');
+assert.equal(anonymousLabel('allowed'), 'Anonymous');
 assert.equal(matchesReviewQuery(rows[0], ''), true);
 assert.equal(matchesReviewQuery(rows[0], 'j'), true);
 assert.equal(

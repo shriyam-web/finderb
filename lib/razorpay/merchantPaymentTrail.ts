@@ -80,7 +80,7 @@ export async function upsertMerchantPaymentTrail(
       .select('id')
       .eq('business_id', input.businessId)
       .eq('order_id', input.orderId)
-      .eq('status', 'pending')
+      .in('status', ['pending', 'cancelled'])
       .order('created_at', { ascending: false })
       .limit(1);
     if (pending?.[0]?.id) {
@@ -101,7 +101,7 @@ export async function upsertMerchantPaymentTrail(
       .eq('business_id', input.businessId)
       .eq('razorpay_subscription_id', input.subscriptionId)
       .eq('payment_type', 'subscription_auth')
-      .eq('status', 'pending')
+      .in('status', ['pending', 'cancelled'])
       .order('created_at', { ascending: false })
       .limit(1);
     if (pending?.[0]?.id) {

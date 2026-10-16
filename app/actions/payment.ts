@@ -25,6 +25,7 @@ import {
 } from '@/lib/razorpay/subscriptions';
 import { enforceRateLimit } from '@/lib/security/enforceRateLimit.server';
 import { assertBusinessTab } from '@/lib/businessTeam/teamActor.server';
+import { CHECKOUT_WINDOW_MS } from '@/lib/razorpay/checkoutStatus';
 
 function getPaymentDbClient() {
   const supabase = createServiceClient();
@@ -408,4 +409,111 @@ export async function completeMerchantPayment(params: {
   revalidatePath(`/business/payment/${businessId}`);
 
   return { success: true as const, business: updatedBusiness.business, alreadyCompleted: result.alreadyCompleted };
+}
+
+async function closeOpenCheckout(input: {
+  businessId: string;
+  orderId?: string;
+  subscriptionId?: string;
+  nextStatus: 'cancelled' | 'failed';
+}) {
+  const session = await assertBusinessTab(input.businessId, 'subscription', 'edit');
+  if (!session.ok) return { success: false as const, error: session.error };
+
+  const orderId = input.orderId?.trim() || '';
+  const subscriptionId = input.subscriptionId?.trim() || '';
+  if (!orderId && !subscriptionId) return { success: true as const };
+
+  const db = getPaymentDbClient();
+  if (!db.ok) return { success: false as const, error: db.error };
+  const supabase = db.supabase;
+
+  const nowIso = new Date().toISOString();
+  let query = supabase
+    .from('merchant_payments')
+    .update({ status: input.nextStatus, updated_at: nowIso, source: input.nextStatus === 'failed' ? 'checkout_failed' : 'checkout_cancelled' })
+    .eq('business_id', input.businessId)
+    .is('payment_id', null);
+
+  query = input.nextStatus === 'failed' ? query.in('status', ['pending', 'cancelled']) : query.eq('status', 'pending');
+  if (orderId) query = query.eq('order_id', orderId);
+  else query = query.eq('razorpay_subscription_id', subscriptionId);
+
+  const { error } = await query;
+  if (error) {
+    console.error('[payment] checkout close failed:', error);
+    return { success: false as const, error: 'Could not update this payment' };
+  }
+
+  if (subscriptionId && input.nextStatus === 'cancelled') {
+    await supabase
+      .from('Business')
+      .update({ mandateStatus: 'cancelled', subscriptionStatus: 'cancelled', updatedAt: nowIso })
+      .eq('id', input.businessId)
+      .eq('razorpaySubscriptionId', subscriptionId)
+      .eq('mandateStatus', 'pending');
+  }
+
+  return { success: true as const };
+}
+
+/** Merchant closed checkout, or left it. That attempt can no longer be paid. */
+export async function abandonMerchantCheckout(params: {
+  businessId: string;
+  orderId?: string;
+  subscriptionId?: string;
+}) {
+  return closeOpenCheckout({ ...params, nextStatus: 'cancelled' });
+}
+
+/** Bank or Razorpay declined the attempt. This is a real failure, not a closed checkout. */
+export async function recordMerchantCheckoutFailure(params: {
+  businessId: string;
+  orderId?: string;
+  subscriptionId?: string;
+}) {
+  return closeOpenCheckout({ ...params, nextStatus: 'failed' });
+}
+
+/** Persist abandoned checkouts so history matches what the merchant sees after the window. */
+export async function settleAbandonedCheckouts(businessId: string) {
+  const session = await assertBusinessTab(businessId, 'subscription', 'view');
+  if (!session.ok) return;
+
+  const db = getPaymentDbClient();
+  if (!db.ok) return;
+  const supabase = db.supabase;
+
+  const cutoff = new Date(Date.now() - CHECKOUT_WINDOW_MS).toISOString();
+  const { data, error } = await supabase
+    .from('merchant_payments')
+    .select('id, razorpay_subscription_id, payment_type')
+    .eq('business_id', businessId)
+    .eq('status', 'pending')
+    .is('payment_id', null)
+    .lt('created_at', cutoff);
+
+  if (error || !data?.length) return;
+
+  const rows = data.filter((row: { payment_type?: string | null }) => row.payment_type !== 'subscription_renewal');
+  if (!rows.length) return;
+
+  const nowIso = new Date().toISOString();
+  await supabase
+    .from('merchant_payments')
+    .update({ status: 'cancelled', updated_at: nowIso, source: 'checkout_expired' })
+    .in(
+      'id',
+      rows.map((row: { id: string }) => row.id),
+    );
+
+  for (const row of rows) {
+    if (row.payment_type !== 'subscription_auth' || !row.razorpay_subscription_id) continue;
+    await supabase
+      .from('Business')
+      .update({ mandateStatus: 'cancelled', subscriptionStatus: 'cancelled', updatedAt: nowIso })
+      .eq('id', businessId)
+      .eq('razorpaySubscriptionId', row.razorpay_subscription_id)
+      .eq('mandateStatus', 'pending');
+  }
 }

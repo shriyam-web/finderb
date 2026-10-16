@@ -1,3 +1,14 @@
+export function broadcastIsHeld(row: {
+  status?: string | null;
+  scheduled_at?: string | null;
+}): boolean {
+  const status = String(row.status || '').toLowerCase();
+  if (status === 'queued') return true;
+  const at = row.scheduled_at ? Date.parse(row.scheduled_at) : Number.NaN;
+  if (status === 'scheduled' && (!Number.isFinite(at) || at > Date.now())) return true;
+  return Number.isFinite(at) && at > Date.now();
+}
+
 function audienceList(raw: unknown): string[] {
   if (!Array.isArray(raw)) return [];
   return raw.map((item) => String(item).trim().toLowerCase()).filter(Boolean);
