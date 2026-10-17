@@ -1,3 +1,5 @@
+import type { PublicBadge } from '@/lib/businessBadges';
+
 export interface Business {
   id: string;
   slug?: string | null;
@@ -51,7 +53,7 @@ export interface Business {
   /** Typical time to open a new lead, when the business has replied at least once. */
   averageResponse?: string | null;
   /** Chips earned from replies, reviews, popularity, recency, or an admin award. */
-  badges?: { id: string; label: string }[];
+  badges?: PublicBadge[];
 }
 
 export interface Category {
