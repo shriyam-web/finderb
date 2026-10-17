@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
@@ -70,10 +71,15 @@ export default function JobPortalClient({ initialJobs }: { initialJobs: Job[] })
   const [typeFilter, setTypeFilter] = useState('All');
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [portalMounted, setPortalMounted] = useState(false);
   const [userLocation, setUserLocation] = useState<{ lat: number; lon: number } | null>(null);
   const [sortByDistance, setSortByDistance] = useState(false);
   const [showCitySuggestions, setShowCitySuggestions] = useState(false);
   const locationRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setPortalMounted(true);
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -356,10 +362,11 @@ export default function JobPortalClient({ initialJobs }: { initialJobs: Job[] })
         </p>
       </div>
 
-      {isFormOpen && selectedJob && (
-        <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/40 p-4 sm:items-center">
-          <div className="max-h-[90vh] w-full max-w-lg overflow-hidden rounded-t-xl bg-white sm:rounded-xl">
-            <div className="flex items-center justify-between border-b border-neutral-200 px-5 py-4">
+      {isFormOpen && selectedJob && portalMounted
+        ? createPortal(
+        <div className="fixed inset-0 z-[10100] flex items-end justify-center bg-black/40 px-4 pt-[4.75rem] pb-[calc(5.75rem+env(safe-area-inset-bottom,0px))] sm:items-center sm:px-4 sm:py-8">
+          <div className="flex max-h-full w-full max-w-lg flex-col overflow-hidden rounded-t-xl bg-white sm:max-h-[min(90vh,calc(100vh-6rem))] sm:rounded-xl">
+            <div className="flex shrink-0 items-center justify-between border-b border-neutral-200 px-5 py-4">
               <div>
                 <p className="text-xs text-neutral-500">Apply for</p>
                 <h2 className="font-[family-name:var(--font-outfit)] text-lg font-semibold text-neutral-900">
@@ -375,7 +382,7 @@ export default function JobPortalClient({ initialJobs }: { initialJobs: Job[] })
                 <X size={20} />
               </button>
             </div>
-            <div className="max-h-[calc(90vh-4rem)] overflow-y-auto px-5 py-5">
+            <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
               <p className="mb-5 text-xs leading-relaxed text-neutral-500">
                 Do not share OTPs, bank details, or upfront payments. Verify the employer
                 independently.
@@ -386,8 +393,10 @@ export default function JobPortalClient({ initialJobs }: { initialJobs: Job[] })
               />
             </div>
           </div>
-        </div>
-      )}
+        </div>,
+        document.body,
+      )
+        : null}
     </div>
   );
 }
