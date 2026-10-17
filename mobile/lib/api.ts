@@ -9,6 +9,7 @@ import {
   categoryMatchScore,
   exactMissNotice,
   merchantMatchTier,
+  nameSuggestionScore,
   detectSearchIntents,
   parseDirectoryQuery,
   relatedSearchTerms,
@@ -1114,6 +1115,54 @@ export async function searchMerchantsByQuery(
   return { merchants: ranked.slice(0, limit) };
 }
 
+/** Names that start with, contain, or nearly spell what the user typed. */
+async function searchNameSuggestions(rawQuery: string): Promise<Merchant[]> {
+  if (!isSupabaseConfigured || !supabase) return [];
+  const tokens = rawQuery
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .map((token) => token.trim())
+    .filter((token) => token.length >= 2);
+  if (!tokens.length) return [];
+
+  const patterns = [
+    tokens.map((token) => escapeIlikePattern(token)).join('%'),
+    tokens
+      .map((token) => escapeIlikePattern(token.length >= 5 ? token.slice(0, -1) : token))
+      .join('%'),
+  ];
+  const longest = [...tokens].sort((a, b) => b.length - a.length)[0];
+  if (longest.length >= 5) patterns.push(escapeIlikePattern(longest.slice(0, 4)));
+
+  const found = new Map<string, { merchant: Merchant; score: number }>();
+  for (const pattern of [...new Set(patterns)]) {
+    const needle = `%${pattern}%`;
+    const { data, error } = await supabase
+      .from('Business')
+      .select(MERCHANT_SELECT)
+      .eq('status', 'Active')
+      .or(`businessName.ilike.${needle},displayName.ilike.${needle}`)
+      .limit(40);
+    if (error || !data) continue;
+    for (const row of data) {
+      const merchant = mapMerchantRow(row as Record<string, unknown>);
+      const score = Math.max(
+        nameSuggestionScore(merchant.name, rawQuery),
+        nameSuggestionScore(String((row as { businessName?: string }).businessName || ''), rawQuery),
+        nameSuggestionScore(String((row as { displayName?: string }).displayName || ''), rawQuery),
+      );
+      if (score <= 0) continue;
+      const current = found.get(merchant.id);
+      if (!current || score > current.score) found.set(merchant.id, { merchant, score });
+    }
+    if ([...found.values()].some((item) => item.score >= 90)) break;
+  }
+
+  return [...found.values()]
+    .sort((a, b) => b.score - a.score)
+    .map((item) => item.merchant);
+}
+
 export async function fetchMerchantsByIds(ids: string[]): Promise<{
   merchants: Merchant[];
   error?: string;
@@ -1229,6 +1278,7 @@ export async function searchDirectory(
     };
   };
 
+  const suggestionPromise = searchNameSuggestions(query);
   const needles = parsed.primaryNeedles.length > 0 ? parsed.primaryNeedles : [normalized];
   // "property with rajnish" becomes "property rajnish". Search each word too,
   // so a name with a small word in the middle is not missed.
@@ -1282,10 +1332,14 @@ export async function searchDirectory(
       : found.merchants.filter(
           (merchant) => merchantMatchTier(merchant, parsed.required) === 1,
         );
+  const suggestions = await suggestionPromise;
 
-  if (exactCategories.length > 0 || tier0.length > 0 || nameHits.length > 0) {
+  if (exactCategories.length > 0 || tier0.length > 0 || nameHits.length > 0 || suggestions.length > 0) {
     const seen = new Set<string>();
-    const ordered = parsed.required.length > 1 ? [...nameHits, ...tier0] : [...tier0, ...nameHits];
+    const ordered = [
+      ...suggestions,
+      ...(parsed.required.length > 1 ? [...nameHits, ...tier0] : [...tier0, ...nameHits]),
+    ];
     const merchants: Merchant[] = [];
     for (const merchant of ordered) {
       if (seen.has(merchant.id)) continue;
@@ -1305,14 +1359,15 @@ export async function searchDirectory(
       : ranked.length === 0 && merchants.length > 0 && intents.length > 0
         ? 'Nothing matches those filters right now.'
         : null;
+    const named = suggestions.length > 0 && nameHits.length === 0 && tier0.length === 0 && exactCategories.length === 0;
     return {
       query,
       label,
       terms: parsed.required,
       categories: exactCategories,
       merchants: placed.slice(0, 36),
-      exactMatch: true,
-      notice,
+      exactMatch: !named,
+      notice: named ? exactMissNotice(label) : notice,
       error: found.error,
     };
   }
@@ -1352,7 +1407,7 @@ export async function searchDirectory(
   }
 
   const relatedRanked = applyAiIntents(
-    relatedMerchants,
+    [...suggestions, ...relatedMerchants],
     intents,
     options?.coords ?? null,
     [],

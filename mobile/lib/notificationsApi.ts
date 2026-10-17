@@ -1,4 +1,4 @@
-import { SITE_URL } from './supabase';
+import { SITE_URL, siteBases } from './supabase';
 import { getStoredToken } from './session';
 
 export type AppNotification = {
@@ -15,29 +15,32 @@ export type AppNotification = {
 export async function fetchUserNotifications(): Promise<
   { notifications: AppNotification[] } | { success: false; error: string }
 > {
-  try {
-    const token = await getStoredToken();
-    const res = await fetch(`${SITE_URL}/api/notifications`, {
-      headers: {
-        Accept: 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-    });
-    const data = (await res.json()) as {
-      success?: boolean;
-      notifications?: AppNotification[];
-      error?: string;
-    };
-    if (!data.success) {
-      return { success: false, error: data.error || 'Could not load notifications.' };
+  const token = await getStoredToken();
+  const bases = siteBases();
+  let lastError = 'Could not load notifications.';
+  for (const base of bases) {
+    try {
+      const res = await fetch(`${base}/api/notifications`, {
+        headers: {
+          Accept: 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+      const data = (await res.json()) as {
+        success?: boolean;
+        notifications?: AppNotification[];
+        error?: string;
+      };
+      if (!data.success) {
+        lastError = data.error || 'Could not load notifications.';
+        continue;
+      }
+      return { notifications: Array.isArray(data.notifications) ? data.notifications : [] };
+    } catch (error) {
+      lastError = error instanceof Error ? error.message : 'Network error.';
     }
-    return { notifications: Array.isArray(data.notifications) ? data.notifications : [] };
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Network error.',
-    };
   }
+  return { success: false, error: lastError };
 }
 
 export async function recordNotificationReads(ids: string[]): Promise<void> {

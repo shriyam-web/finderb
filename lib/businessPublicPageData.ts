@@ -120,7 +120,7 @@ export function getCachedPublicBusiness(slugOrId: string) {
   const cacheKey = identifier.toLowerCase();
   return unstable_cache(
     async () => fetchBusinessBySlugOrId(identifier),
-    ['public-business-v1', cacheKey],
+    ['public-business-v2', cacheKey],
     { revalidate: BUSINESS_PAGE_REVALIDATE_SECONDS }
   )();
 }

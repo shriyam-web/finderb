@@ -118,3 +118,12 @@ export const SITE_URL =
       ? envSite
       : localDevSiteUrl()
     : envSite || 'https://finderb.com';
+
+/** Dev tries the computer first, then the live site when that server is down. */
+export function siteBases(): string[] {
+  const local = SITE_URL.replace(/\/$/, '');
+  const production = (envSite && !isPrivateSite(envSite) ? envSite : 'https://finderb.com').replace(/\/$/, '');
+  if (typeof __DEV__ === 'undefined' || !__DEV__ || local === production) return [local];
+  const localHost = /^https?:\/\/(localhost|127\.0\.0\.1|10\.0\.2\.2|\[::1\])(?::\d+)?$/i.test(local);
+  return localHost ? [local, production] : [local];
+}

@@ -351,6 +351,90 @@ export function merchantMatchTier(merchant: RankableMerchant, terms: string[]): 
   return 4;
 }
 
+function editDistance(left: string, right: string): number {
+  if (left === right) return 0;
+  if (!left.length || !right.length) return Math.max(left.length, right.length);
+  if (Math.abs(left.length - right.length) > 2) return 3;
+  const prev = new Array<number>(right.length + 1);
+  const next = new Array<number>(right.length + 1);
+  for (let col = 0; col <= right.length; col += 1) prev[col] = col;
+  for (let row = 1; row <= left.length; row += 1) {
+    next[0] = row;
+    for (let col = 1; col <= right.length; col += 1) {
+      const cost = left[row - 1] === right[col - 1] ? 0 : 1;
+      next[col] = Math.min(next[col - 1] + 1, prev[col] + 1, prev[col - 1] + cost);
+    }
+    for (let col = 0; col <= right.length; col += 1) prev[col] = next[col];
+  }
+  return prev[right.length];
+}
+
+function rawSearchTokens(value: string): string[] {
+  return value
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter((token) => token.length >= 2);
+}
+
+function tokenCloseEnough(queryToken: string, nameToken: string, allowShortPrefix: boolean): boolean {
+  const left = singularizeSearchTerm(queryToken);
+  const right = singularizeSearchTerm(nameToken);
+  if (!left || !right) return false;
+  if (left === right) return true;
+  if (allowShortPrefix && left.length >= 2 && right.startsWith(left)) return true;
+  if (left.length >= 4 && right.startsWith(left)) return true;
+  if (right.length >= 4 && left.startsWith(right) && left.length - right.length <= 2) return true;
+  const allowed = left.length >= 8 ? 2 : left.length >= 4 ? 1 : 0;
+  return allowed > 0 && editDistance(left, right) <= allowed;
+}
+
+/**
+ * How well a typed name fragment fits a business name.
+ * 0 means it is not a suggestion. Case, word order, a short last word,
+ * and a one-letter typo still count.
+ */
+export function nameSuggestionScore(name: string, rawQuery: string): number {
+  const query = rawQuery.trim().toLowerCase().replace(/\s+/g, ' ');
+  const hay = name.trim().toLowerCase().replace(/\s+/g, ' ');
+  if (!query || !hay) return 0;
+  if (hay === query) return 100;
+  const queryHasWordBoundary = query.includes(' ');
+  if (
+    (queryHasWordBoundary && hay.startsWith(query)) ||
+    (!queryHasWordBoundary && query.length >= 4 && hay.startsWith(`${query} `))
+  ) {
+    return 92;
+  }
+
+  const queryTokens = rawSearchTokens(query);
+  const nameTokens = rawSearchTokens(hay);
+  if (!queryTokens.length || !nameTokens.length) return 0;
+  if (queryTokens.length === 1 && queryTokens[0].length < 4) return 0;
+  if (queryTokens.every((token) => STOP_WORDS.has(token) || QUERY_FILTER_WORDS.has(token))) {
+    return 0;
+  }
+
+  const used = new Set<number>();
+  let fuzzy = 0;
+  for (let index = 0; index < queryTokens.length; index += 1) {
+    const term = queryTokens[index];
+    const last = index === queryTokens.length - 1;
+    let match = -1;
+    for (let nameIndex = 0; nameIndex < nameTokens.length; nameIndex += 1) {
+      if (used.has(nameIndex)) continue;
+      const exact = singularizeSearchTerm(nameTokens[nameIndex]) === singularizeSearchTerm(term);
+      if (!tokenCloseEnough(term, nameTokens[nameIndex], last && queryTokens.length > 1)) continue;
+      match = nameIndex;
+      if (!exact) fuzzy += 1;
+      break;
+    }
+    if (match < 0) return 0;
+    used.add(match);
+  }
+
+  return Math.max(64, 86 - fuzzy * 6);
+}
+
 export function relatedSearchTerms(required: string[]): string[] {
   const out = new Set<string>();
   for (const term of required) {

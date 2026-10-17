@@ -67,7 +67,7 @@ import {
 } from '@/lib/businessAbout';
 import { parseCoordinate } from '@/lib/geo';
 import { revalidateSitemap } from '@/lib/sitemapData';
-import { escapeIlikePattern, parseNaturalSearchQuery, textMatchesSearchTerm } from '@/lib/searchMatch';
+import { businessNameSuggestionScore, escapeIlikePattern, parseNaturalSearchQuery, textMatchesSearchTerm } from '@/lib/searchMatch';
 import { getBusinessOpenStatus } from '@/lib/businessHours';
 import {
   PASSWORD_MIN_LENGTH_USER,
@@ -1124,7 +1124,13 @@ export async function searchPublicBusinesses(query: string) {
 
   try {
     const supabase = await createDataClient();
-    const pattern = `%${terms.map((term) => escapeIlikePattern(term)).join('%')}%`;
+    const typedTokens = query
+      .toLowerCase()
+      .split(/[^a-z0-9]+/)
+      .map((token) => token.trim())
+      .filter((token) => token.length >= 2);
+    const patternTokens = typedTokens.length ? typedTokens : terms;
+    const pattern = `%${patternTokens.map((term) => escapeIlikePattern(term)).join('%')}%`;
     const { data, error } = await supabase
       .from('Business')
       .select('*')
@@ -1144,7 +1150,9 @@ export async function searchPublicBusinesses(query: string) {
       .filter((business) => {
         const name = `${business.name || ''} ${business.businessName || ''} ${business.displayName || ''}`;
         const category = `${business.category || ''} ${business.serviceCategory || ''}`;
-        const nameHit = terms.every((term) => textMatchesSearchTerm(name, term));
+        const nameHit =
+          businessNameSuggestionScore(name, query) >= 64 ||
+          terms.every((term) => textMatchesSearchTerm(name, term));
         const categoryHit = terms.every((term) => textMatchesSearchTerm(category, term));
         if (!nameHit && !categoryHit) return false;
         if (place) {
@@ -1159,9 +1167,7 @@ export async function searchPublicBusinesses(query: string) {
       .sort((a, b) => {
         const nameOf = (business: ReturnType<typeof mapBusinessRecord>) =>
           `${business.name || ''} ${business.businessName || ''} ${business.displayName || ''}`;
-        const aName = terms.every((term) => textMatchesSearchTerm(nameOf(a), term)) ? 0 : 1;
-        const bName = terms.every((term) => textMatchesSearchTerm(nameOf(b), term)) ? 0 : 1;
-        return aName - bName;
+        return businessNameSuggestionScore(nameOf(b), query) - businessNameSuggestionScore(nameOf(a), query);
       })
       .slice(0, 24);
 

@@ -312,7 +312,10 @@ export default function JobDetailScreen() {
                   <Text style={styles.reportText}>Report this job</Text>
                 </Pressable>
                 <View style={styles.disclaimer}>
-                  <Text style={styles.disclaimerTitle}>{JOB_LISTING_DISCLAIMER.title}</Text>
+                  <View style={styles.disclaimerHead}>
+                    <Ionicons name="warning-outline" size={14} color={colors.textSoft} />
+                    <Text style={styles.disclaimerTitle}>{JOB_LISTING_DISCLAIMER.title}</Text>
+                  </View>
                   {JOB_LISTING_DISCLAIMER.paragraphs.map((paragraph) => (
                     <Text key={paragraph} style={styles.disclaimerBody}>
                       {paragraph}
@@ -638,9 +641,10 @@ const useStyles = createThemedStyles((colors) => ({
     gap: 4,
     backgroundColor: 'transparent',
   },
-  disclaimerTitle: { fontFamily: fonts.medium, fontSize: 11, color: colors.textSoft },
+  disclaimerHead: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  disclaimerTitle: { flex: 1, fontFamily: fonts.medium, fontSize: 11, color: colors.textSoft },
   disclaimerBody: { fontFamily: fonts.regular, fontSize: 11, lineHeight: 15, color: colors.textSoft },
-  reportBtn: { marginTop: 8, alignSelf: 'flex-start' },
+  reportBtn: { marginTop: 22, alignSelf: 'flex-start' },
   reportText: { fontFamily: fonts.semiBold, fontSize: 13, color: '#b42318' },
   sectionTitle: {
     fontFamily: fonts.semiBold,

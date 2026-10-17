@@ -38,6 +38,7 @@ import {
   verifyUserEmailOtp,
 } from '../../lib/authApi';
 import { mobileInputDigits, PHONE_INPUT_MAX_LENGTH } from '../../lib/phoneInput';
+import { usePreferredShell } from '../../hooks/usePreferredShell';
 import { displayAccountEmail } from '../../lib/syntheticEmail';
 import { SITE_URL } from '../../lib/supabase';
 import { getAppVersionLabel } from '../../lib/appVersion';
@@ -65,6 +66,7 @@ export default function AccountScreen() {
 
   const [editing, setEditing] = useState(false);
   const businessAccount = Boolean(user?.isBusinessAccount);
+  const shell = usePreferredShell();
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
   const [nameDraft, setNameDraft] = useState('');
@@ -254,7 +256,7 @@ export default function AccountScreen() {
     {
       title: 'Notifications',
       onPress: () =>
-        router.push((businessAccount ? '/business-console/alerts' : '/(tabs)/notifications') as Href),
+        router.push((shell === 'business' ? '/business-console/alerts' : '/(tabs)/notifications') as Href),
     },
     businessAccount
       ? {

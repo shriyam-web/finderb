@@ -54,7 +54,7 @@ import { previewAboutMarkup } from '../../../lib/aboutFormat';
 import { reportBusinessReview } from '../../../lib/reviewsApi';
 import { goBackOrHome } from '../../../lib/navigation';
 import { formatYearsInBusinessShort } from '../../../lib/establishmentYear';
-import { SITE_URL } from '../../../lib/supabase';
+import { SITE_URL, siteBases } from '../../../lib/supabase';
 import { getRatingDisplay, UNRATED_LABEL } from '../../../lib/ratingDisplay';
 import { useTabScrollPadding } from '../../../hooks/useAppSafeArea';
 import { createThemedStyles } from '../../../hooks/useThemedStyles';
@@ -319,22 +319,28 @@ export default function MerchantProfileScreen() {
     if (!businessId) return;
     let cancelled = false;
     setSignals(null);
-    void fetch(`${SITE_URL}/api/business/signals?id=${encodeURIComponent(businessId)}`)
-      .then(async (response) => {
-        if (!response.ok) return null;
-        return (await response.json()) as {
-          bestInCategory?: boolean;
-          averageResponse?: string | null;
-        };
-      })
-      .then((data) => {
-        if (cancelled || !data) return;
-        setSignals({
-          bestInCategory: data.bestInCategory === true,
-          averageResponse: typeof data.averageResponse === 'string' ? data.averageResponse : null,
-        });
-      })
-      .catch(() => undefined);
+    void (async () => {
+      for (const base of siteBases()) {
+        try {
+          const response = await fetch(
+            `${base}/api/business/signals?id=${encodeURIComponent(businessId)}`,
+          );
+          if (!response.ok) continue;
+          const data = (await response.json()) as {
+            bestInCategory?: boolean;
+            averageResponse?: string | null;
+          };
+          if (cancelled) return;
+          setSignals({
+            bestInCategory: data.bestInCategory === true,
+            averageResponse: typeof data.averageResponse === 'string' ? data.averageResponse : null,
+          });
+          return;
+        } catch {
+          // try the next site
+        }
+      }
+    })();
     return () => {
       cancelled = true;
     };

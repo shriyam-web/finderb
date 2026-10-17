@@ -23,6 +23,7 @@ import {
   rememberBroadcastId,
   syncNotificationInbox,
 } from '../lib/notificationInbox';
+import { usePreferredShell } from '../hooks/usePreferredShell';
 import {
   broadcastIdFromNotificationData,
   configureNotificationHandler,
@@ -50,7 +51,8 @@ export function NotificationInboxProvider({ children }: { children: ReactNode })
   const { user } = useAuth();
   const signedInRef = useRef(Boolean(user));
   signedInRef.current = Boolean(user);
-  const isBusiness = Boolean(user?.isBusinessAccount);
+  const shell = usePreferredShell();
+  const isBusiness = shell === 'business' && Boolean(user?.isBusinessAccount);
 
   const [items, setItems] = useState<AppNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);

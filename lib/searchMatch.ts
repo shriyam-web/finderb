@@ -177,6 +177,67 @@ function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+function editDistance(left: string, right: string): number {
+  if (left === right) return 0;
+  if (Math.abs(left.length - right.length) > 2) return 3;
+  const prev = Array.from({ length: right.length + 1 }, (_, index) => index);
+  const next = new Array<number>(right.length + 1);
+  for (let row = 1; row <= left.length; row += 1) {
+    next[0] = row;
+    for (let col = 1; col <= right.length; col += 1) {
+      const cost = left[row - 1] === right[col - 1] ? 0 : 1;
+      next[col] = Math.min(next[col - 1] + 1, prev[col] + 1, prev[col - 1] + cost);
+    }
+    for (let col = 0; col <= right.length; col += 1) prev[col] = next[col];
+  }
+  return prev[right.length];
+}
+
+function closeToken(queryToken: string, nameToken: string, allowShortPrefix: boolean): boolean {
+  if (queryToken === nameToken) return true;
+  if (allowShortPrefix && queryToken.length >= 2 && nameToken.startsWith(queryToken)) return true;
+  if (queryToken.length >= 4 && nameToken.startsWith(queryToken)) return true;
+  const allowed = queryToken.length >= 8 ? 2 : queryToken.length >= 4 ? 1 : 0;
+  return allowed > 0 && editDistance(queryToken, nameToken) <= allowed;
+}
+
+/** Partial names, unfinished words, and small typos. 0 means not this business. */
+export function businessNameSuggestionScore(name: string, rawQuery: string): number {
+  const query = normalizeSearchQuery(rawQuery).replace(/\s+/g, ' ');
+  const hay = normalizeSearchQuery(name).replace(/\s+/g, ' ');
+  if (!query || !hay) return 0;
+  if (hay === query) return 100;
+  const queryHasWordBoundary = query.includes(' ');
+  if (
+    (queryHasWordBoundary && hay.startsWith(query)) ||
+    (!queryHasWordBoundary && query.length >= 4 && hay.startsWith(`${query} `))
+  ) {
+    return 92;
+  }
+  const queryTokens = query.split(/[^a-z0-9]+/).filter((token) => token.length >= 2);
+  const nameTokens = hay.split(/[^a-z0-9]+/).filter((token) => token.length >= 2);
+  if (!queryTokens.length || !nameTokens.length) return 0;
+  if (queryTokens.length === 1 && queryTokens[0].length < 4) return 0;
+  if (queryTokens.every((token) => STOP_WORDS.has(token))) return 0;
+  const used = new Set<number>();
+  let fuzzy = 0;
+  for (let index = 0; index < queryTokens.length; index += 1) {
+    const term = queryTokens[index];
+    const last = index === queryTokens.length - 1;
+    let match = -1;
+    for (let nameIndex = 0; nameIndex < nameTokens.length; nameIndex += 1) {
+      if (used.has(nameIndex)) continue;
+      if (!closeToken(term, nameTokens[nameIndex], last && queryTokens.length > 1)) continue;
+      match = nameIndex;
+      if (term !== nameTokens[nameIndex]) fuzzy += 1;
+      break;
+    }
+    if (match < 0) return 0;
+    used.add(match);
+  }
+  return Math.max(64, 86 - fuzzy * 6);
+}
+
 export function textMatchesSearchTerm(
   text: string | null | undefined,
   term: string
@@ -322,7 +383,8 @@ export function partitionBySearchRelevance<T>(
         .filter((value) => value != null)
         .join(' ');
       const everyTerm = parsed.terms.every((term) => textMatchesSearchTerm(identity, term));
-      if (!everyTerm) continue;
+      const nameScore = businessNameSuggestionScore(String(fields.name || ''), query);
+      if (!everyTerm && nameScore < 64) continue;
     }
     const score = scoreSearchRelevance(query, getFields(item));
     if (score <= 0) continue;
@@ -362,7 +424,8 @@ export function businessMatchesNaturalSearch(
   if (terms.length === 0) return false;
 
   const identity = [biz.name, biz.category].filter((value) => value != null).join(' ');
-  if (!terms.every((term) => textMatchesSearchTerm(identity, term))) {
+  const nameScore = businessNameSuggestionScore(String(biz.name || ''), query);
+  if (nameScore < 64 && !terms.every((term) => textMatchesSearchTerm(identity, term))) {
     return false;
   }
 

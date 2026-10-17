@@ -26,6 +26,7 @@ import { setViewingNotificationInbox } from '../../lib/notificationInbox';
 import { recordNotificationReads } from '../../lib/notificationsApi';
 import { goBackOrHome } from '../../lib/navigation';
 import { consoleRouteFor } from '../../components/console/routes';
+import { usePreferredShell } from '../../hooks/usePreferredShell';
 
 function formatWhen(value: string) {
   const date = new Date(value);
@@ -47,6 +48,7 @@ export default function NotificationsScreen() {
   const styles = useStyles();
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
+  const shell = usePreferredShell();
   const { requestLogin } = useLoginPrompt();
   const bottomPad = useTabScrollPadding(24);
   const { items, loading, error, refresh, markAllRead, isUnread } =
@@ -77,7 +79,7 @@ export default function NotificationsScreen() {
   const guestEmpty = !user;
 
   const openCta = async (url: string) => {
-    const route = user?.isBusinessAccount ? consoleRouteFor(url) : null;
+    const route = shell === 'business' && user?.isBusinessAccount ? consoleRouteFor(url) : null;
     if (route) {
       router.push(route);
       return;

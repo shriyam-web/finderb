@@ -30,7 +30,12 @@ export async function loadPublicBusinessSignals(
   if (!businessId) return empty;
 
   const { rating, reviewCount } = getBusinessPublicRatingStats(business.review);
-  const completion = getProfileCompletion(completionSource(business)).percentage;
+  let completion = 0;
+  try {
+    completion = getProfileCompletion(completionSource(business)).percentage;
+  } catch {
+    completion = 0;
+  }
   let averageResponseMs: number | null = null;
 
   try {

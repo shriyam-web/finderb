@@ -4,6 +4,7 @@ import {
   detectSearchIntents,
   exactMissNotice,
   merchantMatchTier,
+  nameSuggestionScore,
   orderMerchantsByPrecision,
   parseDirectoryQuery,
   relatedSearchTerms,
@@ -107,6 +108,13 @@ assert.equal(
   ),
   1,
 );
+
+assert.ok(nameSuggestionScore('Property With Rajnish', 'property with') >= 90);
+assert.ok(nameSuggestionScore('Property With Rajnish', 'PROPERTY WITH RAJ') >= 64);
+assert.ok(nameSuggestionScore('Property With Rajnish', 'rajnish property') >= 64);
+assert.ok(nameSuggestionScore('Property With Rajnish', 'propert with rajnish') >= 64);
+assert.equal(nameSuggestionScore('Barber Shop', 'bar'), 0);
+assert.equal(nameSuggestionScore('Cardiac Care', 'car'), 0);
 
 assert.deepEqual(detectSearchIntents('gym nearby'), ['nearest']);
 assert.deepEqual(detectSearchIntents('gym near by'), ['nearest']);

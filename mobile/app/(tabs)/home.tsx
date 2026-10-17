@@ -33,6 +33,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useLocalWeather } from '../../hooks/useLocalWeather';
 import { useTabScrollPadding } from '../../hooks/useAppSafeArea';
 import { createThemedStyles } from '../../hooks/useThemedStyles';
+import { usePreferredShell } from '../../hooks/usePreferredShell';
 import { getClimateTheme } from '../../lib/climateThemes';
 import type { LocalWeather } from '../../lib/weather';
 import type { HomeCategory } from '../../lib/api';
@@ -96,6 +97,7 @@ export default function HomeScreen() {
   const styles = useStyles();
   const router = useRouter();
   const { user } = useAuth();
+  const shell = usePreferredShell();
   const { unreadCount } = useNotificationInbox();
   const location = useAppLocation();
   const weather = useLocalWeather(location.coords);
@@ -394,7 +396,7 @@ export default function HomeScreen() {
           style={styles.notifBtn}
           onPress={() =>
             router.push(
-              (user?.isBusinessAccount ? '/business-console/alerts' : '/(tabs)/notifications') as Href,
+              (shell === 'business' ? '/business-console/alerts' : '/(tabs)/notifications') as Href,
             )
           }
           accessibilityLabel={

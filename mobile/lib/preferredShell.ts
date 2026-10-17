@@ -38,8 +38,18 @@ async function getItem(key: string): Promise<string | null> {
   }
 }
 
+const listeners = new Set<(shell: PreferredShell) => void>();
+
+export function subscribePreferredShell(listener: (shell: PreferredShell) => void) {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
 export async function setPreferredShell(shell: PreferredShell): Promise<void> {
   await setItem(KEY, shell);
+  listeners.forEach((listener) => listener(shell));
 }
 
 export async function getPreferredShell(isBusinessAccount?: boolean): Promise<PreferredShell> {
