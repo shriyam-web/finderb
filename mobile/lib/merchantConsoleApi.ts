@@ -207,6 +207,7 @@ export type ConsoleJob = {
   department: string | null;
   status: string;
   created_at: string;
+  unseenCount?: number;
 };
 
 export type PaymentHistoryItem = {
@@ -266,6 +267,16 @@ export type ConsoleResult<T> = T | ConsoleFailure;
 
 const TIMEOUT_MS = 45000;
 
+const PRODUCTION_SITE = (process.env.EXPO_PUBLIC_SITE_URL || 'https://finderb.com').replace(/\/$/, '');
+
+/** Local Metro can load while the phone cannot open the dev server on this computer. */
+function consoleBases(): string[] {
+  const local = SITE_URL.replace(/\/$/, '');
+  if (typeof __DEV__ === 'undefined' || !__DEV__ || local === PRODUCTION_SITE) return [local];
+  const localHost = /^https?:\/\/(localhost|127\.0\.0\.1|10\.0\.2\.2|\[::1\])(?::\d+)?$/i.test(local);
+  return localHost ? [local, PRODUCTION_SITE] : [local];
+}
+
 /** Every merchant console call goes through one website route that checks the app login. */
 export async function consoleCall<T>(
   action: string,
@@ -273,32 +284,38 @@ export async function consoleCall<T>(
 ): Promise<ConsoleResult<T>> {
   const token = await getStoredToken();
   if (!token) return { success: false, error: 'Please log in again.', code: 'signed_out' };
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
-  try {
-    const response = await fetch(`${SITE_URL}/api/business/mobile/console`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ action, ...payload }),
-      signal: controller.signal,
-    });
-    const body = (await response.json().catch(() => null)) as ConsoleResult<T> | null;
-    if (!body) return { success: false, error: `FinderB did not answer (${response.status}). Try again.` };
-    return body;
-  } catch {
-    return {
-      success: false,
-      error: controller.signal.aborted
+  const bases = consoleBases();
+  let lastError = 'No internet connection. Check your network and try again.';
+  for (let index = 0; index < bases.length; index += 1) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+    try {
+      const response = await fetch(`${bases[index]}/api/business/mobile/console`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ action, ...payload }),
+        signal: controller.signal,
+      });
+      const body = (await response.json().catch(() => null)) as ConsoleResult<T> | null;
+      if (!body) return { success: false, error: `FinderB did not answer (${response.status}). Try again.` };
+      return body;
+    } catch {
+      const canTryNext = index < bases.length - 1;
+      lastError = controller.signal.aborted
         ? 'FinderB took too long to answer. Check your internet and try again.'
-        : 'No internet connection. Check your network and try again.',
-    };
-  } finally {
-    clearTimeout(timer);
+        : canTryNext
+          ? lastError
+          : 'No internet connection. Check your network and try again.';
+      if (!canTryNext) return { success: false, error: lastError };
+    } finally {
+      clearTimeout(timer);
+    }
   }
+  return { success: false, error: lastError };
 }
 
 export function isFailure<T>(result: ConsoleResult<T>): result is ConsoleFailure {

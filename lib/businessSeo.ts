@@ -4,6 +4,7 @@ import { buildFaqJsonLd, buildBusinessSeoContent } from '@/lib/businessContent';
 import { getBusinessAreaLabel, getBusinessLocationLabel } from '@/lib/businessBreadcrumb';
 import { getPublicReviewRating, parseBusinessReviews } from '@/lib/businessReviews';
 import { reviewsToSchemaReviews, timingsToOpeningHoursSchema, aggregateRatingJsonLd } from '@/lib/businessHoursSchema';
+import { plainAboutText } from '@/lib/businessAbout';
 import { getBusinessIndexDecision } from '@/lib/businessIndexation';
 import { categoryHref } from '@/lib/categoryDisplay';
 import { categoryCityHref, slugifyCity } from '@/lib/categoryCity';
@@ -116,8 +117,8 @@ export function buildBusinessMetadata(business: BusinessMetaRecord | null): Meta
     70
   );
   const socialDescription = truncate(
-    business.about?.trim() ||
-      business.description?.trim() ||
+    plainAboutText(business.about || '').trim() ||
+      plainAboutText(business.description || '').trim() ||
       `View ${business.name} on FinderB — contact number, address, reviews, and services.`,
     200
   );
@@ -185,7 +186,7 @@ export function buildBusinessJsonLd(
     '@type': 'LocalBusiness',
     '@id': url,
     name: business.name,
-    description: business.about || business.description || seoContent.about,
+    description: plainAboutText(business.about || business.description || '').trim() || seoContent.about,
     url,
     image: [image],
     telephone: business.contact || undefined,

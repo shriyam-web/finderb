@@ -21,7 +21,7 @@ export default function PlanPurchaseBanner({
   mobile,
 }: PlanPurchaseBannerProps) {
   return (
-    <div className="relative h-full overflow-hidden rounded-2xl border border-teal-300/70 bg-gradient-to-br from-[#D9F6F0] via-[#7EDFD0] to-[#2DD4BF] px-4 py-3 text-teal-950 shadow-[inset_0_1px_0_rgba(255,255,255,0.5)]">
+    <div className="relative overflow-hidden rounded-2xl border border-teal-300/70 bg-gradient-to-br from-[#D9F6F0] via-[#7EDFD0] to-[#2DD4BF] px-4 py-3 text-teal-950 shadow-[inset_0_1px_0_rgba(255,255,255,0.5)]">
       <div className="pointer-events-none absolute -left-8 top-[-28px] h-28 w-28 rounded-full bg-white/35" />
       <div className="pointer-events-none absolute -bottom-10 right-[-12px] h-32 w-32 rounded-[2rem] bg-emerald-200/50" />
       <div className="relative flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

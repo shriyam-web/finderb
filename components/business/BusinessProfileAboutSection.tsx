@@ -1,6 +1,8 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import FormattedAbout from '@/components/business/FormattedAbout';
+import { previewAboutMarkup } from '@/lib/businessAbout';
 
 type BusinessProfileAboutSectionProps = {
   description: string;
@@ -14,9 +16,9 @@ export default function BusinessProfileAboutSection({
 }: BusinessProfileAboutSectionProps) {
   const [expanded, setExpanded] = useState(false);
   const trimmedDescription = description.trim();
-  const aboutLong = trimmedDescription.length > 180;
-  const shown =
-    expanded || !aboutLong ? trimmedDescription : `${trimmedDescription.slice(0, 180).trim()}…`;
+  const preview = previewAboutMarkup(trimmedDescription);
+  const aboutLong = preview.truncated;
+  const shown = expanded || !aboutLong ? trimmedDescription : preview.text;
 
   const tags = useMemo(
     () => keywords.map((keyword) => keyword.trim()).filter(Boolean).slice(0, 6),
@@ -32,7 +34,9 @@ export default function BusinessProfileAboutSection({
         {trimmedDescription ? (
           <>
             <p className="-mb-2 text-[42px] font-extrabold leading-none text-[#d4a017]">“</p>
-            <p className="whitespace-pre-line text-[15px] leading-6 text-stone-600">{shown}</p>
+            <p className="text-[15px] leading-6 text-stone-600">
+              <FormattedAbout text={shown} />
+            </p>
             {aboutLong ? (
               <button
                 type="button"

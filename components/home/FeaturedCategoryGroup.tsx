@@ -477,7 +477,7 @@ function MerchantPortraitCard({
   const ratingDisplay = getRatingDisplay(biz.rating, biz.reviewsCount);
   const hasOffer = Boolean(biz.discountRange?.trim());
   const isNewListing = (biz.reviewsCount ?? 0) === 0;
-  const aboutText = (biz.description || biz.about || '').trim();
+  const aboutText = (biz.description || biz.about || '').replace(/\*\*|__|\*/g, '').replace(/\s+/g, ' ').trim();
   const subcategoryLabel = merchantSubcategoryLabel(biz.category);
   const placeLabel = formatLocalityCityLabel(biz);
   const phone = (biz.publicPhone || biz.contact || '').trim();

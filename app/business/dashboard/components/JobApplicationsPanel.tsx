@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   getApplicationFile,
   getJobApplications,
@@ -23,16 +23,20 @@ export default function JobApplicationsPanel({
   businessId,
   jobId,
   canEdit,
+  onViewed,
 }: {
   businessId: string;
   jobId: string;
   canEdit: boolean;
+  onViewed?: () => void;
 }) {
   const [rows, setRows] = useState<ApplicationRow[] | null>(null);
   const [error, setError] = useState('');
   const [openId, setOpenId] = useState('');
   const [fileUrl, setFileUrl] = useState('');
   const [busy, setBusy] = useState(false);
+  const onViewedRef = useRef(onViewed);
+  onViewedRef.current = onViewed;
 
   useEffect(() => {
     let live = true;
@@ -44,6 +48,7 @@ export default function JobApplicationsPanel({
         return;
       }
       setRows(result.applications);
+      onViewedRef.current?.();
     });
     return () => {
       live = false;

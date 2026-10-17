@@ -18,6 +18,7 @@ import { FinderBLogo } from '../components/BrandMark';
 import { fonts } from '../constants/typography';
 import { useAuth } from '../context/AuthContext';
 import { createThemedStyles } from '../hooks/useThemedStyles';
+import { goBackOrHome } from '../lib/navigation';
 
 const NAVY = '#102C42';
 const GOLD = '#F2B45A';
@@ -88,7 +89,7 @@ export default function BusinessRegisterScreen() {
         <View style={styles.topBar}>
           <Pressable
             style={styles.backBtn}
-            onPress={() => router.back()}
+            onPress={() => goBackOrHome(router)}
             accessibilityLabel="Go back"
           >
             <Ionicons name="arrow-back" size={20} color="#fff" />

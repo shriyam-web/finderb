@@ -313,6 +313,23 @@ function parseReviews(review: unknown): MerchantReview[] {
   return [];
 }
 
+export const PUBLIC_REVIEW_PREVIEW = 5;
+export const PUBLIC_REVIEW_PAGE = 50;
+
+/** Newest dated reviews first. Undated rows keep their stored order after those. */
+export function reviewsNewestFirst(reviews: MerchantReview[]): MerchantReview[] {
+  return [...reviews].sort((a, b) => {
+    const at = Date.parse(a.date || '');
+    const bt = Date.parse(b.date || '');
+    const aOk = Number.isFinite(at);
+    const bOk = Number.isFinite(bt);
+    if (aOk && bOk && at !== bt) return bt - at;
+    if (aOk && !bOk) return -1;
+    if (!aOk && bOk) return 1;
+    return 0;
+  });
+}
+
 function ratingStats(reviews: MerchantReview[]): {
   rating: number | null;
   reviewsCount: number;

@@ -9,6 +9,7 @@ import { createThemedStyles } from '../../hooks/useThemedStyles';
 import { supabase } from '../../lib/supabase';
 import { completeGoogleRedirect, isGoogleLoginActive } from '../../lib/authApi';
 import { getStoredToken, getStoredUser } from '../../lib/session';
+import { goBackOrHome } from '../../lib/navigation';
 
 const CALLBACK_PARAMS = ['code', 'access_token', 'refresh_token', 'error', 'error_description'] as const;
 
@@ -86,10 +87,8 @@ export default function AuthCallbackScreen() {
               if (await getStoredToken()) {
                 const user = await getStoredUser();
                 leave(user?.isBusinessAccount ? '/merchant-welcome' : '/(tabs)/home');
-              } else if (router.canGoBack()) {
-                router.back();
               } else {
-                leave('/login');
+                goBackOrHome(router, '/login');
               }
             })();
           }, 2500);

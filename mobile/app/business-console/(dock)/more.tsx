@@ -18,7 +18,7 @@ import { canViewTeamTab } from '../../../lib/teamAccess';
 const THEMES = [
   { key: 'light', label: 'Light', icon: 'sunny' },
   { key: 'dark', label: 'Dark', icon: 'moon' },
-  { key: 'system', label: 'System', icon: 'phone-portrait-outline' },
+  { key: 'system', label: 'System default', icon: 'phone-portrait-outline' },
 ] as const;
 
 function MoreBody({ o }: { o: ConsoleOverview }) {
@@ -32,6 +32,8 @@ function MoreBody({ o }: { o: ConsoleOverview }) {
   const sub = o.subscription;
   const verified = o.business.emailVerified && o.business.mobileVerified;
   const [qrOpen, setQrOpen] = useState(false);
+  const [themeOpen, setThemeOpen] = useState(false);
+  const selectedTheme = THEMES.find((theme) => theme.key === preference) ?? THEMES[2];
   const isOwner = o.actor?.isOwner !== false;
   const can = (tab: Parameters<typeof canViewTeamTab>[1]) => canViewTeamTab(o.actor?.access, tab, isOwner);
   const lastTool = can('jobs') ? 'jobs' : can('reviews') ? 'qr' : can('subscription') ? 'plan' : null;
@@ -173,26 +175,41 @@ function MoreBody({ o }: { o: ConsoleOverview }) {
         />
       </Panel>
 
-      <View style={styles.themeBlock}>
-        <Text style={styles.themeLabel}>Appearance</Text>
-        <View style={styles.themes}>
-          {THEMES.map((theme) => {
-            const active = preference === theme.key;
-            return (
-              <Pressable
-                key={theme.key}
-                onPress={() => setPreference(theme.key)}
-                style={[styles.theme, active && styles.themeActive]}
-                accessibilityRole="button"
-                accessibilityState={{ selected: active }}
-                accessibilityLabel={`${theme.label} theme`}
-              >
-                <Ionicons name={theme.icon} size={16} color={active ? c.primaryInk : c.muted} />
-                <Text style={[styles.themeText, active && styles.themeTextActive]}>{theme.label}</Text>
-              </Pressable>
-            );
-          })}
-        </View>
+      <View style={styles.themeMenu}>
+        <Pressable
+          onPress={() => setThemeOpen((open) => !open)}
+          style={styles.themeTrigger}
+          accessibilityRole="button"
+          accessibilityState={{ expanded: themeOpen }}
+          accessibilityLabel={`Theme, ${selectedTheme.label}`}
+        >
+          <Ionicons name={selectedTheme.icon} size={18} color={c.ink} />
+          <Text style={styles.themeValue}>{selectedTheme.label}</Text>
+          <Ionicons name={themeOpen ? 'chevron-up' : 'chevron-down'} size={18} color={c.muted} />
+        </Pressable>
+        {themeOpen ? (
+          <View style={styles.themeList}>
+            {THEMES.map((theme) => {
+              const active = preference === theme.key;
+              return (
+                <Pressable
+                  key={theme.key}
+                  onPress={() => {
+                    setPreference(theme.key);
+                    setThemeOpen(false);
+                  }}
+                  style={[styles.themeOption, active && styles.themeOptionActive]}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: active }}
+                >
+                  <Ionicons name={theme.icon} size={16} color={active ? c.primary : c.muted} />
+                  <Text style={[styles.themeOptionText, active && styles.themeOptionTextActive]}>{theme.label}</Text>
+                  {active ? <Ionicons name="checkmark" size={16} color={c.primary} /> : null}
+                </Pressable>
+              );
+            })}
+          </View>
+        ) : null}
       </View>
 
       <Panel flush>
@@ -256,27 +273,32 @@ const useStyles = createConsoleStyles((c) => ({
   identityLetter: { fontFamily: fonts.semiBold, fontSize: 15, color: c.primary },
   identityName: { fontFamily: fonts.semiBold, fontSize: 16, color: c.ink },
   identityMeta: { fontFamily: fonts.regular, fontSize: 12.5, color: c.muted },
-  themeBlock: { gap: 8 },
-  themeLabel: { fontFamily: fonts.medium, fontSize: 13, color: c.muted },
-  themes: {
-    flexDirection: 'row',
-    padding: 4,
-    gap: 4,
+  themeMenu: {
     borderRadius: 14,
-    backgroundColor: c.sunken,
+    backgroundColor: c.card,
+    borderWidth: c.isDark ? 1 : 0.5,
+    borderColor: c.line,
+    overflow: 'hidden',
   },
-  theme: {
-    flex: 1,
+  themeTrigger: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 10,
-    borderRadius: 11,
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
   },
-  themeActive: { backgroundColor: c.primary },
-  themeText: { fontFamily: fonts.medium, fontSize: 13.5, color: c.muted },
-  themeTextActive: { fontFamily: fonts.semiBold, color: c.primaryInk },
+  themeValue: { flex: 1, fontFamily: fonts.medium, fontSize: 15, color: c.ink },
+  themeList: { borderTopWidth: 0.5, borderTopColor: c.line },
+  themeOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  themeOptionActive: { backgroundColor: c.primarySoft },
+  themeOptionText: { flex: 1, fontFamily: fonts.regular, fontSize: 14.5, color: c.body },
+  themeOptionTextActive: { fontFamily: fonts.semiBold, color: c.ink },
   logoutBtn: {
     height: 44,
     borderRadius: 12,

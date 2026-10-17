@@ -9,7 +9,7 @@ import {
   searchCategoriesByQuery,
   type CategorySearchHit,
 } from '@/app/actions/category';
-import { getFeaturedBusinesses } from '@/app/actions/business';
+import { getFeaturedBusinesses, searchPublicBusinesses } from '@/app/actions/business';
 import { getSession } from '@/app/actions/user';
 import CategoryIcon from '@/components/CategoryIcon';
 import {
@@ -172,6 +172,7 @@ export default function CategoriesPage({
   );
 
   const [categorySearchHits, setCategorySearchHits] = useState<CategorySearchHit[]>([]);
+  const [nameSearchBusinesses, setNameSearchBusinesses] = useState<any[]>([]);
   const [isSearchCategoriesLoading, setIsSearchCategoriesLoading] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [listingStats, setListingStats] = useState<{
@@ -233,6 +234,7 @@ export default function CategoriesPage({
         searchGenerationRef.current += 1;
         lastExecutedSearchRef.current = '';
         setCategorySearchHits([]);
+        setNameSearchBusinesses([]);
         setIsSearchCategoriesLoading(false);
         return;
       }
@@ -251,10 +253,14 @@ export default function CategoriesPage({
       const generation = ++searchGenerationRef.current;
       setIsSearchCategoriesLoading(true);
 
-      const result = await searchCategoriesByQuery(trimmed);
+      const [result, businessResult] = await Promise.all([
+        searchCategoriesByQuery(trimmed),
+        searchPublicBusinesses(trimmed),
+      ]);
       if (generation !== searchGenerationRef.current) return;
 
       setCategorySearchHits(result.success ? result.results : []);
+      setNameSearchBusinesses(businessResult.success ? businessResult.businesses : []);
       setIsSearchCategoriesLoading(false);
 
       if (syncUrl && urlSearchQ !== trimmed) {
@@ -282,6 +288,7 @@ export default function CategoriesPage({
 
     lastExecutedSearchRef.current = '';
     setCategorySearchHits([]);
+    setNameSearchBusinesses([]);
 
     if (slugFromPath && categories.length > 0) {
       const category = categories.find((cat) => categoryMatchesSlug(cat, slugFromPath));
@@ -358,6 +365,7 @@ export default function CategoriesPage({
       if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
       lastExecutedSearchRef.current = '';
       setCategorySearchHits([]);
+      setNameSearchBusinesses([]);
       setViewMode('categories');
       softReplace('/categories');
       return;
@@ -572,7 +580,7 @@ export default function CategoriesPage({
 
   const relevanceRankedBusinesses = isGlobalSearch
     ? sortBySearchRelevance(
-        businesses.filter((biz) => businessMatchesSearch(biz, searchQuery)),
+        nameSearchBusinesses.filter((biz) => businessMatchesSearch(biz, searchQuery)),
         searchQuery,
         (biz) => ({
           name: biz.name,

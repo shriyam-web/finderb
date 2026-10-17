@@ -41,7 +41,7 @@ export function CategoryMerchantRow({
     Boolean(merchant.discountRange) &&
     merchant.discountRange !== 'No Discount' &&
     merchant.discountRange !== 'Seasonal Offer';
-  const about = merchant.about?.trim() || '';
+  const about = (merchant.about || '').replace(/\*\*|__|\*/g, '').replace(/\s+/g, ' ').trim();
 
   return (
     <Pressable

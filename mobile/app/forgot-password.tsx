@@ -10,6 +10,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useBottomInset } from '../hooks/useAppSafeArea';
 import { createThemedStyles } from '../hooks/useThemedStyles';
 import { requestPasswordReset } from '../lib/authApi';
+import { goBackOrHome } from '../lib/navigation';
 
 export default function ForgotPasswordScreen() {
   const { colors } = useTheme();
@@ -83,7 +84,9 @@ export default function ForgotPasswordScreen() {
               loading={loading}
             />
             <Pressable
-              onPress={() => (forBusiness ? router.back() : router.push('/login'))}
+              onPress={() =>
+                forBusiness ? goBackOrHome(router, '/(tabs)/business-login') : router.push('/login')
+              }
               hitSlop={8}
               style={styles.backLink}
             >

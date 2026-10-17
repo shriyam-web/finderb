@@ -47,6 +47,8 @@ import {
   maskReviewAuthorName,
   parseBusinessReviewReply,
   parseBusinessReviews,
+  PUBLIC_REVIEW_PREVIEW,
+  reviewsNewestFirst,
   visiblePublicReviews,
   type BusinessReview,
 } from '@/lib/businessReviews';
@@ -431,6 +433,7 @@ export default function BusinessProfilePage({
     [business]
   );
   const displayRating = useMemo(() => getPublicReviewRating(reviews), [reviews]);
+  const recentReviews = useMemo(() => reviewsNewestFirst(reviews), [reviews]);
   const offerDisplay = useMemo(
     () => (business ? getDiscountOfferDisplay(business.discountRange, business.name) : null),
     [business]
@@ -836,10 +839,18 @@ export default function BusinessProfilePage({
                 {categoryYearsLine(business.category, business.yearsInBusiness)}
               </p>
 
-              <p className="inline-flex items-center gap-1.5 text-xs font-semibold text-stone-500">
-                <span className="animate-fire-flicker" aria-hidden>🔥</span>
-                Best in Category
-              </p>
+              {business.averageResponse ? (
+                <p className="text-xs font-medium text-stone-500">
+                  Usually replies in {business.averageResponse}
+                </p>
+              ) : null}
+
+              {business.bestInCategory ? (
+                <p className="inline-flex items-center gap-1.5 text-xs font-semibold text-stone-500">
+                  <span className="animate-fire-flicker" aria-hidden>🔥</span>
+                  Best in Category
+                </p>
+              ) : null}
 
               {locationLabel || distanceLabel || directionsLink ? (
                 <div>
@@ -1159,17 +1170,27 @@ export default function BusinessProfilePage({
                   </p>
                 </div>
               ) : (
-                reviews.slice(0, 8).map((review) => (
-                  <BusinessProfileReviewItem
-                    key={review.id}
-                    review={review}
-                    businessId={business.id}
-                    businessName={business.name}
-                    contactRevealed={contactRevealed}
-                    profileRedirectPath={profileRedirectPath}
-                    defaultReply={ownerReply?.content}
-                  />
-                ))
+                <>
+                  {recentReviews.slice(0, PUBLIC_REVIEW_PREVIEW).map((review) => (
+                    <BusinessProfileReviewItem
+                      key={review.id}
+                      review={review}
+                      businessId={business.id}
+                      businessName={business.name}
+                      contactRevealed={contactRevealed}
+                      profileRedirectPath={profileRedirectPath}
+                      defaultReply={ownerReply?.content}
+                    />
+                  ))}
+                  {recentReviews.length > PUBLIC_REVIEW_PREVIEW ? (
+                    <Link
+                      href={`${profileRedirectPath}/reviews`}
+                      className="inline-flex w-full items-center justify-center rounded-lg border border-stone-300 bg-white px-4 py-2.5 text-sm font-semibold text-stone-800 hover:bg-stone-50"
+                    >
+                      Load more
+                    </Link>
+                  ) : null}
+                </>
               )}
             </div>
           </section>

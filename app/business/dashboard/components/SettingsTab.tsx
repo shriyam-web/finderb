@@ -65,6 +65,7 @@ import {
   countAboutWords,
   trimAboutToWordLimit,
 } from '@/lib/businessAbout';
+import AboutEditor from '@/components/business/AboutEditor';
 import IndianPhoneInput, { INDIAN_PHONE_FIELD_HINT } from '@/components/IndianPhoneInput';
 import {
   extractIndianMobileDigits,
@@ -750,14 +751,12 @@ export default function SettingsTab({
                     })()
                   ) : activeModal === 'about' ? (
                     <div className="space-y-2">
-                      <textarea
-                        value={profileData.about}
-                        onChange={(e) => {
+                      <AboutEditor
+                        value={profileData.about ?? ''}
+                        onChange={(next) => {
                           setFieldError('');
-                          updateField('about', trimAboutToWordLimit(e.target.value));
+                          updateField('about', trimAboutToWordLimit(next));
                         }}
-                        rows={8}
-                        className="w-full rounded-lg border border-zinc-200 px-3 py-2.5 text-sm outline-none focus:border-[#3F3F46] focus:ring-2 focus:ring-[#3F3F46]/10"
                         placeholder="Tell customers about your business, services, and what makes you different…"
                       />
                       {(() => {

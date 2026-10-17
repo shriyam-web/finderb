@@ -82,7 +82,7 @@ export function OwnThisBusiness({
     <View style={{ gap: 8 }}>
       <Text style={{ fontFamily: fonts.semiBold, fontSize: 16, color: colors.ink }}>Own this business?</Text>
       <Text style={{ fontFamily: fonts.regular, fontSize: 13, lineHeight: 18, color: colors.textSoft }}>
-        If you run {businessName}, request owner access with your name, email, and mobile.
+        If you run {businessName}, request owner access.
       </Text>
       {message ? <Text style={{ fontFamily: fonts.regular, fontSize: 13, color: '#047857' }}>{message}</Text> : null}
       {open ? (

@@ -982,16 +982,6 @@ function DashboardContent() {
           }}
         />
 
-        {!isPlanActive && activeTab !== 'subscription' ? (
-          <button
-            type="button"
-            onClick={() => setActiveTab('subscription')}
-            className="-mt-3 mb-4 flex h-[18px] w-full items-center justify-center bg-[#FF2A2A] text-[11px] font-semibold tracking-wide text-white hover:bg-[#ef2222]"
-          >
-            You don't have any active subscription.
-          </button>
-        ) : null}
-
         <DashboardBannerCarousel banners={dashboardBanners} />
         {qrStudioOpen && business && canView('reviews') ? (
           <FinderBQrStudio

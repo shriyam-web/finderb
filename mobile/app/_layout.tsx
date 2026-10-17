@@ -1,4 +1,5 @@
 import 'react-native-gesture-handler';
+import '../lib/quietWebBack';
 import '../lib/installLongFetch';
 import { useEffect } from 'react';
 import { Stack, useRouter, useSegments, type Href } from 'expo-router';
@@ -196,6 +197,10 @@ function RootNavigator() {
             options={{ animation: 'slide_from_right' }}
           />
           <Stack.Screen
+            name="business-reviews/[id]"
+            options={{ animation: 'slide_from_right' }}
+          />
+          <Stack.Screen
             name="notifications"
             options={{ animation: 'slide_from_right' }}
           />
@@ -214,6 +219,8 @@ export default function RootLayout() {
       .then((jakarta) =>
         Font.loadAsync({
           PlusJakartaSans_400Regular: jakarta.PlusJakartaSans_400Regular,
+          PlusJakartaSans_400Regular_Italic: jakarta.PlusJakartaSans_400Regular_Italic,
+          PlusJakartaSans_700Bold_Italic: jakarta.PlusJakartaSans_700Bold_Italic,
           PlusJakartaSans_500Medium: jakarta.PlusJakartaSans_500Medium,
           PlusJakartaSans_600SemiBold: jakarta.PlusJakartaSans_600SemiBold,
           PlusJakartaSans_700Bold: jakarta.PlusJakartaSans_700Bold,

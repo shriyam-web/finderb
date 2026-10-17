@@ -20,6 +20,7 @@ import { BusinessRegisterBanner } from '../../components/BusinessRegisterBanner'
 import { HeaderWeatherChip } from '../../components/HeaderWeatherChip';
 import { HourlyForecastSheet } from '../../components/HourlyForecastSheet';
 import { HomeAiTeaser } from '../../components/HomeAiTeaser';
+import { HomeSearchPanel } from '../../components/HomeSearchPanel';
 import { HomeFeaturedGroup, HomeSectionSkeleton } from '../../components/HomeFeaturedGroup';
 import { InteractiveCategoryDeck } from '../../components/InteractiveCategoryDeck';
 import { LocationPickerModal } from '../../components/LocationPickerModal';
@@ -116,6 +117,8 @@ export default function HomeScreen() {
     () => new Set(),
   );
   const [selectedParentId, setSelectedParentId] = useState<string | null>(null);
+  const [searchText, setSearchText] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [locationPickerOpen, setLocationPickerOpen] = useState(false);
   const [hourlyOpen, setHourlyOpen] = useState(false);
@@ -467,12 +470,15 @@ export default function HomeScreen() {
                 userCoords={location.coords}
                 city={city}
                 reloadToken={reloadToken}
-                onSearchPress={() => router.push('/(tabs)/ai' as Href)}
-                onVoiceSearch={(transcript) =>
-                  router.push(
-                    `/(tabs)/ai?q=${encodeURIComponent(transcript)}` as Href,
-                  )
-                }
+                searchText={searchText}
+                onSearchTextChange={setSearchText}
+                collapseCatalog={Boolean(searchQuery)}
+                onSearchSubmit={(query) => {
+                  const next = query.trim();
+                  setSearchText(next);
+                  setSearchQuery(next);
+                  scrollRef.current?.scrollTo({ y: 0, animated: false });
+                }}
                 onSeeAll={() => router.push('/(tabs)/categories' as Href)}
                 onOpenCategory={(category) =>
                   router.push(
@@ -485,13 +491,29 @@ export default function HomeScreen() {
                 headerTopInset={stickyHeaderInset}
               />
 
-              {categoriesLoading && visibleGroups.length === 0
+              {searchQuery ? (
+                <HomeSearchPanel
+                  query={searchQuery}
+                  coords={location.coords}
+                  city={location.city}
+                  signedIn={Boolean(user)}
+                  onOpenCategory={(category) =>
+                    router.push(
+                      `/(tabs)/categories?category=${encodeURIComponent(category.slug)}&fresh=${Date.now()}` as Href,
+                    )
+                  }
+                  onOpenMerchant={openMerchant}
+                />
+              ) : null}
+
+              {!searchQuery && categoriesLoading && visibleGroups.length === 0
                 ? Array.from({ length: 4 }).map((_, index) => (
                     <HomeSectionSkeleton key={`home-skeleton-${index}`} />
                   ))
                 : null}
 
-              {visibleGroups.map((group, index) => (
+              {!searchQuery
+                ? visibleGroups.map((group, index) => (
                 <View key={group.id}>
                   <HomeFeaturedGroup
                     group={group}
@@ -524,7 +546,8 @@ export default function HomeScreen() {
                     />
                   ) : null}
                 </View>
-              ))}
+              ))
+                : null}
 
               <View style={styles.section}>
                 <Pressable
@@ -561,6 +584,26 @@ export default function HomeScreen() {
             ]}
           >
             {stickyTopBar}
+            {searchQuery && stickySolid ? (
+              <View style={styles.searchSticky}>
+                <Ionicons name="search" size={16} color={colors.textSoft} />
+                <Text style={styles.searchStickyText} numberOfLines={1}>
+                  {searchQuery}
+                </Text>
+                <Pressable
+                  onPress={() => {
+                    setSearchText('');
+                    setSearchQuery('');
+                    scrollRef.current?.scrollTo({ y: 0, animated: false });
+                  }}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel="Clear search"
+                >
+                  <Text style={styles.searchStickyClear}>Clear</Text>
+                </Pressable>
+              </View>
+            ) : null}
           </View>
         </View>
       </SafeAreaView>
@@ -591,6 +634,30 @@ const useStyles = createThemedStyles((colors) => ({
     left: 0,
     right: 0,
     zIndex: 20,
+  },
+  searchSticky: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginHorizontal: 12,
+    marginBottom: 8,
+    paddingHorizontal: 12,
+    minHeight: 40,
+    borderRadius: 20,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  searchStickyText: {
+    flex: 1,
+    fontFamily: fonts.medium,
+    fontSize: 14,
+    color: colors.ink,
+  },
+  searchStickyClear: {
+    fontFamily: fonts.semiBold,
+    fontSize: 13,
+    color: colors.brand,
   },
   scrollFlex: { flex: 1, backgroundColor: colors.canvas },
   scroll: { paddingTop: 0, backgroundColor: colors.canvas },

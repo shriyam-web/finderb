@@ -1099,12 +1099,14 @@ export async function searchMerchantsByQuery(
 
   const required = parseDirectoryQuery(normalizeAiQuery(q) || q).required;
   const maxTier = scope === 'mention' ? 3 : 1;
-  const ranked = rankMerchants(
-    (data ?? [])
-      .map((row) => mapMerchantRow(row as Record<string, unknown>))
-      .filter(merchantHasPublicPhoto),
-  )
-    .filter((merchant) => merchantMatchTier(merchant, required) <= maxTier)
+  const ranked = (data ?? [])
+    .map((row) => mapMerchantRow(row as Record<string, unknown>))
+    .filter((merchant) => {
+      const tier = merchantMatchTier(merchant, required);
+      if (tier > maxTier) return false;
+      // A named business still belongs in search when it has no public photo yet.
+      return merchantHasPublicPhoto(merchant) || tier === 1;
+    })
     .sort(
       (a, b) => merchantMatchTier(a, required) - merchantMatchTier(b, required),
     );
@@ -1176,10 +1178,27 @@ function usableMerchants(merchants: Merchant[]): Merchant[] {
   return [...byId.values()];
 }
 
+function exactCategoryHits(categories: HomeCategory[], required: string[]): HomeCategory[] {
+  return categories
+    .filter((category) => categoryMatchScore(category.name, category.slug, required) >= EXACT_CATEGORY_SCORE)
+    .slice(0, 8);
+}
+
+function inPlace(merchant: Merchant, placeHint: string): boolean {
+  return `${merchant.city || ''} ${merchant.location || ''}`
+    .toLowerCase()
+    .includes(placeHint.toLowerCase());
+}
+
 /** Category + business lookup. Exact categories stay above everything else. */
-export async function searchDirectory(rawQuery: string): Promise<DirectorySearchResult> {
+export async function searchDirectory(
+  rawQuery: string,
+  options?: { coords?: { lat: number; lng: number } | null; city?: string | null },
+): Promise<DirectorySearchResult> {
   const query = rawQuery.trim();
   const label = searchDisplayLabel(query);
+  const intents = parseAiSearchIntents(query);
+  const placeHint = extractAiPlaceHint(query);
   const normalized = normalizeAiQuery(query) || label;
   const parsed = parseDirectoryQuery(normalized);
   const blank: DirectorySearchResult = {
@@ -1211,12 +1230,18 @@ export async function searchDirectory(rawQuery: string): Promise<DirectorySearch
   };
 
   const needles = parsed.primaryNeedles.length > 0 ? parsed.primaryNeedles : [normalized];
-  let found = await collect(needles);
+  // "property with rajnish" becomes "property rajnish". Search each word too,
+  // so a name with a small word in the middle is not missed.
+  const firstNeedles =
+    parsed.phrase.includes(' ')
+      ? [...new Set([...needles, ...parsed.required])]
+      : needles;
+  let found = await collect(firstNeedles);
   if (found.failed) {
     return { ...blank, exactMatch: true, notice: null, error: found.error };
   }
 
-  let exactCategories = found.categories.slice(0, 8);
+  let exactCategories = exactCategoryHits(found.categories, parsed.required);
   let tier0 = found.merchants.filter(
     (merchant) => merchantMatchTier(merchant, parsed.required) === 0,
   );
@@ -1231,7 +1256,7 @@ export async function searchDirectory(rawQuery: string): Promise<DirectorySearch
     parsed.phrase.includes(' ')
   ) {
     found = await collect(parsed.required);
-    exactCategories = found.categories.slice(0, 8);
+    exactCategories = exactCategoryHits(found.categories, parsed.required);
     tier0 = found.merchants.filter(
       (merchant) => merchantMatchTier(merchant, parsed.required) === 0,
     );
@@ -1251,34 +1276,43 @@ export async function searchDirectory(rawQuery: string): Promise<DirectorySearch
     }
   }
 
-  if (exactCategories.length > 0 || tier0.length > 0) {
-    return {
-      query,
-      label,
-      terms: parsed.required,
-      categories: exactCategories,
-      merchants: tier0.slice(0, 36),
-      exactMatch: true,
-      notice: null,
-      error: found.error,
-    };
-  }
-
   const nameHits =
     tier1.length > 0
       ? tier1
       : found.merchants.filter(
           (merchant) => merchantMatchTier(merchant, parsed.required) === 1,
         );
-  if (nameHits.length > 0) {
+
+  if (exactCategories.length > 0 || tier0.length > 0 || nameHits.length > 0) {
+    const seen = new Set<string>();
+    const ordered = parsed.required.length > 1 ? [...nameHits, ...tier0] : [...tier0, ...nameHits];
+    const merchants: Merchant[] = [];
+    for (const merchant of ordered) {
+      if (seen.has(merchant.id)) continue;
+      seen.add(merchant.id);
+      merchants.push(merchant);
+    }
+    const ranked = applyAiIntents(
+      merchants,
+      intents,
+      options?.coords ?? null,
+      parsed.required,
+      placeHint,
+    );
+    const placed = placeHint ? ranked.filter((merchant) => inPlace(merchant, placeHint)) : ranked;
+    const notice = placeHint && placed.length === 0
+      ? `No matches in ${placeHint}.`
+      : ranked.length === 0 && merchants.length > 0 && intents.length > 0
+        ? 'Nothing matches those filters right now.'
+        : null;
     return {
       query,
       label,
       terms: parsed.required,
-      categories: [],
-      merchants: nameHits.slice(0, 36),
+      categories: exactCategories,
+      merchants: placed.slice(0, 36),
       exactMatch: true,
-      notice: null,
+      notice,
       error: found.error,
     };
   }
@@ -1317,12 +1351,23 @@ export async function searchDirectory(rawQuery: string): Promise<DirectorySearch
     }
   }
 
+  const relatedRanked = applyAiIntents(
+    relatedMerchants,
+    intents,
+    options?.coords ?? null,
+    [],
+    placeHint,
+  );
+  const relatedPlaced = placeHint
+    ? relatedRanked.filter((merchant) => inPlace(merchant, placeHint))
+    : relatedRanked;
+
   return {
     query,
     label,
     terms: parsed.required,
     categories: relatedCategories.slice(0, 8),
-    merchants: relatedMerchants.slice(0, 24),
+    merchants: relatedPlaced.slice(0, 24),
     exactMatch: false,
     notice:
       relatedCategories.length > 0 || relatedMerchants.length > 0
@@ -1367,13 +1412,17 @@ export async function runAiSearch(
     };
   }
 
-  const directory = await searchDirectory(query);
   const placeCoords = placeHint != null ? lookupCityCoords(placeHint) : null;
   const rankCoords = placeCoords ?? options?.coords ?? null;
   const rankIntents =
     placeCoords && !intents.includes('nearest')
       ? ([...intents, 'nearest'] as AiSearchIntent[])
       : intents;
+
+  const directory = await searchDirectory(query, {
+    coords: rankCoords,
+    city: placeHint || options?.city || null,
+  });
 
   const merchants = applyAiIntents(
     directory.merchants,

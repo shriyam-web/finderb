@@ -51,7 +51,7 @@ export default function OwnThisBusiness({ businessId, businessName }: { business
     <div className="border-t border-stone-200 px-4 py-5">
       <p className="text-sm font-semibold text-zinc-900">Own this business?</p>
       <p className="mt-1 text-xs leading-relaxed text-zinc-500">
-        If you run {businessName}, ask FinderB for owner access. We need your name, email, and mobile.
+        If you run {businessName}, request owner access.
       </p>
       {message ? <p className="mt-2 text-xs text-emerald-700">{message}</p> : null}
       <button

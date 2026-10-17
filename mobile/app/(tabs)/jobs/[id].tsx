@@ -18,6 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScreenHeader } from '../../../components/ScreenHeader';
 import { fonts } from '../../../constants/typography';
+import { mobileInputDigits } from '../../../lib/phoneInput';
 import { useAuth } from '../../../context/AuthContext';
 import { useLoginPrompt } from '../../../context/LoginPromptContext';
 import { useTheme } from '../../../context/ThemeContext';
@@ -172,6 +173,10 @@ export default function JobDetailScreen() {
       setFormError('Employer details missing');
       return;
     }
+    if (phone.length !== 10) {
+      setFormError('Enter a 10-digit mobile number.');
+      return;
+    }
     setSubmitting(true);
     setFormError('');
     const result = await submitJobApplication({
@@ -180,7 +185,7 @@ export default function JobDetailScreen() {
       jobTitle: job.title,
       fullName,
       email,
-      phone,
+      phone: `+91${phone}`,
       message,
       cv,
     });
@@ -303,6 +308,9 @@ export default function JobDetailScreen() {
                     about responsibilities and requirements.
                   </Text>
                 )}
+                <Pressable onPress={() => setReportOpen(true)} style={styles.reportBtn}>
+                  <Text style={styles.reportText}>Report this job</Text>
+                </Pressable>
                 <View style={styles.disclaimer}>
                   <Text style={styles.disclaimerTitle}>{JOB_LISTING_DISCLAIMER.title}</Text>
                   {JOB_LISTING_DISCLAIMER.paragraphs.map((paragraph) => (
@@ -311,15 +319,8 @@ export default function JobDetailScreen() {
                     </Text>
                   ))}
                 </View>
-                <Pressable onPress={() => setReportOpen(true)} style={styles.reportBtn}>
-                  <Text style={styles.reportText}>Report this job</Text>
-                </Pressable>
               </View>
 
-              <Text style={styles.tipText}>
-                Verify the employer before sharing documents. FinderB connects you — hiring
-                stays with the business.
-              </Text>
             </ScrollView>
 
             <View style={[styles.ctaBar, { paddingBottom: Math.max(12, bottomPad - 56) }]}>
@@ -334,7 +335,7 @@ export default function JobDetailScreen() {
               >
                 {alreadyApplied ? (
                   <>
-                    <Ionicons name="checkmark-circle" size={18} color={colors.onDark} />
+                    <Ionicons name="checkmark-circle" size={18} color="#FFFFFF" />
                     <Text style={styles.applyBtnText}>Applied</Text>
                   </>
                 ) : (
@@ -345,7 +346,7 @@ export default function JobDetailScreen() {
                     <Ionicons
                       name={user ? 'arrow-forward' : 'log-in-outline'}
                       size={16}
-                      color={colors.onDark}
+                      color="#FFFFFF"
                     />
                   </>
                 )}
@@ -422,14 +423,17 @@ export default function JobDetailScreen() {
                 />
 
                 <Text style={styles.label}>Phone</Text>
-                <TextInput
-                  value={phone}
-                  onChangeText={setPhone}
-                  placeholder="10-digit mobile"
-                  placeholderTextColor={colors.textSoft}
-                  keyboardType="phone-pad"
-                  style={styles.input}
-                />
+                <View style={styles.phoneRow}>
+                  <Text style={styles.phonePrefix}>🇮🇳 +91</Text>
+                  <TextInput
+                    value={phone}
+                    onChangeText={(value) => setPhone(mobileInputDigits(value, phone))}
+                    placeholder="10-digit mobile"
+                    placeholderTextColor={colors.textSoft}
+                    keyboardType="number-pad"
+                    style={styles.phoneInput}
+                  />
+                </View>
 
                 <Text style={styles.label}>Message (optional)</Text>
                 <TextInput
@@ -475,7 +479,7 @@ export default function JobDetailScreen() {
                   onPress={() => void onSubmit()}
                   disabled={submitting}
                   style={({ pressed }) => [
-                    styles.applyBtn,
+                    styles.submitBtn,
                     submitting && styles.applyDisabled,
                     pressed && styles.pressed,
                   ]}
@@ -484,8 +488,8 @@ export default function JobDetailScreen() {
                     <ActivityIndicator color={colors.onDark} />
                   ) : (
                     <>
-                      <Text style={styles.applyBtnText}>Submit application</Text>
-                      <Ionicons name="send" size={14} color={colors.onDark} />
+                      <Text style={styles.submitBtnText}>Submit Application</Text>
+                      <Ionicons name="send" size={14} color="#FFFFFF" />
                     </>
                   )}
                 </Pressable>
@@ -628,14 +632,14 @@ const useStyles = createThemedStyles((colors) => ({
   },
   section: { gap: 8 },
   disclaimer: {
-    marginTop: 16,
-    padding: 12,
-    borderRadius: 12,
-    backgroundColor: colors.surface,
-    gap: 8,
+    marginTop: 4,
+    paddingVertical: 8,
+    paddingHorizontal: 2,
+    gap: 4,
+    backgroundColor: 'transparent',
   },
-  disclaimerTitle: { fontFamily: fonts.semiBold, fontSize: 13, color: colors.heading },
-  disclaimerBody: { fontFamily: fonts.regular, fontSize: 12.5, lineHeight: 18, color: colors.textMuted },
+  disclaimerTitle: { fontFamily: fonts.medium, fontSize: 11, color: colors.textSoft },
+  disclaimerBody: { fontFamily: fonts.regular, fontSize: 11, lineHeight: 15, color: colors.textSoft },
   reportBtn: { marginTop: 8, alignSelf: 'flex-start' },
   reportText: { fontFamily: fonts.semiBold, fontSize: 13, color: '#b42318' },
   sectionTitle: {
@@ -649,13 +653,6 @@ const useStyles = createThemedStyles((colors) => ({
     fontSize: 14,
     lineHeight: 22,
     color: colors.textMuted,
-  },
-  tipText: {
-    marginTop: 22,
-    fontFamily: fonts.regular,
-    fontSize: 12,
-    lineHeight: 18,
-    color: colors.textSoft,
   },
   ctaBar: {
     position: 'absolute',
@@ -671,7 +668,7 @@ const useStyles = createThemedStyles((colors) => ({
   applyBtn: {
     minHeight: 48,
     borderRadius: 8,
-    backgroundColor: colors.ink,
+    backgroundColor: '#2563EB',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -685,7 +682,7 @@ const useStyles = createThemedStyles((colors) => ({
   applyBtnText: {
     fontFamily: fonts.semiBold,
     fontSize: 15,
-    color: colors.onDark,
+    color: '#FFFFFF',
   },
   pressed: { opacity: 0.92 },
   center: {
@@ -752,19 +749,54 @@ const useStyles = createThemedStyles((colors) => ({
     color: colors.ink,
   },
   input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surfaceSoft,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 11,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderStrong,
+    backgroundColor: 'transparent',
+    paddingHorizontal: 2,
+    paddingVertical: 10,
     fontFamily: fonts.regular,
-    fontSize: 14,
+    fontSize: 15,
+    color: colors.ink,
+  },
+  phoneRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderStrong,
+  },
+  phonePrefix: {
+    fontFamily: fonts.semiBold,
+    fontSize: 15,
+    color: colors.ink,
+  },
+  phoneInput: {
+    flex: 1,
+    paddingVertical: 10,
+    fontFamily: fonts.regular,
+    fontSize: 15,
     color: colors.ink,
   },
   textarea: {
     minHeight: 110,
     paddingTop: 12,
+    textAlignVertical: 'top',
+  },
+  submitBtn: {
+    marginTop: 16,
+    minHeight: 48,
+    borderRadius: 8,
+    backgroundColor: '#2563EB',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingHorizontal: 16,
+  },
+  submitBtnText: {
+    fontFamily: fonts.semiBold,
+    fontSize: 15,
+    color: '#FFFFFF',
   },
   errorBox: {
     borderRadius: 12,

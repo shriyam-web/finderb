@@ -229,6 +229,11 @@ export function mapBusinessRecord(business: Record<string, unknown>) {
       latitude: business.latitude as number,
       longitude: business.longitude as number,
     }),
+    bestInCategory: business.bestInCategory === true,
+    averageResponse:
+      typeof business.averageResponse === 'string' && business.averageResponse.trim()
+        ? business.averageResponse.trim()
+        : null,
   };
 }
 

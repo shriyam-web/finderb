@@ -18,6 +18,7 @@ import { bizColors, useBizColors } from '../../constants/businessColors';
 import { fonts } from '../../constants/typography';
 import { useAuth } from '../../context/AuthContext';
 import { createThemedStyles } from '../../hooks/useThemedStyles';
+import { goBackOrHome } from '../../lib/navigation';
 import { useTabScrollPadding } from '../../hooks/useAppSafeArea';
 import type { AuthUser } from '../../lib/session';
 import { setPreferredShell } from '../../lib/preferredShell';
@@ -100,7 +101,7 @@ export default function BusinessLoginScreen() {
         >
           <View style={styles.brand}>
             <Pressable
-              onPress={() => router.back()}
+              onPress={() => goBackOrHome(router, '/(tabs)/business')}
               hitSlop={10}
               style={styles.back}
               accessibilityRole="button"

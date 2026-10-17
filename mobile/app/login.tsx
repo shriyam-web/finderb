@@ -22,6 +22,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { fonts } from '../constants/typography';
 import { useBottomInset } from '../hooks/useAppSafeArea';
+import { goBackOrHome } from '../lib/navigation';
 import { createThemedStyles } from '../hooks/useThemedStyles';
 import { markGuestMode } from '../lib/onboarding';
 import { SITE_URL } from '../lib/supabase';
@@ -88,8 +89,8 @@ export default function LoginScreen() {
 
   const skipAsGuest = async () => {
     await markGuestMode();
-    if (fromPrompt === '1' && router.canGoBack()) {
-      router.back();
+    if (fromPrompt === '1') {
+      goBackOrHome(router);
       return;
     }
     router.replace('/(tabs)/home');

@@ -1,5 +1,6 @@
 import type { Business } from '@/lib/mockData';
 import { getBusinessLocationLabel } from '@/lib/businessBreadcrumb';
+import { plainAboutText } from '@/lib/businessAbout';
 import { getPublicReviewRating, parseBusinessReviews } from '@/lib/businessReviews';
 
 export type BusinessFaqItem = {
@@ -39,7 +40,7 @@ export function buildBusinessSeoContent(business: Business): BusinessSeoContent 
 
   const aboutSource = business.about || business.description;
   const about = aboutSource?.trim()
-    ? aboutSource.trim()
+    ? plainAboutText(aboutSource).trim()
     : `${business.name} is a ${business.category.toLowerCase()} business serving customers in ${cityPhrase}. View contact details, business hours, services, and customer feedback on FinderB.`;
 
   const whyChoose = pickVariant(seed, [

@@ -1,5 +1,6 @@
-import { useCallback, useState } from 'react';
-import { ActivityIndicator, Alert, Linking, Pressable, Text, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Alert, Animated, Easing, Linking, Pressable, Text, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { WebView } from 'react-native-webview';
 import { useFocusEffect } from 'expo-router';
 import { fonts } from '../../constants/typography';
@@ -60,40 +61,108 @@ function blankDraft(o: ConsoleOverview): Draft {
   };
 }
 
+function ApplicationsButton({ onPress, disabled }: { onPress: () => void; disabled?: boolean }) {
+  const styles = useStyles();
+  const shift = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.timing(shift, {
+        toValue: 1,
+        duration: 2800,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      }),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [shift]);
+  const travel = shift.interpolate({ inputRange: [0, 1], outputRange: [-70, 140] });
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      accessibilityRole="button"
+      accessibilityLabel="Applications"
+      style={[styles.flex, styles.appsPress, disabled && { opacity: 0.5 }]}
+    >
+      <LinearGradient
+        colors={['#7C3AED', '#DB2777', '#F97316', '#0891B2']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.appsFill}
+      >
+        <Animated.View style={[styles.appsGlint, { transform: [{ translateX: travel }] }]} />
+        <Text style={styles.appsLabel}>Applications</Text>
+      </LinearGradient>
+    </Pressable>
+  );
+}
+
+function OpenBadge() {
+  const styles = useStyles();
+  const slide = useRef(new Animated.Value(-28)).current;
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(slide, { toValue: 72, duration: 1100, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+        Animated.delay(1100),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [slide]);
+  return (
+    <View style={styles.openWrap}>
+      <Tag label="Open" tone="success" />
+      <Animated.View pointerEvents="none" style={[styles.openGlint, { transform: [{ translateX: slide }, { rotate: '18deg' }] }]} />
+    </View>
+  );
+}
+
 function JobCard({
   job,
   busy,
+  onOpen,
   onEdit,
   onToggle,
-  onDelete,
   onApplications,
 }: {
   job: ConsoleJob;
   busy: boolean;
+  onOpen: () => void;
   onEdit: () => void;
   onToggle: () => void;
-  onDelete: () => void;
   onApplications: () => void;
 }) {
   const styles = useStyles();
   const open = job.status === 'active';
+  const unseen = job.unseenCount || 0;
   return (
     <View style={[styles.card, !open && styles.cardClosed]}>
-      <View style={styles.cardHead}>
-        <View style={styles.flex}>
-          <Text style={styles.title}>{job.title}</Text>
-          <Text style={styles.meta}>
-            {[job.type, job.location, job.salary].filter(Boolean).join(' · ')}
-          </Text>
+      <Pressable onPress={onOpen} accessibilityRole="button" accessibilityLabel={`${job.title} details`}>
+        <View style={styles.cardHead}>
+          <View style={styles.flex}>
+            <Text style={styles.title}>{job.title}</Text>
+            <Text style={styles.meta}>
+              {[job.type, job.location, job.salary].filter(Boolean).join(' · ')}
+            </Text>
+          </View>
+          <View style={styles.badgeCol}>
+            {open ? <OpenBadge /> : <Tag label="Closed" tone="neutral" />}
+            {unseen > 0 ? (
+              <View style={styles.unseen}>
+                <Text style={styles.unseenText}>{unseen > 9 ? '9+' : unseen} new</Text>
+              </View>
+            ) : null}
+          </View>
         </View>
-        <Tag label={open ? 'Open' : 'Closed'} tone={open ? 'success' : 'neutral'} />
-      </View>
-      <Text style={styles.body} numberOfLines={3}>
-        {job.description}
-      </Text>
-      <Text style={styles.posted}>Posted {timeAgo(job.created_at)}</Text>
+        <Text style={styles.body} numberOfLines={3}>
+          {job.description}
+        </Text>
+        <Text style={styles.posted}>Posted {timeAgo(job.created_at)}</Text>
+      </Pressable>
       <View style={styles.actions}>
-        <Btn small tone="outline" icon="people-outline" label="Applications" onPress={onApplications} disabled={busy} style={styles.flex} />
+        <ApplicationsButton onPress={onApplications} disabled={busy} />
         <Btn small tone="outline" icon="create-outline" label="Edit" onPress={onEdit} disabled={busy} style={styles.flex} />
         <Btn
           small
@@ -104,7 +173,6 @@ function JobCard({
           busy={busy}
           style={styles.flex}
         />
-        <Btn small tone="text" icon="trash-outline" label="Delete" onPress={onDelete} disabled={busy} />
       </View>
     </View>
   );
@@ -122,6 +190,7 @@ function JobsBody({ o }: { o: ConsoleOverview }) {
   const [hrDraft, setHrDraft] = useState({ email: '', mobile: '' });
   const [hrOpen, setHrOpen] = useState(false);
   const [hrSaving, setHrSaving] = useState(false);
+  const [detailJob, setDetailJob] = useState<ConsoleJob | null>(null);
   const [applicationsJob, setApplicationsJob] = useState<ConsoleJob | null>(null);
   const [applications, setApplications] = useState<ApplicationRow[] | null>(null);
   const [selectedApplication, setSelectedApplication] = useState<ApplicationRow | null>(null);
@@ -201,7 +270,7 @@ function JobsBody({ o }: { o: ConsoleOverview }) {
     after(result, job.status === 'active' ? 'Job closed' : 'Job reopened');
   };
 
-  const remove = (job: ConsoleJob) =>
+  const remove = (job: ConsoleJob, onDone?: () => void) =>
     Alert.alert('Delete this job?', `“${job.title}” and its listing will be removed for good.`, [
       { text: 'Keep', style: 'cancel' },
       {
@@ -211,7 +280,7 @@ function JobsBody({ o }: { o: ConsoleOverview }) {
           setBusyId(job.id);
           const result = await run<JobsResult>('deleteJob', { jobId: job.id });
           setBusyId('');
-          after(result, 'Job deleted');
+          if (after(result, 'Job deleted')) onDone?.();
         },
       },
     ]);
@@ -259,6 +328,7 @@ function JobsBody({ o }: { o: ConsoleOverview }) {
               key={job.id}
               job={job}
               busy={busyId === job.id}
+              onOpen={() => setDetailJob(job)}
               onEdit={() =>
                 setEditing({
                   id: job.id,
@@ -275,7 +345,6 @@ function JobsBody({ o }: { o: ConsoleOverview }) {
                 })
               }
               onToggle={() => void toggle(job)}
-              onDelete={() => remove(job)}
               onApplications={() => {
                 setApplicationsJob(job);
                 setApplications(null);
@@ -290,6 +359,7 @@ function JobsBody({ o }: { o: ConsoleOverview }) {
                     return;
                   }
                   setApplications(result.applications);
+                  void load();
                 })();
               }}
             />
@@ -366,6 +436,38 @@ function JobsBody({ o }: { o: ConsoleOverview }) {
               placeholder="Duties, timings, experience needed…"
               counter={`${editing.draft.description.length}/2000`}
               maxLength={2000}
+            />
+            {editing.id ? (
+              <Btn
+                tone="danger"
+                icon="trash-outline"
+                label="Delete this job"
+                disabled={saving || busyId === editing.id}
+                onPress={() => {
+                  const current = jobs?.find((job) => job.id === editing.id);
+                  if (current) remove(current, () => setEditing(null));
+                }}
+              />
+            ) : null}
+          </>
+        ) : null}
+      </Sheet>
+
+      <Sheet visible={Boolean(detailJob)} title="Job" onClose={() => setDetailJob(null)}>
+        {detailJob ? (
+          <>
+            <Text style={styles.title}>{detailJob.title}</Text>
+            <Text style={styles.meta}>
+              {[detailJob.type, detailJob.location, detailJob.salary].filter(Boolean).join(' · ')}
+            </Text>
+            <Text style={styles.body}>{detailJob.description}</Text>
+            <Text style={styles.posted}>Posted {timeAgo(detailJob.created_at)}</Text>
+            <Btn
+              tone="danger"
+              icon="trash-outline"
+              label="Delete this job"
+              disabled={busyId === detailJob.id}
+              onPress={() => remove(detailJob, () => setDetailJob(null))}
             />
           </>
         ) : null}
@@ -536,6 +638,27 @@ const useStyles = createConsoleStyles((c) => ({
   body: { fontFamily: fonts.regular, fontSize: 13.5, lineHeight: 20, color: c.body },
   posted: { fontFamily: fonts.regular, fontSize: 12, color: c.faint },
   actions: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 },
+  badgeCol: { alignItems: 'flex-end', gap: 6 },
+  unseen: { borderRadius: 999, backgroundColor: '#B91C1C', paddingHorizontal: 7, paddingVertical: 2 },
+  unseenText: { fontFamily: fonts.semiBold, fontSize: 11, color: '#FFFFFF' },
+  openWrap: { overflow: 'hidden', borderRadius: 999 },
+  openGlint: {
+    position: 'absolute',
+    top: -6,
+    bottom: -6,
+    width: 14,
+    backgroundColor: 'rgba(255,255,255,0.7)',
+  },
+  appsPress: { borderRadius: 9, overflow: 'hidden' },
+  appsFill: { minHeight: 38, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  appsGlint: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    width: 36,
+    backgroundColor: 'rgba(255,255,255,0.28)',
+  },
+  appsLabel: { fontFamily: fonts.semiBold, fontSize: 13, color: '#FFFFFF' },
   typeBlock: { gap: 10 },
   label: { fontFamily: fonts.regular, fontSize: 13, color: c.muted },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },

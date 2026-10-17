@@ -23,6 +23,7 @@ import { fonts } from '../../constants/typography';
 import { useTabScrollPadding } from '../../hooks/useAppSafeArea';
 import { otpSendLabel, useOtpCooldown } from '../../hooks/useOtpCooldown';
 import { createThemedStyles } from '../../hooks/useThemedStyles';
+import { goBackOrHome } from '../../lib/navigation';
 import { fetchAllCategories, type HomeCategory } from '../../lib/api';
 import {
   checkBusinessTaken,
@@ -546,7 +547,7 @@ export default function BusinessRegisterScreen() {
     setError('');
     if (step === 2) setStep(1);
     else if (step === 3) setStep(2);
-    else router.back();
+    else goBackOrHome(router, '/(tabs)/business');
   };
 
   const continueOwner = async () => {

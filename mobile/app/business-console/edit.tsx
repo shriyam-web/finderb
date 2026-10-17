@@ -26,6 +26,7 @@ import {
   Tag,
   createConsoleStyles,
 } from '../../components/console/kit';
+import { plainAboutText } from '../../lib/aboutFormat';
 import { offeringsForCategory } from '../../lib/categoryOfferings';
 import { EstablishmentDateField } from '../../components/console/EstablishmentDateField';
 import {
@@ -61,7 +62,7 @@ function slotLabel(value: string): string {
   return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${suffix}`;
 }
 
-const wordCount = (text: string) => text.split(/\s+/).filter(Boolean).length;
+const wordCount = (text: string) => plainAboutText(text).split(/\s+/).filter(Boolean).length;
 const validMobile = (digits: string) => /^[6-9]\d{9}$/.test(digits);
 const last10 = (value: string | null | undefined) => String(value || '').replace(/\D/g, '').slice(-10);
 const servicesOf = (value: string) =>
@@ -682,12 +683,9 @@ function EditBody({ o, section }: { o: ConsoleOverview; section: SectionKey }) {
             tone="outline"
             onPress={() => router.push({ pathname: '/business-console/account', params: { focus: 'displayName' } })}
           />
-          <Field
-            label="About your business"
-            multiline
+          <AboutField
             value={form.about}
             onChangeText={(value) => set('about', value)}
-            placeholder="What you sell, what you’re known for, since when…"
             counter={`${aboutWords}/${o.limits.aboutMaxWords} words`}
             error={errors.about}
           />
@@ -1019,6 +1017,98 @@ function EditBody({ o, section }: { o: ConsoleOverview; section: SectionKey }) {
         </>
       ) : null}
     </ConsolePage>
+  );
+}
+
+function AboutField({
+  value,
+  onChangeText,
+  counter,
+  error,
+}: {
+  value: string;
+  onChangeText: (value: string) => void;
+  counter: string;
+  error?: string;
+}) {
+  const c = useConsoleColors();
+  const selection = useRef({ start: value.length, end: value.length });
+  const [forced, setForced] = useState<{ start: number; end: number } | null>(null);
+  const marks = [
+    { token: '**', label: 'B' },
+    { token: '*', label: 'I' },
+    { token: '__', label: 'U' },
+  ] as const;
+
+  const apply = (token: string) => {
+    const start = selection.current.start;
+    const end = selection.current.end;
+    const selected = value.slice(start, end);
+    const before = value.slice(Math.max(0, start - token.length), start);
+    const after = value.slice(end, end + token.length);
+    const removing = before === token && after === token;
+    const next = removing
+      ? value.slice(0, start - token.length) + selected + value.slice(end + token.length)
+      : `${value.slice(0, start)}${token}${selected}${token}${value.slice(end)}`;
+    const nextSel = {
+      start: removing ? start - token.length : start + token.length,
+      end: (removing ? start - token.length : start + token.length) + selected.length,
+    };
+    selection.current = nextSel;
+    setForced(nextSel);
+    onChangeText(next);
+  };
+
+  return (
+    <View style={{ gap: 8 }}>
+      <View style={{ flexDirection: 'row', gap: 8 }}>
+        {marks.map((mark) => (
+          <Pressable
+            key={mark.label}
+            onPressIn={() => apply(mark.token)}
+            accessibilityRole="button"
+            accessibilityLabel={mark.label === 'B' ? 'Bold' : mark.label === 'I' ? 'Italic' : 'Underline'}
+            style={{
+              minWidth: 36,
+              height: 32,
+              borderRadius: 8,
+              borderWidth: 1,
+              borderColor: c.lineStrong,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: c.card,
+            }}
+          >
+            <Text
+              style={{
+                fontFamily: mark.label === 'I' ? fonts.italic : mark.label === 'B' ? fonts.bold : fonts.regular,
+                textDecorationLine: mark.label === 'U' ? 'underline' : 'none',
+                color: c.ink,
+              }}
+            >
+              {mark.label}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+      <Field
+        label="About your business"
+        multiline
+        value={value}
+        onChangeText={onChangeText}
+        placeholder="What you sell, what you’re known for, since when…"
+        counter={counter}
+        error={error}
+        selection={forced ?? undefined}
+        onSelectionChange={(event) => {
+          selection.current = event.nativeEvent.selection;
+          if (forced) setForced(null);
+        }}
+      />
+      <Text style={{ fontFamily: fonts.regular, fontSize: 12, color: c.faint }}>
+        Line breaks, bold, italic, and underline show on your public page.
+      </Text>
+    </View>
   );
 }
 

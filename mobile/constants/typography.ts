@@ -5,6 +5,8 @@ import { lightColors } from './colors';
 /** Plus Jakarta — regular / medium for UI, bold for page headlines. */
 export const fonts = {
   regular: 'PlusJakartaSans_400Regular',
+  italic: 'PlusJakartaSans_400Regular_Italic',
+  boldItalic: 'PlusJakartaSans_700Bold_Italic',
   medium: 'PlusJakartaSans_500Medium',
   semiBold: 'PlusJakartaSans_600SemiBold',
   bold: 'PlusJakartaSans_700Bold',

@@ -17,6 +17,7 @@ create table if not exists job_applications (
   cv_name text,
   cv_kind text,
   status text not null default 'received',
+  merchant_viewed_at timestamptz,
   created_at timestamptz not null default now()
 );
 

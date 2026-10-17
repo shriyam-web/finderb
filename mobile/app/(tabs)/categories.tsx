@@ -349,7 +349,10 @@ export default function CategoriesScreen() {
     setViewMode('search');
     setSearchLoading(true);
     searchTimer.current = setTimeout(async () => {
-      const result = await searchDirectory(q);
+      const result = await searchDirectory(q, {
+        coords: location.coords,
+        city: location.city,
+      });
       setSearchCats(result.categories.slice(0, 12));
       setSearchMerchants(result.merchants.slice(0, 24));
       setSearchNotice(result.notice);
@@ -360,7 +363,7 @@ export default function CategoriesScreen() {
     return () => {
       if (searchTimer.current) clearTimeout(searchTimer.current);
     };
-  }, [query, selected]);
+  }, [query, selected, location.coords, location.city]);
 
   const filteredMerchants = useMemo(() => {
     let list = [...merchants];

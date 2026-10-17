@@ -164,7 +164,34 @@ export async function listJobApplications(businessId: string, jobId: string) {
     .eq('job_id', jobId)
     .order('created_at', { ascending: false });
   if (error) return { success: false as const, error: 'Could not load applications.' };
+  const viewed = await supabase
+    .from('job_applications')
+    .update({ merchant_viewed_at: new Date().toISOString() })
+    .eq('business_id', businessId)
+    .eq('job_id', jobId)
+    .is('merchant_viewed_at', null);
+  if (viewed.error && !/column|schema cache|does not exist/i.test(viewed.error.message || '')) {
+    console.error('[job applications viewed]', viewed.error);
+  }
   return { success: true as const, applications: (data || []) as JobApplicationRow[] };
+}
+
+export async function unseenApplicationCounts(businessId: string) {
+  const counts = new Map<string, number>();
+  const supabase = createServiceClient();
+  if (!supabase || !businessId.trim()) return counts;
+  const { data, error } = await supabase
+    .from('job_applications')
+    .select('job_id')
+    .eq('business_id', businessId)
+    .is('merchant_viewed_at', null);
+  if (error) return counts;
+  for (const row of data || []) {
+    const id = String(row.job_id || '');
+    if (!id) continue;
+    counts.set(id, (counts.get(id) || 0) + 1);
+  }
+  return counts;
 }
 
 export async function applicationDownload(businessId: string, applicationId: string) {

@@ -3,7 +3,7 @@
 import { createDataClient } from '@/utils/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { buildJobApplicationMessage } from '@/lib/jobLeadMessage';
-import { recordJobApplication, requireHrContact } from '@/lib/jobBoard.server';
+import { recordJobApplication, requireHrContact, unseenApplicationCounts } from '@/lib/jobBoard.server';
 import { getSessionUserId } from '@/lib/security/session';
 import { formatMerchantName } from '@/lib/formatMerchantName';
 import { businessHasPublicPhoto } from '@/lib/businessMapping';
@@ -88,7 +88,14 @@ export async function getJobsByBusiness(businessId: string) {
 
     if (error) throw error;
 
-    return { success: true, jobs };
+    const unseen = await unseenApplicationCounts(businessId);
+    return {
+      success: true,
+      jobs: (jobs || []).map((job) => ({
+        ...job,
+        unseenCount: unseen.get(String(job.id)) || 0,
+      })),
+    };
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Failed to fetch jobs';
     console.error('Get Jobs Error:', error);

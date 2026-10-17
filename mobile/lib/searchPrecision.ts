@@ -31,6 +31,38 @@ const STOP_WORDS = new Set([
 ]);
 
 /** Words that must not widen a more specific query into half the catalog. */
+/**
+ * Words that choose a filter (open now, top rated, verified) and must not be
+ * required inside the business name. Dropped only when a real subject remains.
+ */
+const QUERY_FILTER_WORDS = new Set([
+  'open',
+  'best',
+  'top',
+  'popular',
+  'good',
+  'cheap',
+  'budget',
+  'affordable',
+  'verified',
+  'trusted',
+  'nearby',
+  'nearest',
+  'closest',
+  'emergency',
+  'urgent',
+  'offer',
+  'offers',
+  'discount',
+  'discounts',
+  'deal',
+  'deals',
+  'rated',
+  'rating',
+  'review',
+  'reviews',
+]);
+
 const LOOSE_TERMS = new Set([
   'service',
   'services',
@@ -213,8 +245,10 @@ export function parseDirectoryQuery(normalized: string): DirectoryQuery {
     .filter((word) => word.length >= 2 && !STOP_WORDS.has(word) && !/^\d+$/.test(word));
 
   const terms = [...new Set(words.map(singularizeSearchTerm))];
-  const specific = terms.filter((term) => !LOOSE_TERMS.has(term));
-  const required = specific.length > 0 ? specific : terms;
+  const withoutFilters = terms.filter((term) => !QUERY_FILTER_WORDS.has(term));
+  const subject = withoutFilters.length > 0 ? withoutFilters : terms;
+  const specific = subject.filter((term) => !LOOSE_TERMS.has(term));
+  const required = specific.length > 0 ? specific : subject;
   const phrase = (required.length > 0 ? required : terms).join(' ');
 
   const primaryNeedles: string[] = [];

@@ -8,7 +8,6 @@ import {
   HiOutlineClock,
   HiOutlineCurrencyRupee,
   HiOutlineXMark,
-  HiOutlineTrash,
   HiOutlinePencilSquare,
   HiOutlineChevronDown,
   HiOutlineChevronUp,
@@ -30,6 +29,7 @@ interface Job {
   department: string | null;
   status: string;
   created_at: Date;
+  unseenCount?: number;
 }
 
 interface JobPostingTabProps {
@@ -71,9 +71,9 @@ export default function JobPostingTab({ businessId, canEdit = true }: JobPosting
   const [hr, setHr] = useState({ email: '', mobile: '' });
   const [applicationsFor, setApplicationsFor] = useState('');
 
-  const fetchJobs = useCallback(async () => {
+  const fetchJobs = useCallback(async (quiet = false) => {
     try {
-      setLoading(true);
+      if (!quiet) setLoading(true);
       const res = await getJobsByBusiness(businessId);
       if (res.success && res.jobs) {
         setJobs(res.jobs as Job[]);
@@ -81,7 +81,7 @@ export default function JobPostingTab({ businessId, canEdit = true }: JobPosting
     } catch {
       showToast('error', 'Could not load job posts');
     } finally {
-      setLoading(false);
+      if (!quiet) setLoading(false);
     }
   }, [businessId]);
 
@@ -207,6 +207,33 @@ export default function JobPostingTab({ businessId, canEdit = true }: JobPosting
 
       return (
     <div className="space-y-5">
+      <style>{`
+        .job-apps-glow {
+          background: linear-gradient(120deg, #7c3aed, #db2777, #f97316, #0891b2, #7c3aed);
+          background-size: 280% 280%;
+          animation: jobAppsShift 3.2s ease infinite;
+        }
+        @keyframes jobAppsShift {
+          0% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+        }
+        .job-open-shine { position: relative; }
+        .job-open-shine::after {
+          content: '';
+          position: absolute;
+          top: -4px;
+          bottom: -4px;
+          width: 40%;
+          left: 0;
+          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.85), transparent);
+          animation: jobOpenShine 2.2s ease-in-out infinite;
+        }
+        @keyframes jobOpenShine {
+          0% { transform: translateX(-140%); }
+          55%, 100% { transform: translateX(320%); }
+        }
+      `}</style>
       <form
         className="rounded-xl border border-zinc-200 bg-white p-4"
         onSubmit={(event) => {
@@ -349,7 +376,12 @@ export default function JobPostingTab({ businessId, canEdit = true }: JobPosting
                 <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-start sm:justify-between sm:p-5">
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="text-base font-bold text-zinc-900">{job.title}</h3>
+                      <h3
+                        className="cursor-pointer text-base font-bold text-zinc-900"
+                        onClick={() => setExpandedId(isExpanded ? null : job.id)}
+                      >
+                        {job.title}
+                      </h3>
                       <span className="rounded-md bg-zinc-100 px-2 py-0.5 text-[11px] font-semibold text-zinc-600">
                         {job.type}
                       </span>
@@ -361,15 +393,20 @@ export default function JobPostingTab({ businessId, canEdit = true }: JobPosting
                       <button
                         type="button"
                         onClick={() => toggleJobStatus(job)}
-                        className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold ${
+                        className={`job-open-badge inline-flex items-center gap-1 overflow-hidden rounded-full px-2.5 py-1 text-[11px] font-bold ${
                           isLive
-                            ? 'bg-emerald-100 text-emerald-800 ring-1 ring-emerald-200'
+                            ? 'job-open-shine bg-emerald-100 text-emerald-800 ring-1 ring-emerald-200'
                             : 'bg-zinc-100 text-zinc-500 ring-1 ring-zinc-200'
                         }`}
                       >
                         <HiOutlineSignal size={11} />
-                        {isLive ? 'Live' : 'Paused'}
+                        {isLive ? 'Open' : 'Paused'}
                       </button>
+                      {(job.unseenCount || 0) > 0 ? (
+                        <span className="rounded-full bg-rose-600 px-2 py-0.5 text-[11px] font-bold text-white">
+                          {(job.unseenCount || 0) > 9 ? '9+' : job.unseenCount} new
+                        </span>
+                      ) : null}
                     </div>
 
                     <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-500">
@@ -417,7 +454,7 @@ export default function JobPostingTab({ businessId, canEdit = true }: JobPosting
                     <button
                       type="button"
                       onClick={() => setApplicationsFor(applicationsFor === job.id ? '' : job.id)}
-                      className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-zinc-200 px-4 py-2 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 sm:flex-none"
+                      className="job-apps-glow inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-xs font-semibold text-white sm:flex-none"
                     >
                       Applications
                     </button>
@@ -429,27 +466,35 @@ export default function JobPostingTab({ businessId, canEdit = true }: JobPosting
                       <HiOutlinePencilSquare size={15} />
                       Edit
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteJob(job.id)}
-                      className="inline-flex items-center justify-center rounded-lg border border-zinc-200 px-3 py-2 text-zinc-400 hover:border-red-200 hover:bg-red-50 hover:text-red-600"
-                      aria-label="Delete job"
-                    >
-                      <HiOutlineTrash size={15} />
-                    </button>
                   </div>
                   ) : (
                     <button
                       type="button"
                       onClick={() => setApplicationsFor(applicationsFor === job.id ? '' : job.id)}
-                      className="inline-flex items-center justify-center rounded-lg border border-zinc-200 px-4 py-2 text-xs font-semibold text-zinc-700"
+                      className="job-apps-glow inline-flex items-center justify-center rounded-lg px-4 py-2 text-xs font-semibold text-white"
                     >
                       Applications
                     </button>
                   )}
                 </div>
+                {isExpanded && canEdit ? (
+                  <div className="border-t border-zinc-100 px-4 py-3 sm:px-5">
+                    <button
+                      type="button"
+                      onClick={() => void handleDeleteJob(job.id)}
+                      className="text-xs font-semibold text-rose-700 hover:underline"
+                    >
+                      Delete this job
+                    </button>
+                  </div>
+                ) : null}
                 {applicationsFor === job.id ? (
-                  <JobApplicationsPanel businessId={businessId} jobId={job.id} canEdit={canEdit} />
+                  <JobApplicationsPanel
+                    businessId={businessId}
+                    jobId={job.id}
+                    canEdit={canEdit}
+                    onViewed={() => void fetchJobs(true)}
+                  />
                 ) : null}
               </article>
             );
@@ -590,6 +635,19 @@ export default function JobPostingTab({ businessId, canEdit = true }: JobPosting
                 </label>
               </div>
 
+              {editingJob ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const id = editingJob.id;
+                    setIsModalOpen(false);
+                    void handleDeleteJob(id);
+                  }}
+                  className="mt-5 text-sm font-semibold text-rose-700 hover:underline"
+                >
+                  Delete this job
+                </button>
+              ) : null}
               <div className="mt-6 flex gap-3 border-t border-zinc-100 pt-5">
                 <button
                   type="button"

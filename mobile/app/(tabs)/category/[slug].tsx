@@ -28,6 +28,7 @@ import {
   type HomeCategory,
 } from '../../../lib/api';
 import { formatDistanceFromUser, sortByUserLocation } from '../../../lib/geo';
+import { goBackOrHome } from '../../../lib/navigation';
 import {
   getHomeBootstrapCache,
   loadHomeBootstrap,
@@ -264,11 +265,7 @@ export default function CategoryExpandScreen() {
   ]);
 
   const goBack = () => {
-    if (typeof router.canGoBack === 'function' && router.canGoBack()) {
-      router.back();
-      return;
-    }
-    router.replace('/(tabs)/home' as Href);
+    goBackOrHome(router);
   };
 
   const openMerchant = (merchant: Merchant) => {

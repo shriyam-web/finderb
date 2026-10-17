@@ -13,6 +13,7 @@ import { isLegacyBusinessId, resolveBusinessSlug } from '@/lib/businessSlug';
 import { redactPublicBusinessFields } from '@/lib/security/businessFields';
 import { escapeIlikePattern } from '@/lib/searchMatch';
 import { categoryHref } from '@/lib/categoryDisplay';
+import { loadPublicBusinessSignals } from '@/lib/publicBusinessSignals';
 
 export const BUSINESS_PAGE_REVALIDATE_SECONDS = 600;
 
@@ -93,7 +94,8 @@ async function fetchBusinessBySlugOrId(slugOrId: string): Promise<PublicBusiness
       city: business.city,
     });
 
-  const mapped = mapBusinessRecord({ ...business, slug });
+  const signals = await loadPublicBusinessSignals(business);
+  const mapped = mapBusinessRecord({ ...business, slug, ...signals });
   if (!businessHasPublicPhoto(mapped)) {
     return {
       success: false,

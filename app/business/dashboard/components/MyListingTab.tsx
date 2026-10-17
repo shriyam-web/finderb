@@ -16,6 +16,7 @@ import {
 } from 'react-icons/hi2';
 import { FaFacebook, FaInstagram, FaWhatsapp, FaYoutube } from 'react-icons/fa';
 import { Navigation, Tag } from 'lucide-react';
+import FormattedAbout from '@/components/business/FormattedAbout';
 import AlsoServesEditor from './AlsoServesEditor';
 import StackedPhotoGallery from '@/components/business/StackedPhotoGallery';
 import BusinessProfileOfferBanner from '@/components/business/BusinessProfileOfferBanner';
@@ -431,7 +432,9 @@ export default function MyListingTab({
             <section id="listing-preview-about" className="scroll-mt-24 pb-8">
               <h3 className="text-sm font-bold text-[#27272A]">About</h3>
               {profileData.about?.trim() ? (
-                <p className="mt-3 text-sm leading-7 text-zinc-600">{profileData.about}</p>
+                <p className="mt-3 text-sm leading-7 text-zinc-600">
+                  <FormattedAbout text={profileData.about} />
+                </p>
               ) : (
                 <button
                   type="button"

@@ -7,7 +7,11 @@ export default function OfflineNotice() {
   const [offline, setOffline] = useState(false);
 
   useEffect(() => {
-    const sync = () => setOffline(typeof navigator !== 'undefined' && !navigator.onLine);
+    const sync = () => {
+      const host = window.location.hostname;
+      const local = host === 'localhost' || host === '127.0.0.1' || host === '::1';
+      setOffline(!local && typeof navigator !== 'undefined' && !navigator.onLine);
+    };
     sync();
     window.addEventListener('online', sync);
     window.addEventListener('offline', sync);

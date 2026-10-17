@@ -96,6 +96,18 @@ assert.equal(dental.primaryNeedles.includes('dentist'), true);
 assert.equal(categoryMatchScore('Dental Clinic', 'dental-clinic', dental.required), 100);
 assert.equal(categoryMatchScore('Eye Clinic', 'eye-clinic', dental.required), 0);
 
+assert.deepEqual(parseDirectoryQuery('open gym near me').required, ['gym']);
+assert.deepEqual(parseDirectoryQuery('best dentist').required, ['dentist']);
+assert.deepEqual(parseDirectoryQuery('verified plumber nearby').required, ['plumber']);
+assert.deepEqual(parseDirectoryQuery('property with rajnish').required, ['property', 'rajnish']);
+assert.equal(
+  merchantMatchTier(
+    { name: 'Property With Rajnish', category: 'Real Estate', services: [], keywords: [], about: '' },
+    parseDirectoryQuery('property with rajnish').required,
+  ),
+  1,
+);
+
 assert.deepEqual(detectSearchIntents('gym nearby'), ['nearest']);
 assert.deepEqual(detectSearchIntents('gym near by'), ['nearest']);
 assert.ok(detectSearchIntents('gym with high discount').includes('offers'));

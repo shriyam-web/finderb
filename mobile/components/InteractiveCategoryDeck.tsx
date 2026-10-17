@@ -320,7 +320,14 @@ type Props = {
   categories: HomeCategory[];
   searchHint?: string;
   city?: string | null;
-  onSearchPress: () => void;
+  /** Typed query shown in the hero field. Search stays on this screen. */
+  searchText?: string;
+  onSearchTextChange?: (value: string) => void;
+  /** Run a directory search without leaving the current tab. */
+  onSearchSubmit?: (query: string) => void;
+  /** Hide the category grid while results for the current term are on screen. */
+  collapseCatalog?: boolean;
+  onSearchPress?: () => void;
   onVoiceSearch?: (transcript: string) => void;
   onOpenCategory: (category: HomeCategory) => void;
   onSeeAll: () => void;
@@ -773,7 +780,7 @@ function BusinessCard({
   const rating = getRatingDisplay(merchant.rating, merchant.reviewsCount);
   const open = getBusinessOpenStatus(merchant.timings);
   const place = (merchant.location || merchant.city || '').trim();
-  const about = (merchant.about || '').trim();
+  const about = (merchant.about || '').replace(/\*\*|__|\*/g, '').replace(/\s+/g, ' ').trim();
   const hasOffer =
     Boolean(merchant.discountRange) &&
     merchant.discountRange !== 'No Discount' &&
@@ -891,6 +898,10 @@ export function InteractiveCategoryDeck({
   categories,
   searchHint = 'Ask FinderB anything…',
   city,
+  searchText = '',
+  onSearchTextChange,
+  onSearchSubmit,
+  collapseCatalog = false,
   onSearchPress,
   onVoiceSearch,
   onOpenCategory,
@@ -1157,11 +1168,28 @@ export function InteractiveCategoryDeck({
       alertVoiceUnavailable(result.error);
       return;
     }
-    if (onVoiceSearch) {
-      onVoiceSearch(result.transcript);
+    const transcript = result.transcript.trim();
+    if (!transcript) return;
+    onSearchTextChange?.(transcript);
+    if (onSearchSubmit) {
+      onSearchSubmit(transcript);
       return;
     }
-    onSearchPress();
+    if (onVoiceSearch) {
+      onVoiceSearch(transcript);
+      return;
+    }
+    onSearchPress?.();
+  };
+
+  const submitSearch = () => {
+    const query = searchText.trim();
+    if (!query) return;
+    if (onSearchSubmit) {
+      onSearchSubmit(query);
+      return;
+    }
+    onSearchPress?.();
   };
 
   return (
@@ -1204,26 +1232,47 @@ export function InteractiveCategoryDeck({
                 color="#5F6368"
                 style={styles.searchLeadingIcon}
               />
-              <Pressable
-                style={styles.searchMain}
-                onPress={onSearchPress}
-                accessibilityRole="button"
-                accessibilityLabel="Search"
-              >
-                <Animated.Text
-                  style={[
-                    styles.searchHint,
-                    { fontSize: grid.searchFont },
-                    listening && styles.searchHintListening,
-                    !listening && { opacity: hintFade },
-                  ]}
-                  numberOfLines={1}
+              {listening ? (
+                <View style={styles.searchMain}>
+                  <Text
+                    style={[
+                      styles.searchHint,
+                      styles.searchHintListening,
+                      { fontSize: grid.searchFont },
+                    ]}
+                    numberOfLines={1}
+                  >
+                    Listening…
+                  </Text>
+                </View>
+              ) : (
+                <TextInput
+                  value={searchText}
+                  onChangeText={onSearchTextChange}
+                  onSubmitEditing={submitSearch}
+                  placeholder={hintPool[hintIndex] || searchHint}
+                  placeholderTextColor="#80868B"
+                  style={[styles.searchInput, { fontSize: grid.searchFont }]}
+                  returnKeyType="search"
+                  autoCorrect={false}
+                  autoCapitalize="none"
+                  accessibilityLabel="Search businesses"
+                />
+              )}
+              {searchText.trim() && !listening ? (
+                <Pressable
+                  style={styles.searchClearBtn}
+                  onPress={() => {
+                    onSearchTextChange?.('');
+                    onSearchSubmit?.('');
+                  }}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel="Clear search"
                 >
-                  {listening
-                    ? 'Listening…'
-                    : hintPool[hintIndex] || searchHint}
-                </Animated.Text>
-              </Pressable>
+                  <Ionicons name="close" size={18} color="#5F6368" />
+                </Pressable>
+              ) : null}
               <Pressable
                 style={[styles.micBtn, listening && styles.micBtnActive]}
                 onPress={() => {
@@ -1243,7 +1292,9 @@ export function InteractiveCategoryDeck({
             </VoiceListeningShell>
           </View>
 
-          {/* Category grid — always 3 rows; columns follow the screen width */}
+          {/* Category grid stays hidden while a search is on screen, so the
+              typed term and its clear button stay next to the results. */}
+          {collapseCatalog ? null : (
           <View style={styles.topBlue}>
             <View
               style={[
@@ -1281,6 +1332,7 @@ export function InteractiveCategoryDeck({
               />
             ) : null}
           </View>
+          )}
         </View>
       </View>
 
@@ -1729,6 +1781,21 @@ const useStyles = createThemedStyles((colors) => ({
     minHeight: 44,
     justifyContent: 'center',
     paddingRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    minHeight: 44,
+    paddingVertical: 0,
+    paddingRight: 8,
+    fontFamily: fonts.regular,
+    color: lightColors.ink,
+  },
+  searchClearBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   searchHint: {
     fontFamily: fonts.regular,

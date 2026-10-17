@@ -34,23 +34,19 @@ export default function DashboardBannerCarousel({ banners }: { banners: Dashboar
       onFocusCapture={() => setPaused(true)}
       onBlurCapture={() => setPaused(false)}
     >
-      {/* Slides share one grid cell so the carousel keeps the height of the tallest banner. */}
-      <div className="grid">
-        {banners.map((banner, i) => (
-          <div
-            key={banner.id}
-            role="group"
-            aria-roledescription="slide"
-            aria-label={`${i + 1} of ${count}: ${banner.label}`}
-            aria-hidden={i !== active}
-            inert={i !== active}
-            className={`col-start-1 row-start-1 transition-opacity duration-500 ${
-              i === active ? 'opacity-100' : 'pointer-events-none opacity-0'
-            }`}
-          >
-            {banner.node}
-          </div>
-        ))}
+      <div>
+        {banners.map((banner, i) =>
+          i === active ? (
+            <div
+              key={banner.id}
+              role="group"
+              aria-roledescription="slide"
+              aria-label={`${i + 1} of ${count}: ${banner.label}`}
+            >
+              {banner.node}
+            </div>
+          ) : null,
+        )}
       </div>
       <div className="mt-2 flex items-center justify-center gap-3">
         <button

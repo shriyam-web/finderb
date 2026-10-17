@@ -1,10 +1,12 @@
 import { type Href } from 'expo-router';
+import { Platform } from 'react-native';
 
 const FALLBACK: Href = '/(tabs)/home';
 export const MORE_TAB: Href = '/(tabs)/more';
 
 type BackCapableRouter = {
   canGoBack: () => boolean;
+  canDismiss?: () => boolean;
   back: () => void;
   replace: (href: Href) => void;
 };
@@ -13,12 +15,27 @@ type TabRouter = BackCapableRouter & {
   navigate?: (href: Href) => void;
 };
 
-/** Safe back — avoids GO_BACK warning when the stack is empty. */
+function canCall(fn: (() => boolean) | undefined): boolean {
+  if (typeof fn !== 'function') return false;
+  try {
+    return fn();
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Safe back. On web, browser history can report that a back exists while no
+ * navigator will handle GO_BACK, which opens the Expo error overlay.
+ * Only pop when a stack actually has a screen underneath.
+ */
 export function goBackOrHome(
   router: TabRouter,
   fallback: Href = FALLBACK,
 ) {
-  if (router.canGoBack()) {
+  const canPop =
+    Platform.OS === 'web' ? canCall(router.canDismiss) : canCall(router.canGoBack);
+  if (canPop) {
     router.back();
     return;
   }

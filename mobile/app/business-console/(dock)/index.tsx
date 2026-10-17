@@ -780,6 +780,7 @@ function QuickActions({ go }: { go: Go }) {
 
 function HomeBody({ o }: { o: ConsoleOverview }) {
   const styles = useStyles();
+  const c = useConsoleColors();
   const router = useRouter();
   const { refresh, refreshing } = useMerchantConsole();
   const [qrOpen, setQrOpen] = useState(false);
@@ -807,6 +808,21 @@ function HomeBody({ o }: { o: ConsoleOverview }) {
       onRefresh={() => void refresh()}
     >
       <Text style={styles.greeting}>{`${greeting}${firstName ? `, ${firstName}` : ''}`}</Text>
+      <Pressable
+        onPress={() => go('/business-console/growth')}
+        style={({ pressed }) => [styles.growthBtn, pressed && styles.pressed]}
+        accessibilityRole="button"
+        accessibilityLabel="Growth opportunity"
+      >
+        <View style={styles.growthIcon}>
+          <Ionicons name="ribbon-outline" size={18} color={c.primaryInk} />
+        </View>
+        <View style={styles.flex}>
+          <Text style={styles.growthTitle}>Growth opportunity</Text>
+          <Text style={styles.growthSub}>See the badges customers see, and how to earn them</Text>
+        </View>
+        <Ionicons name="chevron-forward" size={16} color={c.faint} />
+      </Pressable>
       {o.detailsLockedUntil ? (
         <View style={styles.lockBanner}>
           <Text style={styles.lockTitle}>Details locked for 15 days</Text>
@@ -850,6 +866,28 @@ export default function HomeScreen() {
 const useStyles = createConsoleStyles((c) => ({
   flex: { flex: 1, minWidth: 0 },
   greeting: { fontFamily: fonts.semiBold, fontSize: 16, color: c.ink, paddingHorizontal: 2, marginBottom: -4 },
+  growthBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderRadius: 14,
+    backgroundColor: c.card,
+    borderWidth: 1,
+    borderColor: c.line,
+  },
+  growthIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: c.primary,
+  },
+  growthTitle: { fontFamily: fonts.semiBold, fontSize: 14, color: c.ink },
+  growthSub: { marginTop: 2, fontFamily: fonts.regular, fontSize: 12, lineHeight: 16, color: c.body },
   lockBanner: {
     marginTop: 8,
     borderRadius: 12,

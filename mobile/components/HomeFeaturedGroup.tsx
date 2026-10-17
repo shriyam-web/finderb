@@ -79,7 +79,7 @@ function leafCategory(raw: string) {
 
 function shortAbout(raw: string | null | undefined) {
   if (!raw) return '';
-  return raw.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+  return raw.replace(/<[^>]+>/g, ' ').replace(/\*\*|__|\*/g, '').replace(/\s+/g, ' ').trim();
 }
 
 function shuffleMerchants<T>(items: T[], seed: number): T[] {

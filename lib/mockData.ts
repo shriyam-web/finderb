@@ -46,6 +46,10 @@ export interface Business {
   emailVerified?: boolean;
   whatsappVerified?: boolean;
   hasMapPin?: boolean;
+  /** Public badge: good reviews, same-day replies, and profile completion above 90. */
+  bestInCategory?: boolean;
+  /** Typical time to open a new lead, when the business has replied at least once. */
+  averageResponse?: string | null;
 }
 
 export interface Category {

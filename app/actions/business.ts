@@ -67,7 +67,8 @@ import {
 } from '@/lib/businessAbout';
 import { parseCoordinate } from '@/lib/geo';
 import { revalidateSitemap } from '@/lib/sitemapData';
-import { escapeIlikePattern } from '@/lib/searchMatch';
+import { escapeIlikePattern, parseNaturalSearchQuery, textMatchesSearchTerm } from '@/lib/searchMatch';
+import { getBusinessOpenStatus } from '@/lib/businessHours';
 import {
   PASSWORD_MIN_LENGTH_USER,
   validateChangePasswordFields,
@@ -616,7 +617,9 @@ export async function getBusinessBySlugOrId(slugOrId: string) {
       }
     }
 
-    const mapped = mapBusinessRecord({ ...business, slug });
+    const { loadPublicBusinessSignals } = await import('@/lib/publicBusinessSignals');
+    const signals = await loadPublicBusinessSignals(business);
+    const mapped = mapBusinessRecord({ ...business, slug, ...signals });
     if (!businessHasPublicPhoto(mapped)) {
       return {
         success: false,
@@ -1107,6 +1110,64 @@ export async function getBusinessSummariesByIds(ids: string[]) {
   } catch (error: any) {
     const errorMessage = handleError(error, 'Get Business Summaries');
     return { success: false, error: errorMessage };
+  }
+}
+
+/** Public name search. A business whose name contains every word is returned, even without a photo. */
+export async function searchPublicBusinesses(query: string) {
+  const parsed = parseNaturalSearchQuery(query);
+  const terms = parsed.terms;
+  if (!terms.length) return { success: true as const, businesses: [] as ReturnType<typeof mapBusinessRecord>[] };
+
+  const searchLimit = await enforceRateLimit('search');
+  if (!searchLimit.ok) return { success: false as const, error: searchLimit.error };
+
+  try {
+    const supabase = await createDataClient();
+    const pattern = `%${terms.map((term) => escapeIlikePattern(term)).join('%')}%`;
+    const { data, error } = await supabase
+      .from('Business')
+      .select('*')
+      .eq('status', 'Active')
+      .or(`businessName.ilike.${pattern},displayName.ilike.${pattern},category.ilike.${pattern}`)
+      .limit(60);
+
+    if (error) throw error;
+
+    const place = parsed.locationHint?.toLowerCase() ?? '';
+    const raw = query.toLowerCase();
+    const wantsOpen = /\bopen\b/.test(raw);
+    const wantsBest = /\b(best|top)\b/.test(raw);
+    const wantsVerified = /\bverified\b/.test(raw);
+    const businesses = (data ?? [])
+      .map((row) => mapBusinessRecord(row as Record<string, unknown>))
+      .filter((business) => {
+        const name = `${business.name || ''} ${business.businessName || ''} ${business.displayName || ''}`;
+        const category = `${business.category || ''} ${business.serviceCategory || ''}`;
+        const nameHit = terms.every((term) => textMatchesSearchTerm(name, term));
+        const categoryHit = terms.every((term) => textMatchesSearchTerm(category, term));
+        if (!nameHit && !categoryHit) return false;
+        if (place) {
+          const area = `${business.city || ''} ${business.location || ''}`.toLowerCase();
+          if (!area.includes(place)) return false;
+        }
+        if (wantsOpen && getBusinessOpenStatus(business.timings).status !== 'Open') return false;
+        if (wantsBest && (business.rating || 0) < 4.2) return false;
+        if (wantsVerified && !business.isFinderBVerified) return false;
+        return true;
+      })
+      .sort((a, b) => {
+        const nameOf = (business: ReturnType<typeof mapBusinessRecord>) =>
+          `${business.name || ''} ${business.businessName || ''} ${business.displayName || ''}`;
+        const aName = terms.every((term) => textMatchesSearchTerm(nameOf(a), term)) ? 0 : 1;
+        const bName = terms.every((term) => textMatchesSearchTerm(nameOf(b), term)) ? 0 : 1;
+        return aName - bName;
+      })
+      .slice(0, 24);
+
+    return { success: true as const, businesses };
+  } catch (error: any) {
+    return { success: false as const, error: handleError(error, 'Search Businesses') };
   }
 }
 

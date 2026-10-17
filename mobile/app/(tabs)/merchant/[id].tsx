@@ -39,7 +39,9 @@ import { getBusinessOpenStatus, getWeeklyHours } from '../../../lib/businessHour
 import { fetchJobsByBusinessId, type JobListing } from '../../../lib/jobs';
 import {
   directionsHref,
+  PUBLIC_REVIEW_PREVIEW,
   resolveMerchantSlug,
+  reviewsNewestFirst,
   whatsAppHref,
   type Merchant,
 } from '../../../lib/merchants';
@@ -47,6 +49,8 @@ import { getDiscountOfferDisplay } from '../../../lib/discountOffer';
 import { fetchFavoriteIds, toggleFavorite } from '../../../lib/favoritesApi';
 import { OwnThisBusiness } from '../../../components/OwnThisBusiness';
 import { recordDirectLead } from '../../../lib/leadsApi';
+import { FormattedAbout } from '../../../components/FormattedAbout';
+import { previewAboutMarkup } from '../../../lib/aboutFormat';
 import { reportBusinessReview } from '../../../lib/reviewsApi';
 import { goBackOrHome } from '../../../lib/navigation';
 import { formatYearsInBusinessShort } from '../../../lib/establishmentYear';
@@ -286,6 +290,10 @@ export default function MerchantProfileScreen() {
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
   const [reportedReviewIds, setReportedReviewIds] = useState<Set<string>>(() => new Set());
+  const [signals, setSignals] = useState<{
+    bestInCategory: boolean;
+    averageResponse: string | null;
+  } | null>(null);
   const linkCopiedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const contactRevealed = Boolean(user);
@@ -305,6 +313,33 @@ export default function MerchantProfileScreen() {
       cancelled = true;
     };
   }, [user, merchant?.id]);
+
+  useEffect(() => {
+    const businessId = merchant?.id;
+    if (!businessId) return;
+    let cancelled = false;
+    setSignals(null);
+    void fetch(`${SITE_URL}/api/business/signals?id=${encodeURIComponent(businessId)}`)
+      .then(async (response) => {
+        if (!response.ok) return null;
+        return (await response.json()) as {
+          bestInCategory?: boolean;
+          averageResponse?: string | null;
+        };
+      })
+      .then((data) => {
+        if (cancelled || !data) return;
+        setSignals({
+          bestInCategory: data.bestInCategory === true,
+          averageResponse: typeof data.averageResponse === 'string' ? data.averageResponse : null,
+        });
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [merchant?.id]);
+
   const userHasReviewed = Boolean(
     user && merchant?.reviews.some((review) => review.userId === user.id),
   );
@@ -637,9 +672,9 @@ export default function MerchantProfileScreen() {
   }
 
   const about = merchant.about?.trim() || '';
-  const aboutLong = about.length > 180;
-  const aboutShown =
-    aboutExpanded || !aboutLong ? about : `${about.slice(0, 180).trim()}…`;
+  const aboutPreview = previewAboutMarkup(about);
+  const aboutLong = aboutPreview.truncated;
+  const aboutShown = aboutExpanded || !aboutLong ? about : aboutPreview.text;
   const services = merchant.services.slice(0, 10);
 
   return (
@@ -967,10 +1002,18 @@ export default function MerchantProfileScreen() {
                   : ''}
               </Text>
 
-              <View style={styles.trendingBadge}>
-                <FlickeringFire />
-                <Text style={styles.trendingText}>Best in Category</Text>
-              </View>
+              {signals?.averageResponse ? (
+                <Text style={styles.responseLine}>
+                  Usually replies in {signals.averageResponse}
+                </Text>
+              ) : null}
+
+              {signals?.bestInCategory ? (
+                <View style={styles.trendingBadge}>
+                  <FlickeringFire />
+                  <Text style={styles.trendingText}>Best in Category</Text>
+                </View>
+              ) : null}
 
               {(placeLabel || distanceLabel || mapsUrl) ? (
                 <View style={styles.placeBlock}>
@@ -1338,20 +1381,17 @@ export default function MerchantProfileScreen() {
           {about ? (
             <View style={styles.section}>
               <SectionHead title="About" />
-              <View style={styles.storyCard}>
-                <Text style={styles.storyMark}>“</Text>
-                <Text style={styles.storyBody}>{aboutShown}</Text>
-                {aboutLong ? (
-                  <Pressable
-                    onPress={() => setAboutExpanded((v) => !v)}
-                    hitSlop={8}
-                  >
-                    <Text style={styles.moreLink}>
-                      {aboutExpanded ? 'Show less' : 'Continue reading'}
-                    </Text>
-                  </Pressable>
-                ) : null}
-              </View>
+              <FormattedAbout text={aboutShown} style={styles.storyBody} />
+              {aboutLong ? (
+                <Pressable
+                  onPress={() => setAboutExpanded((v) => !v)}
+                  hitSlop={8}
+                >
+                  <Text style={styles.moreLink}>
+                    {aboutExpanded ? 'Show less' : 'Continue reading'}
+                  </Text>
+                </Pressable>
+              ) : null}
             </View>
           ) : null}
 
@@ -1507,7 +1547,9 @@ export default function MerchantProfileScreen() {
 
             {merchant.reviews.length ? (
               <View style={styles.reviewsList}>
-                {merchant.reviews.slice(0, 8).map((review) => (
+                {reviewsNewestFirst(merchant.reviews)
+                  .slice(0, PUBLIC_REVIEW_PREVIEW)
+                  .map((review) => (
                   <View key={review.id} style={styles.reviewCard}>
                     <View style={styles.reviewTop}>
                       <View style={styles.reviewAvatar}>
@@ -1563,6 +1605,18 @@ export default function MerchantProfileScreen() {
                     ) : null}
                   </View>
                 ))}
+                {merchant.reviews.length > PUBLIC_REVIEW_PREVIEW ? (
+                  <Pressable
+                    onPress={() =>
+                      router.push(`/business-reviews/${merchant.id}` as Href)
+                    }
+                    style={styles.reviewLoadMore}
+                    accessibilityRole="button"
+                    accessibilityLabel="Load more reviews"
+                  >
+                    <Text style={styles.reviewLoadMoreText}>Load more</Text>
+                  </Pressable>
+                ) : null}
               </View>
             ) : (
               <View style={styles.emptyCard}>
@@ -2112,6 +2166,11 @@ const useStyles = createThemedStyles((colors, gradients) => ({
     fontSize: 13,
     color: colors.textMuted,
   },
+  responseLine: {
+    fontFamily: fonts.medium,
+    fontSize: 12,
+    color: colors.textMuted,
+  },
   trendingBadge: {
     alignSelf: 'flex-start',
     flexDirection: 'row',
@@ -2538,6 +2597,20 @@ const useStyles = createThemedStyles((colors, gradients) => ({
   },
   starsRow: { flexDirection: 'row', gap: 2 },
   reviewsList: { gap: 10 },
+  reviewLoadMore: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    paddingVertical: 12,
+  },
+  reviewLoadMoreText: {
+    fontFamily: fonts.semiBold,
+    fontSize: 14,
+    color: colors.ink,
+  },
   reviewCard: {
     borderRadius: 14,
     padding: 14,

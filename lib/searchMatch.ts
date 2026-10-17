@@ -20,6 +20,27 @@ const STOP_WORDS = new Set([
   'best',
   'top',
   'good',
+  'open',
+  'verified',
+  'trusted',
+  'popular',
+  'cheap',
+  'budget',
+  'affordable',
+  'nearest',
+  'closest',
+  'emergency',
+  'urgent',
+  'offer',
+  'offers',
+  'discount',
+  'discounts',
+  'deal',
+  'deals',
+  'rated',
+  'rating',
+  'review',
+  'reviews',
   'nearby',
   'around',
   'close',
@@ -243,6 +264,8 @@ function scoreFieldAgainstQuery(
 
   if (terms.length > 1 && matchedNonGeneric === terms.length) {
     score += 20;
+  } else if (terms.length > 1) {
+    return 12 * fieldMultiplier;
   }
 
   if (hay === normalizeSearchQuery(parsed.raw)) {
@@ -291,7 +314,16 @@ export function partitionBySearchRelevance<T>(
   const best: T[] = [];
   const related: T[] = [];
 
+  const parsed = parseNaturalSearchQuery(query);
   for (const item of sorted) {
+    if (parsed.terms.length > 1) {
+      const fields = getFields(item);
+      const identity = [fields.name, fields.category, fields.slug, fields.parentName]
+        .filter((value) => value != null)
+        .join(' ');
+      const everyTerm = parsed.terms.every((term) => textMatchesSearchTerm(identity, term));
+      if (!everyTerm) continue;
+    }
     const score = scoreSearchRelevance(query, getFields(item));
     if (score <= 0) continue;
     if (score >= STRONG_SEARCH_RELEVANCE_MIN) {
@@ -302,13 +334,6 @@ export function partitionBySearchRelevance<T>(
   }
 
   return { best, related };
-}
-
-function fieldsMatchAnyTerm(fields: SearchMatchFields, terms: string[]): boolean {
-  const values = [fields.name, fields.category, fields.description, fields.slug, fields.parentName];
-  return terms.some((term) =>
-    values.some((f) => textMatchesSearchTerm(f != null ? String(f) : '', term))
-  );
 }
 
 export function businessMatchesNaturalSearch(
@@ -336,7 +361,8 @@ export function businessMatchesNaturalSearch(
 
   if (terms.length === 0) return false;
 
-  if (!fieldsMatchAnyTerm(fields, terms)) {
+  const identity = [biz.name, biz.category].filter((value) => value != null).join(' ');
+  if (!terms.every((term) => textMatchesSearchTerm(identity, term))) {
     return false;
   }
 
