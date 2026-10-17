@@ -30,6 +30,7 @@ import { formatDistanceFromUser } from '@/lib/geo';
 import { useUserCoords } from '@/hooks/useUserCoords';
 import MerchantListingRating from '@/components/business/MerchantListingRating';
 import { VerifiedBusinessName } from '@/components/business/VerifiedMark';
+import { ListingSignalRow } from '@/components/business/ListingSignalRow';
 import BusinessListingImage from '@/components/business/BusinessListingImage';
 
 const RESERVED_CATEGORY_SEGMENTS = new Set(['job']);
@@ -735,6 +736,7 @@ export default function CategoriesPage({
           textClassName="text-[11px] font-semibold text-slate-600"
           emptyClassName="text-[11px] text-slate-400"
         />
+        <ListingSignalRow id={biz.id} />
         {placeLabel || distanceLabel ? (
           <p className="flex min-w-0 items-start gap-1 text-[11px] leading-snug text-slate-500">
             <MapPin size={12} className="mt-0.5 shrink-0 text-slate-400" />

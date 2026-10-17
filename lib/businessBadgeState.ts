@@ -40,12 +40,11 @@ function repliedSamples(leads: LeadSample[]): { count: number; averageMs: number
   return { count, averageMs };
 }
 
-async function rankThisMonth(
-  businessId: string,
+export async function loadMonthLeaderRows(
   category: string,
   city: string,
-): Promise<MonthRank> {
-  if (!category || !city) return EMPTY_RANK;
+): Promise<Array<{ business_id: string; views: number; leads: number }>> {
+  if (!category || !city) return [];
   const supabase = getPublicSupabase();
   const since = startOfMonthIstIso();
 
@@ -56,10 +55,11 @@ async function rankThisMonth(
   });
 
   if (!rpcError && Array.isArray(rpcRows)) {
-    return rankFromRows(
-      businessId,
-      rpcRows as Array<{ business_id?: string; views?: number; leads?: number }>,
-    );
+    return (rpcRows as Array<{ business_id?: string; views?: number; leads?: number }>).map((row) => ({
+      business_id: String(row.business_id || ''),
+      views: Number(row.views) || 0,
+      leads: Number(row.leads) || 0,
+    }));
   }
 
   const { data: peers, error: peerError } = await supabase
@@ -69,16 +69,21 @@ async function rankThisMonth(
     .ilike('city', city)
     .ilike('category', category)
     .limit(200);
-  if (peerError || !peers?.length) return EMPTY_RANK;
+  if (peerError || !peers?.length) return [];
 
   const ids = peers.map((row) => String(row.id));
-  if (!ids.includes(businessId)) ids.push(businessId);
   const views = await countByBusiness('profile_views', 'viewed_at', ids, since);
   const leads = await countByBusiness('leads', 'created_at', ids, since);
-  return rankFromRows(
-    businessId,
-    ids.map((id) => ({ business_id: id, views: views.get(id) || 0, leads: leads.get(id) || 0 })),
-  );
+  return ids.map((id) => ({ business_id: id, views: views.get(id) || 0, leads: leads.get(id) || 0 }));
+}
+
+async function rankThisMonth(
+  businessId: string,
+  category: string,
+  city: string,
+): Promise<MonthRank> {
+  const rows = await loadMonthLeaderRows(category, city);
+  return rankFromRows(businessId, rows);
 }
 
 function rankFromRows(
@@ -152,7 +157,7 @@ async function badgeSource(business: Record<string, unknown>): Promise<Record<st
 
 export async function loadBadgeReports(
   business: Record<string, unknown>,
-  known?: { leads?: LeadSample[] },
+  known?: { leads?: LeadSample[]; rank?: MonthRank },
 ): Promise<BadgeReport[]> {
   const completionPercent = getProfileCompletion({
     ...business,
@@ -180,11 +185,13 @@ export async function loadBadgeReports(
   }
 
   const reply = repliedSamples(leads || []);
-  let rank = EMPTY_RANK;
-  try {
-    if (businessId) rank = await rankThisMonth(businessId, category, city);
-  } catch {
-    rank = EMPTY_RANK;
+  let rank = known?.rank ?? EMPTY_RANK;
+  if (!known?.rank) {
+    try {
+      if (businessId) rank = await rankThisMonth(businessId, category, city);
+    } catch {
+      rank = EMPTY_RANK;
+    }
   }
 
   return buildBadgeReports({

@@ -6,6 +6,7 @@ import { getBusinessOpenStatus } from '../lib/businessHours';
 import { getRatingDisplay, UNRATED_LABEL } from '../lib/ratingDisplay';
 import { useDrivingDistanceLabel } from '../lib/drivingDistance';
 import { listingThumbUrl, type Merchant } from '../lib/merchants';
+import { ListSignalChips } from './ListSignalChips';
 import { fonts } from '../constants/typography';
 import { useTheme } from '../context/ThemeContext';
 import { createThemedStyles } from '../hooks/useThemedStyles';
@@ -108,6 +109,8 @@ export function CategoryMerchantRow({
             <Text style={styles.metaText}>New · {UNRATED_LABEL}</Text>
           )}
         </View>
+
+        <ListSignalChips id={merchant.id} />
 
         <View style={styles.locRow}>
           <Ionicons name="location-outline" size={12} color={colors.textSoft} />

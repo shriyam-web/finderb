@@ -9,6 +9,7 @@ import { VerifiedNameTick } from '@/components/business/VerifiedMark';
 import BusinessListingImage from '@/components/business/BusinessListingImage';
 import { primaryBusinessCategory } from '@/lib/categoryTree';
 import { getRatingDisplay } from '@/lib/ratingDisplay';
+import { ListingSignalRow } from '@/components/business/ListingSignalRow';
 
 interface BusinessCardProps {
   business: Business;
@@ -89,6 +90,7 @@ export default function BusinessCard({
           {categoryLabel(business) ? (
             <p className="mt-0.5 line-clamp-1 text-xs text-stone-500">{categoryLabel(business)}</p>
           ) : null}
+          <ListingSignalRow id={business.id} />
 
           {openStatus ? (
             <p
@@ -223,9 +225,10 @@ export default function BusinessCard({
               {showVerified && <VerifiedNameTick size={compact ? 14 : 16} className="shrink-0" />}
             </h3>
 
-            <p className={`font-bold uppercase text-gray-400 ${compact ? 'mb-3 text-[10px]' : 'mb-4 text-[10px]'}`}>
+            <p className={`font-bold uppercase text-gray-400 ${compact ? 'mb-1.5 text-[10px]' : 'mb-1.5 text-[10px]'}`}>
               {business.category}
             </p>
+            <ListingSignalRow id={business.id} />
 
             {!compact && !hidePriceRange && (
               <p className="mb-6 line-clamp-2 flex-grow text-sm font-medium text-gray-500">

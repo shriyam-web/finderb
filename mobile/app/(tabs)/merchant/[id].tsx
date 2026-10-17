@@ -11,6 +11,7 @@ import {
   NativeSyntheticEvent,
   Platform,
   Pressable,
+  RefreshControl,
   ScrollView,
   Share,
   StyleSheet,
@@ -335,6 +336,10 @@ export default function MerchantProfileScreen() {
     averageResponse: string | null;
     badges: { id: string; label: string }[];
   } | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
+  const merchantRef = useRef<string | null>(null);
+  const [signalNonce, setSignalNonce] = useState(0);
   const linkCopiedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const contactRevealed = Boolean(user);
@@ -364,7 +369,8 @@ export default function MerchantProfileScreen() {
       for (const base of siteBases()) {
         try {
           const response = await fetch(
-            `${base}/api/business/signals?id=${encodeURIComponent(businessId)}`,
+            `${base}/api/business/signals?id=${encodeURIComponent(businessId)}&fresh=1`,
+            { cache: 'no-store' },
           );
           if (!response.ok) continue;
           const data = (await response.json()) as {
@@ -393,7 +399,7 @@ export default function MerchantProfileScreen() {
     return () => {
       cancelled = true;
     };
-  }, [merchant?.id]);
+  }, [merchant?.id, signalNonce]);
 
   const userHasReviewed = Boolean(
     user && merchant?.reviews.some((review) => review.userId === user.id),
@@ -407,8 +413,8 @@ export default function MerchantProfileScreen() {
         setLoading(false);
         return;
       }
-      setLoading(true);
       const key = String(id);
+      if (merchantRef.current !== key) setLoading(true);
       const ownsKey =
         Boolean(user?.isBusinessAccount) &&
         (ownerPreview || user?.businessId === key || user?.businessSlug === key);
@@ -417,6 +423,7 @@ export default function MerchantProfileScreen() {
       });
       if (cancelled) return;
       if (result.merchant) {
+        merchantRef.current = key;
         setMerchant(result.merchant);
         setError('');
         const [jobResult, relatedResult] = await Promise.all([
@@ -437,17 +444,19 @@ export default function MerchantProfileScreen() {
           );
         }
       } else {
+        merchantRef.current = null;
         setMerchant(null);
         setJobs([]);
         setRelated([]);
         setError(result.error || 'Merchant not found');
       }
       setLoading(false);
+      setRefreshing(false);
     })();
     return () => {
       cancelled = true;
     };
-  }, [id, ownerPreview, user?.isBusinessAccount, user?.businessId, user?.businessSlug]);
+  }, [id, ownerPreview, reloadKey, user?.isBusinessAccount, user?.businessId, user?.businessSlug]);
 
   const openStatus = useMemo(
     () => getBusinessOpenStatus(merchant?.timings),
@@ -805,6 +814,18 @@ export default function MerchantProfileScreen() {
         }}
         showsVerticalScrollIndicator={false}
         scrollEventThrottle={16}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            tintColor={colors.brand}
+            colors={[colors.brand]}
+            onRefresh={() => {
+              setRefreshing(true);
+              setSignalNonce((value) => value + 1);
+              setReloadKey((value) => value + 1);
+            }}
+          />
+        }
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],
           {
