@@ -1115,13 +1115,18 @@ export default function BusinessProfilePage({
                 <div className="mt-3">
                   <StarPicker value={reviewRating} onChange={setReviewRating} />
                 </div>
+                {reviewRating >= 1 && reviewRating <= 3 ? (
+                  <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-[11px] leading-4 text-stone-700">
+                    Please describe what happened without abusive or offensive words. A review that uses them can be removed under FinderB’s moderation policy.
+                  </p>
+                ) : null}
                 <div className="mt-3 flex flex-wrap gap-2">
-                  {reviewTemplatesForCategory(business.category || '').slice(0, 4).map((template) => (
+                  {reviewTemplatesForCategory(business.category || '', reviewRating, sessionUser.id).map((template) => (
                     <button
                       key={template}
                       type="button"
                       onClick={() => setReviewContent(template)}
-                      className="rounded-full border border-stone-200 bg-stone-50 px-3 py-1.5 text-left text-[11px] text-stone-700 hover:border-[#215481]"
+                      className="rounded-full border border-stone-200 bg-stone-50 px-2.5 py-1 text-left text-[10px] leading-snug text-stone-600 hover:border-[#215481]"
                     >
                       {template}
                     </button>

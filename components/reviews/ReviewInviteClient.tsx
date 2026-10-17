@@ -48,16 +48,25 @@ export default function ReviewInviteClient({
   const [success, setSuccess] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [userName, setUserName] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string>('');
   const [sessionReady, setSessionReady] = useState(false);
-  const templates = useMemo(() => reviewTemplatesForCategory(category), [category]);
+  const templates = useMemo(
+    () => reviewTemplatesForCategory(category, rating, userId || userName || ''),
+    [category, rating, userId, userName],
+  );
   const mood = REVIEW_STAR_EMOJI[rating];
   const slug = reviewSlugFromPath(reviewPath);
   const loginHref = buildLoginHref(reviewPath);
 
   useEffect(() => {
     void getSession().then((session) => {
-      if (session?.success && session.user) setUserName(session.user.fullName);
-      else setUserName(null);
+      if (session?.success && session.user) {
+        setUserName(session.user.fullName);
+        setUserId(session.user.id);
+      } else {
+        setUserName(null);
+        setUserId('');
+      }
       setSessionReady(true);
     });
   }, []);
@@ -148,23 +157,31 @@ export default function ReviewInviteClient({
               </div>
             </div>
 
-            <div>
-              <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-stone-500">
-                Suggested for {category || 'this business'}
+            {rating >= 1 && rating <= 3 ? (
+              <p className="rounded-xl bg-amber-50 px-3 py-2 text-[11px] leading-4 text-stone-700">
+                Please describe what happened without abusive or offensive words. A review that uses them can be removed under FinderB’s moderation policy.
               </p>
-              <div className="flex flex-wrap gap-1.5">
-                {templates.slice(0, 5).map((template) => (
-                  <button
-                    key={template}
-                    type="button"
-                    onClick={() => setContent(template)}
-                    className="rounded-full border border-stone-200 bg-stone-50 px-2.5 py-1 text-left text-[11px] text-stone-700 hover:border-[#215481] hover:bg-[#215481]/5"
-                  >
-                    {template}
-                  </button>
-                ))}
+            ) : null}
+
+            {templates.length > 0 ? (
+              <div>
+                <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-stone-500">
+                  Suggested for {category || 'this business'}
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {templates.map((template) => (
+                    <button
+                      key={template}
+                      type="button"
+                      onClick={() => setContent(template)}
+                      className="rounded-full border border-stone-200 bg-stone-50 px-2.5 py-1 text-left text-[10px] leading-snug text-stone-600 hover:border-[#215481] hover:bg-[#215481]/5"
+                    >
+                      {template}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            ) : null}
 
             <textarea
               value={content}
