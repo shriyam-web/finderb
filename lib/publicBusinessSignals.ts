@@ -1,17 +1,12 @@
-import { getProfileCompletion } from '@/lib/dashboard/profileCompletion';
-import { getBusinessPublicRatingStats } from '@/lib/businessReviews';
+import { loadBadgeReports } from '@/lib/businessBadgeState';
+import { activePublicBadges, type PublicBadge } from '@/lib/businessBadges';
 import { averageLeadResponseMs, formatResponseDuration } from '@/lib/leadRead';
 import { getPublicSupabase } from '@/lib/supabase/public';
-
-/** A public rating counts as good once several reviews sit at 4 or above. */
-const GOOD_REVIEW_RATING = 4;
-const GOOD_REVIEW_COUNT = 3;
-/** Replies within about 4 hours count as a good response time. */
-const GOOD_RESPONSE_MS = 4 * 60 * 60 * 1000;
 
 export type PublicBusinessSignals = {
   bestInCategory: boolean;
   averageResponse: string | null;
+  badges: PublicBadge[];
 };
 
 function completionSource(business: Record<string, unknown>): Record<string, unknown> {
@@ -25,18 +20,12 @@ function completionSource(business: Record<string, unknown>): Record<string, unk
 export async function loadPublicBusinessSignals(
   business: Record<string, unknown>,
 ): Promise<PublicBusinessSignals> {
-  const empty: PublicBusinessSignals = { bestInCategory: false, averageResponse: null };
+  const empty: PublicBusinessSignals = { bestInCategory: false, averageResponse: null, badges: [] };
   const businessId = String(business.id || '').trim();
   if (!businessId) return empty;
 
-  const { rating, reviewCount } = getBusinessPublicRatingStats(business.review);
-  let completion = 0;
-  try {
-    completion = getProfileCompletion(completionSource(business)).percentage;
-  } catch {
-    completion = 0;
-  }
   let averageResponseMs: number | null = null;
+  let leads: { created_at?: string | null; merchant_read_at?: string | null }[] = [];
 
   try {
     const supabase = getPublicSupabase();
@@ -45,18 +34,26 @@ export async function loadPublicBusinessSignals(
       .select('created_at, merchant_read_at')
       .eq('business_id', businessId);
     if (!error && data) {
+      leads = data;
       averageResponseMs = averageLeadResponseMs(data);
     }
   } catch {
     averageResponseMs = null;
   }
 
-  const goodReviews =
-    rating != null && rating >= GOOD_REVIEW_RATING && reviewCount >= GOOD_REVIEW_COUNT;
-  const goodResponse = averageResponseMs != null && averageResponseMs <= GOOD_RESPONSE_MS;
+  let badges: PublicBadge[] = [];
+  let bestInCategory = false;
+  try {
+    const reports = await loadBadgeReports(completionSource(business), { leads });
+    bestInCategory = reports.some((badge) => badge.id === 'bestInCategory' && badge.active);
+    badges = activePublicBadges(reports).filter((badge) => badge.id !== 'bestInCategory');
+  } catch {
+    badges = [];
+  }
 
   return {
-    bestInCategory: goodReviews && goodResponse && completion > 90,
+    bestInCategory,
     averageResponse: averageResponseMs == null ? null : formatResponseDuration(averageResponseMs),
+    badges,
   };
 }

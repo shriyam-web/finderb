@@ -50,6 +50,8 @@ export interface Business {
   bestInCategory?: boolean;
   /** Typical time to open a new lead, when the business has replied at least once. */
   averageResponse?: string | null;
+  /** Chips earned from replies, reviews, popularity, recency, or an admin award. */
+  badges?: { id: string; label: string }[];
 }
 
 export interface Category {

@@ -190,6 +190,14 @@ export type ConsoleOverview = {
   };
   kycMessage: string;
   detailsLockedUntil?: string | null;
+  badges?: {
+    id: 'bestInCategory' | 'quickReply' | 'highlyRated' | 'popularMonth' | 'newOnFinderB' | 'trusted';
+    label: string;
+    earned: boolean;
+    active: boolean;
+    override: 'auto' | 'on' | 'off';
+    detail: string;
+  }[];
   actor?: {
     isOwner: boolean;
     teamMemberId: string | null;

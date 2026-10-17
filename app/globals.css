@@ -1956,3 +1956,133 @@ html.site-text-only canvas:not(.text-only-keep) {
   letter-spacing: normal;
   text-transform: none;
 }
+
+@keyframes badge-shine {
+  0%, 18% { background-position: 140% 0; }
+  62%, 100% { background-position: -40% 0; }
+}
+
+.badge-shine {
+  background-image: linear-gradient(
+    105deg,
+    #44403c 0%,
+    #44403c 40%,
+    #fff8e8 48%,
+    #ffffff 50%,
+    #fff8e8 52%,
+    #44403c 60%,
+    #44403c 100%
+  );
+  background-size: 220% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: badge-shine 2.6s ease-in-out infinite;
+}
+
+@keyframes living-fire-rise {
+  0%, 6% {
+    transform: translate3d(0, 1px, 0) rotate(var(--fire-from, 0deg)) scale(0.85, 0.45);
+    opacity: 0;
+  }
+  22% { opacity: 1; }
+  100% {
+    transform: translate3d(var(--fire-drift, 0px), var(--fire-rise, -8px), 0) rotate(var(--fire-to, 6deg)) scale(0.7, 1);
+    opacity: 0;
+  }
+}
+
+@keyframes living-fire-pop {
+  0%, 46% {
+    transform: translate3d(0, 1px, 0) rotate(var(--fire-from, 0deg)) scale(0.7, 0.3);
+    opacity: 0;
+  }
+  58% { opacity: 1; }
+  100% {
+    transform: translate3d(var(--fire-drift, 1px), var(--fire-rise, -10px), 0) rotate(var(--fire-to, -8deg)) scale(0.55, 1);
+    opacity: 0;
+  }
+}
+
+.living-fire {
+  position: relative;
+  display: inline-flex;
+  width: 1em;
+  height: 1em;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+  line-height: 1;
+  vertical-align: -0.12em;
+}
+
+.living-fire__emoji {
+  position: relative;
+  z-index: 1;
+  font-size: 1em;
+  line-height: 1;
+}
+
+.living-fire__tongue {
+  position: absolute;
+  z-index: 2;
+  width: 0.36em;
+  height: 0.62em;
+  border-radius: 80% 80% 42% 42% / 72% 72% 28% 28%;
+  background: linear-gradient(
+    to top,
+    rgba(140, 8, 0, 0) 0%,
+    #c41200 14%,
+    #ff3d00 38%,
+    #ff8c12 62%,
+    #ffd24a 82%,
+    #fff6d4 100%
+  );
+  transform-origin: 50% 100%;
+  animation: living-fire-rise 0.7s ease-out infinite;
+  pointer-events: none;
+}
+
+.living-fire__tongue--a {
+  left: -0.22em; bottom: 0.04em; width: 0.3em; height: 0.5em;
+  --fire-from: -50deg; --fire-to: -22deg; --fire-drift: -2px; --fire-rise: -3px;
+  animation-duration: 0.48s;
+}
+.living-fire__tongue--b {
+  left: 0.05em; bottom: 0.78em; width: 0.22em; height: 0.62em;
+  --fire-from: -8deg; --fire-to: 10deg; --fire-drift: -1px; --fire-rise: -8px;
+  animation-duration: 0.74s; animation-delay: 0.27s;
+}
+.living-fire__tongue--c {
+  right: -0.2em; bottom: 0.1em; width: 0.42em; height: 0.38em;
+  --fire-from: 34deg; --fire-to: 12deg; --fire-drift: 2px; --fire-rise: -4px;
+  animation-duration: 0.91s; animation-delay: 0.11s;
+}
+.living-fire__tongue--d {
+  left: 0.38em; bottom: 0.82em; width: 0.16em; height: 0.7em;
+  --fire-from: 4deg; --fire-to: -12deg; --fire-drift: 1px; --fire-rise: -10px;
+  animation-name: living-fire-pop; animation-duration: 1.28s; animation-delay: 0.06s;
+}
+.living-fire__tongue--e {
+  left: -0.06em; bottom: 0.42em; width: 0.14em; height: 0.36em;
+  --fire-from: -30deg; --fire-to: -8deg; --fire-drift: -1px; --fire-rise: -5px;
+  animation-duration: 0.39s; animation-delay: 0.58s;
+}
+.living-fire__tongue--f {
+  right: -0.02em; bottom: 0.58em; width: 0.26em; height: 0.44em;
+  --fire-from: 18deg; --fire-to: -4deg; --fire-drift: 0px; --fire-rise: -7px;
+  animation-name: living-fire-pop; animation-duration: 0.62s; animation-delay: 0.41s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .badge-shine {
+    animation: none;
+    background: none;
+    color: #44403c;
+  }
+
+  .living-fire__tongue {
+    animation: none;
+    opacity: 0;
+  }
+}

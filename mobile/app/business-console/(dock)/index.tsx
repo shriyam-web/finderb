@@ -808,6 +808,16 @@ function HomeBody({ o }: { o: ConsoleOverview }) {
       onRefresh={() => void refresh()}
     >
       <Text style={styles.greeting}>{`${greeting}${firstName ? `, ${firstName}` : ''}`}</Text>
+      {o.detailsLockedUntil ? (
+        <View style={styles.lockBanner}>
+          <Text style={styles.lockTitle}>Details locked for 15 days</Text>
+          <Text style={styles.lockBody}>
+            {`This listing was just transferred. You can change business details after ${new Date(o.detailsLockedUntil).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}.`}
+          </Text>
+        </View>
+      ) : null}
+      <ShopCard o={o} go={go} />
+      {slides.length ? <AlertCarousel slides={slides} /> : null}
       <Pressable
         onPress={() => go('/business-console/growth')}
         style={({ pressed }) => [styles.growthBtn, pressed && styles.pressed]}
@@ -823,16 +833,6 @@ function HomeBody({ o }: { o: ConsoleOverview }) {
         </View>
         <Ionicons name="chevron-forward" size={16} color={c.faint} />
       </Pressable>
-      {o.detailsLockedUntil ? (
-        <View style={styles.lockBanner}>
-          <Text style={styles.lockTitle}>Details locked for 15 days</Text>
-          <Text style={styles.lockBody}>
-            {`This listing was just transferred. You can change business details after ${new Date(o.detailsLockedUntil).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}.`}
-          </Text>
-        </View>
-      ) : null}
-      <ShopCard o={o} go={go} />
-      {slides.length ? <AlertCarousel slides={slides} /> : null}
       <Section title="Performance">
         <Performance o={o} go={go} />
       </Section>
@@ -870,7 +870,7 @@ const useStyles = createConsoleStyles((c) => ({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    marginTop: 10,
+    marginTop: 0,
     paddingHorizontal: 12,
     paddingVertical: 12,
     borderRadius: 14,

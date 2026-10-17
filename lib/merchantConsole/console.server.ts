@@ -9,6 +9,7 @@ import {
 import { getBusinessLeads, markLeadRead, updateLeadStatus } from '@/app/actions/leads';
 import { isOpenLead } from '@/lib/leadBadges';
 import { isLeadUnread, averageLeadResponseLabel, averageLeadResponseMs } from '@/lib/leadRead';
+import { loadBadgeReports } from '@/lib/businessBadgeState';
 import { loadCompetitorAverageFromClient } from '@/lib/dashboard/competitorInsights';
 import { revalidateBusinessProfilePaths } from '@/lib/businessRevalidation';
 import { isBusinessWhatsappVerified } from '@/lib/unverifiedContact';
@@ -434,6 +435,12 @@ async function overview(businessId: string) {
   ]);
   const leads = leadsResult.success ? leadsResult.leads : [];
   const jobs = jobsResult.success && jobsResult.jobs ? jobsResult.jobs : [];
+  let badges: Awaited<ReturnType<typeof loadBadgeReports>> = [];
+  try {
+    badges = await loadBadgeReports(business, { leads });
+  } catch {
+    badges = [];
+  }
 
   return {
     success: true as const,
@@ -519,6 +526,7 @@ async function overview(businessId: string) {
     },
     kycMessage: KYC_OUTSOURCED_MESSAGE,
     detailsLockedUntil: detailsLock.locked ? detailsLock.until : null,
+    badges,
     actor: {
       isOwner: actor.isOwner,
       teamMemberId: actor.isOwner ? null : actor.teamMemberId,

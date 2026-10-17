@@ -22,6 +22,7 @@ type Props = {
   signedIn: boolean;
   ownBusiness?: boolean;
   authorName?: string;
+  suggestionSeed?: string;
   onRequestLogin: () => void;
   onSubmitted: (payload: { reviews: MerchantReview[]; rating: number }) => void;
 };
@@ -44,6 +45,7 @@ export function MerchantReviewComposer({
   signedIn,
   ownBusiness,
   authorName,
+  suggestionSeed,
   onRequestLogin,
   onSubmitted,
 }: Props) {
@@ -154,13 +156,26 @@ export function MerchantReviewComposer({
         ))}
       </View>
 
-      <View style={styles.templates}>
-        {reviewTemplatesForCategory(category || '').slice(0, 4).map((template) => (
-          <Pressable key={template} onPress={() => setContent(template)} style={styles.template}>
-            <Text style={styles.templateText}>{template}</Text>
-          </Pressable>
-        ))}
-      </View>
+      {rating >= 1 && rating <= 3 ? (
+        <View style={styles.policy}>
+          <Ionicons name="information-circle-outline" size={16} color="#E8811E" />
+          <Text style={styles.policyText}>
+            Please describe what happened without abusive or offensive words. A review that uses them can be removed under FinderB’s moderation policy.
+          </Text>
+        </View>
+      ) : null}
+
+      {rating < 1 ? (
+        <Text style={styles.templateHint}>Select your stars to see suggestions for this business.</Text>
+      ) : (
+        <View style={styles.templates}>
+          {reviewTemplatesForCategory(category || '', rating, suggestionSeed || authorName || '').map((template) => (
+            <Pressable key={template} onPress={() => setContent(template)} style={styles.template}>
+              <Text style={styles.templateText}>{template}</Text>
+            </Pressable>
+          ))}
+        </View>
+      )}
 
       <TextInput
         value={content}
@@ -244,6 +259,30 @@ const useStyles = createThemedStyles((colors) => ({
     gap: 6,
     marginVertical: 2,
   },
+  policy: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    marginTop: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E7E5E4',
+    shadowColor: '#1C1917',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  policyText: {
+    flex: 1,
+    fontFamily: fonts.regular,
+    fontSize: 12,
+    lineHeight: 17,
+    color: '#44403C',
+  },
   templates: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   template: {
     maxWidth: '100%',
@@ -254,7 +293,7 @@ const useStyles = createThemedStyles((colors) => ({
     borderColor: colors.border,
     backgroundColor: colors.surfaceSoft,
   },
-  templateText: { fontFamily: fonts.regular, fontSize: 12, lineHeight: 16, color: colors.textMuted },
+  templateText: { fontFamily: fonts.regular, fontSize: 11, lineHeight: 15, color: colors.textMuted },
   input: {
     minHeight: 96,
     borderWidth: 1,

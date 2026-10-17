@@ -18,6 +18,8 @@ import {
   Star,
 } from 'lucide-react';
 import { FaWhatsapp } from 'react-icons/fa';
+import { PublicBadgeRow } from '@/components/business/PublicBadgeRow';
+import { LivingFire } from '@/components/business/LivingFire';
 import type { Business } from '@/lib/mockData';
 import { findCategoryForBreadcrumb, type CategoryBreadcrumb } from '@/app/actions/category';
 import { getBusiness, getBusinessesByCategory, getBusinessSession } from '@/app/actions/business';
@@ -847,10 +849,12 @@ export default function BusinessProfilePage({
 
               {business.bestInCategory ? (
                 <p className="inline-flex items-center gap-1.5 text-xs font-semibold text-stone-500">
-                  <span className="animate-fire-flicker" aria-hidden>🔥</span>
+                  <LivingFire />
                   Best in Category
                 </p>
               ) : null}
+
+              <PublicBadgeRow badges={business.badges} />
 
               {locationLabel || distanceLabel || directionsLink ? (
                 <div>

@@ -7,6 +7,7 @@ import { parseBusinessServices } from '@/lib/parseBusinessServices';
 import { getMerchantSubscriptionStatus } from '@/lib/subscription/merchantSubscription';
 import { normalizeExternalHref } from '@/lib/validateProfileUrl';
 import { hasBusinessMapPin, isBusinessWhatsappVerified } from '@/lib/unverifiedContact';
+import { BADGE_LABEL, isBadgeId, type PublicBadge } from '@/lib/businessBadges';
 
 function parseBusinessServicesFromRecord(business: {
   serviceCategory?: string | null;
@@ -230,11 +231,24 @@ export function mapBusinessRecord(business: Record<string, unknown>) {
       longitude: business.longitude as number,
     }),
     bestInCategory: business.bestInCategory === true,
+    badges: publicBadgesFrom(business.badges),
     averageResponse:
       typeof business.averageResponse === 'string' && business.averageResponse.trim()
         ? business.averageResponse.trim()
         : null,
   };
+}
+
+function publicBadgesFrom(value: unknown): PublicBadge[] {
+  if (!Array.isArray(value)) return [];
+  const badges: PublicBadge[] = [];
+  for (const entry of value) {
+    if (!entry || typeof entry !== 'object') continue;
+    const id = (entry as { id?: unknown }).id;
+    if (!isBadgeId(id)) continue;
+    badges.push({ id, label: BADGE_LABEL[id] });
+  }
+  return badges;
 }
 
 /** Merchant dashboard record — includes private owner contact fields. */

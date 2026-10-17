@@ -26,6 +26,8 @@ import { ConnectMerchantModal } from '../../../components/ConnectMerchantModal';
 import { MerchantOfferBanner } from '../../../components/MerchantOfferBanner';
 import { MerchantReviewComposer } from '../../../components/MerchantReviewComposer';
 import { PhotoLightbox } from '../../../components/PhotoLightbox';
+import { PublicBadgeRow } from '../../../components/PublicBadgeRow';
+import { LivingFire } from '../../../components/LivingFire';
 import { PrimaryButton } from '../../../components/PrimaryButton';
 import { fonts } from '../../../constants/typography';
 import { useAuth } from '../../../context/AuthContext';
@@ -47,6 +49,7 @@ import {
 } from '../../../lib/merchants';
 import { getDiscountOfferDisplay } from '../../../lib/discountOffer';
 import { fetchFavoriteIds, toggleFavorite } from '../../../lib/favoritesApi';
+import { heroIconBackground } from '../../../lib/heroIconContrast';
 import { OwnThisBusiness } from '../../../components/OwnThisBusiness';
 import { recordDirectLead } from '../../../lib/leadsApi';
 import { FormattedAbout } from '../../../components/FormattedAbout';
@@ -122,64 +125,100 @@ function maskEmail(value?: string | null): string {
   return `${localPart.slice(0, 2)}${'•'.repeat(Math.max(2, localPart.length - 2))}@${domainPart}`;
 }
 
-/** Subtle 🔥 flicker — mirrors web `animate-fire-flicker`. */
-function FlickeringFire() {
+function HeroGlyph({
+  name,
+  size,
+  color,
+  onLight,
+}: {
+  name: 'chevron-back' | 'heart' | 'heart-outline' | 'share-outline';
+  size: number;
+  color: string;
+  onLight: boolean;
+}) {
+  const ink = onLight ? '#0C0A09' : color;
+  return (
+    <Ionicons
+      name={name}
+      size={size}
+      color={ink}
+      style={{
+        textShadowColor: onLight ? 'rgba(255,255,255,0.95)' : 'rgba(0,0,0,0.85)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: onLight ? 3 : 5,
+      }}
+    />
+  );
+}
+
+function ratingBoxColor(rating: number): string {
+  if (rating <= 2) return '#DC2626';
+  if (rating <= 3.5) return '#E6A800';
+  return '#16A34A';
+}
+
+/** A quiet clock tick and a passing highlight. No filled chip. */
+function ReplyPace({ label }: { label: string }) {
   const styles = useStyles();
-  const anim = useRef(new Animated.Value(0)).current;
+  const { isDark } = useTheme();
+  const replyBrown = isDark ? '#C4A484' : '#8A5A32';
+  const tick = useRef(new Animated.Value(0)).current;
+  const shine = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    const loop = Animated.loop(
+    const icon = Animated.loop(
       Animated.sequence([
-        Animated.timing(anim, {
-          toValue: 1,
-          duration: 280,
-          useNativeDriver: true,
-        }),
-        Animated.timing(anim, {
-          toValue: 2,
-          duration: 280,
-          useNativeDriver: true,
-        }),
-        Animated.timing(anim, {
-          toValue: 3,
-          duration: 280,
-          useNativeDriver: true,
-        }),
-        Animated.timing(anim, {
-          toValue: 4,
-          duration: 310,
-          useNativeDriver: true,
-        }),
+        Animated.timing(tick, { toValue: 1, duration: 700, useNativeDriver: true }),
+        Animated.timing(tick, { toValue: 0, duration: 700, useNativeDriver: true }),
       ]),
     );
-    loop.start();
-    return () => loop.stop();
-  }, [anim]);
+    const gleam = Animated.loop(
+      Animated.sequence([
+        Animated.timing(shine, { toValue: 1, duration: 1100, useNativeDriver: true }),
+        Animated.delay(1400),
+      ]),
+    );
+    icon.start();
+    gleam.start();
+    return () => {
+      icon.stop();
+      gleam.stop();
+    };
+  }, [shine, tick]);
 
-  const scale = anim.interpolate({
-    inputRange: [0, 1, 2, 3, 4],
-    outputRange: [1, 1.15, 0.92, 1.08, 1],
+  const rotate = tick.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['-12deg', '12deg'],
   });
-  const rotate = anim.interpolate({
-    inputRange: [0, 1, 2, 3, 4],
-    outputRange: ['0deg', '-8deg', '5deg', '-4deg', '0deg'],
+  const scale = tick.interpolate({
+    inputRange: [0, 1],
+    outputRange: [1, 1.16],
   });
-  const opacity = anim.interpolate({
-    inputRange: [0, 1, 2, 3, 4],
-    outputRange: [1, 0.85, 1, 0.9, 1],
+  const translateX = shine.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-36, 180],
   });
 
   return (
-    <Animated.Text
-      style={[
-        styles.trendingFire,
-        { opacity, transform: [{ scale }, { rotate }] },
-      ]}
-      accessibilityElementsHidden
-      importantForAccessibility="no"
-    >
-      🔥
-    </Animated.Text>
+    <View style={styles.responseChip}>
+      <Animated.View style={{ transform: [{ rotate }, { scale }] }}>
+        <Ionicons name="time-outline" size={15} color={replyBrown} />
+      </Animated.View>
+      <View style={styles.responseShineWrap}>
+        <Text style={[styles.responseValue, { color: replyBrown }]}>Usually replies in {label}</Text>
+        <Animated.View
+          pointerEvents="none"
+          style={[styles.responseShine, { transform: [{ translateX }] }]}
+        >
+          <LinearGradient
+            colors={['rgba(255,255,255,0)', 'rgba(255,255,255,0.95)', 'rgba(255,255,255,0)']}
+            start={{ x: 0, y: 0.5 }}
+            end={{ x: 1, y: 0.5 }}
+            style={StyleSheet.absoluteFill}
+          />
+        </Animated.View>
+      </View>
+    </View>
   );
 }
 
@@ -280,6 +319,7 @@ export default function MerchantProfileScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [galleryIndex, setGalleryIndex] = useState(0);
+  const [iconOnLight, setIconOnLight] = useState({ left: false, right: false });
   const [aboutExpanded, setAboutExpanded] = useState(false);
   const [hoursExpanded, setHoursExpanded] = useState(false);
   const [connectOpen, setConnectOpen] = useState(false);
@@ -293,6 +333,7 @@ export default function MerchantProfileScreen() {
   const [signals, setSignals] = useState<{
     bestInCategory: boolean;
     averageResponse: string | null;
+    badges: { id: string; label: string }[];
   } | null>(null);
   const linkCopiedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -329,11 +370,19 @@ export default function MerchantProfileScreen() {
           const data = (await response.json()) as {
             bestInCategory?: boolean;
             averageResponse?: string | null;
+            badges?: { id?: string; label?: string }[];
           };
           if (cancelled) return;
           setSignals({
             bestInCategory: data.bestInCategory === true,
             averageResponse: typeof data.averageResponse === 'string' ? data.averageResponse : null,
+            badges: Array.isArray(data.badges)
+              ? data.badges.flatMap((badge) =>
+                  badge && typeof badge.id === 'string' && typeof badge.label === 'string'
+                    ? [{ id: badge.id, label: badge.label }]
+                    : [],
+                )
+              : [],
           });
           return;
         } catch {
@@ -415,6 +464,21 @@ export default function MerchantProfileScreen() {
     : merchant?.image
       ? [merchant.image]
       : [];
+  const heroUri = photos[galleryIndex] || photos[0] || '';
+
+  useEffect(() => {
+    let cancelled = false;
+    setIconOnLight({ left: false, right: false });
+    if (!heroUri) return undefined;
+    void heroIconBackground(heroUri, { width: screenW, height: heroH }).then((result) => {
+      if (!cancelled && result) {
+        setIconOnLight({ left: result.leftLight, right: result.rightLight });
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [heroH, heroUri, screenW]);
 
   useEffect(() => {
     setGalleryIndex(0);
@@ -838,7 +902,7 @@ export default function MerchantProfileScreen() {
               style={styles.chromeBtn}
               onPress={() => goBackOrHome(router)}
             >
-              <Ionicons name="chevron-back" size={20} color="#0C0A09" />
+              <HeroGlyph name="chevron-back" size={22} color="#FFFFFF" onLight={iconOnLight.left} />
             </Pressable>
             <View style={styles.chromeRight}>
               <Pressable
@@ -848,17 +912,18 @@ export default function MerchantProfileScreen() {
                 accessibilityLabel={saved ? 'Remove from favourites' : 'Save to favourites'}
               >
                 {saving ? (
-                  <ActivityIndicator size="small" color="#E11D48" />
+                  <ActivityIndicator size="small" color={iconOnLight.right ? '#0C0A09' : '#FFFFFF'} />
                 ) : (
-                  <Ionicons
+                  <HeroGlyph
                     name={saved ? 'heart' : 'heart-outline'}
-                    size={17}
-                    color={saved ? '#E11D48' : '#0C0A09'}
+                    size={20}
+                    color={saved ? '#E11D48' : '#FFFFFF'}
+                    onLight={iconOnLight.right && !saved}
                   />
                 )}
               </Pressable>
               <Pressable style={styles.chromeBtn} onPress={shareProfile}>
-                <Ionicons name="share-outline" size={17} color="#0C0A09" />
+                <HeroGlyph name="share-outline" size={20} color="#FFFFFF" onLight={iconOnLight.right} />
               </Pressable>
             </View>
           </SafeAreaView>
@@ -938,7 +1003,12 @@ export default function MerchantProfileScreen() {
                   <View style={styles.ratingUnderName}>
                     {headerRating.rated ? (
                       <>
-                        <View style={styles.ratingBox}>
+                        <View
+                          style={[
+                            styles.ratingBox,
+                            { backgroundColor: ratingBoxColor(headerRating.rating) },
+                          ]}
+                        >
                           <Ionicons name="star" size={11} color="#FFFFFF" />
                           <Text style={styles.ratingBoxText}>{headerRating.label}</Text>
                         </View>
@@ -1008,18 +1078,16 @@ export default function MerchantProfileScreen() {
                   : ''}
               </Text>
 
-              {signals?.averageResponse ? (
-                <Text style={styles.responseLine}>
-                  Usually replies in {signals.averageResponse}
-                </Text>
-              ) : null}
+              {signals?.averageResponse ? <ReplyPace label={signals.averageResponse} /> : null}
 
               {signals?.bestInCategory ? (
                 <View style={styles.trendingBadge}>
-                  <FlickeringFire />
+                  <LivingFire />
                   <Text style={styles.trendingText}>Best in Category</Text>
                 </View>
               ) : null}
+
+              <PublicBadgeRow badges={signals?.badges} />
 
               {(placeLabel || distanceLabel || mapsUrl) ? (
                 <View style={styles.placeBlock}>
@@ -1493,12 +1561,7 @@ export default function MerchantProfileScreen() {
           ) : null}
 
           <View style={styles.section}>
-            <SectionHead
-              title="Reviews"
-              meta={
-                ratingValue != null ? `${ratingValue.toFixed(1)} avg` : undefined
-              }
-            />
+            <SectionHead title="Reviews" />
 
             {merchant.reviews.length > 0 ? (
               <View style={styles.ratingSummary}>
@@ -1536,6 +1599,7 @@ export default function MerchantProfileScreen() {
               signedIn={Boolean(user)}
               ownBusiness={isOwnBusiness}
               authorName={user?.fullName}
+              suggestionSeed={user?.id || user?.fullName || ''}
               onRequestLogin={requestLogin}
               onSubmitted={({ reviews, rating }) => {
                 setMerchant((prev) =>
@@ -1878,10 +1942,9 @@ const useStyles = createThemedStyles((colors, gradients) => ({
   chromeBtn: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.frost,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: 'transparent',
   },
   chromeRight: {
     flexDirection: 'row',
@@ -2072,7 +2135,6 @@ const useStyles = createThemedStyles((colors, gradients) => ({
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 5,
-    backgroundColor: '#E6A800',
   },
   ratingBoxText: {
     fontFamily: fonts.semiBold,
@@ -2172,30 +2234,39 @@ const useStyles = createThemedStyles((colors, gradients) => ({
     fontSize: 13,
     color: colors.textMuted,
   },
-  responseLine: {
-    fontFamily: fonts.medium,
-    fontSize: 12,
-    color: colors.textMuted,
-  },
   trendingBadge: {
-    alignSelf: 'flex-start',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
-    maxWidth: '100%',
-  },
-  trendingFire: {
-    fontSize: 12,
-    lineHeight: 14,
+    alignSelf: 'flex-start',
+    gap: 6,
   },
   trendingText: {
-    flexShrink: 1,
     fontFamily: fonts.semiBold,
     fontSize: 12,
     color: colors.textMuted,
   },
-  placeBlock: {
-    gap: 4,
+  responseChip: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    maxWidth: '100%',
+    backgroundColor: 'transparent',
+  },
+  responseShineWrap: {
+    overflow: 'hidden',
+    flexShrink: 1,
+  },
+  responseValue: {
+    fontFamily: fonts.semiBold,
+    fontSize: 13,
+    color: '#8A5A32',
+  },
+  responseShine: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    width: 36,
   },
   placeRow: {
     flexDirection: 'row',
