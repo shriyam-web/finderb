@@ -162,7 +162,7 @@ function validateBusinessName(value: string, label = 'your legal business name')
   if (trimmed.length > MAX_BUSINESS_NAME_LENGTH) {
     return `Business name must be ${MAX_BUSINESS_NAME_LENGTH} characters or fewer.`;
   }
-  return mixedNameLanguageError(trimmed);
+  return null;
 }
 
 function validateDisplayName(value: string | undefined, _fallbackLegalName: string): string | null {

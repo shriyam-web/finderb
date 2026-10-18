@@ -6,7 +6,6 @@ import {
   getPendingChangeRequest,
   submitChangeRequest,
 } from '@/app/actions/businessChangeRequests';
-import { NAME_SINGLE_LANGUAGE_HINT, mixedNameLanguageError } from '@/lib/businessAbout';
 import { LEGAL_BUSINESS_NAME_FIELD, type BusinessChangeRequest } from '@/lib/businessChangeRequest';
 import { dashboard } from './dashboard-ui';
 
@@ -62,11 +61,6 @@ export default function LegalBusinessNameChangeRequestPanel({
       setError('Choose a name that is different from your current legal business name.');
       return;
     }
-    const mixed = mixedNameLanguageError(trimmed);
-    if (mixed) {
-      setError(mixed);
-      return;
-    }
 
     setSubmitting(true);
     const result = await submitChangeRequest({
@@ -110,7 +104,7 @@ export default function LegalBusinessNameChangeRequestPanel({
         </p>
         <p className="mt-2 text-xs leading-relaxed text-zinc-500">
           Your registered legal name cannot be edited directly. Submit a change request and our team will
-          verify it before updating your records. {NAME_SINGLE_LANGUAGE_HINT}
+          verify it before updating your records.
         </p>
       </div>
 

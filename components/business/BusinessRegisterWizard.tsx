@@ -611,7 +611,7 @@ export default function BusinessRegisterWizard({
                     error={fieldErrors.businessName}
                   />
                   <p className="-mt-2 text-xs leading-relaxed text-[#64748b]">
-                    Registered legal name. Write it in one language only — Hindi and English together, or any mix, will not be saved. Changes later require admin approval in Settings.
+                    Registered legal name. Changes later require admin approval in Settings.
                   </p>
                   <MerchantAuthField
                     id="displayName"

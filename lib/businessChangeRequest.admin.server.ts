@@ -103,7 +103,7 @@ export async function moderateChangeRequest(input: {
 
   if (input.action === 'approve') {
     const nextValue = String(request.requested_value || '').trim();
-    if (request.field === 'legal_business_name' || request.field === 'display_name') {
+    if (request.field === 'display_name') {
       const mixed = mixedNameLanguageError(nextValue);
       if (mixed) return { success: false as const, error: mixed };
     }

@@ -92,6 +92,8 @@ export async function submitChangeRequest(params: {
       if (requestedValue.length > 50) {
         return { success: false as const, error: 'Business name must be 50 characters or fewer.' };
       }
+    }
+    if (params.field === 'display_name') {
       const mixed = mixedNameLanguageError(requestedValue);
       if (mixed) return { success: false as const, error: mixed };
     }
