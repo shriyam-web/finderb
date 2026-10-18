@@ -44,7 +44,24 @@ async function fieldsOf(request: Request): Promise<{
     email: String(body?.email || ''),
     phone: String(body?.phone || ''),
     message: String(body?.message || ''),
-    cv: null,
+    cv: cvFromBase64(body),
+  };
+}
+
+/** App uploads send the CV as base64 JSON. React Native FormData file posts fail before the server answers. */
+function cvFromBase64(body: Record<string, unknown> | null): { filename: string; bytes: Buffer } | null {
+  const raw = typeof body?.cvBase64 === 'string' ? body.cvBase64.trim() : '';
+  if (!raw) return null;
+  const payload = raw.replace(/^data:[^;]+;base64,/i, '').replace(/\s/g, '');
+  // 5 MB of bytes is about 6.7 MB of base64. Reject anything larger before decoding.
+  if (payload.length > 6_800_000) {
+    throw new Error('CV must be 5 MB or smaller.');
+  }
+  const bytes = Buffer.from(payload, 'base64');
+  if (!bytes.length) throw new Error('The CV file is empty.');
+  return {
+    filename: String(body?.cvName || 'cv.pdf').slice(0, 120),
+    bytes,
   };
 }
 
@@ -80,6 +97,10 @@ export async function POST(request: Request) {
     });
     return NextResponse.json(result, { status: result.success ? 200 : 400 });
   } catch (error) {
+    const message = error instanceof Error ? error.message : '';
+    if (/CV must be|CV file is empty/i.test(message)) {
+      return NextResponse.json({ success: false, error: message }, { status: 400 });
+    }
     console.error('[mobile job application]', error);
     return NextResponse.json(
       { success: false, error: 'Could not submit application. Please try again.' },

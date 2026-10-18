@@ -8,7 +8,6 @@ const STOP_WORDS = new Set([
   'the',
   'and',
   'for',
-  'with',
   'from',
   'that',
   'this',
@@ -237,12 +236,35 @@ export function exactMissNotice(label: string): string {
   return `No exact match for “${shown}”. Here are relevant options you can look through.`;
 }
 
+function isFilterWord(word: string): boolean {
+  const term = singularizeSearchTerm(word);
+  return QUERY_FILTER_WORDS.has(word) || QUERY_FILTER_WORDS.has(term);
+}
+
+/**
+ * "with" stays when it belongs to a name ("cafe with a view", "tea with me").
+ * It drops when it only introduces a filter ("gym with good reviews", "salon with offers").
+ */
+function keepWithToken(words: string[], index: number): boolean {
+  if (words[index] !== 'with') return true;
+  const after = words.slice(index + 1);
+  if (!after.length) return false;
+  if (isFilterWord(after[0])) return false;
+  const content = after.filter((word) => !STOP_WORDS.has(word) && !isFilterWord(word));
+  const filters = after.filter((word) => isFilterWord(word));
+  if (filters.length > 0 && content.length === 0) return false;
+  return true;
+}
+
 export function parseDirectoryQuery(normalized: string): DirectoryQuery {
-  const words = normalized
+  const rawWords = normalized
     .toLowerCase()
     .split(/[^a-z0-9]+/)
     .map((word) => word.trim())
-    .filter((word) => word.length >= 2 && !STOP_WORDS.has(word) && !/^\d+$/.test(word));
+    .filter((word) => word.length >= 2 && !/^\d+$/.test(word));
+  const words = rawWords.filter(
+    (word, index) => !STOP_WORDS.has(word) && keepWithToken(rawWords, index),
+  );
 
   const terms = [...new Set(words.map(singularizeSearchTerm))];
   const withoutFilters = terms.filter((term) => !QUERY_FILTER_WORDS.has(term));
@@ -416,8 +438,11 @@ export function nameSuggestionScore(name: string, rawQuery: string): number {
 
   const used = new Set<number>();
   let fuzzy = 0;
+  let matched = 0;
+  let missed = 0;
   for (let index = 0; index < queryTokens.length; index += 1) {
     const term = queryTokens[index];
+    if (STOP_WORDS.has(term)) continue;
     const last = index === queryTokens.length - 1;
     let match = -1;
     for (let nameIndex = 0; nameIndex < nameTokens.length; nameIndex += 1) {
@@ -428,11 +453,73 @@ export function nameSuggestionScore(name: string, rawQuery: string): number {
       if (!exact) fuzzy += 1;
       break;
     }
-    if (match < 0) return 0;
+    if (match < 0) {
+      missed += 1;
+      continue;
+    }
+    matched += 1;
     used.add(match);
   }
 
-  return Math.max(64, 86 - fuzzy * 6);
+  if (!matched) return 0;
+  return Math.max(48, 86 - fuzzy * 6 - missed * 16);
+}
+
+function tokenQuality(term: string, token: string): number {
+  if (tokenMatches(token, term)) return 1;
+  const left = singularizeSearchTerm(term);
+  const right = singularizeSearchTerm(token);
+  if (left.length < 4 || right.length < 4) return 0;
+  const allowed = left.length >= 8 ? 2 : 1;
+  return editDistance(left, right) <= allowed ? 0.7 : 0;
+}
+
+/** Higher means a closer hit. A junk extra word does not wipe out a real match. */
+export function scoreMerchantMatch(merchant: RankableMerchant, terms: string[]): number {
+  if (!terms.length) return 0;
+  const fields: Array<[string, number]> = [
+    [merchant.name || '', 52],
+    [merchant.category || '', 44],
+    [(merchant.services || []).join(' '), 26],
+    [(merchant.keywords || []).join(' '), 22],
+    [merchant.about || '', 8],
+  ];
+
+  let score = 0;
+  let matched = 0;
+  for (const term of terms) {
+    let best = 0;
+    for (const [value, weight] of fields) {
+      for (const token of tokensOf(value)) {
+        const quality = tokenQuality(term, token);
+        if (quality > 0) best = Math.max(best, Math.round(weight * quality));
+      }
+    }
+    if (best > 0) {
+      matched += 1;
+      score += best;
+    }
+  }
+  if (!matched) return 0;
+  score += matched * 10;
+  if (matched === terms.length) score += 28;
+  const name = merchant.name.toLowerCase();
+  if (name.includes(terms.join(' '))) score += 36;
+  return score;
+}
+
+/** Category, parent, or leaf can match even when another word in the query does not. */
+export function categoryRelevanceScore(name: string, slug: string, terms: string[]): number {
+  const exact = categoryMatchScore(name, slug, terms);
+  if (exact) return exact;
+  if (!terms.length) return 0;
+  const parts = [categoryLeaf(name), name, slug.replace(/-/g, ' ')];
+  let hits = 0;
+  for (const term of terms) {
+    if (parts.some((part) => fieldMatchesTerms(part, [term]))) hits += 1;
+  }
+  if (!hits) return 0;
+  return 36 + hits * 12;
 }
 
 export function relatedSearchTerms(required: string[]): string[] {

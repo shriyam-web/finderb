@@ -5,6 +5,7 @@ import {
   exactMissNotice,
   merchantMatchTier,
   nameSuggestionScore,
+  scoreMerchantMatch,
   orderMerchantsByPrecision,
   parseDirectoryQuery,
   relatedSearchTerms,
@@ -100,7 +101,10 @@ assert.equal(categoryMatchScore('Eye Clinic', 'eye-clinic', dental.required), 0)
 assert.deepEqual(parseDirectoryQuery('open gym near me').required, ['gym']);
 assert.deepEqual(parseDirectoryQuery('best dentist').required, ['dentist']);
 assert.deepEqual(parseDirectoryQuery('verified plumber nearby').required, ['plumber']);
-assert.deepEqual(parseDirectoryQuery('property with rajnish').required, ['property', 'rajnish']);
+assert.deepEqual(parseDirectoryQuery('property with rajnish').required, ['property', 'with', 'rajnish']);
+assert.deepEqual(parseDirectoryQuery('gym with good reviews').required, ['gym']);
+assert.deepEqual(parseDirectoryQuery('salon with offers').required, ['salon']);
+assert.deepEqual(parseDirectoryQuery('tea with me').required, ['tea', 'with']);
 assert.equal(
   merchantMatchTier(
     { name: 'Property With Rajnish', category: 'Real Estate', services: [], keywords: [], about: '' },
@@ -108,12 +112,36 @@ assert.equal(
   ),
   1,
 );
+assert.ok(
+  scoreMerchantMatch(
+    { name: 'Tea With Me', category: 'Cafe', services: [], keywords: [], about: '' },
+    parseDirectoryQuery('tea with me').required,
+  ) > scoreMerchantMatch(
+    { name: 'Tea House', category: 'Cafe', services: [], keywords: [], about: '' },
+    parseDirectoryQuery('tea with me').required,
+  ),
+);
 
 assert.ok(nameSuggestionScore('Property With Rajnish', 'property with') >= 90);
 assert.ok(nameSuggestionScore('Property With Rajnish', 'PROPERTY WITH RAJ') >= 64);
 assert.ok(nameSuggestionScore('Property With Rajnish', 'rajnish property') >= 64);
 assert.ok(nameSuggestionScore('Property With Rajnish', 'propert with rajnish') >= 64);
 assert.equal(nameSuggestionScore('Barber Shop', 'bar'), 0);
+assert.ok(
+  scoreMerchantMatch(
+    { name: 'Property With Rajnish', category: 'Real Estate', services: [], keywords: [], about: '' },
+    parseDirectoryQuery('property with fjdfj').required,
+  ) > 0,
+);
+assert.ok(
+  scoreMerchantMatch(
+    { name: 'City Dental', category: 'Health › Dental Clinic', services: [], keywords: [], about: '' },
+    parseDirectoryQuery('dental').required,
+  ) > scoreMerchantMatch(
+    { name: 'City Cafe', category: 'Cafe', services: [], keywords: [], about: 'dental waiting area' },
+    parseDirectoryQuery('dental').required,
+  ),
+);
 assert.equal(nameSuggestionScore('Cardiac Care', 'car'), 0);
 
 assert.deepEqual(detectSearchIntents('gym nearby'), ['nearest']);
