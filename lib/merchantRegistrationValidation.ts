@@ -1,3 +1,4 @@
+import { mixedNameLanguageError } from '@/lib/businessAbout';
 import { indianMobileValidationError, normalizeIndianPhoneForStorage } from '@/lib/indianPhone';
 import {
   combineBusinessAddress,
@@ -161,10 +162,10 @@ function validateBusinessName(value: string, label = 'your legal business name')
   if (trimmed.length > MAX_BUSINESS_NAME_LENGTH) {
     return `Business name must be ${MAX_BUSINESS_NAME_LENGTH} characters or fewer.`;
   }
-  return null;
+  return mixedNameLanguageError(trimmed);
 }
 
-function validateDisplayName(value: string | undefined, fallbackLegalName: string): string | null {
+function validateDisplayName(value: string | undefined, _fallbackLegalName: string): string | null {
   const trimmed = value?.trim() ?? '';
   if (!trimmed) return null;
   if (trimmed.length < MIN_DISPLAY_NAME_LENGTH) {
@@ -173,10 +174,7 @@ function validateDisplayName(value: string | undefined, fallbackLegalName: strin
   if (trimmed.length > MAX_BUSINESS_NAME_LENGTH) {
     return `Business display name must be ${MAX_BUSINESS_NAME_LENGTH} characters or fewer.`;
   }
-  if (trimmed.toLowerCase() === fallbackLegalName.trim().toLowerCase()) {
-    return null;
-  }
-  return null;
+  return mixedNameLanguageError(trimmed);
 }
 
 function validateEmail(value: string): string | null {

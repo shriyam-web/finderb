@@ -611,7 +611,7 @@ export default function BusinessRegisterWizard({
                     error={fieldErrors.businessName}
                   />
                   <p className="-mt-2 text-xs leading-relaxed text-[#64748b]">
-                    Registered legal name. Changes later require admin approval in Settings.
+                    Registered legal name. Write it in one language only — Hindi and English together, or any mix, will not be saved. Changes later require admin approval in Settings.
                   </p>
                   <MerchantAuthField
                     id="displayName"
@@ -624,7 +624,7 @@ export default function BusinessRegisterWizard({
                     error={fieldErrors.displayName}
                   />
                   <p className="-mt-2 text-xs leading-relaxed text-[#64748b]">
-                    This is what customers see on FinderB. Leave blank to use your legal name.
+                    This is what customers see on FinderB. One language only. Leave blank to use your legal name.
                   </p>
                   <SearchableSelect
                     tone="merchant"

@@ -11,6 +11,7 @@ import {
 import { assertBusinessSession } from '@/lib/security/session';
 import { assertBusinessTab } from '@/lib/businessTeam/teamActor.server';
 import { enforceRateLimit } from '@/lib/security/enforceRateLimit.server';
+import { mixedNameLanguageError } from '@/lib/businessAbout';
 import { ownershipDetailsLock } from '@/lib/ownershipRequest.server';
 
 async function loadCurrentValue(
@@ -87,11 +88,12 @@ export async function submitChangeRequest(params: {
     if (!businessId || !requestedValue) {
       return { success: false as const, error: 'Please provide the requested value.' };
     }
-    if (
-      (params.field === 'legal_business_name' || params.field === 'display_name') &&
-      requestedValue.length > 50
-    ) {
-      return { success: false as const, error: 'Business name must be 50 characters or fewer.' };
+    if (params.field === 'legal_business_name' || params.field === 'display_name') {
+      if (requestedValue.length > 50) {
+        return { success: false as const, error: 'Business name must be 50 characters or fewer.' };
+      }
+      const mixed = mixedNameLanguageError(requestedValue);
+      if (mixed) return { success: false as const, error: mixed };
     }
 
     const auth = await assertBusinessTab(businessId, 'settings', 'edit');

@@ -1,5 +1,6 @@
 import 'server-only';
 
+import { mixedNameLanguageError } from '@/lib/businessAbout';
 import { createServiceClient } from '@/lib/supabase/service';
 import {
   CHANGE_REQUEST_BUSINESS_COLUMN,
@@ -101,11 +102,16 @@ export async function moderateChangeRequest(input: {
   const adminNote = input.adminNote?.trim() || null;
 
   if (input.action === 'approve') {
+    const nextValue = String(request.requested_value || '').trim();
+    if (request.field === 'legal_business_name' || request.field === 'display_name') {
+      const mixed = mixedNameLanguageError(nextValue);
+      if (mixed) return { success: false as const, error: mixed };
+    }
     const column = FIELD_COLUMNS[request.field as BusinessChangeRequestField];
     const { error: updateError } = await supabase
       .from('Business')
       .update({
-        [column]: String(request.requested_value || '').trim(),
+        [column]: nextValue,
         updatedAt: now,
       })
       .eq('id', request.business_id);

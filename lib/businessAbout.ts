@@ -160,8 +160,13 @@ function aboutScript(code: number): string | null {
   return null;
 }
 
-/** Null when the about text is empty or uses a single writing system. */
-export function mixedAboutLanguageError(text: string): string | null {
+export const NAME_SINGLE_LANGUAGE_HINT =
+  'Write the name in one language only. Hindi and English together, or any mix of languages, will not be saved.';
+
+export const NAME_MIXED_LANGUAGE_ERROR =
+  'This name uses more than one language. Rewrite the whole name in a single language.';
+
+function mixedScriptError(text: string, message: string): string | null {
   const counts = new Map<string, number>();
   const plain = plainAboutText(text);
   for (let index = 0; index < plain.length; ) {
@@ -175,5 +180,15 @@ export function mixedAboutLanguageError(text: string): string | null {
   for (const count of counts.values()) {
     if (count >= MIXED_SCRIPT_MIN) used += 1;
   }
-  return used > 1 ? ABOUT_MIXED_LANGUAGE_ERROR : null;
+  return used > 1 ? message : null;
+}
+
+/** Null when the about text is empty or uses a single writing system. */
+export function mixedAboutLanguageError(text: string): string | null {
+  return mixedScriptError(text, ABOUT_MIXED_LANGUAGE_ERROR);
+}
+
+/** Null when the name is empty or uses a single writing system. */
+export function mixedNameLanguageError(text: string): string | null {
+  return mixedScriptError(text, NAME_MIXED_LANGUAGE_ERROR);
 }

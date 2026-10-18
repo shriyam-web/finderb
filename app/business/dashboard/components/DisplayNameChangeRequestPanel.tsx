@@ -6,6 +6,7 @@ import {
   getPendingChangeRequest,
   submitChangeRequest,
 } from '@/app/actions/businessChangeRequests';
+import { NAME_SINGLE_LANGUAGE_HINT, mixedNameLanguageError } from '@/lib/businessAbout';
 import { DISPLAY_NAME_FIELD, type BusinessChangeRequest } from '@/lib/businessChangeRequest';
 import { dashboard } from './dashboard-ui';
 
@@ -61,6 +62,11 @@ export default function DisplayNameChangeRequestPanel({
       setError('Choose a name that is different from your current display name.');
       return;
     }
+    const mixed = mixedNameLanguageError(trimmed);
+    if (mixed) {
+      setError(mixed);
+      return;
+    }
 
     setSubmitting(true);
     const result = await submitChangeRequest({
@@ -102,9 +108,9 @@ export default function DisplayNameChangeRequestPanel({
           <HiOutlineUser size={16} className="shrink-0 text-zinc-400" />
           {currentDisplayName || 'Not set'}
         </p>
-        <p className="mt-2 text-xs leading-relaxed text-zinc-500">
+          <p className="mt-2 text-xs leading-relaxed text-zinc-500">
           This is the name customers see on FinderB. Submit a change request and our team will review it
-          before it goes live.
+          before it goes live. {NAME_SINGLE_LANGUAGE_HINT}
         </p>
       </div>
 
