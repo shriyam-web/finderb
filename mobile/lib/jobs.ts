@@ -1,3 +1,5 @@
+import * as FileSystem from 'expo-file-system/legacy';
+import { safeUserError } from './safeError';
 import { isSupabaseConfigured, SITE_URL, supabase } from './supabase';
 import { getStoredToken } from './session';
 import { createSessionMemo } from './sessionMemo';
@@ -81,7 +83,7 @@ export async function fetchActiveJobs(force = false): Promise<{
         .limit(60);
 
       if (error) {
-        return { jobs: [], error: error.message };
+        return { jobs: [], error: safeUserError(error, 'Could not load jobs.') };
       }
 
       const jobs = (data ?? []).map((row) => {
@@ -150,7 +152,7 @@ export async function fetchJobsByBusinessId(businessId: string): Promise<{
     .limit(20);
 
   if (error) {
-    return { jobs: [], error: error.message };
+    return { jobs: [], error: safeUserError(error, 'Could not load jobs.') };
   }
 
   const jobs = (data ?? []).map((row) => {
@@ -207,7 +209,7 @@ export async function fetchJobById(id: string): Promise<{
     .maybeSingle();
 
   if (error) {
-    return { job: null, error: error.message };
+    return { job: null, error: safeUserError(error, 'Could not load jobs.') };
   }
   if (!data) {
     jobsById.delete(id);
@@ -254,27 +256,37 @@ export async function submitJobApplication(input: {
   const token = await getStoredToken();
   if (!token) return { success: false, error: 'Sign in to apply.' };
 
-  const form = new FormData();
-  form.append('jobId', input.jobId);
-  form.append('businessId', input.businessId);
-  form.append('jobTitle', input.jobTitle || '');
-  form.append('fullName', fullName);
-  form.append('email', email);
-  form.append('phone', phone);
-  form.append('message', input.message || '');
+  let cvBase64 = '';
   if (input.cv) {
-    form.append('cv', {
-      uri: input.cv.uri,
-      name: input.cv.name,
-      type: input.cv.mime,
-    } as unknown as Blob);
+    try {
+      cvBase64 = await FileSystem.readAsStringAsync(input.cv.uri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+    } catch {
+      return { success: false, error: 'Could not read the CV file. Please choose it again.' };
+    }
+    if (!cvBase64.trim()) return { success: false, error: 'The CV file is empty.' };
+    if (cvBase64.length > 6_800_000) return { success: false, error: 'CV must be 5 MB or smaller.' };
   }
 
   try {
     const res = await fetch(`${SITE_URL}/api/jobs/apply`, {
       method: 'POST',
-      headers: { Accept: 'application/json', Authorization: `Bearer ${token}` },
-      body: form,
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        jobId: input.jobId,
+        businessId: input.businessId,
+        jobTitle: input.jobTitle || '',
+        fullName,
+        email,
+        phone,
+        message: input.message || '',
+        ...(cvBase64 ? { cvBase64, cvName: input.cv?.name || 'cv.pdf' } : {}),
+      }),
     });
     const data = (await res.json().catch(() => null)) as { success?: boolean; error?: string } | null;
     if (!res.ok || !data?.success) return { success: false, error: data?.error || 'Could not submit application' };

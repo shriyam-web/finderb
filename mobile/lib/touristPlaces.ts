@@ -1,3 +1,4 @@
+import { safeUserError } from './safeError';
 import { SITE_URL, isSupabaseConfigured, supabase } from './supabase';
 import { formatDistanceFromUser, getDistanceKm, type Coords } from './geo';
 import { geocodePlaceQuery } from './geocodePlace';
@@ -296,7 +297,7 @@ export async function fetchTouristPlaces(
     }
 
     if (error) {
-      return { places: [], error: error.message };
+      return { places: [], error: safeUserError(error, 'Could not load destinations.') };
     }
 
     let places = (data || []).map((row) =>
@@ -313,7 +314,7 @@ export async function fetchTouristPlaces(
   } catch (error) {
     return {
       places: [],
-      error: error instanceof Error ? error.message : 'Could not load destinations.',
+      error: safeUserError(error, 'Could not load destinations.'),
     };
   }
 }
@@ -399,7 +400,7 @@ export async function fetchTouristPlaceBySlugOrId(slugOrId: string): Promise<{
       place: null,
       nearby: [],
       error:
-        error instanceof Error ? error.message : 'Could not load destination.',
+        safeUserError(error, 'Could not load destination.'),
     };
   }
 }

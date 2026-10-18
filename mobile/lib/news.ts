@@ -3,6 +3,7 @@ import {
   ensureNewsImages,
   HOME_NEWS_LIMIT,
 } from '../constants/newsCategories';
+import { safeUserError } from './safeError';
 import { SITE_URL } from './supabase';
 import { fetchNewsFromRss } from './newsRss';
 import {
@@ -124,7 +125,7 @@ async function fetchSiteNews(options?: {
     }
     return {
       articles: [],
-      error: error instanceof Error ? error.message : 'Failed to load news',
+      error: safeUserError(error, 'Failed to load news'),
     };
   }
 }
@@ -344,7 +345,7 @@ export async function fetchNewsArticleDetail(input: {
     }
     return {
       article: null,
-      error: error instanceof Error ? error.message : 'Unable to show this story',
+      error: safeUserError(error, 'Unable to show this story'),
     };
   }
 }

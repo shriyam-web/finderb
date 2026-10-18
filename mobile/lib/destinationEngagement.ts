@@ -154,7 +154,7 @@ export async function submitDestinationRating(input: {
   );
 
   if (error) {
-    return { ok: true, error: error.message };
+    return { ok: true };
   }
   return { ok: true };
 }

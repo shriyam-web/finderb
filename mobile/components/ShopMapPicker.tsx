@@ -126,7 +126,9 @@ function mapDocument(center: MapPin, apiKey: string, fill: boolean) {
     });
   };
   window.onHost = function (raw) {
-    const data = JSON.parse(raw);
+    var data;
+    try { data = JSON.parse(raw); } catch (e) { return; }
+    if (!data) return;
     if (data.type === 'center') {
       start.lat = data.lat;
       start.lng = data.lng;
@@ -319,8 +321,8 @@ export function ShopMapPicker({ city, state, pin, note, noteOk, checking, onPin,
         if (!places.length) setFindError('No match on Google Maps. Try the name with your area.');
         setFindResults(places);
       }
-    } catch (error) {
-      setFindError(error instanceof Error ? error.message : 'Google Maps lookup failed. Try again.');
+    } catch {
+      setFindError('Google Maps lookup failed. Try again.');
     } finally {
       setFinding(false);
     }

@@ -2,6 +2,7 @@ import { AppState, Platform, type AppStateStatus } from 'react-native';
 import * as Linking from 'expo-linking';
 import * as QueryParams from 'expo-auth-session/build/QueryParams';
 import * as WebBrowser from 'expo-web-browser';
+import { safeUserError } from './safeError';
 import { SITE_URL, supabase } from './supabase';
 import type { AuthUser } from './session';
 
@@ -73,7 +74,7 @@ async function postJson<T>(
     } catch {
       return {
         success: false,
-        error: `Server error (${res.status}). Check EXPO_PUBLIC_SITE_URL.`,
+        error: 'FinderB could not be reached. Try again in a moment.',
       } as T;
     }
   } catch (error) {
@@ -81,9 +82,7 @@ async function postJson<T>(
       success: false,
       error: controller?.signal.aborted
         ? 'FinderB took too long to answer. Check your internet and try again.'
-        : error instanceof Error
-          ? error.message
-          : 'Network error. Check your connection.',
+        : safeUserError(error, 'Network error. Check your connection.'),
     } as T;
   } finally {
     if (timer) clearTimeout(timer);
@@ -311,7 +310,7 @@ export async function updateMobileProfile(patch: {
     return {
       success: false,
       error:
-        error instanceof Error ? error.message : 'Could not update profile.',
+        safeUserError(error, 'Could not update profile.'),
     };
   }
 }
@@ -474,7 +473,7 @@ export function completeGoogleRedirect(url: string): Promise<AuthResult> {
   })().catch(
     (error): AuthResult => ({
       success: false,
-      error: error instanceof Error ? error.message : 'Could not finish Google sign-in.',
+      error: safeUserError(error, 'Could not finish Google sign-in.'),
     }),
   );
   googleCompletions.set(key, task);
@@ -543,7 +542,7 @@ function closeAuthBrowser() {
 }
 
 function failedResult(error: unknown, fallback: string): AuthResult {
-  return { success: false, error: error instanceof Error && error.message ? error.message : fallback };
+  return { success: false, error: safeUserError(error, fallback) };
 }
 
 /** Never throws: a thrown error would leave the login button spinning. */
@@ -774,7 +773,7 @@ async function runTruecallerLogin(): Promise<AuthResult> {
     return {
       success: false,
       error:
-        'Truecaller is not configured in the app. Set EXPO_PUBLIC_TRUECALLER_* in mobile/.env.',
+        'Truecaller sign-in is unavailable right now.',
     };
   }
 
@@ -804,7 +803,7 @@ async function runTruecallerLogin(): Promise<AuthResult> {
     return {
       success: false,
       error:
-        'Truecaller partner key missing. Add EXPO_PUBLIC_TRUECALLER_PARTNER_KEY to mobile/.env (same as website).',
+        'Truecaller sign-in is unavailable right now.',
     };
   }
 

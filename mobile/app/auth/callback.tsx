@@ -103,7 +103,7 @@ export default function AuthCallbackScreen() {
         await applyAuthResult(result);
         leave(result.user.isBusinessAccount ? '/merchant-welcome' : '/(tabs)/home');
       } catch (error) {
-        await fail(error instanceof Error ? error.message : 'Could not complete sign-in.');
+        await fail('Could not complete sign-in.');
       }
     })();
   }, [applyAuthResult, routeParams, router]);

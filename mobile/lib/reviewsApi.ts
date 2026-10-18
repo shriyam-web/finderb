@@ -1,3 +1,4 @@
+import { safeUserError } from './safeError';
 import { SITE_URL } from './supabase';
 import { getStoredToken } from './session';
 import type { MerchantReview } from './merchants';
@@ -113,9 +114,7 @@ export async function submitBusinessReview(input: {
     return {
       success: false,
       error:
-        error instanceof Error
-          ? error.message
-          : 'Network error. Check your connection.',
+        safeUserError(error, 'Network error. Check your connection.'),
     };
   }
 }
@@ -152,7 +151,7 @@ export async function reportBusinessReview(input: {
   } catch (error) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Network error. Check your connection.',
+      error: safeUserError(error, 'Network error. Check your connection.'),
     };
   }
 }

@@ -1,3 +1,4 @@
+import { safeUserError } from './safeError';
 import { SITE_URL } from './supabase';
 import { getStoredToken } from './session';
 
@@ -51,7 +52,7 @@ export async function fetchFavoriteIds(): Promise<{ favoriteIds: string[] } | Fa
   } catch (error) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Network error.',
+      error: safeUserError(error, 'Network error.'),
     };
   }
 }
@@ -88,7 +89,7 @@ export async function toggleFavorite(
   } catch (error) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Network error.',
+      error: safeUserError(error, 'Network error.'),
     };
   }
 }

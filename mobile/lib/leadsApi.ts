@@ -1,3 +1,4 @@
+import { safeUserError } from './safeError';
 import { SITE_URL } from './supabase';
 import { getStoredToken } from './session';
 
@@ -60,7 +61,7 @@ async function postLead<T>(path: string, body: Record<string, unknown>): Promise
   } catch (error) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Network error. Check your connection.',
+      error: safeUserError(error, 'Network error. Check your connection.'),
     };
   }
 }

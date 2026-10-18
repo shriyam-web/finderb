@@ -216,8 +216,8 @@ export async function setBlogRating(input: {
   );
 
   if (error) {
-    // Local save still succeeded.
-    return { ok: true, error: error.message };
+    // Local save still succeeded. The database message stays off the screen.
+    return { ok: true };
   }
   return { ok: true };
 }

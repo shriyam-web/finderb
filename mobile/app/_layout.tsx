@@ -2,11 +2,11 @@ import 'react-native-gesture-handler';
 import '../lib/quietWebBack';
 import '../lib/installLongFetch';
 import { useEffect } from 'react';
-import { Stack, useRouter, useSegments, type Href } from 'expo-router';
+import { Stack, useRouter, useSegments, type ErrorBoundaryProps, type Href } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as Font from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
-import { Platform } from 'react-native';
+import { Platform, Pressable, Text, View } from 'react-native';
 import {
   SafeAreaProvider,
   initialWindowMetrics,
@@ -68,7 +68,11 @@ const MOBILE_GATE_OPEN = new Set([
 function notificationTarget(data: Record<string, unknown> | undefined): Href {
   if (!isBusinessNotification(data)) return '/(tabs)/notifications' as Href;
   const reviewId = typeof data?.reviewId === 'string' ? data.reviewId.trim() : '';
-  if (data?.type === 'ownership') return '/business-console/alerts';
+  if (data?.type === 'ownership' || data?.type === 'listing') {
+    if (data?.type === 'ownership') return '/business-console/alerts';
+    const listingUrl = typeof data?.ctaUrl === 'string' ? data.ctaUrl : typeof data?.url === 'string' ? data.url : '';
+    return (listingUrl && consoleRouteFor(listingUrl)) || '/business-console/alerts';
+  }
   if (data?.type === 'lead') return '/business-console/leads';
   if (data?.type === 'review') {
     return reviewId
@@ -209,6 +213,27 @@ function RootNavigator() {
             options={{ animation: 'fade', gestureEnabled: false }}
           />
         </Stack>
+  );
+}
+
+export function ErrorBoundary({ retry }: ErrorBoundaryProps) {
+  return (
+    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 28, backgroundColor: '#F7F4EF' }}>
+      <Text style={{ fontSize: 18, fontWeight: '600', color: '#1C1917', textAlign: 'center' }}>
+        FinderB hit a problem
+      </Text>
+      <Text style={{ marginTop: 8, fontSize: 14, lineHeight: 20, color: '#57534E', textAlign: 'center' }}>
+        Try again.
+      </Text>
+      <Pressable
+        onPress={() => {
+          void retry();
+        }}
+        style={{ marginTop: 18, backgroundColor: '#1C1917', borderRadius: 999, paddingHorizontal: 18, paddingVertical: 12 }}
+      >
+        <Text style={{ color: '#FFFFFF', fontWeight: '600' }}>Try again</Text>
+      </Pressable>
+    </View>
   );
 }
 

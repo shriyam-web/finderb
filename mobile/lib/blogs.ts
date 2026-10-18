@@ -1,3 +1,4 @@
+import { safeUserError } from './safeError';
 import { isSupabaseConfigured, supabase } from './supabase';
 
 export type BlogPost = {
@@ -90,7 +91,7 @@ export async function fetchBlogs(limit = 12): Promise<{
   error?: string;
 }> {
   if (!isSupabaseConfigured || !supabase) {
-    return { blogs: [], error: 'Supabase is not configured' };
+    return { blogs: [], error: 'Could not load stories.' };
   }
 
   const { data, error } = await supabase
@@ -101,7 +102,7 @@ export async function fetchBlogs(limit = 12): Promise<{
     .limit(Math.min(Math.max(limit, 1), 40));
 
   if (error) {
-    return { blogs: [], error: error.message };
+    return { blogs: [], error: safeUserError(error, 'Could not load stories.') };
   }
 
   return {
@@ -116,7 +117,7 @@ export async function fetchBlogBySlug(slugOrId: string): Promise<{
   error?: string;
 }> {
   if (!isSupabaseConfigured || !supabase) {
-    return { blog: null, error: 'Supabase is not configured' };
+    return { blog: null, error: 'Could not load this story.' };
   }
 
   const key = slugOrId.trim();
@@ -144,5 +145,8 @@ export async function fetchBlogBySlug(slugOrId: string): Promise<{
     return { blog: mapBlogRow(byId.data as Record<string, unknown>, true) };
   }
 
-  return { blog: null, error: bySlug.error?.message || byId.error?.message || 'Blog not found' };
+  if (bySlug.error || byId.error) {
+    return { blog: null, error: safeUserError(bySlug.error || byId.error, 'Could not load this story.') };
+  }
+  return { blog: null, error: 'Blog not found' };
 }

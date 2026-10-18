@@ -1,3 +1,4 @@
+import { safeUserError } from './safeError';
 import { SITE_URL, isSupabaseConfigured, supabase } from './supabase';
 import { getBusinessOpenStatus } from './businessHours';
 import { lookupCityCoords, INDIA_CITY_COORDS } from './cityCoords';
@@ -7,9 +8,11 @@ import { applyFixedSlotOrder, getCategoryFixedSlotIds } from './categoryFixedSlo
 import {
   EXACT_CATEGORY_SCORE,
   categoryMatchScore,
+  categoryRelevanceScore,
   exactMissNotice,
   merchantMatchTier,
   nameSuggestionScore,
+  scoreMerchantMatch,
   detectSearchIntents,
   parseDirectoryQuery,
   relatedSearchTerms,
@@ -276,7 +279,7 @@ export async function fetchFeaturedMerchants(limit = 12): Promise<{
   if (!isSupabaseConfigured || !supabase) {
     return {
       merchants: [],
-      error: 'Supabase is not configured. Add EXPO_PUBLIC_SUPABASE_* to mobile/.env',
+      error: 'Could not load businesses.',
     };
   }
 
@@ -289,7 +292,7 @@ export async function fetchFeaturedMerchants(limit = 12): Promise<{
     .limit(80);
 
   if (verified.error) {
-    return { merchants: [], error: verified.error.message };
+    return { merchants: [], error: safeUserError(verified.error, 'Could not load businesses.') };
   }
 
   let ranked = rankMerchants(
@@ -440,7 +443,7 @@ async function fetchAllCategoryRows(): Promise<{
       .range(from, from + pageSize - 1);
 
     if (error) {
-      return { rows: [], error: error.message };
+      return { rows: [], error: safeUserError(error, 'Could not load this.') };
     }
 
     const chunk = (data ?? []) as Record<string, unknown>[];
@@ -717,7 +720,7 @@ export async function fetchSubCategories(
         .order('items_count', { ascending: false });
 
       if (error) {
-        return { subCategories: [], error: error.message };
+        return { subCategories: [], error: safeUserError(error, 'Could not load this.') };
       }
 
       const allTab: SubCategory = {
@@ -807,7 +810,7 @@ async function loadMerchantList(
 
   const { data, error } = await query;
   if (error) {
-    return { merchants: [], error: error.message };
+    return { merchants: [], error: safeUserError(error, 'Could not load this.') };
   }
 
   return {
@@ -862,7 +865,7 @@ export async function searchCategoriesByQuery(query: string): Promise<{
     .limit(40);
 
   if (error) {
-    return { categories: [], error: error.message };
+    return { categories: [], error: safeUserError(error, 'Could not load this.') };
   }
 
   const mapped = (data ?? [])
@@ -1095,7 +1098,7 @@ export async function searchMerchantsByQuery(
     .limit(Math.min(Math.max(limit * 4, 48), 140));
 
   if (error) {
-    return { merchants: [], error: error.message };
+    return { merchants: [], error: safeUserError(error, 'Could not load this.') };
   }
 
   const required = parseDirectoryQuery(normalizeAiQuery(q) || q).required;
@@ -1181,7 +1184,7 @@ export async function fetchMerchantsByIds(ids: string[]): Promise<{
     .eq('status', 'Active');
 
   if (error) {
-    return { merchants: [], error: error.message };
+    return { merchants: [], error: safeUserError(error, 'Could not load this.') };
   }
 
   const byId = new Map(
@@ -1203,6 +1206,8 @@ export type DirectorySearchResult = {
   terms: string[];
   categories: HomeCategory[];
   merchants: Merchant[];
+  moreInCategory: Merchant[];
+  moreCategoryLabel: string | null;
   exactMatch: boolean;
   notice: string | null;
   error?: string;
@@ -1225,12 +1230,6 @@ function usableMerchants(merchants: Merchant[]): Merchant[] {
     if (!byId.has(merchant.id)) byId.set(merchant.id, merchant);
   }
   return [...byId.values()];
-}
-
-function exactCategoryHits(categories: HomeCategory[], required: string[]): HomeCategory[] {
-  return categories
-    .filter((category) => categoryMatchScore(category.name, category.slug, required) >= EXACT_CATEGORY_SCORE)
-    .slice(0, 8);
 }
 
 function inPlace(merchant: Merchant, placeHint: string): boolean {
@@ -1256,6 +1255,8 @@ export async function searchDirectory(
     terms: parsed.required,
     categories: [],
     merchants: [],
+    moreInCategory: [],
+    moreCategoryLabel: null,
     exactMatch: !query,
     notice: query ? exactMissNotice(label) : null,
   };
@@ -1280,8 +1281,8 @@ export async function searchDirectory(
 
   const suggestionPromise = searchNameSuggestions(query);
   const needles = parsed.primaryNeedles.length > 0 ? parsed.primaryNeedles : [normalized];
-  // "property with rajnish" becomes "property rajnish". Search each word too,
-  // so a name with a small word in the middle is not missed.
+  // Search the phrase and each word. A word inside a name still counts when
+  // another word in the query does not.
   const firstNeedles =
     parsed.phrase.includes(' ')
       ? [...new Set([...needles, ...parsed.required])]
@@ -1291,83 +1292,94 @@ export async function searchDirectory(
     return { ...blank, exactMatch: true, notice: null, error: found.error };
   }
 
-  let exactCategories = exactCategoryHits(found.categories, parsed.required);
-  let tier0 = found.merchants.filter(
-    (merchant) => merchantMatchTier(merchant, parsed.required) === 0,
-  );
-  const tier1 = found.merchants.filter(
-    (merchant) => merchantMatchTier(merchant, parsed.required) === 1,
-  );
-
-  if (
-    exactCategories.length === 0 &&
-    tier0.length === 0 &&
-    tier1.length === 0 &&
-    parsed.phrase.includes(' ')
-  ) {
-    found = await collect(parsed.required);
-    exactCategories = exactCategoryHits(found.categories, parsed.required);
-    tier0 = found.merchants.filter(
-      (merchant) => merchantMatchTier(merchant, parsed.required) === 0,
+  const suggestions = await suggestionPromise;
+  const scored = new Map<string, { merchant: Merchant; score: number }>();
+  const remember = (merchant: Merchant, score: number) => {
+    if (score <= 0) return;
+    const current = scored.get(merchant.id);
+    if (!current || score > current.score) scored.set(merchant.id, { merchant, score });
+  };
+  for (const merchant of found.merchants) {
+    remember(merchant, scoreMerchantMatch(merchant, parsed.required));
+  }
+  for (const merchant of suggestions) {
+    remember(
+      merchant,
+      Math.max(
+        scoreMerchantMatch(merchant, parsed.required),
+        nameSuggestionScore(merchant.name, query),
+      ),
     );
   }
 
-  if (exactCategories[0] && tier0.length < 12) {
+  let exactCategories = found.categories
+    .map((category) => ({
+      category,
+      score: Math.max(
+        categoryMatchScore(category.name, category.slug, parsed.required),
+        categoryRelevanceScore(category.name, category.slug, parsed.required),
+      ),
+    }))
+    .filter((row) => row.score > 0)
+    .sort((a, b) => b.score - a.score || (b.category.businessCount || 0) - (a.category.businessCount || 0))
+    .map((row) => row.category)
+    .slice(0, 8);
+
+  if (exactCategories[0] && scored.size < 12) {
     const extra = await fetchBusinessesByCategory(exactCategories[0].name, {
       page: 1,
       pageSize: 24,
     });
-    const seen = new Set(tier0.map((merchant) => merchant.id));
     for (const merchant of extra.merchants) {
-      if (seen.has(merchant.id)) continue;
-      if (merchantMatchTier(merchant, parsed.required) !== 0) continue;
-      tier0.push(merchant);
-      seen.add(merchant.id);
+      remember(merchant, scoreMerchantMatch(merchant, parsed.required));
     }
   }
 
-  const nameHits =
-    tier1.length > 0
-      ? tier1
-      : found.merchants.filter(
-          (merchant) => merchantMatchTier(merchant, parsed.required) === 1,
-        );
-  const suggestions = await suggestionPromise;
-
-  if (exactCategories.length > 0 || tier0.length > 0 || nameHits.length > 0 || suggestions.length > 0) {
-    const seen = new Set<string>();
-    const ordered = [
-      ...suggestions,
-      ...(parsed.required.length > 1 ? [...nameHits, ...tier0] : [...tier0, ...nameHits]),
-    ];
-    const merchants: Merchant[] = [];
-    for (const merchant of ordered) {
-      if (seen.has(merchant.id)) continue;
-      seen.add(merchant.id);
-      merchants.push(merchant);
-    }
+  if (scored.size > 0 || exactCategories.length > 0) {
+    const ordered = [...scored.values()].sort((a, b) => b.score - a.score).map((row) => row.merchant);
     const ranked = applyAiIntents(
-      merchants,
+      ordered,
       intents,
       options?.coords ?? null,
       parsed.required,
       placeHint,
     );
     const placed = placeHint ? ranked.filter((merchant) => inPlace(merchant, placeHint)) : ranked;
-    const notice = placeHint && placed.length === 0
+    const primary = placed.slice(0, 24);
+    const queryIsCategory = exactCategories.some((category) =>
+      categoryMatchScore(category.name, category.slug, parsed.required) >= EXACT_CATEGORY_SCORE,
+    );
+    let moreInCategory: Merchant[] = [];
+    let moreCategoryLabel: string | null = null;
+    const anchor = primary[0];
+    if (anchor?.category && !queryIsCategory) {
+      const leaf = anchor.category.split('›').pop()?.trim() || anchor.category;
+      const extra = await fetchBusinessesByCategory(anchor.category, { page: 1, pageSize: 24 });
+      const seen = new Set(primary.map((merchant) => merchant.id));
+      moreInCategory = extra.merchants.filter((merchant) => !seen.has(merchant.id)).slice(0, 12);
+      if (!moreInCategory.length && leaf !== anchor.category) {
+        const byLeaf = await fetchBusinessesByCategory(leaf, { page: 1, pageSize: 24 });
+        moreInCategory = byLeaf.merchants.filter((merchant) => !seen.has(merchant.id)).slice(0, 12);
+      }
+      moreCategoryLabel = moreInCategory.length ? leaf : null;
+    }
+    const strongest = scored.get(primary[0]?.id || '')?.score ?? 0;
+    const everyTermHit = primary.some(
+      (merchant) => merchantMatchTier(merchant, parsed.required) <= 1,
+    );
+    const notice = placeHint && primary.length === 0
       ? `No matches in ${placeHint}.`
-      : ranked.length === 0 && merchants.length > 0 && intents.length > 0
-        ? 'Nothing matches those filters right now.'
-        : null;
-    const named = suggestions.length > 0 && nameHits.length === 0 && tier0.length === 0 && exactCategories.length === 0;
+      : null;
     return {
       query,
       label,
       terms: parsed.required,
       categories: exactCategories,
-      merchants: placed.slice(0, 36),
-      exactMatch: !named,
-      notice: named ? exactMissNotice(label) : notice,
+      merchants: primary,
+      moreInCategory,
+      moreCategoryLabel,
+      exactMatch: everyTermHit || strongest >= 80,
+      notice,
       error: found.error,
     };
   }
@@ -1423,10 +1435,12 @@ export async function searchDirectory(
     terms: parsed.required,
     categories: relatedCategories.slice(0, 8),
     merchants: relatedPlaced.slice(0, 24),
+    moreInCategory: [],
+    moreCategoryLabel: null,
     exactMatch: false,
     notice:
-      relatedCategories.length > 0 || relatedMerchants.length > 0
-        ? exactMissNotice(label)
+      relatedCategories.length > 0 || relatedPlaced.length > 0
+        ? null
         : `No exact match for “${label}”.`,
     error: found.error,
   };
@@ -1438,6 +1452,8 @@ export type AiSearchResult = {
   intents: AiSearchIntent[];
   categories: HomeCategory[];
   merchants: Merchant[];
+  moreInCategory: Merchant[];
+  moreCategoryLabel: string | null;
   exactMatch: boolean;
   notice: string | null;
   error?: string;
@@ -1462,6 +1478,8 @@ export async function runAiSearch(
       intents,
       categories: [],
       merchants: [],
+      moreInCategory: [],
+      moreCategoryLabel: null,
       exactMatch: true,
       notice: null,
     };
@@ -1493,6 +1511,8 @@ export async function runAiSearch(
     intents,
     categories: directory.categories,
     merchants,
+    moreInCategory: directory.moreInCategory,
+    moreCategoryLabel: directory.moreCategoryLabel,
     exactMatch: directory.exactMatch,
     notice: directory.notice,
     error: directory.error,

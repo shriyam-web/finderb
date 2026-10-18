@@ -78,10 +78,7 @@ export async function POST(request: Request) {
     try {
       await updateTruecallerAuthRequest(requestId, {
         status: 'error',
-        errorMessage:
-          error instanceof Error
-            ? `Truecaller verification failed: ${error.message.slice(0, 160)}`
-            : 'Truecaller verification failed. Please try again.',
+        errorMessage: 'Truecaller verification failed. Please try again.',
       });
     } catch (updateError) {
       console.error('[truecaller callback] could not persist handler error', updateError);

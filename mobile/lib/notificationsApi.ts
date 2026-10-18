@@ -1,3 +1,4 @@
+import { safeUserError } from './safeError';
 import { SITE_URL, siteBases } from './supabase';
 import { getStoredToken } from './session';
 
@@ -37,7 +38,7 @@ export async function fetchUserNotifications(): Promise<
       }
       return { notifications: Array.isArray(data.notifications) ? data.notifications : [] };
     } catch (error) {
-      lastError = error instanceof Error ? error.message : 'Network error.';
+      lastError = safeUserError(error, 'Network error.');
     }
   }
   return { success: false, error: lastError };
@@ -86,7 +87,7 @@ export async function deleteMobileAccount(): Promise<
   } catch (error) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Network error.',
+      error: safeUserError(error, 'Network error.'),
     };
   }
 }
