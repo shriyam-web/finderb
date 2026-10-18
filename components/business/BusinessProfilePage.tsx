@@ -18,7 +18,8 @@ import {
   Star,
 } from 'lucide-react';
 import { FaWhatsapp } from 'react-icons/fa';
-import { PublicBadgeRow } from '@/components/business/PublicBadgeRow';
+import { BadgeExplainDialog, PublicBadgeRow } from '@/components/business/PublicBadgeRow';
+import { BADGE_HINT, BADGE_LABEL, REPLY_PACE_HINT } from '@/lib/businessBadges';
 import { LivingFire } from '@/components/business/LivingFire';
 import type { Business } from '@/lib/mockData';
 import { findCategoryForBreadcrumb, type CategoryBreadcrumb } from '@/app/actions/category';
@@ -185,6 +186,7 @@ export default function BusinessProfilePage({
   const [notFound, setNotFound] = useState(false);
   const [isLoading, setIsLoading] = useState(!initialBusiness);
   const [connectModalOpen, setConnectModalOpen] = useState(false);
+  const [signalNote, setSignalNote] = useState<{ title: string; body: string } | null>(null);
   const [connectModalInitialStep, setConnectModalInitialStep] = useState<'options' | 'form'>('options');
   const [clientSearchQuery, setClientSearchQuery] = useState('');
   const [shareMessage, setShareMessage] = useState<string | null>(null);
@@ -841,20 +843,48 @@ export default function BusinessProfilePage({
                 {categoryYearsLine(business.category, business.yearsInBusiness)}
               </p>
 
-              {business.averageResponse ? (
-                <p className="text-xs font-medium text-stone-500">
-                  Usually replies in {business.averageResponse}
-                </p>
+              {(business.badges || []).some((badge) => badge.id === 'trusted') ? (
+                <PublicBadgeRow badges={(business.badges || []).filter((badge) => badge.id === 'trusted')} />
               ) : null}
 
               {business.bestInCategory ? (
-                <p className="inline-flex items-center gap-1.5 text-xs font-semibold text-stone-500">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setSignalNote({ title: BADGE_LABEL.bestInCategory, body: BADGE_HINT.bestInCategory })
+                  }
+                  className="inline-flex items-center gap-1.5 text-left text-xs font-semibold text-stone-500"
+                >
                   <LivingFire />
                   Best in Category
-                </p>
+                </button>
               ) : null}
 
-              <PublicBadgeRow badges={business.badges} />
+              {business.averageResponse ? (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setSignalNote({ title: 'Usually replies in', body: REPLY_PACE_HINT })
+                  }
+                  className="text-left text-xs font-medium text-stone-500"
+                >
+                  Usually replies in {business.averageResponse}
+                </button>
+              ) : null}
+
+              {(business.badges || []).some((badge) => badge.id !== 'trusted') ? (
+                <PublicBadgeRow
+                  badges={(business.badges || []).filter((badge) => badge.id !== 'trusted')}
+                />
+              ) : null}
+
+              {signalNote ? (
+                <BadgeExplainDialog
+                  title={signalNote.title}
+                  body={signalNote.body}
+                  onClose={() => setSignalNote(null)}
+                />
+              ) : null}
 
               {locationLabel || distanceLabel || directionsLink ? (
                 <div>

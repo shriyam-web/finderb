@@ -63,6 +63,8 @@ import { normalizeSearchKeywords } from '@/lib/businessKeywords';
 import {
   ABOUT_BUSINESS_MAX_WORDS,
   isAboutWithinWordLimit,
+  mixedAboutLanguageError,
+  plainAboutText,
   trimAboutToWordLimit,
 } from '@/lib/businessAbout';
 import { parseCoordinate } from '@/lib/geo';
@@ -1646,6 +1648,19 @@ export async function updateBusinessProfile(id: string, profileData: any) {
         success: false,
         error: `About Business must be ${ABOUT_BUSINESS_MAX_WORDS} words or fewer.`,
       };
+    }
+    const mixedAbout = mixedAboutLanguageError(aboutText);
+    if (mixedAbout) {
+      const { data: storedAbout } = await supabase
+        .from('Business')
+        .select('about')
+        .eq('id', id)
+        .maybeSingle();
+      const previous = plainAboutText(String(storedAbout?.about || '')).trim();
+      const nextAbout = plainAboutText(aboutText).trim();
+      if (previous !== nextAbout) {
+        return { success: false, error: mixedAbout };
+      }
     }
 
     const { data: currentContact } = await supabase

@@ -1,4 +1,6 @@
-import { Fragment } from 'react';
+'use client';
+
+import { Fragment, useState } from 'react';
 import { Leaf, ShieldCheck, Star, TrendingUp, Zap } from 'lucide-react';
 import { LivingFire } from '@/components/business/LivingFire';
 import { BADGE_HINT, BADGE_LABEL, isBadgeId, type BadgeId, type PublicBadge } from '@/lib/businessBadges';
@@ -64,21 +66,76 @@ export function PublicBadgeChip({ id, large = false }: { id: BadgeId; large?: bo
   );
 }
 
+export function BadgeExplainDialog({
+  title,
+  body,
+  onClose,
+}: {
+  title: string;
+  body: string;
+  onClose: () => void;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-[200] flex items-end justify-center bg-black/45 p-4 sm:items-center"
+      onClick={onClose}
+      role="presentation"
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="badge-explain-title"
+        className="w-full max-w-sm rounded-2xl bg-white p-4 shadow-xl"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <p id="badge-explain-title" className="text-base font-semibold text-stone-900">
+          {title}
+        </p>
+        <p className="mt-1.5 text-sm leading-relaxed text-stone-600">{body}</p>
+        <button
+          type="button"
+          onClick={onClose}
+          className="mt-3 rounded-full bg-[#12263A] px-4 py-2 text-sm font-semibold text-white"
+        >
+          Got it
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function PublicBadgeRow({ badges }: { badges?: PublicBadge[] | null }) {
+  const [open, setOpen] = useState<BadgeId | null>(null);
   const visible = (badges || []).filter((badge) => isBadgeId(badge.id) && badge.id !== 'bestInCategory');
   if (!visible.length) return null;
   return (
-    <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
-      {visible.map((badge, index) => (
-        <Fragment key={badge.id}>
-          {index > 0 ? (
-            <span className="select-none text-[11px] font-light leading-none text-stone-300" aria-hidden>
-              |
-            </span>
-          ) : null}
-          <PublicBadgeChip id={badge.id} />
-        </Fragment>
-      ))}
-    </div>
+    <>
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
+        {visible.map((badge, index) => (
+          <Fragment key={badge.id}>
+            {index > 0 ? (
+              <span className="select-none text-[11px] font-light leading-none text-stone-300" aria-hidden>
+                |
+              </span>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => setOpen(badge.id)}
+              className="inline-flex rounded-full text-left"
+              aria-label={`${BADGE_LABEL[badge.id]}. ${BADGE_HINT[badge.id]}`}
+            >
+              <PublicBadgeChip id={badge.id} />
+            </button>
+          </Fragment>
+        ))}
+      </div>
+      {open ? (
+        <BadgeExplainDialog
+          title={BADGE_LABEL[open]}
+          body={BADGE_HINT[open]}
+          onClose={() => setOpen(null)}
+        />
+      ) : null}
+    </>
   );
 }

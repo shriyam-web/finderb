@@ -38,6 +38,9 @@ export const BADGE_LABEL: Record<BadgeId, string> = {
   trusted: 'FinderB Trusted',
 };
 
+export const REPLY_PACE_HINT =
+  'How long this business usually takes to answer a new enquiry.';
+
 export const BADGE_HINT: Record<BadgeId, string> = {
   bestInCategory: 'A strong listing in its category: rating, reviews, replies, and a finished profile.',
   quickReply: 'This business usually replies to a new lead within an hour.',

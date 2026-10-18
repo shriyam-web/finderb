@@ -62,7 +62,9 @@ import {
 import { PROFILE_LINK_FIELDS, validateProfileLink } from '@/lib/validateProfileUrl';
 import {
   ABOUT_BUSINESS_MAX_WORDS,
+  ABOUT_SINGLE_LANGUAGE_HINT,
   countAboutWords,
+  mixedAboutLanguageError,
   trimAboutToWordLimit,
 } from '@/lib/businessAbout';
 import AboutEditor from '@/components/business/AboutEditor';
@@ -585,6 +587,11 @@ export default function SettingsTab({
         setFieldError(`About must be ${ABOUT_BUSINESS_MAX_WORDS} words or fewer.`);
         return false;
       }
+      const mixed = mixedAboutLanguageError(String(profileData.about ?? ''));
+      if (mixed) {
+        setFieldError(mixed);
+        return false;
+      }
     }
     if (PROFILE_LINK_FIELDS.has(activeModal)) {
       const result = validateProfileLink(activeModal, String(profileData[activeModal] ?? ''));
@@ -751,31 +758,39 @@ export default function SettingsTab({
                     })()
                   ) : activeModal === 'about' ? (
                     <div className="space-y-2">
+                      <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs leading-relaxed text-amber-950">
+                        {ABOUT_SINGLE_LANGUAGE_HINT}
+                      </p>
                       <AboutEditor
                         value={profileData.about ?? ''}
                         onChange={(next) => {
-                          setFieldError('');
-                          updateField('about', trimAboutToWordLimit(next));
+                          const limited = trimAboutToWordLimit(next);
+                          updateField('about', limited);
+                          setFieldError(mixedAboutLanguageError(limited) || '');
                         }}
-                        placeholder="Tell customers about your business, services, and what makes you different…"
+                        placeholder="Tell customers about your business in one language only…"
                       />
                       {(() => {
                         const words = countAboutWords(profileData.about ?? '');
                         const atLimit = words >= ABOUT_BUSINESS_MAX_WORDS;
                         const nearLimit = words >= ABOUT_BUSINESS_MAX_WORDS - 50;
+                        const mixed = mixedAboutLanguageError(String(profileData.about ?? ''));
                         return (
-                          <p
-                            className={`text-xs ${
-                              atLimit
-                                ? 'text-rose-600'
-                                : nearLimit
-                                  ? 'text-amber-700'
-                                  : 'text-zinc-500'
-                            }`}
-                          >
-                            {words}/{ABOUT_BUSINESS_MAX_WORDS} words
-                            {atLimit ? ' — limit reached' : ''}
-                          </p>
+                          <>
+                            <p
+                              className={`text-xs ${
+                                atLimit
+                                  ? 'text-rose-600'
+                                  : nearLimit
+                                    ? 'text-amber-700'
+                                    : 'text-zinc-500'
+                              }`}
+                            >
+                              {words}/{ABOUT_BUSINESS_MAX_WORDS} words
+                              {atLimit ? ' — limit reached' : ''}
+                            </p>
+                            {mixed ? <p className="text-xs leading-relaxed text-rose-600">{mixed}</p> : null}
+                          </>
                         );
                       })()}
                     </div>
@@ -1254,6 +1269,8 @@ export default function SettingsTab({
                       updating ||
                       !canEdit ||
                       Boolean(fieldError) ||
+                      (activeModal === 'about' &&
+                        Boolean(mixedAboutLanguageError(String(profileData.about ?? '')))) ||
                       (activeModal === 'mapLocation' &&
                         checkIsMissing(SETTINGS_FIELDS.find((f) => f.key === 'mapLocation')!)) ||
                       (activeModal === 'paymentModes' && selectedPaymentModes.length === 0)
