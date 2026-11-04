@@ -28,6 +28,41 @@ export function getPublicRazorpayKeyId(): string | undefined {
   return process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || process.env.RAZORPAY_KEY_ID;
 }
 
+export async function createRazorpayAmountOrder(params: {
+  amountPaise: number;
+  receipt: string;
+  notes: Record<string, string>;
+}): Promise<{ success: true; order: RazorpayOrderResponse; keyId: string } | { success: false; error: string }> {
+  const { keyId, keySecret } = getRazorpayCredentials();
+  if (!keyId || !keySecret) {
+    return { success: false, error: 'Online payment is not available right now. Please try again later or contact support.' };
+  }
+  if (!Number.isInteger(params.amountPaise) || params.amountPaise < 100) {
+    return { success: false, error: 'This package amount cannot be charged.' };
+  }
+  const auth = Buffer.from(`${keyId}:${keySecret}`).toString('base64');
+  const response = await fetch('https://api.razorpay.com/v1/orders', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Basic ${auth}` },
+    body: JSON.stringify({
+      amount: params.amountPaise,
+      currency: 'INR',
+      receipt: params.receipt.slice(0, 40),
+      notes: params.notes,
+    }),
+  });
+  const data = await response.json();
+  if (!response.ok) {
+    console.error('Razorpay order creation failed:', data);
+    return { success: false, error: data?.error?.description || 'Failed to create payment order. Please try again.' };
+  }
+  return {
+    success: true,
+    order: { id: data.id, amount: data.amount, currency: data.currency, receipt: data.receipt },
+    keyId,
+  };
+}
+
 export async function createRazorpayOrder(params: {
   businessId: string;
   plan: MerchantPlan;

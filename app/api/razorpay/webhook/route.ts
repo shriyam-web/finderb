@@ -102,6 +102,30 @@ async function isFirstSubscriptionCharge(subscriptionId: string, paymentId: stri
 }
 
 async function handleOneTimePayment(event: string, payment: RazorpayPaymentEntity) {
+  if (payment.notes?.purpose === 'promotion') {
+    let captured = payment;
+    if (event === 'payment.authorized' || payment.status === 'authorized') {
+      const ensured = await ensureRazorpayPaymentCaptured(payment);
+      if (!ensured) return NextResponse.json({ ok: true, pending: 'awaiting_capture' });
+      captured = ensured;
+    }
+    if (captured.status !== 'captured') {
+      return NextResponse.json({ ok: true, pending: captured.status });
+    }
+    const { confirmPromotionPayment } = await import('@/lib/promotions/service');
+    const result = await confirmPromotionPayment({
+      orderId: String(captured.notes?.orderId || ''),
+      razorpayOrderId: captured.order_id,
+      paymentId: captured.id,
+      source: 'webhook',
+      amountPaise: captured.amount,
+    });
+    if (!result.success) {
+      return NextResponse.json({ error: result.error }, { status: 422 });
+    }
+    return NextResponse.json({ ok: true, event, promotion: true, alreadyCompleted: result.alreadyCompleted });
+  }
+
   const meta = extractPaymentMeta(payment);
   if (!meta) {
     console.error('[razorpay webhook] missing or invalid payment notes', payment.id);

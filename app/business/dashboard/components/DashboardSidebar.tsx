@@ -38,6 +38,7 @@ type DashboardSidebarProps = {
   businessFullName?: string;
   registrationNumber?: string;
   copiedId?: boolean;
+  showPromote?: boolean;
   onCopyMerchantId?: (id: string) => void;
   isPaymentPending: boolean;
   showRenewalCta?: boolean;
@@ -77,6 +78,7 @@ export default function DashboardSidebar({
   businessFullName,
   registrationNumber,
   copiedId,
+  showPromote = false,
   onCopyMerchantId,
   isPaymentPending,
   showRenewalCta = false,
@@ -258,6 +260,11 @@ export default function DashboardSidebar({
       <nav className="merchant-sidebar-scroll min-h-0 flex-1 overflow-y-auto px-3 py-4">
         <p className="mb-2 px-3 text-[11px] font-medium uppercase tracking-wide text-zinc-400">Workspace</p>
         <div className="space-y-0.5">{menuItems.map((item) => renderMenuButton(item, mobile))}</div>
+        {showPromote ? (
+          <Link href="/business/promote" className="promo-nav-link mt-3 flex items-center rounded-lg px-3 py-2 text-sm font-semibold text-[#153551] hover:bg-zinc-100">
+            Promote online
+          </Link>
+        ) : null}
         {paymentCta}
       </nav>
 

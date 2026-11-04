@@ -191,6 +191,7 @@ export type ConsoleOverview = {
   };
   kycMessage: string;
   detailsLockedUntil?: string | null;
+  promoteOnline?: boolean;
   badges?: {
     id: 'bestInCategory' | 'quickReply' | 'highlyRated' | 'popularMonth' | 'newOnFinderB' | 'trusted';
     label: string;

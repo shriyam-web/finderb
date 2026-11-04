@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { getBusinessProfilePath } from '@/lib/businessSlug';
+import { useSiteConfig } from '@/components/SiteConfigProvider';
 import { HiOutlineSquares2X2,
   HiOutlineQueueList,
   HiOutlineChatBubbleLeftRight,
@@ -96,6 +97,7 @@ import {
 
 function DashboardContent() {
   const router = useRouter();
+  const promoteOnline = useSiteConfig().features.promoteBusinessOnline;
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState('overview');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -881,6 +883,7 @@ function DashboardContent() {
     <div className="merchant-dashboard-canvas min-h-screen">
       <DashboardSidebar
         menuItems={menuItems}
+        showPromote={promoteOnline}
         activeTab={activeTab}
         onTabChange={(tab) => {
           if (canView(tab as TeamTabKey)) setActiveTab(tab);

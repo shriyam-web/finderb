@@ -523,6 +523,7 @@ async function overview(businessId: string) {
     kycMessage: KYC_OUTSOURCED_MESSAGE,
     detailsLockedUntil: detailsLock.locked ? detailsLock.until : null,
     badges,
+    promoteOnline: await (await import('@/lib/siteConfig')).isPromoteBusinessOnlineEnabled(),
     actor: {
       isOwner: actor.isOwner,
       teamMemberId: actor.isOwner ? null : actor.teamMemberId,
@@ -968,6 +969,27 @@ export async function runConsoleAction(userId: string, businessId: string, body:
   switch (body.action) {
     case 'overview':
       return overview(businessId);
+    case 'promotions':
+      return (await import('@/lib/promotions/service')).merchantDesk(businessId);
+    case 'promotion':
+      return (await import('@/lib/promotions/service')).merchantOrder(businessId, String(body.orderId || ''));
+    case 'createPromotion':
+      return (await import('@/lib/promotions/service')).createPromotionOrder(businessId, {
+        packageId: String(body.packageId || ''),
+        pincode: String(body.pincode || ''),
+        area: String(body.area || ''),
+      });
+    case 'startPromotionPay':
+      return (await import('@/lib/promotions/service')).startPromotionPayment(businessId, String(body.orderId || ''));
+    case 'confirmPromotionPay':
+      return (await import('@/lib/promotions/service')).confirmPromotionPayment({
+        businessId,
+        orderId: String(body.orderId || ''),
+        razorpayOrderId: String(body.razorpayOrderId || ''),
+        paymentId: String(body.paymentId || ''),
+        signature: String(body.signature || ''),
+        source: 'client',
+      });
     case 'storefront':
       return storefront(businessId);
     case 'saveProfile':

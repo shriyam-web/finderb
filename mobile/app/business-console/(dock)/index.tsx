@@ -1059,6 +1059,22 @@ function HomeBody({ o }: { o: ConsoleOverview }) {
         </View>
         <Ionicons name="chevron-forward" size={16} color={c.faint} />
       </Pressable>
+      {o.promoteOnline ? (
+        <Pressable
+          onPress={() => go('/business-console/promote')}
+          style={({ pressed }) => [styles.growthCard, pressed && styles.pressed]}
+          accessibilityRole="button"
+          accessibilityLabel="Promote your business online"
+        >
+          <View style={styles.flex}>
+            <Text style={styles.growthTitle}>Promote your business online</Text>
+            <Text style={styles.growthSub} numberOfLines={2}>
+              Advertise on FinderB’s Facebook and Instagram. Separate from your lead plan.
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={16} color={c.faint} />
+        </Pressable>
+      ) : null}
       <Section title="Manage">
         <QuickActions go={go} />
       </Section>
