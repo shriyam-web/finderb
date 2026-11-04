@@ -947,7 +947,6 @@ function PlanCard({ o, go }: { o: ConsoleOverview; go: Go }) {
 
 function QuickActions({ go }: { go: Go }) {
   const styles = useStyles();
-  const c = useConsoleColors();
   const actions: { label: string; icon: IconName; href: Href; color: string }[] = [
     { label: 'Details', icon: 'create-outline', href: '/business-console/listing', color: '#153551' },
     { label: 'Photos', icon: 'images-outline', href: '/business-console/photos', color: '#0F766E' },
@@ -969,9 +968,7 @@ function QuickActions({ go }: { go: Go }) {
             accessibilityRole="button"
             accessibilityLabel={action.label}
           >
-            <View style={[styles.actionIcon, { backgroundColor: action.color + (c.isDark ? '33' : '1A') }]}>
-              <Ionicons name={action.icon} size={18} color={action.color} />
-            </View>
+            <Ionicons name={action.icon} size={22} color={action.color} />
             <Text style={styles.actionLabel} numberOfLines={1}>
               {action.label}
             </Text>
@@ -1339,13 +1336,6 @@ const useStyles = createConsoleStyles((c) => ({
     alignItems: 'center',
     gap: 8,
     paddingVertical: 14,
-  },
-  actionIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   actionLabel: { fontFamily: fonts.regular, fontSize: 12, color: c.body },
   footNote: { textAlign: 'center', fontFamily: fonts.regular, fontSize: 11, color: c.faint },
