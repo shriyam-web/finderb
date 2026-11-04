@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Alert, Pressable, Text, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { fonts } from '../../../constants/typography';
 import { useConsoleColors } from '../../../constants/consoleColors';
@@ -184,7 +184,6 @@ function ReviewsBody({ o }: { o: ConsoleOverview }) {
   const { run, notify, refresh, refreshing } = useMerchantConsole();
   const [filter, setFilter] = useState<'all' | 'open'>('all');
   const [shown, setShown] = useState(50);
-  const openedFocus = useRef('');
   const [target, setTarget] = useState<ConsoleReview | null>(null);
   const [flagTarget, setFlagTarget] = useState<ConsoleReview | null>(null);
   const [flagReason, setFlagReason] = useState('');
@@ -204,13 +203,17 @@ function ReviewsBody({ o }: { o: ConsoleOverview }) {
     return [hit, ...base.filter((review) => review.id !== focusReviewId)];
   })();
 
-  useEffect(() => {
-    if (!focusReviewId || openedFocus.current === focusReviewId) return;
-    const review = o.reviews.find((item) => item.id === focusReviewId);
-    if (!review) return;
-    openedFocus.current = focusReviewId;
-    setFilter('all');
-  }, [focusReviewId, o.reviews]);
+  useFocusEffect(
+    useCallback(() => {
+      if (!focusReviewId) return;
+      const review = o.reviews.find((item) => item.id === focusReviewId);
+      if (!review || review.deleted) return;
+      setFilter('all');
+      setTarget(review);
+      setDraft(review.reply?.content || '');
+      router.setParams({ reviewId: '' });
+    }, [focusReviewId, o.reviews, router]),
+  );
 
   const startReply = (review: ConsoleReview) => {
     setTarget(review);

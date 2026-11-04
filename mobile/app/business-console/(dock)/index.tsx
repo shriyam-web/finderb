@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Animated, Easing, Modal, Pressable, ScrollView, Share, Text, View } from 'react-native';
+import { Animated, Easing, Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, type Href } from 'expo-router';
@@ -31,6 +31,7 @@ import { LISTING_SECTIONS } from '../../../components/console/listingSections';
 import { askStorefrontPreview, openConsolePath } from '../../../lib/consoleNav';
 import { buildReviewInviteUrl } from '../../../lib/reviewInvite';
 import { competitorScoreIsGood, leadResponseIsGood } from '../../../lib/insightTones';
+import { shareMessage } from '../../../lib/shareMessage';
 
 type IconName = keyof typeof Ionicons.glyphMap;
 type Go = (href: Href) => void;
@@ -221,6 +222,7 @@ function ShopCard({ o, go, onQr }: { o: ConsoleOverview; go: Go; onQr: () => voi
   const styles = useStyles();
   const c = useConsoleColors();
   const router = useRouter();
+  const { notify } = useMerchantConsole();
   const { business, photos, subscription, stats } = o;
   const cover = photos.cover || photos.images[0] || null;
   const place = [business.category, business.city].filter(Boolean).join(' · ');
@@ -276,8 +278,16 @@ function ShopCard({ o, go, onQr }: { o: ConsoleOverview; go: Go; onQr: () => voi
     {
       label: 'Share',
       icon: 'share-social-outline',
-      onPress: () =>
-        void Share.share({ message: `Find ${business.name} on FinderB: ${PUBLIC_SITE}${business.profilePath}` }),
+      onPress: () => {
+        const url = `${PUBLIC_SITE}${business.profilePath}`;
+        void shareMessage({
+          title: business.name,
+          url,
+          message: `Find ${business.name} on FinderB: ${url}`,
+        }).then((result) => {
+          if (result === 'copied') notify('Listing link copied');
+        });
+      },
     },
     { label: 'Edit', icon: 'create-outline', onPress: () => go('/business-console/listing') },
     { label: 'Photos', icon: 'images-outline', onPress: () => go('/business-console/photos') },
@@ -825,15 +835,25 @@ function ReviewsSnapshot({ o, go }: { o: ConsoleOverview; go: Go }) {
           ) : null}
         </View>
         {latest ? (
-          <View style={styles.quote}>
+          <Pressable
+            onPress={() =>
+              go({ pathname: '/business-console/reviews', params: { reviewId: latest.id } })
+            }
+            style={({ pressed }) => [styles.quote, pressed && styles.pressed]}
+            accessibilityRole="button"
+            accessibilityLabel={`Review by ${latest.author}. Open it.`}
+          >
             <Text style={styles.quoteText} numberOfLines={2}>
               “{latest.content}”
             </Text>
-            <Text style={styles.quoteBy}>
-              {latest.author}
-              {latest.date ? ` · ${timeAgo(latest.date)}` : ''}
-            </Text>
-          </View>
+            <View style={styles.quoteFoot}>
+              <Text style={styles.quoteBy}>
+                {latest.author}
+                {latest.date ? ` · ${timeAgo(latest.date)}` : ''}
+              </Text>
+              <Ionicons name="chevron-forward" size={14} color={c.faint} />
+            </View>
+          </Pressable>
         ) : (
           <Text style={[styles.quoteText, styles.quoteEmpty]}>
             Ask happy customers to rate you — share your listing link after a sale.
@@ -928,15 +948,15 @@ function PlanCard({ o, go }: { o: ConsoleOverview; go: Go }) {
 function QuickActions({ go }: { go: Go }) {
   const styles = useStyles();
   const c = useConsoleColors();
-  const actions: { label: string; icon: IconName; href: Href }[] = [
-    { label: 'Details', icon: 'create-outline', href: '/business-console/listing' },
-    { label: 'Photos', icon: 'images-outline', href: '/business-console/photos' },
-    { label: 'Timings', icon: 'time-outline', href: editHref('hours') },
-    { label: 'Offers', icon: 'pricetags-outline', href: editHref('offers') },
-    { label: 'Jobs', icon: 'briefcase-outline', href: '/business-console/jobs' },
-    { label: 'Plan', icon: 'card-outline', href: '/business-console/plan' },
-    { label: 'Alerts', icon: 'notifications-outline', href: '/business-console/alerts' },
-    { label: 'Security', icon: 'shield-checkmark-outline', href: '/business-console/account' },
+  const actions: { label: string; icon: IconName; href: Href; color: string }[] = [
+    { label: 'Details', icon: 'create-outline', href: '/business-console/listing', color: '#153551' },
+    { label: 'Photos', icon: 'images-outline', href: '/business-console/photos', color: '#0F766E' },
+    { label: 'Timings', icon: 'time-outline', href: editHref('hours'), color: '#C2410C' },
+    { label: 'Offers', icon: 'pricetags-outline', href: editHref('offers'), color: '#BE185D' },
+    { label: 'Jobs', icon: 'briefcase-outline', href: '/business-console/jobs', color: '#1D4ED8' },
+    { label: 'Plan', icon: 'card-outline', href: '/business-console/plan', color: '#15803D' },
+    { label: 'Alerts', icon: 'notifications-outline', href: '/business-console/alerts', color: '#D97706' },
+    { label: 'Security', icon: 'shield-checkmark-outline', href: '/business-console/account', color: '#6D28D9' },
   ];
   return (
     <Panel flush>
@@ -949,7 +969,9 @@ function QuickActions({ go }: { go: Go }) {
             accessibilityRole="button"
             accessibilityLabel={action.label}
           >
-            <Ionicons name={action.icon} size={20} color={c.ink} />
+            <View style={[styles.actionIcon, { backgroundColor: action.color + (c.isDark ? '33' : '1A') }]}>
+              <Ionicons name={action.icon} size={18} color={action.color} />
+            </View>
             <Text style={styles.actionLabel} numberOfLines={1}>
               {action.label}
             </Text>
@@ -1290,7 +1312,8 @@ const useStyles = createConsoleStyles((c) => ({
   quote: { marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: c.line },
   quoteText: { fontFamily: fonts.regular, fontSize: 13, lineHeight: 19, color: c.body },
   quoteEmpty: { marginTop: 10 },
-  quoteBy: { marginTop: 4, fontFamily: fonts.regular, fontSize: 11.5, color: c.muted },
+  quoteFoot: { marginTop: 4, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  quoteBy: { flex: 1, fontFamily: fonts.regular, fontSize: 11.5, color: c.muted },
 
   planCard: {
     gap: 12,
@@ -1315,7 +1338,14 @@ const useStyles = createConsoleStyles((c) => ({
     width: '25%',
     alignItems: 'center',
     gap: 8,
-    paddingVertical: 16,
+    paddingVertical: 14,
+  },
+  actionIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   actionLabel: { fontFamily: fonts.regular, fontSize: 12, color: c.body },
   footNote: { textAlign: 'center', fontFamily: fonts.regular, fontSize: 11, color: c.faint },

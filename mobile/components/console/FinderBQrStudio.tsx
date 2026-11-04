@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Alert, Image, Pressable, Share, Text, View } from 'react-native';
+import { Alert, Image, Pressable, Text, View } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
 import { fonts } from '../../constants/typography';
@@ -7,6 +7,7 @@ import { useConsoleColors } from '../../constants/consoleColors';
 import { buildReviewInviteUrl } from '../../lib/reviewInvite';
 import { reviewQrCardHtml } from '../../lib/reviewQrCardHtml';
 import { downloadQrSourceBase64, saveReviewQrPng } from '../../lib/saveReviewQrPng';
+import { shareMessage } from '../../lib/shareMessage';
 import { PUBLIC_SITE, Sheet, Btn, createConsoleStyles } from './kit';
 
 export function FinderBQrStudio({
@@ -33,6 +34,7 @@ export function FinderBQrStudio({
   const [logoBase64, setLogoBase64] = useState<string | null>(null);
   const [pngBase64, setPngBase64] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (!visible) {
@@ -60,10 +62,14 @@ export function FinderBQrStudio({
   }, [visible, qrUrl]);
 
   const share = () =>
-    void Share.share({
+    void shareMessage({
       title: `${businessName} on FinderB`,
-      message: `Please review ${businessName} on FinderB. Scan or tap: ${reviewUrl}`,
       url: reviewUrl,
+      message: `Please review ${businessName} on FinderB. Scan or tap: ${reviewUrl}`,
+    }).then((result) => {
+      if (result !== 'copied') return;
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2200);
     });
 
   const download = async () => {
@@ -106,7 +112,7 @@ export function FinderBQrStudio({
       <Text style={styles.meta}>
         {pngBase64 ? '1080×1920 PNG is ready to save.' : 'Preparing the high-quality card…'}
       </Text>
-      <Btn icon="share-social-outline" label="Share review link" onPress={share} />
+      <Btn icon="share-social-outline" label={copied ? 'Link copied' : 'Share review link'} onPress={share} />
       <Btn
         icon="download-outline"
         label={busy ? 'Saving…' : 'Download PNG'}

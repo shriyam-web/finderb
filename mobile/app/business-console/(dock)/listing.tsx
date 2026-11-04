@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Modal, Pressable, Share, Text, View } from 'react-native';
+import { Modal, Pressable, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import * as Clipboard from 'expo-clipboard';
@@ -24,6 +24,7 @@ import {
 } from '../../../components/console/kit';
 import { listingDetailGaps, listingDetailRows } from '../../../components/console/listingSections';
 import { askStorefrontPreview } from '../../../lib/consoleNav';
+import { shareMessage } from '../../../lib/shareMessage';
 import { isFailure } from '../../../lib/merchantConsoleApi';
 
 function ListingBody({ o }: { o: ConsoleOverview }) {
@@ -44,8 +45,12 @@ function ListingBody({ o }: { o: ConsoleOverview }) {
   const missing = o.completion.missing.length;
 
   const share = () =>
-    void Share.share({
+    void shareMessage({
+      title: o.business.name,
+      url: publicUrl,
       message: `${o.business.name} is on FinderB. See our timings, photos and reviews: ${publicUrl}`,
+    }).then((result) => {
+      if (result === 'copied') notify('Listing link copied');
     });
 
   return (
