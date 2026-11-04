@@ -12,6 +12,7 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import AppStoreIcon from '@/components/icons/AppStoreIcon';
+import { useSiteContact } from '@/components/SiteConfigProvider';
 import IndianFlagIcon from '@/components/icons/IndianFlagIcon';
 import {
   FaFacebook,
@@ -345,6 +346,7 @@ function ListYourBusinessCard() {
 }
 
 export default function Footer() {
+  const contact = useSiteContact();
   const serviceLinks = FOOTER_SERVICE_LINKS.map((item) => ({
     label: item.label,
     href: item.href,
@@ -399,16 +401,21 @@ export default function Footer() {
             <div className="space-y-4">
               <p className="text-sm font-medium text-neutral-900">Contact</p>
               <div className="space-y-3">
-                <ContactRow icon={Mail} href={`mailto:${FOOTER_CONTACT.email}`}>
-                  {FOOTER_CONTACT.email}
+                <ContactRow icon={Mail} href={`mailto:${contact.email}`}>
+                  {contact.email}
                 </ContactRow>
-                {/* Company phone row hidden until SHOW_COMPANY_PHONE is true in lib/legalContent.ts */}
-                {FOOTER_CONTACT.phone && FOOTER_CONTACT.phoneHref ? (
-                  <ContactRow icon={Phone} href={FOOTER_CONTACT.phoneHref}>
-                    {FOOTER_CONTACT.phone}
+                {contact.showPhone && contact.phoneDisplay ? (
+                  <ContactRow icon={Phone} href={`tel:${contact.phone}`}>
+                    {contact.phoneDisplay}
                   </ContactRow>
                 ) : null}
-                <ContactRow icon={MapPin}>{FOOTER_CONTACT.coverage}</ContactRow>
+                {contact.showAddress ? (
+                  <ContactRow icon={MapPin}>
+                    {contact.addressLine1}, {contact.addressLine2}, {contact.country} {contact.pincode}
+                  </ContactRow>
+                ) : (
+                  <ContactRow icon={MapPin}>{FOOTER_CONTACT.coverage}</ContactRow>
+                )}
               </div>
             </div>
 

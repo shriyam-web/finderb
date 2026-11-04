@@ -106,6 +106,39 @@ async function razorpayRequest<T>(
   return { ok: true, data: data as T };
 }
 
+async function ensureMonthlyPlan(expectedPaise: number): Promise<string> {
+  const { getSiteConfig, saveMonthlyPlanId } = await import('@/lib/siteConfig');
+  const config = await getSiteConfig();
+  const candidates = [
+    config.billing.razorpayMonthlyPlanId,
+    process.env.RAZORPAY_PLAN_ID_PRO_MONTHLY?.trim() || '',
+  ].filter((id): id is string => Boolean(id));
+
+  for (const id of candidates) {
+    const existing = await razorpayRequest<{ item?: { amount?: number } }>(`/plans/${id}`);
+    if (existing.ok && existing.data.item?.amount === expectedPaise) return id;
+  }
+
+  const created = await razorpayRequest<{ id: string }>('/plans', {
+    method: 'POST',
+    body: JSON.stringify({
+      period: 'monthly',
+      interval: 1,
+      item: {
+        name: 'FinderB Growth',
+        amount: expectedPaise,
+        currency: 'INR',
+        description: 'FinderB Growth monthly plan',
+      },
+    }),
+  });
+  if (!created.ok || !created.data.id) {
+    throw new Error(created.ok ? 'Could not create the monthly billing plan.' : created.error);
+  }
+  await saveMonthlyPlanId(created.data.id);
+  return created.data.id;
+}
+
 /** Mandate consent window at Razorpay checkout (not “until 2126”). Merchants can still cancel anytime. */
 export { MANDATE_VALIDITY_YEARS } from '@/lib/razorpay/plans';
 
@@ -128,9 +161,10 @@ export async function createRazorpaySubscription(params: {
     return { success: false, error: 'Payment gateway is not configured.' };
   }
 
+  const expectedAmount = await getPlanAmountInPaise(params.plan, params.billingCycle);
   let planId: string;
   try {
-    planId = getRazorpayPlanId(params.plan, params.billingCycle);
+    planId = await ensureMonthlyPlan(expectedAmount);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Monthly billing is not available right now.';
     return { success: false, error: message };
@@ -158,7 +192,6 @@ export async function createRazorpaySubscription(params: {
     return { success: false, error: result.error };
   }
 
-  const expectedAmount = getPlanAmountInPaise(params.plan, params.billingCycle);
   const planResult = await razorpayRequest<{ item: { amount: number } }>(`/plans/${planId}`);
   if (planResult.ok && planResult.data.item?.amount !== expectedAmount) {
     console.error('[razorpay] plan amount mismatch', {

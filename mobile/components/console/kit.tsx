@@ -31,6 +31,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useMerchantConsole } from '../../context/MerchantConsoleContext';
 import { useBottomInset } from '../../hooks/useAppSafeArea';
 import { FinderBLogo } from '../BrandMark';
+import { setPreferredShell } from '../../lib/preferredShell';
 import { openConsolePath, useConsoleBackAction } from '../../lib/consoleNav';
 import { useConsoleSearch } from './ConsoleSearch';
 import { MerchantSupportFab } from './MerchantSupportFab';
@@ -82,8 +83,8 @@ export function ConsoleHeaderActions({ children }: { children?: ReactNode }) {
   const router = useRouter();
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-      <HeaderIcon icon="menu-outline" label="More" onPress={() => openConsolePath(router, '/business-console/more')} />
       {children}
+      <HeaderIcon icon="menu-outline" label="More" onPress={() => openConsolePath(router, '/business-console/more')} />
     </View>
   );
 }
@@ -226,6 +227,67 @@ function RefreshBurst() {
   );
 }
 
+/** Business home: “Business” opens a switch onto the customer side. Search stays an icon until used. */
+function ShellSwitch() {
+  const styles = useKitStyles();
+  const c = useConsoleColors();
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const [open, setOpen] = useState(false);
+
+  const goUser = () => {
+    setOpen(false);
+    void setPreferredShell('user').then(() => {
+      router.replace('/(tabs)/home' as Href);
+    });
+  };
+
+  return (
+    <>
+      <Pressable
+        onPress={() => setOpen((value) => !value)}
+        style={({ pressed }) => [styles.shellSwitch, pressed && styles.headerIconPressed]}
+        accessibilityRole="button"
+        accessibilityState={{ expanded: open }}
+        accessibilityLabel="Business. Switch to the user side"
+      >
+        <Text style={styles.brandWord}>Business</Text>
+        <Ionicons name="chevron-down" size={14} color={c.muted} />
+      </Pressable>
+      <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
+        <View style={styles.shellScrim}>
+          <Pressable
+            style={StyleSheet.absoluteFill}
+            onPress={() => setOpen(false)}
+            accessibilityLabel="Close switcher"
+          />
+          <View style={[styles.shellMenu, { top: insets.top + 50, left: 52 }]}>
+            <Pressable
+              onPress={() => setOpen(false)}
+              style={({ pressed }) => [styles.shellOption, pressed && styles.headerIconPressed]}
+              accessibilityRole="button"
+              accessibilityState={{ selected: true }}
+            >
+              <Ionicons name="storefront-outline" size={16} color={c.ink} />
+              <Text style={styles.shellOptionText}>Business</Text>
+              <Ionicons name="checkmark" size={16} color={c.brand} />
+            </Pressable>
+            <Pressable
+              onPress={goUser}
+              style={({ pressed }) => [styles.shellOption, pressed && styles.headerIconPressed]}
+              accessibilityRole="button"
+              accessibilityLabel="Switch to the user side"
+            >
+              <Ionicons name="person-outline" size={16} color={c.ink} />
+              <Text style={styles.shellOptionText}>User</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+    </>
+  );
+}
+
 /** Every console screen: the same header (back, title, actions), scroll body and optional sticky footer. */
 export function ConsolePage({
   title,
@@ -256,7 +318,7 @@ export function ConsolePage({
   const dockPad = useDockPadding();
   const bottomInset = useBottomInset();
   const showSearch = Boolean(overview) && search && !form;
-  const searchCtl = useConsoleSearch(overview, { embedQuery: !brand });
+  const searchCtl = useConsoleSearch(overview, { embedQuery: true });
   const footerLift = (docked ? DOCK_HEIGHT : 0) + bottomInset + 12;
   const bottomPad = docked ? dockPad + (footer ? 72 : 0) : footer ? 24 : bottomInset + 28;
   const scrollRef = useRef<ScrollView>(null);
@@ -335,7 +397,7 @@ export function ConsolePage({
           {brand ? (
             <View style={styles.brandLockup} accessibilityRole="header" accessibilityLabel="FinderB Business">
               <FinderBLogo size={26} />
-              <Text style={styles.brandWord}>Business</Text>
+              <ShellSwitch />
             </View>
           ) : (
             <View style={styles.headerCopy}>
@@ -351,7 +413,7 @@ export function ConsolePage({
           )}
           {showSearch || right ? (
             <View style={[styles.headerRight, brand && styles.headerRightGrow]}>
-              {showSearch ? (brand ? searchCtl.input : searchCtl.icon) : null}
+              {showSearch ? searchCtl.icon : null}
               {right}
             </View>
           ) : null}
@@ -618,7 +680,17 @@ export function Chip({
 
 export type TagTone = 'success' | 'danger' | 'warning' | 'neutral' | 'info';
 
-export function Tag({ label, tone = 'neutral', icon }: { label: string; tone?: TagTone; icon?: IconName }) {
+export function Tag({
+  label,
+  tone = 'neutral',
+  icon,
+  style,
+}: {
+  label: string;
+  tone?: TagTone;
+  icon?: IconName;
+  style?: StyleProp<ViewStyle>;
+}) {
   const styles = useKitStyles();
   const c = useConsoleColors();
   const palette = {
@@ -629,7 +701,7 @@ export function Tag({ label, tone = 'neutral', icon }: { label: string; tone?: T
     info: [c.primarySoft, c.accent],
   }[tone];
   return (
-    <View style={[styles.tag, { backgroundColor: palette[0] }]}>
+    <View style={[styles.tag, { backgroundColor: palette[0] }, style]}>
       {icon ? <Ionicons name={icon} size={12} color={palette[1]} /> : null}
       <Text style={[styles.tagText, { color: palette[1] }]}>{label}</Text>
     </View>
@@ -1007,6 +1079,37 @@ const useKitStyles = createConsoleStyles((c) => ({
   },
   brandLockup: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingRight: 2, flexShrink: 0 },
   brandWord: { fontFamily: fonts.semiBold, fontSize: 17, color: c.ink, letterSpacing: -0.3 },
+  shellSwitch: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingVertical: 6,
+    paddingRight: 4,
+    borderRadius: 8,
+  },
+  shellScrim: { flex: 1 },
+  shellMenu: {
+    position: 'absolute',
+    minWidth: 196,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: c.line,
+    backgroundColor: c.card,
+    paddingVertical: 4,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+  },
+  shellOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+  },
+  shellOptionText: { flex: 1, fontFamily: fonts.semiBold, fontSize: 15, color: c.ink },
   body: { paddingHorizontal: 14, paddingTop: 14, gap: 14 },
   formPage: { backgroundColor: c.card },
   formBody: { paddingHorizontal: 20, paddingTop: 20, gap: 24 },

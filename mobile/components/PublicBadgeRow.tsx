@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
-import { Alert, Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-native';
+import { BadgeInfoModal } from './BadgeInfoModal';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { fonts } from '../constants/typography';
@@ -107,14 +108,35 @@ function isBadge(value: { id?: string } | null | undefined): value is PublicBadg
   return Boolean(value && value.id && value.id in LABEL);
 }
 
-export function PublicBadgeRow({ badges }: { badges?: { id: string; label?: string }[] | null }) {
+export function PublicBadgeRow({
+  badges,
+  compact = false,
+}: {
+  badges?: { id: string; label?: string }[] | null;
+  compact?: boolean;
+}) {
   const { isDark } = useTheme();
   const looks = isDark ? NIGHT : DAY;
-  const visible = (badges || []).filter(isBadge);
+  const [note, setNote] = useState<{ title: string; message: string } | null>(null);
+  const visible = (badges || []).filter(isBadge).sort((a, b) => {
+    if (a.id === 'trusted') return -1;
+    if (b.id === 'trusted') return 1;
+    return 0;
+  });
   if (!visible.length) return null;
+  const iconSize = compact ? 11 : 13;
+  const labelSize = compact ? 10.5 : 12;
+  const medallion = compact ? 15 : 18;
+  const shield = compact ? 9 : 11;
 
   return (
-    <View style={styles.row}>
+    <View style={[styles.row, compact && styles.rowCompact]}>
+      <BadgeInfoModal
+        visible={Boolean(note)}
+        title={note?.title || ''}
+        message={note?.message || ''}
+        onClose={() => setNote(null)}
+      />
       {visible.map((badge, index) => {
         const divider = index > 0 ? <Text style={[styles.sep, isDark && styles.sepNight]}>|</Text> : null;
         if (badge.id === 'trusted') {
@@ -122,16 +144,16 @@ export function PublicBadgeRow({ badges }: { badges?: { id: string; label?: stri
             <Fragment key={badge.id}>
             {divider}
             <Pressable
-              onPress={() => Alert.alert(LABEL.trusted, HINT.trusted, [{ text: 'Got it' }])}
-              style={[styles.trusted, isDark && styles.trustedNight]}
+              onPress={() => setNote({ title: LABEL.trusted, message: HINT.trusted })}
+              style={[styles.trusted, compact && styles.trustedCompact, isDark && styles.trustedNight]}
               accessibilityRole="button"
               accessibilityLabel={`${LABEL.trusted}. ${HINT.trusted}`}
             >
-              <View style={styles.medallion}>
-                <Ionicons name="shield-checkmark" size={11} color="#12263A" />
+              <View style={[styles.medallion, { width: medallion, height: medallion, borderRadius: medallion / 2 }]}>
+                <Ionicons name="shield-checkmark" size={shield} color="#12263A" />
               </View>
-              <Text style={styles.trustedFinder}>FinderB </Text>
-              <Text style={styles.trustedWord}>Trusted</Text>
+              <Text style={[styles.trustedFinder, { fontSize: labelSize }]}>FinderB </Text>
+              <Text style={[styles.trustedWord, { fontSize: labelSize }]}>Trusted</Text>
             </Pressable>
             </Fragment>
           );
@@ -141,13 +163,13 @@ export function PublicBadgeRow({ badges }: { badges?: { id: string; label?: stri
           <Fragment key={badge.id}>
           {divider}
           <Pressable
-            onPress={() => Alert.alert(LABEL[badge.id], HINT[badge.id], [{ text: 'Got it' }])}
+            onPress={() => setNote({ title: LABEL[badge.id], message: HINT[badge.id] })}
             style={styles.mark}
             accessibilityRole="button"
             accessibilityLabel={`${LABEL[badge.id]}. ${HINT[badge.id]}`}
           >
-            <Ionicons name={look.icon} size={13} color={look.iconColor} />
-            <BadgeLabel delay={GLYPH_DELAY[badge.id]} style={[styles.label, { color: look.ink }]}>
+            <Ionicons name={look.icon} size={iconSize} color={look.iconColor} />
+            <BadgeLabel delay={GLYPH_DELAY[badge.id]} style={[styles.label, { color: look.ink, fontSize: labelSize }]}>
               {LABEL[badge.id]}
             </BadgeLabel>
           </Pressable>
@@ -160,6 +182,7 @@ export function PublicBadgeRow({ badges }: { badges?: { id: string; label?: stri
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
+  rowCompact: { gap: 6 },
   sep: { color: '#D6D3D1', fontSize: 12, fontWeight: '300', lineHeight: 16 },
   sepNight: { color: 'rgba(231,229,228,0.35)' },
   shineWrap: { overflow: 'hidden' },
@@ -177,6 +200,7 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
   },
   trustedNight: { backgroundColor: '#0E1C2C' },
+  trustedCompact: { paddingRight: 8, paddingVertical: 2 },
   medallion: {
     width: 18,
     height: 18,

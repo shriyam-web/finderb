@@ -174,6 +174,8 @@ export default function BusinessLoginScreen() {
             style={({ pressed }) => [styles.primaryBtn, pressed && styles.pressed, busy && styles.disabled]}
             onPress={() => void handleEmail()}
             disabled={busy}
+            accessibilityRole="button"
+            accessibilityLabel="Sign in"
           >
             {loading ? (
               <ActivityIndicator color="#FFFFFF" />

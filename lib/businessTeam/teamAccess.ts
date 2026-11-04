@@ -88,6 +88,7 @@ export const CONSOLE_ACTION_ACCESS: Record<
   setPhotos: { tab: 'listings', mode: 'edit' },
   leads: { tab: 'leads', mode: 'view' },
   setLeadStatus: { tab: 'leads', mode: 'edit' },
+  setLeadNote: { tab: 'leads', mode: 'edit' },
   markLeadRead: { tab: 'leads', mode: 'view' },
   hideBusiness: { owner: true },
   cancelDeletion: { owner: true },

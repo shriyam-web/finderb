@@ -3,6 +3,7 @@ import type { Href } from 'expo-router';
 /** Website dashboard links (alerts, pushes) open the matching business panel screen instead of the browser. */
 export function consoleRouteFor(url: string): Href | null {
   const lower = url.toLowerCase();
+  if (/[?&]tab=account\b|\/account\b/.test(lower)) return '/business-console/account';
   if (/subscription|pricing|payment|plan/.test(lower)) return '/business-console/plan';
   if (/lead/.test(lower)) return '/business-console/leads';
   if (/review/.test(lower)) {

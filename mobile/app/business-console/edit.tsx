@@ -26,7 +26,11 @@ import {
   Tag,
   createConsoleStyles,
 } from '../../components/console/kit';
-import { plainAboutText } from '../../lib/aboutFormat';
+import {
+  ABOUT_SINGLE_LANGUAGE_HINT,
+  mixedAboutLanguageError,
+  plainAboutText,
+} from '../../lib/aboutFormat';
 import { offeringsForCategory } from '../../lib/categoryOfferings';
 import { EstablishmentDateField } from '../../components/console/EstablishmentDateField';
 import {
@@ -585,6 +589,8 @@ function EditBody({ o, section }: { o: ConsoleOverview; section: SectionKey }) {
     if (section === 'basics') {
       if (!form.displayName.trim()) out.displayName = 'Customers need a name to find you.';
       if (wordCount(form.about) > o.limits.aboutMaxWords) out.about = `Keep it under ${o.limits.aboutMaxWords} words.`;
+      const mixedAbout = mixedAboutLanguageError(form.about);
+      if (mixedAbout) out.about = mixedAbout;
     }
     if (section === 'contact') {
       if (form.whatsappNumber && !validMobile(whatsapp)) out.whatsappNumber = 'Enter a 10-digit WhatsApp number.';
@@ -664,7 +670,7 @@ function EditBody({ o, section }: { o: ConsoleOverview; section: SectionKey }) {
         <Btn
           label={dirty ? 'Save changes' : saved.current ? 'Saved' : 'No changes yet'}
           busy={saving}
-          disabled={!dirty || saving}
+          disabled={!dirty || saving || (section === 'basics' && Boolean(mixedAboutLanguageError(form.about)))}
           onPress={() => void save()}
         />
       }
@@ -687,7 +693,7 @@ function EditBody({ o, section }: { o: ConsoleOverview; section: SectionKey }) {
             value={form.about}
             onChangeText={(value) => set('about', value)}
             counter={`${aboutWords}/${o.limits.aboutMaxWords} words`}
-            error={errors.about}
+            error={mixedAboutLanguageError(form.about) || errors.about}
           />
           <TagInput
             label="Services you offer"
@@ -1096,7 +1102,7 @@ function AboutField({
         multiline
         value={value}
         onChangeText={onChangeText}
-        placeholder="What you sell, what you’re known for, since when…"
+            placeholder="What you sell, in one language only…"
         counter={counter}
         error={error}
         selection={forced ?? undefined}
@@ -1105,8 +1111,8 @@ function AboutField({
           if (forced) setForced(null);
         }}
       />
-      <Text style={{ fontFamily: fonts.regular, fontSize: 12, color: c.faint }}>
-        Line breaks, bold, italic, and underline show on your public page.
+      <Text style={{ fontFamily: fonts.regular, fontSize: 12, lineHeight: 17, color: c.faint }}>
+        {ABOUT_SINGLE_LANGUAGE_HINT} Line breaks, bold, italic, and underline show on your public page.
       </Text>
     </View>
   );

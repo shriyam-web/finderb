@@ -3,10 +3,12 @@ import 'server-only';
 export type ListingLiveEmailParams = {
   to: string;
   businessName: string;
+  subject: string;
+  paragraphs: string[];
   profileUrl: string;
   dashboardUrl: string;
-  showUpgradeCta: boolean;
-  upgradeUrl?: string;
+  primaryLabel: string;
+  primaryUrl: string;
 };
 
 /**
@@ -26,50 +28,25 @@ export async function sendListingLiveEmail(
   }
 
   const name = params.businessName.trim() || 'your business';
-  const subject = `🎉 ${name} is live on FinderB!`;
-
-  const upgradeText = params.showUpgradeCta
-    ? [
-        '',
-        'You’re currently on the free plan.',
-        'Upgrade to Growth or Pro for more visibility, leads, and premium placement:',
-        params.upgradeUrl || 'https://finderb.com/pricing',
-        '',
-      ]
-    : [''];
+  const subject = params.subject.trim() || 'Your business is now live on FinderB';
+  const paragraphs = params.paragraphs.map((line) => line.trim()).filter(Boolean);
 
   const text = [
-    `Congratulations — ${name} is now live on FinderB!`,
+    ...paragraphs,
     '',
-    'Your public profile is visible to customers searching for local businesses.',
-    '',
+    `${params.primaryLabel}: ${params.primaryUrl}`,
     `View your live listing: ${params.profileUrl}`,
     `Merchant dashboard: ${params.dashboardUrl}`,
-    ...upgradeText,
-    'Welcome to FinderB — we’re glad you’re here.',
     '',
     '— Team FinderB',
   ].join('\n');
 
-  const upgradeHtml = params.showUpgradeCta
-    ? `
-      <tr>
-        <td style="padding:20px 24px;background:#fff8ef;border:1px solid #ebd9b8;border-radius:12px;">
-          <p style="margin:0 0 8px;font-size:15px;font-weight:700;color:#153551;">
-            You’re on the free plan
-          </p>
-          <p style="margin:0 0 14px;font-size:14px;line-height:1.5;color:#5f564a;">
-            Upgrade to Growth or Pro for more visibility, leads, and premium placement across FinderB.
-          </p>
-          <a href="${escapeHtml(params.upgradeUrl || 'https://finderb.com/pricing')}"
-             style="display:inline-block;background:#b8893d;color:#fff;text-decoration:none;font-size:13px;font-weight:700;padding:10px 16px;border-radius:999px;">
-            Upgrade your plan
-          </a>
-        </td>
-      </tr>
-      <tr><td style="height:16px;"></td></tr>
-    `
-    : '';
+  const paragraphHtml = paragraphs
+    .map(
+      (line, index) =>
+        `<p style="margin:0 0 ${index === paragraphs.length - 1 ? 20 : 12}px;font-size:${index === 0 ? 16 : 14}px;line-height:1.55;color:${index === 0 ? '#153551' : '#5f564a'};">${escapeHtml(line)}</p>`,
+    )
+    .join('\n');
 
   const html = `
 <!DOCTYPE html>
@@ -87,23 +64,18 @@ export async function sendListingLiveEmail(
           </tr>
           <tr>
             <td style="padding:24px;">
-              <p style="margin:0 0 12px;font-size:16px;line-height:1.5;color:#153551;">
-                Congratulations — <strong>${escapeHtml(name)}</strong> is now live on FinderB.
-              </p>
-              <p style="margin:0 0 20px;font-size:14px;line-height:1.55;color:#5f564a;">
-                Your public profile is visible to customers searching for local businesses near you.
-              </p>
-              <a href="${escapeHtml(params.profileUrl)}"
+              ${paragraphHtml}
+              <a href="${escapeHtml(params.primaryUrl)}"
                  style="display:inline-block;background:#153551;color:#fff;text-decoration:none;font-size:13px;font-weight:700;padding:11px 18px;border-radius:999px;">
-                View live listing
+                ${escapeHtml(params.primaryLabel)}
               </a>
               <p style="margin:16px 0 0;font-size:13px;color:#6b6155;">
-                Or open your
-                <a href="${escapeHtml(params.dashboardUrl)}" style="color:#153551;font-weight:600;">merchant dashboard</a>.
+                <a href="${escapeHtml(params.profileUrl)}" style="color:#153551;font-weight:600;">View ${escapeHtml(name)}</a>
+                ·
+                <a href="${escapeHtml(params.dashboardUrl)}" style="color:#153551;font-weight:600;">Open your dashboard</a>
               </p>
             </td>
           </tr>
-          ${upgradeHtml}
           <tr>
             <td style="padding:0 24px 22px;font-size:12px;line-height:1.5;color:#8a7b68;">
               Welcome to FinderB — we’re glad you’re here.<br/>— Team FinderB

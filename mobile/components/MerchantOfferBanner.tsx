@@ -7,6 +7,7 @@ type Props = {
   headline: string;
   detail: string;
   label: string;
+  compact?: boolean;
 };
 
 const SAVING_EMOJIS = ['💰', '🏷️', '💸', '✨', '%', '💵'] as const;
@@ -241,7 +242,7 @@ function LiveSavingEmoji({
   );
 }
 
-function SavingEmojiRain() {
+function SavingEmojiRain({ compact = false }: { compact?: boolean }) {
   const styles = useStyles();
   const [floaters, setFloaters] = useState<Floater[]>([]);
   const nextId = useRef(0);
@@ -278,7 +279,7 @@ function SavingEmojiRain() {
         {
           id,
           emoji,
-          x: 2 + Math.random() * 30,
+          x: 2 + Math.random() * (compact ? 16 : 30),
           drift: 8 + Math.random() * 14,
           duration:
             pattern === 'popRise'
@@ -286,10 +287,10 @@ function SavingEmojiRain() {
               : pattern === 'zigzag'
                 ? 4800 + Math.random() * 1200
                 : 4200 + Math.random() * 1600,
-          size: emoji === '%' ? 24 : 24 + Math.floor(Math.random() * 6),
+          size: compact ? (emoji === '%' ? 13 : 14) : emoji === '%' ? 24 : 24 + Math.floor(Math.random() * 6),
           pattern,
           rotateAmt: 10 + Math.random() * 12,
-          rise: 100 + Math.random() * 24,
+          rise: compact ? 36 + Math.random() * 10 : 100 + Math.random() * 24,
         },
       ]);
     };
@@ -321,10 +322,10 @@ function SavingEmojiRain() {
       mounted.current = false;
       clearTimers();
     };
-  }, []);
+  }, [compact]);
 
   return (
-    <View style={styles.symbols} pointerEvents="none">
+    <View style={[styles.symbols, compact && styles.symbolsCompact]} pointerEvents="none">
       {floaters.map((item) => (
         <LiveSavingEmoji key={item.id} item={item} onDone={removeFloater} />
       ))}
@@ -333,30 +334,30 @@ function SavingEmojiRain() {
 }
 
 /** White coupon — FinderB Savings + live floating saving emojis. */
-export function MerchantOfferBanner({ headline, detail }: Props) {
+export function MerchantOfferBanner({ headline, detail, compact = false }: Props) {
   const styles = useStyles();
   const { amount, suffix } = splitDeal(headline);
   const note = detail?.trim() || '';
 
   return (
-    <View style={styles.wrap}>
-      <View style={styles.saveCol}>
-        <Text style={styles.saveText}>FinderB{'\n'}Savings</Text>
+    <View style={[styles.wrap, compact && styles.wrapCompact]}>
+      <View style={[styles.saveCol, compact && styles.saveColCompact]}>
+        <Text style={[styles.saveText, compact && styles.saveTextCompact]}>FinderB{'\n'}Savings</Text>
       </View>
 
-      <View style={styles.body}>
+      <View style={[styles.body, compact && styles.bodyCompact]}>
         <View style={styles.dealRow}>
-          <Text style={styles.amount}>{amount}</Text>
-          {suffix ? <Text style={styles.suffix}>{suffix}</Text> : null}
+          <Text style={[styles.amount, compact && styles.amountCompact]}>{amount}</Text>
+          {suffix ? <Text style={[styles.suffix, compact && styles.suffixCompact]}>{suffix}</Text> : null}
         </View>
         {note ? (
-          <Text style={styles.detail} numberOfLines={2}>
+          <Text style={[styles.detail, compact && styles.detailCompact]} numberOfLines={compact ? 1 : 2}>
             {note}
           </Text>
         ) : null}
       </View>
 
-      <SavingEmojiRain />
+      <SavingEmojiRain compact={compact} />
     </View>
   );
 }
@@ -427,6 +428,37 @@ const useStyles = createThemedStyles((colors) => ({
     lineHeight: 16,
     color: colors.textMuted,
   },
+  wrapCompact: {
+    marginTop: 4,
+    minHeight: 0,
+    borderRadius: 8,
+  },
+  saveColCompact: {
+    width: 52,
+    paddingVertical: 6,
+    paddingHorizontal: 4,
+  },
+  saveTextCompact: {
+    fontSize: 8,
+    lineHeight: 10,
+  },
+  bodyCompact: {
+    paddingVertical: 6,
+    paddingLeft: 8,
+    paddingRight: 32,
+    gap: 1,
+  },
+  amountCompact: {
+    fontSize: 14,
+    lineHeight: 17,
+  },
+  suffixCompact: {
+    fontSize: 11,
+  },
+  detailCompact: {
+    fontSize: 10,
+    lineHeight: 13,
+  },
   symbols: {
     position: 'absolute',
     top: 0,
@@ -434,6 +466,9 @@ const useStyles = createThemedStyles((colors) => ({
     bottom: 0,
     width: LANE_WIDTH,
     overflow: 'hidden',
+  },
+  symbolsCompact: {
+    width: 28,
   },
   emoji: {
     position: 'absolute',

@@ -17,7 +17,8 @@ function dispatchAuthorized(request: Request): boolean {
 
 /**
  * Called by FinderB Admin after setting Business.status = Active.
- * Body: { businessId: string }
+ * Body: { businessId: string, preview?: boolean }
+ * preview composes the email, WhatsApp, and in-app copy without sending.
  */
 export async function POST(request: Request) {
   try {
@@ -32,9 +33,12 @@ export async function POST(request: Request) {
 
     const body = (await request.json().catch(() => null)) as {
       businessId?: string;
+      preview?: boolean;
     } | null;
 
-    const result = await notifyListingLive(String(body?.businessId || ''));
+    const result = await notifyListingLive(String(body?.businessId || ''), {
+      preview: body?.preview === true,
+    });
     const status = result.success ? 200 : result.reason?.includes('not found') ? 404 : 400;
     return NextResponse.json(result, { status });
   } catch (error) {

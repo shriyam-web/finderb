@@ -13,6 +13,7 @@ import { OtpCodeBoxes } from '../../components/OtpCodeBoxes';
 import { ConsoleGate } from '../../components/console/ConsoleGate';
 import { TeamAccess } from '../../components/console/TeamAccess';
 import { canEditTeamTab } from '../../lib/teamAccess';
+import { mixedNameLanguageError, NAME_SINGLE_LANGUAGE_HINT } from '../../lib/aboutFormat';
 import {
   Btn,
   ConsolePage,
@@ -273,8 +274,10 @@ function RequestSheet({
       .map((item) => categoryLabel(item, byId));
   }, [catalog, query, byId]);
 
+  const nameMixed = field === 'displayName' ? mixedNameLanguageError(value) : null;
+
   const submit = async () => {
-    if (!field || !value.trim()) return;
+    if (!field || !value.trim() || nameMixed) return;
     setBusy(true);
     const result = await run<Requests>('requestChange', { field, value: value.trim(), note: note.trim() });
     setBusy(false);
@@ -293,7 +296,7 @@ function RequestSheet({
         field === 'category' ? 'Change category' : field === 'displayName' ? 'Change display name' : 'Change legal name'
       }
       onClose={onClose}
-      action={{ label: 'Send', busy, disabled: !value.trim(), onPress: () => void submit() }}
+      action={{ label: 'Send', busy, disabled: !value.trim() || Boolean(nameMixed), onPress: () => void submit() }}
     >
       <Text style={styles.sheetLead}>
         Now:{' '}
@@ -334,21 +337,26 @@ function RequestSheet({
           )}
         </>
       ) : field === 'displayName' ? (
-        <Field
-          label="New display name"
-          value={value}
-          onChangeText={setValue}
-          placeholder="The name customers should see"
-          maxLength={50}
-        />
+        <>
+          <Field
+            label="New display name"
+            value={value}
+            onChangeText={setValue}
+            placeholder="The name customers should see"
+            maxLength={50}
+          />
+          <Text style={nameMixed ? styles.quiet : styles.footnote}>{nameMixed || NAME_SINGLE_LANGUAGE_HINT}</Text>
+        </>
       ) : (
-        <Field
-          label="New legal name"
-          value={value}
-          onChangeText={setValue}
-          placeholder="As on your GST / shop licence"
-          maxLength={50}
-        />
+        <>
+          <Field
+            label="New legal name"
+            value={value}
+            onChangeText={setValue}
+            placeholder="As on your GST / shop licence"
+            maxLength={50}
+          />
+        </>
       )}
       <Field
         label="Note for the reviewer (optional)"
@@ -611,6 +619,7 @@ const useStyles = createConsoleStyles((c) => ({
   contactTag: { marginTop: 6 },
   action: { fontFamily: fonts.semiBold, fontSize: 14, color: c.accent },
   footnote: { fontFamily: fonts.regular, fontSize: 12.5, lineHeight: 18, color: c.muted, paddingHorizontal: 2 },
+  quiet: { fontFamily: fonts.regular, fontSize: 12.5, lineHeight: 18, color: c.danger, paddingHorizontal: 2 },
   warn: {
     flexDirection: 'row',
     gap: 10,

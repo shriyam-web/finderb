@@ -7,7 +7,7 @@ import { getOwnedBusiness } from '@/app/actions/business';
 import { enforceRateLimit } from '@/lib/security/enforceRateLimit.server';
 import { cancelRazorpaySubscription, getRazorpaySubscription, TERMINAL_RAZORPAY_SUBSCRIPTION_STATUSES } from '@/lib/razorpay/subscriptions';
 import { applySubscriptionCancellation } from '@/lib/razorpay/finalizeMerchantSubscription';
-import { getPlanAmountInPaise, isValidBillingCycle, isValidMerchantPlan } from '@/lib/razorpay/plans';
+import { MERCHANT_PLANS, isValidBillingCycle, isValidMerchantPlan } from '@/lib/razorpay/plans';
 import { getRazorpayPayment } from '@/lib/razorpay/server';
 import { settleCheckoutStatus } from '@/lib/razorpay/checkoutStatus';
 import { settleAbandonedCheckouts } from '@/app/actions/payment';
@@ -101,7 +101,7 @@ function buildLegacyPaymentFromBusiness(
   let amountPaise = 0;
 
   if (isValidMerchantPlan(plan) && isValidBillingCycle(billingCycle)) {
-    amountPaise = getPlanAmountInPaise(plan, billingCycle);
+    amountPaise = MERCHANT_PLANS[plan].prices[billingCycle].amountInPaise;
   } else if (billingCycle === 'annual') {
     amountPaise = 358800;
   } else {

@@ -32,8 +32,11 @@ import {
   isDefaultFilters,
   type FilterState,
 } from '../lib/merchantFilters';
+import { getDiscountOfferDisplay } from '../lib/discountOffer';
 import { getRatingDisplay, UNRATED_LABEL } from '../lib/ratingDisplay';
 import { listingThumbUrl, type Merchant } from '../lib/merchants';
+import { ListSignalChips } from './ListSignalChips';
+import { MerchantOfferBanner } from './MerchantOfferBanner';
 import { fonts } from '../constants/typography';
 import { useTheme } from '../context/ThemeContext';
 import { createThemedStyles } from '../hooks/useThemedStyles';
@@ -80,6 +83,15 @@ function leafCategory(raw: string) {
 function shortAbout(raw: string | null | undefined) {
   if (!raw) return '';
   return raw.replace(/<[^>]+>/g, ' ').replace(/\*\*|__|\*/g, '').replace(/\s+/g, ' ').trim();
+}
+
+const ABOUT_LINE = 16;
+const MIN_ABOUT_LINES = 2;
+
+/** About lines that bring a shorter card up to the tallest, on top of the lines every card shows. */
+export function aboutLinesToFill(extraPx: number, lineHeight = ABOUT_LINE): number {
+  if (extraPx <= 0) return MIN_ABOUT_LINES;
+  return MIN_ABOUT_LINES + Math.ceil(extraPx / lineHeight);
 }
 
 function shuffleMerchants<T>(items: T[], seed: number): T[] {
@@ -146,6 +158,9 @@ function MerchantCard({
   fill,
   wash,
   userCoords,
+  rowHeight = 0,
+  naturalHeight = 0,
+  onNaturalHeight,
   onPress,
 }: {
   merchant: Merchant;
@@ -153,6 +168,9 @@ function MerchantCard({
   fill?: boolean;
   wash: string;
   userCoords?: Coords | null;
+  rowHeight?: number;
+  naturalHeight?: number;
+  onNaturalHeight?: (height: number) => void;
   onPress: () => void;
 }) {
   const { colors, gradients } = useTheme();
@@ -162,6 +180,20 @@ function MerchantCard({
   const distanceLabel = useDrivingDistanceLabel(merchant.latitude, merchant.longitude);
   const place = (merchant.location || merchant.city || '').trim();
   const showLocation = Boolean(distanceLabel || place);
+  const about = shortAbout(merchant.about);
+  const offerDisplay = getDiscountOfferDisplay(merchant.discountRange, merchant.name);
+  const coreHeight = useRef(0);
+  const footerHeight = useRef(0);
+  const seenCore = useRef(false);
+  const seenFooter = useRef(false);
+  const gap =
+    rowHeight > 0 && naturalHeight > 0 ? Math.max(0, rowHeight - naturalHeight) : 0;
+  const aboutLines = about ? aboutLinesToFill(rowHeight > 0 ? gap : 0) : 0;
+
+  const publishFixedHeight = () => {
+    if (!seenCore.current) return;
+    onNaturalHeight?.(Math.round(coreHeight.current + footerHeight.current));
+  };
 
   return (
     <Pressable
@@ -216,6 +248,18 @@ function MerchantCard({
           style={[styles.photoFade, compact && styles.photoFadeCompact]}
         />
       </View>
+      <View collapsable={false}>
+      <View
+        collapsable={false}
+        onLayout={(event) => {
+          const next = Math.round(event.nativeEvent.layout.height);
+          if (next <= 0) return;
+          const changed = !seenCore.current || coreHeight.current !== next;
+          seenCore.current = true;
+          coreHeight.current = next;
+          if (changed) publishFixedHeight();
+        }}
+      >
       <View
         style={[
           styles.body,
@@ -248,9 +292,6 @@ function MerchantCard({
             </View>
           ) : null}
         </View>
-        <Text style={styles.category} numberOfLines={1}>
-          {leafCategory(merchant.category)}
-        </Text>
         <View style={styles.metaRow}>
           {rating.rated ? (
             <View style={styles.rating}>
@@ -259,24 +300,42 @@ function MerchantCard({
               {rating.showCount ? <Text style={styles.meta}>({rating.reviewCount})</Text> : null}
             </View>
           ) : (
-            <View style={styles.rating}>
-              <Text style={styles.metaNew}>New</Text>
-              <Text style={styles.meta}>· {UNRATED_LABEL}</Text>
-            </View>
+            <Text style={styles.metaText}>{UNRATED_LABEL}</Text>
           )}
-          {open.status === 'Open' || open.status === 'Closed' ? (
-            <Text
-              style={[
-                styles.status,
-                open.status === 'Open'
-                  ? styles.statusOpen
-                  : styles.statusClosed,
-              ]}
-            >
-              · {open.status === 'Open' ? 'Open now' : 'Closed'}
-            </Text>
-          ) : null}
         </View>
+        <Text style={styles.category} numberOfLines={1}>
+          {leafCategory(merchant.category)}
+        </Text>
+        <ListSignalChips id={merchant.id} compact={false} tight replyScale={0.75} />
+        {open.status === 'Open' || open.status === 'Closed' ? (
+          <Text
+            style={[
+              styles.status,
+              open.status === 'Open'
+                ? styles.statusOpen
+                : styles.statusClosed,
+            ]}
+          >
+            {open.status === 'Open' ? 'Open now' : (compact ? open.shortLabel : open.label) || 'Closed'}
+          </Text>
+        ) : null}
+      </View>
+      </View>
+      {aboutLines > 0 ? (
+        <Text style={styles.aboutFill} numberOfLines={aboutLines}>
+          {about}
+        </Text>
+      ) : null}
+      <View
+        collapsable={false}
+        onLayout={(event) => {
+          const next = Math.round(event.nativeEvent.layout.height);
+          const changed = !seenFooter.current || footerHeight.current !== next;
+          seenFooter.current = true;
+          footerHeight.current = next;
+          if (changed) publishFixedHeight();
+        }}
+      >
         {showLocation ? (
           <View style={styles.locRow}>
             <Ionicons
@@ -291,6 +350,15 @@ function MerchantCard({
             </Text>
           </View>
         ) : null}
+        {offerDisplay ? (
+          <MerchantOfferBanner
+            compact
+            headline={offerDisplay.headline}
+            detail={offerDisplay.detail}
+            label={offerDisplay.label}
+          />
+        ) : null}
+      </View>
       </View>
     </Pressable>
   );
@@ -299,10 +367,12 @@ function MerchantCard({
 function SeeAllCard({
   compact,
   fill,
+  minHeight = 0,
   onPress,
 }: {
   compact?: boolean;
   fill?: boolean;
+  minHeight?: number;
   onPress: () => void;
 }) {
   const { colors } = useTheme();
@@ -314,6 +384,7 @@ function SeeAllCard({
         styles.seeAllCard,
         compact && styles.seeAllCardCompact,
         fill && styles.seeAllCardFill,
+        minHeight > 0 && { minHeight },
         pressed && styles.pressed,
       ]}
     >
@@ -390,8 +461,23 @@ function MerchantRow({
   onSeeAll: () => void;
 }) {
   const styles = useStyles();
+  const railRef = useRef<ScrollView>(null);
+  const pinStart = useRef(true);
+  const [naturals, setNaturals] = useState<Record<string, number>>({});
+  const listKey = merchants.map((merchant) => merchant.id).join('|');
+
+  useEffect(() => {
+    setNaturals({});
+    pinStart.current = true;
+    railRef.current?.scrollTo({ x: 0, animated: false });
+  }, [listKey]);
+
+  const ready = merchants.length > 0 && merchants.every((merchant) => (naturals[merchant.id] || 0) > 0);
+  const rowHeight = ready ? Math.max(...merchants.map((merchant) => naturals[merchant.id])) : 0;
+
   return (
     <ScrollView
+      ref={railRef}
       horizontal
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={[
@@ -401,6 +487,11 @@ function MerchantRow({
       ]}
       nestedScrollEnabled
       decelerationRate="fast"
+      onContentSizeChange={() => {
+        if (!pinStart.current) return;
+        pinStart.current = false;
+        railRef.current?.scrollTo({ x: 0, animated: false });
+      }}
     >
       {merchants.map((merchant) => (
         <MerchantCard
@@ -409,11 +500,16 @@ function MerchantRow({
           compact={compact}
           wash={wash}
           userCoords={userCoords}
+          rowHeight={rowHeight}
+          naturalHeight={naturals[merchant.id] || 0}
+          onNaturalHeight={(height) => {
+            setNaturals((prev) => (prev[merchant.id] === height ? prev : { ...prev, [merchant.id]: height }));
+          }}
           onPress={() => onOpenMerchant(merchant)}
         />
       ))}
       {showSeeAll ? (
-        <SeeAllCard compact={compact} onPress={onSeeAll} />
+        <SeeAllCard compact={compact} minHeight={rowHeight} onPress={onSeeAll} />
       ) : null}
     </ScrollView>
   );
@@ -1332,12 +1428,17 @@ const useStyles = createThemedStyles((colors) => ({
     paddingRight: 16,
     gap: 12,
     paddingBottom: 6,
+    alignItems: 'flex-start',
   },
   card: {
     width: 184,
+    maxWidth: 184,
+    overflow: 'hidden',
   },
   cardCompact: {
     width: 156,
+    maxWidth: 156,
+    overflow: 'hidden',
   },
   cardFill: {
     width: '47%',
@@ -1383,8 +1484,8 @@ const useStyles = createThemedStyles((colors) => ({
     height: 36,
   },
   bodyCompact: {
-    paddingTop: 5,
-    gap: 2,
+    paddingTop: 4,
+    gap: 1,
   },
   bodyFill: {
     paddingTop: 6,
@@ -1414,8 +1515,8 @@ const useStyles = createThemedStyles((colors) => ({
     color: colors.frost,
   },
   body: {
-    paddingTop: 8,
-    gap: 3,
+    paddingTop: 5,
+    gap: 1,
   },
   nameRow: {
     flexDirection: 'row',
@@ -1456,8 +1557,11 @@ const useStyles = createThemedStyles((colors) => ({
   },
   metaRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
-    gap: 4,
+    columnGap: 4,
+    rowGap: 1,
+    maxWidth: '100%',
   },
   rating: {
     flexDirection: 'row',
@@ -1470,6 +1574,14 @@ const useStyles = createThemedStyles((colors) => ({
     color: colors.ink,
   },
   meta: {
+    flexShrink: 1,
+    fontFamily: fonts.medium,
+    fontSize: 12,
+    color: colors.textSoft,
+  },
+  metaText: {
+    flexShrink: 1,
+    maxWidth: '100%',
     fontFamily: fonts.medium,
     fontSize: 12,
     color: colors.textSoft,
@@ -1481,11 +1593,20 @@ const useStyles = createThemedStyles((colors) => ({
     color: colors.brand,
   },
   status: {
+    flexShrink: 1,
+    maxWidth: '100%',
     fontFamily: fonts.medium,
     fontSize: 12,
   },
   statusOpen: { color: colors.open },
   statusClosed: { color: colors.closed },
+  aboutFill: {
+    marginTop: 2,
+    fontFamily: fonts.regular,
+    fontSize: 12,
+    lineHeight: ABOUT_LINE,
+    color: colors.textMuted,
+  },
   locRow: {
     flexDirection: 'row',
     alignItems: 'center',

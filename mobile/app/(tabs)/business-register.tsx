@@ -42,6 +42,7 @@ import { mobileInputDigits, PHONE_INPUT_MAX_LENGTH } from '../../lib/phoneInput'
 import { ShopMapPicker } from '../../components/ShopMapPicker';
 import { OtpCodeBoxes } from '../../components/OtpCodeBoxes';
 import { useAuth } from '../../context/AuthContext';
+import { mixedNameLanguageError, NAME_SINGLE_LANGUAGE_HINT } from '../../lib/aboutFormat';
 
 const UI = fonts.medium;
 const METER_LABEL = ['', 'Risky', 'Fair', 'Good', 'Strong'];
@@ -627,6 +628,11 @@ export default function BusinessRegisterScreen() {
       setError('Business name must be 50 characters or fewer.');
       return;
     }
+    const mixedName = mixedNameLanguageError(form.businessName);
+    if (mixedName) {
+      setError(mixedName);
+      return;
+    }
     if (!parent) {
       setError('Pick a category.');
       return;
@@ -693,6 +699,11 @@ export default function BusinessRegisterScreen() {
     if (!declared) {
       setDeclareError(true);
       setError('Confirm that these particulars are accurate before registering.');
+      return;
+    }
+    const mixedName = mixedNameLanguageError(form.businessName);
+    if (mixedName) {
+      setError(mixedName);
       return;
     }
     setError('');
@@ -1269,6 +1280,7 @@ export default function BusinessRegisterScreen() {
                 placeholder="Name on the signboard"
                 maxLength={50}
               />
+              <Text style={styles.searchHint}>{NAME_SINGLE_LANGUAGE_HINT}</Text>
               <AuthField
                 fontFamily={UI}
                 label="Category"

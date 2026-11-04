@@ -1,5 +1,6 @@
 import type { Ionicons } from '@expo/vector-icons';
 import { formatEstablishmentYearsLabel } from '../../lib/establishmentYear';
+import { parseBusinessServices } from '../../lib/merchants';
 import type { ConsoleOverview, Timings } from '../../lib/merchantConsoleApi';
 
 export type SectionKey = 'basics' | 'contact' | 'location' | 'hours' | 'offers' | 'social';
@@ -96,8 +97,13 @@ export function sectionSummary(key: SectionKey, o: ConsoleOverview): string {
   }
 }
 
+/** Listing details only. KYC is a separate verification step, not a profile field. */
+export function listingDetailGaps<T extends { key: string }>(missing: T[]): T[] {
+  return missing.filter((field) => field.key !== 'kyc');
+}
+
 export function sectionGaps(section: ListingSection, o: ConsoleOverview): number {
-  const missing = new Set(o.completion.missing.map((field) => field.key));
+  const missing = new Set(listingDetailGaps(o.completion.missing).map((field) => field.key));
   return section.fields.filter((field) => missing.has(field)).length;
 }
 
@@ -107,6 +113,7 @@ export type ListingDetailRow = {
   section: SectionKey;
   missing: boolean;
   verified?: boolean;
+  tags?: string[];
 };
 
 function dash(value: string | null | undefined, fallback = 'Not set') {
@@ -122,8 +129,20 @@ export function listingDetailRows(o: ConsoleOverview): ListingDetailRow[] {
   return [
     { label: 'Display name', value: dash(p.displayName || p.businessName), section: 'basics', missing: isMissing('displayName') },
     { label: 'About', value: dash(p.about), section: 'basics', missing: isMissing('about') },
-    { label: 'Keywords', value: p.keywords.length ? p.keywords.join(', ') : 'Not set', section: 'basics', missing: isMissing('keywords') },
-    { label: 'Services', value: dash(p.serviceCategory), section: 'basics', missing: isMissing('serviceCategory') },
+    {
+      label: 'Keywords',
+      value: p.keywords.length ? p.keywords.join(', ') : 'Not set',
+      tags: p.keywords,
+      section: 'basics',
+      missing: isMissing('keywords'),
+    },
+    {
+      label: 'Services',
+      value: dash(p.serviceCategory),
+      tags: parseBusinessServices(p.serviceCategory),
+      section: 'basics',
+      missing: isMissing('serviceCategory'),
+    },
     { label: 'Add more subcategories', value: 'Extra categories in the same group', section: 'basics', missing: false },
     { label: 'Public phone', value: dash(p.publicPhone), section: 'contact', missing: isMissing('publicPhone'), verified: o.business.mobileVerified },
     { label: 'WhatsApp', value: dash(p.whatsappNumber), section: 'contact', missing: isMissing('whatsappNumber'), verified: o.business.whatsappVerified },

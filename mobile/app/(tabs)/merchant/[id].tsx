@@ -28,7 +28,9 @@ import { MerchantOfferBanner } from '../../../components/MerchantOfferBanner';
 import { MerchantReviewComposer } from '../../../components/MerchantReviewComposer';
 import { PhotoLightbox } from '../../../components/PhotoLightbox';
 import { PublicBadgeRow } from '../../../components/PublicBadgeRow';
-import { LivingFire } from '../../../components/LivingFire';
+import { useBusinessSignals } from '../../../components/ListSignalChips';
+import { BadgeInfoModal } from '../../../components/BadgeInfoModal';
+import { BestInCategoryMark, ReplyPace } from '../../../components/ProfileSignalMarks';
 import { PrimaryButton } from '../../../components/PrimaryButton';
 import { fonts } from '../../../constants/typography';
 import { useAuth } from '../../../context/AuthContext';
@@ -41,6 +43,7 @@ import {
 import { getBusinessOpenStatus, getWeeklyHours } from '../../../lib/businessHours';
 import { fetchJobsByBusinessId, type JobListing } from '../../../lib/jobs';
 import {
+  cloudinarySized,
   directionsHref,
   PUBLIC_REVIEW_PREVIEW,
   resolveMerchantSlug,
@@ -58,8 +61,8 @@ import { previewAboutMarkup } from '../../../lib/aboutFormat';
 import { reportBusinessReview } from '../../../lib/reviewsApi';
 import { goBackOrHome } from '../../../lib/navigation';
 import { formatYearsInBusinessShort } from '../../../lib/establishmentYear';
-import { SITE_URL, siteBases } from '../../../lib/supabase';
-import { getRatingDisplay, UNRATED_LABEL } from '../../../lib/ratingDisplay';
+import { SITE_URL } from '../../../lib/supabase';
+import { getRatingDisplay, ratingBoxColor, UNRATED_LABEL } from '../../../lib/ratingDisplay';
 import { useTabScrollPadding } from '../../../hooks/useAppSafeArea';
 import { createThemedStyles } from '../../../hooks/useThemedStyles';
 import { useUserLocation } from '../../../hooks/useUserLocation';
@@ -91,22 +94,42 @@ function GalleryPhoto({
   height: number | '100%';
   priority?: 'low' | 'normal' | 'high';
 }) {
-  const [src, setSrc] = useState(uri);
+  const pixelWidth = typeof width === 'number' ? width : 390;
+  const low = cloudinarySized(uri, Math.max(280, Math.round(pixelWidth * 0.9)), 'auto:low') || uri;
+  const high = cloudinarySized(uri, Math.min(1800, Math.max(960, Math.round(pixelWidth * 3))), 'auto:best') || uri;
+  const [sharp, setSharp] = useState(low === high);
+  const [src, setSrc] = useState(low);
+
   useEffect(() => {
-    setSrc(uri);
-  }, [uri]);
+    setSrc(low);
+    setSharp(low === high);
+    if (low !== high) void Image.prefetch(high);
+  }, [high, low]);
+
   return (
-    <Image
-      source={{ uri: src }}
-      style={{ width, height }}
-      contentFit="cover"
-      cachePolicy="memory-disk"
-      priority={priority}
-      onError={() => {
-        const plain = cloudinaryOriginal(src);
-        if (plain && plain !== src) setSrc(plain);
-      }}
-    />
+    <View style={{ width, height, overflow: 'hidden' }}>
+      <Image
+        source={{ uri: src }}
+        style={StyleSheet.absoluteFill}
+        contentFit="cover"
+        cachePolicy="memory-disk"
+        priority={priority}
+        onError={() => {
+          const plain = cloudinaryOriginal(src);
+          if (plain && plain !== src) setSrc(plain);
+        }}
+      />
+      {low !== high ? (
+        <Image
+          source={{ uri: high }}
+          style={[StyleSheet.absoluteFill, { opacity: sharp ? 1 : 0 }]}
+          contentFit="cover"
+          cachePolicy="memory-disk"
+          priority={priority}
+          onLoad={() => setSharp(true)}
+        />
+      ) : null}
+    </View>
   );
 }
 
@@ -149,77 +172,6 @@ function HeroGlyph({
         textShadowRadius: onLight ? 3 : 5,
       }}
     />
-  );
-}
-
-function ratingBoxColor(rating: number): string {
-  if (rating <= 2) return '#DC2626';
-  if (rating <= 3.5) return '#E6A800';
-  return '#16A34A';
-}
-
-/** A quiet clock tick and a passing highlight. No filled chip. */
-function ReplyPace({ label }: { label: string }) {
-  const styles = useStyles();
-  const { isDark } = useTheme();
-  const replyBrown = isDark ? '#C4A484' : '#8A5A32';
-  const tick = useRef(new Animated.Value(0)).current;
-  const shine = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    const icon = Animated.loop(
-      Animated.sequence([
-        Animated.timing(tick, { toValue: 1, duration: 700, useNativeDriver: true }),
-        Animated.timing(tick, { toValue: 0, duration: 700, useNativeDriver: true }),
-      ]),
-    );
-    const gleam = Animated.loop(
-      Animated.sequence([
-        Animated.timing(shine, { toValue: 1, duration: 1100, useNativeDriver: true }),
-        Animated.delay(1400),
-      ]),
-    );
-    icon.start();
-    gleam.start();
-    return () => {
-      icon.stop();
-      gleam.stop();
-    };
-  }, [shine, tick]);
-
-  const rotate = tick.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['-12deg', '12deg'],
-  });
-  const scale = tick.interpolate({
-    inputRange: [0, 1],
-    outputRange: [1, 1.16],
-  });
-  const translateX = shine.interpolate({
-    inputRange: [0, 1],
-    outputRange: [-36, 180],
-  });
-
-  return (
-    <View style={styles.responseChip}>
-      <Animated.View style={{ transform: [{ rotate }, { scale }] }}>
-        <Ionicons name="time-outline" size={15} color={replyBrown} />
-      </Animated.View>
-      <View style={styles.responseShineWrap}>
-        <Text style={[styles.responseValue, { color: replyBrown }]}>Usually replies in {label}</Text>
-        <Animated.View
-          pointerEvents="none"
-          style={[styles.responseShine, { transform: [{ translateX }] }]}
-        >
-          <LinearGradient
-            colors={['rgba(255,255,255,0)', 'rgba(255,255,255,0.95)', 'rgba(255,255,255,0)']}
-            start={{ x: 0, y: 0.5 }}
-            end={{ x: 1, y: 0.5 }}
-            style={StyleSheet.absoluteFill}
-          />
-        </Animated.View>
-      </View>
-    </View>
   );
 }
 
@@ -320,6 +272,7 @@ export default function MerchantProfileScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [galleryIndex, setGalleryIndex] = useState(0);
+  const [verifiedNote, setVerifiedNote] = useState(false);
   const [iconOnLight, setIconOnLight] = useState({ left: false, right: false });
   const [aboutExpanded, setAboutExpanded] = useState(false);
   const [hoursExpanded, setHoursExpanded] = useState(false);
@@ -331,15 +284,10 @@ export default function MerchantProfileScreen() {
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
   const [reportedReviewIds, setReportedReviewIds] = useState<Set<string>>(() => new Set());
-  const [signals, setSignals] = useState<{
-    bestInCategory: boolean;
-    averageResponse: string | null;
-    badges: { id: string; label: string }[];
-  } | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
+  const signals = useBusinessSignals(merchant?.id);
   const merchantRef = useRef<string | null>(null);
-  const [signalNonce, setSignalNonce] = useState(0);
   const linkCopiedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const contactRevealed = Boolean(user);
@@ -359,47 +307,6 @@ export default function MerchantProfileScreen() {
       cancelled = true;
     };
   }, [user, merchant?.id]);
-
-  useEffect(() => {
-    const businessId = merchant?.id;
-    if (!businessId) return;
-    let cancelled = false;
-    setSignals(null);
-    void (async () => {
-      for (const base of siteBases()) {
-        try {
-          const response = await fetch(
-            `${base}/api/business/signals?id=${encodeURIComponent(businessId)}&fresh=1`,
-            { cache: 'no-store' },
-          );
-          if (!response.ok) continue;
-          const data = (await response.json()) as {
-            bestInCategory?: boolean;
-            averageResponse?: string | null;
-            badges?: { id?: string; label?: string }[];
-          };
-          if (cancelled) return;
-          setSignals({
-            bestInCategory: data.bestInCategory === true,
-            averageResponse: typeof data.averageResponse === 'string' ? data.averageResponse : null,
-            badges: Array.isArray(data.badges)
-              ? data.badges.flatMap((badge) =>
-                  badge && typeof badge.id === 'string' && typeof badge.label === 'string'
-                    ? [{ id: badge.id, label: badge.label }]
-                    : [],
-                )
-              : [],
-          });
-          return;
-        } catch {
-          // try the next site
-        }
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [merchant?.id, signalNonce]);
 
   const userHasReviewed = Boolean(
     user && merchant?.reviews.some((review) => review.userId === user.id),
@@ -821,7 +728,6 @@ export default function MerchantProfileScreen() {
             colors={[colors.brand]}
             onRefresh={() => {
               setRefreshing(true);
-              setSignalNonce((value) => value + 1);
               setReloadKey((value) => value + 1);
             }}
           />
@@ -999,13 +905,7 @@ export default function MerchantProfileScreen() {
                     {merchant.name}
                     {merchant.isVerified ? (
                       <Text
-                        onPress={() => {
-                          Alert.alert(
-                            'Verified on FinderB',
-                            "FinderB has confirmed this business's identity and listing details.",
-                            [{ text: 'Got it' }],
-                          );
-                        }}
+                        onPress={() => setVerifiedNote(true)}
                         accessibilityRole="button"
                         accessibilityLabel="Verified on FinderB. FinderB has confirmed this business's identity and listing details."
                         style={styles.verifiedInlineSlot}
@@ -1038,10 +938,7 @@ export default function MerchantProfileScreen() {
                         ) : null}
                       </>
                     ) : (
-                      <>
-                        <Text style={styles.metaNew}>New</Text>
-                        <Text style={styles.metaMuted}>· {UNRATED_LABEL}</Text>
-                      </>
+                      <Text style={styles.metaMuted}>{UNRATED_LABEL}</Text>
                     )}
                   </View>
                 </View>
@@ -1099,16 +996,21 @@ export default function MerchantProfileScreen() {
                   : ''}
               </Text>
 
-              {signals?.averageResponse ? <ReplyPace label={signals.averageResponse} /> : null}
-
-              {signals?.bestInCategory ? (
-                <View style={styles.trendingBadge}>
-                  <LivingFire />
-                  <Text style={styles.trendingText}>Best in Category</Text>
-                </View>
+              {(signals?.badges || []).some((badge) => badge.id === 'trusted') ? (
+                <PublicBadgeRow
+                  badges={(signals?.badges || []).filter((badge) => badge.id === 'trusted')}
+                />
               ) : null}
 
-              <PublicBadgeRow badges={signals?.badges} />
+              {signals?.bestInCategory ? <BestInCategoryMark /> : null}
+
+              {signals?.averageResponse ? <ReplyPace label={signals.averageResponse} /> : null}
+
+              {(signals?.badges || []).some((badge) => badge.id !== 'trusted') ? (
+                <PublicBadgeRow
+                  badges={(signals?.badges || []).filter((badge) => badge.id !== 'trusted')}
+                />
+              ) : null}
 
               {(placeLabel || distanceLabel || mapsUrl) ? (
                 <View style={styles.placeBlock}>
@@ -1182,13 +1084,13 @@ export default function MerchantProfileScreen() {
                       },
                     ]}
                   >
-                    {openStatus.status === 'Open' ? 'Open now' : 'Closed'}
+                    {openStatus.status === 'Open' ? 'Open now' : openStatus.label || 'Closed'}
                   </Text>
-                  {todayHours?.hours || openStatus.label ? (
+                  {openStatus.status === 'Open' && todayHours?.hours ? (
                     <>
                       <Text style={styles.statusDotSep}>·</Text>
                       <Text style={styles.statusHours} numberOfLines={1}>
-                        {todayHours?.hours || openStatus.label}
+                        {todayHours.hours}
                       </Text>
                     </>
                   ) : null}
@@ -1851,6 +1753,13 @@ export default function MerchantProfileScreen() {
         </View>
       </Animated.ScrollView>
 
+      <BadgeInfoModal
+        visible={verifiedNote}
+        title="Verified on FinderB"
+        message="FinderB has confirmed this business's identity and listing details."
+        onClose={() => setVerifiedNote(false)}
+      />
+
       <ConnectMerchantModal
         merchant={merchant}
         visible={connectOpen}
@@ -2255,39 +2164,8 @@ const useStyles = createThemedStyles((colors, gradients) => ({
     fontSize: 13,
     color: colors.textMuted,
   },
-  trendingBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    gap: 6,
-  },
-  trendingText: {
-    fontFamily: fonts.semiBold,
-    fontSize: 12,
-    color: colors.textMuted,
-  },
-  responseChip: {
-    alignSelf: 'flex-start',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    maxWidth: '100%',
-    backgroundColor: 'transparent',
-  },
-  responseShineWrap: {
-    overflow: 'hidden',
-    flexShrink: 1,
-  },
-  responseValue: {
-    fontFamily: fonts.semiBold,
-    fontSize: 13,
-    color: '#8A5A32',
-  },
-  responseShine: {
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    width: 36,
+  placeBlock: {
+    gap: 4,
   },
   placeRow: {
     flexDirection: 'row',

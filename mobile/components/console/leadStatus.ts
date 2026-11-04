@@ -62,6 +62,19 @@ export function sourceLabel(source: string | null): string | null {
   return source;
 }
 
+export function sourceMeaning(source: string | null): string | null {
+  if (source === DIRECT_LEAD_BADGE) {
+    return 'This customer reached you directly from your FinderB listing. They tapped Call, WhatsApp, or the enquiry form on your profile.';
+  }
+  if (source === PROFILE_LEAD_BADGE) {
+    return 'This customer sent an enquiry while they were on your FinderB profile.';
+  }
+  if (source === CATEGORY_LEAD_BADGE) {
+    return 'This customer was looking in your category and area. FinderB sent their enquiry to you along with other matching businesses.';
+  }
+  return null;
+}
+
 export function pipelineOf(status: string | null | undefined): LeadStatus {
   const value = status || '';
   if ((LEAD_STATUSES as readonly string[]).includes(value)) return value as LeadStatus;

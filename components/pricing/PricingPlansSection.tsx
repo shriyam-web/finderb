@@ -13,17 +13,11 @@ import {
   formatInr,
   FREE_LISTING_INCLUDED,
   FREE_LISTING_LOCKED,
-  GROWTH_PRO_ANNUAL_DISCOUNT_PERCENT,
-  GROWTH_PRO_EFFECTIVE_MONTHLY_ANNUAL,
   GROWTH_PRO_FEATURES,
-  GROWTH_PRO_MONTHLY_DISCOUNT_PERCENT,
-  GROWTH_PRO_OFFER_ANNUAL,
-  GROWTH_PRO_OFFER_MONTHLY,
-  GROWTH_PRO_RETAIL_ANNUAL,
-  GROWTH_PRO_RETAIL_MONTHLY,
   PLAN_COMPARE_ROWS,
   PRICING_PLANS,
 } from '@/lib/pricing/growthPro';
+import { useSitePricing } from '@/components/SiteConfigProvider';
 
 export type PricingPlansSectionProps = {
   mode?: 'pricing' | 'register';
@@ -42,11 +36,12 @@ export default function PricingPlansSection({
   sectionId = 'pricing-plans',
   hideStarter = false,
 }: PricingPlansSectionProps) {
+  const live = useSitePricing();
   const isRegister = mode === 'register';
   const showStarter = !hideStarter;
-  const sectionPad = isRegister ? 'pt-4 pb-3 sm:pt-5 sm:pb-4' : 'py-12 sm:py-16';
-  const headerMb = isRegister ? 'mb-3' : 'mb-10';
-  const comparePad = isRegister ? 'pt-3 pb-4 sm:pt-4 sm:pb-5' : 'py-14 sm:py-16';
+  const sectionPad = isRegister ? 'pt-4 pb-3 sm:pt-5 sm:pb-4' : 'py-6 sm:py-8';
+  const headerMb = isRegister ? 'mb-3' : 'mb-5';
+  const comparePad = isRegister ? 'pt-3 pb-4 sm:pt-4 sm:pb-5' : 'py-6 sm:py-8';
   const plansGridGap = isRegister ? 'gap-4 lg:gap-4' : 'gap-6 lg:gap-5';
 
   const handlePro = (billing: 'monthly' | 'annual') => {
@@ -79,13 +74,13 @@ export default function PricingPlansSection({
                 {isRegister ? (
                   <>
                     Start with a listing, then upgrade anytime for leads and premium visibility — up to{' '}
-                    <span className="font-extrabold text-[#c1621a]">{GROWTH_PRO_ANNUAL_DISCOUNT_PERCENT}% off</span>{' '}
+                    <span className="font-extrabold text-[#c1621a]">{live.annualDiscount}% off</span>{' '}
                     launch pricing on Pro.
                   </>
                 ) : (
                   <>
                     Up to{' '}
-                    <span className="font-extrabold text-[#c1621a]">{GROWTH_PRO_ANNUAL_DISCOUNT_PERCENT}% off</span>{' '}
+                    <span className="font-extrabold text-[#c1621a]">{live.annualDiscount}% off</span>{' '}
                     MRP · limited launch pricing
                   </>
                 )}
@@ -125,18 +120,18 @@ export default function PricingPlansSection({
             <PricingPlanCard
               tone="monthly"
               badge={<EarlyBirdAppliedBadge />}
-              discountPercent={GROWTH_PRO_MONTHLY_DISCOUNT_PERCENT}
+              discountPercent={live.monthlyDiscount}
               icon={<PricingPlanIcon tone="monthly" />}
               name={PRICING_PLANS.monthly.name}
               tagline={PRICING_PLANS.monthly.tagline}
               price={
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.12em] text-white/45 line-through tabular-nums">
-                    {formatInr(GROWTH_PRO_RETAIL_MONTHLY)}/mo
+                    {formatInr(live.growthMonthlyRetail)}/mo
                   </p>
                   <div className="mt-1.5 flex flex-wrap items-baseline gap-x-2">
                     <span className="pricing-price text-[2.75rem] font-extrabold leading-none tracking-tight text-[#f9b864] tabular-nums sm:text-5xl">
-                      {formatInr(GROWTH_PRO_OFFER_MONTHLY)}
+                      {formatInr(live.growthMonthly)}
                     </span>
                     <span className="text-sm font-bold uppercase tracking-wide text-white/60">/mo</span>
                   </div>
@@ -164,7 +159,7 @@ export default function PricingPlansSection({
                 tone="annual"
                 highlighted
                 badge={<EarlyBirdAppliedBadge />}
-                discountPercent={GROWTH_PRO_ANNUAL_DISCOUNT_PERCENT}
+                discountPercent={live.annualDiscount}
                 icon={<PricingPlanIcon tone="annual" />}
                 name={PRICING_PLANS.annual.name}
                 tagline={PRICING_PLANS.annual.tagline}
@@ -172,16 +167,16 @@ export default function PricingPlansSection({
                   <div>
                     <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
                       <span className="pricing-price text-[2.85rem] font-extrabold leading-none tracking-tight text-[#f9b864] tabular-nums sm:text-[3.15rem]">
-                        {formatInr(GROWTH_PRO_EFFECTIVE_MONTHLY_ANNUAL)}
+                        {formatInr(live.annualPerMonth)}
                       </span>
                       <span className="text-sm font-bold uppercase tracking-wide text-white/70">/mo</span>
                     </div>
                     <div className="mt-3 flex flex-wrap items-baseline gap-x-2 text-sm sm:text-base">
                       <span className="font-semibold text-white/45 line-through tabular-nums">
-                        {formatInr(GROWTH_PRO_RETAIL_ANNUAL)}/yr
+                        {formatInr(live.proAnnualRetail)}/yr
                       </span>
                       <span className="font-extrabold tabular-nums text-white">
-                        {formatInr(GROWTH_PRO_OFFER_ANNUAL)}/yr
+                        {formatInr(live.proAnnual)}/yr
                       </span>
                     </div>
                   </div>
@@ -231,7 +226,7 @@ export default function PricingPlansSection({
                     <th className="px-2 py-3 text-center">
                       <p className="text-[11px] font-extrabold text-white">{PRICING_PLANS.monthly.compareLabel}</p>
                       <p className="mt-0.5 text-[10px] font-medium text-white/55">
-                        {formatInr(GROWTH_PRO_OFFER_MONTHLY)}/mo
+                        {formatInr(live.growthMonthly)}/mo
                       </p>
                     </th>
                     <th className="pricing-compare-annual-col px-2 py-3 text-center">
@@ -239,7 +234,7 @@ export default function PricingPlansSection({
                         {PRICING_PLANS.annual.compareLabel}
                       </p>
                       <p className="mt-0.5 text-[10px] font-bold text-[#c1621a]">
-                        {formatInr(GROWTH_PRO_EFFECTIVE_MONTHLY_ANNUAL)}/mo*
+                        {formatInr(live.annualPerMonth)}/mo*
                       </p>
                     </th>
                   </tr>
@@ -289,7 +284,7 @@ export default function PricingPlansSection({
                   <th className="px-5 py-4 text-center">
                     <p className="text-sm font-extrabold text-white">{PRICING_PLANS.monthly.compareLabel}</p>
                     <p className="mt-0.5 text-xs font-medium text-white/55">
-                      {formatInr(GROWTH_PRO_OFFER_MONTHLY)}/mo
+                      {formatInr(live.growthMonthly)}/mo
                     </p>
                   </th>
                   <th className="pricing-compare-annual-col px-5 py-4 text-center">
@@ -297,7 +292,7 @@ export default function PricingPlansSection({
                       {PRICING_PLANS.annual.compareLabel}
                     </p>
                     <p className="mt-0.5 text-xs font-bold text-[#c1621a]">
-                      {formatInr(GROWTH_PRO_EFFECTIVE_MONTHLY_ANNUAL)}/mo*
+                      {formatInr(live.annualPerMonth)}/mo*
                     </p>
                   </th>
                 </tr>
@@ -329,7 +324,7 @@ export default function PricingPlansSection({
             </table>
           </div>
           <p className="mt-3 text-xs font-medium text-[#a89888]">
-            *{formatInr(GROWTH_PRO_EFFECTIVE_MONTHLY_ANNUAL)}/month when {formatInr(GROWTH_PRO_OFFER_ANNUAL)} is paid
+            *{formatInr(live.annualPerMonth)}/month when {formatInr(live.proAnnual)} is paid
             annually.
           </p>
         </MerchantAuthMain>

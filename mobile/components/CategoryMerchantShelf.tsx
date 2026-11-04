@@ -88,7 +88,7 @@ function ShelfMerchantCard({
                 open.status === 'Open' ? styles.statusTextOpen : styles.statusTextClosed,
               ]}
             >
-              {open.status}
+              {open.status === 'Open' ? 'Open' : open.label || 'Closed'}
             </Text>
           </View>
         ) : null}
@@ -120,7 +120,7 @@ function ShelfMerchantCard({
               ) : null}
             </View>
           ) : (
-            <Text style={styles.meta}>New · {UNRATED_LABEL}</Text>
+            <Text style={styles.meta}>{UNRATED_LABEL}</Text>
           )}
         </View>
 

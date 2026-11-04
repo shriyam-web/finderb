@@ -3,28 +3,21 @@
 import Link from 'next/link';
 import { ArrowRight, ChevronDown, Shield, TrendingUp, Users } from 'lucide-react';
 import { MerchantAuthMain } from '@/components/business/MerchantAuthShell';
-import {
-  formatInr,
-  GROWTH_PRO_ANNUAL_DISCOUNT_PERCENT,
-  GROWTH_PRO_EFFECTIVE_MONTHLY_ANNUAL,
-  GROWTH_PRO_MONTHLY_DISCOUNT_PERCENT,
-  GROWTH_PRO_OFFER_MONTHLY,
-  GROWTH_PRO_RETAIL_MONTHLY,
-  PRICING_PLANS,
-} from '@/lib/pricing/growthPro';
+import { formatInr, PRICING_PLANS } from '@/lib/pricing/growthPro';
+import { useSitePricing } from '@/components/SiteConfigProvider';
 
 const HERO_POINTS = [
   { icon: Shield, label: 'No hidden fees' },
   { icon: TrendingUp, label: 'Upgrade when you need leads' },
 ] as const;
 
-const HERO_STATS = [
-  { value: '500+', label: 'Local listings' },
-  { value: '1K+', label: 'Monthly searches' },
-  { value: `${GROWTH_PRO_ANNUAL_DISCOUNT_PERCENT}%`, label: 'Max savings' },
-] as const;
-
 export default function PricingHero({ alreadyOnStarter = false }: { alreadyOnStarter?: boolean }) {
+  const live = useSitePricing();
+  const heroStats = [
+    { value: '500+', label: 'Local listings' },
+    { value: '1K+', label: 'Monthly searches' },
+    { value: `${live.annualDiscount}%`, label: 'Max savings' },
+  ];
   const scrollToPlans = () => {
     document.getElementById('pricing-plans')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
@@ -41,8 +34,8 @@ export default function PricingHero({ alreadyOnStarter = false }: { alreadyOnSta
         aria-hidden
       />
 
-      <MerchantAuthMain className="relative z-10 pb-16 pt-28 sm:pb-20 sm:pt-32 lg:pb-24">
-        <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-[1.1fr_0.9fr] lg:gap-16 xl:gap-20">
+      <MerchantAuthMain className="relative z-10 pb-6 pt-24 sm:pb-8 sm:pt-28">
+        <div className="grid grid-cols-1 items-center gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:gap-10">
           {/* Copy */}
           <div className="max-w-xl lg:max-w-none">
             <h1 className="pricing-hero-title text-[2.35rem] font-bold leading-[1.1] tracking-[-0.03em] text-[#0a1520] sm:text-5xl lg:text-[3.4rem]">
@@ -127,15 +120,15 @@ export default function PricingHero({ alreadyOnStarter = false }: { alreadyOnSta
                 <div>
                   <p className="font-semibold text-[#0a1520]">{PRICING_PLANS.monthly.name}</p>
                   <p className="mt-0.5 text-xs font-medium text-[#c1621a]">
-                    {GROWTH_PRO_MONTHLY_DISCOUNT_PERCENT}% off MRP
+                    {live.monthlyDiscount}% off MRP
                   </p>
                 </div>
                 <div className="text-right">
                   <p className="text-xs text-[#94a3b8] line-through tabular-nums">
-                    {formatInr(GROWTH_PRO_RETAIL_MONTHLY)}
+                    {formatInr(live.growthMonthlyRetail)}
                   </p>
                   <p className="text-lg font-bold tabular-nums text-[#153551]">
-                    {formatInr(GROWTH_PRO_OFFER_MONTHLY)}
+                    {formatInr(live.growthMonthly)}
                     <span className="text-sm font-medium text-[#64748b]">/mo</span>
                   </p>
                 </div>
@@ -148,7 +141,7 @@ export default function PricingHero({ alreadyOnStarter = false }: { alreadyOnSta
                 </div>
                 <div className="text-right">
                   <p className="text-lg font-bold tabular-nums text-[#153551]">
-                    {formatInr(GROWTH_PRO_EFFECTIVE_MONTHLY_ANNUAL)}
+                    {formatInr(live.annualPerMonth)}
                     <span className="text-sm font-medium text-[#64748b]">/mo</span>
                   </p>
                   <p className="mt-0.5 text-[10px] font-medium text-[#94a3b8]">annual package only</p>
@@ -164,8 +157,8 @@ export default function PricingHero({ alreadyOnStarter = false }: { alreadyOnSta
         </div>
 
         {/* Stats strip */}
-        <div className="pricing-hero-stats mt-14 grid grid-cols-1 gap-px overflow-hidden rounded-2xl border border-[#e8dfd4] bg-[#e8dfd4] sm:grid-cols-3">
-          {HERO_STATS.map(({ value, label }) => (
+        <div className="pricing-hero-stats mt-8 grid grid-cols-1 gap-px overflow-hidden rounded-2xl border border-[#e8dfd4] bg-[#e8dfd4] sm:grid-cols-3">
+          {heroStats.map(({ value, label }) => (
             <div key={label} className="bg-white/95 px-5 py-5 text-center sm:py-6">
               <p className="text-2xl font-bold tabular-nums tracking-tight text-[#153551] sm:text-[1.65rem]">
                 {value}

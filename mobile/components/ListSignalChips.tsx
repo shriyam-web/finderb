@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import { fonts } from '../constants/typography';
-import { useTheme } from '../context/ThemeContext';
+import { StyleSheet, View } from 'react-native';
 import { siteBases } from '../lib/supabase';
+import { BestInCategoryMark, ReplyPace } from './ProfileSignalMarks';
+import { PublicBadgeRow } from './PublicBadgeRow';
 
 export type ListSignals = {
   bestInCategory: boolean;
@@ -10,22 +10,35 @@ export type ListSignals = {
   badges: { id: string; label: string }[];
 };
 
-const SHORT: Record<string, string> = {
-  quickReply: 'Quick reply',
-  highlyRated: 'Highly rated',
-  popularMonth: 'Popular',
-  newOnFinderB: 'New',
-  trusted: 'Trusted',
-};
-
+const CACHE_MS = 10 * 60 * 1000;
+const cache = new Map<string, { at: number; value: ListSignals }>();
 const waiters = new Map<string, Array<(value: ListSignals | null) => void>>();
 let flushTimer: ReturnType<typeof setTimeout> | null = null;
 
+function peek(id: string): ListSignals | null {
+  return cache.get(id)?.value ?? null;
+}
+
+function fresh(id: string): boolean {
+  const hit = cache.get(id);
+  return Boolean(hit && Date.now() - hit.at < CACHE_MS);
+}
+
+function remember(id: string, value: ListSignals) {
+  cache.set(id, { at: Date.now(), value });
+}
+
 function flushSignals() {
-  const ids = [...waiters.keys()];
+  const ids = [...waiters.keys()].filter((id) => !fresh(id));
   const groups = new Map(waiters);
   waiters.clear();
   flushTimer = null;
+  for (const [id, resolvers] of groups) {
+    if (fresh(id)) {
+      const value = peek(id);
+      resolvers.forEach((resolve) => resolve(value));
+    }
+  }
   if (!ids.length) return;
   void (async () => {
     let payload: Record<string, ListSignals> = {};
@@ -42,17 +55,35 @@ function flushSignals() {
         // try the next site
       }
     }
-    for (const [id, resolvers] of groups) {
-      const value = payload[id] ?? null;
-      resolvers.forEach((resolve) => resolve(value));
+    for (const id of ids) {
+      const value = payload[id] ?? peek(id);
+      if (payload[id]) remember(id, payload[id]);
+      (groups.get(id) || []).forEach((resolve) => resolve(value));
     }
   })();
 }
 
-function useListSignals(id: string): ListSignals | null {
-  const [signals, setSignals] = useState<ListSignals | null>(null);
+export function useBusinessSignals(id: string | null | undefined): ListSignals | null {
+  const [signals, setSignals] = useState<ListSignals | null>(id ? peek(id) : null);
   useEffect(() => {
-    if (!id) return;
+    if (!id) {
+      setSignals(null);
+      return;
+    }
+    const cached = peek(id);
+    if (cached) setSignals(cached);
+    if (fresh(id)) {
+      const hit = cache.get(id);
+      const wait = hit ? CACHE_MS - (Date.now() - hit.at) : CACHE_MS;
+      const timer = setTimeout(() => {
+        const resolvers = waiters.get(id) || [];
+        resolvers.push((value) => setSignals(value));
+        waiters.set(id, resolvers);
+        if (flushTimer) clearTimeout(flushTimer);
+        flushTimer = setTimeout(flushSignals, 40);
+      }, wait);
+      return () => clearTimeout(timer);
+    }
     let alive = true;
     const resolvers = waiters.get(id) || [];
     resolvers.push((value) => {
@@ -68,46 +99,36 @@ function useListSignals(id: string): ListSignals | null {
   return signals;
 }
 
-export function ListSignalChips({ id }: { id: string }) {
-  const { colors } = useTheme();
-  const signals = useListSignals(id);
+export function ListSignalChips({
+  id,
+  compact = true,
+  tight = false,
+  replyScale = 1,
+}: {
+  id: string;
+  compact?: boolean;
+  tight?: boolean;
+  /** Home cards draw the reply-time line smaller than the profile. */
+  replyScale?: number;
+}) {
+  const signals = useBusinessSignals(id);
   if (!signals) return null;
-  const bits: string[] = [];
-  if (signals.bestInCategory) bits.push('🔥 Best');
-  if (signals.averageResponse) bits.push(`Replies ${signals.averageResponse}`);
-  for (const badge of signals.badges) {
-    const label = SHORT[badge.id] || badge.label;
-    if (label) bits.push(label);
-  }
-  if (!bits.length) return null;
+  if (!signals.badges.length && !signals.bestInCategory && !signals.averageResponse) return null;
+  const trusted = signals.badges.filter((badge) => badge.id === 'trusted');
+  const others = signals.badges.filter((badge) => badge.id !== 'trusted');
   return (
-    <View style={styles.row}>
-      {bits.map((bit) => (
-        <Text
-          key={bit}
-          style={[styles.chip, { color: colors.textSoft, borderColor: colors.border }]}
-        >
-          {bit}
-        </Text>
-      ))}
+    <View style={[styles.wrap, tight && styles.wrapTight]}>
+      {trusted.length ? <PublicBadgeRow badges={trusted} compact={compact} /> : null}
+      {signals.bestInCategory ? <BestInCategoryMark /> : null}
+      {signals.averageResponse ? (
+        <ReplyPace label={signals.averageResponse} scale={replyScale} />
+      ) : null}
+      {others.length ? <PublicBadgeRow badges={others} compact={compact} /> : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 4,
-    marginTop: 4,
-  },
-  chip: {
-    fontFamily: fonts.medium,
-    fontSize: 10,
-    lineHeight: 14,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: 999,
-    paddingHorizontal: 6,
-    paddingVertical: 1,
-  },
+  wrap: { marginTop: 4, gap: 4 },
+  wrapTight: { marginTop: 1, gap: 2 },
 });

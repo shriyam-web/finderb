@@ -154,6 +154,8 @@ export default function CategoriesScreen() {
   const [filterOpen, setFilterOpen] = useState(false);
   const [searchCats, setSearchCats] = useState<HomeCategory[]>([]);
   const [searchMerchants, setSearchMerchants] = useState<Merchant[]>([]);
+  const [searchMore, setSearchMore] = useState<Merchant[]>([]);
+  const [searchMoreLabel, setSearchMoreLabel] = useState<string | null>(null);
   const [searchNotice, setSearchNotice] = useState<string | null>(null);
   const [searchExact, setSearchExact] = useState(true);
   const [searchLoading, setSearchLoading] = useState(false);
@@ -247,6 +249,10 @@ export default function CategoriesScreen() {
     setViewMode('merchants');
     setFilters([]);
     setSortOrder('best');
+    setMerchants([]);
+    setMerchantTotal(0);
+    setMerchantsLoading(true);
+    try {
     const subResult = await fetchSubCategories(cat.id, cat.name);
     setSubs(subResult.subCategories);
     const first = subResult.subCategories[0];
@@ -261,9 +267,10 @@ export default function CategoriesScreen() {
       setMerchantsLoading(false);
       return;
     }
-    setMerchants([]);
-    setMerchantsLoading(true);
     await loadMerchants(queryName, 1, false);
+    } catch {
+      setMerchantsLoading(false);
+    }
   }, [loadMerchants]);
 
   // Deep-link from home "See all" — open the selected category on Explore.
@@ -306,6 +313,8 @@ export default function CategoriesScreen() {
       setMerchantsLoading(false);
     } else {
       setMerchants([]);
+      setMerchantTotal(0);
+      setMerchantsLoading(true);
     }
     listRef.current?.scrollToOffset({ offset: 0, animated: true });
     if (!cached) await loadMerchants(sub.queryName, 1, false);
@@ -337,6 +346,8 @@ export default function CategoriesScreen() {
     if (!q) {
       setSearchCats([]);
       setSearchMerchants([]);
+      setSearchMore([]);
+      setSearchMoreLabel(null);
       setSearchNotice(null);
       setSearchExact(true);
       setSearchLoading(false);
@@ -355,6 +366,8 @@ export default function CategoriesScreen() {
       });
       setSearchCats(result.categories.slice(0, 12));
       setSearchMerchants(result.merchants.slice(0, 24));
+      setSearchMore(result.moreInCategory);
+      setSearchMoreLabel(result.moreCategoryLabel);
       setSearchNotice(result.notice);
       setSearchExact(result.exactMatch);
       setSearchLoading(false);
@@ -434,7 +447,9 @@ export default function CategoriesScreen() {
             {activeSub && activeSub.name !== 'All' ? ` › ${activeSub.name}` : ''}
           </Text>
           <Text style={styles.mainMeta}>
-            {merchantTotal} business{merchantTotal === 1 ? '' : 'es'}
+            {merchantsLoading && merchants.length === 0
+              ? 'Loading businesses…'
+              : `${merchantTotal} business${merchantTotal === 1 ? '' : 'es'}`}
           </Text>
         </View>
         <Pressable onPress={() => setViewMode('explore')} hitSlop={8}>
@@ -734,13 +749,32 @@ export default function CategoriesScreen() {
                   <Text style={[styles.sectionLabel, { marginTop: 18 }]}>
                     {searchExact ? 'Businesses' : 'Relevant businesses'}
                   </Text>
-                  {searchMerchants.length === 0 ? (
+                  {searchMerchants.length === 0 && searchMore.length === 0 ? (
                     <Text style={styles.emptyText}>No matching businesses</Text>
                   ) : (
                     <View style={{ gap: 8 }}>
                       {searchMerchants.map((m) => (
                         <CategoryMerchantRow
                           key={m.id}
+                          merchant={m}
+                          distanceLabel={formatDistanceFromUser(
+                            location.coords,
+                            m.latitude,
+                            m.longitude,
+                          )}
+                          contactRevealed={signedIn}
+                          onRequestLogin={requestLogin}
+                          onPress={() => openMerchant(m)}
+                        />
+                      ))}
+                      {searchMore.length > 0 ? (
+                        <Text style={[styles.sectionLabel, { marginTop: 18 }]}>
+                          Other businesses in {searchMoreLabel}
+                        </Text>
+                      ) : null}
+                      {searchMore.map((m) => (
+                        <CategoryMerchantRow
+                          key={`more-${m.id}`}
                           merchant={m}
                           distanceLabel={formatDistanceFromUser(
                             location.coords,

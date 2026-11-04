@@ -7,11 +7,8 @@ import { ArrowRight } from 'lucide-react';
 import PricingHero from '@/components/pricing/PricingHero';
 import PricingPlansSection from '@/components/pricing/PricingPlansSection';
 import { MerchantAuthMain } from '@/components/business/MerchantAuthShell';
-import {
-  formatInr,
-  GROWTH_PRO_EFFECTIVE_MONTHLY_ANNUAL,
-  GROWTH_PRO_OFFER_MONTHLY,
-} from '@/lib/pricing/growthPro';
+import { formatInr } from '@/lib/pricing/growthPro';
+import { useSitePricing } from '@/components/SiteConfigProvider';
 import { getBusinessSession } from '@/app/actions/business';
 import { getMerchantSubscriptionStatus } from '@/lib/subscription/merchantSubscription';
 
@@ -20,6 +17,7 @@ function merchantPaymentUrl(businessId: string, billing: 'monthly' | 'annual') {
 }
 
 function PricingPageContent() {
+  const live = useSitePricing();
   const searchParams = useSearchParams();
   const businessId = searchParams.get('businessId');
   const isRechargeFlow = Boolean(businessId);
@@ -91,7 +89,7 @@ function PricingPageContent() {
       />
 
       {/* Closing CTA */}
-      <section className="pricing-close-cta py-16 sm:py-20">
+      <section className="pricing-close-cta py-8 sm:py-10">
         <MerchantAuthMain className="text-center">
           <h2 className="pricing-section-title text-2xl font-bold tracking-[-0.02em] text-white sm:text-4xl">
             Ready to grow?
@@ -100,8 +98,8 @@ function PricingPageContent() {
             {hideStarter
               ? 'You are on Starter. Upgrade when you want leads at '
               : 'Start free today — upgrade when you want leads at '}
-            <span className="font-bold text-[#f9b864]">{formatInr(GROWTH_PRO_OFFER_MONTHLY)}/mo</span> or{' '}
-            <span className="font-bold text-[#f9b864]">{formatInr(GROWTH_PRO_EFFECTIVE_MONTHLY_ANNUAL)}/mo</span>{' '}
+            <span className="font-bold text-[#f9b864]">{formatInr(live.growthMonthly)}/mo</span> or{' '}
+            <span className="font-bold text-[#f9b864]">{formatInr(live.annualPerMonth)}/mo</span>{' '}
             annual.
           </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">

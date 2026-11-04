@@ -64,7 +64,7 @@ export async function finalizeMerchantPayment(
     return { success: false, error: 'Invalid plan or billing cycle' };
   }
 
-  const expectedAmount = getPlanAmountInPaise(plan as MerchantPlan, billingCycle as BillingCycle);
+  const expectedAmount = await getPlanAmountInPaise(plan as MerchantPlan, billingCycle as BillingCycle);
   if (amountPaise !== expectedAmount) {
     return { success: false, error: 'Payment amount does not match selected plan' };
   }

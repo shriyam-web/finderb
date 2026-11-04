@@ -106,7 +106,7 @@ export function MerchantCard({
               </Text>
             </View>
           ) : (
-            <Text style={styles.metaText}>New · {UNRATED_LABEL}</Text>
+            <Text style={styles.metaText}>{UNRATED_LABEL}</Text>
           )}
         </View>
 

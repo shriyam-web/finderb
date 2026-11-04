@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { LEGAL_COMPANY, LEGAL_FOOTER_LINKS, LEGAL_LAST_UPDATED, SHOW_COMPANY_ADDRESS, SHOW_COMPANY_PHONE } from '@/lib/legalContent';
+import { LEGAL_FOOTER_LINKS, LEGAL_LAST_UPDATED } from '@/lib/legalContent';
+import { getSiteConfig } from '@/lib/siteConfig';
 
 type LegalPageLayoutProps = {
   title: string;
@@ -8,16 +9,17 @@ type LegalPageLayoutProps = {
   children: ReactNode;
 };
 
-export default function LegalPageLayout({
+export default async function LegalPageLayout({
   title,
   description,
   children,
 }: LegalPageLayoutProps) {
+  const contact = (await getSiteConfig()).contact;
   return (
     <div className="min-h-[calc(100dvh-6.75rem)] bg-[#fafaf9] lg:min-h-screen">
       <main className="mx-auto max-w-2xl px-5 pt-28 pb-20 sm:px-6 lg:pt-32">
         <header className="mb-10 border-b border-neutral-200 pb-8">
-          <p className="text-sm text-neutral-500">{LEGAL_COMPANY.brand}</p>
+          <p className="text-sm text-neutral-500">{contact.brand}</p>
           <h1 className="mt-1 text-3xl font-semibold tracking-tight text-neutral-900 sm:text-[2rem]">
             {title}
           </h1>
@@ -74,42 +76,39 @@ export function LegalList({ items }: { items: string[] }) {
   );
 }
 
-export function LegalContactBox({
-  email,
-  phone = SHOW_COMPANY_PHONE ? LEGAL_COMPANY.phoneDisplay : undefined,
-  note,
-}: {
-  email?: string;
-  phone?: string;
-  note?: string;
-}) {
+export async function LegalContactBox({ note }: { email?: string; phone?: string; note?: string }) {
+  const contact = (await getSiteConfig()).contact;
   return (
     <div className="border-l-2 border-neutral-300 pl-4 text-neutral-700">
-      {email && (
-        <p>
-          Email:{' '}
-          <a href={`mailto:${email}`} className="text-neutral-900 underline underline-offset-2">
-            {email}
-          </a>
-        </p>
-      )}
-      {phone && (
+      <p className="font-medium text-neutral-900">{contact.companyName}</p>
+      <p className="mt-2">
+        Email:{' '}
+        <a href={`mailto:${contact.email}`} className="text-neutral-900 underline underline-offset-2">
+          {contact.email}
+        </a>
+      </p>
+      {contact.showPhone ? (
         <p className="mt-1">
           Phone:{' '}
           <a
-            href={`tel:${phone.replace(/\s/g, '')}`}
+            href={`tel:${contact.phone.replace(/\s/g, '')}`}
             className="text-neutral-900 underline underline-offset-2"
           >
-            {phone}
+            {contact.phoneDisplay}
           </a>
         </p>
-      )}
-      {SHOW_COMPANY_ADDRESS ? (
+      ) : null}
+      {contact.showAddress ? (
         <p className="mt-1">
-          {LEGAL_COMPANY.address.line1}, {LEGAL_COMPANY.address.line2},{' '}
-          {LEGAL_COMPANY.address.country} {LEGAL_COMPANY.address.pincode}
+          {contact.addressLine1}, {contact.addressLine2}, {contact.country} {contact.pincode}
         </p>
       ) : null}
+      <p className="mt-2 text-sm text-neutral-500">
+        {contact.hoursWeekdays}. {contact.hoursSaturday}. {contact.hoursSunday}.
+      </p>
+      <p className="mt-1 text-sm text-neutral-500">
+        Grievance officer: {contact.grievanceName} ({contact.grievanceEmail}). {contact.grievanceResponse}.
+      </p>
       {note && <p className="mt-2 text-sm text-neutral-500">{note}</p>}
     </div>
   );

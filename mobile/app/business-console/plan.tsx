@@ -615,7 +615,7 @@ const useStyles = createConsoleStyles((c) => ({
   currentLabel: { fontFamily: fonts.regular, fontSize: 13, color: c.muted },
   currentName: { marginTop: 6, fontFamily: fonts.semiBold, fontSize: 24, color: c.ink },
   currentLine: { marginTop: 2, fontFamily: fonts.regular, fontSize: 13, lineHeight: 19, color: c.body },
-  chart: { marginTop: 12, height: 88 },
+  chart: { marginTop: 12 },
   statRow: { marginTop: 14, flexDirection: 'row' },
   statCell: { flex: 1, alignItems: 'center' },
   statValue: { fontFamily: fonts.semiBold, fontSize: 18, color: c.ink },

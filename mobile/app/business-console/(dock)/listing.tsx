@@ -22,7 +22,7 @@ import {
   createConsoleStyles,
   useTabBack,
 } from '../../../components/console/kit';
-import { listingDetailRows } from '../../../components/console/listingSections';
+import { listingDetailGaps, listingDetailRows } from '../../../components/console/listingSections';
 import { askStorefrontPreview } from '../../../lib/consoleNav';
 import { isFailure } from '../../../lib/merchantConsoleApi';
 
@@ -66,7 +66,7 @@ function ListingBody({ o }: { o: ConsoleOverview }) {
       refreshing={refreshing}
       onRefresh={() => void refresh()}
     >
-      <Panel>
+      <Panel style={styles.compactPanel}>
         <View style={styles.meterHead}>
           <View style={styles.flex}>
             <Text style={styles.meterLabel}>Profile completion</Text>
@@ -147,7 +147,7 @@ function ListingBody({ o }: { o: ConsoleOverview }) {
               onPress={() => router.push({ pathname: '/business-console/edit', params: { section: row.section } })}
               style={({ pressed }) => [styles.section, index > 0 && styles.sectionLine, pressed && styles.pressed]}
               accessibilityRole="button"
-              accessibilityLabel={`${row.label}, ${row.value}`}
+              accessibilityLabel={`${row.label}, ${row.tags?.length ? row.tags.join(', ') : row.value}`}
             >
               <View style={styles.flex}>
                 <View style={styles.sectionHead}>
@@ -162,9 +162,23 @@ function ListingBody({ o }: { o: ConsoleOverview }) {
                   ) : null}
                   {row.missing ? <Tag label="Add" tone="warning" /> : null}
                 </View>
-                <Text style={styles.sectionSummary} numberOfLines={3}>
-                  {row.value}
-                </Text>
+                {row.tags ? (
+                  row.tags.length ? (
+                    <View style={styles.tagWrap}>
+                      {row.tags.map((tag) => (
+                        <View key={tag} style={styles.chip}>
+                          <Text style={styles.chipText}>{tag}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  ) : (
+                    <Text style={styles.sectionSummary}>Not set</Text>
+                  )
+                ) : (
+                  <Text style={styles.sectionSummary} numberOfLines={3}>
+                    {row.value}
+                  </Text>
+                )}
               </View>
               <Ionicons name="chevron-forward" size={18} color={c.faint} />
             </Pressable>
@@ -329,12 +343,13 @@ export default function ListingScreen() {
 const useStyles = createConsoleStyles((c) => ({
   flex: { flex: 1, minWidth: 0 },
   pressed: { opacity: 0.75 },
-  meterHead: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
-  meterLabel: { fontFamily: fonts.regular, fontSize: 13, color: c.muted },
-  meterValue: { marginTop: 2, fontFamily: fonts.semiBold, fontSize: 28, color: c.ink },
-  meter: { marginTop: 12, height: 6, borderRadius: 3, backgroundColor: c.sunken, overflow: 'hidden' },
-  meterFill: { height: 6, borderRadius: 3, backgroundColor: c.primary },
-  meterNote: { marginTop: 10, fontFamily: fonts.regular, fontSize: 13, lineHeight: 19, color: c.body },
+  compactPanel: { paddingVertical: 10, paddingHorizontal: 12 },
+  meterHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  meterLabel: { fontFamily: fonts.regular, fontSize: 12, color: c.muted },
+  meterValue: { marginTop: 0, fontFamily: fonts.semiBold, fontSize: 20, color: c.ink },
+  meter: { marginTop: 8, height: 5, borderRadius: 3, backgroundColor: c.sunken, overflow: 'hidden' },
+  meterFill: { height: 5, borderRadius: 3, backgroundColor: c.primary },
+  meterNote: { marginTop: 6, fontFamily: fonts.regular, fontSize: 12, lineHeight: 16, color: c.body },
   insightCard: { marginTop: 10, padding: 12, borderRadius: 12, borderWidth: 1 },
   insightText: { fontFamily: fonts.regular, fontSize: 13, lineHeight: 19 },
   copyBtn: {
@@ -349,16 +364,16 @@ const useStyles = createConsoleStyles((c) => ({
     backgroundColor: c.sunken,
   },
   copyText: { fontFamily: fonts.semiBold, fontSize: 12.5, color: c.ink },
-  actions: { flexDirection: 'row', gap: 10, marginTop: 14 },
+  actions: { flexDirection: 'row', gap: 8, marginTop: 8 },
   photos: {
-    padding: 12,
-    borderRadius: 14,
+    padding: 8,
+    borderRadius: 12,
     backgroundColor: c.card,
     borderWidth: c.isDark ? 1 : 0.5,
     borderColor: c.line,
   },
-  strip: { flexDirection: 'row', gap: 8 },
-  thumbWrap: { flex: 1, aspectRatio: 1, borderRadius: 10, overflow: 'hidden', backgroundColor: c.sunken },
+  strip: { flexDirection: 'row', gap: 6 },
+  thumbWrap: { flex: 1, height: 62, borderRadius: 8, overflow: 'hidden', backgroundColor: c.sunken },
   thumb: { width: '100%', height: '100%' },
   more: {
     position: 'absolute',
@@ -390,6 +405,16 @@ const useStyles = createConsoleStyles((c) => ({
   unverifiedX: { position: 'absolute' },
   sectionTitle: { fontFamily: fonts.semiBold, fontSize: 15, color: c.ink },
   sectionSummary: { marginTop: 2, fontFamily: fonts.regular, fontSize: 13, color: c.muted },
+  tagWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 6 },
+  chip: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+    backgroundColor: c.sunken,
+    borderWidth: 1,
+    borderColor: c.line,
+  },
+  chipText: { fontFamily: fonts.semiBold, fontSize: 12, color: c.ink },
   deleteHint: { fontFamily: fonts.regular, fontSize: 13, lineHeight: 19, color: c.muted, marginBottom: 12 },
   hideScrim: {
     flex: 1,

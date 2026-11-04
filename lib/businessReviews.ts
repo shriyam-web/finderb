@@ -96,7 +96,7 @@ function normalizeReviewEntry(raw: unknown, index: number): BusinessReview | nul
     content,
     rating: Number.isFinite(rating) && rating >= 1 && rating <= 5 ? rating : 5,
     date: String(entry.date || entry.createdAt || '').trim(),
-    userId: entry.userId ? String(entry.userId) : undefined,
+    userId: entry.userId || entry.user_id ? String(entry.userId || entry.user_id) : undefined,
     authorVerified: entry.authorVerified === true,
     merchantReply,
     anonymous: Boolean(entry.anonymous),
@@ -168,6 +168,12 @@ export function parseBusinessReviewReply(reviewReply: unknown): BusinessReviewRe
   }
 
   return null;
+}
+
+export function userHasBusinessReview(reviews: BusinessReview[], userId: string): boolean {
+  const id = userId.trim();
+  if (!id) return false;
+  return reviews.some((review) => (review.userId || '').trim() === id);
 }
 
 export function isReviewDeleted(review: BusinessReview): boolean {

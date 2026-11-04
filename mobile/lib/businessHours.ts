@@ -1,6 +1,7 @@
 type OpenStatus = {
   status: 'Open' | 'Closed' | 'Unknown';
   label: string;
+  shortLabel: string;
 };
 
 type DaySlot = {
@@ -86,15 +87,39 @@ function normalizeDaySlot(entry: unknown): DaySlot | null {
   return null;
 }
 
-function parseTodayWindow(timings: unknown): DaySlot | null {
+function parseTodayWindow(timings: unknown, now = new Date()): DaySlot | null {
   if (!timings) return null;
 
   if (typeof timings === 'string') {
     return normalizeDaySlot(timings);
   }
 
-  const today = WEEKDAYS[new Date().getDay()];
+  const today = WEEKDAYS[now.getDay()];
   return normalizeDaySlot(dayEntry(timings, today));
+}
+
+function nextOpenLabel(timings: unknown, now: Date): string | null {
+  if (!timings || typeof timings === 'string') return null;
+  const nowMin = now.getHours() * 60 + now.getMinutes();
+  for (let offset = 0; offset < 7; offset += 1) {
+    const date = new Date(now);
+    date.setDate(now.getDate() + offset);
+    const slot = normalizeDaySlot(dayEntry(timings, WEEKDAYS[date.getDay()]));
+    if (!slot || slot.isClosed) continue;
+    if (slot.is24Hours) {
+      if (offset === 0) continue;
+      return offset === 1 ? 'Opens tomorrow' : `Opens ${WEEKDAY_LABELS[(date.getDay() + 6) % 7]}`;
+    }
+    if (!slot.open) continue;
+    const openMin = toMinutes(slot.open);
+    if (openMin == null) continue;
+    if (offset === 0 && nowMin >= openMin) continue;
+    const when = formatTime12h(slot.open);
+    if (offset === 0) return `Opens at ${when}`;
+    if (offset === 1) return `Opens tomorrow at ${when}`;
+    return `Opens ${WEEKDAY_LABELS[(date.getDay() + 6) % 7]} at ${when}`;
+  }
+  return null;
 }
 
 function toMinutes(value: string): number | null {
@@ -126,7 +151,17 @@ function formatTime12h(value: string): string {
   const m = mins % 60;
   const h12 = h24 % 12 || 12;
   const ampm = h24 >= 12 ? 'PM' : 'AM';
+  if (m === 0) return `${h12} ${ampm}`;
   return `${h12}:${m.toString().padStart(2, '0')} ${ampm}`;
+}
+
+function shortenOpenLabel(label: string): string {
+  if (!label || /^opens at\b/i.test(label)) return label;
+  return label.replace(/\s+at\s+\d{1,2}(?::\d{2})?\s*(?:AM|PM)\b/i, '').trim();
+}
+
+function status(kind: OpenStatus['status'], label: string): OpenStatus {
+  return { status: kind, label, shortLabel: shortenOpenLabel(label) };
 }
 
 function isOpenNow(open: string, close: string, nowMin: number, is24Hours: boolean): boolean {
@@ -141,25 +176,24 @@ function isOpenNow(open: string, close: string, nowMin: number, is24Hours: boole
   return nowMin >= openMin || nowMin < closeMin;
 }
 
-export function getBusinessOpenStatus(timings: unknown): OpenStatus {
-  const slot = parseTodayWindow(timings);
+export function getBusinessOpenStatus(timings: unknown, now = new Date()): OpenStatus {
+  const slot = parseTodayWindow(timings, now);
   if (!slot || slot.isClosed || !slot.open || !slot.close) {
-    if (slot?.isClosed) return { status: 'Closed', label: 'Closed' };
-    return { status: 'Unknown', label: '' };
+    if (slot?.isClosed || timings) {
+      const next = nextOpenLabel(timings, now);
+      if (slot?.isClosed || next) return status('Closed', next || 'Closed');
+    }
+    return status('Unknown', '');
   }
 
-  const now = new Date();
   const nowMin = now.getHours() * 60 + now.getMinutes();
   const open = isOpenNow(slot.open, slot.close, nowMin, slot.is24Hours);
 
   if (open) {
-    return {
-      status: 'Open',
-      label: slot.is24Hours ? 'Open 24 hours' : `Open till ${formatTime12h(slot.close)}`,
-    };
+    return status('Open', slot.is24Hours ? 'Open 24 hours' : `Open till ${formatTime12h(slot.close)}`);
   }
 
-  return { status: 'Closed', label: 'Closed' };
+  return status('Closed', nextOpenLabel(timings, now) || 'Closed');
 }
 
 export function getTodayHoursFlags(timings: unknown): {

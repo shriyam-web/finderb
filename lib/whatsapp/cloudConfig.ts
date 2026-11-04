@@ -13,6 +13,14 @@ export const WHATSAPP_DEFAULT_GRAPH_VERSION = 'v22.0';
 export const WHATSAPP_DEFAULT_WEBHOOK_VERIFY_TOKEN = 'finderb-wa-otp';
 /** Utility template: {{1}} owner name, {{2}} business name, {{3}} registration number. */
 export const WHATSAPP_BUSINESS_WELCOME_TEMPLATE = 'finderb_business_welcome';
+/**
+ * Utility template sent when admin approves a listing, even hours later.
+ * Header: "You're live on FinderB"
+ * Body: "Hi {{1}}, good news from FinderB. We approved {{2}}, so your listing is now live. People nearby can find you, see what you offer, and get in touch. {{3}} Open the FinderB app when you have a minute."
+ * Footer: FinderB. Button: Open dashboard.
+ * {{1}} owner, {{2}} business, {{3}} one-line reminder (verify and/or plan).
+ */
+export const WHATSAPP_LISTING_LIVE_TEMPLATE = 'finderb_listing_live_v2';
 
 export type WhatsAppOtpButton = 'url' | 'copy_code' | 'none';
 

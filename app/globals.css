@@ -588,21 +588,11 @@ h1, h2, h3, h4, h5, h6 {
   box-shadow: none;
 }
 
-/* ── Pricing page (DM Sans) ── */
+/* pricing-font-v2: one Inter font on the whole pricing page */
 .pricing-font-root,
-.pricing-page {
-  font-family: var(--font-pricing), 'DM Sans', system-ui, sans-serif;
+.pricing-font-root :is(h1, h2, h3, h4, h5, h6, p, span, a, button, label, li, td, th, input, textarea, select) {
+  font-family: var(--font-inter), Inter, system-ui, -apple-system, sans-serif !important;
   -webkit-font-smoothing: antialiased;
-}
-
-.pricing-page h1,
-.pricing-page h2,
-.pricing-page h3,
-.pricing-hero-title,
-.pricing-section-title,
-.pricing-plan-title,
-.pricing-price {
-  font-family: var(--font-pricing), 'DM Sans', system-ui, sans-serif;
 }
 
 .pricing-page h1,

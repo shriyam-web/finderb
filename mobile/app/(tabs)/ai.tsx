@@ -165,6 +165,8 @@ export default function AiScreen() {
   const [error, setError] = useState('');
   const [categories, setCategories] = useState<HomeCategory[]>([]);
   const [merchants, setMerchants] = useState<Merchant[]>([]);
+  const [moreMerchants, setMoreMerchants] = useState<Merchant[]>([]);
+  const [moreLabel, setMoreLabel] = useState<string | null>(null);
   const [exactMatch, setExactMatch] = useState(true);
   const [searchNotice, setSearchNotice] = useState<string | null>(null);
   const [popular, setPopular] = useState<HomeCategory[]>([]);
@@ -297,6 +299,8 @@ export default function AiScreen() {
 
       setCategories(result.categories);
       setMerchants(result.merchants);
+      setMoreMerchants(result.moreInCategory);
+      setMoreLabel(result.moreCategoryLabel);
       setExactMatch(result.exactMatch);
       setSearchNotice(result.notice);
       setDetectedIntents(result.intents);
@@ -324,6 +328,8 @@ export default function AiScreen() {
     setSearched(false);
     setCategories([]);
     setMerchants([]);
+    setMoreMerchants([]);
+    setMoreLabel(null);
     setExactMatch(true);
     setSearchNotice(null);
     setDetectedIntents([]);
@@ -881,6 +887,27 @@ export default function AiScreen() {
             </View>
           )}
           ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
+          ListFooterComponent={
+            searched && !loading && moreMerchants.length > 0 ? (
+              <View style={{ gap: 10, marginTop: 18 }}>
+                <Text style={styles.sectionLabel}>Other businesses in {moreLabel}</Text>
+                {moreMerchants.map((item) => (
+                  <CategoryMerchantRow
+                    key={`more-${item.id}`}
+                    merchant={item}
+                    distanceLabel={formatDistanceFromUser(
+                      location.coords,
+                      item.latitude,
+                      item.longitude,
+                    )}
+                    contactRevealed={signedIn}
+                    onRequestLogin={requestLogin}
+                    onPress={() => openMerchant(item)}
+                  />
+                ))}
+              </View>
+            ) : null
+          }
           ListEmptyComponent={null}
         />
       </KeyboardAvoidingView>

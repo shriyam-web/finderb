@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
-import { Modal, Pressable, ScrollView, Share, Text, View } from 'react-native';
+import { Animated, Easing, Modal, Pressable, ScrollView, Share, Text, View } from 'react-native';
 import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, type Href } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { fonts } from '../../../constants/typography';
 import { useConsoleColors } from '../../../constants/consoleColors';
 import { useMerchantConsole } from '../../../context/MerchantConsoleContext';
-import { getRatingDisplay } from '../../../lib/ratingDisplay';
-import type { ConsoleOverview, MissingField } from '../../../lib/merchantConsoleApi';
+import { getRatingDisplay, ratingBoxColor } from '../../../lib/ratingDisplay';
+import type { ConsoleLead, ConsoleOverview, MissingField, SubscriptionStatus } from '../../../lib/merchantConsoleApi';
 import { ConsoleGate } from '../../../components/console/ConsoleGate';
 import { AlertCarousel, BANNER_ART, type AlertSlide } from '../../../components/console/AlertCarousel';
 import { FinderBQrStudio } from '../../../components/console/FinderBQrStudio';
@@ -24,9 +25,11 @@ import {
   timeAgo,
 } from '../../../components/console/kit';
 import { LEAD_STATUS_TONE, pipelineOf } from '../../../components/console/leadStatus';
+import { ShiningNew } from '../../../components/console/ShiningNew';
 import { LeadSourceBadge } from '../../../components/console/LeadSourceBadge';
 import { LISTING_SECTIONS } from '../../../components/console/listingSections';
 import { askStorefrontPreview, openConsolePath } from '../../../lib/consoleNav';
+import { buildReviewInviteUrl } from '../../../lib/reviewInvite';
 import { competitorScoreIsGood, leadResponseIsGood } from '../../../lib/insightTones';
 
 type IconName = keyof typeof Ionicons.glyphMap;
@@ -189,7 +192,32 @@ function bannersFor(o: ConsoleOverview, go: Go, openStudio: () => void): AlertSl
   return slides;
 }
 
-function ShopCard({ o, go }: { o: ConsoleOverview; go: Go }) {
+type PlanChip = {
+  label: string;
+  icon: 'close' | 'diamond-outline' | 'diamond';
+  background: string;
+  color: string;
+};
+
+/** Starter is the plain free listing. Growth is the paid step up. Pro is the top plan. */
+function planChip(subscription: SubscriptionStatus): PlanChip {
+  const name = subscription.planName.trim().toLowerCase();
+  const tier =
+    subscription.isActive && (name === 'pro' || subscription.billingCycle === 'annual')
+      ? 'pro'
+      : subscription.isActive && (name === 'growth' || subscription.billingCycle === 'monthly')
+        ? 'growth'
+        : 'starter';
+  if (tier === 'pro') {
+    return { label: 'Pro', icon: 'diamond', background: '#153551', color: '#F9B864' };
+  }
+  if (tier === 'growth') {
+    return { label: 'Growth', icon: 'diamond-outline', background: '#D97706', color: '#FFFFFF' };
+  }
+  return { label: 'Starter', icon: 'close', background: '#71717A', color: '#FFFFFF' };
+}
+
+function ShopCard({ o, go, onQr }: { o: ConsoleOverview; go: Go; onQr: () => void }) {
   const styles = useStyles();
   const c = useConsoleColors();
   const router = useRouter();
@@ -205,7 +233,40 @@ function ShopCard({ o, go }: { o: ConsoleOverview; go: Go }) {
       .join('')
       .slice(0, 2)
       .toUpperCase() || 'B';
-  const plan = subscription.isActive ? subscription.planName : 'Free';
+  const plan = planChip(subscription);
+  const live = business.isLive;
+  const breath = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (!live) return;
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(breath, {
+          toValue: 1,
+          duration: 1400,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: false,
+        }),
+        Animated.timing(breath, {
+          toValue: 0,
+          duration: 1400,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: false,
+        }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [live, breath]);
+  const liveBorder = breath.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['#15803D', '#4ADE80'],
+  });
+  const liveGlow = breath.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.12, 0.45],
+  });
+  const reviewUrl = buildReviewInviteUrl(business.slug || business.id, PUBLIC_SITE);
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=8&data=${encodeURIComponent(reviewUrl)}`;
   const actions: { label: string; icon: IconName; onPress: () => void }[] = [
     {
       label: 'Preview',
@@ -223,10 +284,19 @@ function ShopCard({ o, go }: { o: ConsoleOverview; go: Go }) {
   ];
 
   return (
-    <Panel style={styles.shop}>
-      <View style={styles.shopRow}>
+    <Animated.View
+      style={[
+        styles.shopFrame,
+        live
+          ? { borderColor: liveBorder, shadowColor: '#16A34A', shadowOpacity: liveGlow, shadowRadius: 10, shadowOffset: { width: 0, height: 0 } }
+          : { borderColor: '#DC2626' },
+      ]}
+      accessibilityLabel={live ? `${business.name}, listing is live` : `${business.name}, listing is not live`}
+    >
+      <View style={styles.shop}>
+      <View style={styles.shopTop}>
         {cover ? (
-          <Image source={{ uri: cover }} style={styles.shopPhoto} contentFit="cover" alt={`${business.name} photo`} />
+          <Image source={{ uri: cover }} style={styles.shopPhoto} contentFit="cover" alt="" />
         ) : (
           <View style={[styles.shopPhoto, styles.shopInitials]}>
             <Text style={styles.shopInitialsText}>{initials}</Text>
@@ -234,7 +304,7 @@ function ShopCard({ o, go }: { o: ConsoleOverview; go: Go }) {
         )}
         <View style={styles.flex}>
           <View style={styles.nameRow}>
-            <Text style={styles.shopName} numberOfLines={1}>
+            <Text style={styles.shopName} numberOfLines={2}>
               {business.name}
             </Text>
             {business.verifiedBadge ? <Ionicons name="checkmark-circle" size={16} color={c.success} /> : null}
@@ -244,16 +314,30 @@ function ShopCard({ o, go }: { o: ConsoleOverview; go: Go }) {
               {place}
             </Text>
           ) : null}
-          <View style={styles.tags}>
-            <Tag
-              label={business.isLive ? 'Live' : business.statusLabel || business.status}
-              tone={business.isLive ? 'success' : 'warning'}
-              icon={business.isLive ? 'radio-button-on' : 'time-outline'}
-            />
-            <Tag label={`${plan} plan`} tone={subscription.isActive ? 'info' : 'neutral'} />
-            {rating.rated ? <Tag label={`★ ${rating.label}`} tone="neutral" /> : null}
+          <View style={styles.shopChips}>
+            {rating.rated ? (
+              <View style={[styles.shopChip, { backgroundColor: ratingBoxColor(rating.rating) }]}>
+                <Ionicons name="star" size={11} color="#FFFFFF" />
+                <Text style={[styles.shopChipText, styles.shopChipOnColor]}>{rating.label}</Text>
+              </View>
+            ) : null}
+            <View style={[styles.shopChip, { backgroundColor: plan.background }]}>
+              <Ionicons name={plan.icon} size={11} color={plan.color} />
+              <Text style={[styles.shopChipText, { color: plan.color }]}>{plan.label}</Text>
+            </View>
           </View>
         </View>
+        <Pressable
+          onPress={onQr}
+          style={({ pressed }) => [styles.qrPlate, pressed && styles.pressed]}
+          accessibilityRole="button"
+          accessibilityLabel="Open review QR"
+        >
+          <View style={styles.qrFrame}>
+            <Image source={{ uri: qrUrl }} style={styles.qrImage} contentFit="contain" alt="" />
+          </View>
+          <Text style={styles.qrCaption}>Scan</Text>
+        </Pressable>
       </View>
       <View style={styles.shopActions}>
         {actions.map((action, index) => (
@@ -262,13 +346,15 @@ function ShopCard({ o, go }: { o: ConsoleOverview; go: Go }) {
             onPress={action.onPress}
             style={({ pressed }) => [styles.shopAction, index > 0 && styles.shopActionLine, pressed && styles.pressed]}
             accessibilityRole="button"
+            accessibilityLabel={action.label}
           >
-            <Ionicons name={action.icon} size={17} color={c.primary} />
+            <Ionicons name={action.icon} size={16} color={c.ink} />
             <Text style={styles.shopActionText}>{action.label}</Text>
           </Pressable>
         ))}
       </View>
-    </Panel>
+      </View>
+    </Animated.View>
   );
 }
 
@@ -616,6 +702,84 @@ function MissingInfo({ o, go }: { o: ConsoleOverview; go: Go }) {
   );
 }
 
+function RecentLeadRow({
+  lead,
+  first,
+  onPress,
+}: {
+  lead: ConsoleLead;
+  first: boolean;
+  onPress: () => void;
+}) {
+  const styles = useStyles();
+  const pipeline = pipelineOf(lead.status);
+  const waiting = pipeline === 'To be contacted';
+  const [meaning, setMeaning] = useState<{ title: string; body: string } | null>(null);
+  const row = (
+      <View style={[styles.lead, !waiting && !first && styles.rowLine]}>
+        <Pressable
+          onPress={onPress}
+          style={({ pressed }) => [styles.leadMain, pressed && styles.rowPressed]}
+          accessibilityRole="button"
+          accessibilityLabel={waiting ? `${lead.name || 'Customer'}, not contacted yet` : lead.name || 'Customer'}
+        >
+          <View style={[styles.avatar, waiting && styles.avatarHot]}>
+            <Text style={[styles.avatarText, waiting && styles.leadOnHot]}>{(lead.name || '?').charAt(0).toUpperCase()}</Text>
+          </View>
+          <View style={styles.flex}>
+            <View style={styles.leadNameRow}>
+              <Text style={[styles.leadName, waiting && styles.leadNameShrink, waiting && styles.leadOnHot]} numberOfLines={1}>
+                {lead.name || 'Customer'}
+              </Text>
+              {waiting ? <ShiningNew /> : null}
+            </View>
+            <Text style={[styles.leadMeta, waiting && styles.leadMetaOnHot]} numberOfLines={1}>
+              {lead.locked ? 'Upgrade to see contact' : lead.category || 'Customer enquiry'}
+              {lead.created_at ? ` · ${timeAgo(lead.created_at)}` : ''}
+            </Text>
+          </View>
+        </Pressable>
+        <View style={styles.leadBadges}>
+          <LeadSourceBadge
+            lead={lead}
+            align="end"
+            onMeaning={(next) => setMeaning((current) => (current?.title === next.title ? null : next))}
+          />
+          {waiting ? null : (
+            <Tag label={pipeline} tone={LEAD_STATUS_TONE[pipeline] ?? 'neutral'} style={styles.leadBadgeEnd} />
+          )}
+        </View>
+      </View>
+  );
+
+  const explained = (
+    <View>
+      {row}
+      {meaning ? (
+        <View style={[styles.sourceHelp, waiting && styles.sourceHelpHot]}>
+          <Text style={[styles.sourceHelpTitle, waiting && styles.leadOnHot]}>{meaning.title}</Text>
+          <Text style={[styles.sourceHelpBody, waiting && styles.leadMetaOnHot]}>{meaning.body}</Text>
+          <Pressable
+            onPress={() => setMeaning(null)}
+            hitSlop={6}
+            accessibilityRole="button"
+          >
+            <Text style={[styles.sourceHelpClose, waiting && styles.leadOnHot]}>Got it</Text>
+          </Pressable>
+        </View>
+      ) : null}
+    </View>
+  );
+
+  if (!waiting) return explained;
+  return (
+    <LinearGradient colors={['#1C4668', '#0E2438']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.leadHot}>
+      <View style={styles.hotRule} />
+      {explained}
+    </LinearGradient>
+  );
+}
+
 function RecentLeads({ o, go }: { o: ConsoleOverview; go: Go }) {
   const styles = useStyles();
   return (
@@ -623,29 +787,7 @@ function RecentLeads({ o, go }: { o: ConsoleOverview; go: Go }) {
       <Panel flush>
         {o.leads.length ? (
           o.leads.slice(0, 3).map((lead, index) => (
-            <Pressable
-              key={lead.id}
-              onPress={() => go('/business-console/leads')}
-              style={({ pressed }) => [styles.lead, index > 0 && styles.rowLine, pressed && styles.rowPressed]}
-              accessibilityRole="button"
-            >
-              <View style={styles.avatar}>
-                <Text style={styles.avatarText}>{(lead.name || '?').charAt(0).toUpperCase()}</Text>
-              </View>
-              <View style={styles.flex}>
-                <Text style={styles.leadName} numberOfLines={1}>
-                  {lead.name || 'Customer'}
-                </Text>
-                <Text style={styles.leadMeta} numberOfLines={1}>
-                  {lead.locked ? 'Upgrade to see contact' : lead.category || 'Customer enquiry'}
-                  {lead.created_at ? ` · ${timeAgo(lead.created_at)}` : ''}
-                </Text>
-              </View>
-              <View style={{ alignItems: 'flex-end', gap: 4 }}>
-                <LeadSourceBadge lead={lead} />
-                <Tag label={pipelineOf(lead.status)} tone={LEAD_STATUS_TONE[pipelineOf(lead.status)] ?? 'neutral'} />
-              </View>
-            </Pressable>
+            <RecentLeadRow key={lead.id} lead={lead} first={index === 0} onPress={() => go('/business-console/leads')} />
           ))
         ) : (
           <Text style={styles.none}>No leads yet. They’ll appear here the moment a customer contacts you.</Text>
@@ -704,43 +846,82 @@ function ReviewsSnapshot({ o, go }: { o: ConsoleOverview; go: Go }) {
 
 function PlanCard({ o, go }: { o: ConsoleOverview; go: Go }) {
   const styles = useStyles();
-  const c = useConsoleColors();
   const sub = o.subscription;
-  if (sub.isActive) {
-    return (
-      <Pressable onPress={() => go('/business-console/plan')} style={({ pressed }) => [styles.planRow, pressed && styles.pressed]}>
-        <View style={[styles.missingIcon, { backgroundColor: c.successSoft }]}>
-          <Ionicons name="ribbon-outline" size={17} color={c.success} />
+  const paid = planChip(sub);
+  const look = sub.isExpired && !sub.isActive
+    ? {
+        label: sub.lastPlanName || 'Plan',
+        icon: 'diamond-outline' as const,
+        background: '#B42318',
+        color: '#FFFFFF',
+      }
+    : paid;
+  const until =
+    sub.expiresAtDisplay ||
+    (sub.expiresAt
+      ? new Date(sub.expiresAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
+      : null);
+  const total = sub.billingCycle === 'annual' ? 365 : 30;
+  const left = Math.max(0, sub.daysRemaining ?? 0);
+  const ratio = sub.isActive && sub.daysRemaining != null ? Math.min(1, left / total) : 0;
+  const billing = sub.billingCycle === 'annual' ? 'Yearly, paid once' : 'Monthly, auto-debit';
+  const renew = !sub.isMonthlyMandate
+    ? null
+    : sub.autoRenewEnabled
+      ? 'renews automatically'
+      : sub.mandateRevokePending
+        ? 'auto-renew is being cancelled'
+        : 'auto-renew is off';
+  const pending = sub.isPendingPayment && !sub.isActive;
+  const title = pending ? sub.planName || look.label : sub.isActive ? look.label : sub.isExpired ? `${look.label} expired` : 'Starter';
+  const subtitle = pending
+    ? 'Payment received. Waiting for the bank to confirm.'
+    : sub.isActive
+      ? billing
+      : sub.isExpired
+        ? until
+          ? `Ended ${until}. Lead numbers are hidden.`
+          : 'Lead numbers are hidden until you renew.'
+        : 'Free listing. Upgrade to unlock lead numbers.';
+  const status = pending
+    ? { label: 'Confirming', tone: 'info' as const, icon: 'time-outline' as const }
+    : sub.isActive
+      ? { label: 'Active', tone: 'success' as const, icon: 'checkmark-circle' as const }
+      : sub.isExpired
+        ? { label: 'Expired', tone: 'danger' as const, icon: 'alert-circle' as const }
+        : { label: 'Free', tone: 'neutral' as const };
+
+  return (
+    <Pressable
+      onPress={() => go('/business-console/plan')}
+      style={({ pressed }) => [styles.planCard, pressed && styles.pressed]}
+      accessibilityRole="button"
+      accessibilityLabel={`${title}. ${subtitle}`}
+    >
+      <View style={styles.planHead}>
+        <View style={[styles.planMark, { backgroundColor: look.background }]}>
+          <Ionicons name={look.icon} size={16} color={look.color} />
         </View>
         <View style={styles.flex}>
-          <Text style={styles.missingLabel}>{sub.planName} plan active</Text>
-          <Text style={styles.missingDetail}>
-            {sub.expiresAtDisplay ? `Valid till ${sub.expiresAtDisplay}` : 'Lead contacts unlocked'}
-            {sub.daysRemaining != null ? ` · ${sub.daysRemaining} days left` : ''}
+          <Text style={styles.planTitle}>{title}</Text>
+          <Text style={styles.planLine}>{subtitle}</Text>
+        </View>
+        <Tag label={status.label} tone={status.tone} icon={status.icon} />
+      </View>
+      {sub.isActive && sub.daysRemaining != null ? (
+        <View>
+          <View style={styles.planMeter}>
+            <View style={[styles.planMeterFill, { width: `${Math.max(4, ratio * 100)}%`, backgroundColor: look.background }]} />
+          </View>
+          <Text style={styles.planMeterText}>
+            {`${left} day${left === 1 ? '' : 's'} left${until ? ` · till ${until}` : ''}${renew ? ` · ${renew}` : ''}`}
           </Text>
         </View>
-        <Ionicons name="chevron-forward" size={16} color={c.faint} />
-      </Pressable>
-    );
-  }
-  const perks = ['See every lead’s phone number', 'Rank higher in your city', 'Verified badge on your listing'];
-  return (
-    <Panel style={styles.planPanel}>
-      <View style={styles.planTop}>
-        <View style={styles.flex}>
-          <Text style={styles.planKicker}>{sub.isExpired ? 'Plan expired' : 'You’re on the Free plan'}</Text>
-          <Text style={styles.planTitle}>Turn views into paying customers</Text>
-        </View>
-        <Ionicons name="rocket-outline" size={22} color={c.brand} />
-      </View>
-      {perks.map((perk) => (
-        <View key={perk} style={styles.perk}>
-          <Ionicons name="checkmark-circle" size={15} color={c.success} />
-          <Text style={styles.perkText}>{perk}</Text>
-        </View>
-      ))}
-      <Btn label={sub.isExpired ? 'Renew plan' : 'See plans'} icon="arrow-forward" onPress={() => go('/business-console/plan')} style={styles.planBtn} />
-    </Panel>
+      ) : null}
+      {sub.isActive && sub.alertLevel === 'urgent' ? (
+        <Text style={styles.planWarn}>Ending soon. Renew so lead numbers stay visible.</Text>
+      ) : null}
+    </Pressable>
   );
 }
 
@@ -758,22 +939,23 @@ function QuickActions({ go }: { go: Go }) {
     { label: 'Security', icon: 'shield-checkmark-outline', href: '/business-console/account' },
   ];
   return (
-    <Panel style={styles.actionsPanel}>
-      {actions.map((action) => (
-        <Pressable
-          key={action.label}
-          onPress={() => go(action.href)}
-          style={({ pressed }) => [styles.action, pressed && styles.pressed]}
-          accessibilityRole="button"
-        >
-          <View style={styles.actionIcon}>
-            <Ionicons name={action.icon} size={20} color={c.primary} />
-          </View>
-          <Text style={styles.actionLabel} numberOfLines={1}>
-            {action.label}
-          </Text>
-        </Pressable>
-      ))}
+    <Panel flush>
+      <View style={styles.actionsGrid}>
+        {actions.map((action) => (
+          <Pressable
+            key={action.label}
+            onPress={() => go(action.href)}
+            style={({ pressed }) => [styles.action, pressed && styles.pressed]}
+            accessibilityRole="button"
+            accessibilityLabel={action.label}
+          >
+            <Ionicons name={action.icon} size={20} color={c.ink} />
+            <Text style={styles.actionLabel} numberOfLines={1}>
+              {action.label}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
     </Panel>
   );
 }
@@ -816,23 +998,8 @@ function HomeBody({ o }: { o: ConsoleOverview }) {
           </Text>
         </View>
       ) : null}
-      <ShopCard o={o} go={go} />
+      <ShopCard o={o} go={go} onQr={() => setQrOpen(true)} />
       {slides.length ? <AlertCarousel slides={slides} /> : null}
-      <Pressable
-        onPress={() => go('/business-console/growth')}
-        style={({ pressed }) => [styles.growthBtn, pressed && styles.pressed]}
-        accessibilityRole="button"
-        accessibilityLabel="Growth opportunity"
-      >
-        <View style={styles.growthIcon}>
-          <Ionicons name="ribbon-outline" size={18} color={c.primaryInk} />
-        </View>
-        <View style={styles.flex}>
-          <Text style={styles.growthTitle}>Growth opportunity</Text>
-          <Text style={styles.growthSub}>See the badges customers see, and how to earn them</Text>
-        </View>
-        <Ionicons name="chevron-forward" size={16} color={c.faint} />
-      </Pressable>
       <Section title="Performance">
         <Performance o={o} go={go} />
       </Section>
@@ -842,6 +1009,37 @@ function HomeBody({ o }: { o: ConsoleOverview }) {
       <Section title="Your plan">
         <PlanCard o={o} go={go} />
       </Section>
+      <Pressable
+        onPress={() => go('/business-console/growth')}
+        style={({ pressed }) => [styles.growthCard, pressed && styles.pressed]}
+        accessibilityRole="button"
+        accessibilityLabel="Growth opportunity"
+      >
+        <View style={styles.growthMarks}>
+          {(
+            [
+              { icon: 'checkmark', color: '#16A34A' },
+              { icon: 'flame', color: '#EA580C' },
+              { icon: 'star', color: '#D97706' },
+              { icon: 'shield-checkmark', color: '#153551' },
+            ] as const
+          ).map((mark, index) => (
+            <View
+              key={mark.icon}
+              style={[styles.growthMark, index === 0 && styles.growthMarkFirst, { backgroundColor: mark.color }]}
+            >
+              <Ionicons name={mark.icon} size={11} color="#FFFFFF" />
+            </View>
+          ))}
+        </View>
+        <View style={styles.flex}>
+          <Text style={styles.growthTitle}>Growth opportunity</Text>
+          <Text style={styles.growthSub} numberOfLines={1}>
+            Badges customers see, and how to earn them
+          </Text>
+        </View>
+        <Ionicons name="chevron-forward" size={16} color={c.faint} />
+      </Pressable>
       <Section title="Manage">
         <QuickActions go={go} />
       </Section>
@@ -866,28 +1064,31 @@ export default function HomeScreen() {
 const useStyles = createConsoleStyles((c) => ({
   flex: { flex: 1, minWidth: 0 },
   greeting: { fontFamily: fonts.semiBold, fontSize: 16, color: c.ink, paddingHorizontal: 2, marginBottom: -4 },
-  growthBtn: {
+  growthCard: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    marginTop: 0,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    borderRadius: 14,
+    borderRadius: 16,
     backgroundColor: c.card,
     borderWidth: 1,
     borderColor: c.line,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
   },
-  growthIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+  growthMarks: { flexDirection: 'row', alignItems: 'center' },
+  growthMark: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    marginLeft: -6,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: c.primary,
+    borderWidth: 2,
+    borderColor: c.card,
   },
+  growthMarkFirst: { marginLeft: 0 },
   growthTitle: { fontFamily: fonts.semiBold, fontSize: 14, color: c.ink },
-  growthSub: { marginTop: 2, fontFamily: fonts.regular, fontSize: 12, lineHeight: 16, color: c.body },
+  growthSub: { marginTop: 1, fontFamily: fonts.regular, fontSize: 12, color: c.muted },
   lockBanner: {
     marginTop: 8,
     borderRadius: 12,
@@ -964,19 +1165,45 @@ const useStyles = createConsoleStyles((c) => ({
   warnCta: { paddingHorizontal: 12, height: 32, borderRadius: 8, justifyContent: 'center', backgroundColor: c.primary },
   warnCtaText: { fontFamily: fonts.semiBold, fontSize: 12.5, color: c.primaryInk },
 
-  shop: { padding: 0, overflow: 'hidden' },
-  shopRow: { flexDirection: 'row', gap: 12, alignItems: 'center', padding: 12 },
-  shopPhoto: { width: 56, height: 56, borderRadius: 10, backgroundColor: c.sunken },
+  shopFrame: { borderRadius: 20, borderWidth: 2 },
+  shop: {
+    borderRadius: 18,
+    backgroundColor: c.card,
+    overflow: 'hidden',
+  },
+  shopTop: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingTop: 14, paddingBottom: 12 },
+  shopPhoto: { width: 72, height: 72, borderRadius: 16, backgroundColor: c.sunken },
   shopInitials: { alignItems: 'center', justifyContent: 'center' },
-  shopInitialsText: { fontFamily: fonts.semiBold, fontSize: 19, color: c.primary },
+  shopInitialsText: { fontFamily: fonts.semiBold, fontSize: 20, color: c.primary },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  shopName: { flexShrink: 1, fontFamily: fonts.semiBold, fontSize: 16, color: c.ink },
-  shopMeta: { marginTop: 1, fontFamily: fonts.regular, fontSize: 12.5, color: c.muted },
-  tags: { flexDirection: 'row', flexWrap: 'wrap', gap: 5, marginTop: 6 },
-  shopActions: { flexDirection: 'row', borderTopWidth: 1, borderTopColor: c.line },
-  shopAction: { flex: 1, height: 42, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5 },
+  shopName: { flexShrink: 1, fontFamily: fonts.semiBold, fontSize: 17, letterSpacing: -0.3, color: c.ink },
+  shopMeta: { marginTop: 2, fontFamily: fonts.regular, fontSize: 12.5, color: c.muted },
+  shopChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 },
+  shopChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    height: 22,
+    paddingHorizontal: 8,
+    borderRadius: 999,
+    backgroundColor: c.sunken,
+  },
+  shopChipText: { fontFamily: fonts.semiBold, fontSize: 11, color: c.body },
+  shopChipOnColor: { color: '#FFFFFF' },
+  qrPlate: { alignItems: 'center', gap: 4 },
+  qrFrame: {
+    padding: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: c.line,
+    backgroundColor: '#FFFFFF',
+  },
+  qrImage: { width: 58, height: 58 },
+  qrCaption: { fontFamily: fonts.semiBold, fontSize: 10, letterSpacing: 0.3, color: c.muted },
+  shopActions: { flexDirection: 'row', backgroundColor: c.sunken },
+  shopAction: { flex: 1, height: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5 },
   shopActionLine: { borderLeftWidth: 1, borderLeftColor: c.line },
-  shopActionText: { fontFamily: fonts.semiBold, fontSize: 12.5, color: c.primary },
+  shopActionText: { fontFamily: fonts.semiBold, fontSize: 12.5, color: c.ink },
 
   perfHead: { flexDirection: 'row', alignItems: 'flex-start' },
   perfValueRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 },
@@ -1015,6 +1242,35 @@ const useStyles = createConsoleStyles((c) => ({
   addText: { fontFamily: fonts.semiBold, fontSize: 12.5, color: c.accent },
 
   lead: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 12, paddingVertical: 10 },
+  leadMain: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 8 },
+  leadHot: {
+    marginHorizontal: 6,
+    marginVertical: 4,
+    borderRadius: 16,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(231,177,90,0.45)',
+  },
+  hotRule: { position: 'absolute', top: 0, left: 0, right: 0, height: 3, backgroundColor: '#E7B15A' },
+  sourceHelp: {
+    marginHorizontal: 12,
+    marginBottom: 8,
+    gap: 4,
+    padding: 10,
+    borderRadius: 12,
+    backgroundColor: c.sunken,
+  },
+  sourceHelpHot: { marginHorizontal: 10, backgroundColor: 'rgba(255,255,255,0.1)' },
+  sourceHelpTitle: { fontFamily: fonts.semiBold, fontSize: 13, color: c.ink },
+  sourceHelpBody: { fontFamily: fonts.regular, fontSize: 12.5, lineHeight: 18, color: c.body },
+  sourceHelpClose: { fontFamily: fonts.semiBold, fontSize: 12.5, color: c.ink },
+  leadNameRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  leadNameShrink: { flexShrink: 1 },
+  leadOnHot: { color: '#FFFFFF' },
+  leadMetaOnHot: { color: 'rgba(255,255,255,0.72)' },
+  avatarHot: { backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderColor: '#E7B15A' },
+  leadBadges: { marginLeft: 'auto', alignItems: 'flex-end', gap: 4 },
+  leadBadgeEnd: { alignSelf: 'flex-end' },
   avatar: {
     width: 34,
     height: 34,
@@ -1036,34 +1292,31 @@ const useStyles = createConsoleStyles((c) => ({
   quoteEmpty: { marginTop: 10 },
   quoteBy: { marginTop: 4, fontFamily: fonts.regular, fontSize: 11.5, color: c.muted },
 
-  planRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    padding: 12,
-    borderRadius: 12,
+  planCard: {
+    gap: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    borderRadius: 20,
     borderWidth: 1,
     borderColor: c.line,
     backgroundColor: c.card,
   },
-  planPanel: { gap: 6 },
-  planTop: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 4 },
-  planKicker: { fontFamily: fonts.semiBold, fontSize: 11.5, color: c.brand },
-  planTitle: { marginTop: 2, fontFamily: fonts.semiBold, fontSize: 16, color: c.ink },
-  perk: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  perkText: { fontFamily: fonts.regular, fontSize: 13, color: c.body },
-  planBtn: { marginTop: 8 },
+  planHead: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  planMark: { width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  planTitle: { fontFamily: fonts.semiBold, fontSize: 16, letterSpacing: -0.2, color: c.ink },
+  planLine: { marginTop: 2, fontFamily: fonts.regular, fontSize: 12.5, lineHeight: 17, color: c.body },
+  planMeter: { height: 6, borderRadius: 3, backgroundColor: c.sunken, overflow: 'hidden' },
+  planMeterFill: { height: 6, borderRadius: 3 },
+  planMeterText: { marginTop: 6, fontFamily: fonts.regular, fontSize: 12, lineHeight: 16, color: c.muted },
+  planWarn: { fontFamily: fonts.regular, fontSize: 12.5, lineHeight: 17, color: c.danger },
 
-  actionsPanel: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 4, paddingVertical: 8 },
-  action: { width: '25%', alignItems: 'center', gap: 6, paddingVertical: 8 },
-  actionIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 12,
+  actionsGrid: { flexDirection: 'row', flexWrap: 'wrap' },
+  action: {
+    width: '25%',
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: c.sunken,
+    gap: 8,
+    paddingVertical: 16,
   },
-  actionLabel: { fontFamily: fonts.regular, fontSize: 11.5, color: c.body },
+  actionLabel: { fontFamily: fonts.regular, fontSize: 12, color: c.body },
   footNote: { textAlign: 'center', fontFamily: fonts.regular, fontSize: 11, color: c.faint },
 }));

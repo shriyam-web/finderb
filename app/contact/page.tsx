@@ -1,14 +1,16 @@
 'use client';
 
 import Link from 'next/link';
-import { LEGAL_COMPANY, LEGAL_FOOTER_LINKS, LEGAL_LAST_UPDATED, SHOW_COMPANY_ADDRESS, SHOW_COMPANY_PHONE } from '@/lib/legalContent';
+import { LEGAL_FOOTER_LINKS, LEGAL_LAST_UPDATED } from '@/lib/legalContent';
+import { useSiteContact } from '@/components/SiteConfigProvider';
 
 export default function ContactPage() {
+  const contact = useSiteContact();
   return (
     <div className="min-h-[calc(100dvh-6.75rem)] bg-[#fafaf9] lg:min-h-screen">
       <main className="mx-auto max-w-5xl px-5 pt-28 pb-20 sm:px-6 lg:pt-32">
         <header className="mb-10 max-w-2xl border-b border-neutral-200 pb-8">
-          <p className="text-sm text-neutral-500">{LEGAL_COMPANY.brand}</p>
+          <p className="text-sm text-neutral-500">{contact.brand}</p>
           <h1 className="mt-1 text-3xl font-semibold tracking-tight text-neutral-900 sm:text-[2rem]">
             Contact us
           </h1>
@@ -21,9 +23,9 @@ export default function ContactPage() {
         <div className="grid gap-12 lg:grid-cols-[1fr_1.1fr] lg:gap-16">
           <div className="max-w-md space-y-8 text-[15px] leading-7 text-neutral-700">
             <div>
-              <p className="font-medium text-neutral-900">{LEGAL_COMPANY.name}</p>
+              <p className="font-medium text-neutral-900">{contact.companyName}</p>
               <p className="mt-1 text-neutral-600">
-                {LEGAL_COMPANY.brand} is operated by {LEGAL_COMPANY.name}.
+                {contact.brand} is operated by {contact.companyName}.
               </p>
             </div>
 
@@ -32,57 +34,55 @@ export default function ContactPage() {
                 <dt className="text-sm font-medium text-neutral-900">Email</dt>
                 <dd className="mt-0.5">
                   <a
-                    href={`mailto:${LEGAL_COMPANY.email}`}
+                    href={`mailto:${contact.email}`}
                     className="text-neutral-700 underline underline-offset-2 hover:text-neutral-900"
                   >
-                    {LEGAL_COMPANY.email}
+                    {contact.email}
                   </a>
                 </dd>
               </div>
-              {SHOW_COMPANY_PHONE ? (
+              {contact.showPhone ? (
                 <div>
                   <dt className="text-sm font-medium text-neutral-900">Phone</dt>
                   <dd className="mt-0.5">
                     <a
-                      href={`tel:${LEGAL_COMPANY.phone}`}
+                      href={`tel:${contact.phone}`}
                       className="text-neutral-700 underline underline-offset-2 hover:text-neutral-900"
                     >
-                      {LEGAL_COMPANY.phoneDisplay}
+                      {contact.phoneDisplay}
                     </a>
-                    <span className="block text-sm text-neutral-500">Mon–Fri, 9 AM – 6 PM IST</span>
                   </dd>
                 </div>
               ) : null}
-              {SHOW_COMPANY_ADDRESS ? (
+              {contact.showAddress ? (
                 <div>
                   <dt className="text-sm font-medium text-neutral-900">Office</dt>
                   <dd className="mt-0.5">
-                    {LEGAL_COMPANY.address.line1}
+                    {contact.addressLine1}
                     <br />
-                    {LEGAL_COMPANY.address.line2}, {LEGAL_COMPANY.address.country}{' '}
-                    {LEGAL_COMPANY.address.pincode}
+                    {contact.addressLine2}, {contact.country} {contact.pincode}
                   </dd>
                 </div>
               ) : null}
               <div>
                 <dt className="text-sm font-medium text-neutral-900">Hours</dt>
                 <dd className="mt-0.5 space-y-0.5">
-                  <p>{LEGAL_COMPANY.businessHours.weekdays}</p>
-                  <p>{LEGAL_COMPANY.businessHours.saturday}</p>
-                  <p>{LEGAL_COMPANY.businessHours.sunday}</p>
+                  <p>{contact.hoursWeekdays}</p>
+                  <p>{contact.hoursSaturday}</p>
+                  <p>{contact.hoursSunday}</p>
                 </dd>
               </div>
               <div>
                 <dt className="text-sm font-medium text-neutral-900">Grievance officer</dt>
                 <dd className="mt-0.5">
                   <a
-                    href={`mailto:${LEGAL_COMPANY.grievanceOfficer.email}`}
+                    href={`mailto:${contact.grievanceEmail}`}
                     className="text-neutral-700 underline underline-offset-2 hover:text-neutral-900"
                   >
-                    {LEGAL_COMPANY.grievanceOfficer.email}
+                    {contact.grievanceEmail}
                   </a>
                   <span className="block text-sm text-neutral-500">
-                    Response {LEGAL_COMPANY.grievanceOfficer.responseTime}
+                    {contact.grievanceName}. Response {contact.grievanceResponse}
                   </span>
                 </dd>
               </div>
@@ -92,7 +92,7 @@ export default function ContactPage() {
           <div className="rounded-lg border border-neutral-200 bg-white p-6 sm:p-8">
             <h2 className="text-lg font-semibold text-neutral-900">Send a message</h2>
             <p className="mt-1 text-sm text-neutral-500">
-              Or email us directly at {LEGAL_COMPANY.email}
+              Or email us directly at {contact.email}
             </p>
 
             <form className="mt-6 space-y-4" onSubmit={(e) => e.preventDefault()}>

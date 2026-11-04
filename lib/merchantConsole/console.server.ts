@@ -6,7 +6,7 @@ import {
   updateBusinessImages,
   updateBusinessProfile,
 } from '@/app/actions/business';
-import { getBusinessLeads, markLeadRead, updateLeadStatus } from '@/app/actions/leads';
+import { getBusinessLeads, markLeadRead, updateLeadNote, updateLeadStatus } from '@/app/actions/leads';
 import { isOpenLead } from '@/lib/leadBadges';
 import { isLeadUnread, averageLeadResponseLabel, averageLeadResponseMs } from '@/lib/leadRead';
 import { loadBadgeReports } from '@/lib/businessBadgeState';
@@ -70,16 +70,12 @@ import { pickPublicBusinessEmail } from '@/lib/placeholderEmail';
 import { extractIndianMobileDigits } from '@/lib/indianPhone';
 import { ABOUT_BUSINESS_MAX_WORDS } from '@/lib/businessAbout';
 import {
-  GROWTH_PRO_EFFECTIVE_MONTHLY_ANNUAL,
   GROWTH_PRO_FEATURES,
-  GROWTH_PRO_OFFER_ANNUAL,
-  GROWTH_PRO_OFFER_MONTHLY,
   GROWTH_PRO_OFFER_NAME,
-  GROWTH_PRO_RETAIL_ANNUAL,
-  GROWTH_PRO_RETAIL_MONTHLY,
   FREE_LISTING_INCLUDED,
   PLAN_COMPARE_ROWS,
 } from '@/lib/pricing/growthPro';
+import { getSiteConfig } from '@/lib/siteConfig';
 import { isRazorpayConfigured } from '@/lib/razorpay/server';
 import {
   inviteTeamMember,
@@ -671,6 +667,13 @@ async function cancelDeletion(businessId: string) {
   return result.success ? result : fail(result.error);
 }
 
+async function setLeadNote(leadId: unknown, note: unknown) {
+  if (typeof leadId !== 'string' || !leadId) return fail('Lead is required.');
+  if (typeof note !== 'string') return fail('Write a note first.');
+  const result = await updateLeadNote(leadId, note);
+  return result.success ? { success: true as const, note: result.note } : fail(result.error);
+}
+
 async function setLeadStatus(leadId: unknown, status: unknown) {
   const allowed = [
     'To be contacted',
@@ -770,15 +773,16 @@ async function removeJob(businessId: string, jobId: unknown) {
   return jobs(businessId);
 }
 
-function pricing() {
+async function pricing() {
+  const config = await getSiteConfig();
   return {
     offerName: GROWTH_PRO_OFFER_NAME,
-    monthly: { name: 'Growth', price: GROWTH_PRO_OFFER_MONTHLY, retail: GROWTH_PRO_RETAIL_MONTHLY },
+    monthly: { name: 'Growth', price: config.pricing.growthMonthly, retail: config.pricing.growthMonthlyRetail },
     annual: {
       name: 'Pro',
-      price: GROWTH_PRO_OFFER_ANNUAL,
-      retail: GROWTH_PRO_RETAIL_ANNUAL,
-      perMonth: GROWTH_PRO_EFFECTIVE_MONTHLY_ANNUAL,
+      price: config.pricing.proAnnual,
+      retail: config.pricing.proAnnualRetail,
+      perMonth: Math.max(1, Math.round(config.pricing.proAnnual / 12)),
     },
     features: [...GROWTH_PRO_FEATURES],
     starterIncludes: [...FREE_LISTING_INCLUDED],
@@ -790,7 +794,7 @@ function pricing() {
 async function subscription(businessId: string) {
   const result = await getMerchantSubscriptionDetails(businessId);
   if (!result.success) return fail(result.error);
-  return { success: true as const, subscription: result.subscription, history: result.history, pricing: pricing() };
+  return { success: true as const, subscription: result.subscription, history: result.history, pricing: await pricing() };
 }
 
 async function startCheckout(businessId: string, billingCycle: unknown) {
@@ -985,6 +989,8 @@ export async function runConsoleAction(userId: string, businessId: string, body:
       return leads(businessId);
     case 'setLeadStatus':
       return setLeadStatus(body.leadId, body.status);
+    case 'setLeadNote':
+      return setLeadNote(body.leadId, body.note);
     case 'markLeadRead':
       return markLeadReadAction(body.leadId);
     case 'hideBusiness':

@@ -118,7 +118,6 @@ export default function HomeScreen() {
   const [emptySectionIds, setEmptySectionIds] = useState<Set<string>>(
     () => new Set(),
   );
-  const [selectedParentId, setSelectedParentId] = useState<string | null>(null);
   const [searchText, setSearchText] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
@@ -128,7 +127,6 @@ export default function HomeScreen() {
   const scrollBottomPad = useTabScrollPadding(24);
   const scrollRef = useRef<ScrollView>(null);
   useScrollToTop(scrollRef);
-  const selectedParentIdRef = useRef<string | null>(null);
   const madeInIndiaTaps = useRef(0);
   const madeInIndiaTapAt = useRef(0);
   const scrollY = useRef(0);
@@ -253,26 +251,6 @@ export default function HomeScreen() {
     Alert.alert('Designed and Developed by Shriyam Parashar');
   };
 
-  const onSelectParent = useCallback((category: HomeCategory) => {
-    const prev = selectedParentIdRef.current;
-    if (prev === category.id) return;
-    selectedParentIdRef.current = category.id;
-    setSelectedParentId(category.id);
-    if (prev) {
-      scrollRef.current?.scrollTo({ y: 0, animated: true });
-    }
-  }, []);
-
-  const featuredGroups = useMemo(() => {
-    if (!selectedParentId) return homeCategories;
-    const selected = homeCategories.find((group) => group.id === selectedParentId);
-    if (!selected) return homeCategories;
-    return [
-      selected,
-      ...homeCategories.filter((group) => group.id !== selectedParentId),
-    ];
-  }, [homeCategories, selectedParentId]);
-
   const hideEmptySection = useCallback((groupId: string) => {
     setEmptySectionIds((prev) => {
       if (prev.has(groupId)) return prev;
@@ -284,7 +262,7 @@ export default function HomeScreen() {
 
   const visibleGroups = useMemo(
     () =>
-      featuredGroups.filter((group) => {
+      homeCategories.filter((group) => {
         if (emptySectionIds.has(group.id)) return false;
         const page = peekBusinessesByCategory(group.queryName || group.name, {
           page: 1,
@@ -292,7 +270,7 @@ export default function HomeScreen() {
         });
         return !page || page.merchants.length > 0;
       }),
-    [emptySectionIds, featuredGroups],
+    [emptySectionIds, homeCategories],
   );
 
   const city = location.city;
@@ -467,7 +445,7 @@ export default function HomeScreen() {
           >
             <View>
               <InteractiveCategoryDeck
-                categories={featuredGroups}
+                categories={homeCategories}
                 catalog={catalog}
                 userCoords={location.coords}
                 city={city}
@@ -488,7 +466,6 @@ export default function HomeScreen() {
                   )
                 }
                 onOpenMerchant={openMerchant}
-                onSelectCategory={onSelectParent}
                 showMerchantSheet={false}
                 headerTopInset={stickyHeaderInset}
               />

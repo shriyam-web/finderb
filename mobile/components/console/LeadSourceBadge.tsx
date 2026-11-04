@@ -1,44 +1,58 @@
-import { Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { fonts } from '../../constants/typography';
-import { leadSourceOf, sourceLabel } from './leadStatus';
+import { leadSourceOf, sourceLabel, sourceMeaning } from './leadStatus';
 
 export function LeadSourceBadge({
   lead,
+  align = 'start',
+  onMeaning,
 }: {
   lead: { source?: string | null; status?: string | null };
+  align?: 'start' | 'end';
+  onMeaning?: (meaning: { title: string; body: string }) => void;
 }) {
   const source = leadSourceOf(lead);
   if (!source) return null;
   const label = sourceLabel(source);
-  if (!label) return null;
+  const meaning = sourceMeaning(source);
+  if (!label || !meaning) return null;
+  const edge = align === 'end' ? styles.end : null;
 
-  if (source === 'Direct Lead') {
-    return (
-      <View style={styles.direct}>
+  const badge =
+    source === 'Direct Lead' ? (
+      <View style={[styles.direct, edge]}>
         <Text style={styles.directMark}>⚡</Text>
         <Text style={styles.directText}>Direct</Text>
       </View>
-    );
-  }
-
-  if (source === 'Generated on your profile') {
-    return (
-      <View style={styles.profile}>
+    ) : source === 'Generated on your profile' ? (
+      <View style={[styles.profile, edge]}>
         <View style={styles.profileDot} />
         <Text style={styles.profileText}>On your profile</Text>
       </View>
+    ) : (
+      <View style={[styles.category, edge]}>
+        <Text style={styles.categoryMark}>★</Text>
+        <Text style={styles.categoryText}>Popular in category</Text>
+      </View>
     );
-  }
 
   return (
-    <View style={styles.category}>
-      <Text style={styles.categoryMark}>★</Text>
-      <Text style={styles.categoryText}>Popular in category</Text>
-    </View>
+    <Pressable
+      onPress={(event) => {
+        event.stopPropagation();
+        onMeaning?.({ title: label, body: meaning });
+      }}
+      hitSlop={6}
+      accessibilityRole="button"
+      accessibilityLabel={`${label}. Show what this means`}
+    >
+      {badge}
+    </Pressable>
   );
 }
 
 const styles = {
+  end: { alignSelf: 'flex-end' as const },
   direct: {
     alignSelf: 'flex-start' as const,
     flexDirection: 'row' as const,

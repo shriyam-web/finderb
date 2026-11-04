@@ -3,6 +3,7 @@ import 'server-only';
 import { createServiceClient } from '@/lib/supabase/service';
 import { getRazorpayPayment, listRazorpayPaymentsPage } from '@/lib/razorpay/server';
 import { listRazorpaySubscriptionInvoices } from '@/lib/razorpay/subscriptions';
+import { getPlanAmountInPaise } from '@/lib/razorpay/plans';
 
 export type MerchantPaymentTrailInput = {
   businessId: string;
@@ -46,10 +47,6 @@ function isUniqueViolation(message: string) {
 function planFromAmount(amountPaise: number): { plan: string; billingCycle: string } {
   if (amountPaise >= 200000) return { plan: 'pro', billingCycle: 'annual' };
   return { plan: 'pro', billingCycle: 'monthly' };
-}
-
-function amountPaiseForCycle(billingCycle: string) {
-  return billingCycle === 'annual' ? 358800 : 49900;
 }
 
 export async function upsertMerchantPaymentTrail(
@@ -240,7 +237,10 @@ export async function backfillMerchantPaymentTrailsFromRazorpay(maxPages = 20): 
         businessId: String(business.id),
         plan: String(business.selectedPlan || 'pro'),
         billingCycle,
-        amountPaise: amountPaiseForCycle(billingCycle),
+        amountPaise: await getPlanAmountInPaise(
+          'pro',
+          billingCycle === 'annual' ? 'annual' : 'monthly',
+        ),
         status: 'completed',
         paymentType: business.razorpaySubscriptionId ? 'subscription_auth' : 'one_time',
         orderId: business.orderId ? String(business.orderId) : null,

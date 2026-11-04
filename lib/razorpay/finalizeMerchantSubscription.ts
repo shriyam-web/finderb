@@ -221,7 +221,7 @@ export async function finalizeSubscriptionAuthorization(
   const remotePayment = paymentResult.payment;
   const orderIdFromPayment = remotePayment.order_id?.trim() || null;
 
-  const expectedAmount = getPlanAmountInPaise(plan as MerchantPlan, billingCycle as BillingCycle);
+  const expectedAmount = await getPlanAmountInPaise(plan as MerchantPlan, billingCycle as BillingCycle);
   if (remotePayment.amount !== expectedAmount) {
     return { success: false, error: 'Authorization amount mismatch' };
   }
@@ -348,7 +348,7 @@ export async function finalizeSubscriptionRenewal(
     return { success: false, error: 'Invalid plan or billing cycle' };
   }
 
-  const expectedAmount = getPlanAmountInPaise(plan as MerchantPlan, billingCycle as BillingCycle);
+  const expectedAmount = await getPlanAmountInPaise(plan as MerchantPlan, billingCycle as BillingCycle);
   if (amountPaise !== expectedAmount) {
     return { success: false, error: 'Renewal amount mismatch' };
   }

@@ -22,7 +22,10 @@ export function OwnThisBusiness({
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(defaultName || '');
   const [email, setEmail] = useState(defaultEmail || '');
-  const [phone, setPhone] = useState(defaultPhone || '');
+  const [phone, setPhone] = useState(() => {
+    const digits = (defaultPhone || '').replace(/\D/g, '');
+    return digits.length > 10 ? digits.slice(-10) : digits;
+  });
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -50,6 +53,10 @@ export function OwnThisBusiness({
   }, [businessId]);
 
   const submit = async () => {
+    if (phone.length !== 10) {
+      setError('Enter a 10-digit mobile number.');
+      return;
+    }
     setBusy(true);
     setError('');
     try {
@@ -61,7 +68,7 @@ export function OwnThisBusiness({
           'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({ businessId, name, email, phone }),
+        body: JSON.stringify({ businessId, name, email, phone: `+91${phone}` }),
       });
       const data = (await res.json()) as { success?: boolean; error?: string; alreadyPending?: boolean };
       if (!data.success) {
@@ -89,7 +96,19 @@ export function OwnThisBusiness({
         <View style={{ gap: 8 }}>
           <TextInput value={name} onChangeText={setName} placeholder="Your name" placeholderTextColor={colors.textSoft} style={inputStyle(colors.ink)} />
           <TextInput value={email} onChangeText={setEmail} placeholder="Email" autoCapitalize="none" keyboardType="email-address" placeholderTextColor={colors.textSoft} style={inputStyle(colors.ink)} />
-          <TextInput value={phone} onChangeText={setPhone} placeholder="Mobile" keyboardType="phone-pad" placeholderTextColor={colors.textSoft} style={inputStyle(colors.ink)} />
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderColor: 'rgba(24,24,27,0.12)', borderRadius: 10, paddingHorizontal: 12 }}>
+            <Text style={{ fontSize: 16 }}>🇮🇳</Text>
+            <Text style={{ fontFamily: fonts.semiBold, fontSize: 15, color: colors.ink }}>+91</Text>
+            <TextInput
+              value={phone}
+              onChangeText={(value) => setPhone(value.replace(/\D/g, '').slice(0, 10))}
+              placeholder="10-digit mobile"
+              keyboardType="number-pad"
+              maxLength={10}
+              placeholderTextColor={colors.textSoft}
+              style={{ flex: 1, paddingVertical: 10, fontFamily: fonts.regular, fontSize: 15, color: colors.ink }}
+            />
+          </View>
           {error ? <Text style={{ color: '#B42318', fontFamily: fonts.regular, fontSize: 12 }}>{error}</Text> : null}
           <Pressable onPress={() => void submit()} disabled={busy} style={{ alignSelf: 'flex-start', backgroundColor: colors.ink, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10 }}>
             <Text style={{ color: colors.white, fontFamily: fonts.semiBold, fontSize: 13 }}>{busy ? 'Sending…' : 'Submit request'}</Text>

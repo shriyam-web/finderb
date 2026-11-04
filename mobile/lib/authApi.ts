@@ -3,7 +3,7 @@ import * as Linking from 'expo-linking';
 import * as QueryParams from 'expo-auth-session/build/QueryParams';
 import * as WebBrowser from 'expo-web-browser';
 import { safeUserError } from './safeError';
-import { SITE_URL, supabase } from './supabase';
+import { SITE_URL, siteBases, supabase } from './supabase';
 import type { AuthUser } from './session';
 
 WebBrowser.maybeCompleteAuthSession();
@@ -56,37 +56,38 @@ async function postJson<T>(
   body: Record<string, unknown>,
   timeoutMs?: number,
 ): Promise<T> {
-  const controller = timeoutMs ? new AbortController() : null;
-  const timer = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
-  try {
-    const res = await fetch(`${SITE_URL}${path}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-      },
-      body: JSON.stringify(body),
-      signal: controller?.signal,
-    });
-    const text = await res.text();
+  const bases = siteBases();
+  let lastError = 'Network error. Check your connection.';
+  for (let index = 0; index < bases.length; index += 1) {
+    const hasNext = index < bases.length - 1;
+    const limit = timeoutMs ?? (hasNext ? 4000 : undefined);
+    const controller = limit ? new AbortController() : null;
+    const timer = controller && limit ? setTimeout(() => controller.abort(), limit) : null;
     try {
-      return JSON.parse(text) as T;
-    } catch {
-      return {
-        success: false,
-        error: 'FinderB could not be reached. Try again in a moment.',
-      } as T;
-    }
-  } catch (error) {
-    return {
-      success: false,
-      error: controller?.signal.aborted
+      const res = await fetch(`${bases[index]}${path}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify(body),
+        signal: controller?.signal,
+      });
+      const text = await res.text();
+      try {
+        return JSON.parse(text) as T;
+      } catch {
+        lastError = 'FinderB could not be reached. Try again in a moment.';
+      }
+    } catch (error) {
+      lastError = controller?.signal.aborted
         ? 'FinderB took too long to answer. Check your internet and try again.'
-        : safeUserError(error, 'Network error. Check your connection.'),
-    } as T;
-  } finally {
-    if (timer) clearTimeout(timer);
+        : safeUserError(error, 'Network error. Check your connection.');
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
   }
+  return { success: false, error: lastError } as T;
 }
 
 export type WhatsAppAudience = 'user' | 'business';
@@ -237,19 +238,28 @@ export async function registerWithPassword(input: {
 }
 
 export async function fetchSessionUser(token: string): Promise<AuthUser | null> {
-  try {
-    const res = await fetch(`${SITE_URL}/api/auth/mobile/me`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: 'application/json',
-      },
-    });
-    const data = (await res.json()) as { success?: boolean; user?: AuthUser };
-    if (!data.success || !data.user) return null;
-    return data.user;
-  } catch {
-    return null;
+  const bases = siteBases();
+  for (let index = 0; index < bases.length; index += 1) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), index < bases.length - 1 ? 4000 : 20000);
+    try {
+      const res = await fetch(`${bases[index]}/api/auth/mobile/me`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/json',
+        },
+        signal: controller.signal,
+      });
+      const data = (await res.json()) as { success?: boolean; user?: AuthUser };
+      if (!data.success || !data.user) return null;
+      return data.user;
+    } catch {
+      // The dev server on :3200 is often not running. Try the live site next.
+    } finally {
+      clearTimeout(timer);
+    }
   }
+  return null;
 }
 
 export async function requestUserEmailOtp(

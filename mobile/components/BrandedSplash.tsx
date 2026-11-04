@@ -63,8 +63,8 @@ export function BrandedSplash({
         ]}
       >
         <FinderBLogo size={96} />
-        <Text style={styles.word}>FinderB</Text>
-        <Text style={styles.tag}>Trusted locals near you</Text>
+        <Text style={styles.word}>{'FinderB '}</Text>
+        <Text style={styles.tag}>{'Trusted locals near you '}</Text>
       </Animated.View>
       <Animated.View
         style={[
@@ -76,7 +76,7 @@ export function BrandedSplash({
           <Animated.View style={[styles.runner, { transform: [{ translateX: runnerX }] }]} />
         </View>
         <Text style={styles.loading}>
-          {mode === 'boot' ? message : 'Curating nearby places'}
+          {`${mode === 'boot' ? message : 'Curating nearby places'} `}
         </Text>
       </Animated.View>
     </View>
@@ -98,13 +98,17 @@ const useStyles = createThemedStyles((colors) => ({
     marginTop: 18,
     fontFamily: fonts.extraBold,
     fontSize: 40,
+    lineHeight: 48,
     letterSpacing: -1.2,
+    paddingHorizontal: 6,
     color: colors.heading,
   },
   tag: {
     marginTop: 8,
     fontFamily: fonts.medium,
     fontSize: 15,
+    lineHeight: 22,
+    paddingHorizontal: 8,
     color: colors.textMuted,
   },
   foot: {
@@ -131,7 +135,8 @@ const useStyles = createThemedStyles((colors) => ({
   loading: {
     fontFamily: fonts.medium,
     fontSize: 12,
-    letterSpacing: 0.4,
+    lineHeight: 18,
+    paddingHorizontal: 8,
     color: colors.textMuted,
   },
 }));

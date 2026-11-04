@@ -120,6 +120,7 @@ export default function CategoryExpandScreen() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const [filterOpen, setFilterOpen] = useState(false);
+  const [navOpen, setNavOpen] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
@@ -187,66 +188,100 @@ export default function CategoryExpandScreen() {
 
   const loadPage = useCallback(
     async (nextPage: number, replace: boolean) => {
-      if (!listingQuery) return;
-      if (replace) {
-        const cached = peekBusinessesByCategory(listingQuery, {
+      if (!listingQuery) {
+        setLoadingList(false);
+        setLoadingMore(false);
+        return;
+      }
+      try {
+        if (replace) {
+          const cached = peekBusinessesByCategory(listingQuery, {
+            page: nextPage,
+            pageSize: PAGE_SIZE,
+          });
+          if (cached) {
+            setMerchants(cached.merchants);
+            setPage(cached.page);
+            setHasMore(cached.hasMore);
+            return;
+          }
+          setLoadingList(true);
+        } else {
+          setLoadingMore(true);
+        }
+        const result = await fetchBusinessesByCategory(listingQuery, {
           page: nextPage,
           pageSize: PAGE_SIZE,
         });
-        if (cached) {
-          const ranked = sortByUserLocation(cached.merchants, {
-            coords: location.coords,
-            city: location.city,
-          });
-          setMerchants(ranked);
-          setPage(cached.page);
-          setHasMore(cached.hasMore);
-          setLoadingList(false);
-          setLoadingMore(false);
-          return;
-        }
-        setLoadingList(true);
-      } else {
-        setLoadingMore(true);
+        setMerchants((prev) => (replace ? result.merchants : [...prev, ...result.merchants]));
+        setPage(nextPage);
+        setHasMore(result.hasMore);
+      } finally {
+        setLoadingList(false);
+        setLoadingMore(false);
       }
-      const result = await fetchBusinessesByCategory(listingQuery, {
-        page: nextPage,
-        pageSize: PAGE_SIZE,
-      });
-      const ranked = sortByUserLocation(result.merchants, {
-        coords: location.coords,
-        city: location.city,
-      });
-      setMerchants((prev) => (replace ? ranked : [...prev, ...ranked]));
-      setPage(nextPage);
-      setHasMore(result.hasMore);
-      setLoadingList(false);
-      setLoadingMore(false);
     },
-    [listingQuery, location.city, location.coords],
+    [listingQuery],
   );
 
   useEffect(() => {
+    let cancelled = false;
     setPage(1);
     if (!listingQuery) {
       setMerchants([]);
+      setLoadingList(false);
       return;
     }
-    const cached = peekBusinessesByCategory(listingQuery, {
-      page: 1,
-      pageSize: PAGE_SIZE,
-    });
-    if (!cached) setMerchants([]);
-    void loadPage(1, true);
-  }, [loadPage, listingQuery]);
+    setLoadingList(true);
+    void (async () => {
+      try {
+        const cached = peekBusinessesByCategory(listingQuery, {
+          page: 1,
+          pageSize: PAGE_SIZE,
+        });
+        if (cached) {
+          if (!cancelled) {
+            setMerchants(cached.merchants);
+            setPage(cached.page);
+            setHasMore(cached.hasMore);
+          }
+          return;
+        }
+        const result = await fetchBusinessesByCategory(listingQuery, {
+          page: 1,
+          pageSize: PAGE_SIZE,
+        });
+        if (cancelled) return;
+        setMerchants(result.merchants);
+        setPage(1);
+        setHasMore(result.hasMore);
+      } finally {
+        if (!cancelled) {
+          setLoadingList(false);
+          setLoadingMore(false);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [listingQuery]);
 
   const filtersIdle = isDefaultFilters(filters);
+  const orderedMerchants = useMemo(
+    () =>
+      sortByUserLocation(merchants, {
+        coords: location.coords,
+        city: location.city,
+      }),
+    [location.city, location.coords, merchants],
+  );
   const visibleMerchants = useMemo(
     () =>
       filtersIdle
-        ? merchants
-        : applyFilters(merchants, filters, location.coords),
-    [filters, filtersIdle, location.coords, merchants],
+        ? orderedMerchants
+        : applyFilters(orderedMerchants, filters, location.coords),
+    [filters, filtersIdle, location.coords, orderedMerchants],
   );
   const filterMatchCount = visibleMerchants.length;
 
@@ -297,6 +332,21 @@ export default function CategoryExpandScreen() {
         <Text style={styles.title} numberOfLines={1}>
           {group?.name || 'Category'}
         </Text>
+        {showNav ? (
+          <Pressable
+            onPress={() => setNavOpen((open) => !open)}
+            hitSlop={8}
+            style={({ pressed }) => [styles.navToggle, pressed && styles.pressed]}
+            accessibilityRole="button"
+            accessibilityLabel={navOpen ? 'Hide categories' : 'Show categories'}
+          >
+            <Ionicons
+              name={navOpen ? 'chevron-back' : 'list'}
+              size={18}
+              color={colors.heading}
+            />
+          </Pressable>
+        ) : null}
         {group ? (
           <MerchantFilterTrigger
             filters={filters}
@@ -306,13 +356,18 @@ export default function CategoryExpandScreen() {
         ) : null}
       </View>
 
-      {loadingGroup || !group ? (
+      {loadingGroup ? (
         <View style={styles.boot}>
           <ActivityIndicator color={colors.ink} />
+          <Text style={styles.bootText}>Loading categories…</Text>
+        </View>
+      ) : !group ? (
+        <View style={styles.boot}>
+          <Text style={styles.empty}>This category could not be opened.</Text>
         </View>
       ) : (
         <View style={styles.split}>
-          {showNav ? (
+          {showNav && navOpen ? (
             <View style={styles.navWrap}>
               <ScrollView
                 style={styles.navScroll}
@@ -329,6 +384,7 @@ export default function CategoryExpandScreen() {
                       onPress={() => {
                         setCategoryId(cat.id);
                         setNestedId(null);
+                        setNavOpen(false);
                       }}
                       style={[styles.navItem, selected && styles.navItemOn]}
                     >
@@ -480,6 +536,12 @@ const useStyles = createThemedStyles((colors) => ({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  navToggle: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   title: {
     flex: 1,
     minWidth: 0,
@@ -500,6 +562,7 @@ const useStyles = createThemedStyles((colors) => ({
     flexGrow: 0,
     flexShrink: 0,
     flexBasis: NAV_W,
+    overflow: 'hidden',
     backgroundColor: colors.canvas,
     borderRightWidth: StyleSheet.hairlineWidth,
     borderRightColor: colors.border,
@@ -606,6 +669,13 @@ const useStyles = createThemedStyles((colors) => ({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 8,
+    paddingHorizontal: 24,
+  },
+  bootText: {
+    fontFamily: fonts.medium,
+    fontSize: 13,
+    color: colors.textMuted,
   },
   empty: {
     paddingVertical: 36,

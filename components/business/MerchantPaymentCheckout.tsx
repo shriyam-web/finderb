@@ -22,16 +22,10 @@ import { getPlanDisplayName } from '@/lib/subscription/merchantSubscription';
 import {
   EARLY_BIRD_BADGE_LABEL,
   formatInr,
-  GROWTH_PRO_ANNUAL_DISCOUNT_PERCENT,
-  GROWTH_PRO_EFFECTIVE_MONTHLY_ANNUAL,
   GROWTH_PRO_FEATURES,
-  GROWTH_PRO_MONTHLY_DISCOUNT_PERCENT,
-  GROWTH_PRO_OFFER_ANNUAL,
-  GROWTH_PRO_OFFER_MONTHLY,
-  GROWTH_PRO_RETAIL_ANNUAL,
-  GROWTH_PRO_RETAIL_MONTHLY,
   PRICING_PLANS,
 } from '@/lib/pricing/growthPro';
+import { useSitePricing } from '@/components/SiteConfigProvider';
 
 type BusinessSummary = {
   businessName?: string;
@@ -217,6 +211,7 @@ export default function MerchantPaymentCheckout({
   onPay,
   onBack,
 }: MerchantPaymentCheckoutProps) {
+  const live = useSitePricing();
   const plan = MERCHANT_PLANS.pro;
   const isAnnual = billingCycle === 'annual';
   const planLabel = getPlanDisplayName('pro', billingCycle);
@@ -318,21 +313,21 @@ export default function MerchantPaymentCheckout({
                   active={!isAnnual}
                   title={PRICING_PLANS.monthly.name}
                   subtitle={PRICING_PLANS.monthly.tagline}
-                  price={formatInr(GROWTH_PRO_OFFER_MONTHLY)}
-                  retail={`${formatInr(GROWTH_PRO_RETAIL_MONTHLY)}/mo`}
+                  price={formatInr(live.growthMonthly)}
+                  retail={`${formatInr(live.growthMonthlyRetail)}/mo`}
                   period="/mo"
-                  discount={`${GROWTH_PRO_MONTHLY_DISCOUNT_PERCENT}% off`}
+                  discount={`${live.monthlyDiscount}% off`}
                   onSelect={() => onBillingChange('monthly')}
                 />
                 <BillingOption
                   active={isAnnual}
                   title={PRICING_PLANS.annual.name}
                   subtitle={PRICING_PLANS.annual.tagline}
-                  price={formatInr(GROWTH_PRO_EFFECTIVE_MONTHLY_ANNUAL)}
-                  retail={`${formatInr(GROWTH_PRO_RETAIL_ANNUAL)}/yr`}
+                  price={formatInr(live.annualPerMonth)}
+                  retail={`${formatInr(live.proAnnualRetail)}/yr`}
                   period="/mo · billed annually"
                   badge="Best value"
-                  discount={`${GROWTH_PRO_ANNUAL_DISCOUNT_PERCENT}% off`}
+                  discount={`${live.annualDiscount}% off`}
                   onSelect={() => onBillingChange('annual')}
                 />
               </div>
@@ -341,10 +336,10 @@ export default function MerchantPaymentCheckout({
                 <p className="rounded-xl border border-[#e8dfd4] bg-white px-4 py-3 text-sm text-[#5c4a3d]">
                   Annual total:{' '}
                   <span className="font-semibold text-[#a89888] line-through tabular-nums">
-                    {formatInr(GROWTH_PRO_RETAIL_ANNUAL)}
+                    {formatInr(live.proAnnualRetail)}
                   </span>{' '}
                   <span className="font-bold tabular-nums text-[#153551]">
-                    {formatInr(GROWTH_PRO_OFFER_ANNUAL)}
+                    {formatInr(live.proAnnual)}
                   </span>{' '}
                   per year
                 </p>
@@ -390,11 +385,11 @@ export default function MerchantPaymentCheckout({
                     <div>
                       <p className="text-xs text-white/50 line-through tabular-nums">
                         {isAnnual
-                          ? `${formatInr(GROWTH_PRO_RETAIL_ANNUAL)}/yr`
-                          : `${formatInr(GROWTH_PRO_RETAIL_MONTHLY)}/mo`}
+                          ? `${formatInr(live.proAnnualRetail)}/yr`
+                          : `${formatInr(live.growthMonthlyRetail)}/mo`}
                       </p>
                       <p className="mt-1 text-4xl font-extrabold tabular-nums text-[#f9b864]">
-                        {isAnnual ? formatInr(GROWTH_PRO_OFFER_ANNUAL) : formatInr(GROWTH_PRO_OFFER_MONTHLY)}
+                        {isAnnual ? formatInr(live.proAnnual) : formatInr(live.growthMonthly)}
                       </p>
                       <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-white/55">
                         {isAnnual ? 'per year · GST applicable' : 'per month · GST applicable'}
@@ -403,7 +398,7 @@ export default function MerchantPaymentCheckout({
                     <div className="rounded-xl bg-white/10 px-3 py-2 text-right">
                       <p className="text-[10px] font-bold uppercase tracking-wide text-[#f9b864]">You save</p>
                       <p className="text-lg font-bold tabular-nums">
-                        {isAnnual ? `${GROWTH_PRO_ANNUAL_DISCOUNT_PERCENT}%` : `${GROWTH_PRO_MONTHLY_DISCOUNT_PERCENT}%`}
+                        {isAnnual ? `${live.annualDiscount}%` : `${live.monthlyDiscount}%`}
                       </p>
                     </div>
                   </div>

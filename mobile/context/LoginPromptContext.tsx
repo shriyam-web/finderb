@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, typ
 import { AppState } from 'react-native';
 import { Href, usePathname, useRouter } from 'expo-router';
 import { useAuth } from '../context/AuthContext';
+import { isBusinessSurface } from '../lib/businessSurface';
 
 type LoginPromptContextValue = {
   requestLogin: (returnTo?: string) => void;
@@ -57,9 +58,9 @@ export function LoginPromptProvider({ children }: { children: ReactNode }) {
           promptedThisSession = true;
           return;
         }
-        const blocked = PROMPT_BLOCKED.some(
-          (prefix) => path === prefix || path.startsWith(`${prefix}/`),
-        );
+        const blocked =
+          isBusinessSurface(path) ||
+          PROMPT_BLOCKED.some((prefix) => path === prefix || path.startsWith(`${prefix}/`));
         if (blocked) {
           schedule();
           return;

@@ -40,6 +40,13 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   allowedDevOrigins: ['127.0.0.1', '10.0.2.2'],
+  experimental: {
+    // CVs are accepted up to 5 MB. The server-action default of 1 MB
+    // aborts the website apply request before the form handler runs.
+    serverActions: {
+      bodySizeLimit: '8mb',
+    },
+  },
   productionBrowserSourceMaps: false,
   images: {
     // Serve remote images via our loader (Cloudinary transforms) instead of

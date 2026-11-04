@@ -151,6 +151,33 @@ export function listingThumbUrl(url: string | null | undefined): string | null {
   return url.replace(/w_\d+/, 'w_360').replace('c_limit', 'c_fill');
 }
 
+/** Same photo at a chosen width and Cloudinary quality, still forced to JPEG. */
+export function cloudinarySized(
+  url: string | null | undefined,
+  width: number,
+  quality: 'auto:low' | 'auto:good' | 'auto:best',
+): string | null {
+  if (!url) return null;
+  if (!url.includes('res.cloudinary.com') || !url.includes('/upload/')) return url;
+  const marker = '/upload/';
+  const idx = url.indexOf(marker);
+  const after = url.slice(idx + marker.length);
+  const slash = after.indexOf('/');
+  const first = slash === -1 ? after : after.slice(0, slash);
+  const rest = slash === -1 ? '' : after.slice(slash);
+  const q = `q_${quality}`;
+  const versionOnly = slash <= 0 || /^v\d+$/.test(first);
+  if (versionOnly) {
+    return `${url.slice(0, idx + marker.length)}f_jpg,${q},c_limit,w_${width}/${after}`;
+  }
+  let chain = /(^|,)f_[a-z0-9]+/.test(first)
+    ? first.replace(/(^|,)f_[a-z0-9]+/, '$1f_jpg')
+    : `f_jpg,${first}`;
+  chain = /(^|,)q_[^,]*/.test(chain) ? chain.replace(/(^|,)q_[^,]*/, `$1${q}`) : `${chain},${q}`;
+  chain = /(^|,)w_\d+/.test(chain) ? chain.replace(/(^|,)w_\d+/, `$1w_${width}`) : `${chain},c_limit,w_${width}`;
+  return `${url.slice(0, idx + marker.length)}${chain}${rest}`;
+}
+
 /** Make a stored photo URL loadable in the app, including Cloudinary originals. */
 function normalizeImageUrl(value: unknown): string | null {
   if (typeof value !== 'string') return null;

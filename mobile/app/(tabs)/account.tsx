@@ -1,5 +1,5 @@
 import { Href, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -40,7 +40,7 @@ import {
 import { mobileInputDigits, PHONE_INPUT_MAX_LENGTH } from '../../lib/phoneInput';
 import { usePreferredShell } from '../../hooks/usePreferredShell';
 import { displayAccountEmail } from '../../lib/syntheticEmail';
-import { SITE_URL } from '../../lib/supabase';
+import { siteBases, SITE_URL } from '../../lib/supabase';
 import { getAppVersionLabel } from '../../lib/appVersion';
 import { TabSwipeHost } from '../../lib/tabSwipe';
 
@@ -65,6 +65,27 @@ export default function AccountScreen() {
   const scrollBottomPad = useTabScrollPadding(28);
 
   const [editing, setEditing] = useState(false);
+  const [supportEmail, setSupportEmail] = useState(SUPPORT_EMAIL);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      for (const base of siteBases()) {
+        try {
+          const response = await fetch(`${base}/api/site-config`);
+          if (!response.ok) continue;
+          const body = (await response.json()) as { contact?: { email?: string } };
+          const email = body.contact?.email?.trim();
+          if (!cancelled && email) setSupportEmail(email);
+          return;
+        } catch {
+          // try the next site
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   const businessAccount = Boolean(user?.isBusinessAccount);
   const shell = usePreferredShell();
   const [saving, setSaving] = useState(false);
@@ -271,7 +292,7 @@ export default function AccountScreen() {
       title: 'Help & support',
       onPress: () => {
         void Linking.openURL(
-          `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent('FinderB app support')}`,
+          `mailto:${supportEmail}?subject=${encodeURIComponent('FinderB app support')}`,
         );
       },
     },

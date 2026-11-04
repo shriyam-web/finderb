@@ -10,6 +10,7 @@ import { useMerchantConsole } from '../../context/MerchantConsoleContext';
 import { isFailure, type ConsoleOverview } from '../../lib/merchantConsoleApi';
 import { ConsoleGate } from '../../components/console/ConsoleGate';
 import { Btn, ConsolePage, Empty, Sheet, createConsoleStyles } from '../../components/console/kit';
+import { ProfileCropModal } from '../../components/console/ProfileCropModal';
 
 const BATCH_LIMIT = 6;
 const GAP = 8;
@@ -28,6 +29,7 @@ function PhotosBody({ o }: { o: ConsoleOverview }) {
   const { run, notify } = useMerchantConsole();
   const [uploading, setUploading] = useState<{ done: number; total: number } | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
+  const [cropUri, setCropUri] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const images = o.photos.images;
   const cover = o.photos.cover || images[0] || null;
@@ -74,8 +76,30 @@ function PhotosBody({ o }: { o: ConsoleOverview }) {
     return true;
   };
 
-  const makeCover = async (uri: string) => {
-    if (await apply(images, uri, 'Cover photo updated')) setSelected(null);
+  const useProfilePicture = async (dataUri: string) => {
+    setBusy(true);
+    const uploaded = await run<ConsoleOverview>('uploadPhoto', { image: dataUri });
+    if (isFailure(uploaded)) {
+      setBusy(false);
+      notify(uploaded.error, 'bad');
+      return;
+    }
+    const nextImages = uploaded.photos?.images || [];
+    const next = nextImages[nextImages.length - 1];
+    if (!next) {
+      setBusy(false);
+      notify('Could not save the profile picture.', 'bad');
+      return;
+    }
+    const result = await run('setPhotos', { images: nextImages, cover: next });
+    setBusy(false);
+    if (isFailure(result)) {
+      notify(result.error, 'bad');
+      return;
+    }
+    notify('Profile picture updated');
+    setCropUri(null);
+    setSelected(null);
   };
 
   const move = async (uri: string, step: -1 | 1) => {
@@ -115,27 +139,18 @@ function PhotosBody({ o }: { o: ConsoleOverview }) {
       docked
       subtitle={`${images.length} uploaded`}
       footer={
-        <View style={{ gap: 8 }}>
-          <Btn
-            icon="crop-outline"
-            tone="outline"
-            label="Crop & add one"
-            busy={Boolean(uploading)}
-            onPress={() => void pick(true)}
-          />
-          <Btn
-            icon="add"
-            label={uploading ? `Uploading ${Math.min(uploading.done + 1, uploading.total)} of ${uploading.total}…` : 'Add photos'}
-            busy={Boolean(uploading)}
-            onPress={() => void pick(false)}
-          />
-        </View>
+        <Btn
+          icon="add"
+          label={uploading ? `Uploading ${Math.min(uploading.done + 1, uploading.total)} of ${uploading.total}…` : 'Add photos'}
+          busy={Boolean(uploading)}
+          onPress={() => void pick(false)}
+        />
       }
     >
       <View style={styles.note}>
         <Ionicons name="information-circle-outline" size={18} color={c.accent} />
         <Text style={styles.noteText}>
-          The cover photo shows first in search results. Tap a photo to set it as cover, reorder or delete it.
+          Your profile picture is the cover customers see first. Tap a photo to crop a square, reorder or delete it.
         </Text>
       </View>
       {images.length ? (
@@ -148,12 +163,12 @@ function PhotosBody({ o }: { o: ConsoleOverview }) {
                 onPress={() => setSelected(uri)}
                 style={({ pressed }) => [styles.tile, { width: tile, height: tile }, pressed && styles.pressed]}
                 accessibilityRole="button"
-                accessibilityLabel={`Photo ${position + 1}${isCover ? ', cover' : ''}`}
+                accessibilityLabel={`Photo ${position + 1}${isCover ? ', profile picture' : ''}`}
               >
                 <Image source={{ uri }} style={styles.image} contentFit="cover" transition={150} alt={`Photo ${position + 1}`} />
                 {isCover ? (
                   <View style={styles.coverTag}>
-                    <Text style={styles.coverText}>Cover</Text>
+                    <Text style={styles.coverText}>Profile</Text>
                   </View>
                 ) : null}
               </Pressable>
@@ -193,16 +208,20 @@ function PhotosBody({ o }: { o: ConsoleOverview }) {
               />
             </View>
             <Btn
-              icon="star-outline"
-              label={selected === cover ? 'This is your cover photo' : 'Set as cover photo'}
-              disabled={busy || selected === cover}
+              icon="crop-outline"
+              label={selected === cover ? 'Crop profile picture' : 'Set as profile picture'}
+              disabled={busy}
               busy={busy}
-              onPress={() => void makeCover(selected)}
+              onPress={() => {
+                setCropUri(selected);
+                setSelected(null);
+              }}
             />
             <Btn tone="danger" icon="trash-outline" label="Delete photo" disabled={busy} onPress={() => remove(selected)} />
           </>
         ) : null}
       </Sheet>
+      <ProfileCropModal uri={cropUri} busy={busy} onClose={() => setCropUri(null)} onConfirm={(dataUri) => void useProfilePicture(dataUri)} />
     </ConsolePage>
   );
 }

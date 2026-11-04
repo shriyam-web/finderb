@@ -57,6 +57,7 @@ export function MerchantReviewComposer({
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [locked, setLocked] = useState(false);
 
   if (!signedIn) {
     return (

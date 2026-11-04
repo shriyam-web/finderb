@@ -3,10 +3,12 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { getBusinessOpenStatus } from '../lib/businessHours';
+import { getDiscountOfferDisplay } from '../lib/discountOffer';
 import { getRatingDisplay, UNRATED_LABEL } from '../lib/ratingDisplay';
 import { useDrivingDistanceLabel } from '../lib/drivingDistance';
 import { listingThumbUrl, type Merchant } from '../lib/merchants';
 import { ListSignalChips } from './ListSignalChips';
+import { MerchantOfferBanner } from './MerchantOfferBanner';
 import { fonts } from '../constants/typography';
 import { useTheme } from '../context/ThemeContext';
 import { createThemedStyles } from '../hooks/useThemedStyles';
@@ -38,10 +40,7 @@ export function CategoryMerchantRow({
   const styles = useStyles();
   const rating = getRatingDisplay(merchant.rating, merchant.reviewsCount);
   const open = getBusinessOpenStatus(merchant.timings);
-  const hasOffer =
-    Boolean(merchant.discountRange) &&
-    merchant.discountRange !== 'No Discount' &&
-    merchant.discountRange !== 'Seasonal Offer';
+  const offerDisplay = getDiscountOfferDisplay(merchant.discountRange, merchant.name);
   const about = (merchant.about || '').replace(/\*\*|__|\*/g, '').replace(/\s+/g, ' ').trim();
 
   return (
@@ -106,7 +105,7 @@ export function CategoryMerchantRow({
               </Text>
             </View>
           ) : (
-            <Text style={styles.metaText}>New · {UNRATED_LABEL}</Text>
+            <Text style={styles.metaText}>{UNRATED_LABEL}</Text>
           )}
         </View>
 
@@ -144,10 +143,13 @@ export function CategoryMerchantRow({
           </Text>
         ) : null}
 
-        {hasOffer ? (
-          <Text style={styles.offer} numberOfLines={1}>
-            {merchant.discountRange}
-          </Text>
+        {offerDisplay ? (
+          <MerchantOfferBanner
+            compact
+            headline={offerDisplay.headline}
+            detail={offerDisplay.detail}
+            label={offerDisplay.label}
+          />
         ) : null}
       </View>
     </Pressable>
@@ -164,6 +166,8 @@ const useStyles = createThemedStyles((colors) => ({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.border,
     padding: 10,
+    overflow: 'hidden',
+    maxWidth: '100%',
   },
   pressed: { opacity: 0.94 },
   thumbWrap: {
@@ -202,17 +206,23 @@ const useStyles = createThemedStyles((colors) => ({
   },
   metaRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
     gap: 8,
     marginTop: 1,
+    maxWidth: '100%',
   },
-  rating: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  rating: { flexDirection: 'row', alignItems: 'center', gap: 3, maxWidth: '100%', flexShrink: 1 },
   metaText: {
+    flexShrink: 1,
+    maxWidth: '100%',
     fontFamily: fonts.medium,
     fontSize: 11,
     color: colors.textMuted,
   },
   openText: {
+    flexShrink: 1,
+    maxWidth: '100%',
     fontFamily: fonts.medium,
     fontSize: 11,
   },
@@ -249,11 +259,5 @@ const useStyles = createThemedStyles((colors) => ({
     fontSize: 11,
     lineHeight: 15,
     color: colors.textMuted,
-  },
-  offer: {
-    marginTop: 3,
-    fontFamily: fonts.medium,
-    fontSize: 11,
-    color: colors.brand,
   },
 }));

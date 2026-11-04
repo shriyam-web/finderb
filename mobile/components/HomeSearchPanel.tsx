@@ -70,13 +70,24 @@ export function HomeSearchPanel({
             </>
           ) : null}
           <Text style={styles.label}>Businesses</Text>
-          {!result || result.merchants.length === 0 ? (
+          {!result || (result.merchants.length === 0 && result.moreInCategory.length === 0) ? (
             <Text style={styles.empty}>No matching businesses</Text>
           ) : (
             <View style={styles.list}>
               {result.merchants.map((merchant) => (
                 <CategoryMerchantRow
                   key={merchant.id}
+                  merchant={merchant}
+                  contactRevealed={signedIn}
+                  onPress={() => onOpenMerchant(merchant)}
+                />
+              ))}
+              {result.moreInCategory.length > 0 ? (
+                <Text style={styles.label}>Other businesses in {result.moreCategoryLabel}</Text>
+              ) : null}
+              {result.moreInCategory.map((merchant) => (
+                <CategoryMerchantRow
+                  key={`more-${merchant.id}`}
                   merchant={merchant}
                   contactRevealed={signedIn}
                   onPress={() => onOpenMerchant(merchant)}

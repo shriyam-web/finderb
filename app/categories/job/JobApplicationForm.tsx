@@ -30,13 +30,22 @@ export default function JobApplicationForm({
     formData.set('jobId', job.id);
     formData.set('businessId', job.business_id);
     formData.set('jobTitle', job.title);
-    const result = await submitJobApplicationForm(formData);
 
-    if (result.success) {
-      setSuccess(true);
-      onSuccess();
-    } else {
-      setError(result.error || 'Something went wrong');
+    try {
+      const result = await submitJobApplicationForm(formData);
+      if (result.success) {
+        setSuccess(true);
+        onSuccess();
+      } else {
+        setError(result.error || 'Something went wrong');
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '';
+      setError(
+        /body exceeded|body size/i.test(message)
+          ? 'CV must be 5 MB or smaller.'
+          : 'Could not submit application. Please try again.',
+      );
     }
     setLoading(false);
   };

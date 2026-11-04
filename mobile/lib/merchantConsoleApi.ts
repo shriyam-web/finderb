@@ -90,6 +90,7 @@ export type ConsoleLead = {
   source?: string | null;
   created_at: string | null;
   merchant_read_at?: string | null;
+  merchant_note?: string | null;
   locked: boolean;
 };
 

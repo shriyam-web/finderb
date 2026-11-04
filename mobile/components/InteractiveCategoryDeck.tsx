@@ -5,15 +5,12 @@ import {
   ActivityIndicator,
   Animated,
   Easing,
-  LayoutAnimation,
   Modal,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
-  UIManager,
   useWindowDimensions,
   View,
 } from 'react-native';
@@ -40,16 +37,10 @@ import { fonts } from '../constants/typography';
 import { useTheme } from '../context/ThemeContext';
 import { createThemedStyles } from '../hooks/useThemedStyles';
 import { ClimateHeaderBackdrop } from './ClimateHeaderBackdrop';
+import { ListSignalChips } from './ListSignalChips';
 import { useLocalWeather } from '../hooks/useLocalWeather';
 import { getClimateTheme } from '../lib/climateThemes';
 import { formatYearsInBusinessShort } from '../lib/establishmentYear';
-
-if (
-  Platform.OS === 'android' &&
-  UIManager.setLayoutAnimationEnabledExperimental
-) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
 
 /** Fallback dark header — climate theme overrides the live header */
 const BLUE = '#44403C';
@@ -334,7 +325,6 @@ type Props = {
   /** Full unique catalog for “View all N” — must match the count shown. */
   catalog?: HomeCategory[];
   onOpenMerchant: (merchant: Merchant) => void;
-  onSelectCategory?: (category: HomeCategory) => void;
   /** Home renders parent sections below the grid; skip the in-hero merchant rail. */
   showMerchantSheet?: boolean;
   userCoords?: Coords | null;
@@ -835,7 +825,7 @@ function BusinessCard({
               ) : null}
             </View>
           ) : (
-            <Text style={styles.meta}>New · {UNRATED_LABEL}</Text>
+            <Text style={styles.meta}>{UNRATED_LABEL}</Text>
           )}
           {formatYearsInBusinessShort(merchant.yearsInBusiness) ? (
             <Text style={styles.meta}>· {formatYearsInBusinessShort(merchant.yearsInBusiness)}</Text>
@@ -880,10 +870,12 @@ function BusinessCard({
         ) : null}
 
         {about ? (
-          <Text style={styles.about} numberOfLines={1}>
+          <Text style={styles.about} numberOfLines={2}>
             {about}
           </Text>
         ) : null}
+
+        <ListSignalChips id={merchant.id} compact={false} />
 
         <View style={styles.ctaRow}>
           <Text style={styles.ctaText}>View details</Text>
@@ -908,7 +900,6 @@ export function InteractiveCategoryDeck({
   onSeeAll,
   catalog,
   onOpenMerchant,
-  onSelectCategory,
   showMerchantSheet = true,
   userCoords,
   topBar,
@@ -930,7 +921,7 @@ export function InteractiveCategoryDeck({
     [allItems],
   );
 
-  const [activeId, setActiveId] = useState<string | null>(null);
+  const activeId: string | null = null;
   const [allOpen, setAllOpen] = useState(false);
   const [allQuery, setAllQuery] = useState('');
   const [listening, setListening] = useState(false);
@@ -952,25 +943,16 @@ export function InteractiveCategoryDeck({
   const headerPadTop =
     headerTopInset != null ? headerTopInset : Math.max(insets.top, 0);
 
-  useEffect(() => {
-    if (populatedItems.length === 0) {
-      setActiveId(null);
-      return;
-    }
-    setActiveId((prev) =>
-      prev && populatedItems.some((cat) => cat.id === prev) ? prev : populatedItems[0].id,
-    );
-  }, [populatedItems]);
-
   const active =
     populatedItems.find((cat) => cat.id === activeId) ||
     allItems.find((cat) => cat.id === activeId) ||
     null;
 
-  useEffect(() => {
-    if (!active) return;
-    onSelectCategory?.(active);
-  }, [active, onSelectCategory]);
+  const openCategory = (category: HomeCategory) => {
+    setAllOpen(false);
+    setAllQuery('');
+    onOpenCategory(category);
+  };
 
   const railItems = useMemo(() => {
     const cap = Math.min(grid.railLimit, HERO_LIVE_PARENT_LIMIT);
@@ -1012,25 +994,6 @@ export function InteractiveCategoryDeck({
       if (open) setAllQuery('');
       return !open;
     });
-  };
-
-  const selectCategory = (id: string) => {
-    if (id === activeId) return;
-    LayoutAnimation.configureNext({
-      duration: 220,
-      update: { type: 'easeInEaseOut' },
-      create: { type: 'easeInEaseOut', property: 'opacity' },
-    });
-    setActiveId(id);
-    setAllOpen(false);
-    setAllQuery('');
-    listFade.setValue(0.25);
-    Animated.timing(listFade, {
-      toValue: 1,
-      duration: 280,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
-    }).start();
   };
 
   const hintPool = useMemo(
@@ -1316,9 +1279,9 @@ export function InteractiveCategoryDeck({
                   <CategoryGridCell
                     key={cat.id}
                     category={cat}
-                    selected={active?.id === cat.id}
+                    selected={false}
                     metrics={grid}
-                    onPress={() => selectCategory(cat.id)}
+                    onPress={() => openCategory(cat)}
                   />
                 ))}
               </View>
@@ -1653,9 +1616,9 @@ export function InteractiveCategoryDeck({
                 <CategoryGridCell
                   key={cat.id}
                   category={cat}
-                  selected={active?.id === cat.id}
+                  selected={false}
                   metrics={grid}
-                  onPress={() => selectCategory(cat.id)}
+                  onPress={() => openCategory(cat)}
                 />
               ))}
             </View>
@@ -2430,6 +2393,8 @@ const useStyles = createThemedStyles((colors) => ({
     color: colors.heading,
   },
   meta: {
+    flexShrink: 1,
+    maxWidth: '100%',
     fontFamily: fonts.regular,
     fontSize: 11,
     color: colors.textMuted,
@@ -2438,8 +2403,10 @@ const useStyles = createThemedStyles((colors) => ({
     flexDirection: 'row',
     alignItems: 'center',
     flexWrap: 'wrap',
+    maxWidth: '100%',
   },
   statusInline: {
+    width: '100%',
     fontFamily: fonts.semiBold,
     fontSize: 11,
   },

@@ -7,12 +7,8 @@ import {
   HiOutlineCreditCard,
   HiOutlineExclamationTriangle,
 } from 'react-icons/hi2';
-import {
-  GROWTH_PRO_OFFER_ANNUAL,
-  GROWTH_PRO_OFFER_MONTHLY,
-  PRICING_PLANS,
-  formatInr,
-} from '@/lib/pricing/growthPro';
+import { PRICING_PLANS, formatInr } from '@/lib/pricing/growthPro';
+import { useSitePricing } from '@/components/SiteConfigProvider';
 import { getPaidPlansLabel } from '@/lib/subscription/merchantSubscription';
 import { formatDateTimeInr } from '@/lib/formatDateTime';
 import {
@@ -63,12 +59,17 @@ function formatDateTime(value: string | null) {
   return formatDateTimeInr(value);
 }
 
-function planPriceShort(planName: string, billingCycle: string | null): string {
+function planPriceShort(
+  planName: string,
+  billingCycle: string | null,
+  monthly: number,
+  annual: number,
+): string {
   if (planName === PRICING_PLANS.free.name) return 'Free';
   if (billingCycle === 'annual' || planName === PRICING_PLANS.annual.name) {
-    return `${formatInr(GROWTH_PRO_OFFER_ANNUAL)} / year`;
+    return `${formatInr(annual)} / year`;
   }
-  return `${formatInr(GROWTH_PRO_OFFER_MONTHLY)} / month`;
+  return `${formatInr(monthly)} / month`;
 }
 
 function statusTextClass(status: string) {
@@ -120,6 +121,7 @@ export default function SubscriptionTab({
   businessId,
   onPaymentError,
 }: SubscriptionTabProps) {
+  const live = useSitePricing();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [subscription, setSubscription] = useState<SubscriptionView | null>(null);
@@ -280,7 +282,7 @@ export default function SubscriptionTab({
               <span className={statusClass}>{statusLabel}</span>
             </DetailRow>
             <DetailRow label="Price">
-              {planPriceShort(subscription.planName, subscription.billingCycle)}
+              {planPriceShort(subscription.planName, subscription.billingCycle, live.growthMonthly, live.proAnnual)}
             </DetailRow>
             {subscription.isActive && subscription.billingCycle && (
               <DetailRow label="Billing">
@@ -328,40 +330,40 @@ export default function SubscriptionTab({
                 href={`/business/payment/${businessId}?checkout=1&billing=annual`}
                 className={`${dashboard.btnPrimary} mt-3 inline-flex`}
               >
-                Renew Pro — {formatInr(GROWTH_PRO_OFFER_ANNUAL)}/yr
+                Renew Pro — {formatInr(live.proAnnual)}/yr
               </Link>
             </div>
           ) : subscription.isActive && subscription.billingCycle === 'monthly' ? (
             <div className="border-t border-zinc-100 py-4">
               <p className="text-sm font-medium text-zinc-900">Yearly Pro</p>
               <p className="mt-1 text-sm text-zinc-600">
-                {formatInr(Math.round(GROWTH_PRO_OFFER_ANNUAL / 12))} a month when you pay {formatInr(GROWTH_PRO_OFFER_ANNUAL)} for the year, instead of {formatInr(GROWTH_PRO_OFFER_MONTHLY)} every month. The Pro year starts after {subscription.expiresAtDisplay || 'Growth ends'}, so this month is not cut short.
+                {formatInr(Math.round(live.proAnnual / 12))} a month when you pay {formatInr(live.proAnnual)} for the year, instead of {formatInr(live.growthMonthly)} every month. The Pro year starts after {subscription.expiresAtDisplay || 'Growth ends'}, so this month is not cut short.
               </p>
               <Link
                 href={`/business/payment/${businessId}?checkout=1&billing=annual`}
                 className={`${dashboard.btnPrimary} mt-3 inline-flex`}
               >
-                Pay {formatInr(GROWTH_PRO_OFFER_ANNUAL)} for Pro
+                Pay {formatInr(live.proAnnual)} for Pro
               </Link>
               {subscription.canRenew ? (
                 <Link
                   href={`/business/payment/${businessId}?checkout=1&billing=monthly`}
                   className={`${dashboard.btnSecondary} mt-2 inline-flex`}
                 >
-                  Renew Growth — {formatInr(GROWTH_PRO_OFFER_MONTHLY)}/mo
+                  Renew Growth — {formatInr(live.growthMonthly)}/mo
                 </Link>
               ) : null}
             </div>
           ) : showRenewCta ? (
             <div className="flex flex-wrap gap-2 border-t border-zinc-100 py-4">
               <Link href={`/business/payment/${businessId}?checkout=1&billing=monthly`} className={dashboard.btnPrimary}>
-                Growth — {formatInr(GROWTH_PRO_OFFER_MONTHLY)}/mo
+                Growth — {formatInr(live.growthMonthly)}/mo
               </Link>
               <Link
                 href={`/business/payment/${businessId}?checkout=1&billing=annual`}
                 className={dashboard.btnSecondary}
               >
-                Pro — {formatInr(GROWTH_PRO_OFFER_ANNUAL)}/yr
+                Pro — {formatInr(live.proAnnual)}/yr
               </Link>
             </div>
           ) : null}

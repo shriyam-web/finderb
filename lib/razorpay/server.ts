@@ -42,7 +42,7 @@ export async function createRazorpayOrder(params: {
     };
   }
 
-  const amount = getPlanAmountInPaise(params.plan, params.billingCycle);
+  const amount = await getPlanAmountInPaise(params.plan, params.billingCycle);
   const receipt = `biz_${params.businessId.slice(0, 8)}_${Date.now()}`;
 
   const auth = Buffer.from(`${keyId}:${keySecret}`).toString('base64');

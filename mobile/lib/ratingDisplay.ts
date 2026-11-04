@@ -19,6 +19,13 @@ export type RatingDisplay =
  * Public rating rules: no reviews → "New / Not rated yet"; 1–4 reviews → average only;
  * 5+ reviews → average with the review count. Never invent a rating for unreviewed businesses.
  */
+/** Same bands as the public business profile: red, amber, green. */
+export function ratingBoxColor(rating: number): string {
+  if (rating <= 2) return '#DC2626';
+  if (rating <= 3.5) return '#E6A800';
+  return '#16A34A';
+}
+
 export function getRatingDisplay(rating: unknown, reviewCount: unknown): RatingDisplay {
   const count = Math.max(0, Math.floor(Number(reviewCount) || 0));
   const value = Number(rating);

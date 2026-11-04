@@ -17,7 +17,13 @@ export function setNotificationAudience(audience: 'user' | 'business') {
 
 export function isBusinessNotification(data: Record<string, unknown> | undefined | null): boolean {
   if (!data) return false;
-  return data.audience === 'business' || data.type === 'lead' || data.type === 'review' || data.type === 'ownership';
+  return (
+    data.audience === 'business' ||
+    data.type === 'lead' ||
+    data.type === 'review' ||
+    data.type === 'ownership' ||
+    data.type === 'listing'
+  );
 }
 
 function isRemotePushTrigger(trigger: Notifications.NotificationTrigger | null): boolean {

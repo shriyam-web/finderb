@@ -1,11 +1,13 @@
 'use client';
 
-import { Suspense, useState, useEffect } from 'react';
+import { Suspense, useState, useEffect, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import Loader from "@/components/Loader";
 import BusinessWorkspaceLoader from "@/components/business/BusinessWorkspaceLoader";
+import { SiteConfigProvider } from "@/components/SiteConfigProvider";
+import { DEFAULT_SITE_CONFIG, type SiteConfig } from "@/lib/siteConfigShared";
 
 const MERCHANT_APP_PREFIXES = [
   '/business/dashboard',
@@ -63,7 +65,25 @@ function isHomePage(pathname: string | null) {
   return pathname === '/';
 }
 
-export default function LayoutClient({ children }: { children: React.ReactNode }) {
+const SPLASH_COOKIE = 'finderb_splash=1; Path=/; SameSite=Lax';
+
+function rememberSplash() {
+  try {
+    document.cookie = SPLASH_COOKIE;
+  } catch {
+    // Private mode can reject cookie writes. The in-memory flag still blocks repeats.
+  }
+}
+
+export default function LayoutClient({
+  children,
+  splashSeen = false,
+  siteConfig = DEFAULT_SITE_CONFIG,
+}: {
+  children: React.ReactNode;
+  splashSeen?: boolean;
+  siteConfig?: SiteConfig;
+}) {
   const pathname = usePathname();
   useMobileGate();
   const businessDashboardRoute = isBusinessDashboardRoute(pathname);
@@ -83,7 +103,10 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
     userDashboardRoute ||
     pathname === VERIFY_MOBILE_PATH ||
     isBusinessOnboardingPreview(pathname);
-  const [loading, setLoading] = useState(!skipSplash);
+  const playSplash = !splashSeen && !skipSplash;
+  const [loading, setLoading] = useState(playSplash);
+  const playOnEntry = useRef(playSplash);
+  const entryPath = useRef(pathname);
   const hideTopNavFooter =
     merchantAppShell ||
     isCategoriesBrowse ||
@@ -99,20 +122,21 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
     !isBusinessOnboardingPreview(pathname);
 
   useEffect(() => {
-    if (skipSplash) {
+    rememberSplash();
+    if (!playOnEntry.current) {
       setLoading(false);
       return;
     }
-
-    setLoading(true);
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 3000);
-
+    const timer = setTimeout(() => setLoading(false), 3000);
     return () => clearTimeout(timer);
-  }, [skipSplash, pathname]);
+  }, []);
+
+  useEffect(() => {
+    if (pathname !== entryPath.current) setLoading(false);
+  }, [pathname]);
 
   return (
+    <SiteConfigProvider value={siteConfig}>
     <UserLocationProvider>
       {!isBusinessOnboardingPreview(pathname) && (
         <PWAInstallPrompt appReady={!loading} />
@@ -152,5 +176,6 @@ export default function LayoutClient({ children }: { children: React.ReactNode }
         )}
       </div>
     </UserLocationProvider>
+    </SiteConfigProvider>
   );
 }

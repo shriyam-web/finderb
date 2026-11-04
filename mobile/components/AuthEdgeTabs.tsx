@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { fonts } from '../constants/typography';
 import { useAuth } from '../context/AuthContext';
 import { TAB_BAR_CONTENT_HEIGHT, useBottomInset } from '../hooks/useAppSafeArea';
+import { isBusinessSurface } from '../lib/businessSurface';
 
 const TAB_W = 30;
 const TAB_H = 92;
@@ -139,7 +140,9 @@ export function AuthEdgeTabs() {
     });
   }, [pos]);
 
-  if (loading || user || HIDDEN_ON.some((path) => pathname.startsWith(path))) return null;
+  if (loading || user || isBusinessSurface(pathname) || HIDDEN_ON.some((path) => pathname.startsWith(path))) {
+    return null;
+  }
 
   return (
     <Animated.View

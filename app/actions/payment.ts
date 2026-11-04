@@ -167,7 +167,7 @@ export async function createMerchantPaymentOrder(params: {
       return { success: false as const, error: subscriptionResult.error };
     }
 
-    const expectedAmount = getPlanAmountInPaise(plan, billingCycle);
+    const expectedAmount = await getPlanAmountInPaise(plan, billingCycle);
     const db = getPaymentDbClient();
     if (!db.ok) {
       return { success: false as const, error: db.error };
@@ -231,7 +231,7 @@ export async function createMerchantPaymentOrder(params: {
     return { success: false as const, error: orderResult.error };
   }
 
-  const expectedAmount = getPlanAmountInPaise(plan, billingCycle);
+  const expectedAmount = await getPlanAmountInPaise(plan, billingCycle);
   if (orderResult.order.amount !== expectedAmount) {
     return { success: false as const, error: 'Order amount mismatch. Please refresh and try again.' };
   }
@@ -383,7 +383,7 @@ export async function completeMerchantPayment(params: {
     };
   }
 
-  const amountPaise = getPlanAmountInPaise(plan as MerchantPlan, billingCycle as BillingCycle);
+  const amountPaise = await getPlanAmountInPaise(plan as MerchantPlan, billingCycle as BillingCycle);
 
   const result = await finalizeMerchantPayment({
     businessId,

@@ -31,6 +31,7 @@ export type BusinessLead = {
   created_at: string | null;
   updated_at: string | null;
   merchant_read_at?: string | null;
+  merchant_note?: string | null;
 };
 
 async function getLoggedInBusinessProfile() {
@@ -194,6 +195,51 @@ export async function updateLeadStatus(leadId: string, status: string) {
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : 'Failed to update lead';
     console.error('Update Lead Status Error:', error);
+    return { success: false as const, error: msg };
+  }
+}
+
+const NOTE_MAX = 500;
+
+export async function updateLeadNote(leadId: string, note: string) {
+  try {
+    if (!leadId) {
+      return { success: false as const, error: 'Lead ID is required' };
+    }
+    const sessionId = await getSessionBusinessId();
+    if (!sessionId) {
+      return { success: false as const, error: 'Not signed in' };
+    }
+    const tab = await assertBusinessTab(sessionId, 'leads', 'edit');
+    if (!tab.ok) return { success: false as const, error: tab.error };
+
+    const supabase = await createDataClient();
+    const { data: lead, error: fetchError } = await supabase
+      .from('leads')
+      .select('business_id')
+      .eq('id', leadId)
+      .single();
+    if (fetchError || !lead) {
+      return { success: false as const, error: 'Lead not found' };
+    }
+    if (lead.business_id !== sessionId) {
+      return { success: false as const, error: 'Unauthorized' };
+    }
+
+    const trimmed = note.trim().slice(0, NOTE_MAX);
+    const now = new Date().toISOString();
+    const { error: updateError } = await supabase
+      .from('leads')
+      .update({
+        merchant_note: trimmed || null,
+        updated_at: now,
+      })
+      .eq('id', leadId);
+    if (updateError) throw updateError;
+    return { success: true as const, note: trimmed };
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : 'Failed to save the note';
+    console.error('Update Lead Note Error:', error);
     return { success: false as const, error: msg };
   }
 }

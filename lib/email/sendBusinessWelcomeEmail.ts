@@ -1,10 +1,7 @@
 import 'server-only';
 
-import {
-  GROWTH_PRO_HIGHLIGHTS,
-  GROWTH_PRO_OFFER_MONTHLY,
-  GROWTH_PRO_RETAIL_MONTHLY,
-} from '@/lib/pricing/growthPro';
+import { GROWTH_PRO_HIGHLIGHTS } from '@/lib/pricing/growthPro';
+import { getSiteConfig } from '@/lib/siteConfig';
 
 export type BusinessWelcomeEmailParams = {
   to: string;
@@ -35,6 +32,9 @@ export async function sendBusinessWelcomeEmail(
   const font = 'Arial, Helvetica, sans-serif';
   const upgradeUrl = 'https://finderb.com/business/dashboard';
   const highlights = GROWTH_PRO_HIGHLIGHTS.map((item) => `${item.title}. ${item.desc}`);
+  const pricing = (await getSiteConfig()).pricing;
+  const GROWTH_PRO_OFFER_MONTHLY = pricing.growthMonthly;
+  const GROWTH_PRO_RETAIL_MONTHLY = pricing.growthMonthlyRetail;
 
   const subject = `Welcome to FinderB, ${business}`;
   const text = [
