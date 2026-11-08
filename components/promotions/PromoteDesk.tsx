@@ -213,7 +213,7 @@ export default function PromoteDesk({ mode, orderId }: { mode: 'promote' | 'list
         <p className="promo-kicker">Growth & Marketing</p>
         <h1 className="promo-title">Promote your business online</h1>
         <p className="promo-lead">
-          Nearby people already scroll Facebook and Instagram. Pick how far the ads go and how many days they run. FinderB makes the ad, runs it, and brings the recorded reach back here. This does not change your Live Leads plan.
+          People nearby already open Facebook and Instagram. You pick how far the ads go and how many days they run. FinderB makes the ad, puts it in that area, and brings the recorded reach, views, and visits back here.
         </p>
         <div className="promo-row" style={{ marginTop: 16 }}>
           <Link className="promo-btn-ghost" href="/business/promote">Packages</Link>

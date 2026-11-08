@@ -122,6 +122,7 @@ export default function PromoteScreen() {
   const [phone, setPhone] = useState('');
   const [customNote, setCustomNote] = useState('');
   const [customSent, setCustomSent] = useState('');
+  const [pickError, setPickError] = useState(false);
   const [videoReady, setVideoReady] = useState(false);
   const [agreed, setAgreed] = useState(false);
   const [documentType, setDocumentType] = useState('gst');
@@ -273,9 +274,10 @@ export default function PromoteScreen() {
   };
   const proceed = () => {
     if (!selected) {
-      setError('Select a plan to continue.');
+      setPickError(true);
       return;
     }
+    setPickError(false);
     setError('');
     setStep(approved ? 'pay' : 'verify');
   };
@@ -287,18 +289,18 @@ export default function PromoteScreen() {
         <>
           <View style={styles.intro}>
             <Text style={styles.introKicker}>Facebook and Instagram ads, run for you</Text>
-            <Text style={styles.introTitle}>Pick how far, and how many days</Text>
+            <Text style={styles.introTitle}>Nearby customers, on the apps they already open</Text>
             <Text style={styles.introBody}>
-              Nearby people already scroll those apps. You choose a package. FinderB makes the ad, runs it in that area, and brings the recorded reach back here. This does not change your Live Leads plan.
+              People nearby already open Facebook and Instagram. You pick how far the ads go and how many days they run. FinderB makes the ad, puts it in that area, and brings the recorded reach, views, and visits back here.
             </Text>
           </View>
           <View style={styles.planStack}>
             {packages.map((item) => (
-              <PlanCard key={item.id} item={item} selected={item.id === packageId} onPress={() => { setPackageId(item.id); setError(''); }} />
+              <PlanCard key={item.id} item={item} selected={item.id === packageId} onPress={() => { setPackageId(item.id); setPickError(false); }} />
             ))}
           </View>
           <Text style={styles.planFine}>Package reach is an estimate, not a promise. Ads start only after your shop is verified and payment is confirmed.</Text>
-          {error ? <Text style={styles.error}>{error}</Text> : null}
+          {pickError ? <Text style={styles.error}>Select a plan to continue.</Text> : null}
           <Pressable
             onPress={proceed}
             accessibilityRole="button"
