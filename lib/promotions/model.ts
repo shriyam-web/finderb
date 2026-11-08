@@ -32,7 +32,7 @@ export const DOCUMENT_TYPES = [
 ] as const;
 
 export const DECLARATION =
-  'I certify that my shop and services are genuine. I understand that I am personally and legally responsible for financial transactions or advance payments made with customers. FinderB is a business discovery platform.';
+  'I confirm this shop is real and the services I list are the ones I actually offer. Any payment or advance a customer gives me is my own responsibility. FinderB only helps people discover my business and does not take part in those payments.';
 
 export const CAMPAIGN_LABEL: Record<CampaignStatus, string> = {
   payment_pending: 'Payment pending',

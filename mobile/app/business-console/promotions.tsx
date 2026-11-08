@@ -29,7 +29,7 @@ export default function PromotionsScreen() {
   }, [run]);
 
   return (
-    <ConsolePage title="My promotions" subtitle="Campaigns you have bought" onBack={back}>
+    <ConsolePage title="My promotions" subtitle="Campaigns you have bought" onBack={back} docked>
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {orders.length ? orders.map((order) => (
         <Pressable key={order.id} onPress={() => router.push(`/business-console/promotion/${order.id}` as Href)}>

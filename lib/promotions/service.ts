@@ -289,6 +289,7 @@ export async function submitVerification(businessId: string, form: FormData): Pr
     id,
     business_id: businessId,
     status: 'submitted',
+    shop_photo_url: shop.deliveryUrl,
     shop_photo_public_id: shop.asset.publicId,
     shop_photo_format: shop.asset.format,
     latitude,

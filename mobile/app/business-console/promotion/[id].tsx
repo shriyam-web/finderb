@@ -39,7 +39,7 @@ export default function PromotionDetailScreen() {
   }, [id, run]);
 
   return (
-    <ConsolePage title={order?.packageName || 'Promotion'} subtitle={order?.id || ''} onBack={back}>
+    <ConsolePage title={order?.packageName || 'Promotion'} subtitle={order?.id || ''} onBack={back} docked>
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {order ? (
         <Panel>

@@ -88,6 +88,46 @@ const FAQS = [
     q: 'How do team invites reach my staff?',
     a: 'From Settings → Team access, invite by email or mobile and choose which tabs they can view or edit. A phone invite opens WhatsApp with the link ready — you tap Send. The link lasts 48 hours. Staff never need your password. Only the owner can hide the listing or change billing.',
   },
+  {
+    q: 'What is Promote your business online?',
+    a: 'It is a managed Facebook and Instagram campaign for your shop. You do not open Ads Manager, build an audience, or top up an ads account. You verify the shop, pick a package and area, send a short shop video, and pay. FinderB makes the ad and runs it. Buying a promotion does not start a Live Leads plan, and buying a plan does not buy these ads. The switch for this service is controlled in FinderB Admin. While it is off, the merchant pages stay hidden.',
+  },
+  {
+    q: 'What has to be ready before an ad can start?',
+    a: 'Three things. A live photo of the shop front, taken on the camera while you are at the shop — a gallery picture is not accepted. One proof: GST, Udyam, a shop licence, or Aadhaar or PAN with a recent electricity bill. And the declaration that the shop is genuine and that customer payments stay your responsibility. FinderB reviews this. The ad starts only after that review is approved and payment is confirmed. Your browser’s location is checked so the shop is in India.',
+  },
+  {
+    q: 'What do the promotion packages actually include?',
+    a: 'Starter Boost runs about 5 days in a nearby radius. Growth Booster runs about 10 days across a wider city area. Mega Booster runs about 15 days at district or regional reach. The price you see includes GST. Reach, views, and visit figures on a package are a guide, not a promise. After a campaign is completed, FinderB writes the recorded numbers into that promotion. Until then, the page does not show made-up results.',
+  },
+  {
+    q: 'Who changes the campaign status and the results?',
+    a: 'FinderB does. You can watch the stage — payment, review, editing, video ready, live, completed — but you cannot set it yourself. Actual reach, views, and visits appear only when the campaign is completed and FinderB has entered them. If a campaign is rejected or cancelled, the reason is shown on the promotion. Refunds, when they apply, are handled by FinderB, not by a button on the page.',
+  },
+  {
+    q: 'What shop video should I send?',
+    a: 'A vertical video of the real shop, about 15 to 45 seconds, in mp4 or a quicktime file, up to 60 MB. Film the front, the counter, or the work you do. FinderB checks the length and the shape, then edits it before the ad goes out. A video that is too short, too long, or the wrong shape is not used.',
+  },
+  {
+    q: 'Why must the shop photo be taken on the spot?',
+    a: 'The photo is proof that the shop is open where you say it is. The camera opens on your device. A picture already saved in the gallery can be old or from somewhere else, so it is refused. Stay at the shop, allow location, and take the photo there.',
+  },
+  {
+    q: 'What is the difference between my public contact and writing to FinderB?',
+    a: 'Public contact is the phone, email, WhatsApp, and website customers see on your listing. Change it from My Listing. Writing to FinderB means business@finderb.com, for a listing, a payment, a review, or a promotion. Put your Merchant ID in that email. If the question is about one enquiry, also paste the Lead ID from that card.',
+  },
+  {
+    q: 'How do notes on a lead work?',
+    a: 'Each lead has Add note. The note is for your team, not for the customer. After you save one, a short preview sits on the card so you can see a note exists without opening it. Open that preview to edit or remove it. The note is not shown on the public listing.',
+  },
+  {
+    q: 'What do the lead statuses and source badges mean?',
+    a: 'New means the customer has not been contacted yet. Mark the lead once you have spoken to them, and the status you pick is shown first. The source badge — Direct or another source — tells you how that customer reached you. Job applications are a separate list and do not count as customer leads.',
+  },
+  {
+    q: 'Can I list more than one category?',
+    a: 'The main category is what customers search. Replacing it needs a change request from Settings, so a restaurant cannot quietly become a clinic. Extra work you really do can be added as “also serves”. Those sibling categories go on the listing without waiting for approval. Do not add a category you do not offer.',
+  },
 ];
 
 export default function MerchantSupportFab() {
@@ -158,7 +198,7 @@ export default function MerchantSupportFab() {
                 <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-500">Help centre</p>
                 <h3 className="mt-1 text-lg font-semibold tracking-tight text-zinc-900">How FinderB Business works</h3>
                 <p className="mt-1.5 max-w-md text-sm leading-relaxed text-zinc-500">
-                  Short answers to the questions owners ask us most — ranking, photos, reviews, plans, and your Merchant
+                  Short answers on ranking, photos, reviews, plans, promotions, jobs, and your Merchant
                   ID.
                 </p>
               </div>

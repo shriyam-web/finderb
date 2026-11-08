@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Animated, Easing, Modal, Pressable, ScrollView, Text, View } from 'react-native';
+import { Animated, Easing, Linking, Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, type Href } from 'expo-router';
@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { fonts } from '../../../constants/typography';
 import { useConsoleColors } from '../../../constants/consoleColors';
 import { useMerchantConsole } from '../../../context/MerchantConsoleContext';
+import { useTheme, type ThemePreference } from '../../../context/ThemeContext';
 import { getRatingDisplay, ratingBoxColor } from '../../../lib/ratingDisplay';
 import type { ConsoleLead, ConsoleOverview, MissingField, SubscriptionStatus } from '../../../lib/merchantConsoleApi';
 import { ConsoleGate } from '../../../components/console/ConsoleGate';
@@ -32,6 +33,7 @@ import { askStorefrontPreview, openConsolePath } from '../../../lib/consoleNav';
 import { buildReviewInviteUrl } from '../../../lib/reviewInvite';
 import { competitorScoreIsGood, leadResponseIsGood } from '../../../lib/insightTones';
 import { shareMessage } from '../../../lib/shareMessage';
+import { getAppVersionLabel } from '../../../lib/appVersion';
 
 type IconName = keyof typeof Ionicons.glyphMap;
 type Go = (href: Href) => void;
@@ -945,17 +947,41 @@ function PlanCard({ o, go }: { o: ConsoleOverview; go: Go }) {
   );
 }
 
-function QuickActions({ go }: { go: Go }) {
+const THEME_CHOICES: { key: ThemePreference; label: string; icon: IconName }[] = [
+  { key: 'light', label: 'Light', icon: 'sunny-outline' },
+  { key: 'dark', label: 'Dark', icon: 'moon-outline' },
+  { key: 'system', label: 'System', icon: 'phone-portrait-outline' },
+];
+
+function QuickActions({ go, isOwner }: { go: Go; isOwner: boolean }) {
   const styles = useStyles();
-  const actions: { label: string; icon: IconName; href: Href; color: string }[] = [
+  const c = useConsoleColors();
+  const { preference, setPreference } = useTheme();
+  const [themeOpen, setThemeOpen] = useState(false);
+  const themeIcon = THEME_CHOICES.find((theme) => theme.key === preference)?.icon ?? 'phone-portrait-outline';
+  const actions: { label: string; icon: IconName; href?: Href; color: string; onPress?: () => void }[] = [
     { label: 'Details', icon: 'create-outline', href: '/business-console/listing', color: '#153551' },
-    { label: 'Photos', icon: 'images-outline', href: '/business-console/photos', color: '#0F766E' },
     { label: 'Timings', icon: 'time-outline', href: editHref('hours'), color: '#C2410C' },
     { label: 'Offers', icon: 'pricetags-outline', href: editHref('offers'), color: '#BE185D' },
     { label: 'Jobs', icon: 'briefcase-outline', href: '/business-console/jobs', color: '#1D4ED8' },
-    { label: 'Plan', icon: 'card-outline', href: '/business-console/plan', color: '#15803D' },
-    { label: 'Alerts', icon: 'notifications-outline', href: '/business-console/alerts', color: '#D97706' },
+    ...(isOwner
+      ? [{
+          label: 'Team access',
+          icon: 'person-add-outline' as IconName,
+          href: { pathname: '/business-console/account', params: { focus: 'team' } } as Href,
+          color: '#0F766E',
+        }]
+      : []),
     { label: 'Security', icon: 'shield-checkmark-outline', href: '/business-console/account', color: '#6D28D9' },
+    { label: 'Theme', icon: themeIcon, color: '#0369A1', onPress: () => setThemeOpen((open) => !open) },
+    {
+      label: 'Contact FinderB',
+      icon: 'mail-outline' as IconName,
+      color: '#15803D',
+      onPress: () => {
+        void Linking.openURL(`mailto:support@finderb.com?subject=${encodeURIComponent('FinderB business support')}`);
+      },
+    },
   ];
   return (
     <Panel flush>
@@ -963,18 +989,39 @@ function QuickActions({ go }: { go: Go }) {
         {actions.map((action) => (
           <Pressable
             key={action.label}
-            onPress={() => go(action.href)}
+            onPress={() => (action.onPress ? action.onPress() : action.href ? go(action.href) : undefined)}
             style={({ pressed }) => [styles.action, pressed && styles.pressed]}
             accessibilityRole="button"
-            accessibilityLabel={action.label}
+            accessibilityLabel={action.label === 'Theme' ? `Theme, ${preference}` : action.label}
+            accessibilityState={action.label === 'Theme' ? { expanded: themeOpen } : undefined}
           >
             <Ionicons name={action.icon} size={22} color={action.color} />
-            <Text style={styles.actionLabel} numberOfLines={1}>
+            <Text style={styles.actionLabel} numberOfLines={2}>
               {action.label}
             </Text>
           </Pressable>
         ))}
       </View>
+      {themeOpen ? (
+        <View style={styles.themeChoices}>
+          {THEME_CHOICES.map((theme) => {
+            const active = preference === theme.key;
+            return (
+              <Pressable
+                key={theme.key}
+                onPress={() => setPreference(theme.key)}
+                style={[styles.themeChoice, active && styles.themeChoiceOn]}
+                accessibilityRole="button"
+                accessibilityState={{ selected: active }}
+                accessibilityLabel={`${theme.label} theme`}
+              >
+                <Ionicons name={theme.icon} size={16} color={active ? c.primary : c.muted} />
+                <Text style={[styles.themeChoiceText, active && styles.themeChoiceTextOn]}>{theme.label}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      ) : null}
     </Panel>
   );
 }
@@ -1062,23 +1109,36 @@ function HomeBody({ o }: { o: ConsoleOverview }) {
       {o.promoteOnline ? (
         <Pressable
           onPress={() => go('/business-console/promote')}
-          style={({ pressed }) => [styles.growthCard, pressed && styles.pressed]}
+          style={({ pressed }) => [styles.promoteCard, pressed && styles.pressed]}
           accessibilityRole="button"
-          accessibilityLabel="Promote your business online"
+          accessibilityLabel="Bring nearby customers to your shop. Promote your business online."
         >
-          <View style={styles.flex}>
-            <Text style={styles.growthTitle}>Promote your business online</Text>
-            <Text style={styles.growthSub} numberOfLines={2}>
-              Advertise on FinderB’s Facebook and Instagram. Separate from your lead plan.
+          <View style={styles.promoteCopy}>
+            <Text style={styles.promoteTitle}>Bring nearby customers to your shop</Text>
+            <Text style={styles.promoteSub} numberOfLines={3}>
+              FinderB runs Facebook and Instagram ads for you. You choose the area.
             </Text>
+            <View style={styles.promoteCta}>
+              <Text style={styles.promoteCtaText}>Promote your business online</Text>
+            </View>
           </View>
-          <Ionicons name="chevron-forward" size={16} color={c.faint} />
+          <Image
+            source={require('../../../assets/indian-businessman-cutout.png')}
+            style={styles.promotePhoto}
+            contentFit="contain"
+            contentPosition={{ right: 0, bottom: 0 }}
+          />
         </Pressable>
       ) : null}
       <Section title="Manage">
-        <QuickActions go={go} />
+        <QuickActions go={go} isOwner={o.actor?.isOwner !== false} />
       </Section>
-      <Text style={styles.footNote}>App is managed by FinderB Business.</Text>
+      <View style={styles.footNote}>
+        <Text style={styles.footNoteText}>
+          App managed by FinderB IT. Made in India <Text style={styles.footFlag}>🇮🇳</Text>
+        </Text>
+        <Text style={styles.footVersion}>{getAppVersionLabel()}</Text>
+      </View>
     </ConsolePage>
       <FinderBQrStudio
         visible={qrOpen}
@@ -1124,6 +1184,26 @@ const useStyles = createConsoleStyles((c) => ({
   growthMarkFirst: { marginLeft: 0 },
   growthTitle: { fontFamily: fonts.semiBold, fontSize: 14, color: c.ink },
   growthSub: { marginTop: 1, fontFamily: fonts.regular, fontSize: 12, color: c.muted },
+  promoteCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 18,
+    overflow: 'hidden',
+    backgroundColor: '#10283F',
+  },
+  promoteCopy: { flex: 1, justifyContent: 'center', paddingLeft: 16, paddingRight: 4, paddingVertical: 14 },
+  promoteTitle: { fontFamily: fonts.semiBold, fontSize: 16, lineHeight: 21, color: '#FFFFFF' },
+  promoteSub: { marginTop: 6, fontFamily: fonts.regular, fontSize: 12, lineHeight: 17, color: 'rgba(255,255,255,0.78)' },
+  promoteCta: {
+    alignSelf: 'flex-start',
+    marginTop: 12,
+    backgroundColor: '#F3E6C8',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  promoteCtaText: { fontFamily: fonts.semiBold, fontSize: 12.5, lineHeight: 16, color: '#10283F' },
+  promotePhoto: { width: 108, height: 124, marginRight: 8, marginVertical: 8 },
   lockBanner: {
     marginTop: 8,
     borderRadius: 12,
@@ -1353,6 +1433,22 @@ const useStyles = createConsoleStyles((c) => ({
     gap: 8,
     paddingVertical: 14,
   },
-  actionLabel: { fontFamily: fonts.regular, fontSize: 12, color: c.body },
-  footNote: { textAlign: 'center', fontFamily: fonts.regular, fontSize: 11, color: c.faint },
+  actionLabel: { fontFamily: fonts.regular, fontSize: 12, lineHeight: 16, color: c.body, textAlign: 'center' },
+  themeChoices: { flexDirection: 'row', gap: 8, paddingLeft: 12, paddingRight: 68, paddingBottom: 14 },
+  themeChoice: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: c.line,
+  },
+  themeChoiceOn: { borderColor: c.primary, backgroundColor: c.primarySoft },
+  themeChoiceText: { fontFamily: fonts.regular, fontSize: 12, color: c.body },
+  themeChoiceTextOn: { fontFamily: fonts.semiBold, color: c.ink },
+  footNote: { alignItems: 'center', gap: 2, paddingVertical: 4, paddingHorizontal: 64 },
+  footNoteText: { textAlign: 'center', fontFamily: fonts.medium, fontSize: 12, lineHeight: 18, color: c.faint },
+  footFlag: { fontSize: 13 },
+  footVersion: { textAlign: 'center', fontFamily: fonts.regular, fontSize: 10, lineHeight: 14, color: c.faint },
 }));

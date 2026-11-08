@@ -51,14 +51,48 @@ export function privateDownloadUrl(asset: StoredAsset, attachment = false): stri
   return `https://api.cloudinary.com/v1_1/${auth.cloudName}/${asset.resource}/download?${query}`;
 }
 
+async function uploadWithPreset(file: File, resource: PrivateResource) {
+  const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME?.trim() || '';
+  const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET?.trim() || '';
+  if (!cloudName || !uploadPreset) {
+    return { success: false as const, error: 'The file could not be stored. Try again.' };
+  }
+  const form = new FormData();
+  form.append('file', file);
+  form.append('upload_preset', uploadPreset);
+  const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/${resource}/upload`, {
+    method: 'POST',
+    body: form,
+  });
+  const body = (await response.json().catch(() => null)) as {
+    secure_url?: string;
+    public_id?: string;
+    format?: string;
+    duration?: number;
+    width?: number;
+    height?: number;
+    error?: { message?: string };
+  } | null;
+  if (!response.ok || !body?.public_id) {
+    return { success: false as const, error: 'The file could not be stored. Try again.' };
+  }
+  return {
+    success: true as const,
+    asset: {
+      publicId: body.public_id,
+      resource,
+      format: String(body.format || ''),
+    } satisfies StoredAsset,
+    deliveryUrl: body.secure_url || null,
+    duration: body.duration,
+    width: body.width,
+    height: body.height,
+  };
+}
+
 export async function uploadPrivateFile(file: File, resource: PrivateResource, folder: string) {
   const auth = creds();
-  if (!auth) {
-    return {
-      success: false as const,
-      error: 'Private file storage is not configured. Add CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET on the server.',
-    };
-  }
+  if (!auth) return uploadWithPreset(file, resource);
   const timestamp = String(Math.floor(Date.now() / 1000));
   const params = { folder, timestamp, type: 'authenticated' };
   const signature = signCloudinaryParams(params, auth.apiSecret);
@@ -79,10 +113,11 @@ export async function uploadPrivateFile(file: File, resource: PrivateResource, f
     duration?: number;
     width?: number;
     height?: number;
+    secure_url?: string;
     error?: { message?: string };
   } | null;
   if (!response.ok || !body?.public_id) {
-    return { success: false as const, error: body?.error?.message || 'The file could not be stored privately.' };
+    return uploadWithPreset(file, resource);
   }
   return {
     success: true as const,
@@ -91,6 +126,7 @@ export async function uploadPrivateFile(file: File, resource: PrivateResource, f
       resource,
       format: String(body.format || ''),
     } satisfies StoredAsset,
+    deliveryUrl: null as string | null,
     duration: body.duration,
     width: body.width,
     height: body.height,
