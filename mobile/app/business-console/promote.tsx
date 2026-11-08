@@ -11,6 +11,7 @@ import { useMerchantConsole } from '../../context/MerchantConsoleContext';
 import { getStoredToken } from '../../lib/session';
 import { SITE_URL } from '../../lib/supabase';
 import { Btn, ConsolePage, Panel, createConsoleStyles, useTabBack } from '../../components/console/kit';
+import { LAUNCH_PACKAGES, peekPromotionDesk, storePromotionDesk } from '../../lib/promotionDeskCache';
 import { RazorpayCheckout } from '../../components/console/RazorpayCheckout';
 import type { CheckoutStart } from '../../lib/merchantConsoleApi';
 
@@ -23,6 +24,8 @@ type PackageCard = {
   referenceInr: number;
   discountPercent: number;
   reach: string;
+  views?: string;
+  visits?: string;
   popular: boolean;
   estimateNote: string;
 };
@@ -31,6 +34,13 @@ type Desk = {
   success: true;
   verification: { status: string; rejectionReason: string | null };
   packages: PackageCard[];
+  customRequest?: {
+    id: string;
+    status: string;
+    budgetInr: number;
+    durationDays: number;
+    createdAt: string | null;
+  } | null;
 };
 
 const DECLARATION =
@@ -94,14 +104,25 @@ export default function PromoteScreen() {
   const router = useRouter();
   const back = useTabBack();
   const { run, notify } = useMerchantConsole();
-  const [desk, setDesk] = useState<Desk | null>(null);
+  const [desk, setDesk] = useState<Desk | null>(() => peekPromotionDesk());
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-  const [packageId, setPackageId] = useState('growth');
+  const [packageId, setPackageId] = useState('');
   const [pincode, setPincode] = useState('');
   const [area, setArea] = useState('');
   const [orderId, setOrderId] = useState('');
   const [checkout, setCheckout] = useState<CheckoutStart | null>(null);
+  const [step, setStep] = useState<'offer' | 'verify' | 'pay' | 'done' | 'custom'>('offer');
+  const [budget, setBudget] = useState('');
+  const [customDays, setCustomDays] = useState('');
+  const [coverage, setCoverage] = useState('');
+  const [customPin, setCustomPin] = useState('');
+  const [customArea, setCustomArea] = useState('');
+  const [goal, setGoal] = useState('');
+  const [phone, setPhone] = useState('');
+  const [customNote, setCustomNote] = useState('');
+  const [customSent, setCustomSent] = useState('');
+  const [videoReady, setVideoReady] = useState(false);
   const [agreed, setAgreed] = useState(false);
   const [documentType, setDocumentType] = useState('gst');
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -112,6 +133,7 @@ export default function PromoteScreen() {
       setError(result.error);
       return;
     }
+    storePromotionDesk(result);
     setDesk(result);
   };
 
@@ -200,7 +222,10 @@ export default function PromoteScreen() {
     });
     setBusy(false);
     if (!body.success) setError(body.error || 'The video could not be uploaded.');
-    else notify('Video received');
+    else {
+      setVideoReady(true);
+      notify('Video received');
+    }
   };
 
   const pay = async () => {
@@ -215,17 +240,118 @@ export default function PromoteScreen() {
   };
 
   const approved = desk?.verification.status === 'approved';
+  const packages = desk?.packages?.length ? desk.packages : LAUNCH_PACKAGES;
+  const selected = packages.find((item) => item.id === packageId);
+  const waiting = desk?.verification.status === 'submitted' || desk?.verification.status === 'under_review';
+  const goBack = () => {
+    if (step === 'custom') setStep('offer');
+    else if (step === 'done' || step === 'pay') setStep(approved ? 'offer' : 'verify');
+    else if (step === 'verify') setStep('offer');
+    else back();
+  };
+  const sendCustom = async () => {
+    setBusy(true);
+    setError('');
+    const result = await run<{ success: true; requestId: string }>('requestCustomPromotion', {
+      budgetInr: Number(budget.replace(/,/g, '')),
+      durationDays: Number(customDays),
+      coverage,
+      pincode: customPin,
+      area: customArea,
+      goal,
+      phone,
+      note: customNote,
+    });
+    setBusy(false);
+    if (!result.success) {
+      setError(result.error);
+      return;
+    }
+    setCustomSent(result.requestId);
+    notify('Custom plan sent');
+    await load();
+  };
+  const proceed = () => {
+    if (!selected) {
+      setError('Select a plan to continue.');
+      return;
+    }
+    setError('');
+    setStep(approved ? 'pay' : 'verify');
+  };
 
   return (
-    <ConsolePage title="Promote online" subtitle="Ads that bring people to your shop" onBack={back} docked>
+    <ConsolePage title="Promote online" subtitle={step === 'offer' ? 'Choose a package' : step === 'custom' ? 'Custom plan' : step === 'verify' ? 'Verify the shop' : step === 'pay' ? 'Pay for this package' : 'Payment received'} onBack={goBack} docked>
       {error ? <Text style={styles.error}>{error}</Text> : null}
-      {!approved ? (
+      {step === 'offer' ? (
+        <>
+          <View style={styles.intro}>
+            <Text style={styles.introKicker}>Facebook and Instagram ads, run for you</Text>
+            <Text style={styles.introTitle}>Pick how far, and how many days</Text>
+            <Text style={styles.introBody}>
+              Nearby people already scroll those apps. You choose a package. FinderB makes the ad, runs it in that area, and brings the recorded reach back here. This does not change your Live Leads plan.
+            </Text>
+          </View>
+          <View style={styles.planStack}>
+            {packages.map((item) => (
+              <PlanCard key={item.id} item={item} selected={item.id === packageId} onPress={() => { setPackageId(item.id); setError(''); }} />
+            ))}
+          </View>
+          <Text style={styles.planFine}>Package reach is an estimate, not a promise. Ads start only after your shop is verified and payment is confirmed.</Text>
+          {error ? <Text style={styles.error}>{error}</Text> : null}
+          <Btn label={selected ? `Continue with ${selected.name}` : 'Continue'} onPress={proceed} />
+          {desk?.customRequest && ['received', 'in_review'].includes(desk.customRequest.status) ? (
+            <Panel>
+              <Text style={styles.h}>Custom plan sent</Text>
+              <Text style={styles.p}>Request {desk.customRequest.id}. It will take up to 24 hours. FinderB will come back with a price for your shop.</Text>
+            </Panel>
+          ) : (
+            <Btn tone="outline" label="Ask for a custom plan" onPress={() => { setError(''); setStep('custom'); }} />
+          )}
+          <Text style={styles.sectionTitle}>What you get</Text>
+          <WhyPromote />
+        </>
+      ) : null}
+      {step === 'custom' ? (
+        <Panel>
+          {customSent ? (
+            <>
+              <Text style={styles.h}>Custom plan sent</Text>
+              <Text style={styles.p}>Request {customSent}. It will take up to 24 hours. FinderB will come back with a price for your shop.</Text>
+              <Btn label="Back to packages" onPress={() => setStep('offer')} />
+            </>
+          ) : (
+            <>
+              <Text style={styles.h}>Tell FinderB what you need</Text>
+              <Text style={styles.p}>This is not a payment. FinderB reads it and replies within 24 hours.</Text>
+              <Text style={styles.fieldLabel}>Budget you can spend (₹)</Text>
+              <TextInput value={budget} onChangeText={setBudget} keyboardType="number-pad" placeholder="5000" style={styles.input} />
+              <Text style={styles.fieldLabel}>How many days</Text>
+              <TextInput value={customDays} onChangeText={setCustomDays} keyboardType="number-pad" placeholder="7" style={styles.input} />
+              <Text style={styles.fieldLabel}>How far the ads should go</Text>
+              <TextInput value={coverage} onChangeText={setCoverage} placeholder="10 km around the shop" style={styles.input} />
+              <Text style={styles.fieldLabel}>Pincode</Text>
+              <TextInput value={customPin} onChangeText={setCustomPin} keyboardType="number-pad" maxLength={6} placeholder="400001" style={styles.input} />
+              <Text style={styles.fieldLabel}>Locality</Text>
+              <TextInput value={customArea} onChangeText={setCustomArea} placeholder="Andheri West" style={styles.input} />
+              <Text style={styles.fieldLabel}>What should the ad promote</Text>
+              <TextInput value={goal} onChangeText={setGoal} placeholder="Monsoon sale on cotton kurtas" multiline style={[styles.input, styles.inputTall]} />
+              <Text style={styles.fieldLabel}>Mobile number on the ad</Text>
+              <TextInput value={phone} onChangeText={setPhone} keyboardType="phone-pad" placeholder="98XXXXXXXX" style={styles.input} />
+              <Text style={styles.fieldLabel}>Anything else</Text>
+              <TextInput value={customNote} onChangeText={setCustomNote} placeholder="Optional" multiline style={[styles.input, styles.inputTall]} />
+              <Btn label="Send to FinderB" busy={busy} onPress={() => void sendCustom()} />
+            </>
+          )}
+        </Panel>
+      ) : null}
+      {step === 'verify' ? (
         <View style={styles.verify}>
           <View style={styles.verifyHero}>
             <Image source={require('../../assets/console/verify.png')} style={styles.verifyArt} contentFit="contain" />
             <View style={styles.whyCopy}>
               <Text style={styles.h}>Verify the shop first</Text>
-              <Text style={styles.p}>A live shop photo and one proof. Then FinderB can run the ads.</Text>
+              <Text style={styles.p}>A live shop photo and one proof. Payment for the package you chose opens after FinderB approves the shop.</Text>
               <View style={styles.statusPill}>
                 <Ionicons name="shield-checkmark-outline" size={14} color={c.primary} />
                 <Text style={styles.statusText}>{statusLabel(desk?.verification.status)}</Text>
@@ -233,61 +359,68 @@ export default function PromoteScreen() {
             </View>
           </View>
           {desk?.verification.rejectionReason ? <Text style={styles.error}>{desk.verification.rejectionReason}</Text> : null}
-          <Text style={styles.stepLabel}>Choose one proof</Text>
-          <View style={styles.docGrid}>
-            {PROOFS.map((item) => {
-              const on = documentType === item.id;
-              return (
-                <Pressable
-                  key={item.id}
-                  onPress={() => setDocumentType(item.id)}
-                  style={[styles.doc, on && styles.docOn]}
-                  accessibilityRole="radio"
-                  accessibilityState={{ selected: on }}
-                >
-                  <View style={styles.docHead}>
-                    <Ionicons name={on ? 'radio-button-on' : 'radio-button-off'} size={16} color={on ? c.primary : c.muted} />
-                    <Text style={[styles.docTitle, on && styles.docTitleOn]}>{item.label}</Text>
-                  </View>
-                  <Text style={styles.docHint}>{item.hint}</Text>
-                </Pressable>
-              );
-            })}
-          </View>
-          <Pressable onPress={() => setAgreed((value) => !value)} style={[styles.declare, agreed && styles.declareOn]}>
-            <Ionicons name={agreed ? 'checkbox' : 'square-outline'} size={18} color={agreed ? c.primary : c.muted} />
-            <Text style={styles.declareText}>{DECLARATION}</Text>
-          </Pressable>
-          <Btn small label={busy ? 'Working…' : 'Take Shop Photo'} disabled={!agreed || busy} onPress={() => void verify()} />
-          <Text style={styles.photoHint}>Live camera only. A gallery photo is not accepted.</Text>
+          {selected ? <Text style={styles.p}>{selected.name} · ₹{selected.priceInr.toLocaleString('en-IN')} stays selected.</Text> : null}
+          {waiting ? (
+            <Text style={styles.p}>FinderB is checking this shop. Payment for the package opens after it is approved.</Text>
+          ) : approved ? (
+            <Btn label="Continue to payment" onPress={() => setStep('pay')} />
+          ) : (
+            <>
+              <Text style={styles.stepLabel}>Choose one proof</Text>
+              <View style={styles.docGrid}>
+                {PROOFS.map((item) => {
+                  const on = documentType === item.id;
+                  return (
+                    <Pressable
+                      key={item.id}
+                      onPress={() => setDocumentType(item.id)}
+                      style={[styles.doc, on && styles.docOn]}
+                      accessibilityRole="radio"
+                      accessibilityState={{ selected: on }}
+                    >
+                      <View style={styles.docHead}>
+                        <Ionicons name={on ? 'radio-button-on' : 'radio-button-off'} size={16} color={on ? c.primary : c.muted} />
+                        <Text style={[styles.docTitle, on && styles.docTitleOn]}>{item.label}</Text>
+                      </View>
+                      <Text style={styles.docHint}>{item.hint}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+              <Pressable onPress={() => setAgreed((value) => !value)} style={[styles.declare, agreed && styles.declareOn]}>
+                <Ionicons name={agreed ? 'checkbox' : 'square-outline'} size={18} color={agreed ? c.primary : c.muted} />
+                <Text style={styles.declareText}>{DECLARATION}</Text>
+              </Pressable>
+              <Btn small label={busy ? 'Working…' : 'Take Shop Photo'} disabled={!agreed || busy} onPress={() => void verify()} />
+              <Text style={styles.photoHint}>Live camera only. A gallery photo is not accepted.</Text>
+            </>
+          )}
         </View>
-      ) : (
-        <>
-          {(desk?.packages || []).map((item) => (
-            <Pressable key={item.id} onPress={() => setPackageId(item.id)} style={[styles.pack, packageId === item.id && styles.packOn]}>
-              <Text style={styles.h}>{item.name}{item.popular ? ' · Most popular' : ''}</Text>
-              <Text style={styles.p}>₹{item.priceInr.toLocaleString('en-IN')} · was ₹{item.referenceInr.toLocaleString('en-IN')} · {item.discountPercent}% off</Text>
-              <Text style={styles.p}>{item.durationDays} days · {item.coverage} · est. {item.reach}</Text>
-              <Text style={styles.note}>{item.estimateNote}</Text>
-            </Pressable>
-          ))}
-          <Panel>
-            <Text style={styles.h}>Target area</Text>
-            <TextInput value={pincode} onChangeText={setPincode} placeholder="Pincode" keyboardType="number-pad" maxLength={6} style={styles.input} />
-            <TextInput value={area} onChangeText={setArea} placeholder="Locality" style={styles.input} />
-            <Btn label={orderId ? `Order ${orderId}` : 'Create order'} busy={busy} onPress={() => void create()} />
-            {orderId ? (
-              <>
-                <Btn tone="outline" label={uploadProgress ? `Uploading ${uploadProgress}%` : 'Upload 9:16 video'} onPress={() => void video()} />
-                <Btn label="Pay" onPress={() => void pay()} />
-              </>
-            ) : null}
-          </Panel>
-        </>
-      )}
-      <Text style={styles.sectionTitle}>What you get after that</Text>
-      <WhyPromote />
-      <Btn tone="outline" label="My promotions" onPress={() => router.push('/business-console/promotions' as Href)} />
+      ) : null}
+      {step === 'pay' && selected ? (
+        <Panel>
+          <Text style={styles.h}>{selected.name}</Text>
+          <Text style={styles.p}>₹{selected.priceInr.toLocaleString('en-IN')} · {selected.durationDays} days · {selected.coverage}</Text>
+          <TextInput value={pincode} onChangeText={setPincode} placeholder="Pincode" keyboardType="number-pad" maxLength={6} style={styles.input} />
+          <TextInput value={area} onChangeText={setArea} placeholder="Locality" style={styles.input} />
+          <Btn label={orderId ? `Order ${orderId}` : 'Save this area'} busy={busy && !orderId} disabled={Boolean(orderId)} onPress={() => void create()} />
+          {orderId ? (
+            <>
+              <Btn tone="outline" label={uploadProgress ? `Uploading ${uploadProgress}%` : videoReady ? 'Video received' : 'Upload 9:16 video'} onPress={() => void video()} />
+              <Btn label="Pay with Razorpay" disabled={!videoReady} onPress={() => void pay()} />
+            </>
+          ) : null}
+        </Panel>
+      ) : null}
+      {step === 'done' && selected ? (
+        <Panel>
+          <Text style={styles.h}>Payment received</Text>
+          <Text style={styles.p}>{selected.name} · ₹{selected.priceInr.toLocaleString('en-IN')} · order {orderId}</Text>
+          <Text style={styles.p}>FinderB has the payment. We emailed you and the FinderB team. The ads start after the shop video is checked.</Text>
+          <Btn label="Open this promotion" onPress={() => router.push(`/business-console/promotion/${orderId}` as Href)} />
+        </Panel>
+      ) : null}
+      {step !== 'offer' ? <Btn tone="outline" label="My promotions" onPress={() => router.push('/business-console/promotions' as Href)} /> : null}
       <RazorpayCheckout
         start={checkout}
         description="Promote your business online"
@@ -305,7 +438,10 @@ export default function PromoteScreen() {
             signature: paid.razorpay_signature,
           }).then((result) => {
             if (!result.success) setError(result.error);
-            else router.push(`/business-console/promotion/${orderId}` as Href);
+            else {
+              notify('Payment received');
+              setStep('done');
+            }
           });
         }}
       />
@@ -319,6 +455,81 @@ const PROOFS = [
   { id: 'shop_license', label: 'Shop license', hint: 'Municipal proof' },
   { id: 'aadhaar_pan_bill', label: 'Aadhaar or PAN', hint: 'With an electricity bill' },
 ] as const;
+
+function planMark(item: PackageCard): { icon: keyof typeof Ionicons.glyphMap; tint: string; soft: string; premium: boolean } {
+  const key = `${item.id} ${item.name}`.toLowerCase();
+  if (key.includes('mega')) return { icon: 'diamond', tint: '#F6D58A', soft: 'rgba(246,213,138,0.16)', premium: true };
+  if (key.includes('growth')) return { icon: 'trending-up', tint: '#D97706', soft: 'rgba(217,119,6,0.18)', premium: false };
+  return { icon: 'flash', tint: '#0284C7', soft: 'rgba(2,132,199,0.16)', premium: false };
+}
+
+function PlanCard({ item, selected, onPress }: { item: PackageCard; selected: boolean; onPress: () => void }) {
+  const styles = useStyles();
+  const c = useConsoleColors();
+  const mark = planMark(item);
+  const premium = mark.premium;
+  const ink = premium ? '#F8F1DE' : c.ink;
+  const muted = premium ? 'rgba(248,241,222,0.68)' : c.muted;
+  const rupee = (value: number) => `₹${value.toLocaleString('en-IN')}`;
+  const facts = [
+    item.reach ? { icon: 'people-outline' as const, label: 'Reach', value: item.reach } : null,
+    item.views ? { icon: 'eye-outline' as const, label: 'Views', value: item.views } : null,
+    item.visits ? { icon: 'walk-outline' as const, label: 'Visits', value: item.visits } : null,
+  ].filter((fact): fact is { icon: 'people-outline' | 'eye-outline' | 'walk-outline'; label: string; value: string } => Boolean(fact));
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="radio"
+      accessibilityState={{ selected }}
+      style={[styles.plan, premium && styles.planPremium, selected && (premium ? styles.planPremiumOn : styles.planOn)]}
+    >
+      {premium ? (
+        <View style={styles.planCrownBar}>
+          <Ionicons name="diamond" size={11} color="#1A1430" />
+          <Text style={styles.planCrownText}>Premium</Text>
+        </View>
+      ) : null}
+      {item.popular ? (
+        <View style={styles.planRibbon}>
+          <Ionicons name="star" size={11} color="#7C4A03" />
+          <Text style={styles.planRibbonText}>Most popular</Text>
+        </View>
+      ) : null}
+      <View style={styles.planBody}>
+      <View style={styles.planHead}>
+        <View style={[styles.planMark, premium && styles.planMarkPremium, { backgroundColor: mark.soft }]}>
+          <Ionicons name={mark.icon} size={premium ? 22 : 20} color={mark.tint} />
+        </View>
+        <View style={styles.planTitles}>
+          <Text style={[styles.planName, premium && styles.planNameLight]}>{item.name}</Text>
+          <Text style={[styles.planMeta, premium && styles.planMetaLight]}>{item.durationDays} days · {item.coverage}</Text>
+        </View>
+        <Ionicons name={selected ? 'checkmark-circle' : 'ellipse-outline'} size={22} color={selected ? (premium ? '#F6D58A' : c.brand) : (premium ? 'rgba(248,241,222,0.35)' : c.faint)} />
+      </View>
+      <View style={styles.planPriceRow}>
+        <Text style={[styles.planPrice, premium && styles.planPriceLight]}>{rupee(item.priceInr)}</Text>
+        {item.referenceInr > item.priceInr ? <Text style={[styles.planWas, premium && styles.planWasLight]}>{rupee(item.referenceInr)}</Text> : null}
+        {item.discountPercent > 0 ? (
+          <View style={[styles.planOff, premium && styles.planOffLight]}>
+            <Text style={[styles.planOffText, premium && styles.planOffTextLight]}>{item.discountPercent}% off</Text>
+          </View>
+        ) : null}
+      </View>
+      {facts.length ? (
+        <View style={styles.planFacts}>
+          {facts.map((fact) => (
+            <View key={fact.label} style={[styles.planFact, premium && styles.planFactLight]}>
+              <Ionicons name={fact.icon} size={14} color={premium ? '#F6D58A' : c.muted} />
+              <Text style={[styles.planFactLabel, { color: muted }]}>{fact.label}</Text>
+              <Text style={[styles.planFactValue, { color: ink }]} numberOfLines={2}>{fact.value}</Text>
+            </View>
+          ))}
+        </View>
+      ) : null}
+      </View>
+    </Pressable>
+  );
+}
 
 function statusLabel(status?: string) {
   switch (status) {
@@ -359,7 +570,7 @@ const WHY = [
     body: 'You send a short video of the shop. FinderB edits it and marks it ready before the ad goes out.',
   },
   {
-    image: require('../../assets/console/photos.png'),
+    image: require('../../assets/console/promo-scroll.png'),
     title: 'They find your shop while scrolling',
     body: 'People nearby are already on Facebook and Instagram. Your ad appears there, in the area you choose.',
     channels: true,
@@ -395,9 +606,6 @@ function WhyPromote() {
           </View>
         </View>
       ))}
-      <Text style={styles.note}>
-        Package reach is an estimate, not a promise. Ads start only after your shop is verified and payment is confirmed.
-      </Text>
     </View>
   );
 }
@@ -476,7 +684,69 @@ const useStyles = createConsoleStyles((c) => ({
   declareText: { flex: 1, fontFamily: fonts.regular, fontSize: 13, lineHeight: 18, color: c.body },
   photoHint: { fontFamily: fonts.regular, fontSize: 12, lineHeight: 16, color: c.muted },
   error: { fontFamily: fonts.regular, fontSize: 13, color: c.danger },
-  pack: { borderWidth: 1, borderColor: c.line, borderRadius: 14, padding: 12, backgroundColor: c.card },
-  packOn: { borderColor: c.primary },
+  intro: {
+    gap: 6,
+    padding: 16,
+    borderRadius: 18,
+    backgroundColor: '#10283F',
+  },
+  introKicker: { fontFamily: fonts.semiBold, fontSize: 11, letterSpacing: 0.5, color: '#F3E6C8' },
+  introTitle: { fontFamily: fonts.bold, fontSize: 20, lineHeight: 26, color: '#FFFFFF' },
+  introBody: { fontFamily: fonts.regular, fontSize: 13, lineHeight: 19, color: 'rgba(255,255,255,0.78)' },
+  planStack: { gap: 12 },
+  plan: {
+    borderRadius: 18,
+    borderWidth: 1.5,
+    borderColor: c.line,
+    backgroundColor: c.card,
+    overflow: 'hidden',
+  },
+  planOn: { borderColor: c.brand, backgroundColor: c.brandSoft },
+  planPremium: { backgroundColor: '#1A1430', borderColor: '#6B5424' },
+  planPremiumOn: { borderColor: '#F6D58A' },
+  planCrownBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    paddingVertical: 6,
+    backgroundColor: '#F6D58A',
+  },
+  planCrownText: { fontFamily: fonts.semiBold, fontSize: 11, letterSpacing: 0.8, color: '#1A1430' },
+  planNameLight: { color: '#F8F1DE' },
+  planMetaLight: { color: 'rgba(248,241,222,0.68)' },
+  planMarkPremium: { borderWidth: 1, borderColor: 'rgba(246,213,138,0.45)' },
+  planPriceLight: { color: '#FFFFFF' },
+  planWasLight: { color: 'rgba(248,241,222,0.55)' },
+  planOffLight: { backgroundColor: '#F6D58A' },
+  planOffTextLight: { color: '#1A1430' },
+  planFactLight: { backgroundColor: 'rgba(255,255,255,0.08)' },
+  planBody: { gap: 12, padding: 14 },
+  planRibbon: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    paddingVertical: 6,
+    backgroundColor: '#FBBF24',
+  },
+  planRibbonText: { fontFamily: fonts.semiBold, fontSize: 11, letterSpacing: 0.3, color: '#7C4A03' },
+  planHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  planMark: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  planTitles: { flex: 1, minWidth: 0 },
+  planName: { fontFamily: fonts.bold, fontSize: 17, color: c.ink },
+  planMeta: { marginTop: 2, fontFamily: fonts.medium, fontSize: 12, color: c.muted },
+  planPriceRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8 },
+  planPrice: { fontFamily: fonts.extraBold, fontSize: 28, letterSpacing: -0.6, color: c.ink },
+  planWas: { fontFamily: fonts.medium, fontSize: 16, color: c.muted, textDecorationLine: 'line-through' },
+  planOff: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, backgroundColor: c.successSoft },
+  planOffText: { fontFamily: fonts.semiBold, fontSize: 12, color: c.success },
+  planFacts: { flexDirection: 'row', gap: 8 },
+  planFact: { flex: 1, gap: 2, padding: 8, borderRadius: 12, backgroundColor: c.sunken },
+  planFactLabel: { fontFamily: fonts.medium, fontSize: 11, color: c.muted },
+  planFactValue: { fontFamily: fonts.semiBold, fontSize: 12, lineHeight: 16, color: c.ink },
+  planFine: { fontFamily: fonts.regular, fontSize: 11, lineHeight: 15, color: c.muted },
   input: { marginTop: 8, borderWidth: 1, borderColor: c.line, borderRadius: 10, padding: 10, color: c.ink, fontFamily: fonts.regular },
+  inputTall: { minHeight: 72, textAlignVertical: 'top' },
+  fieldLabel: { marginTop: 12, fontFamily: fonts.medium, fontSize: 13, color: c.ink },
 }));

@@ -113,3 +113,27 @@ alter table promotion_audit enable row level security;
 alter table promotion_orders add column if not exists video_format text;
 alter table business_verifications add column if not exists shop_photo_public_id text;
 alter table business_verifications add column if not exists shop_photo_format text;
+
+create table if not exists promotion_custom_requests (
+  id text primary key,
+  business_id text not null references "Business"(id) on delete cascade,
+  budget_inr integer not null,
+  duration_days integer not null,
+  coverage text not null,
+  pincode text not null,
+  area text not null,
+  goal text not null,
+  phone text not null,
+  note text,
+  status text not null default 'received',
+  admin_note text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists idx_promotion_custom_business
+  on promotion_custom_requests (business_id, created_at desc);
+create index if not exists idx_promotion_custom_status
+  on promotion_custom_requests (status, created_at desc);
+
+alter table promotion_custom_requests enable row level security;

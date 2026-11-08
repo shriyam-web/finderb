@@ -11,6 +11,7 @@ import {
   loadPromotionDesk,
   loadPromotionOrder,
   placePromotionOrder,
+  requestCustomPromotion,
 } from '@/app/actions/promotions';
 
 type PackageCard = {
@@ -54,7 +55,7 @@ type Desk = {
   orders: OrderCard[];
 };
 
-const STEPS = ['Verify', 'Package', 'Area', 'Video', 'Pay'];
+const STEPS = ['Package', 'Verify', 'Area', 'Video', 'Pay'];
 
 export default function PromoteDesk({ mode, orderId }: { mode: 'promote' | 'list' | 'detail' | 'verify'; orderId?: string }) {
   const [desk, setDesk] = useState<Desk | null>(null);
@@ -68,6 +69,8 @@ export default function PromoteDesk({ mode, orderId }: { mode: 'promote' | 'list
   const [step, setStep] = useState(0);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [videoName, setVideoName] = useState('');
+  const [customOpen, setCustomOpen] = useState(false);
+  const [customSent, setCustomSent] = useState('');
   const verifyForm = useRef<HTMLFormElement>(null);
   const uploadRequest = useRef<XMLHttpRequest | null>(null);
 
@@ -78,8 +81,7 @@ export default function PromoteDesk({ mode, orderId }: { mode: 'promote' | 'list
         return;
       }
       setDesk(result);
-      if (result.verification.status === 'approved') setStep(1);
-      else setStep(0);
+      setStep(0);
     });
     if (mode === 'detail' && orderId) {
       void loadPromotionOrder(orderId).then((result) => {
@@ -211,7 +213,7 @@ export default function PromoteDesk({ mode, orderId }: { mode: 'promote' | 'list
         <p className="promo-kicker">Growth & Marketing</p>
         <h1 className="promo-title">Promote your business online</h1>
         <p className="promo-lead">
-          FinderB runs the Facebook and Instagram campaign for you. You verify the shop, choose a package, and upload a vertical video. This does not change your Live Leads plan.
+          Nearby people already scroll Facebook and Instagram. Pick how far the ads go and how many days they run. FinderB makes the ad, runs it, and brings the recorded reach back here. This does not change your Live Leads plan.
         </p>
         <div className="promo-row" style={{ marginTop: 16 }}>
           <Link className="promo-btn-ghost" href="/business/promote">Packages</Link>
@@ -249,6 +251,7 @@ export default function PromoteDesk({ mode, orderId }: { mode: 'promote' | 'list
             <h2>{order.packageName}</h2>
             <p className="promo-meta">Order {order.id} · {inr(order.priceInr)} · {order.targetArea} {order.targetPincode}</p>
             <p className="promo-meta">Payment {order.paymentStatus}. Video {order.videoReady ? 'received' : 'missing'}.</p>
+            {order.paymentStatus === 'paid' ? <p className="promo-meta">FinderB recorded this payment and emailed the business and the FinderB team.</p> : null}
             {order.rejectionReason ? <p className="promo-error">{order.rejectionReason}</p> : null}
             <div className="promo-steps">
               {['payment_successful', 'under_review', 'video_ready', 'ad_active', 'completed'].map((item) => (
@@ -273,13 +276,13 @@ export default function PromoteDesk({ mode, orderId }: { mode: 'promote' | 'list
                 <span key={label} className={`promo-step ${step === index ? 'on' : ''}`}>{label}</span>
               ))}
             </div>
-            {desk && desk.verification.status !== 'approved' ? (
+            {desk && ((mode === 'verify') || (mode === 'promote' && step === 1)) && desk.verification.status !== 'approved' ? (
               <section className="promo-card" style={{ marginTop: 16 }}>
                 <h2>Business verification</h2>
                 <p className="promo-meta">Status: {desk.verification.status.replaceAll('_', ' ')}</p>
                 {desk.verification.rejectionReason ? <p className="promo-error">{desk.verification.rejectionReason}</p> : null}
                 {desk.verification.status === 'submitted' || desk.verification.status === 'under_review' ? (
-                  <p className="promo-meta">Submitted {desk.verification.submittedAt ? new Date(desk.verification.submittedAt).toLocaleString('en-IN') : ''}. You can buy a package after approval.</p>
+                  <p className="promo-meta">Submitted {desk.verification.submittedAt ? new Date(desk.verification.submittedAt).toLocaleString('en-IN') : ''}. Payment for the package you chose opens after approval.</p>
                 ) : (
                   <form ref={verifyForm} action={(form) => void submitVerification(form)}>
                     <p className="promo-note">Use the camera for the shop front. A gallery photo is not accepted for this check.</p>
@@ -323,7 +326,15 @@ export default function PromoteDesk({ mode, orderId }: { mode: 'promote' | 'list
               </section>
             ) : null}
 
-            {desk && step === 1 && mode === 'promote' ? (
+            {desk && step === 0 && mode === 'promote' ? (
+              <section className="promo-card" style={{ marginTop: 16 }}>
+                <p className="promo-kicker">Facebook and Instagram ads, run for you</p>
+                <h2>Pick how far, and how many days</h2>
+                <p className="promo-meta">You choose a package. FinderB makes the ad, runs it in that area, and brings the recorded reach back here.</p>
+              </section>
+            ) : null}
+
+            {desk && step === 0 && mode === 'promote' ? (
               <section className="promo-grid cards">
                 {desk.packages.map((item) => (
                   <article key={item.id} className={`promo-card ${item.popular ? 'popular' : ''}`}>
@@ -335,9 +346,61 @@ export default function PromoteDesk({ mode, orderId }: { mode: 'promote' | 'list
                     <p className="promo-meta">Est. views {item.views}</p>
                     <p className="promo-meta">Est. profile visits {item.visits}</p>
                     <p className="promo-note">{item.estimateNote}</p>
-                    <button className="promo-btn" type="button" onClick={() => { setPackageId(item.id); setStep(2); }}>Choose</button>
+                    <button className="promo-btn" type="button" onClick={() => {
+                      setPackageId(item.id);
+                      setStep(desk.verification.status === 'approved' ? 2 : 1);
+                    }}>Continue with {item.name}</button>
                   </article>
                 ))}
+              </section>
+            ) : null}
+
+            {desk && mode === 'promote' && step === 0 ? (
+              <section className="promo-card">
+                <h2>What you get</h2>
+                <p className="promo-meta">FinderB runs the Facebook and Instagram ads. You do not open Ads Manager or keep topping up an ads account.</p>
+                <p className="promo-meta">You choose how far the ads go, send one shop video, and pay the package price with GST included.</p>
+                <p className="promo-note">Package reach is an estimate, not a promise. Ads start only after the shop is verified and payment is confirmed.</p>
+                {customSent ? (
+                  <p className="promo-meta">Request {customSent}. It will take up to 24 hours. FinderB will come back with a price for your shop.</p>
+                ) : (
+                  <button className="promo-btn-ghost" type="button" onClick={() => setCustomOpen((open) => !open)}>Ask for a custom plan</button>
+                )}
+                {customOpen && !customSent ? (
+                  <form action={(form) => {
+                    setBusy(true);
+                    setError('');
+                    void requestCustomPromotion({
+                      budgetInr: Number(form.get('budget')),
+                      durationDays: Number(form.get('days')),
+                      coverage: String(form.get('coverage') || ''),
+                      pincode: String(form.get('pincode') || ''),
+                      area: String(form.get('area') || ''),
+                      goal: String(form.get('goal') || ''),
+                      phone: String(form.get('phone') || ''),
+                      note: String(form.get('note') || ''),
+                    }).then((result) => {
+                      setBusy(false);
+                      if (!result.success) {
+                        setError(result.error);
+                        return;
+                      }
+                      setCustomSent(result.requestId);
+                      setCustomOpen(false);
+                    });
+                  }}>
+                    <p className="promo-note">This is not a payment. FinderB reads it and replies within 24 hours.</p>
+                    <label className="promo-field">Budget you can spend (₹)<input name="budget" inputMode="numeric" required /></label>
+                    <label className="promo-field">How many days<input name="days" inputMode="numeric" required /></label>
+                    <label className="promo-field">How far the ads should go<input name="coverage" required /></label>
+                    <label className="promo-field">Pincode<input name="pincode" inputMode="numeric" maxLength={6} required /></label>
+                    <label className="promo-field">Locality<input name="area" required /></label>
+                    <label className="promo-field">What should the ad promote<textarea name="goal" required rows={3} /></label>
+                    <label className="promo-field">Mobile number on the ad<input name="phone" inputMode="tel" required /></label>
+                    <label className="promo-field">Anything else<textarea name="note" rows={2} /></label>
+                    <button className="promo-btn" type="submit" disabled={busy}>{busy ? 'Sending…' : 'Send to FinderB'}</button>
+                  </form>
+                ) : null}
               </section>
             ) : null}
 

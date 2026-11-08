@@ -196,29 +196,126 @@ export async function merchantDesk(businessId: string): Promise<Ok<{
   verification: ReturnType<typeof publicVerification>;
   packages: PromotionPackage[];
   orders: ReturnType<typeof publicOrder>[];
+  customRequest: ReturnType<typeof publicCustom> | null;
   declaration: string;
 }> | Fail> {
   const hidden = await requireEnabled();
   if (hidden) return hidden;
-  const packages = await listPackages(false);
-  if (!Array.isArray(packages)) return packages;
   const supabase = db();
   if (!supabase) return fail('Promotions are not available right now.');
-  const verification = await latestVerification(businessId);
-  const { data, error } = await supabase
-    .from('promotion_orders')
-    .select('*')
-    .eq('business_id', businessId)
-    .order('created_at', { ascending: false })
-    .limit(50);
+  const [packages, verification, ordersResult, customResult] = await Promise.all([
+    listPackages(false),
+    latestVerification(businessId),
+    supabase
+      .from('promotion_orders')
+      .select('*')
+      .eq('business_id', businessId)
+      .order('created_at', { ascending: false })
+      .limit(50),
+    supabase
+      .from('promotion_custom_requests')
+      .select('id, status, budget_inr, duration_days, created_at')
+      .eq('business_id', businessId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ]);
+  if (!Array.isArray(packages)) return packages;
+  const { data, error } = ordersResult;
   if (error) return fail('Your promotions could not be loaded.');
   return {
     success: true,
     verification: publicVerification(verification),
     packages,
     orders: (data || []).map((row) => publicOrder(row as Record<string, unknown>)),
+    customRequest: customResult.data ? publicCustom(customResult.data as Record<string, unknown>) : null,
     declaration: DECLARATION,
   };
+}
+
+function publicCustom(row: Record<string, unknown>) {
+  return {
+    id: String(row.id),
+    status: String(row.status || 'received'),
+    budgetInr: Number(row.budget_inr) || 0,
+    durationDays: Number(row.duration_days) || 0,
+    createdAt: (row.created_at as string) || null,
+  };
+}
+
+function indianMobile(value: string) {
+  const digits = value.replace(/\D/g, '');
+  const local = digits.length === 12 && digits.startsWith('91')
+    ? digits.slice(2)
+    : digits.length === 11 && digits.startsWith('0')
+      ? digits.slice(1)
+      : digits;
+  return /^[6-9]\d{9}$/.test(local) ? local : '';
+}
+
+export async function submitCustomPromotion(businessId: string, input: {
+  budgetInr: number;
+  durationDays: number;
+  coverage: string;
+  pincode: string;
+  area: string;
+  goal: string;
+  phone: string;
+  note?: string;
+}): Promise<Ok<{ requestId: string }> | Fail> {
+  const hidden = await requireEnabled();
+  if (hidden) return hidden;
+  const limited = checkRateLimit(`promo-custom:${businessId}`, RATE_LIMITS.write);
+  if (!limited.allowed) return fail('Too many custom requests. Wait and try again.');
+  const budget = Math.round(Number(input.budgetInr));
+  const days = Math.round(Number(input.durationDays));
+  const coverage = input.coverage.trim().slice(0, 80);
+  const area = input.area.trim().slice(0, 120);
+  const goal = input.goal.trim().slice(0, 400);
+  const note = (input.note || '').trim().slice(0, 400);
+  const phone = indianMobile(input.phone);
+  if (!Number.isFinite(budget) || budget < 100 || budget > 5000000) return fail('Enter a budget between ₹100 and ₹50,00,000.');
+  if (!Number.isFinite(days) || days < 1 || days > 90) return fail('Enter how many days the ads should run, from 1 to 90.');
+  if (coverage.length < 2) return fail('Say how far the ads should go.');
+  if (!validPincode(input.pincode)) return fail('Enter a 6-digit Indian pincode.');
+  if (area.length < 2) return fail('Enter the locality you want to reach.');
+  if (goal.length < 8) return fail('Tell FinderB what the ad should promote.');
+  if (!phone) return fail('Enter a 10-digit mobile number for the ad.');
+  const supabase = db();
+  if (!supabase) return fail('The request could not be sent.');
+  const id = `FC${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
+  const { error } = await supabase.from('promotion_custom_requests').insert({
+    id,
+    business_id: businessId,
+    budget_inr: budget,
+    duration_days: days,
+    coverage,
+    pincode: input.pincode.trim(),
+    area,
+    goal,
+    phone,
+    note: note || null,
+    status: 'received',
+  });
+  if (error) return fail('The custom plan could not be sent. Try again.');
+  const { data: business } = await supabase
+    .from('Business')
+    .select('businessName')
+    .eq('id', businessId)
+    .maybeSingle();
+  const { sendCustomPlanRequestEmail } = await import('@/lib/email/sendPromotionPaidEmail');
+  await sendCustomPlanRequestEmail({
+    businessName: String((business as { businessName?: string } | null)?.businessName || ''),
+    requestId: id,
+    budgetInr: budget,
+    durationDays: days,
+    coverage,
+    area,
+    pincode: input.pincode.trim(),
+    phone,
+    goal,
+  });
+  return { success: true, requestId: id };
 }
 
 export async function merchantOrder(businessId: string, orderId: string) {
@@ -521,6 +618,23 @@ export async function confirmPromotionPayment(input: {
     from: 'payment_pending',
     to: 'payment_successful',
     note: input.source,
+  });
+  const snapshot = (row.package_snapshot || {}) as { name?: string };
+  const { data: business } = await supabase
+    .from('Business')
+    .select('businessName, workEmail, email')
+    .eq('id', String(row.business_id))
+    .maybeSingle();
+  const biz = (business || {}) as Record<string, unknown>;
+  const { sendPromotionPaidEmails } = await import('@/lib/email/sendPromotionPaidEmail');
+  await sendPromotionPaidEmails({
+    merchantEmail: String(biz.workEmail || biz.email || ''),
+    businessName: String(biz.businessName || ''),
+    orderId: String(row.id),
+    packageName: String(snapshot.name || row.package_id || 'promotion'),
+    amountInr: Number(row.amount_inr) || 0,
+    area: String(row.target_area || ''),
+    pincode: String(row.target_pincode || ''),
   });
   return { success: true, alreadyCompleted: false, orderId: String(row.id) };
 }

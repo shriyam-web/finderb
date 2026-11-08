@@ -973,6 +973,17 @@ export async function runConsoleAction(userId: string, businessId: string, body:
       return (await import('@/lib/promotions/service')).merchantDesk(businessId);
     case 'promotion':
       return (await import('@/lib/promotions/service')).merchantOrder(businessId, String(body.orderId || ''));
+    case 'requestCustomPromotion':
+      return (await import('@/lib/promotions/service')).submitCustomPromotion(businessId, {
+        budgetInr: Number(body.budgetInr),
+        durationDays: Number(body.durationDays),
+        coverage: String(body.coverage || ''),
+        pincode: String(body.pincode || ''),
+        area: String(body.area || ''),
+        goal: String(body.goal || ''),
+        phone: String(body.phone || ''),
+        note: String(body.note || ''),
+      });
     case 'createPromotion':
       return (await import('@/lib/promotions/service')).createPromotionOrder(businessId, {
         packageId: String(body.packageId || ''),

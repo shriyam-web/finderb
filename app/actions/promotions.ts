@@ -5,6 +5,7 @@ import {
   confirmPromotionPayment,
   createPromotionOrder,
   merchantDesk,
+  submitCustomPromotion,
   merchantOrder,
   startPromotionPayment,
 } from '@/lib/promotions/service';
@@ -27,6 +28,21 @@ export async function loadPromotionOrder(orderId: string) {
   const id = await businessId();
   if (!id) return { success: false as const, error: 'Please log in again.' };
   return merchantOrder(id, orderId);
+}
+
+export async function requestCustomPromotion(input: {
+  budgetInr: number;
+  durationDays: number;
+  coverage: string;
+  pincode: string;
+  area: string;
+  goal: string;
+  phone: string;
+  note?: string;
+}) {
+  const id = await businessId();
+  if (!id) return { success: false as const, error: 'Please log in again.' };
+  return submitCustomPromotion(id, input);
 }
 
 export async function placePromotionOrder(packageId: string, pincode: string, area: string) {

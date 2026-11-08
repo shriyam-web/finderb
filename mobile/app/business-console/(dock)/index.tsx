@@ -34,6 +34,7 @@ import { buildReviewInviteUrl } from '../../../lib/reviewInvite';
 import { competitorScoreIsGood, leadResponseIsGood } from '../../../lib/insightTones';
 import { shareMessage } from '../../../lib/shareMessage';
 import { getAppVersionLabel } from '../../../lib/appVersion';
+import { primePromotionDesk } from '../../../lib/promotionDeskCache';
 
 type IconName = keyof typeof Ionicons.glyphMap;
 type Go = (href: Href) => void;
@@ -1030,7 +1031,11 @@ function HomeBody({ o }: { o: ConsoleOverview }) {
   const styles = useStyles();
   const c = useConsoleColors();
   const router = useRouter();
-  const { refresh, refreshing } = useMerchantConsole();
+  const { refresh, refreshing, run } = useMerchantConsole();
+  useEffect(() => {
+    if (!o.promoteOnline) return;
+    void primePromotionDesk(run);
+  }, [o.promoteOnline, run]);
   const [qrOpen, setQrOpen] = useState(false);
   const go: Go = (href) => openConsolePath(router, href);
   const slides = bannersFor(o, go, () => setQrOpen(true));
