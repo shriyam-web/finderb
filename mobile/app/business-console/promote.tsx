@@ -299,7 +299,13 @@ export default function PromoteScreen() {
           </View>
           <Text style={styles.planFine}>Package reach is an estimate, not a promise. Ads start only after your shop is verified and payment is confirmed.</Text>
           {error ? <Text style={styles.error}>{error}</Text> : null}
-          <Btn label={selected ? `Continue with ${selected.name}` : 'Continue'} onPress={proceed} />
+          <Pressable
+            onPress={proceed}
+            accessibilityRole="button"
+            style={({ pressed }) => [styles.continueBtn, pressed && styles.continuePressed]}
+          >
+            <Text style={styles.continueText}>{selected ? `Continue with ${selected.name}` : 'Continue'}</Text>
+          </Pressable>
           {desk?.customRequest && ['received', 'in_review'].includes(desk.customRequest.status) ? (
             <Panel>
               <Text style={styles.h}>Custom plan sent</Text>
@@ -463,19 +469,32 @@ function planMark(item: PackageCard): { icon: keyof typeof Ionicons.glyphMap; ti
   return { icon: 'flash', tint: '#0284C7', soft: 'rgba(2,132,199,0.16)', premium: false };
 }
 
+function planPitch(item: PackageCard) {
+  const key = `${item.id} ${item.name}`.toLowerCase();
+  if (key.includes('mega')) return 'The district, for two weeks. The widest map on this page.';
+  if (key.includes('growth')) return 'Your city. Ten days in front of people already scrolling.';
+  return 'A short burst for the streets around the shop.';
+}
+
+function planLines(item: PackageCard) {
+  const lines: { icon: keyof typeof Ionicons.glyphMap; text: string }[] = [
+    { icon: 'calendar-outline', text: `${item.durationDays} days of Facebook and Instagram ads` },
+    { icon: 'navigate-outline', text: /city|district|regional/i.test(item.coverage) ? item.coverage : `${item.coverage} around the shop` },
+  ];
+  if (item.reach) lines.push({ icon: 'people-outline', text: `About ${item.reach.replace(/people$/i, '').trim()} people can see it` });
+  if (item.views) lines.push({ icon: 'eye-outline', text: `${item.views.replace(/views$/i, '').trim()} video views` });
+  if (item.visits) lines.push({ icon: 'storefront-outline', text: `${item.visits.replace(/profile visits$/i, '').trim()} people opening the shop` });
+  return lines;
+}
+
 function PlanCard({ item, selected, onPress }: { item: PackageCard; selected: boolean; onPress: () => void }) {
   const styles = useStyles();
   const c = useConsoleColors();
   const mark = planMark(item);
   const premium = mark.premium;
   const ink = premium ? '#F8F1DE' : c.ink;
-  const muted = premium ? 'rgba(248,241,222,0.68)' : c.muted;
   const rupee = (value: number) => `₹${value.toLocaleString('en-IN')}`;
-  const facts = [
-    item.reach ? { icon: 'people-outline' as const, label: 'Reach', value: item.reach } : null,
-    item.views ? { icon: 'eye-outline' as const, label: 'Views', value: item.views } : null,
-    item.visits ? { icon: 'walk-outline' as const, label: 'Visits', value: item.visits } : null,
-  ].filter((fact): fact is { icon: 'people-outline' | 'eye-outline' | 'walk-outline'; label: string; value: string } => Boolean(fact));
+  const lines = planLines(item);
   return (
     <Pressable
       onPress={onPress}
@@ -502,7 +521,7 @@ function PlanCard({ item, selected, onPress }: { item: PackageCard; selected: bo
         </View>
         <View style={styles.planTitles}>
           <Text style={[styles.planName, premium && styles.planNameLight]}>{item.name}</Text>
-          <Text style={[styles.planMeta, premium && styles.planMetaLight]}>{item.durationDays} days · {item.coverage}</Text>
+          <Text style={[styles.planMeta, premium && styles.planMetaLight]}>{planPitch(item)}</Text>
         </View>
         <Ionicons name={selected ? 'checkmark-circle' : 'ellipse-outline'} size={22} color={selected ? (premium ? '#F6D58A' : c.brand) : (premium ? 'rgba(248,241,222,0.35)' : c.faint)} />
       </View>
@@ -515,17 +534,14 @@ function PlanCard({ item, selected, onPress }: { item: PackageCard; selected: bo
           </View>
         ) : null}
       </View>
-      {facts.length ? (
-        <View style={styles.planFacts}>
-          {facts.map((fact) => (
-            <View key={fact.label} style={[styles.planFact, premium && styles.planFactLight]}>
-              <Ionicons name={fact.icon} size={14} color={premium ? '#F6D58A' : c.muted} />
-              <Text style={[styles.planFactLabel, { color: muted }]}>{fact.label}</Text>
-              <Text style={[styles.planFactValue, { color: ink }]} numberOfLines={2}>{fact.value}</Text>
-            </View>
-          ))}
-        </View>
-      ) : null}
+      <View style={[styles.planLines, premium && styles.planLinesPremium]}>
+        {lines.map((line) => (
+          <View key={line.text} style={styles.planLine}>
+            <Ionicons name={line.icon} size={16} color={premium ? '#F6D58A' : mark.tint} />
+            <Text style={[styles.planLineText, { color: ink }]}>{line.text}</Text>
+          </View>
+        ))}
+      </View>
       </View>
     </Pressable>
   );
@@ -550,7 +566,7 @@ function statusLabel(status?: string) {
 
 const WHY = [
   {
-    image: require('../../assets/console/profile.png'),
+    image: require('../../assets/console/promo-run.png'),
     title: 'FinderB runs it for you',
     body: 'You skip Ads Manager. Choose the days and how far the ads go. FinderB makes the ad, runs it, and brings the recorded reach, views, and visits back here.',
   },
@@ -581,7 +597,7 @@ const WHY = [
     body: 'A clear ad turns that scroll into a call, a message, or a visit to your counter.',
   },
   {
-    image: require('../../assets/console/growth.png'),
+    image: require('../../assets/console/promo-report.png'),
     title: 'You see what it actually did',
     body: 'When it ends, the reach, views, and visits we recorded show in FinderB. Package numbers before that are only a guide.',
   },
@@ -684,15 +700,20 @@ const useStyles = createConsoleStyles((c) => ({
   declareText: { flex: 1, fontFamily: fonts.regular, fontSize: 13, lineHeight: 18, color: c.body },
   photoHint: { fontFamily: fonts.regular, fontSize: 12, lineHeight: 16, color: c.muted },
   error: { fontFamily: fonts.regular, fontSize: 13, color: c.danger },
-  intro: {
-    gap: 6,
-    padding: 16,
-    borderRadius: 18,
-    backgroundColor: '#10283F',
+  intro: { gap: 6, paddingHorizontal: 2, paddingBottom: 4 },
+  introKicker: { fontFamily: fonts.regular, fontSize: 13, lineHeight: 18, color: c.muted },
+  introTitle: { fontFamily: fonts.regular, fontSize: 20, lineHeight: 26, color: c.ink },
+  introBody: { fontFamily: fonts.regular, fontSize: 14, lineHeight: 20, color: c.body },
+  continueBtn: {
+    minHeight: 48,
+    borderRadius: 10,
+    paddingHorizontal: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#C2410C',
   },
-  introKicker: { fontFamily: fonts.semiBold, fontSize: 11, letterSpacing: 0.5, color: '#F3E6C8' },
-  introTitle: { fontFamily: fonts.bold, fontSize: 20, lineHeight: 26, color: '#FFFFFF' },
-  introBody: { fontFamily: fonts.regular, fontSize: 13, lineHeight: 19, color: 'rgba(255,255,255,0.78)' },
+  continuePressed: { opacity: 0.88 },
+  continueText: { fontFamily: fonts.regular, fontSize: 15, color: '#FFFFFF' },
   planStack: { gap: 12 },
   plan: {
     borderRadius: 18,
@@ -741,10 +762,10 @@ const useStyles = createConsoleStyles((c) => ({
   planWas: { fontFamily: fonts.medium, fontSize: 16, color: c.muted, textDecorationLine: 'line-through' },
   planOff: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, backgroundColor: c.successSoft },
   planOffText: { fontFamily: fonts.semiBold, fontSize: 12, color: c.success },
-  planFacts: { flexDirection: 'row', gap: 8 },
-  planFact: { flex: 1, gap: 2, padding: 8, borderRadius: 12, backgroundColor: c.sunken },
-  planFactLabel: { fontFamily: fonts.medium, fontSize: 11, color: c.muted },
-  planFactValue: { fontFamily: fonts.semiBold, fontSize: 12, lineHeight: 16, color: c.ink },
+  planLines: { gap: 8, padding: 10, borderRadius: 12, backgroundColor: c.sunken },
+  planLinesPremium: { backgroundColor: 'rgba(255,255,255,0.08)' },
+  planLine: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
+  planLineText: { flex: 1, fontFamily: fonts.regular, fontSize: 13, lineHeight: 18 },
   planFine: { fontFamily: fonts.regular, fontSize: 11, lineHeight: 15, color: c.muted },
   input: { marginTop: 8, borderWidth: 1, borderColor: c.line, borderRadius: 10, padding: 10, color: c.ink, fontFamily: fonts.regular },
   inputTall: { minHeight: 72, textAlignVertical: 'top' },

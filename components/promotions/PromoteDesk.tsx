@@ -327,10 +327,10 @@ export default function PromoteDesk({ mode, orderId }: { mode: 'promote' | 'list
             ) : null}
 
             {desk && step === 0 && mode === 'promote' ? (
-              <section className="promo-card" style={{ marginTop: 16 }}>
+              <section style={{ marginTop: 16 }}>
                 <p className="promo-kicker">Facebook and Instagram ads, run for you</p>
                 <h2>Pick how far, and how many days</h2>
-                <p className="promo-meta">You choose a package. FinderB makes the ad, runs it in that area, and brings the recorded reach back here.</p>
+                <p className="promo-lead">You choose a package. FinderB makes the ad, runs it in that area, and brings the recorded reach back here.</p>
               </section>
             ) : null}
 
@@ -340,12 +340,21 @@ export default function PromoteDesk({ mode, orderId }: { mode: 'promote' | 'list
                   <article key={item.id} className={`promo-card ${item.popular ? 'popular' : ''}`}>
                     {item.popular ? <span className="promo-badge">Most popular</span> : null}
                     <h2>{item.name}</h2>
+                    <p className="promo-pitch">{
+                      /mega/i.test(`${item.id} ${item.name}`)
+                        ? 'The district, for two weeks. The widest map on this page.'
+                        : /growth/i.test(`${item.id} ${item.name}`)
+                          ? 'Your city. Ten days in front of people already scrolling.'
+                          : 'A short burst for the streets around the shop.'
+                    }</p>
                     <p><span className="promo-price">{inr(item.priceInr)}</span><span className="promo-strike">{inr(item.referenceInr)}</span><span className="promo-off">{item.discountPercent}% off</span></p>
-                    <p className="promo-meta">{item.durationDays} days · {item.coverage}</p>
-                    <p className="promo-meta">Est. reach {item.reach}</p>
-                    <p className="promo-meta">Est. views {item.views}</p>
-                    <p className="promo-meta">Est. profile visits {item.visits}</p>
-                    <p className="promo-note">{item.estimateNote}</p>
+                    <ul className="promo-points">
+                      <li>{item.durationDays} days of Facebook and Instagram ads</li>
+                      <li>{item.coverage}</li>
+                      <li>About {item.reach} can see it</li>
+                      <li>{item.views}</li>
+                      <li>{item.visits} to the shop page</li>
+                    </ul>
                     <button className="promo-btn" type="button" onClick={() => {
                       setPackageId(item.id);
                       setStep(desk.verification.status === 'approved' ? 2 : 1);

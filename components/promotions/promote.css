@@ -24,6 +24,9 @@
 .promo-off { margin-left: 8px; color: #0f766e; font-size: 13px; font-weight: 700; }
 .promo-meta { margin: 8px 0 0; color: #526072; font-size: 14px; }
 .promo-note { margin-top: 10px; color: #8b97a8; font-size: 12px; }
+.promo-pitch { margin: 8px 0 0; color: #215481; font-size: 14px; line-height: 1.45; }
+.promo-points { margin: 12px 0 0; padding-left: 18px; color: #142033; font-size: 14px; line-height: 1.5; }
+.promo-points li { margin: 4px 0; }
 .promo-btn, .promo-btn-ghost {
   display: inline-flex; align-items: center; justify-content: center;
   margin-top: 14px; border-radius: 10px; padding: 10px 14px; font-weight: 700; font-size: 14px;
