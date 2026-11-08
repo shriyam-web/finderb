@@ -1076,6 +1076,30 @@ function HomeBody({ o }: { o: ConsoleOverview }) {
       </Section>
       <MissingInfo o={o} go={go} />
       <RecentLeads o={o} go={go} />
+      {o.promoteOnline ? (
+        <Pressable
+          onPress={() => go('/business-console/promote')}
+          style={({ pressed }) => [styles.promoteCard, pressed && styles.pressed]}
+          accessibilityRole="button"
+          accessibilityLabel="Bring nearby customers to your shop. Promote your business online."
+        >
+          <View style={styles.promoteCopy}>
+            <Text style={styles.promoteTitle}>Bring nearby customers to your shop</Text>
+            <Text style={styles.promoteSub} numberOfLines={3}>
+              FinderB runs Facebook and Instagram ads for you. You choose the area.
+            </Text>
+            <View style={styles.promoteCta}>
+              <Text style={styles.promoteCtaText}>Promote your business online</Text>
+            </View>
+          </View>
+          <Image
+            source={require('../../../assets/indian-businessman-cutout.png')}
+            style={styles.promotePhoto}
+            contentFit="contain"
+            contentPosition={{ right: 0, bottom: 0 }}
+          />
+        </Pressable>
+      ) : null}
       <ReviewsSnapshot o={o} go={go} />
       <Section title="Your plan">
         <PlanCard o={o} go={go} />
@@ -1111,30 +1135,6 @@ function HomeBody({ o }: { o: ConsoleOverview }) {
         </View>
         <Ionicons name="chevron-forward" size={16} color={c.faint} />
       </Pressable>
-      {o.promoteOnline ? (
-        <Pressable
-          onPress={() => go('/business-console/promote')}
-          style={({ pressed }) => [styles.promoteCard, pressed && styles.pressed]}
-          accessibilityRole="button"
-          accessibilityLabel="Bring nearby customers to your shop. Promote your business online."
-        >
-          <View style={styles.promoteCopy}>
-            <Text style={styles.promoteTitle}>Bring nearby customers to your shop</Text>
-            <Text style={styles.promoteSub} numberOfLines={3}>
-              FinderB runs Facebook and Instagram ads for you. You choose the area.
-            </Text>
-            <View style={styles.promoteCta}>
-              <Text style={styles.promoteCtaText}>Promote your business online</Text>
-            </View>
-          </View>
-          <Image
-            source={require('../../../assets/indian-businessman-cutout.png')}
-            style={styles.promotePhoto}
-            contentFit="contain"
-            contentPosition={{ right: 0, bottom: 0 }}
-          />
-        </Pressable>
-      ) : null}
       <Section title="Manage">
         <QuickActions go={go} isOwner={o.actor?.isOwner !== false} />
       </Section>

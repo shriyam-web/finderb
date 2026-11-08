@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Platform, Pressable, Text, TextInput, View } from 'react-native';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
@@ -10,10 +10,94 @@ import { useConsoleColors } from '../../constants/consoleColors';
 import { useMerchantConsole } from '../../context/MerchantConsoleContext';
 import { getStoredToken } from '../../lib/session';
 import { SITE_URL } from '../../lib/supabase';
-import { Btn, ConsolePage, Panel, createConsoleStyles, useTabBack } from '../../components/console/kit';
+import { Btn, Chip, ConsolePage, Field, Panel, Sheet, createConsoleStyles, useTabBack } from '../../components/console/kit';
+import { citiesInState, INDIAN_STATES } from '../../lib/indianPlaces';
+import { mobileInputDigits } from '../../lib/phoneInput';
 import { LAUNCH_PACKAGES, peekPromotionDesk, storePromotionDesk } from '../../lib/promotionDeskCache';
 import { RazorpayCheckout } from '../../components/console/RazorpayCheckout';
 import type { CheckoutStart } from '../../lib/merchantConsoleApi';
+
+const COVERAGE_PRESETS = ['5–8 KM around the shop', '15–20 KM / City', 'District / Regional'] as const;
+const DAY_PRESETS = [5, 7, 10, 15, 30];
+const COVERAGE_OTHER = 'Other';
+
+type CustomErrors = Partial<Record<'budget' | 'days' | 'coverage' | 'state' | 'city' | 'area' | 'pin' | 'goal' | 'phone', string>>;
+
+function PlaceSheet({
+  visible,
+  title,
+  options,
+  onPick,
+  onClose,
+}: {
+  visible: boolean;
+  title: string;
+  options: string[];
+  onPick: (value: string) => void;
+  onClose: () => void;
+}) {
+  const styles = useStyles();
+  const [query, setQuery] = useState('');
+  const list = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return (q ? options.filter((option) => option.toLowerCase().includes(q)) : options).slice(0, 120);
+  }, [options, query]);
+  return (
+    <Sheet visible={visible} title={title} onClose={onClose}>
+      <Field boxed label="Search" value={query} onChangeText={setQuery} placeholder="Type to search" autoFocus />
+      <View>
+        {list.map((option) => (
+          <Pressable
+            key={option}
+            onPress={() => onPick(option)}
+            style={({ pressed }) => [styles.option, pressed && styles.optionPressed]}
+            accessibilityRole="button"
+          >
+            <Text style={styles.optionText}>{option}</Text>
+          </Pressable>
+        ))}
+        {!list.length ? <Text style={styles.photoHint}>Nothing matches that.</Text> : null}
+      </View>
+    </Sheet>
+  );
+}
+
+function BoxedPick({
+  label,
+  value,
+  placeholder,
+  error,
+  disabled,
+  onPress,
+}: {
+  label: string;
+  value: string;
+  placeholder: string;
+  error?: string;
+  disabled?: boolean;
+  onPress: () => void;
+}) {
+  const styles = useStyles();
+  const c = useConsoleColors();
+  return (
+    <View style={[styles.boxedPick, disabled && styles.boxedPickOff]}>
+      <Text style={styles.boxedPickLabel}>{label}</Text>
+      <Pressable
+        onPress={disabled ? undefined : onPress}
+        disabled={disabled}
+        accessibilityRole="button"
+        accessibilityLabel={`${label}${value ? `, ${value}` : ''}`}
+        style={styles.boxedPickBtn}
+      >
+        <Text style={[styles.boxedPickValue, !value && { color: c.isDark ? '#9A938C' : '#C9C9D1' }]} numberOfLines={1}>
+          {value || placeholder}
+        </Text>
+        <Ionicons name="chevron-down" size={18} color={c.muted} />
+      </Pressable>
+      {error ? <Text style={styles.error}>{error}</Text> : null}
+    </View>
+  );
+}
 
 type PackageCard = {
   id: string;
@@ -101,6 +185,7 @@ async function uploadForm(path: string, form: FormData) {
 export default function PromoteScreen() {
   const styles = useStyles();
   const c = useConsoleColors();
+  const placeholderTint = c.isDark ? '#9A938C' : '#C9C9D1';
   const router = useRouter();
   const back = useTabBack();
   const { run, notify } = useMerchantConsole();
@@ -116,12 +201,17 @@ export default function PromoteScreen() {
   const [budget, setBudget] = useState('');
   const [customDays, setCustomDays] = useState('');
   const [coverage, setCoverage] = useState('');
+  const [coverageOther, setCoverageOther] = useState(false);
+  const [customState, setCustomState] = useState('');
+  const [customCity, setCustomCity] = useState('');
+  const [placeMenu, setPlaceMenu] = useState<'state' | 'city' | null>(null);
   const [customPin, setCustomPin] = useState('');
   const [customArea, setCustomArea] = useState('');
   const [goal, setGoal] = useState('');
   const [phone, setPhone] = useState('');
   const [customNote, setCustomNote] = useState('');
   const [customSent, setCustomSent] = useState('');
+  const [customErrors, setCustomErrors] = useState<CustomErrors>({});
   const [pickError, setPickError] = useState(false);
   const [videoReady, setVideoReady] = useState(false);
   const [agreed, setAgreed] = useState(false);
@@ -250,15 +340,43 @@ export default function PromoteScreen() {
     else if (step === 'verify') setStep('offer');
     else back();
   };
+  const clearCustomError = (key: keyof CustomErrors) => {
+    setCustomErrors((current) => (current[key] ? { ...current, [key]: undefined } : current));
+  };
+  const validateCustom = (): CustomErrors => {
+    const next: CustomErrors = {};
+    const budgetInr = Number(budget.replace(/,/g, ''));
+    const days = Number(customDays);
+    if (!budget.trim()) next.budget = 'Enter a budget.';
+    else if (!Number.isFinite(budgetInr) || budgetInr < 100 || budgetInr > 5000000) {
+      next.budget = 'Enter a budget between ₹100 and ₹50,00,000.';
+    }
+    if (!customDays.trim()) next.days = 'Enter how many days.';
+    else if (!Number.isFinite(days) || days < 1 || days > 90) next.days = 'Enter 1 to 90 days.';
+    if (coverage.trim().length < 2) next.coverage = 'Choose how far the ads should go.';
+    if (!customState) next.state = 'Choose a state.';
+    if (!customCity) next.city = 'Choose a city.';
+    if (customArea.trim().length < 2) next.area = 'Enter the locality.';
+    if (!/^[1-9][0-9]{5}$/.test(customPin.trim())) next.pin = 'Enter a 6-digit pincode.';
+    if (goal.trim().length < 8) next.goal = 'Tell FinderB what the ad should promote.';
+    if (!/^[6-9]\d{9}$/.test(phone)) next.phone = 'Enter a 10-digit mobile number.';
+    return next;
+  };
   const sendCustom = async () => {
+    const issues = validateCustom();
+    setCustomErrors(issues);
+    if (Object.keys(issues).length) {
+      setError('Fill the highlighted fields.');
+      return;
+    }
     setBusy(true);
     setError('');
     const result = await run<{ success: true; requestId: string }>('requestCustomPromotion', {
       budgetInr: Number(budget.replace(/,/g, '')),
       durationDays: Number(customDays),
       coverage,
-      pincode: customPin,
-      area: customArea,
+      pincode: customPin.trim(),
+      area: [customArea.trim(), customCity, customState].filter(Boolean).join(', '),
       goal,
       phone,
       note: customNote,
@@ -288,10 +406,10 @@ export default function PromoteScreen() {
       {step === 'offer' ? (
         <>
           <View style={styles.intro}>
-            <Text style={styles.introKicker}>Facebook and Instagram ads, run for you</Text>
-            <Text style={styles.introTitle}>Nearby customers, on the apps they already open</Text>
+            <Text style={styles.introKicker}>Facebook and Instagram. We run the ads.</Text>
+            <Text style={styles.introTitle}>They live around this shop. They still don't know it.</Text>
             <Text style={styles.introBody}>
-              People nearby already open Facebook and Instagram. You pick how far the ads go and how many days they run. FinderB makes the ad, puts it in that area, and brings the recorded reach, views, and visits back here.
+              A person two kilometres away will not walk in if they have never seen you. They are already scrolling. You pick the area and the days. FinderB makes the ad, puts it in front of them, and brings the reach, views, and visits back here.
             </Text>
           </View>
           <View style={styles.planStack}>
@@ -332,23 +450,202 @@ export default function PromoteScreen() {
             <>
               <Text style={styles.h}>Tell FinderB what you need</Text>
               <Text style={styles.p}>This is not a payment. FinderB reads it and replies within 24 hours.</Text>
-              <Text style={styles.fieldLabel}>Budget you can spend (₹)</Text>
-              <TextInput value={budget} onChangeText={setBudget} keyboardType="number-pad" placeholder="5000" style={styles.input} />
-              <Text style={styles.fieldLabel}>How many days</Text>
-              <TextInput value={customDays} onChangeText={setCustomDays} keyboardType="number-pad" placeholder="7" style={styles.input} />
-              <Text style={styles.fieldLabel}>How far the ads should go</Text>
-              <TextInput value={coverage} onChangeText={setCoverage} placeholder="10 km around the shop" style={styles.input} />
-              <Text style={styles.fieldLabel}>Pincode</Text>
-              <TextInput value={customPin} onChangeText={setCustomPin} keyboardType="number-pad" maxLength={6} placeholder="400001" style={styles.input} />
-              <Text style={styles.fieldLabel}>Locality</Text>
-              <TextInput value={customArea} onChangeText={setCustomArea} placeholder="Andheri West" style={styles.input} />
-              <Text style={styles.fieldLabel}>What should the ad promote</Text>
-              <TextInput value={goal} onChangeText={setGoal} placeholder="Monsoon sale on cotton kurtas" multiline style={[styles.input, styles.inputTall]} />
-              <Text style={styles.fieldLabel}>Mobile number on the ad</Text>
-              <TextInput value={phone} onChangeText={setPhone} keyboardType="phone-pad" placeholder="98XXXXXXXX" style={styles.input} />
-              <Text style={styles.fieldLabel}>Anything else</Text>
-              <TextInput value={customNote} onChangeText={setCustomNote} placeholder="Optional" multiline style={[styles.input, styles.inputTall]} />
-              <Btn label="Send to FinderB" busy={busy} onPress={() => void sendCustom()} />
+              <View style={styles.customForm}>
+                <Field
+                  boxed
+                  label="Budget you can spend"
+                  prefix="₹"
+                  value={budget}
+                  onChangeText={(value) => {
+                    setBudget(value.replace(/[^\d]/g, '').slice(0, 7));
+                    clearCustomError('budget');
+                  }}
+                  keyboardType="number-pad"
+                  placeholder="5,000"
+                  placeholderTextColor={placeholderTint}
+                  error={customErrors.budget}
+                />
+                <View style={styles.fieldBlock}>
+                  <Text style={styles.coverLabel}>How many days</Text>
+                  <View style={styles.chipRow}>
+                    {DAY_PRESETS.map((day) => (
+                      <Chip
+                        key={day}
+                        small
+                        label={`${day}`}
+                        active={customDays === String(day)}
+                        onPress={() => {
+                          setCustomDays(String(day));
+                          clearCustomError('days');
+                        }}
+                      />
+                    ))}
+                  </View>
+                  <Field
+                    boxed
+                    label="Or type a number"
+                    value={customDays}
+                    onChangeText={(value) => {
+                      setCustomDays(value.replace(/[^\d]/g, '').slice(0, 2));
+                      clearCustomError('days');
+                    }}
+                    keyboardType="number-pad"
+                    placeholder="7"
+                    placeholderTextColor={placeholderTint}
+                    error={customErrors.days}
+                  />
+                </View>
+                <View style={styles.fieldBlock}>
+                  <Text style={styles.coverLabel}>How far the ads should go</Text>
+                  <View style={styles.chipRow}>
+                    {COVERAGE_PRESETS.map((item) => (
+                      <Chip
+                        key={item}
+                        small
+                        label={item}
+                        active={!coverageOther && coverage === item}
+                        onPress={() => {
+                          setCoverageOther(false);
+                          setCoverage(item);
+                          clearCustomError('coverage');
+                        }}
+                      />
+                    ))}
+                    <Chip
+                      small
+                      label={COVERAGE_OTHER}
+                      active={coverageOther}
+                      onPress={() => {
+                        setCoverageOther(true);
+                        setCoverage('');
+                        clearCustomError('coverage');
+                      }}
+                    />
+                  </View>
+                  {coverageOther ? (
+                    <Field
+                      boxed
+                      label="Describe the area"
+                      value={coverage}
+                      onChangeText={(value) => {
+                        setCoverage(value);
+                        clearCustomError('coverage');
+                      }}
+                      placeholder="20 km around the shop, or two neighbouring cities"
+                      placeholderTextColor={placeholderTint}
+                      error={customErrors.coverage}
+                    />
+                  ) : customErrors.coverage ? (
+                    <Text style={styles.error}>{customErrors.coverage}</Text>
+                  ) : null}
+                </View>
+                <View style={styles.pickRow}>
+                  <View style={styles.pickCol}>
+                    <BoxedPick
+                      label="State"
+                      value={customState}
+                      placeholder="Choose state"
+                      error={customErrors.state}
+                      onPress={() => setPlaceMenu('state')}
+                    />
+                  </View>
+                  <View style={styles.pickCol}>
+                    <BoxedPick
+                      label="City"
+                      value={customCity}
+                      placeholder={customState ? 'Choose city' : 'State first'}
+                      error={customErrors.city}
+                      disabled={!customState}
+                      onPress={() => customState && setPlaceMenu('city')}
+                    />
+                  </View>
+                </View>
+                <Field
+                  boxed
+                  label="Locality"
+                  value={customArea}
+                  onChangeText={(value) => {
+                    setCustomArea(value);
+                    clearCustomError('area');
+                  }}
+                  placeholder="Andheri West"
+                  placeholderTextColor={placeholderTint}
+                  error={customErrors.area}
+                />
+                <Field
+                  boxed
+                  label="Pincode"
+                  value={customPin}
+                  onChangeText={(value) => {
+                    setCustomPin(value.replace(/[^\d]/g, '').slice(0, 6));
+                    clearCustomError('pin');
+                  }}
+                  keyboardType="number-pad"
+                  maxLength={6}
+                  placeholder="400001"
+                  placeholderTextColor={placeholderTint}
+                  error={customErrors.pin}
+                />
+                <Field
+                  boxed
+                  multiline
+                  label="What should the ad promote"
+                  value={goal}
+                  onChangeText={(value) => {
+                    setGoal(value);
+                    clearCustomError('goal');
+                  }}
+                  placeholder="Monsoon sale on cotton kurtas"
+                  placeholderTextColor={placeholderTint}
+                  error={customErrors.goal}
+                />
+                <Field
+                  boxed
+                  label="Mobile number on the ad"
+                  prefix="+91"
+                  value={phone}
+                  onChangeText={(value) => {
+                    setPhone(mobileInputDigits(value, phone));
+                    clearCustomError('phone');
+                  }}
+                  keyboardType="phone-pad"
+                  placeholder="98XXXXXXXX"
+                  placeholderTextColor={placeholderTint}
+                  error={customErrors.phone}
+                />
+                <Field
+                  boxed
+                  multiline
+                  label="Anything else"
+                  value={customNote}
+                  onChangeText={setCustomNote}
+                  placeholder="Optional — timings, offer, or anything FinderB should know"
+                  placeholderTextColor={placeholderTint}
+                />
+                <Btn label="Send to FinderB" busy={busy} onPress={() => void sendCustom()} style={styles.sendBtn} />
+              </View>
+              {placeMenu ? (
+                <PlaceSheet
+                  key={placeMenu}
+                  visible
+                  title={placeMenu === 'state' ? 'Choose state' : `City in ${customState}`}
+                  options={placeMenu === 'state' ? INDIAN_STATES : citiesInState(customState)}
+                  onClose={() => setPlaceMenu(null)}
+                  onPick={(value) => {
+                    if (placeMenu === 'state') {
+                      if (value !== customState) {
+                        setCustomState(value);
+                        setCustomCity('');
+                      }
+                      clearCustomError('state');
+                    } else {
+                      setCustomCity(value);
+                      clearCustomError('city');
+                    }
+                    setPlaceMenu(null);
+                  }}
+                />
+              ) : null}
             </>
           )}
         </Panel>
@@ -409,8 +706,8 @@ export default function PromoteScreen() {
         <Panel>
           <Text style={styles.h}>{selected.name}</Text>
           <Text style={styles.p}>₹{selected.priceInr.toLocaleString('en-IN')} · {selected.durationDays} days · {selected.coverage}</Text>
-          <TextInput value={pincode} onChangeText={setPincode} placeholder="Pincode" keyboardType="number-pad" maxLength={6} style={styles.input} />
-          <TextInput value={area} onChangeText={setArea} placeholder="Locality" style={styles.input} />
+          <TextInput value={pincode} onChangeText={setPincode} placeholder="Pincode" placeholderTextColor={c.faint} keyboardType="number-pad" maxLength={6} style={styles.input} />
+          <TextInput value={area} onChangeText={setArea} placeholder="Locality" placeholderTextColor={c.faint} style={styles.input} />
           <Btn label={orderId ? `Order ${orderId}` : 'Save this area'} busy={busy && !orderId} disabled={Boolean(orderId)} onPress={() => void create()} />
           {orderId ? (
             <>
@@ -704,8 +1001,8 @@ const useStyles = createConsoleStyles((c) => ({
   error: { fontFamily: fonts.regular, fontSize: 13, color: c.danger },
   intro: { gap: 6, paddingHorizontal: 2, paddingBottom: 4 },
   introKicker: { fontFamily: fonts.regular, fontSize: 13, lineHeight: 18, color: c.muted },
-  introTitle: { fontFamily: fonts.regular, fontSize: 20, lineHeight: 26, color: c.ink },
-  introBody: { fontFamily: fonts.regular, fontSize: 14, lineHeight: 20, color: c.body },
+  introTitle: { fontFamily: fonts.regular, fontSize: 22, lineHeight: 28, color: c.ink },
+  introBody: { fontFamily: fonts.regular, fontSize: 14, lineHeight: 21, color: c.body },
   continueBtn: {
     minHeight: 48,
     borderRadius: 10,
@@ -770,6 +1067,28 @@ const useStyles = createConsoleStyles((c) => ({
   planLineText: { flex: 1, fontFamily: fonts.regular, fontSize: 13, lineHeight: 18 },
   planFine: { fontFamily: fonts.regular, fontSize: 11, lineHeight: 15, color: c.muted },
   input: { marginTop: 8, borderWidth: 1, borderColor: c.line, borderRadius: 10, padding: 10, color: c.ink, fontFamily: fonts.regular },
-  inputTall: { minHeight: 72, textAlignVertical: 'top' },
-  fieldLabel: { marginTop: 12, fontFamily: fonts.medium, fontSize: 13, color: c.ink },
+  customForm: { gap: 14, marginTop: 8 },
+  fieldBlock: { gap: 8 },
+  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  coverLabel: { fontFamily: fonts.medium, fontSize: 13, color: c.ink },
+  pickRow: { flexDirection: 'row', gap: 10 },
+  pickCol: { flex: 1, minWidth: 0 },
+  boxedPick: {
+    borderWidth: 1,
+    borderColor: c.lineStrong,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingTop: 8,
+    paddingBottom: 8,
+    backgroundColor: c.page,
+    gap: 2,
+  },
+  boxedPickOff: { opacity: 0.45 },
+  boxedPickLabel: { fontFamily: fonts.regular, fontSize: 13, color: c.muted },
+  boxedPickBtn: { flexDirection: 'row', alignItems: 'center', minHeight: 36, gap: 8 },
+  boxedPickValue: { flex: 1, fontFamily: fonts.regular, fontSize: 16, color: c.ink },
+  sendBtn: { marginTop: 8 },
+  option: { paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: c.line },
+  optionPressed: { opacity: 0.7 },
+  optionText: { fontFamily: fonts.regular, fontSize: 16, color: c.ink },
 }));

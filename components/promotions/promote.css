@@ -38,8 +38,17 @@
 .promo-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 .promo-field { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; font-size: 13px; font-weight: 600; }
 .promo-field input, .promo-field select, .promo-field textarea {
-  border: 1px solid #d5deea; border-radius: 10px; padding: 10px 12px; font: inherit; font-weight: 500;
+  border: 1px solid #d5deea; border-radius: 10px; padding: 10px 12px; font: inherit; font-weight: 500; color: #153551;
 }
+.promo-field select:disabled { opacity: 0.5; }
+.promo-field input::placeholder, .promo-field textarea::placeholder { color: #c5ccd6; }
+.promo-field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.promo-send { margin-top: 16px; }
+.promo-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.promo-chip {
+  border: 1px solid #d5deea; background: #fff; color: #153551; border-radius: 999px; padding: 6px 12px; font-size: 12px; font-weight: 600;
+}
+.promo-chip.on { background: #153551; color: #fff; border-color: #153551; }
 .promo-status { display: inline-flex; border-radius: 999px; background: #eef3f8; color: #153551; font-size: 12px; font-weight: 700; padding: 4px 8px; }
 .promo-error { margin-top: 12px; color: #b42318; font-size: 14px; }
 .promo-video { display: block; width: min(220px, 100%); margin-top: 12px; border-radius: 12px; background: #0f172a; }

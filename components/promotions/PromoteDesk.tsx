@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
+import { City, State } from 'country-state-city';
 import './promote.css';
 import { openRazorpayCheckout } from '@/lib/razorpay/client';
 import { DECLARATION, DOCUMENT_TYPES, inr } from '@/lib/promotions/model';
@@ -56,6 +57,9 @@ type Desk = {
 };
 
 const STEPS = ['Package', 'Verify', 'Area', 'Video', 'Pay'];
+const COVERAGE_PRESETS = ['5–8 KM around the shop', '15–20 KM / City', 'District / Regional'];
+const DAY_PRESETS = [5, 7, 10, 15, 30];
+const INDIAN_STATES = State.getStatesOfCountry('IN');
 
 export default function PromoteDesk({ mode, orderId }: { mode: 'promote' | 'list' | 'detail' | 'verify'; orderId?: string }) {
   const [desk, setDesk] = useState<Desk | null>(null);
@@ -71,6 +75,14 @@ export default function PromoteDesk({ mode, orderId }: { mode: 'promote' | 'list
   const [videoName, setVideoName] = useState('');
   const [customOpen, setCustomOpen] = useState(false);
   const [customSent, setCustomSent] = useState('');
+  const [customCoverage, setCustomCoverage] = useState('');
+  const [customDays, setCustomDays] = useState('');
+  const [customStateCode, setCustomStateCode] = useState('');
+  const [customCity, setCustomCity] = useState('');
+  const customCities = useMemo(
+    () => (customStateCode ? City.getCitiesOfState('IN', customStateCode) : []),
+    [customStateCode],
+  );
   const verifyForm = useRef<HTMLFormElement>(null);
   const uploadRequest = useRef<XMLHttpRequest | null>(null);
 
@@ -213,7 +225,7 @@ export default function PromoteDesk({ mode, orderId }: { mode: 'promote' | 'list
         <p className="promo-kicker">Growth & Marketing</p>
         <h1 className="promo-title">Promote your business online</h1>
         <p className="promo-lead">
-          People nearby already open Facebook and Instagram. You pick how far the ads go and how many days they run. FinderB makes the ad, puts it in that area, and brings the recorded reach, views, and visits back here.
+          They live around this shop. They still don't know it. A person two kilometres away will not walk in if they have never seen you. You pick the area and the days. FinderB makes the ad, puts it in front of them on Facebook and Instagram, and brings the reach, views, and visits back here.
         </p>
         <div className="promo-row" style={{ marginTop: 16 }}>
           <Link className="promo-btn-ghost" href="/business/promote">Packages</Link>
@@ -376,18 +388,66 @@ export default function PromoteDesk({ mode, orderId }: { mode: 'promote' | 'list
                   <button className="promo-btn-ghost" type="button" onClick={() => setCustomOpen((open) => !open)}>Ask for a custom plan</button>
                 )}
                 {customOpen && !customSent ? (
-                  <form action={(form) => {
+                  <form onSubmit={(event) => {
+                    event.preventDefault();
+                    const form = new FormData(event.currentTarget);
+                    const budgetInr = Number(String(form.get('budget') || '').replace(/,/g, ''));
+                    const durationDays = Number(customDays || form.get('days'));
+                    const coverage = customCoverage === 'Other' ? String(form.get('coverageOther') || '').trim() : customCoverage;
+                    const pincode = String(form.get('pincode') || '').trim();
+                    const state = INDIAN_STATES.find((item) => item.isoCode === customStateCode)?.name || '';
+                    const city = customCity.trim();
+                    const locality = String(form.get('area') || '').trim();
+                    const goal = String(form.get('goal') || '').trim();
+                    const phone = String(form.get('phone') || '').replace(/\D/g, '').replace(/^91/, '').slice(-10);
+                    const note = String(form.get('note') || '');
+                    if (!Number.isFinite(budgetInr) || budgetInr < 100 || budgetInr > 5000000) {
+                      setError('Enter a budget between ₹100 and ₹50,00,000.');
+                      return;
+                    }
+                    if (!Number.isFinite(durationDays) || durationDays < 1 || durationDays > 90) {
+                      setError('Enter 1 to 90 days.');
+                      return;
+                    }
+                    if (coverage.length < 2) {
+                      setError('Choose how far the ads should go.');
+                      return;
+                    }
+                    if (!state) {
+                      setError('Choose a state.');
+                      return;
+                    }
+                    if (city.length < 2) {
+                      setError('Enter the city.');
+                      return;
+                    }
+                    if (locality.length < 2) {
+                      setError('Enter the locality.');
+                      return;
+                    }
+                    if (!/^[1-9][0-9]{5}$/.test(pincode)) {
+                      setError('Enter a 6-digit pincode.');
+                      return;
+                    }
+                    if (goal.length < 8) {
+                      setError('Tell FinderB what the ad should promote.');
+                      return;
+                    }
+                    if (!/^[6-9]\d{9}$/.test(phone)) {
+                      setError('Enter a 10-digit mobile number for the ad.');
+                      return;
+                    }
                     setBusy(true);
                     setError('');
                     void requestCustomPromotion({
-                      budgetInr: Number(form.get('budget')),
-                      durationDays: Number(form.get('days')),
-                      coverage: String(form.get('coverage') || ''),
-                      pincode: String(form.get('pincode') || ''),
-                      area: String(form.get('area') || ''),
-                      goal: String(form.get('goal') || ''),
-                      phone: String(form.get('phone') || ''),
-                      note: String(form.get('note') || ''),
+                      budgetInr,
+                      durationDays,
+                      coverage,
+                      pincode,
+                      area: [locality, city, state].filter(Boolean).join(', '),
+                      goal,
+                      phone,
+                      note,
                     }).then((result) => {
                       setBusy(false);
                       if (!result.success) {
@@ -399,15 +459,95 @@ export default function PromoteDesk({ mode, orderId }: { mode: 'promote' | 'list
                     });
                   }}>
                     <p className="promo-note">This is not a payment. FinderB reads it and replies within 24 hours.</p>
-                    <label className="promo-field">Budget you can spend (₹)<input name="budget" inputMode="numeric" required /></label>
-                    <label className="promo-field">How many days<input name="days" inputMode="numeric" required /></label>
-                    <label className="promo-field">How far the ads should go<input name="coverage" required /></label>
-                    <label className="promo-field">Pincode<input name="pincode" inputMode="numeric" maxLength={6} required /></label>
-                    <label className="promo-field">Locality<input name="area" required /></label>
-                    <label className="promo-field">What should the ad promote<textarea name="goal" required rows={3} /></label>
-                    <label className="promo-field">Mobile number on the ad<input name="phone" inputMode="tel" required /></label>
-                    <label className="promo-field">Anything else<textarea name="note" rows={2} /></label>
-                    <button className="promo-btn" type="submit" disabled={busy}>{busy ? 'Sending…' : 'Send to FinderB'}</button>
+                    <label className="promo-field">Budget you can spend (₹)<input name="budget" inputMode="numeric" placeholder="5000" min={100} max={5000000} required /></label>
+                    <div className="promo-field">
+                      How many days
+                      <div className="promo-chips">
+                        {DAY_PRESETS.map((day) => (
+                          <button
+                            key={day}
+                            className={`promo-chip${customDays === String(day) ? ' on' : ''}`}
+                            type="button"
+                            onClick={() => setCustomDays(String(day))}
+                          >
+                            {day}
+                          </button>
+                        ))}
+                      </div>
+                      <input
+                        name="days"
+                        inputMode="numeric"
+                        placeholder="7"
+                        min={1}
+                        max={90}
+                        required
+                        value={customDays}
+                        onChange={(event) => setCustomDays(event.target.value.replace(/[^\d]/g, '').slice(0, 2))}
+                      />
+                    </div>
+                    <div className="promo-field">
+                      How far the ads should go
+                      <div className="promo-chips">
+                        {COVERAGE_PRESETS.map((item) => (
+                          <button
+                            key={item}
+                            className={`promo-chip${customCoverage === item ? ' on' : ''}`}
+                            type="button"
+                            onClick={() => setCustomCoverage(item)}
+                          >
+                            {item}
+                          </button>
+                        ))}
+                        <button
+                          className={`promo-chip${customCoverage === 'Other' ? ' on' : ''}`}
+                          type="button"
+                          onClick={() => setCustomCoverage('Other')}
+                        >
+                          Other
+                        </button>
+                      </div>
+                      {customCoverage === 'Other' ? (
+                        <input name="coverageOther" placeholder="20 km around the shop, or two neighbouring cities" required />
+                      ) : null}
+                    </div>
+                    <div className="promo-field-row">
+                      <label className="promo-field">State
+                        <select
+                          name="state"
+                          required
+                          value={customStateCode}
+                          onChange={(event) => {
+                            setCustomStateCode(event.target.value);
+                            setCustomCity('');
+                          }}
+                        >
+                          <option value="">Choose state</option>
+                          {INDIAN_STATES.map((state) => (
+                            <option key={state.isoCode} value={state.isoCode}>{state.name}</option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className="promo-field">City
+                        <select
+                          name="city"
+                          required
+                          disabled={!customStateCode}
+                          value={customCity}
+                          onChange={(event) => setCustomCity(event.target.value)}
+                        >
+                          <option value="">{customStateCode ? 'Choose city' : 'State first'}</option>
+                          {customCities.map((city, index) => (
+                            <option key={`${city.name}-${index}`} value={city.name}>{city.name}</option>
+                          ))}
+                        </select>
+                      </label>
+                    </div>
+                    <label className="promo-field">Locality<input name="area" placeholder="Andheri West" required minLength={2} /></label>
+                    <label className="promo-field">Pincode<input name="pincode" inputMode="numeric" maxLength={6} placeholder="400001" pattern="[1-9][0-9]{5}" required /></label>
+                    <label className="promo-field">What should the ad promote<textarea name="goal" required rows={3} minLength={8} placeholder="Monsoon sale on cotton kurtas" /></label>
+                    <label className="promo-field">Mobile number on the ad<input name="phone" inputMode="tel" placeholder="98XXXXXXXX" required /></label>
+                    <label className="promo-field">Anything else<textarea name="note" rows={2} placeholder="Optional — timings, offer, or anything FinderB should know" /></label>
+                    <button className="promo-btn promo-send" type="submit" disabled={busy}>{busy ? 'Sending…' : 'Send to FinderB'}</button>
                   </form>
                 ) : null}
               </section>
