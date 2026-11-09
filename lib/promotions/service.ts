@@ -170,12 +170,12 @@ function publicOrder(row: Record<string, unknown>) {
   const review = adReviewStatus(row);
   const campaignLabel = !paid
     ? review === 'denied'
-      ? 'Needs a change'
+      ? 'Change requested'
       : review === 'approved'
-        ? 'Approved · payment is open'
+        ? 'Ad approved'
         : review === 'pending'
-          ? 'With FinderB'
-          : 'Draft'
+          ? 'Video sent'
+          : 'Ad details saved'
     : (CAMPAIGN_LABEL[status] || status);
   return {
     id: String(row.id),

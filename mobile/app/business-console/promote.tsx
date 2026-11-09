@@ -17,6 +17,8 @@ import { citiesInState, INDIAN_STATES } from '../../lib/indianPlaces';
 import { mobileInputDigits } from '../../lib/phoneInput';
 import { LAUNCH_PACKAGES, peekPromotionDesk, storePromotionDesk } from '../../lib/promotionDeskCache';
 import { RazorpayCheckout } from '../../components/console/RazorpayCheckout';
+import { ProgressPie } from '../../components/console/ProgressPie';
+import { adProgress } from '../../lib/adProgress';
 import type { CheckoutStart } from '../../lib/merchantConsoleApi';
 
 const COVERAGE_PRESETS = ['5–8 KM around the shop', '15–20 KM / City', 'District / Regional'] as const;
@@ -738,26 +740,15 @@ export default function PromoteScreen() {
   const selected = packages.find((item) => item.id === packageId);
   const catalog = packages.find((item) => item.id === catalogId);
   const waiting = desk?.verification.status === 'submitted' || desk?.verification.status === 'under_review';
-  const adKind = (order: PromotionOrder): { key: 'draft' | 'review' | 'running' | 'expired' | 'closed'; label: string; icon: keyof typeof Ionicons.glyphMap; color: string } => {
-    const closed = ['rejected', 'cancelled', 'refund_pending', 'refunded'].includes(order.campaignStatus);
-    if (order.paymentStatus !== 'paid' && !closed && order.campaignStatus !== 'completed') {
-      const review = order.adReviewStatus || (order.videoReady ? 'pending' : 'none');
-      const label = review === 'denied'
-        ? 'Needs a change'
-        : review === 'approved'
-          ? 'Approved · payment is open'
-          : review === 'pending'
-            ? 'With FinderB · checking this ad'
-            : 'Draft · video still open';
-      return { key: 'draft', label, icon: 'create-outline', color: c.brand };
-    }
-    if (order.campaignStatus === 'under_review') return { key: 'review', label: 'Under review', icon: 'time', color: c.brand };
-    if (order.campaignStatus === 'completed') return { key: 'expired', label: 'Expired', icon: 'flag-outline', color: c.muted };
+  const adKind = (order: PromotionOrder): { key: 'draft' | 'review' | 'running' | 'expired' | 'closed'; label: string; percent: number; color: string } => {
+    const progress = adProgress(order);
+    if (progress.canContinue) return { key: 'draft', label: progress.step, percent: progress.percent, color: c.brand };
+    if (order.campaignStatus === 'under_review') return { key: 'review', label: progress.step, percent: progress.percent, color: c.brand };
+    if (order.campaignStatus === 'completed') return { key: 'expired', label: progress.step, percent: progress.percent, color: c.muted };
     if (['payment_successful', 'editing', 'video_ready', 'ad_active'].includes(order.campaignStatus)) {
-      return { key: 'running', label: 'Running', icon: 'megaphone-outline', color: c.success };
+      return { key: 'running', label: progress.step, percent: progress.percent, color: c.success };
     }
-    const names: Record<string, string> = { rejected: 'Rejected', cancelled: 'Cancelled', refund_pending: 'Refund pending', refunded: 'Refunded' };
-    return { key: 'closed', label: names[order.campaignStatus] || 'Closed', icon: 'ellipse-outline', color: c.muted };
+    return { key: 'closed', label: progress.step, percent: progress.percent, color: c.muted };
   };
   const ads = [...(desk?.orders || [])].sort((a, b) => {
     const rank = { draft: 0, review: 1, running: 2, expired: 3, closed: 4 };
@@ -967,13 +958,15 @@ export default function PromoteScreen() {
                     key={order.id}
                     onPress={() => kind.key === 'draft' ? openOrder(order) : router.push(`/business-console/promotion/${order.id}` as Href)}
                     accessibilityRole="button"
-                    accessibilityLabel={`${order.packageName}. ${kind.label}`}
+                    accessibilityLabel={`${order.packageName}. ${kind.label}. ${kind.percent}% completed.${kind.key === 'draft' ? ' Tap to continue.' : ''}`}
                     style={({ pressed }) => [styles.appBanner, pressed && styles.appBannerPressed]}
                   >
-                    <Ionicons name={kind.icon} size={16} color={kind.color} />
+                    <ProgressPie percent={kind.percent} color={kind.color} />
                     <View style={styles.appBannerCopy}>
                       <Text style={styles.appBannerTitle}>{order.packageName}</Text>
-                      <Text style={styles.appBannerMeta} numberOfLines={2}>{kind.label}</Text>
+                      <Text style={styles.appBannerMeta} numberOfLines={2}>
+                        {kind.key === 'draft' ? `${kind.label} · Tap to continue` : kind.label}
+                      </Text>
                     </View>
                     <Ionicons name="chevron-forward" size={16} color={c.muted} />
                   </Pressable>

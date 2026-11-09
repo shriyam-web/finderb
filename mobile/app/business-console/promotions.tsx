@@ -5,6 +5,8 @@ import { fonts } from '../../constants/typography';
 import { useConsoleColors } from '../../constants/consoleColors';
 import { useMerchantConsole } from '../../context/MerchantConsoleContext';
 import { ConsolePage, Panel, createConsoleStyles, useTabBack } from '../../components/console/kit';
+import { ProgressPie } from '../../components/console/ProgressPie';
+import { adProgress } from '../../lib/adProgress';
 
 type OrderCard = {
   id: string;
@@ -99,14 +101,6 @@ function when(value?: string | null) {
   });
 }
 
-function statusLabel(order: OrderCard) {
-  if (order.paymentStatus === 'paid') return order.campaignLabel;
-  if (order.adReviewStatus === 'denied') return 'Needs a change';
-  if (order.adReviewStatus === 'approved') return 'Approved · payment is open';
-  if (order.adReviewStatus === 'pending' || order.videoReady) return 'With FinderB';
-  return 'Draft · video still open';
-}
-
 function paymentLabel(status: string) {
   if (status === 'paid') return 'Paid';
   if (status === 'failed') return 'Payment failed';
@@ -125,6 +119,7 @@ function PurchaseGroup({
   onOpen: (id: string) => void;
 }) {
   const styles = useStyles();
+  const c = useConsoleColors();
   return (
     <View style={styles.group}>
       <Text style={styles.section}>{title}</Text>
@@ -134,16 +129,21 @@ function PurchaseGroup({
           order.durationDays ? `${order.durationDays} days` : '',
           order.coverage,
         ].filter(Boolean).join(' · ');
+        const progress = adProgress(order);
         return (
           <Pressable key={order.id} onPress={() => onOpen(order.id)}>
             <Panel>
-              <Text style={styles.h}>{order.packageName}</Text>
-              <Text style={styles.badge}>{statusLabel(order)}</Text>
+              <View style={styles.head}>
+                <ProgressPie percent={progress.percent} color={progress.canContinue ? c.brand : c.success} />
+                <View style={styles.headCopy}>
+                  <Text style={styles.h}>{order.packageName}</Text>
+                  <Text style={styles.badge}>{progress.canContinue ? `${progress.step} · Tap to continue` : progress.step}</Text>
+                </View>
+              </View>
               <Text style={styles.p}>Order {order.id}</Text>
               <Text style={styles.p}>₹{order.priceInr.toLocaleString('en-IN')}{span ? ` · ${span}` : ''}</Text>
               <Text style={styles.p}>{place || 'Area not set'}</Text>
               <Text style={styles.p}>{paymentLabel(order.paymentStatus)}</Text>
-              <Text style={styles.p}>{order.videoReady ? 'Video received' : 'Video not sent yet'}</Text>
               {order.createdAt ? <Text style={styles.p}>Bought {when(order.createdAt)}</Text> : null}
               {order.startedAt ? <Text style={styles.p}>Ads started {when(order.startedAt)}</Text> : null}
               {order.endedAt ? <Text style={styles.p}>Ended {when(order.endedAt)}</Text> : null}
@@ -165,6 +165,8 @@ function PurchaseGroup({
 const useStyles = createConsoleStyles((c) => ({
   loading: { minHeight: 220, alignItems: 'center', justifyContent: 'center' },
   group: { gap: 10 },
+  head: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  headCopy: { flex: 1, minWidth: 0 },
   section: { fontFamily: fonts.semiBold, fontSize: 13, letterSpacing: 0.4, textTransform: 'uppercase', color: c.muted },
   h: { fontFamily: fonts.semiBold, fontSize: 16, color: c.ink },
   badge: { alignSelf: 'flex-start', marginTop: 6, fontFamily: fonts.semiBold, fontSize: 12, color: c.ink, backgroundColor: c.sunken, borderRadius: 99, paddingHorizontal: 8, paddingVertical: 3, overflow: 'hidden' },
