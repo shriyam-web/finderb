@@ -95,7 +95,7 @@ const FAQS = [
   },
   {
     q: 'What has to be ready before an ad can start?',
-    a: 'Three things. A live photo of the shop front, taken on the camera while you are at the shop — a gallery picture is not accepted. One proof: GST, Udyam, a shop licence, or Aadhaar or PAN with a recent electricity bill. And the declaration that the shop is genuine and that customer payments stay your responsibility. FinderB reviews this. The ad starts only after that review is approved and payment is confirmed. Your phone’s location is checked so the shop is in India.',
+    a: 'A live certificate photo and a live selfie, both taken on the camera. A saved gallery photo is not accepted for either. Choose GST, Udyam, a shop licence, or Aadhaar or PAN with a recent electricity bill, then accept the declaration. FinderB reviews both photos. The ad starts only after that review is approved and payment is confirmed. Your phone’s location is checked so the shop is in India. The promotional video is separate, and that one can come from your gallery.',
   },
   {
     q: 'What do the promotion packages actually include?',
@@ -107,11 +107,11 @@ const FAQS = [
   },
   {
     q: 'What shop video should I send?',
-    a: 'A vertical video of the real shop, about 15 to 45 seconds, in mp4 or a quicktime file, up to 60 MB. Film the front, the counter, or the work you do. FinderB checks the length and the shape, then edits it before the ad goes out. A video that is too short, too long, or the wrong shape is not used.',
+    a: 'A vertical video of the real shop, about 15 to 45 seconds, in mp4 or a quicktime file, up to 60 MB. You can choose it from your gallery. Film the front, the counter, or the work you do with the phone held upright. FinderB checks the length and the shape, then edits it before the ad goes out. A video that is too short, too long, or the wrong shape is not used.',
   },
   {
-    q: 'Why must the shop photo be taken on the spot?',
-    a: 'The photo is proof that the shop is open where you say it is. Take Shop Photo opens the camera. A picture already saved in the gallery can be old or from somewhere else, so it is refused. Stay at the shop, allow location, and take the photo there. If the camera is blocked, allow it for FinderB in the phone settings and try again.',
+    q: 'Why must the certificate and selfie be taken on the spot?',
+    a: 'The back camera opens for the certificate, then the front camera opens for your face. A picture already saved in the gallery can be old or from somewhere else, so it is refused for both. Stay at the shop, allow location, and take them there. If the camera is blocked, allow it for FinderB in the phone settings and try again. The promotional video is different: that one can be chosen from the gallery.',
   },
   {
     q: 'What is the difference between my public contact and Contact FinderB?',

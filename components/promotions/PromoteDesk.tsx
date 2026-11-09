@@ -665,8 +665,8 @@ export default function PromoteDesk({ mode, orderId }: { mode: 'promote' | 'list
               <section className="promo-card" style={{ marginTop: 16 }}>
                 <h2>Promotional video</h2>
                 <p className="promo-meta">Order {draftId}</p>
-                <p className="promo-note">Film the shop yourself and hold the phone upright. MP4 or MOV, about 9:16, 15 to 45 seconds, 60 MB or smaller. A wide video, a photo, or a clip outside that length is not accepted.</p>
-                <label className="promo-field">Video
+                <p className="promo-note">Upload a video from your gallery. MP4 or MOV, phone held upright (about 9:16), 15 to 45 seconds, 60 MB or smaller. A wide video, a photo, or a clip outside that length is not accepted.</p>
+                <label className="promo-field">Video from your gallery
                   <input type="file" accept="video/mp4,video/quicktime" onChange={(event) => {
                     const file = event.target.files?.[0];
                     if (!file) return;

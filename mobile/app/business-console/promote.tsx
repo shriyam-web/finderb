@@ -1117,11 +1117,11 @@ export default function PromoteScreen() {
         <Panel>
           <Text style={styles.h}>Promotional video</Text>
           {orderId ? <Text style={styles.p}>Order {orderId}</Text> : null}
-          <Text style={styles.p}>Film the shop yourself. Hold the phone upright.</Text>
-          <Text style={styles.photoHint}>MP4 or MOV. Vertical, about 9:16. 15 to 45 seconds. 60 MB or smaller. A wide video, a photo, or a clip outside that length is not accepted.</Text>
+          <Text style={styles.p}>Pick a video from your gallery. Hold the phone upright when you film it.</Text>
+          <Text style={styles.photoHint}>A gallery video is accepted. MP4 or MOV. Vertical, about 9:16. 15 to 45 seconds. 60 MB or smaller. A wide video, a photo, or a clip outside that length is not accepted.</Text>
           {uploadProgress > 0 && uploadProgress < 100 ? <Text style={styles.p}>Uploading {uploadProgress}%</Text> : null}
           <Btn
-            label={busy ? `Uploading ${uploadProgress}%` : 'Choose video'}
+            label={busy ? `Uploading ${uploadProgress}%` : 'Choose from gallery'}
             busy={busy}
             onPress={() => void video()}
           />
