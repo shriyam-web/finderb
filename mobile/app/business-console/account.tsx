@@ -409,13 +409,14 @@ function AccountBody({ o }: { o: ConsoleOverview }) {
   const styles = useStyles();
   const c = useConsoleColors();
   const iconTint = c.accent;
-  const { run } = useMerchantConsole();
+  const { run, refresh } = useMerchantConsole();
   const { scrollTo } = useConsoleScroll();
   const { focus } = useLocalSearchParams<{ focus?: string }>();
   const [contact, setContact] = useState<ContactKind | null>(null);
   const [passwordOpen, setPasswordOpen] = useState(false);
   const [requestField, setRequestField] = useState<'category' | 'legalName' | 'displayName' | null>(null);
   const [requests, setRequests] = useState<Requests | null>(null);
+  const [pulling, setPulling] = useState(false);
   const b = o.business;
 
   useFocusEffect(
@@ -438,7 +439,21 @@ function AccountBody({ o }: { o: ConsoleOverview }) {
   }, [focus, isOwner]);
 
   return (
-    <ConsolePage title="Login & security" subtitle="Account" docked>
+    <ConsolePage
+      title="Login & security"
+      subtitle="Account"
+      docked
+      refreshing={pulling}
+      onRefresh={() => {
+        setPulling(true);
+        void Promise.all([
+          refresh(),
+          run<Requests>('changeRequests').then((result) => {
+            if (!isFailure(result)) setRequests(result);
+          }),
+        ]).finally(() => setPulling(false));
+      }}
+    >
       {!isOwner ? (
         <Text style={styles.footnote}>
           Login email, mobile, password, and team invites stay with the original business owner.

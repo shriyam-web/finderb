@@ -989,6 +989,8 @@ export async function runConsoleAction(userId: string, businessId: string, body:
         packageId: String(body.packageId || ''),
         pincode: String(body.pincode || ''),
         area: String(body.area || ''),
+        audience: String(body.audience || ''),
+        content: String(body.content || ''),
       });
     case 'promotionVideoTicket':
       return (await import('@/lib/promotions/service')).issuePromotionVideoUpload(businessId, String(body.orderId || ''));

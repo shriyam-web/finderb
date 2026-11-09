@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Text, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { fonts } from '../../../constants/typography';
@@ -29,17 +29,35 @@ export default function PromotionDetailScreen() {
   const { run } = useMerchantConsole();
   const [order, setOrder] = useState<OrderCard | null>(null);
   const [error, setError] = useState('');
+  const [pulling, setPulling] = useState(false);
 
-  useEffect(() => {
-    if (!id) return;
-    void run<{ success: true; order: OrderCard }>('promotion', { orderId: id }).then((result) => {
+  const load = useCallback(() => {
+    if (!id) return Promise.resolve();
+    return run<{ success: true; order: OrderCard }>('promotion', { orderId: id }).then((result) => {
       if (!result.success) setError(result.error);
-      else setOrder(result.order);
+      else {
+        setError('');
+        setOrder(result.order);
+      }
     });
   }, [id, run]);
 
+  useEffect(() => {
+    void load();
+  }, [load]);
+
   return (
-    <ConsolePage title={order?.packageName || 'Promotion'} subtitle={order?.id || ''} onBack={back} docked>
+    <ConsolePage
+      title={order?.packageName || 'Promotion'}
+      subtitle={order?.id || ''}
+      onBack={back}
+      docked
+      refreshing={pulling}
+      onRefresh={() => {
+        setPulling(true);
+        void load().finally(() => setPulling(false));
+      }}
+    >
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {order ? (
         <Panel>

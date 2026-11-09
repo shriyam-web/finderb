@@ -182,6 +182,7 @@ function JobsBody({ o }: { o: ConsoleOverview }) {
   const styles = useStyles();
   const { run, notify, refresh } = useMerchantConsole();
   const [jobs, setJobs] = useState<ConsoleJob[] | null>(null);
+  const [pulling, setPulling] = useState(false);
   const [error, setError] = useState('');
   const [editing, setEditing] = useState<{ id: string | null; draft: Draft } | null>(null);
   const [saving, setSaving] = useState(false);
@@ -294,6 +295,11 @@ function JobsBody({ o }: { o: ConsoleOverview }) {
     <ConsolePage
       title="Jobs"
       docked
+      refreshing={pulling}
+      onRefresh={() => {
+        setPulling(true);
+        void Promise.all([refresh(), load()]).finally(() => setPulling(false));
+      }}
       subtitle={jobs ? `${activeCount} of ${max} open` : 'Hiring'}
       footer={
         <Btn

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, AppState, Platform, Pressable, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Animated, AppState, Easing, Linking, Platform, Pressable, Text, TextInput, View } from 'react-native';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
@@ -12,7 +12,7 @@ import { useMerchantConsole } from '../../context/MerchantConsoleContext';
 import { queuePermissionRequest, requestLocationPermission } from '../../lib/permissionGate';
 import { getStoredToken } from '../../lib/session';
 import { SITE_URL } from '../../lib/supabase';
-import { Btn, Chip, ConsolePage, Field, Panel, Sheet, createConsoleStyles, useTabBack } from '../../components/console/kit';
+import { Btn, Chip, ConsolePage, Field, Panel, PickField, Sheet, createConsoleStyles, useTabBack } from '../../components/console/kit';
 import { citiesInState, INDIAN_STATES } from '../../lib/indianPlaces';
 import { mobileInputDigits } from '../../lib/phoneInput';
 import { LAUNCH_PACKAGES, peekPromotionDesk, storePromotionDesk } from '../../lib/promotionDeskCache';
@@ -20,6 +20,14 @@ import { RazorpayCheckout } from '../../components/console/RazorpayCheckout';
 import type { CheckoutStart } from '../../lib/merchantConsoleApi';
 
 const COVERAGE_PRESETS = ['5–8 KM around the shop', '15–20 KM / City', 'District / Regional'] as const;
+const AD_TARGETS = [
+  'More views',
+  'More calls',
+  'More shop visits',
+  'More messages',
+  'Informative',
+  'Awareness',
+] as const;
 const DAY_PRESETS = [5, 7, 10, 15, 30];
 const COVERAGE_OTHER = 'Other';
 
@@ -124,8 +132,12 @@ type PromotionOrder = {
   paymentStatus: string;
   campaignStatus: string;
   campaignLabel: string;
+  adReviewStatus?: 'none' | 'pending' | 'approved' | 'denied';
+  adReviewReason?: string;
   targetPincode: string;
   targetArea: string;
+  audience?: string;
+  content?: string;
   videoReady: boolean;
   createdAt: string | null;
 };
@@ -375,7 +387,7 @@ function uploadForm(path: string, form: FormData): Promise<{ success?: boolean; 
   }));
 }
 
-const VIDEO_HINT = 'Use an MP4 or MOV, hold the phone upright (about 9:16), keep it between 15 and 45 seconds, and stay under 60 MB.';
+const VIDEO_HINT = 'Choose an MP4 or MOV that is already vertical (about 9:16), between 15 and 45 seconds, and under 60 MB.';
 
 function uploadPercent(loaded: number, total: number) {
   if (!Number.isFinite(loaded) || !Number.isFinite(total) || total <= 0) return 0;
@@ -391,7 +403,7 @@ function videoProblem(asset: ImagePicker.ImagePickerAsset) {
     return `This video is ${Math.round(seconds)} seconds. It must be between 15 and 45 seconds.`;
   }
   if (asset.width && asset.height && asset.height / asset.width < 1.5) {
-    return 'This video is not vertical. Hold the phone upright so the picture is about 9:16.';
+    return 'This video is not vertical. Choose one that is about 9:16.';
   }
   const mime = asset.mimeType || '';
   if (mime && !/^video\/(mp4|quicktime)$/i.test(mime)) return `This file is not an MP4 or MOV. ${VIDEO_HINT}`;
@@ -432,14 +444,20 @@ export default function PromoteScreen() {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [packageId, setPackageId] = useState('');
+  const [catalogId, setCatalogId] = useState('');
   const [pincode, setPincode] = useState('');
   const [area, setArea] = useState('');
+  const [adTargets, setAdTargets] = useState<string[]>([]);
+  const [targetNote, setTargetNote] = useState('');
+  const [adContent, setAdContent] = useState('');
+  const [targetOpen, setTargetOpen] = useState(false);
   const [orderId, setOrderId] = useState('');
   const [checkout, setCheckout] = useState<CheckoutStart | null>(null);
-  const [step, setStep] = useState<'offer' | 'verify' | 'track' | 'area' | 'video' | 'pay' | 'done' | 'custom'>(() => {
-    const status = peekPromotionDesk()?.verification.status;
-    return status === 'submitted' || status === 'under_review' ? 'track' : 'offer';
-  });
+  const [step, setStep] = useState<'offer' | 'verify' | 'track' | 'appPlan' | 'area' | 'video' | 'review' | 'pay' | 'done' | 'custom'>('offer');
+  const [inApplication, setInApplication] = useState(false);
+  const [newAd, setNewAd] = useState(false);
+  const newAdRef = useRef(false);
+  const fromComposer = useRef(false);
   const [budget, setBudget] = useState('');
   const [customDays, setCustomDays] = useState('');
   const [coverage, setCoverage] = useState('');
@@ -461,26 +479,18 @@ export default function PromoteScreen() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [phase, setPhase] = useState<'' | 'certificate' | 'selfie' | 'location' | 'upload'>('');
   const [opening, setOpening] = useState(true);
+  const [pulling, setPulling] = useState(false);
+  const [anotherAsk, setAnotherAsk] = useState(false);
+  const [draftAsk, setDraftAsk] = useState(false);
+  const [adReview, setAdReview] = useState<'none' | 'pending' | 'approved' | 'denied'>('none');
+  const [adReviewReason, setAdReviewReason] = useState('');
   const resumed = useRef(false);
 
   const resumeFrom = (result: Desk) => {
     const status = result.verification.status;
-    const unpaid = (result.orders || []).find((item) => item.paymentStatus !== 'paid');
-    if (status === 'submitted' || status === 'under_review') {
-      setStep('track');
-      return;
-    }
+    if (status === 'submitted' || status === 'under_review') return;
     if (status === 'rejected' || status === 'resubmission_required') {
       setStep('verify');
-      return;
-    }
-    if (status === 'approved' && unpaid) {
-      setOrderId(unpaid.id);
-      setPackageId(unpaid.packageId);
-      setPincode(unpaid.targetPincode);
-      setArea(unpaid.targetArea);
-      setVideoReady(unpaid.videoReady);
-      setStep(unpaid.videoReady ? 'pay' : 'video');
     }
   };
 
@@ -508,6 +518,13 @@ export default function PromoteScreen() {
       live = false;
     };
   }, []);
+
+  useEffect(() => {
+    const status = desk?.verification.status;
+    if (status !== 'submitted' && status !== 'under_review') return;
+    const timer = setInterval(() => { void load(false); }, 15000);
+    return () => clearInterval(timer);
+  }, [desk?.verification.status]);
 
   const verify = async () => {
     if (busy) return;
@@ -577,17 +594,43 @@ export default function PromoteScreen() {
   };
 
   const create = async () => {
-    setBusy(true);
     setError('');
-    const result = await run<{ success: true; orderId: string }>('createPromotion', { packageId, pincode, area });
+    if (!adTargets.length || adTargets.length > 3 || adTargets.some((item) => !(AD_TARGETS as readonly string[]).includes(item))) {
+      setError(adTargets.length > 3 ? 'Choose up to 3 targets.' : 'Choose the target of this ad.');
+      return;
+    }
+    if (adContent.trim().length < 8) {
+      setError('Write what the ad should say.');
+      return;
+    }
+    if (area.trim().length < 2) {
+      setError('Enter the shop locality.');
+      return;
+    }
+    if (!/^[1-9][0-9]{5}$/.test(pincode.trim())) {
+      setError('Enter a 6-digit pincode.');
+      return;
+    }
+    setBusy(true);
+    const result = await run<{ success: true; orderId: string }>('createPromotion', {
+      packageId,
+      pincode,
+      area,
+      audience: adTargets.join(', '),
+      content: adContent.trim(),
+    });
     setBusy(false);
     if (!result.success) {
       setError(result.error);
       return;
     }
+    newAdRef.current = false;
+    fromComposer.current = true;
+    setNewAd(false);
     setOrderId(result.orderId);
     setVideoReady(false);
     setStep('video');
+    void load(false);
   };
 
   const video = async () => {
@@ -673,8 +716,10 @@ export default function PromoteScreen() {
       return;
     }
     setVideoReady(true);
-    notify('Video received');
-    setStep('pay');
+    setAdReview('pending');
+    setAdReviewReason('');
+    notify('Sent to FinderB');
+    setStep('review');
   };
 
   const pay = async () => {
@@ -691,12 +736,86 @@ export default function PromoteScreen() {
   const approved = desk?.verification.status === 'approved';
   const packages = desk?.packages?.length ? desk.packages : LAUNCH_PACKAGES;
   const selected = packages.find((item) => item.id === packageId);
+  const catalog = packages.find((item) => item.id === catalogId);
   const waiting = desk?.verification.status === 'submitted' || desk?.verification.status === 'under_review';
+  const adKind = (order: PromotionOrder): { key: 'draft' | 'review' | 'running' | 'expired' | 'closed'; label: string; icon: keyof typeof Ionicons.glyphMap; color: string } => {
+    const closed = ['rejected', 'cancelled', 'refund_pending', 'refunded'].includes(order.campaignStatus);
+    if (order.paymentStatus !== 'paid' && !closed && order.campaignStatus !== 'completed') {
+      const review = order.adReviewStatus || (order.videoReady ? 'pending' : 'none');
+      const label = review === 'denied'
+        ? 'Needs a change'
+        : review === 'approved'
+          ? 'Approved · payment is open'
+          : review === 'pending'
+            ? 'With FinderB · checking this ad'
+            : 'Draft · video still open';
+      return { key: 'draft', label, icon: 'create-outline', color: c.brand };
+    }
+    if (order.campaignStatus === 'under_review') return { key: 'review', label: 'Under review', icon: 'time', color: c.brand };
+    if (order.campaignStatus === 'completed') return { key: 'expired', label: 'Expired', icon: 'flag-outline', color: c.muted };
+    if (['payment_successful', 'editing', 'video_ready', 'ad_active'].includes(order.campaignStatus)) {
+      return { key: 'running', label: 'Running', icon: 'megaphone-outline', color: c.success };
+    }
+    const names: Record<string, string> = { rejected: 'Rejected', cancelled: 'Cancelled', refund_pending: 'Refund pending', refunded: 'Refunded' };
+    return { key: 'closed', label: names[order.campaignStatus] || 'Closed', icon: 'ellipse-outline', color: c.muted };
+  };
+  const ads = [...(desk?.orders || [])].sort((a, b) => {
+    const rank = { draft: 0, review: 1, running: 2, expired: 3, closed: 4 };
+    return rank[adKind(a).key] - rank[adKind(b).key];
+  });
+  const showMyAds = waiting || approved || ads.length > 0;
+  const openOrder = (order: PromotionOrder) => {
+    setError('');
+    setPickError(false);
+    newAdRef.current = false;
+    setNewAd(false);
+    setInApplication(true);
+    setOrderId(order.id);
+    setPackageId(order.packageId);
+    setPincode(order.targetPincode);
+    setArea(order.targetArea);
+    setAdTargets((order.audience || '').split(',').map((item) => item.trim()).filter(Boolean));
+    setAdContent(order.content || '');
+    setVideoReady(order.videoReady);
+    const review = order.adReviewStatus || (order.videoReady ? 'pending' : 'none');
+    setAdReview(review);
+    setAdReviewReason(order.adReviewReason || '');
+    fromComposer.current = false;
+    setStep(!order.videoReady ? 'video' : review === 'approved' ? 'pay' : 'review');
+  };
+  const openApplication = () => {
+    setError('');
+    setPickError(false);
+    newAdRef.current = false;
+    setNewAd(false);
+    setInApplication(true);
+    setOrderId('');
+    setPackageId('');
+    setPincode('');
+    setArea('');
+    setAdTargets([]);
+    setAdContent('');
+    setVideoReady(false);
+    setStep('track');
+  };
+  const continueApplication = () => {
+    setError('');
+    if (orderId) {
+      setStep(!videoReady ? 'video' : adReview === 'approved' ? 'pay' : 'review');
+      return;
+    }
+    setStep('appPlan');
+  };
   const goBack = () => {
-    if (step === 'custom' || step === 'track' || step === 'done') setStep('offer');
-    else if (step === 'pay') setStep('video');
-    else if (step === 'video') setStep('area');
-    else if (step === 'area') setStep(approved ? 'offer' : 'verify');
+    if (step === 'custom' || step === 'done') setStep('offer');
+    else if (step === 'appPlan') setStep('track');
+    else if (step === 'track') {
+      setInApplication(false);
+      setStep('offer');
+    } else if (step === 'pay') setStep('review');
+    else if (step === 'review') setStep('video');
+    else if (step === 'video') setStep(fromComposer.current ? 'area' : 'offer');
+    else if (step === 'area') setStep(newAd ? 'offer' : inApplication ? (orderId ? 'track' : 'appPlan') : approved ? 'offer' : 'verify');
     else if (step === 'verify') setStep('offer');
     else back();
   };
@@ -750,19 +869,50 @@ export default function PromoteScreen() {
     notify('Custom plan sent');
     await load();
   };
+  const startNewAd = () => {
+    if (!catalog) return;
+    setDraftAsk(false);
+    setInApplication(false);
+    newAdRef.current = true;
+    setNewAd(true);
+    setOrderId('');
+    setPackageId(catalog.id);
+    setVideoReady(false);
+    setAdReview('none');
+    setAdReviewReason('');
+    setPincode('');
+    setArea('');
+    setAdTargets([]);
+    setAdContent('');
+    setStep('area');
+  };
   const proceed = () => {
-    if (!selected) {
+    if (!catalog) {
       setPickError(true);
       return;
     }
     setPickError(false);
     setError('');
-    setStep(waiting ? 'track' : approved ? 'area' : 'verify');
+    if (waiting) {
+      setAnotherAsk(true);
+      return;
+    }
+    if (approved) {
+      const drafts = (desk?.orders || []).filter((order) => adKind(order).key === 'draft');
+      if (drafts.length) {
+        setDraftAsk(true);
+        return;
+      }
+      startNewAd();
+      return;
+    }
+    setPackageId(catalog.id);
+    setStep('verify');
   };
 
   if (opening) {
     return (
-      <ConsolePage title="Promote online" subtitle="Checking your application" onBack={back} docked>
+      <ConsolePage title="Promote online" subtitle="Checking your application" onBack={back} docked refreshing={pulling} onRefresh={() => { setPulling(true); void load(false).finally(() => setPulling(false)); }}>
         <View style={styles.opening}>
           <ActivityIndicator size="large" color={c.primary} />
         </View>
@@ -771,10 +921,67 @@ export default function PromoteScreen() {
   }
 
   return (
-    <ConsolePage title="Promote online" subtitle={step === 'offer' ? 'Choose a package' : step === 'custom' ? 'Custom plan' : step === 'verify' ? 'Certificate and selfie' : step === 'track' ? 'Application status' : step === 'area' ? 'Where the ads run' : step === 'video' ? 'Promotional video' : step === 'pay' ? 'Pay for this package' : 'Payment received'} onBack={goBack} docked>
+    <ConsolePage title="Promote online" subtitle={step === 'offer' ? 'Choose a package' : step === 'custom' ? 'Custom plan' : step === 'verify' ? 'Certificate and selfie' : step === 'track' ? 'Application status' : step === 'appPlan' ? 'This application' : step === 'area' ? (newAd || !orderId ? 'About this ad' : 'Where the ads run') : step === 'video' ? 'Promotional video' : step === 'review' ? 'Ad check' : step === 'pay' ? 'Pay for this package' : 'Payment received'} scrollToken={step} onBack={goBack} docked refreshing={pulling} onRefresh={() => { setPulling(true); void load(false).finally(() => setPulling(false)); }}>
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {step === 'offer' ? (
         <>
+          {showMyAds ? (
+            <View style={styles.myAds}>
+              <Text style={styles.myAdsTitle}>My Ads</Text>
+              {waiting ? (
+                <Pressable
+                  onPress={() => setStep('track')}
+                  accessibilityRole="button"
+                  accessibilityLabel="Active application. FinderB is checking."
+                  style={({ pressed }) => [styles.appBanner, pressed && styles.appBannerPressed]}
+                >
+                  <Ionicons name="time" size={16} color={c.brand} />
+                  <View style={styles.appBannerCopy}>
+                    <Text style={styles.appBannerTitle}>Active application</Text>
+                    <Text style={styles.appBannerMeta} numberOfLines={2}>
+                      {`FinderB is checking · ${expectedBy(desk?.verification.submittedAt)}`}
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={16} color={c.muted} />
+                </Pressable>
+              ) : null}
+              {approved && ads.length === 0 ? (
+                <Pressable
+                  onPress={openApplication}
+                  accessibilityRole="button"
+                  accessibilityLabel="Business Verified. Open this application."
+                  style={({ pressed }) => [styles.appBanner, pressed && styles.appBannerPressed]}
+                >
+                  <Ionicons name="checkmark-circle" size={16} color={c.success} />
+                  <View style={styles.appBannerCopy}>
+                    <Text style={styles.appBannerTitle}>Business Verified</Text>
+                    <Text style={styles.appBannerMeta} numberOfLines={2}>Open it to finish this application</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={16} color={c.muted} />
+                </Pressable>
+              ) : null}
+              {ads.map((order) => {
+                const kind = adKind(order);
+                return (
+                  <Pressable
+                    key={order.id}
+                    onPress={() => kind.key === 'draft' ? openOrder(order) : router.push(`/business-console/promotion/${order.id}` as Href)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${order.packageName}. ${kind.label}`}
+                    style={({ pressed }) => [styles.appBanner, pressed && styles.appBannerPressed]}
+                  >
+                    <Ionicons name={kind.icon} size={16} color={kind.color} />
+                    <View style={styles.appBannerCopy}>
+                      <Text style={styles.appBannerTitle}>{order.packageName}</Text>
+                      <Text style={styles.appBannerMeta} numberOfLines={2}>{kind.label}</Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={16} color={c.muted} />
+                  </Pressable>
+                );
+              })}
+              <View style={styles.myAdsRule} />
+            </View>
+          ) : null}
           <View style={styles.intro}>
             <Text style={styles.introKicker}>Facebook and Instagram. We run the ads.</Text>
             <Text style={styles.introTitle}>They live around this shop. They still don't know it.</Text>
@@ -784,17 +991,17 @@ export default function PromoteScreen() {
           </View>
           <View style={styles.planStack}>
             {packages.map((item) => (
-              <PlanCard key={item.id} item={item} selected={item.id === packageId} onPress={() => { setPackageId(item.id); setPickError(false); }} />
+              <PlanCard key={item.id} item={item} selected={item.id === catalogId} onPress={() => { setCatalogId(item.id); setPickError(false); }} />
             ))}
           </View>
-          <Text style={styles.planFine}>Package reach is an estimate, not a promise. Ads start only after your shop is verified and payment is confirmed.</Text>
+          <Text style={styles.planFine}>Package reach is an estimate, not a promise. Ads start after the shop is verified, FinderB approves the ad, and payment is confirmed.</Text>
           {pickError ? <Text style={styles.error}>Select a plan to continue.</Text> : null}
           <Pressable
             onPress={proceed}
             accessibilityRole="button"
             style={({ pressed }) => [styles.continueBtn, pressed && styles.continuePressed]}
           >
-            <Text style={styles.continueText}>{selected ? `Continue with ${selected.name}` : 'Continue'}</Text>
+            <Text style={styles.continueText}>{catalog ? `Continue with ${catalog.name}` : 'Continue'}</Text>
           </Pressable>
           {desk?.customRequest && ['received', 'in_review'].includes(desk.customRequest.status) ? (
             <Panel>
@@ -1038,7 +1245,7 @@ export default function PromoteScreen() {
           {waiting ? (
             <Btn label="See application status" onPress={() => setStep('track')} />
           ) : approved ? (
-            <Btn label="Continue" onPress={() => setStep('area')} />
+            <Btn label="Open this application" onPress={openApplication} />
           ) : (
             <>
               <Text style={styles.stepLabel}>1. Certificate, then 2. selfie</Text>
@@ -1085,37 +1292,96 @@ export default function PromoteScreen() {
         </View>
       ) : null}
       {step === 'track' ? (
-        <Panel>
-          <Text style={styles.h}>Your application</Text>
-          <Text style={styles.p}>{statusLabel(desk?.verification.status)}</Text>
-          {desk?.verification.submittedAt ? <Text style={styles.p}>Sent {whenStamp(desk.verification.submittedAt)}</Text> : null}
-          {desk?.verification.reviewedAt ? <Text style={styles.p}>Updated {whenStamp(desk.verification.reviewedAt)}</Text> : null}
-          <Text style={styles.p}>1. Application sent, with the certificate and selfie.</Text>
-          <Text style={styles.p}>2. FinderB checks both photos and the shop location.</Text>
-          <Text style={styles.p}>{approved ? '3. Approved. The package payment is open.' : waiting ? '3. Waiting for FinderB. Payment stays closed until this is approved.' : '3. FinderB has asked for a change.'}</Text>
-          {desk?.verification.rejectionReason ? <Text style={styles.error}>{desk.verification.rejectionReason}</Text> : null}
-          {waiting ? <Text style={styles.photoHint}>You can leave this screen. Opening Promote your business online brings this status back.</Text> : null}
-          {desk?.verification.status === 'rejected' || desk?.verification.status === 'resubmission_required' ? (
-            <Btn label="Send the photos again" onPress={() => setStep('verify')} />
-          ) : null}
-          {approved ? (
-            <Btn label="Continue" onPress={() => setStep(orderId ? (videoReady ? 'pay' : 'video') : 'area')} />
-          ) : null}
-        </Panel>
+        <View style={styles.trackWrap}>
+          <Panel>
+            <ApplicationTrack
+              status={desk?.verification.status}
+              sentAt={desk?.verification.submittedAt}
+              reviewedAt={desk?.verification.reviewedAt}
+              reason={desk?.verification.rejectionReason}
+              videoReady={videoReady}
+              paid={(desk?.orders || []).some((item) => item.paymentStatus === 'paid')}
+              campaign={(desk?.orders || []).find((item) => item.paymentStatus === 'paid')?.campaignStatus}
+            />
+            {desk?.verification.status === 'rejected' || desk?.verification.status === 'resubmission_required' ? (
+              <Btn label="Send the photos again" onPress={() => setStep('verify')} />
+            ) : null}
+            {approved ? (
+              <Btn
+                label={orderId ? (videoReady ? 'Continue to payment' : 'Continue to video') : 'Choose the package'}
+                onPress={continueApplication}
+              />
+            ) : null}
+          </Panel>
+          <Text style={styles.trackLeave}>
+            {waiting ? 'You can leave this screen. Opening Promote your business online brings this status back.\n' : ''}
+            For any issues or doubt, write to{' '}
+            <Text style={styles.trackMail} onPress={() => void Linking.openURL('mailto:support@finderb.com')}>
+              support@finderb.com
+            </Text>
+          </Text>
+        </View>
+      ) : null}
+      {step === 'appPlan' ? (
+        <>
+          <Text style={styles.h}>Package for this application</Text>
+          <Text style={styles.p}>This choice stays with the application FinderB approved. The packages on the previous screen start a new ad.</Text>
+          <View style={styles.planStack}>
+            {packages.map((item) => (
+              <PlanCard key={item.id} item={item} selected={item.id === packageId} onPress={() => { setPackageId(item.id); setPickError(false); }} />
+            ))}
+          </View>
+          {pickError ? <Text style={styles.error}>Select a plan to continue this application.</Text> : null}
+          <Pressable
+            onPress={() => {
+              if (!selected) {
+                setPickError(true);
+                return;
+              }
+              setPickError(false);
+              setStep('area');
+            }}
+            accessibilityRole="button"
+            style={({ pressed }) => [styles.continueBtn, pressed && styles.continuePressed]}
+          >
+            <Text style={styles.continueText}>{selected ? `Continue with ${selected.name}` : 'Continue'}</Text>
+          </Pressable>
+        </>
       ) : null}
       {step === 'area' && selected ? (
         <Panel>
           <Text style={styles.h}>{selected.name}</Text>
           <Text style={styles.p}>₹{selected.priceInr.toLocaleString('en-IN')} · {selected.durationDays} days · {selected.coverage}</Text>
-          {orderId ? <Text style={styles.p}>Order {orderId}</Text> : null}
-          <TextInput value={pincode} onChangeText={setPincode} placeholder="Pincode" placeholderTextColor={c.faint} keyboardType="number-pad" maxLength={6} style={styles.input} editable={!orderId} />
-          <TextInput value={area} onChangeText={setArea} placeholder="Locality" placeholderTextColor={c.faint} style={styles.input} editable={!orderId} />
+          {!newAd && orderId ? <Text style={styles.p}>Order {orderId}</Text> : null}
+          {newAd || !orderId ? (
+            <View style={styles.composer}>
+              <Text style={styles.p}>Tell FinderB the target of this ad, what it should say, and where the shop is.</Text>
+              <PickField label="Target of the ad" value={adTargets.join(', ')} placeholder="Choose up to 3" onPress={() => { setTargetNote(''); setTargetOpen(true); }} />
+              <Field
+                boxed
+                multiline
+                label="Ad content"
+                value={adContent}
+                onChangeText={setAdContent}
+                placeholder="What should people read in the ad"
+                maxLength={400}
+              />
+              <Field boxed label="Shop locality" value={area} onChangeText={setArea} placeholder="Sector, colony, or market" maxLength={120} />
+              <Field boxed label="Pincode" value={pincode} onChangeText={setPincode} placeholder="6-digit pincode" keyboardType="number-pad" maxLength={6} />
+            </View>
+          ) : (
+            <>
+              {adTargets.length ? <Text style={styles.p}>{adTargets.join(', ')}</Text> : null}
+              {adContent ? <Text style={styles.p}>{adContent}</Text> : null}
+              <Text style={styles.p}>{[area, pincode].filter(Boolean).join(', ')}</Text>
+            </>
+          )}
           <Btn
             label="Continue"
             busy={busy}
             onPress={() => {
-              if (orderId) setStep(videoReady ? 'pay' : 'video');
-              else void create();
+              if (newAdRef.current || newAd || !orderId) void create();
+              else setStep(!videoReady ? 'video' : adReview === 'approved' ? 'pay' : 'review');
             }}
           />
         </Panel>
@@ -1128,7 +1394,7 @@ export default function PromoteScreen() {
             {[
               'Choose the video from your gallery.',
               'MP4 or MOV.',
-              'Hold the phone upright, about 9:16.',
+              'Vertical, about 9:16.',
               '15 to 45 seconds.',
               '60 MB or smaller.',
             ].map((rule, index) => (
@@ -1140,6 +1406,7 @@ export default function PromoteScreen() {
               </View>
             ))}
           </View>
+          <Text style={styles.p}>After this video is saved, FinderB checks the ad before payment.</Text>
           {uploadProgress > 0 && uploadProgress < 100 ? <Text style={styles.p}>Uploading {uploadProgress}%</Text> : null}
           <Btn
             label={busy ? `Uploading ${uploadProgress}%` : 'Choose from gallery'}
@@ -1149,12 +1416,31 @@ export default function PromoteScreen() {
           />
         </Panel>
       ) : null}
+      {step === 'review' ? (
+        <Panel>
+          <Text style={styles.h}>{adReview === 'denied' ? 'This ad needs a change' : adReview === 'approved' ? 'This ad is approved' : 'This ad is with FinderB'}</Text>
+          {orderId ? <Text style={styles.p}>Order {orderId}</Text> : null}
+          {adReview === 'denied' ? (
+            <Text style={styles.p}>{adReviewReason || 'FinderB needs a different video or a clearer ad before payment.'}</Text>
+          ) : adReview === 'approved' ? (
+            <Text style={styles.p}>Payment is open for this package.</Text>
+          ) : (
+            <Text style={styles.p}>Payment opens after the ad and the video are approved.</Text>
+          )}
+          {adReview === 'approved' ? (
+            <Btn label="Continue to payment" onPress={() => setStep('pay')} />
+          ) : (
+            <Btn label="Choose another video" onPress={() => setStep('video')} />
+          )}
+        </Panel>
+      ) : null}
       {step === 'pay' && selected ? (
         <Panel>
           <Text style={styles.h}>{selected.name}</Text>
           <Text style={styles.p}>₹{selected.priceInr.toLocaleString('en-IN')} · {selected.durationDays} days · {selected.coverage}</Text>
           <Text style={styles.p}>Order {orderId}</Text>
-          <Text style={styles.p}>{[area, pincode].filter(Boolean).join(', ')}</Text>
+          <Text style={styles.p}>{[adTargets.join(', '), area, pincode].filter(Boolean).join(' · ')}</Text>
+          {adContent ? <Text style={styles.p}>{adContent}</Text> : null}
           <Btn label="Continue" busy={busy} onPress={() => void pay()} />
         </Panel>
       ) : null}
@@ -1162,11 +1448,58 @@ export default function PromoteScreen() {
         <Panel>
           <Text style={styles.h}>Payment received</Text>
           <Text style={styles.p}>{selected.name} · ₹{selected.priceInr.toLocaleString('en-IN')} · order {orderId}</Text>
-          <Text style={styles.p}>FinderB has the payment. We emailed you and the FinderB team. The ads start after the shop video is checked.</Text>
+          <Text style={styles.p}>FinderB has the payment. We emailed you and the FinderB team.</Text>
           <Btn label="Open this promotion" onPress={() => router.push(`/business-console/promotion/${orderId}` as Href)} />
         </Panel>
       ) : null}
       {(desk?.orders?.length || 0) > 0 ? <Btn tone="outline" label="My promotions" onPress={() => router.push('/business-console/promotions' as Href)} /> : null}
+      <Sheet visible={targetOpen} title="Target of the ad" onClose={() => setTargetOpen(false)}>
+        <Text style={styles.p}>Choose up to 3.</Text>
+        {AD_TARGETS.map((item) => {
+          const on = adTargets.includes(item);
+          return (
+            <Pressable
+              key={item}
+              onPress={() => {
+                setError('');
+                setAdTargets((current) => {
+                  if (current.includes(item)) {
+                    setTargetNote('');
+                    return current.filter((value) => value !== item);
+                  }
+                  if (current.length >= 3) {
+                    setTargetNote('You can choose up to 3.');
+                    return current;
+                  }
+                  setTargetNote('');
+                  return [...current, item];
+                });
+              }}
+              style={({ pressed }) => [styles.option, pressed && styles.optionPressed]}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: on }}
+            >
+              <Text style={styles.optionText}>{on ? '✓  ' : ''}{item}</Text>
+            </Pressable>
+          );
+        })}
+        {targetNote ? <Text style={styles.error}>{targetNote}</Text> : null}
+        <Btn label="Done" onPress={() => setTargetOpen(false)} />
+      </Sheet>
+      <Sheet visible={draftAsk} title="You have ads in draft" onClose={() => setDraftAsk(false)}>
+        <Text style={styles.p}>
+          {ads.filter((order) => adKind(order).key === 'draft').length === 1
+            ? 'You have 1 ad in draft. Do you still want to create a new one?'
+            : `You have ${ads.filter((order) => adKind(order).key === 'draft').length} ads in draft. Do you still want to create a new one?`}
+        </Text>
+        <Btn label="Create new" onPress={startNewAd} />
+        <Btn tone="outline" label="Not now" onPress={() => setDraftAsk(false)} />
+      </Sheet>
+      <Sheet visible={anotherAsk} title="You have an active application" onClose={() => setAnotherAsk(false)}>
+        <Text style={styles.p}>Do you want to create another?</Text>
+        <Btn label="Yes" onPress={() => { setAnotherAsk(false); setStep('verify'); }} />
+        <Btn tone="outline" label="No" onPress={() => setAnotherAsk(false)} />
+      </Sheet>
       <RazorpayCheckout
         start={checkout}
         description="Promote your business online"
@@ -1284,6 +1617,277 @@ function PlanCard({ item, selected, onPress }: { item: PackageCard; selected: bo
       </View>
       </View>
     </Pressable>
+  );
+}
+
+type TrackState = 'done' | 'current' | 'upcoming' | 'alert';
+
+function expectedBy(sentAt?: string | null) {
+  if (!sentAt) return 'Expected within 24 hours';
+  const due = new Date(new Date(sentAt).getTime() + 24 * 60 * 60 * 1000);
+  if (Number.isNaN(due.getTime())) return 'Expected within 24 hours';
+  const label = whenStamp(due.toISOString());
+  if (due.getTime() < Date.now()) return `Expected by ${label}. This is taking a little longer.`;
+  return `Expected by ${label}`;
+}
+
+function applicationSteps(
+  status: string | undefined,
+  sentAt?: string | null,
+  reviewedAt?: string | null,
+  reason?: string | null,
+  videoReady = false,
+  paid = false,
+  campaign?: string,
+) {
+  const change = status === 'rejected' || status === 'resubmission_required';
+  const approved = status === 'approved';
+  const waiting = !approved && !change;
+  const stage = !approved ? -1 : !videoReady ? 0 : !paid ? 1 : 2;
+  const after = (index: number): TrackState => {
+    if (!approved) return 'upcoming';
+    if (index < stage) return 'done';
+    if (index === stage) return 'current';
+    return 'upcoming';
+  };
+  const making: TrackState = !paid ? after(2) : campaign === 'ad_active' || campaign === 'completed' ? 'done' : 'current';
+  const live: TrackState = campaign === 'completed' ? 'done' : campaign === 'ad_active' ? 'current' : 'upcoming';
+  const steps: { title: string; body: string; meta: string; state: TrackState }[] = [
+    {
+      title: 'Application sent',
+      body: 'The certificate and the selfie are with FinderB.',
+      meta: sentAt ? whenStamp(sentAt) : '',
+      state: 'done',
+    },
+    {
+      title: 'FinderB verifies your business',
+      body: change
+        ? `The uploaded selfie, certificate, and shop location are reviewed. ${reason || 'Photograph the certificate and selfie again.'}`
+        : approved
+          ? 'The uploaded selfie, certificate, and shop location are reviewed. Your shop is approved, and the steps below are open.'
+          : 'The uploaded selfie, certificate, and shop location are reviewed. These next steps open once FinderB approves your shop.',
+      meta: waiting ? expectedBy(sentAt) : (reviewedAt ? whenStamp(reviewedAt) : ''),
+      state: waiting ? 'current' : change ? 'alert' : 'done',
+    },
+    {
+      title: 'Upload your video',
+      body: 'Choose a vertical shop video from your gallery, about 9:16.',
+      meta: '',
+      state: after(0),
+    },
+    {
+      title: 'Pay for the package',
+      body: 'One payment covers the ads for the days you chose.',
+      meta: '',
+      state: after(1),
+    },
+    {
+      title: 'FinderB designs your ad',
+      body: 'Keyword research and audience targeting. Creatives in every resolution Meta serves: 1:1, 4:5, and 9:16 for Feed, Stories, and Reels. In Ads Manager we set the objective, location, placements, primary text, headline, and call to action.',
+      meta: '',
+      state: making,
+    },
+    {
+      title: 'Your ads go live',
+      body: 'People nearby start seeing your shop.',
+      meta: '',
+      state: live,
+    },
+  ];
+  return steps;
+}
+
+function ApplicationTrack({
+  status,
+  sentAt,
+  reviewedAt,
+  reason,
+  videoReady,
+  paid,
+  campaign,
+}: {
+  status?: string;
+  sentAt?: string | null;
+  reviewedAt?: string | null;
+  reason?: string | null;
+  videoReady?: boolean;
+  paid?: boolean;
+  campaign?: string;
+}) {
+  const styles = useStyles();
+  const c = useConsoleColors();
+  const steps = applicationSteps(status, sentAt, reviewedAt, reason, videoReady, paid, campaign);
+  const arriveRef = useRef<Animated.Value[]>([]);
+  if (arriveRef.current.length !== steps.length) {
+    arriveRef.current = steps.map(() => new Animated.Value(0));
+  }
+  const arrive = arriveRef.current;
+  const fill = useRef(new Animated.Value(0)).current;
+  const pulse = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    arrive.forEach((value) => value.setValue(0));
+    fill.setValue(0);
+    const entrance = Animated.stagger(160, arrive.map((value) => (
+      Animated.timing(value, { toValue: 1, duration: 420, easing: Easing.out(Easing.cubic), useNativeDriver: true })
+    )));
+    const line = Animated.timing(fill, { toValue: 1, duration: 720, delay: 180, easing: Easing.out(Easing.cubic), useNativeDriver: false });
+    Animated.parallel([entrance, line]).start();
+    const beat = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 1, duration: 900, easing: Easing.out(Easing.quad), useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 0, duration: 900, easing: Easing.in(Easing.quad), useNativeDriver: true }),
+      ]),
+    );
+    beat.start();
+    return () => beat.stop();
+  }, [arrive, fill, pulse, status]);
+
+  return (
+    <View style={styles.track}>
+      <Text style={styles.h}>Your application</Text>
+      <View style={styles.trackList}>
+        {steps.map((item, index) => {
+          const motion = arrive[index];
+          const next = steps[index + 1];
+          const railColor = !next || next.state === 'upcoming' ? c.line : next.state === 'alert' ? c.danger : c.success;
+          return (
+            <Animated.View
+              key={item.title}
+              style={{
+                opacity: motion,
+                transform: [{ translateY: motion.interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) }],
+              }}
+            >
+              <View style={styles.trackRow}>
+                <View style={styles.trackRailCol}>
+                  <TrackDot state={item.state} pulse={pulse} />
+                  {next ? (
+                    <View style={styles.trackRail}>
+                      <Animated.View
+                        style={[
+                          styles.trackRailFill,
+                          {
+                            backgroundColor: railColor,
+                            height: fill.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] }),
+                          },
+                        ]}
+                      />
+                    </View>
+                  ) : null}
+                </View>
+                <View style={[styles.trackCopy, !next && styles.trackCopyLast]}>
+                  <View style={styles.trackTitleRow}>
+                    <Text style={[styles.trackTitle, item.state === 'upcoming' && styles.trackTitleWait, item.state === 'alert' && { color: c.danger }]}>{item.title}</Text>
+                    {item.title === 'Your ads go live' ? <StepConfetti /> : null}
+                  </View>
+                  <Text style={styles.trackBody}>{item.body}</Text>
+                  {item.meta ? <Text style={styles.trackMeta}>{item.meta}</Text> : null}
+                </View>
+              </View>
+            </Animated.View>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
+function TrackDot({ state, pulse }: { state: TrackState; pulse: Animated.Value }) {
+  const c = useConsoleColors();
+  const filled = state !== 'upcoming';
+  const color = state === 'done' ? c.success : state === 'alert' ? c.danger : state === 'current' ? c.brand : c.lineStrong;
+  const icon = state === 'done' ? 'checkmark' : state === 'alert' ? 'warning' : 'time';
+  const ring = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.7] });
+  const ringOpacity = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.4, 0] });
+  return (
+    <View style={{ width: 28, height: 28, alignItems: 'center', justifyContent: 'center' }}>
+      {state === 'current' ? (
+        <Animated.View
+          style={{
+            position: 'absolute',
+            width: 28,
+            height: 28,
+            borderRadius: 14,
+            backgroundColor: c.brand,
+            opacity: ringOpacity,
+            transform: [{ scale: ring }],
+          }}
+        />
+      ) : null}
+      <View
+        style={{
+          width: 28,
+          height: 28,
+          borderRadius: 14,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: filled ? color : c.sunken,
+          borderWidth: filled ? 0 : 1.5,
+          borderColor: c.lineStrong,
+        }}
+      >
+        {filled ? <Ionicons name={icon} size={15} color={c.isDark ? '#1C1917' : '#FFFFFF'} /> : null}
+      </View>
+    </View>
+  );
+}
+
+const CONFETTI = [
+  { left: 0, color: '#F5A623', w: 7, h: 10, drift: 6, spin: '70deg' },
+  { left: 12, color: '#E11D48', w: 6, h: 6, drift: -4, spin: '-80deg' },
+  { left: 22, color: '#0284C7', w: 8, h: 5, drift: 8, spin: '110deg' },
+  { left: 34, color: '#16A34A', w: 5, h: 9, drift: -8, spin: '-50deg' },
+  { left: 44, color: '#7C3AED', w: 6, h: 6, drift: 3, spin: '90deg' },
+  { left: 54, color: '#FB7185', w: 5, h: 8, drift: 10, spin: '140deg' },
+  { left: 64, color: '#FBBF24', w: 7, h: 4, drift: -2, spin: '-30deg' },
+  { left: 18, color: '#F97316', w: 4, h: 8, drift: 12, spin: '60deg' },
+  { left: 40, color: '#38BDF8', w: 5, h: 5, drift: -12, spin: '-110deg' },
+  { left: 8, color: '#A3E635', w: 6, h: 4, drift: 5, spin: '40deg' },
+];
+
+function StepConfetti() {
+  const pieces = useRef(CONFETTI.map(() => new Animated.Value(0))).current;
+  useEffect(() => {
+    const loops = pieces.map((value, index) => {
+      const burst = Animated.loop(
+        Animated.sequence([
+          Animated.delay(index * 90),
+          Animated.timing(value, { toValue: 1, duration: 900, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+          Animated.timing(value, { toValue: 0, duration: 0, useNativeDriver: true }),
+        ]),
+      );
+      burst.start();
+      return burst;
+    });
+    return () => loops.forEach((burst) => burst.stop());
+  }, [pieces]);
+  return (
+    <View pointerEvents="none" style={{ width: 78, height: 18, overflow: 'visible' }}>
+      {CONFETTI.map((bit, index) => {
+        const value = pieces[index];
+        return (
+          <Animated.View
+            key={`${bit.color}-${bit.left}`}
+            style={{
+              position: 'absolute',
+              left: bit.left,
+              bottom: 0,
+              width: bit.w,
+              height: bit.h,
+              borderRadius: 1,
+              backgroundColor: bit.color,
+              opacity: value.interpolate({ inputRange: [0, 0.08, 0.7, 1], outputRange: [0, 1, 1, 0] }),
+              transform: [
+                { translateY: value.interpolate({ inputRange: [0, 1], outputRange: [2, -12] }) },
+                { translateX: value.interpolate({ inputRange: [0, 1], outputRange: [0, bit.drift] }) },
+                { rotate: value.interpolate({ inputRange: [0, 1], outputRange: ['0deg', bit.spin] }) },
+              ],
+            }}
+          />
+        );
+      })}
+    </View>
   );
 }
 
@@ -1439,6 +2043,41 @@ const useStyles = createConsoleStyles((c) => ({
   declareOn: { borderColor: c.ink, backgroundColor: c.sunken },
   declareText: { flex: 1, fontFamily: fonts.regular, fontSize: 13, lineHeight: 18, color: c.body },
   photoHint: { fontFamily: fonts.regular, fontSize: 12, lineHeight: 16, color: c.muted },
+  composer: { gap: 12, marginTop: 8 },
+  myAds: { gap: 10 },
+  myAdsTitle: { fontFamily: fonts.semiBold, fontSize: 16, color: c.ink },
+  myAdsRule: { height: 1, backgroundColor: c.lineStrong, marginTop: 4 },
+  appBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: c.brandSoft,
+    borderWidth: 1,
+    borderColor: c.line,
+  },
+  appBannerPressed: { opacity: 0.86 },
+  appBannerCopy: { flex: 1, minWidth: 0 },
+  appBannerTitle: { fontFamily: fonts.semiBold, fontSize: 14, lineHeight: 18, color: c.ink },
+  appBannerMeta: { marginTop: 1, fontFamily: fonts.regular, fontSize: 12, lineHeight: 16, color: c.body },
+  trackWrap: { gap: 8 },
+  trackLeave: { paddingHorizontal: 4, fontFamily: fonts.regular, fontSize: 12, lineHeight: 16, color: c.muted },
+  track: { gap: 4 },
+  trackList: { marginTop: 16 },
+  trackRow: { flexDirection: 'row', gap: 12 },
+  trackRailCol: { width: 28, alignItems: 'center' },
+  trackRail: { width: 2, flex: 1, minHeight: 28, marginTop: 4, borderRadius: 1, backgroundColor: c.line, overflow: 'hidden' },
+  trackRailFill: { width: 2, borderRadius: 1 },
+  trackCopy: { flex: 1, minWidth: 0, paddingBottom: 18 },
+  trackCopyLast: { paddingBottom: 4 },
+  trackTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6, overflow: 'visible' },
+  trackTitle: { fontFamily: fonts.semiBold, fontSize: 15, lineHeight: 20, color: c.ink },
+  trackTitleWait: { color: c.muted },
+  trackBody: { marginTop: 2, fontFamily: fonts.regular, fontSize: 13, lineHeight: 18, color: c.body },
+  trackMeta: { marginTop: 3, fontFamily: fonts.medium, fontSize: 12, lineHeight: 16, color: c.muted },
+  trackMail: { fontFamily: fonts.medium, color: c.ink, textDecorationLine: 'underline' },
   opening: { minHeight: 220, alignItems: 'center', justifyContent: 'center' },
   videoRules: { gap: 10, marginTop: 12, marginBottom: 18 },
   videoRule: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },

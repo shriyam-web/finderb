@@ -40,6 +40,8 @@ type OrderCard = {
   paymentStatus: string;
   campaignStatus: string;
   campaignLabel: string;
+  adReviewStatus?: 'none' | 'pending' | 'approved' | 'denied';
+  adReviewReason?: string;
   targetPincode: string;
   targetArea: string;
   videoReady: boolean;
@@ -72,6 +74,9 @@ export default function PromoteDesk({ mode, orderId }: { mode: 'promote' | 'list
   const [area, setArea] = useState('');
   const [draftId, setDraftId] = useState('');
   const [step, setStep] = useState(0);
+  const [draftAsk, setDraftAsk] = useState(false);
+  const [adReview, setAdReview] = useState<'none' | 'pending' | 'approved' | 'denied'>('none');
+  const [reviewReason, setReviewReason] = useState('');
   const [uploadProgress, setUploadProgress] = useState(0);
   const [videoName, setVideoName] = useState('');
   const [customOpen, setCustomOpen] = useState(false);
@@ -103,7 +108,10 @@ export default function PromoteDesk({ mode, orderId }: { mode: 'promote' | 'list
         if (unpaid.packageId) setPackageId(unpaid.packageId);
         setPincode(unpaid.targetPincode);
         setArea(unpaid.targetArea);
-        setStep(unpaid.videoReady ? 4 : 3);
+        const review = unpaid.adReviewStatus || (unpaid.videoReady ? 'pending' : 'none');
+        setAdReview(review);
+        setReviewReason(unpaid.adReviewReason || '');
+        setStep(!unpaid.videoReady ? 3 : review === 'approved' ? 4 : 5);
       } else if (mode === 'promote') {
         setStep(0);
       }
@@ -148,7 +156,7 @@ export default function PromoteDesk({ mode, orderId }: { mode: 'promote' | 'list
   };
 
   const uploadVideo = async (file: File) => {
-    const rules = 'Use an MP4 or MOV, hold the phone upright (about 9:16), keep it between 15 and 45 seconds, and stay under 60 MB.';
+    const rules = 'Choose an MP4 or MOV that is already vertical (about 9:16), between 15 and 45 seconds, and under 60 MB.';
     if (file.size > 60 * 1024 * 1024) {
       setError(`This video is larger than 60 MB. ${rules}`);
       return;
@@ -175,7 +183,7 @@ export default function PromoteDesk({ mode, orderId }: { mode: 'promote' | 'list
         return;
       }
       if (local.width > 0 && local.height / local.width < 1.5) {
-        setError('This video is not vertical. Hold the phone upright so the picture is about 9:16.');
+        setError('This video is not vertical. Choose one that is about 9:16.');
         return;
       }
     }
@@ -266,7 +274,9 @@ export default function PromoteDesk({ mode, orderId }: { mode: 'promote' | 'list
       setError(saved?.error || `The video could not be uploaded. ${rules}`);
       return;
     }
-    setStep(4);
+    setAdReview('pending');
+    setReviewReason('');
+    setStep(5);
   };
 
   const pay = async () => {
@@ -473,7 +483,16 @@ export default function PromoteDesk({ mode, orderId }: { mode: 'promote' | 'list
                     </ul>
                     <button className="promo-btn" type="button" onClick={() => {
                       setPackageId(item.id);
-                      setStep(desk.verification.status === 'approved' ? 2 : 1);
+                      if (desk.verification.status !== 'approved') {
+                        setStep(1);
+                        return;
+                      }
+                      const drafts = desk.orders.filter((order) => order.paymentStatus !== 'paid' && !['rejected', 'cancelled', 'refund_pending', 'refunded', 'completed'].includes(order.campaignStatus));
+                      if (drafts.length) {
+                        setDraftAsk(true);
+                        return;
+                      }
+                      setStep(2);
                     }}>Continue with {item.name}</button>
                   </article>
                 ))}
@@ -485,7 +504,19 @@ export default function PromoteDesk({ mode, orderId }: { mode: 'promote' | 'list
                 <h2>What you get</h2>
                 <p className="promo-meta">FinderB runs the Facebook and Instagram ads. You do not open Ads Manager or keep topping up an ads account.</p>
                 <p className="promo-meta">You choose how far the ads go, send one shop video, and pay the package price with GST included.</p>
-                <p className="promo-note">Package reach is an estimate, not a promise. Ads start only after the shop is verified and payment is confirmed.</p>
+                <p className="promo-note">Package reach is an estimate, not a promise. Ads start after the shop is verified, FinderB approves the ad, and payment is confirmed.</p>
+                {draftAsk ? (
+                  <div className="promo-card" style={{ marginTop: 16 }}>
+                    <h2>You have ads in draft</h2>
+                    <p className="promo-meta">
+                      {desk.orders.filter((order) => order.paymentStatus !== 'paid' && !['rejected', 'cancelled', 'refund_pending', 'refunded', 'completed'].includes(order.campaignStatus)).length === 1
+                        ? 'You have 1 ad in draft. Do you still want to create a new one?'
+                        : `You have ${desk.orders.filter((order) => order.paymentStatus !== 'paid' && !['rejected', 'cancelled', 'refund_pending', 'refunded', 'completed'].includes(order.campaignStatus)).length} ads in draft. Do you still want to create a new one?`}
+                    </p>
+                    <button className="promo-btn" type="button" onClick={() => { setDraftAsk(false); setDraftId(''); setAdReview('none'); setReviewReason(''); setPincode(''); setArea(''); setStep(2); }}>Create new</button>
+                    <button className="promo-btn-ghost" type="button" onClick={() => setDraftAsk(false)}>Not now</button>
+                  </div>
+                ) : null}
                 {customSent ? (
                   <p className="promo-meta">Request {customSent}. It will take up to 24 hours. FinderB will come back with a price for your shop.</p>
                 ) : (
@@ -675,9 +706,10 @@ export default function PromoteDesk({ mode, orderId }: { mode: 'promote' | 'list
                 <ol className="promo-points" style={{ marginBottom: 18 }}>
                   <li>Choose the video from your gallery.</li>
                   <li>MP4 or MOV.</li>
-                  <li>Hold the phone upright, about 9:16.</li>
+                  <li>Vertical, about 9:16.</li>
                   <li>15 to 45 seconds.</li>
                   <li>60 MB or smaller.</li>
+                  <li>FinderB checks this ad before payment.</li>
                 </ol>
                 <label className="promo-field">Video from your gallery
                   <input type="file" accept="video/mp4,video/quicktime" onChange={(event) => {
@@ -694,7 +726,20 @@ export default function PromoteDesk({ mode, orderId }: { mode: 'promote' | 'list
               </section>
             ) : null}
 
-            {step === 4 && selected ? (
+            {step === 5 ? (
+              <section className="promo-card" style={{ marginTop: 16 }}>
+                <h2>{adReview === 'denied' ? 'This ad needs a change' : 'This ad is with FinderB'}</h2>
+                <p className="promo-meta">Order {draftId}</p>
+                {adReview === 'denied' ? (
+                  <p className="promo-error">{reviewReason || 'FinderB needs a different video or a clearer ad before payment.'}</p>
+                ) : (
+                  <p className="promo-meta">Payment opens after the ad and the video are approved.</p>
+                )}
+                <button className="promo-btn" type="button" onClick={() => setStep(3)}>Choose another video</button>
+              </section>
+            ) : null}
+
+            {step === 4 && selected && adReview === 'approved' ? (
               <section className="promo-card" style={{ marginTop: 16 }}>
                 <h2>Pay {inr(selected.priceInr)}</h2>
                 <p className="promo-meta">{selected.name} · {area} {pincode}</p>

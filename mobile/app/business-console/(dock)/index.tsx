@@ -1139,9 +1139,12 @@ function HomeBody({ o }: { o: ConsoleOverview }) {
         <QuickActions go={go} isOwner={o.actor?.isOwner !== false} />
       </Section>
       <View style={styles.footNote}>
-        <Text style={styles.footNoteText}>
-          App managed by FinderB IT. Made in India <Text style={styles.footFlag}>🇮🇳</Text>
-        </Text>
+        <View style={styles.footLine}>
+          <Text style={styles.footNoteText} numberOfLines={1}>
+            App is managed by FinderB IT. Made in India
+          </Text>
+          <Text style={styles.footFlag}>🇮🇳</Text>
+        </View>
         <Text style={styles.footVersion}>{getAppVersionLabel()}</Text>
       </View>
     </ConsolePage>
@@ -1452,8 +1455,9 @@ const useStyles = createConsoleStyles((c) => ({
   themeChoiceOn: { borderColor: c.primary, backgroundColor: c.primarySoft },
   themeChoiceText: { fontFamily: fonts.regular, fontSize: 12, color: c.body },
   themeChoiceTextOn: { fontFamily: fonts.semiBold, color: c.ink },
-  footNote: { alignItems: 'center', gap: 2, paddingVertical: 4, paddingHorizontal: 64 },
-  footNoteText: { textAlign: 'center', fontFamily: fonts.medium, fontSize: 12, lineHeight: 18, color: c.faint },
-  footFlag: { fontSize: 13 },
+  footNote: { alignItems: 'center', gap: 2, paddingVertical: 4, paddingHorizontal: 12 },
+  footLine: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, maxWidth: '100%' },
+  footNoteText: { flexShrink: 1, textAlign: 'center', fontFamily: fonts.medium, fontSize: 12, lineHeight: 18, color: c.faint },
+  footFlag: { fontSize: 14, lineHeight: 18 },
   footVersion: { textAlign: 'center', fontFamily: fonts.regular, fontSize: 10, lineHeight: 14, color: c.faint },
 }));

@@ -210,9 +210,7 @@ function GrowthBody({ o }: { o: ConsoleOverview }) {
 
   return (
     <ConsolePage title="Growth opportunity" subtitle="Badges customers see on your public profile" docked>
-      <Text style={styles.intro}>
-        These badges show on your public profile when you qualify. FinderB can switch any of them on or off for your business, including Best in Category.
-      </Text>
+      <Text style={styles.intro}>How these badges help you</Text>
       {CARDS.map((card) => {
         const state = cardState(card.id, o);
         return (
@@ -222,7 +220,7 @@ function GrowthBody({ o }: { o: ConsoleOverview }) {
               <Text style={styles.cardTitle}>{card.title}</Text>
               <View style={[styles.status, state.on ? styles.statusOn : styles.statusOff]}>
                 <Text style={[styles.statusText, { color: state.on ? c.success : c.muted }]}>
-                  {state.on ? 'On your profile' : 'Not yet'}
+                  {state.on ? 'On your profile' : 'Not eligible'}
                 </Text>
               </View>
             </View>

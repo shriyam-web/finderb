@@ -111,6 +111,9 @@ alter table promotion_orders enable row level security;
 alter table promotion_audit enable row level security;
 
 alter table promotion_orders add column if not exists video_format text;
+alter table promotion_orders add column if not exists ad_review_status text;
+alter table promotion_orders add column if not exists ad_review_reason text;
+alter table promotion_orders add column if not exists ad_reviewed_at timestamptz;
 alter table business_verifications add column if not exists shop_photo_public_id text;
 alter table business_verifications add column if not exists shop_photo_format text;
 

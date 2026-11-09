@@ -107,7 +107,7 @@ const FAQS = [
   },
   {
     q: 'What shop video should I send?',
-    a: 'A vertical video of the real shop, about 15 to 45 seconds, in mp4 or a quicktime file, up to 60 MB. You can choose it from your gallery. Film the front, the counter, or the work you do with the phone held upright. FinderB checks the length and the shape, then edits it before the ad goes out. A video that is too short, too long, or the wrong shape is not used.',
+    a: 'A vertical video of the real shop, about 9:16, 15 to 45 seconds, in MP4 or MOV, up to 60 MB. Choose it from your gallery. The front, the counter, or the work you do is enough. FinderB checks the length and the shape, then edits it before the ad goes out. A video that is too short, too long, or the wrong shape is not used.',
   },
   {
     q: 'Why must the certificate and selfie be taken on the spot?',

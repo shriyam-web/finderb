@@ -53,6 +53,8 @@ export async function sendPromotionPaidEmails(params: {
   amountInr: number;
   area: string;
   pincode: string;
+  audience?: string;
+  content?: string;
 }): Promise<void> {
   const key = process.env.RESEND_API_KEY?.trim();
   const from = process.env.EMAIL_FROM?.trim() || 'FinderB <support@finderb.com>';
@@ -84,9 +86,11 @@ export async function sendPromotionPaidEmails(params: {
     text: [
       `${name} paid ${amount} for ${pack}.`,
       `Order ${params.orderId}${place ? ` · ${place}` : ''}.`,
+      params.audience ? `Target: ${params.audience}` : '',
+      params.content ? `Ad content: ${params.content}` : '',
       merchant ? `Merchant email: ${merchant}` : 'Merchant email was not on file.',
       'Open this order in FinderB Admin and move it to review after you check the video.',
-    ].join('\n'),
+    ].filter(Boolean).join('\n'),
   });
 
   await Promise.all(messages.map(async (message) => {

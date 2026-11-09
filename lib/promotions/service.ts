@@ -150,12 +150,33 @@ function publicVerification(row: Record<string, unknown> | null) {
   };
 }
 
+function adReviewStatus(row: Record<string, unknown>): 'none' | 'pending' | 'approved' | 'denied' {
+  const stored = String(row.ad_review_status || '');
+  if (stored === 'pending' || stored === 'approved' || stored === 'denied') return stored;
+  const video = Boolean(row.video_public_id || (typeof row.video_url === 'string' && row.video_url.startsWith('https://')));
+  const unpaid = String(row.payment_status || 'pending') !== 'paid';
+  const closed = ['rejected', 'cancelled', 'refund_pending', 'refunded', 'completed'].includes(String(row.campaign_status || ''));
+  if (video && unpaid && !closed) return 'pending';
+  return 'none';
+}
+
 function publicOrder(row: Record<string, unknown>) {
   const snap = (row.package_snapshot && typeof row.package_snapshot === 'object'
     ? row.package_snapshot
     : {}) as Record<string, unknown>;
   const status = String(row.campaign_status || 'payment_pending') as CampaignStatus;
   const completed = status === 'completed';
+  const paid = String(row.payment_status || 'pending') === 'paid';
+  const review = adReviewStatus(row);
+  const campaignLabel = !paid
+    ? review === 'denied'
+      ? 'Needs a change'
+      : review === 'approved'
+        ? 'Approved · payment is open'
+        : review === 'pending'
+          ? 'With FinderB'
+          : 'Draft'
+    : (CAMPAIGN_LABEL[status] || status);
   return {
     id: String(row.id),
     packageId: String(row.package_id || ''),
@@ -166,9 +187,13 @@ function publicOrder(row: Record<string, unknown>) {
     referenceInr: Number(snap.referenceInr || 0),
     paymentStatus: String(row.payment_status || 'pending'),
     campaignStatus: status,
-    campaignLabel: CAMPAIGN_LABEL[status] || status,
+    campaignLabel,
+    adReviewStatus: review,
+    adReviewReason: String(row.ad_review_reason || ''),
     targetPincode: String(row.target_pincode || ''),
     targetArea: String(row.target_area || ''),
+    audience: String(snap.audience || ''),
+    content: String(snap.content || ''),
     videoReady: Boolean(row.video_public_id || (typeof row.video_url === 'string' && row.video_url.startsWith('https://'))),
     videoUrl: (typeof row.video_url === 'string' && row.video_url.startsWith('https://') ? row.video_url : null)
       || (row.video_public_id
@@ -181,7 +206,9 @@ function publicOrder(row: Record<string, unknown>) {
     createdAt: (row.created_at as string) || null,
     startedAt: (row.campaign_started_at as string) || null,
     endedAt: (row.campaign_ended_at as string) || null,
-    rejectionReason: (row.rejection_reason as string) || null,
+    rejectionReason: !paid && review === 'denied'
+      ? String(row.ad_review_reason || '') || null
+      : (row.rejection_reason as string) || null,
     report: completed && row.actual_reach != null
       ? {
           reach: Number(row.actual_reach),
@@ -338,9 +365,6 @@ export async function submitVerification(businessId: string, form: FormData): Pr
   if (!limited.allowed) return fail('Too many verification attempts. Wait and try again.');
   const current = await latestVerification(businessId);
   const status = String(current?.status || 'not_submitted');
-  if (status === 'submitted' || status === 'under_review') {
-    return fail('Your verification is already with the FinderB team.');
-  }
   if (status === 'approved') {
     return fail('This verification is already approved. A change starts a new review, which you can send from resubmission after the team asks for it.');
   }
@@ -412,10 +436,21 @@ export async function submitVerification(businessId: string, form: FormData): Pr
   return { success: true, status: 'submitted' };
 }
 
+export const AD_AUDIENCES = [
+  'More views',
+  'More calls',
+  'More shop visits',
+  'More messages',
+  'Informative',
+  'Awareness',
+] as const;
+
 export async function createPromotionOrder(businessId: string, input: {
   packageId: string;
   pincode: string;
   area: string;
+  audience?: string;
+  content?: string;
 }): Promise<Ok<{ orderId: string }> | Fail> {
   const hidden = await requireEnabled();
   if (hidden) return hidden;
@@ -431,7 +466,16 @@ export async function createPromotionOrder(businessId: string, input: {
   if (!pack) return fail('That package is not available.');
   if (!validPincode(input.pincode)) return fail('Enter a 6-digit Indian pincode.');
   const area = input.area.trim().slice(0, 120);
-  if (area.length < 2) return fail('Confirm the locality you want to reach.');
+  if (area.length < 2) return fail('Enter the shop locality.');
+  const picked = (input.audience || '').split(',').map((item) => item.trim()).filter(Boolean).slice(0, 4);
+  const content = (input.content || '').trim().slice(0, 400);
+  if (picked.length || content) {
+    if (!picked.length || picked.length > 3 || picked.some((item) => !(AD_AUDIENCES as readonly string[]).includes(item))) {
+      return fail(picked.length > 3 ? 'Choose up to 3 targets.' : 'Choose the target of this ad.');
+    }
+    if (content.length < 8) return fail('Write what the ad should say.');
+  }
+  const audience = picked.join(', ');
   const supabase = db();
   if (!supabase) return fail('The order could not be created.');
   const id = `FP${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
@@ -444,6 +488,7 @@ export async function createPromotionOrder(businessId: string, input: {
     reach: pack.reach,
     views: pack.views,
     visits: pack.visits,
+    ...(audience ? { audience, targets: picked, content } : {}),
   };
   const { error } = await supabase.from('promotion_orders').insert({
     id,
@@ -462,7 +507,7 @@ export async function createPromotionOrder(businessId: string, input: {
   return { success: true, orderId: id };
 }
 
-const VIDEO_RULES = 'Use an MP4 or MOV, hold the phone upright (about 9:16), keep it between 15 and 45 seconds, and stay under 60 MB.';
+const VIDEO_RULES = 'Choose an MP4 or MOV that is already vertical (about 9:16), between 15 and 45 seconds, and under 60 MB.';
 const VIDEO_FOLDER = 'finderb-private/promotions';
 
 function describeVideo(input: { duration?: number; width?: number; height?: number; bytes?: number; format?: string }) {
@@ -484,7 +529,7 @@ function describeVideo(input: { duration?: number; width?: number; height?: numb
   }
   const ratio = height / width;
   if (ratio < 1.5 || ratio > 2.05) {
-    return 'This video is not vertical. Hold the phone upright so the picture is about 9:16.';
+    return 'This video is not vertical. Choose one that is about 9:16.';
   }
   return null;
 }
@@ -582,6 +627,9 @@ export async function commitPromotionVideo(businessId: string, orderId: string, 
     video_duration_sec: checked.meta.duration,
     video_width: checked.meta.width,
     video_height: checked.meta.height,
+    ad_review_status: 'pending',
+    ad_review_reason: null,
+    ad_reviewed_at: null,
     updated_at: new Date().toISOString(),
   }).eq('id', orderId).eq('business_id', businessId);
   if (error) {
@@ -589,7 +637,7 @@ export async function commitPromotionVideo(businessId: string, orderId: string, 
     return fail('The video could not be saved.');
   }
   if (previous && previous.publicId !== publicId) await destroyPrivateAsset(previous);
-  await audit({ orderId, businessId, action: 'video_uploaded' });
+  await audit({ orderId, businessId, action: 'ad_sent_for_review', to: 'pending' });
   return { success: true, orderId };
 }
 
@@ -631,6 +679,9 @@ export async function attachPromotionVideo(businessId: string, orderId: string, 
     video_duration_sec: duration,
     video_width: width,
     video_height: height,
+    ad_review_status: 'pending',
+    ad_review_reason: null,
+    ad_reviewed_at: null,
     updated_at: new Date().toISOString(),
   }).eq('id', orderId).eq('business_id', businessId);
   if (error) {
@@ -638,7 +689,7 @@ export async function attachPromotionVideo(businessId: string, orderId: string, 
     return fail('The video could not be saved.');
   }
   if (previous && previous.publicId !== uploaded.asset.publicId) await destroyPrivateAsset(previous);
-  await audit({ orderId, businessId, action: 'video_uploaded' });
+  await audit({ orderId, businessId, action: 'ad_sent_for_review', to: 'pending' });
   return { success: true, orderId };
 }
 
@@ -655,6 +706,12 @@ export async function startPromotionPayment(businessId: string, orderId: string)
   if (row.payment_status === 'paid') return fail('This promotion is already paid.');
   if (!row.video_public_id && !(typeof row.video_url === 'string' && row.video_url.startsWith('https://'))) {
     return fail('Upload the promotional video before paying.');
+  }
+  const review = adReviewStatus(row);
+  if (review !== 'approved') {
+    return fail(review === 'denied'
+      ? 'This ad needs a change before payment.'
+      : 'FinderB checks this ad before payment.');
   }
   const verification = await latestVerification(businessId);
   if (String(verification?.status) !== 'approved') return fail('Business verification is no longer approved.');
@@ -728,6 +785,7 @@ export async function confirmPromotionPayment(input: {
   const row = data as Record<string, unknown>;
   if (input.businessId && String(row.business_id) !== input.businessId) return fail('This payment does not belong to your business.');
   if (row.payment_status === 'paid') return { success: true, alreadyCompleted: true, orderId: String(row.id) };
+  if (adReviewStatus(row) !== 'approved') return fail('FinderB checks this ad before payment.');
   const expectedPaise = Number(row.amount_inr) * 100;
   if (input.amountPaise != null && input.amountPaise !== expectedPaise) {
     return fail('Payment amount does not match this promotion.');
@@ -755,7 +813,7 @@ export async function confirmPromotionPayment(input: {
     to: 'payment_successful',
     note: input.source,
   });
-  const snapshot = (row.package_snapshot || {}) as { name?: string };
+  const snapshot = (row.package_snapshot || {}) as { name?: string; audience?: string; content?: string };
   const { data: business } = await supabase
     .from('Business')
     .select('businessName, workEmail, email')
@@ -771,6 +829,8 @@ export async function confirmPromotionPayment(input: {
     amountInr: Number(row.amount_inr) || 0,
     area: String(row.target_area || ''),
     pincode: String(row.target_pincode || ''),
+    audience: snapshot.audience || '',
+    content: snapshot.content || '',
   });
   return { success: true, alreadyCompleted: false, orderId: String(row.id) };
 }

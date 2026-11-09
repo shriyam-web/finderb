@@ -144,6 +144,8 @@ type PageProps = {
   bodyStyle?: StyleProp<ViewStyle>;
   /** Forms sit on the card colour so underlined fields read cleanly. */
   form?: boolean;
+  /** Changing this jumps the page back to the top. */
+  scrollToken?: string | number;
 };
 
 const GLOW_HEIGHT = 420;
@@ -357,13 +359,14 @@ export function ConsolePage({
   bodyStyle,
   form,
   search = true,
+  scrollToken,
 }: PageProps) {
   const styles = useKitStyles();
   const c = useConsoleColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const pathname = usePathname();
-  const { overview } = useMerchantConsole();
+  const { overview, refresh: refreshConsole, refreshing: consoleRefreshing } = useMerchantConsole();
   const goBack = useConsoleBack();
   const dockPad = useDockPadding();
   const bottomInset = useBottomInset();
@@ -391,25 +394,39 @@ export function ConsolePage({
     }, []),
   );
 
+  useEffect(() => {
+    if (scrollToken == null) return;
+    const jump = () => scrollRef.current?.scrollTo({ x: 0, y: 0, animated: false });
+    jump();
+    const frame = requestAnimationFrame(jump);
+    const later = setTimeout(jump, 60);
+    return () => {
+      cancelAnimationFrame(frame);
+      clearTimeout(later);
+    };
+  }, [scrollToken]);
+
+  const pullRefresh = onRefresh ?? (() => { void refreshConsole(); });
+  const pullRefreshing = onRefresh ? Boolean(refreshing) : consoleRefreshing;
   const body = scroll ? (
     <ScrollView
+      key={scrollToken == null ? 'console-scroll' : `console-scroll-${scrollToken}`}
       ref={scrollRef}
       contentOffset={{ x: 0, y: 0 }}
-      contentContainerStyle={[styles.body, form && styles.formBody, { paddingBottom: bottomPad }, bodyStyle]}
+      alwaysBounceVertical
+      contentContainerStyle={[styles.body, form && styles.formBody, { paddingBottom: bottomPad, flexGrow: 1 }, bodyStyle]}
       keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator={false}
       refreshControl={
-        onRefresh ? (
-          <RefreshControl
-            refreshing={Boolean(refreshing)}
-            onRefresh={onRefresh}
-            tintColor={c.brand}
-            colors={[c.brand, c.ink, c.success]}
-            progressBackgroundColor={c.card}
-            title="Refreshing…"
-            titleColor={c.muted}
-          />
-        ) : undefined
+        <RefreshControl
+          refreshing={pullRefreshing}
+          onRefresh={pullRefresh}
+          tintColor={c.brand}
+          colors={[c.brand, c.ink, c.success]}
+          progressBackgroundColor={c.card}
+          title="Refreshing…"
+          titleColor={c.muted}
+        />
       }
     >
       {children}
@@ -472,7 +489,7 @@ export function ConsolePage({
       {showSubStrip ? <SubscriptionStrip onPress={() => router.push('/business-console/plan' as Href)} /> : null}
       <View style={[styles.flex, styles.bodyWrap]}>
         {form ? null : <PageGlow />}
-        {refreshing && onRefresh ? <RefreshBurst /> : null}
+        {pullRefreshing ? <RefreshBurst /> : null}
         {body}
         {showSearch ? searchCtl.overlay : null}
         {overlay}
