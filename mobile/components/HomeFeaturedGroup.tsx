@@ -80,20 +80,6 @@ function leafCategory(raw: string) {
   return leaf || 'Business';
 }
 
-function shortAbout(raw: string | null | undefined) {
-  if (!raw) return '';
-  return raw.replace(/<[^>]+>/g, ' ').replace(/\*\*|__|\*/g, '').replace(/\s+/g, ' ').trim();
-}
-
-const ABOUT_LINE = 16;
-const MIN_ABOUT_LINES = 2;
-
-/** About lines that bring a shorter card up to the tallest, on top of the lines every card shows. */
-export function aboutLinesToFill(extraPx: number, lineHeight = ABOUT_LINE): number {
-  if (extraPx <= 0) return MIN_ABOUT_LINES;
-  return MIN_ABOUT_LINES + Math.ceil(extraPx / lineHeight);
-}
-
 function shuffleMerchants<T>(items: T[], seed: number): T[] {
   const arr = [...items];
   let state = seed || 1;
@@ -157,9 +143,6 @@ function MerchantCard({
   compact,
   fill,
   wash,
-  userCoords,
-  rowHeight = 0,
-  naturalHeight = 0,
   onNaturalHeight,
   onPress,
 }: {
@@ -167,9 +150,6 @@ function MerchantCard({
   compact?: boolean;
   fill?: boolean;
   wash: string;
-  userCoords?: Coords | null;
-  rowHeight?: number;
-  naturalHeight?: number;
   onNaturalHeight?: (height: number) => void;
   onPress: () => void;
 }) {
@@ -180,15 +160,11 @@ function MerchantCard({
   const distanceLabel = useDrivingDistanceLabel(merchant.latitude, merchant.longitude);
   const place = (merchant.location || merchant.city || '').trim();
   const showLocation = Boolean(distanceLabel || place);
-  const about = shortAbout(merchant.about);
   const offerDisplay = getDiscountOfferDisplay(merchant.discountRange, merchant.name);
   const coreHeight = useRef(0);
   const footerHeight = useRef(0);
   const seenCore = useRef(false);
   const seenFooter = useRef(false);
-  const gap =
-    rowHeight > 0 && naturalHeight > 0 ? Math.max(0, rowHeight - naturalHeight) : 0;
-  const aboutLines = about ? aboutLinesToFill(rowHeight > 0 ? gap : 0) : 0;
 
   const publishFixedHeight = () => {
     if (!seenCore.current) return;
@@ -204,11 +180,7 @@ function MerchantCard({
         fill && styles.cardFill,
         pressed && styles.pressed,
       ]}
-      accessibilityLabel={
-        shortAbout(merchant.about)
-          ? `${merchant.name}. ${shortAbout(merchant.about)}`
-          : merchant.name
-      }
+      accessibilityLabel={merchant.name}
     >
       <View
         style={[
@@ -321,11 +293,6 @@ function MerchantCard({
         ) : null}
       </View>
       </View>
-      {aboutLines > 0 ? (
-        <Text style={styles.aboutFill} numberOfLines={aboutLines}>
-          {about}
-        </Text>
-      ) : null}
       <View
         collapsable={false}
         onLayout={(event) => {
@@ -445,7 +412,6 @@ function MerchantRow({
   nested,
   folderOpen,
   wash,
-  userCoords,
   showSeeAll,
   onOpenMerchant,
   onSeeAll,
@@ -455,7 +421,6 @@ function MerchantRow({
   nested?: boolean;
   folderOpen?: boolean;
   wash: string;
-  userCoords?: Coords | null;
   showSeeAll?: boolean;
   onOpenMerchant: (merchant: Merchant) => void;
   onSeeAll: () => void;
@@ -499,9 +464,6 @@ function MerchantRow({
           merchant={merchant}
           compact={compact}
           wash={wash}
-          userCoords={userCoords}
-          rowHeight={rowHeight}
-          naturalHeight={naturals[merchant.id] || 0}
           onNaturalHeight={(height) => {
             setNaturals((prev) => (prev[merchant.id] === height ? prev : { ...prev, [merchant.id]: height }));
           }}
@@ -1000,7 +962,6 @@ export function HomeFeaturedGroup({
               merchants={visibleMerchants}
               folderOpen={folderOpen}
               wash={panelWash}
-              userCoords={userCoords}
               showSeeAll
               onOpenMerchant={onOpenMerchant}
               onSeeAll={() => onOpenCategory(seeAllTarget)}
@@ -1600,13 +1561,6 @@ const useStyles = createThemedStyles((colors) => ({
   },
   statusOpen: { color: colors.open },
   statusClosed: { color: colors.closed },
-  aboutFill: {
-    marginTop: 2,
-    fontFamily: fonts.regular,
-    fontSize: 12,
-    lineHeight: ABOUT_LINE,
-    color: colors.textMuted,
-  },
   locRow: {
     flexDirection: 'row',
     alignItems: 'center',

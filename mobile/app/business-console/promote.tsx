@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Platform, Pressable, Text, TextInput, View } from 'react-native';
+import { AppState, Platform, Pressable, Text, TextInput, View } from 'react-native';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
+import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import * as Location from 'expo-location';
 import { useRouter, type Href } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { fonts } from '../../constants/typography';
 import { useConsoleColors } from '../../constants/consoleColors';
 import { useMerchantConsole } from '../../context/MerchantConsoleContext';
+import { queuePermissionRequest, requestLocationPermission } from '../../lib/permissionGate';
 import { getStoredToken } from '../../lib/session';
 import { SITE_URL } from '../../lib/supabase';
 import { Btn, Chip, ConsolePage, Field, Panel, Sheet, createConsoleStyles, useTabBack } from '../../components/console/kit';
@@ -131,8 +133,124 @@ const DECLARATION =
   'I confirm this shop is real and the services I list are the ones I actually offer. Any payment or advance a customer gives me is my own responsibility. FinderB only helps people discover my business and does not take part in those payments.';
 
 type ShopShot = { uri: string; name: string; type: string; file?: File };
+type PickedPhoto = { shot: ShopShot | null; problem: 'unopened' | 'lost' | null };
 
-function takeShopPhoto(): Promise<ShopShot | null> {
+function requestCameraAccess(): Promise<boolean> {
+  return queuePermissionRequest(() => new Promise<boolean>((resolve) => {
+    let done = false;
+    let leftApp = false;
+    const finish = (granted: boolean) => {
+      if (done) return;
+      done = true;
+      clearTimeout(unopened);
+      clearInterval(poll);
+      sub.remove();
+      resolve(granted);
+    };
+    const unopened = setTimeout(() => {
+      if (!leftApp) finish(false);
+    }, 20000);
+    const poll = setInterval(() => {
+      void ImagePicker.getCameraPermissionsAsync()
+        .then((res) => {
+          if (res.granted) finish(true);
+        })
+        .catch(() => undefined);
+    }, 1000);
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state !== 'active') {
+        leftApp = true;
+        return;
+      }
+      if (!leftApp || Platform.OS === 'web') return;
+      setTimeout(() => {
+        void ImagePicker.getCameraPermissionsAsync()
+          .then((res) => finish(res.granted))
+          .catch(() => finish(false));
+      }, 700);
+    });
+    void ImagePicker.getCameraPermissionsAsync()
+      .then((current) => {
+        if (current.granted) {
+          finish(true);
+          return;
+        }
+        if (current.canAskAgain === false) {
+          finish(false);
+          return;
+        }
+        return ImagePicker.requestCameraPermissionsAsync().then(
+          (res) => finish(res.granted),
+          () => ImagePicker.getCameraPermissionsAsync().then((res) => finish(res.granted)).catch(() => finish(false)),
+        );
+      })
+      .catch(() => finish(false));
+  }));
+}
+
+/** Camera and gallery promises can stay pending after the system screen closes. Give up only then. */
+function shotFromAsset(asset: ImagePicker.ImagePickerAsset, name: string): ShopShot {
+  const type = asset.mimeType && /^image\/(jpeg|png|webp)$/i.test(asset.mimeType) ? asset.mimeType : 'image/jpeg';
+  return { uri: asset.uri, name, type };
+}
+
+function awaitPicker(open: () => Promise<ImagePicker.ImagePickerResult>, name: string): Promise<PickedPhoto> {
+  if (Platform.OS === 'web') {
+    return open()
+      .then((shot) => {
+        const asset = shot.canceled ? null : shot.assets?.[0];
+        return { shot: asset ? shotFromAsset(asset, name) : null, problem: null };
+      })
+      .catch(() => ({ shot: null, problem: 'unopened' as const }));
+  }
+  return new Promise((resolve) => {
+    let settled = false;
+    let uiOpened = false;
+    let giveUp: ReturnType<typeof setTimeout> | null = null;
+    const finish = (shot: ShopShot | null, problem: PickedPhoto['problem']) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(unopened);
+      if (giveUp) clearTimeout(giveUp);
+      sub.remove();
+      resolve({ shot, problem });
+    };
+    const unopened = setTimeout(() => {
+      if (!uiOpened) finish(null, 'unopened');
+    }, 15000);
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state !== 'active') {
+        uiOpened = true;
+        if (giveUp) clearTimeout(giveUp);
+        giveUp = null;
+        return;
+      }
+      if (!uiOpened) return;
+      if (giveUp) clearTimeout(giveUp);
+      giveUp = setTimeout(() => {
+        void ImagePicker.getPendingResultAsync()
+          .then((pending) => {
+            if (settled) return;
+            const asset = pending && 'canceled' in pending && !pending.canceled ? pending.assets?.[0] : null;
+            if (asset) {
+              finish(shotFromAsset(asset, name), null);
+              return;
+            }
+            finish(null, 'lost');
+          })
+          .catch(() => finish(null, 'lost'));
+      }, 8000);
+    });
+    open()
+      .then((shot) => {
+        const asset = shot.canceled ? null : shot.assets?.[0];
+        finish(asset ? shotFromAsset(asset, name) : null, null);
+      })
+      .catch(() => finish(null, 'unopened'));
+  });
+}
+
+function takeShopPhoto(): Promise<PickedPhoto> {
   if (Platform.OS === 'web' && typeof document !== 'undefined') {
     return new Promise((resolve) => {
       const input = document.createElement('input');
@@ -140,46 +258,106 @@ function takeShopPhoto(): Promise<ShopShot | null> {
       input.accept = 'image/*';
       input.setAttribute('capture', 'environment');
       input.style.display = 'none';
-      const done = (shot: ShopShot | null) => {
-        input.remove();
-        resolve(shot);
-      };
       let settled = false;
       const finish = (shot: ShopShot | null) => {
         if (settled) return;
         settled = true;
-        done(shot);
+        window.removeEventListener('focus', onFocus);
+        input.remove();
+        resolve({ shot, problem: null });
+      };
+      const openedAt = Date.now();
+      const onFocus = () => {
+        window.setTimeout(() => {
+          if (Date.now() - openedAt < 800) return;
+          if (!input.files?.length) finish(null);
+        }, 400);
       };
       input.addEventListener('cancel', () => finish(null));
       input.addEventListener('change', () => {
         const file = input.files?.[0];
         if (!file) return finish(null);
-        finish({ uri: URL.createObjectURL(file), name: file.name || 'shop.jpg', type: file.type || 'image/jpeg', file });
+        finish({
+          uri: URL.createObjectURL(file),
+          name: file.name || 'shop.jpg',
+          type: file.type || 'image/jpeg',
+          file,
+        });
       });
-      window.addEventListener('focus', () => {
-        window.setTimeout(() => {
-          if (!input.files?.length) finish(null);
-        }, 400);
-      }, { once: true });
+      window.addEventListener('focus', onFocus);
       document.body.appendChild(input);
       input.click();
     });
   }
-  return ImagePicker.launchCameraAsync({ mediaTypes: ['images'], quality: 0.7 }).then((shot) => {
-    const asset = shot.canceled ? null : shot.assets?.[0];
-    if (!asset) return null;
-    return { uri: asset.uri, name: 'shop.jpg', type: asset.mimeType || 'image/jpeg' };
+  return awaitPicker(() => ImagePicker.launchCameraAsync({ mediaTypes: ['images'], quality: 0.7 }), 'shop.jpg');
+}
+
+function pickProofPhoto(): Promise<PickedPhoto> {
+  return awaitPicker(() => ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.8 }), 'document.jpg');
+}
+
+async function asJpeg(uri: string, name: string): Promise<ShopShot> {
+  const rendered = await ImageManipulator.manipulate(uri).resize({ width: 1600 }).renderAsync();
+  const saved = await rendered.saveAsync({ format: SaveFormat.JPEG, compress: 0.72 });
+  return { uri: saved.uri, name, type: 'image/jpeg' };
+}
+
+function within<T>(promise: Promise<T>, ms: number): Promise<T | null> {
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => resolve(null), ms);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      () => {
+        clearTimeout(timer);
+        resolve(null);
+      },
+    );
   });
 }
 
-async function uploadForm(path: string, form: FormData) {
-  const token = await getStoredToken();
-  const response = await fetch(`${SITE_URL}${path}`, {
-    method: 'POST',
-    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-    body: form,
-  });
-  return (await response.json()) as { success?: boolean; error?: string };
+async function confirmShopLocation(): Promise<Location.LocationObject | null> {
+  const granted = await requestLocationPermission();
+  if (!granted) return null;
+  const fresh = await within(
+    Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }),
+    12000,
+  );
+  if (fresh) return fresh;
+  const coarse = await within(
+    Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Low }),
+    8000,
+  );
+  if (coarse) return coarse;
+  const last = await Location.getLastKnownPositionAsync({ maxAge: 2 * 60 * 1000 }).catch(() => null);
+  return last;
+}
+
+function uploadForm(path: string, form: FormData): Promise<{ success?: boolean; error?: string }> {
+  return getStoredToken().then((token) => new Promise((resolve) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `${SITE_URL}${path}`);
+    xhr.timeout = 90000;
+    if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+    xhr.onload = () => {
+      try { resolve(JSON.parse(xhr.responseText) as { success?: boolean; error?: string }); }
+      catch { resolve({ success: false, error: 'Verification could not be sent. Try again.' }); }
+    };
+    xhr.onerror = () => resolve({ success: false, error: 'The upload was interrupted. Try again.' });
+    xhr.ontimeout = () => resolve({ success: false, error: 'The upload took too long. Try again.' });
+    xhr.send(form);
+  }));
+}
+
+function appendShot(form: FormData, field: string, shot: ShopShot) {
+  const file = shot.file;
+  if (file) {
+    form.append(field, file);
+    return;
+  }
+  form.append(field, { uri: shot.uri, name: shot.name, type: shot.type } as unknown as Blob);
 }
 
 export default function PromoteScreen() {
@@ -217,6 +395,7 @@ export default function PromoteScreen() {
   const [agreed, setAgreed] = useState(false);
   const [documentType, setDocumentType] = useState('gst');
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [phase, setPhase] = useState<'' | 'camera' | 'document' | 'location' | 'upload'>('');
 
   const load = async () => {
     const result = await run<Desk>('promotions');
@@ -233,47 +412,68 @@ export default function PromoteScreen() {
   }, []);
 
   const verify = async () => {
+    if (busy) return;
     setBusy(true);
     setError('');
-    if (Platform.OS !== 'web') {
-      const camera = await ImagePicker.getCameraPermissionsAsync();
-      if (!camera.granted) await ImagePicker.requestCameraPermissionsAsync();
-    }
-    const shot = await takeShopPhoto();
-    if (!shot) {
+    setPhase('camera');
+    try {
+      if (Platform.OS !== 'web') {
+        const granted = await requestCameraAccess();
+        if (!granted) {
+          setError('Allow the camera so FinderB can photograph the shop.');
+          return;
+        }
+      }
+      const shot = await takeShopPhoto();
+      if (!shot.shot) {
+        if (shot.problem === 'unopened') setError('The camera did not open. Allow the camera and try again.');
+        else if (shot.problem === 'lost') setError('The photo did not come back from the camera. Try again.');
+        return;
+      }
+      if (Platform.OS === 'android') await new Promise((resolve) => setTimeout(resolve, 400));
+      setPhase('document');
+      const proof = await pickProofPhoto();
+      if (!proof.shot) {
+        setError(proof.problem === 'unopened'
+          ? 'The document picker did not open. Try again.'
+          : 'Choose the GST, Udyam, shop license, or identity document.');
+        return;
+      }
+      setPhase('location');
+      const position = await confirmShopLocation();
+      if (!position) {
+        setError('Turn on location so FinderB can confirm this shop.');
+        return;
+      }
+      setPhase('upload');
+      const shop = shot.shot.file && /^image\/(jpeg|png|webp)$/i.test(shot.shot.type)
+        ? shot.shot
+        : await asJpeg(shot.shot.uri, 'shop.jpg');
+      const document = proof.shot.file && /^image\/(jpeg|png|webp)$/i.test(proof.shot.type)
+        ? proof.shot
+        : await asJpeg(proof.shot.uri, 'document.jpg');
+      const form = new FormData();
+      appendShot(form, 'shopPhoto', shop);
+      appendShot(form, 'documents', document);
+      form.append('documentType', documentType);
+      form.append('latitude', String(position.coords.latitude));
+      form.append('longitude', String(position.coords.longitude));
+      form.append('accuracy', String(position.coords.accuracy || ''));
+      form.append('declaration', agreed ? 'yes' : '');
+      const body = await uploadForm('/api/business/promotions/verification', form);
+      if (!body.success) {
+        const message = body.error || 'Verification could not be sent.';
+        setError(/CLOUDINARY|API_SECRET|API_KEY/i.test(message) ? 'Verification could not be sent. Try again.' : message);
+        return;
+      }
+      notify('Verification sent for review');
+      await load();
+    } catch {
+      setError('Verification could not be sent. Try again.');
+    } finally {
       setBusy(false);
-      return;
+      setPhase('');
     }
-    const place = await Location.requestForegroundPermissionsAsync();
-    if (!place.granted) {
-      setBusy(false);
-      setError('Turn on location so FinderB can confirm this shop.');
-      return;
-    }
-    const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
-    const docs = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'] });
-    if (docs.canceled || !docs.assets[0]) {
-      setBusy(false);
-      setError('Choose the GST, Udyam, shop license, or identity document.');
-      return;
-    }
-    const form = new FormData();
-    form.append('shopPhoto', shot.file || ({ uri: shot.uri, name: shot.name, type: shot.type } as unknown as Blob));
-    form.append('documents', { uri: docs.assets[0].uri, name: 'document.jpg', type: 'image/jpeg' } as unknown as Blob);
-    form.append('documentType', documentType);
-    form.append('latitude', String(position.coords.latitude));
-    form.append('longitude', String(position.coords.longitude));
-    form.append('accuracy', String(position.coords.accuracy || ''));
-    form.append('declaration', agreed ? 'yes' : '');
-    const body = await uploadForm('/api/business/promotions/verification', form);
-    setBusy(false);
-    if (!body.success) {
-      const message = body.error || 'Verification could not be sent.';
-      setError(/CLOUDINARY|API_SECRET|API_KEY/i.test(message) ? 'Verification could not be sent. Try again.' : message);
-      return;
-    }
-    notify('Verification sent for review');
-    await load();
   };
 
   const create = async () => {
@@ -696,7 +896,19 @@ export default function PromoteScreen() {
                 <Ionicons name={agreed ? 'checkbox' : 'square-outline'} size={18} color={agreed ? c.primary : c.muted} />
                 <Text style={styles.declareText}>{DECLARATION}</Text>
               </Pressable>
-              <Btn small label={busy ? 'Working…' : 'Take Shop Photo'} disabled={!agreed || busy} onPress={() => void verify()} />
+              <Btn
+                small
+                busy={busy}
+                label={
+                  phase === 'camera' ? 'Opening camera…'
+                  : phase === 'document' ? 'Choose the proof…'
+                  : phase === 'location' ? 'Confirming location…'
+                  : phase === 'upload' ? 'Sending…'
+                  : 'Take Shop Photo'
+                }
+                disabled={!agreed || busy}
+                onPress={() => void verify()}
+              />
               <Text style={styles.photoHint}>Live camera only. A gallery photo is not accepted.</Text>
             </>
           )}

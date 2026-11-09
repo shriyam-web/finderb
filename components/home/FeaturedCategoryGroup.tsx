@@ -477,7 +477,6 @@ function MerchantPortraitCard({
   const ratingDisplay = getRatingDisplay(biz.rating, biz.reviewsCount);
   const hasOffer = Boolean(biz.discountRange?.trim());
   const isNewListing = (biz.reviewsCount ?? 0) === 0;
-  const aboutText = (biz.description || biz.about || '').replace(/\*\*|__|\*/g, '').replace(/\s+/g, ' ').trim();
   const subcategoryLabel = merchantSubcategoryLabel(biz.category);
   const placeLabel = formatLocalityCityLabel(biz);
   const phone = (biz.publicPhone || biz.contact || '').trim();
@@ -594,10 +593,6 @@ function MerchantPortraitCard({
             </>
           ) : null}
         </div>
-
-        <p className="mt-1.5 min-h-[28px] line-clamp-2 text-[10px] leading-snug text-slate-500">
-          {aboutText || null}
-        </p>
 
         <p className="mt-1.5 flex min-h-[28px] items-start gap-1 border-t border-slate-100 pt-1.5 text-[10px] leading-snug text-slate-500">
           <MapPin size={11} className="mt-px shrink-0 text-slate-400" />
