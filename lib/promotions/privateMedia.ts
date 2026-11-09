@@ -22,6 +22,13 @@ export function privateMediaConfigured() {
   return Boolean(creds());
 }
 
+export function publicVideoPreset() {
+  const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME?.trim() || '';
+  const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET?.trim() || '';
+  if (!cloudName || !uploadPreset) return null;
+  return { cloudName, uploadPreset };
+}
+
 /** Cloudinary API signature. Values without "&" match signature version 2. */
 export function signCloudinaryParams(params: Record<string, string>, apiSecret: string) {
   const toSign = Object.keys(params)

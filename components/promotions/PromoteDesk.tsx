@@ -191,24 +191,31 @@ export default function PromoteDesk({ mode, orderId }: { mode: 'promote' | 'list
     const ticket = (ticketResponse ? await ticketResponse.json().catch(() => null) : null) as {
       success?: boolean;
       error?: string;
+      mode?: 'signed' | 'preset';
       cloudName?: string;
+      uploadPreset?: string;
       apiKey?: string;
       timestamp?: string;
       signature?: string;
       folder?: string;
     } | null;
-    if (!ticket?.success || !ticket.cloudName || !ticket.apiKey || !ticket.signature || !ticket.timestamp || !ticket.folder) {
+    const preset = Boolean(ticket?.success && (ticket.mode === 'preset' || ticket.uploadPreset));
+    const signed = Boolean(ticket?.success && ticket.mode !== 'preset' && ticket.apiKey && ticket.timestamp && ticket.signature && ticket.folder);
+    if (!ticket?.success || !ticket.cloudName || (!preset && !signed)) {
       setBusy(false);
       setError(ticket?.error || 'Video upload is not available right now.');
       return;
     }
     const form = new FormData();
     form.set('file', file);
-    form.set('api_key', ticket.apiKey);
-    form.set('timestamp', ticket.timestamp);
-    form.set('signature', ticket.signature);
-    form.set('folder', ticket.folder);
-    form.set('type', 'authenticated');
+    if (preset && ticket.uploadPreset) form.set('upload_preset', ticket.uploadPreset);
+    else {
+      form.set('api_key', ticket.apiKey || '');
+      form.set('timestamp', ticket.timestamp || '');
+      form.set('signature', ticket.signature || '');
+      form.set('folder', ticket.folder || '');
+      form.set('type', 'authenticated');
+    }
     const uploaded = await new Promise<{
       public_id?: string;
       format?: string;
@@ -665,7 +672,13 @@ export default function PromoteDesk({ mode, orderId }: { mode: 'promote' | 'list
               <section className="promo-card" style={{ marginTop: 16 }}>
                 <h2>Promotional video</h2>
                 <p className="promo-meta">Order {draftId}</p>
-                <p className="promo-note">Upload a video from your gallery. MP4 or MOV, phone held upright (about 9:16), 15 to 45 seconds, 60 MB or smaller. A wide video, a photo, or a clip outside that length is not accepted.</p>
+                <ol className="promo-points" style={{ marginBottom: 18 }}>
+                  <li>Choose the video from your gallery.</li>
+                  <li>MP4 or MOV.</li>
+                  <li>Hold the phone upright, about 9:16.</li>
+                  <li>15 to 45 seconds.</li>
+                  <li>60 MB or smaller.</li>
+                </ol>
                 <label className="promo-field">Video from your gallery
                   <input type="file" accept="video/mp4,video/quicktime" onChange={(event) => {
                     const file = event.target.files?.[0];

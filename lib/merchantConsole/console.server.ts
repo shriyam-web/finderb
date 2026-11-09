@@ -990,6 +990,13 @@ export async function runConsoleAction(userId: string, businessId: string, body:
         pincode: String(body.pincode || ''),
         area: String(body.area || ''),
       });
+    case 'promotionVideoTicket':
+      return (await import('@/lib/promotions/service')).issuePromotionVideoUpload(businessId, String(body.orderId || ''));
+    case 'commitPromotionVideo':
+      return (await import('@/lib/promotions/service')).commitPromotionVideo(businessId, String(body.orderId || ''), {
+        publicId: String(body.publicId || ''),
+        format: String(body.format || ''),
+      });
     case 'startPromotionPay':
       return (await import('@/lib/promotions/service')).startPromotionPayment(businessId, String(body.orderId || ''));
     case 'confirmPromotionPay':

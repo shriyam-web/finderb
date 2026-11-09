@@ -16,9 +16,11 @@ import {
   validIndiaCoordinate,
   validPincode,
 } from '@/lib/promotions/model';
+import { readRemoteMp4Facts } from '@/lib/promotions/mp4Facts';
 import {
   destroyPrivateAsset,
   privateDownloadUrl,
+  publicVideoPreset,
   readPrivateVideo,
   signPrivateUpload,
   uploadPrivateFile,
@@ -167,14 +169,15 @@ function publicOrder(row: Record<string, unknown>) {
     campaignLabel: CAMPAIGN_LABEL[status] || status,
     targetPincode: String(row.target_pincode || ''),
     targetArea: String(row.target_area || ''),
-    videoReady: Boolean(row.video_public_id),
-    videoUrl: row.video_public_id
-      ? privateDownloadUrl({
-          publicId: String(row.video_public_id),
-          resource: 'video',
-          format: String(row.video_format || ''),
-        })
-      : null,
+    videoReady: Boolean(row.video_public_id || (typeof row.video_url === 'string' && row.video_url.startsWith('https://'))),
+    videoUrl: (typeof row.video_url === 'string' && row.video_url.startsWith('https://') ? row.video_url : null)
+      || (row.video_public_id
+        ? privateDownloadUrl({
+            publicId: String(row.video_public_id),
+            resource: 'video',
+            format: String(row.video_format || ''),
+          })
+        : null),
     createdAt: (row.created_at as string) || null,
     startedAt: (row.campaign_started_at as string) || null,
     endedAt: (row.campaign_ended_at as string) || null,
@@ -504,8 +507,45 @@ export async function issuePromotionVideoUpload(businessId: string, orderId: str
   const owned = await ownPromotionOrder(businessId, orderId);
   if (owned.error || !owned.row) return fail(owned.error || 'That promotion was not found.');
   const ticket = signPrivateUpload(VIDEO_FOLDER);
-  if (!ticket) return fail('Video upload is not available right now.');
-  return { success: true as const, orderId, ...ticket, rules: VIDEO_RULES };
+  if (ticket) return { success: true as const, mode: 'signed' as const, orderId, ...ticket, rules: VIDEO_RULES };
+  const preset = publicVideoPreset();
+  if (!preset) return fail('Video upload is not available right now.');
+  return { success: true as const, mode: 'preset' as const, orderId, ...preset, rules: VIDEO_RULES };
+}
+
+async function hostedVideoFacts(publicId: string, formatHint: string): Promise<
+  | { ok: true; deliveryUrl: string | null; meta: { duration: number; width: number; height: number; bytes: number; format: string } }
+  | { ok: false; error: string }
+> {
+  const extension = /mov|qt|quicktime/i.test(formatHint) ? 'mov' : 'mp4';
+  if (publicId.startsWith(`${VIDEO_FOLDER}/`)) {
+    const looked = await readPrivateVideo(publicId);
+    if (looked && Number.isFinite(looked.duration) && looked.width > 0 && looked.height > 0) {
+      return {
+        ok: true,
+        deliveryUrl: null,
+        meta: {
+          duration: looked.duration,
+          width: looked.width,
+          height: looked.height,
+          bytes: looked.bytes,
+          format: looked.format || extension,
+        },
+      };
+    }
+  }
+  const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME?.trim() || '';
+  if (!cloudName) return { ok: false, error: 'Video upload is not available right now.' };
+  const deliveryUrl = `https://res.cloudinary.com/${cloudName}/video/upload/${publicId}.${extension}`;
+  const head = await fetch(deliveryUrl, { method: 'HEAD' }).catch(() => null);
+  const type = head?.headers.get('content-type') || '';
+  const bytes = Number(head?.headers.get('content-length') || 0);
+  if (!head?.ok || !type.startsWith('video/') || !Number.isFinite(bytes) || bytes < 1) {
+    return { ok: false, error: `FinderB could not open this video. ${VIDEO_RULES}` };
+  }
+  const facts = await readRemoteMp4Facts(deliveryUrl, bytes).catch(() => null);
+  if (!facts) return { ok: false, error: `FinderB could not read the length or shape of this video. ${VIDEO_RULES}` };
+  return { ok: true, deliveryUrl, meta: { ...facts, bytes, format: extension } };
 }
 
 export async function commitPromotionVideo(businessId: string, orderId: string, input: {
@@ -519,21 +559,15 @@ export async function commitPromotionVideo(businessId: string, orderId: string, 
   const hidden = await requireEnabled();
   if (hidden) return hidden;
   const publicId = String(input.publicId || '');
-  if (!publicId.startsWith(`${VIDEO_FOLDER}/`) || publicId.includes('..')) {
+  if (!/^[A-Za-z0-9][A-Za-z0-9_./-]{0,180}$/.test(publicId) || publicId.includes('..')) {
     return fail('That video could not be accepted.');
   }
   const owned = await ownPromotionOrder(businessId, orderId);
   if (owned.error || !owned.row || !owned.supabase) return fail(owned.error || 'That promotion was not found.');
-  const looked = await readPrivateVideo(publicId);
-  const meta = looked || {
-    format: String(input.format || ''),
-    duration: Number(input.duration),
-    width: Number(input.width),
-    height: Number(input.height),
-    bytes: Number(input.bytes),
-  };
-  const problem = describeVideo(meta);
-  const asset = { publicId, resource: 'video' as const, format: String(meta.format || input.format || '') };
+  const checked = await hostedVideoFacts(publicId, String(input.format || ''));
+  if (!checked.ok) return fail(checked.error);
+  const problem = describeVideo(checked.meta);
+  const asset = { publicId, resource: 'video' as const, format: checked.meta.format || '' };
   if (problem) {
     await destroyPrivateAsset(asset);
     return fail(problem);
@@ -542,12 +576,12 @@ export async function commitPromotionVideo(businessId: string, orderId: string, 
     ? { publicId: String(owned.row.video_public_id), resource: 'video' as const, format: String(owned.row.video_format || '') }
     : null;
   const { error } = await owned.supabase.from('promotion_orders').update({
-    video_url: null,
+    video_url: checked.deliveryUrl,
     video_public_id: publicId,
     video_format: asset.format,
-    video_duration_sec: meta.duration,
-    video_width: meta.width,
-    video_height: meta.height,
+    video_duration_sec: checked.meta.duration,
+    video_width: checked.meta.width,
+    video_height: checked.meta.height,
     updated_at: new Date().toISOString(),
   }).eq('id', orderId).eq('business_id', businessId);
   if (error) {
@@ -619,7 +653,9 @@ export async function startPromotionPayment(businessId: string, orderId: string)
   if (!order) return fail('That promotion was not found.');
   const row = order as Record<string, unknown>;
   if (row.payment_status === 'paid') return fail('This promotion is already paid.');
-  if (!row.video_public_id) return fail('Upload the promotional video before paying.');
+  if (!row.video_public_id && !(typeof row.video_url === 'string' && row.video_url.startsWith('https://'))) {
+    return fail('Upload the promotional video before paying.');
+  }
   const verification = await latestVerification(businessId);
   if (String(verification?.status) !== 'approved') return fail('Business verification is no longer approved.');
   const amount = Number(row.amount_inr) || 0;

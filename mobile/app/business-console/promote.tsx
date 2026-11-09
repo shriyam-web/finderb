@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { AppState, Platform, Pressable, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, AppState, Platform, Pressable, Text, TextInput, View } from 'react-native';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
@@ -460,6 +460,7 @@ export default function PromoteScreen() {
   const [documentType, setDocumentType] = useState('gst');
   const [uploadProgress, setUploadProgress] = useState(0);
   const [phase, setPhase] = useState<'' | 'certificate' | 'selfie' | 'location' | 'upload'>('');
+  const [opening, setOpening] = useState(true);
   const resumed = useRef(false);
 
   const resumeFrom = (result: Desk) => {
@@ -499,7 +500,13 @@ export default function PromoteScreen() {
   };
 
   useEffect(() => {
-    void load(true);
+    let live = true;
+    void load(true).finally(() => {
+      if (live) setOpening(false);
+    });
+    return () => {
+      live = false;
+    };
   }, []);
 
   const verify = async () => {
@@ -596,26 +603,21 @@ export default function PromoteScreen() {
     setBusy(true);
     setError('');
     setUploadProgress(0);
-    const token = await getStoredToken();
-    const headers: Record<string, string> = { 'Content-Type': 'application/json', Accept: 'application/json' };
-    if (token) headers.Authorization = `Bearer ${token}`;
-    const ticketResponse = await fetch(`${SITE_URL}/api/business/promotions/video`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({ intent: 'ticket', orderId }),
-    }).catch(() => null);
-    const ticket = (ticketResponse ? await ticketResponse.json().catch(() => null) : null) as {
-      success?: boolean;
-      error?: string;
+    const ticket = await run<{
+      success: true;
+      mode?: 'signed' | 'preset';
       cloudName?: string;
+      uploadPreset?: string;
       apiKey?: string;
       timestamp?: string;
       signature?: string;
       folder?: string;
-    } | null;
-    if (!ticket?.success || !ticket.cloudName || !ticket.apiKey || !ticket.signature || !ticket.timestamp || !ticket.folder) {
+    }>('promotionVideoTicket', { orderId });
+    const preset = ticket.success && (ticket.mode === 'preset' || Boolean(ticket.uploadPreset));
+    const signed = ticket.success && ticket.mode !== 'preset' && ticket.apiKey && ticket.timestamp && ticket.signature && ticket.folder;
+    if (!ticket.success || !ticket.cloudName || (!preset && !signed)) {
       setBusy(false);
-      setError(ticket?.error || 'Video upload is not available right now.');
+      setError(ticket.success ? `The video could not be uploaded. ${VIDEO_HINT}` : ticket.error);
       return;
     }
     const mime = asset.mimeType && /^video\/(mp4|quicktime)$/i.test(asset.mimeType) ? asset.mimeType : 'video/mp4';
@@ -625,11 +627,14 @@ export default function PromoteScreen() {
       name: mime === 'video/quicktime' ? 'promo.mov' : 'promo.mp4',
       type: mime,
     } as unknown as Blob);
-    form.append('api_key', ticket.apiKey);
-    form.append('timestamp', ticket.timestamp);
-    form.append('signature', ticket.signature);
-    form.append('folder', ticket.folder);
-    form.append('type', 'authenticated');
+    if (preset && ticket.uploadPreset) form.append('upload_preset', ticket.uploadPreset);
+    else {
+      form.append('api_key', ticket.apiKey || '');
+      form.append('timestamp', ticket.timestamp || '');
+      form.append('signature', ticket.signature || '');
+      form.append('folder', ticket.folder || '');
+      form.append('type', 'authenticated');
+    }
     const uploaded = await new Promise<{
       public_id?: string;
       format?: string;
@@ -656,23 +661,15 @@ export default function PromoteScreen() {
       return;
     }
     setUploadProgress(100);
-    const saved = await fetch(`${SITE_URL}/api/business/promotions/video`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({
-        orderId,
-        publicId: uploaded.public_id,
-        format: uploaded.format,
-        duration: uploaded.duration,
-        width: uploaded.width,
-        height: uploaded.height,
-        bytes: uploaded.bytes || asset.fileSize,
-      }),
-    }).then((response) => response.json()).catch(() => null) as { success?: boolean; error?: string } | null;
+    const saved = await run<{ success: true }>('commitPromotionVideo', {
+      orderId,
+      publicId: uploaded.public_id,
+      format: uploaded.format || (mime === 'video/quicktime' ? 'mov' : 'mp4'),
+    });
     setBusy(false);
-    if (!saved?.success) {
+    if (!saved.success) {
       setUploadProgress(0);
-      setError(saved?.error || `The video could not be uploaded. ${VIDEO_HINT}`);
+      setError(saved.error || `The video could not be uploaded. ${VIDEO_HINT}`);
       return;
     }
     setVideoReady(true);
@@ -762,6 +759,16 @@ export default function PromoteScreen() {
     setError('');
     setStep(waiting ? 'track' : approved ? 'area' : 'verify');
   };
+
+  if (opening) {
+    return (
+      <ConsolePage title="Promote online" subtitle="Checking your application" onBack={back} docked>
+        <View style={styles.opening}>
+          <ActivityIndicator size="large" color={c.primary} />
+        </View>
+      </ConsolePage>
+    );
+  }
 
   return (
     <ConsolePage title="Promote online" subtitle={step === 'offer' ? 'Choose a package' : step === 'custom' ? 'Custom plan' : step === 'verify' ? 'Certificate and selfie' : step === 'track' ? 'Application status' : step === 'area' ? 'Where the ads run' : step === 'video' ? 'Promotional video' : step === 'pay' ? 'Pay for this package' : 'Payment received'} onBack={goBack} docked>
@@ -1117,13 +1124,28 @@ export default function PromoteScreen() {
         <Panel>
           <Text style={styles.h}>Promotional video</Text>
           {orderId ? <Text style={styles.p}>Order {orderId}</Text> : null}
-          <Text style={styles.p}>Pick a video from your gallery. Hold the phone upright when you film it.</Text>
-          <Text style={styles.photoHint}>A gallery video is accepted. MP4 or MOV. Vertical, about 9:16. 15 to 45 seconds. 60 MB or smaller. A wide video, a photo, or a clip outside that length is not accepted.</Text>
+          <View style={styles.videoRules}>
+            {[
+              'Choose the video from your gallery.',
+              'MP4 or MOV.',
+              'Hold the phone upright, about 9:16.',
+              '15 to 45 seconds.',
+              '60 MB or smaller.',
+            ].map((rule, index) => (
+              <View key={rule} style={styles.videoRule}>
+                <View style={styles.videoIndex}>
+                  <Text style={styles.videoIndexText}>{index + 1}</Text>
+                </View>
+                <Text style={styles.videoRuleText}>{rule}</Text>
+              </View>
+            ))}
+          </View>
           {uploadProgress > 0 && uploadProgress < 100 ? <Text style={styles.p}>Uploading {uploadProgress}%</Text> : null}
           <Btn
             label={busy ? `Uploading ${uploadProgress}%` : 'Choose from gallery'}
             busy={busy}
             onPress={() => void video()}
+            style={styles.videoBtn}
           />
         </Panel>
       ) : null}
@@ -1417,6 +1439,20 @@ const useStyles = createConsoleStyles((c) => ({
   declareOn: { borderColor: c.ink, backgroundColor: c.sunken },
   declareText: { flex: 1, fontFamily: fonts.regular, fontSize: 13, lineHeight: 18, color: c.body },
   photoHint: { fontFamily: fonts.regular, fontSize: 12, lineHeight: 16, color: c.muted },
+  opening: { minHeight: 220, alignItems: 'center', justifyContent: 'center' },
+  videoRules: { gap: 10, marginTop: 12, marginBottom: 18 },
+  videoRule: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
+  videoIndex: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: c.primary,
+  },
+  videoIndexText: { fontFamily: fonts.semiBold, fontSize: 12, color: c.primaryInk },
+  videoRuleText: { flex: 1, fontFamily: fonts.regular, fontSize: 14, lineHeight: 20, color: c.ink },
+  videoBtn: { marginTop: 6 },
   error: { fontFamily: fonts.regular, fontSize: 13, color: c.danger },
   intro: { gap: 6, paddingHorizontal: 2, paddingBottom: 4 },
   introKicker: { fontFamily: fonts.regular, fontSize: 13, lineHeight: 18, color: c.muted },
