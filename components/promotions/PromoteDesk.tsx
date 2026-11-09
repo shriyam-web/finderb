@@ -32,6 +32,7 @@ type PackageCard = {
 
 type OrderCard = {
   id: string;
+  packageId?: string;
   packageName: string;
   durationDays: number;
   coverage: string;
@@ -93,7 +94,19 @@ export default function PromoteDesk({ mode, orderId }: { mode: 'promote' | 'list
         return;
       }
       setDesk(result);
-      setStep(0);
+      const status = result.verification.status;
+      const unpaid = result.orders.find((item) => item.paymentStatus !== 'paid');
+      if (mode === 'promote' && (status === 'submitted' || status === 'under_review' || status === 'rejected' || status === 'resubmission_required')) {
+        setStep(1);
+      } else if (mode === 'promote' && status === 'approved' && unpaid) {
+        setDraftId(unpaid.id);
+        if (unpaid.packageId) setPackageId(unpaid.packageId);
+        setPincode(unpaid.targetPincode);
+        setArea(unpaid.targetArea);
+        setStep(unpaid.videoReady ? 4 : 3);
+      } else if (mode === 'promote') {
+        setStep(0);
+      }
     });
     if (mode === 'detail' && orderId) {
       void loadPromotionOrder(orderId).then((result) => {
@@ -134,38 +147,119 @@ export default function PromoteDesk({ mode, orderId }: { mode: 'promote' | 'list
     setStep(3);
   };
 
-  const uploadVideo = (file: File) => {
+  const uploadVideo = async (file: File) => {
+    const rules = 'Use an MP4 or MOV, hold the phone upright (about 9:16), keep it between 15 and 45 seconds, and stay under 60 MB.';
+    if (file.size > 60 * 1024 * 1024) {
+      setError(`This video is larger than 60 MB. ${rules}`);
+      return;
+    }
+    if (file.type && !/^video\/(mp4|quicktime)$/.test(file.type)) {
+      setError(`This file is not an MP4 or MOV. ${rules}`);
+      return;
+    }
+    const local = await new Promise<{ duration: number; width: number; height: number } | null>((resolve) => {
+      const video = document.createElement('video');
+      const url = URL.createObjectURL(file);
+      const finish = (value: { duration: number; width: number; height: number } | null) => {
+        URL.revokeObjectURL(url);
+        resolve(value);
+      };
+      video.preload = 'metadata';
+      video.onloadedmetadata = () => finish({ duration: video.duration, width: video.videoWidth, height: video.videoHeight });
+      video.onerror = () => finish(null);
+      video.src = url;
+    });
+    if (local) {
+      if (local.duration < 15 || local.duration > 45) {
+        setError(`This video is ${Math.round(local.duration)} seconds. It must be between 15 and 45 seconds.`);
+        return;
+      }
+      if (local.width > 0 && local.height / local.width < 1.5) {
+        setError('This video is not vertical. Hold the phone upright so the picture is about 9:16.');
+        return;
+      }
+    }
     setBusy(true);
     setError('');
     setUploadProgress(0);
     setVideoName(file.name);
+    const ticketResponse = await fetch('/api/business/promotions/video', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ intent: 'ticket', orderId: draftId }),
+    }).catch(() => null);
+    const ticket = (ticketResponse ? await ticketResponse.json().catch(() => null) : null) as {
+      success?: boolean;
+      error?: string;
+      cloudName?: string;
+      apiKey?: string;
+      timestamp?: string;
+      signature?: string;
+      folder?: string;
+    } | null;
+    if (!ticket?.success || !ticket.cloudName || !ticket.apiKey || !ticket.signature || !ticket.timestamp || !ticket.folder) {
+      setBusy(false);
+      setError(ticket?.error || 'Video upload is not available right now.');
+      return;
+    }
     const form = new FormData();
-    form.set('orderId', draftId);
-    form.set('video', file);
-    const xhr = new XMLHttpRequest();
-    uploadRequest.current = xhr;
-    xhr.open('POST', '/api/business/promotions/video');
-    xhr.upload.onprogress = (event) => {
-      if (event.lengthComputable) setUploadProgress(Math.round((event.loaded / event.total) * 100));
-    };
-    xhr.onerror = () => {
+    form.set('file', file);
+    form.set('api_key', ticket.apiKey);
+    form.set('timestamp', ticket.timestamp);
+    form.set('signature', ticket.signature);
+    form.set('folder', ticket.folder);
+    form.set('type', 'authenticated');
+    const uploaded = await new Promise<{
+      public_id?: string;
+      format?: string;
+      duration?: number;
+      width?: number;
+      height?: number;
+      bytes?: number;
+      error?: { message?: string };
+    } | null>((resolve) => {
+      const xhr = new XMLHttpRequest();
+      uploadRequest.current = xhr;
+      xhr.open('POST', `https://api.cloudinary.com/v1_1/${ticket.cloudName}/video/upload`);
+      xhr.upload.onprogress = (event) => {
+        if (!event.lengthComputable || event.total <= 0) return;
+        setUploadProgress(Math.min(100, Math.max(0, Math.round((event.loaded / event.total) * 100))));
+      };
+      xhr.onerror = () => resolve(null);
+      xhr.onabort = () => resolve(null);
+      xhr.onload = () => {
+        try { resolve(JSON.parse(xhr.responseText)); }
+        catch { resolve(null); }
+      };
+      xhr.send(form);
+    });
+    if (!uploaded?.public_id) {
       setBusy(false);
-      setError('The video upload was interrupted. Try again.');
-    };
-    xhr.onabort = () => {
-      setBusy(false);
-      setError('Upload cancelled.');
-    };
-    xhr.onload = () => {
-      setBusy(false);
-      const body = JSON.parse(xhr.responseText || '{}') as { success?: boolean; error?: string };
-      if (!body.success) {
-        setError(body.error || 'The video could not be uploaded.');
-        return;
-      }
-      setStep(4);
-    };
-    xhr.send(form);
+      setUploadProgress(0);
+      setError(uploaded?.error?.message || `The video could not be uploaded. ${rules}`);
+      return;
+    }
+    setUploadProgress(100);
+    const saved = await fetch('/api/business/promotions/video', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({
+        orderId: draftId,
+        publicId: uploaded.public_id,
+        format: uploaded.format,
+        duration: uploaded.duration,
+        width: uploaded.width,
+        height: uploaded.height,
+        bytes: uploaded.bytes || file.size,
+      }),
+    }).then((response) => response.json()).catch(() => null) as { success?: boolean; error?: string } | null;
+    setBusy(false);
+    if (!saved?.success) {
+      setUploadProgress(0);
+      setError(saved?.error || `The video could not be uploaded. ${rules}`);
+      return;
+    }
+    setStep(4);
   };
 
   const pay = async () => {
@@ -230,7 +324,7 @@ export default function PromoteDesk({ mode, orderId }: { mode: 'promote' | 'list
         <div className="promo-row" style={{ marginTop: 16 }}>
           <Link className="promo-btn-ghost" href="/business/promote">Packages</Link>
           <Link className="promo-btn-ghost" href="/business/verification">Verification</Link>
-          <Link className="promo-btn-ghost" href="/business/promotions">My promotions</Link>
+          {desk && desk.orders.length ? <Link className="promo-btn-ghost" href="/business/promotions">My promotions</Link> : null}
         </div>
         {error ? <p className="promo-error">{error}</p> : null}
 
@@ -294,12 +388,15 @@ export default function PromoteDesk({ mode, orderId }: { mode: 'promote' | 'list
                 <p className="promo-meta">Status: {desk.verification.status.replaceAll('_', ' ')}</p>
                 {desk.verification.rejectionReason ? <p className="promo-error">{desk.verification.rejectionReason}</p> : null}
                 {desk.verification.status === 'submitted' || desk.verification.status === 'under_review' ? (
-                  <p className="promo-meta">Submitted {desk.verification.submittedAt ? new Date(desk.verification.submittedAt).toLocaleString('en-IN') : ''}. Payment for the package you chose opens after approval.</p>
+                  <>
+                    <p className="promo-meta">Sent {desk.verification.submittedAt ? new Date(desk.verification.submittedAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) : ''}. Payment for the package you chose opens after approval.</p>
+                    <p className="promo-note">Application sent. FinderB is checking the certificate and selfie. Leave this page and come back: this status stays here until there is a decision.</p>
+                  </>
                 ) : (
                   <form ref={verifyForm} action={(form) => void submitVerification(form)}>
-                    <p className="promo-note">Use the camera for the shop front. A gallery photo is not accepted for this check.</p>
-                    <label className="promo-field">Shop-front photograph
-                      <input name="shopPhoto" type="file" accept="image/*" capture="environment" required />
+                    <p className="promo-note">Two live photos. The gallery is not used. Photograph the certificate so the name and number are readable, then take a selfie with the front camera.</p>
+                    <label className="promo-field">Selfie
+                      <input name="shopPhoto" type="file" accept="image/*" capture="user" required />
                     </label>
                     <label className="promo-field">Latitude<input name="latitude" required readOnly placeholder="Use this device location" /></label>
                     <label className="promo-field">Longitude<input name="longitude" required readOnly /></label>
@@ -318,15 +415,15 @@ export default function PromoteDesk({ mode, orderId }: { mode: 'promote' | 'list
                         if (lng instanceof HTMLInputElement) lng.value = String(pos.coords.longitude);
                         if (accuracy instanceof HTMLInputElement) accuracy.value = String(pos.coords.accuracy || '');
                         setError('');
-                      }, () => setError('Location permission is required to photograph the shop.'), { enableHighAccuracy: true, timeout: 12000 });
+                      }, () => setError('Turn on location so FinderB can confirm you are at the shop.'), { enableHighAccuracy: true, timeout: 12000 });
                     }}>Use this device location</button>
                     <label className="promo-field">Document
                       <select name="documentType" defaultValue="gst">
                         {DOCUMENT_TYPES.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
                       </select>
                     </label>
-                    <label className="promo-field">Document files
-                      <input name="documents" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" multiple required />
+                    <label className="promo-field">Certificate photo
+                      <input name="documents" type="file" accept="image/*" capture="environment" required />
                     </label>
                     <label className="promo-field" style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
                       <input type="checkbox" name="declaration" value="yes" required />
@@ -567,7 +664,8 @@ export default function PromoteDesk({ mode, orderId }: { mode: 'promote' | 'list
             {step === 3 ? (
               <section className="promo-card" style={{ marginTop: 16 }}>
                 <h2>Promotional video</h2>
-                <p className="promo-meta">MP4 or MOV, vertical 9:16, 15–45 seconds, up to 60 MB. Order {draftId}.</p>
+                <p className="promo-meta">Order {draftId}</p>
+                <p className="promo-note">Film the shop yourself and hold the phone upright. MP4 or MOV, about 9:16, 15 to 45 seconds, 60 MB or smaller. A wide video, a photo, or a clip outside that length is not accepted.</p>
                 <label className="promo-field">Video
                   <input type="file" accept="video/mp4,video/quicktime" onChange={(event) => {
                     const file = event.target.files?.[0];
@@ -586,8 +684,9 @@ export default function PromoteDesk({ mode, orderId }: { mode: 'promote' | 'list
             {step === 4 && selected ? (
               <section className="promo-card" style={{ marginTop: 16 }}>
                 <h2>Pay {inr(selected.priceInr)}</h2>
-                <p className="promo-meta">{selected.name} · {area} {pincode} · order {draftId}</p>
-                <button className="promo-btn" type="button" disabled={busy} onClick={() => void pay()}>{busy ? 'Opening payment…' : 'Pay with Razorpay'}</button>
+                <p className="promo-meta">{selected.name} · {area} {pincode}</p>
+                <p className="promo-meta">Order {draftId}</p>
+                <button className="promo-btn" type="button" disabled={busy} onClick={() => void pay()}>{busy ? 'Opening payment…' : 'Continue'}</button>
               </section>
             ) : null}
           </>

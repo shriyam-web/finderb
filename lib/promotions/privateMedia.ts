@@ -133,6 +133,45 @@ export async function uploadPrivateFile(file: File, resource: PrivateResource, f
   };
 }
 
+/** Short-lived signature so the phone can send a video straight to Cloudinary. */
+export function signPrivateUpload(folder: string) {
+  const auth = creds();
+  if (!auth) return null;
+  const timestamp = String(Math.floor(Date.now() / 1000));
+  const params = { folder, timestamp, type: 'authenticated' };
+  return {
+    cloudName: auth.cloudName,
+    apiKey: auth.apiKey,
+    timestamp,
+    signature: signCloudinaryParams(params, auth.apiSecret),
+    folder,
+  };
+}
+
+export async function readPrivateVideo(publicId: string) {
+  const auth = creds();
+  if (!auth || !publicId) return null;
+  const response = await fetch(
+    `https://api.cloudinary.com/v1_1/${auth.cloudName}/resources/video/authenticated/${publicId}`,
+    { headers: { Authorization: `Basic ${Buffer.from(`${auth.apiKey}:${auth.apiSecret}`).toString('base64')}` } },
+  );
+  const body = (await response.json().catch(() => null)) as {
+    format?: string;
+    duration?: number;
+    width?: number;
+    height?: number;
+    bytes?: number;
+  } | null;
+  if (!response.ok || !body) return null;
+  return {
+    format: String(body.format || ''),
+    duration: Number(body.duration),
+    width: Number(body.width),
+    height: Number(body.height),
+    bytes: Number(body.bytes),
+  };
+}
+
 export async function destroyPrivateAsset(asset: StoredAsset) {
   const auth = creds();
   if (!auth || !asset.publicId) return;

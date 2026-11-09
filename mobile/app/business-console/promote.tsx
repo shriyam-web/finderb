@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { AppState, Platform, Pressable, Text, TextInput, View } from 'react-native';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
@@ -116,10 +116,31 @@ type PackageCard = {
   estimateNote: string;
 };
 
+type PromotionOrder = {
+  id: string;
+  packageId: string;
+  packageName: string;
+  priceInr: number;
+  paymentStatus: string;
+  campaignStatus: string;
+  campaignLabel: string;
+  targetPincode: string;
+  targetArea: string;
+  videoReady: boolean;
+  createdAt: string | null;
+};
+
 type Desk = {
   success: true;
-  verification: { status: string; rejectionReason: string | null };
+  verification: {
+    status: string;
+    rejectionReason: string | null;
+    submittedAt?: string | null;
+    reviewedAt?: string | null;
+    documentType?: string | null;
+  };
   packages: PackageCard[];
+  orders?: PromotionOrder[];
   customRequest?: {
     id: string;
     status: string;
@@ -250,13 +271,13 @@ function awaitPicker(open: () => Promise<ImagePicker.ImagePickerResult>, name: s
   });
 }
 
-function takeShopPhoto(): Promise<PickedPhoto> {
+function takeLivePhoto(name: string, facing: 'front' | 'back'): Promise<PickedPhoto> {
   if (Platform.OS === 'web' && typeof document !== 'undefined') {
     return new Promise((resolve) => {
       const input = document.createElement('input');
       input.type = 'file';
       input.accept = 'image/*';
-      input.setAttribute('capture', 'environment');
+      input.setAttribute('capture', facing === 'front' ? 'user' : 'environment');
       input.style.display = 'none';
       let settled = false;
       const finish = (shot: ShopShot | null) => {
@@ -279,7 +300,7 @@ function takeShopPhoto(): Promise<PickedPhoto> {
         if (!file) return finish(null);
         finish({
           uri: URL.createObjectURL(file),
-          name: file.name || 'shop.jpg',
+          name: file.name || name,
           type: file.type || 'image/jpeg',
           file,
         });
@@ -289,11 +310,14 @@ function takeShopPhoto(): Promise<PickedPhoto> {
       input.click();
     });
   }
-  return awaitPicker(() => ImagePicker.launchCameraAsync({ mediaTypes: ['images'], quality: 0.7 }), 'shop.jpg');
-}
-
-function pickProofPhoto(): Promise<PickedPhoto> {
-  return awaitPicker(() => ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.8 }), 'document.jpg');
+  return awaitPicker(
+    () => ImagePicker.launchCameraAsync({
+      mediaTypes: ['images'],
+      quality: 0.7,
+      cameraType: facing === 'front' ? ImagePicker.CameraType.front : ImagePicker.CameraType.back,
+    }),
+    name,
+  );
 }
 
 async function asJpeg(uri: string, name: string): Promise<ShopShot> {
@@ -351,6 +375,43 @@ function uploadForm(path: string, form: FormData): Promise<{ success?: boolean; 
   }));
 }
 
+const VIDEO_HINT = 'Use an MP4 or MOV, hold the phone upright (about 9:16), keep it between 15 and 45 seconds, and stay under 60 MB.';
+
+function uploadPercent(loaded: number, total: number) {
+  if (!Number.isFinite(loaded) || !Number.isFinite(total) || total <= 0) return 0;
+  return Math.min(100, Math.max(0, Math.round((loaded / total) * 100)));
+}
+
+function videoProblem(asset: ImagePicker.ImagePickerAsset) {
+  const bytes = asset.fileSize || 0;
+  if (bytes > 60 * 1024 * 1024) return `This video is larger than 60 MB. ${VIDEO_HINT}`;
+  const raw = asset.duration || 0;
+  const seconds = raw > 200 ? raw / 1000 : raw;
+  if (seconds && (seconds < 15 || seconds > 45)) {
+    return `This video is ${Math.round(seconds)} seconds. It must be between 15 and 45 seconds.`;
+  }
+  if (asset.width && asset.height && asset.height / asset.width < 1.5) {
+    return 'This video is not vertical. Hold the phone upright so the picture is about 9:16.';
+  }
+  const mime = asset.mimeType || '';
+  if (mime && !/^video\/(mp4|quicktime)$/i.test(mime)) return `This file is not an MP4 or MOV. ${VIDEO_HINT}`;
+  return null;
+}
+
+function whenStamp(value?: string | null) {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleString('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZone: 'Asia/Kolkata',
+  });
+}
+
 function appendShot(form: FormData, field: string, shot: ShopShot) {
   const file = shot.file;
   if (file) {
@@ -375,7 +436,10 @@ export default function PromoteScreen() {
   const [area, setArea] = useState('');
   const [orderId, setOrderId] = useState('');
   const [checkout, setCheckout] = useState<CheckoutStart | null>(null);
-  const [step, setStep] = useState<'offer' | 'verify' | 'pay' | 'done' | 'custom'>('offer');
+  const [step, setStep] = useState<'offer' | 'verify' | 'track' | 'area' | 'video' | 'pay' | 'done' | 'custom'>(() => {
+    const status = peekPromotionDesk()?.verification.status;
+    return status === 'submitted' || status === 'under_review' ? 'track' : 'offer';
+  });
   const [budget, setBudget] = useState('');
   const [customDays, setCustomDays] = useState('');
   const [coverage, setCoverage] = useState('');
@@ -395,66 +459,94 @@ export default function PromoteScreen() {
   const [agreed, setAgreed] = useState(false);
   const [documentType, setDocumentType] = useState('gst');
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [phase, setPhase] = useState<'' | 'camera' | 'document' | 'location' | 'upload'>('');
+  const [phase, setPhase] = useState<'' | 'certificate' | 'selfie' | 'location' | 'upload'>('');
+  const resumed = useRef(false);
 
-  const load = async () => {
+  const resumeFrom = (result: Desk) => {
+    const status = result.verification.status;
+    const unpaid = (result.orders || []).find((item) => item.paymentStatus !== 'paid');
+    if (status === 'submitted' || status === 'under_review') {
+      setStep('track');
+      return;
+    }
+    if (status === 'rejected' || status === 'resubmission_required') {
+      setStep('verify');
+      return;
+    }
+    if (status === 'approved' && unpaid) {
+      setOrderId(unpaid.id);
+      setPackageId(unpaid.packageId);
+      setPincode(unpaid.targetPincode);
+      setArea(unpaid.targetArea);
+      setVideoReady(unpaid.videoReady);
+      setStep(unpaid.videoReady ? 'pay' : 'video');
+    }
+  };
+
+  const load = async (initial = false) => {
     const result = await run<Desk>('promotions');
     if (!result.success) {
       setError(result.error);
-      return;
+      return null;
     }
     storePromotionDesk(result);
     setDesk(result);
+    if (initial && !resumed.current) {
+      resumed.current = true;
+      resumeFrom(result);
+    }
+    return result;
   };
 
   useEffect(() => {
-    void load();
+    void load(true);
   }, []);
 
   const verify = async () => {
     if (busy) return;
     setBusy(true);
     setError('');
-    setPhase('camera');
+    setPhase('certificate');
     try {
       if (Platform.OS !== 'web') {
         const granted = await requestCameraAccess();
         if (!granted) {
-          setError('Allow the camera so FinderB can photograph the shop.');
+          setError('Allow the camera so FinderB can photograph the certificate and your face.');
           return;
         }
       }
-      const shot = await takeShopPhoto();
-      if (!shot.shot) {
-        if (shot.problem === 'unopened') setError('The camera did not open. Allow the camera and try again.');
-        else if (shot.problem === 'lost') setError('The photo did not come back from the camera. Try again.');
+      const certificate = await takeLivePhoto('certificate.jpg', 'back');
+      if (!certificate.shot) {
+        if (certificate.problem === 'unopened') setError('The camera did not open. Allow the camera and try again.');
+        else if (certificate.problem === 'lost') setError('The certificate photo did not come back. Hold the document steady and try again.');
+        else setError('Photograph the certificate with the live camera.');
         return;
       }
       if (Platform.OS === 'android') await new Promise((resolve) => setTimeout(resolve, 400));
-      setPhase('document');
-      const proof = await pickProofPhoto();
-      if (!proof.shot) {
-        setError(proof.problem === 'unopened'
-          ? 'The document picker did not open. Try again.'
-          : 'Choose the GST, Udyam, shop license, or identity document.');
+      setPhase('selfie');
+      const selfie = await takeLivePhoto('selfie.jpg', 'front');
+      if (!selfie.shot) {
+        if (selfie.problem === 'unopened') setError('The front camera did not open. Allow the camera and try again.');
+        else if (selfie.problem === 'lost') setError('The selfie did not come back. Try again.');
+        else setError('Take a selfie with the live camera.');
         return;
       }
       setPhase('location');
       const position = await confirmShopLocation();
       if (!position) {
-        setError('Turn on location so FinderB can confirm this shop.');
+        setError('Turn on location so FinderB can confirm you are at the shop.');
         return;
       }
       setPhase('upload');
-      const shop = shot.shot.file && /^image\/(jpeg|png|webp)$/i.test(shot.shot.type)
-        ? shot.shot
-        : await asJpeg(shot.shot.uri, 'shop.jpg');
-      const document = proof.shot.file && /^image\/(jpeg|png|webp)$/i.test(proof.shot.type)
-        ? proof.shot
-        : await asJpeg(proof.shot.uri, 'document.jpg');
+      const face = selfie.shot.file && /^image\/(jpeg|png|webp)$/i.test(selfie.shot.type)
+        ? selfie.shot
+        : await asJpeg(selfie.shot.uri, 'selfie.jpg');
+      const proof = certificate.shot.file && /^image\/(jpeg|png|webp)$/i.test(certificate.shot.type)
+        ? certificate.shot
+        : await asJpeg(certificate.shot.uri, 'certificate.jpg');
       const form = new FormData();
-      appendShot(form, 'shopPhoto', shop);
-      appendShot(form, 'documents', document);
+      appendShot(form, 'shopPhoto', face);
+      appendShot(form, 'documents', proof);
       form.append('documentType', documentType);
       form.append('latitude', String(position.coords.latitude));
       form.append('longitude', String(position.coords.longitude));
@@ -468,6 +560,7 @@ export default function PromoteScreen() {
       }
       notify('Verification sent for review');
       await load();
+      setStep('track');
     } catch {
       setError('Verification could not be sent. Try again.');
     } finally {
@@ -486,37 +579,105 @@ export default function PromoteScreen() {
       return;
     }
     setOrderId(result.orderId);
+    setVideoReady(false);
+    setStep('video');
   };
 
   const video = async () => {
     const picked = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['videos'], videoMaxDuration: 45 });
     if (picked.canceled || !picked.assets[0]) return;
+    const asset = picked.assets[0];
+    const local = videoProblem(asset);
+    if (local) {
+      setError(local);
+      setUploadProgress(0);
+      return;
+    }
     setBusy(true);
+    setError('');
     setUploadProgress(0);
     const token = await getStoredToken();
+    const headers: Record<string, string> = { 'Content-Type': 'application/json', Accept: 'application/json' };
+    if (token) headers.Authorization = `Bearer ${token}`;
+    const ticketResponse = await fetch(`${SITE_URL}/api/business/promotions/video`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ intent: 'ticket', orderId }),
+    }).catch(() => null);
+    const ticket = (ticketResponse ? await ticketResponse.json().catch(() => null) : null) as {
+      success?: boolean;
+      error?: string;
+      cloudName?: string;
+      apiKey?: string;
+      timestamp?: string;
+      signature?: string;
+      folder?: string;
+    } | null;
+    if (!ticket?.success || !ticket.cloudName || !ticket.apiKey || !ticket.signature || !ticket.timestamp || !ticket.folder) {
+      setBusy(false);
+      setError(ticket?.error || 'Video upload is not available right now.');
+      return;
+    }
+    const mime = asset.mimeType && /^video\/(mp4|quicktime)$/i.test(asset.mimeType) ? asset.mimeType : 'video/mp4';
     const form = new FormData();
-    form.append('orderId', orderId);
-    form.append('video', { uri: picked.assets[0].uri, name: 'promo.mp4', type: 'video/mp4' } as unknown as Blob);
-    const body = await new Promise<{ success?: boolean; error?: string }>((resolve) => {
+    form.append('file', {
+      uri: asset.uri,
+      name: mime === 'video/quicktime' ? 'promo.mov' : 'promo.mp4',
+      type: mime,
+    } as unknown as Blob);
+    form.append('api_key', ticket.apiKey);
+    form.append('timestamp', ticket.timestamp);
+    form.append('signature', ticket.signature);
+    form.append('folder', ticket.folder);
+    form.append('type', 'authenticated');
+    const uploaded = await new Promise<{
+      public_id?: string;
+      format?: string;
+      duration?: number;
+      width?: number;
+      height?: number;
+      bytes?: number;
+      error?: { message?: string };
+    } | null>((resolve) => {
       const xhr = new XMLHttpRequest();
-      xhr.open('POST', `${SITE_URL}/api/business/promotions/video`);
-      if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
-      xhr.upload.onprogress = (event) => {
-        if (event.lengthComputable) setUploadProgress(Math.round((event.loaded / event.total) * 100));
-      };
-      xhr.onerror = () => resolve({ success: false, error: 'The video upload was interrupted.' });
+      xhr.open('POST', `https://api.cloudinary.com/v1_1/${ticket.cloudName}/video/upload`);
+      xhr.upload.onprogress = (event) => setUploadProgress(uploadPercent(event.loaded, event.total));
+      xhr.onerror = () => resolve(null);
       xhr.onload = () => {
         try { resolve(JSON.parse(xhr.responseText)); }
-        catch { resolve({ success: false, error: 'The video could not be uploaded.' }); }
+        catch { resolve(null); }
       };
       xhr.send(form);
     });
-    setBusy(false);
-    if (!body.success) setError(body.error || 'The video could not be uploaded.');
-    else {
-      setVideoReady(true);
-      notify('Video received');
+    if (!uploaded?.public_id) {
+      setBusy(false);
+      setUploadProgress(0);
+      setError(uploaded?.error?.message || `The video could not be uploaded. ${VIDEO_HINT}`);
+      return;
     }
+    setUploadProgress(100);
+    const saved = await fetch(`${SITE_URL}/api/business/promotions/video`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        orderId,
+        publicId: uploaded.public_id,
+        format: uploaded.format,
+        duration: uploaded.duration,
+        width: uploaded.width,
+        height: uploaded.height,
+        bytes: uploaded.bytes || asset.fileSize,
+      }),
+    }).then((response) => response.json()).catch(() => null) as { success?: boolean; error?: string } | null;
+    setBusy(false);
+    if (!saved?.success) {
+      setUploadProgress(0);
+      setError(saved?.error || `The video could not be uploaded. ${VIDEO_HINT}`);
+      return;
+    }
+    setVideoReady(true);
+    notify('Video received');
+    setStep('pay');
   };
 
   const pay = async () => {
@@ -535,8 +696,10 @@ export default function PromoteScreen() {
   const selected = packages.find((item) => item.id === packageId);
   const waiting = desk?.verification.status === 'submitted' || desk?.verification.status === 'under_review';
   const goBack = () => {
-    if (step === 'custom') setStep('offer');
-    else if (step === 'done' || step === 'pay') setStep(approved ? 'offer' : 'verify');
+    if (step === 'custom' || step === 'track' || step === 'done') setStep('offer');
+    else if (step === 'pay') setStep('video');
+    else if (step === 'video') setStep('area');
+    else if (step === 'area') setStep(approved ? 'offer' : 'verify');
     else if (step === 'verify') setStep('offer');
     else back();
   };
@@ -597,11 +760,11 @@ export default function PromoteScreen() {
     }
     setPickError(false);
     setError('');
-    setStep(approved ? 'pay' : 'verify');
+    setStep(waiting ? 'track' : approved ? 'area' : 'verify');
   };
 
   return (
-    <ConsolePage title="Promote online" subtitle={step === 'offer' ? 'Choose a package' : step === 'custom' ? 'Custom plan' : step === 'verify' ? 'Verify the shop' : step === 'pay' ? 'Pay for this package' : 'Payment received'} onBack={goBack} docked>
+    <ConsolePage title="Promote online" subtitle={step === 'offer' ? 'Choose a package' : step === 'custom' ? 'Custom plan' : step === 'verify' ? 'Certificate and selfie' : step === 'track' ? 'Application status' : step === 'area' ? 'Where the ads run' : step === 'video' ? 'Promotional video' : step === 'pay' ? 'Pay for this package' : 'Payment received'} onBack={goBack} docked>
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {step === 'offer' ? (
         <>
@@ -855,8 +1018,8 @@ export default function PromoteScreen() {
           <View style={styles.verifyHero}>
             <Image source={require('../../assets/console/verify.png')} style={styles.verifyArt} contentFit="contain" />
             <View style={styles.whyCopy}>
-              <Text style={styles.h}>Verify the shop first</Text>
-              <Text style={styles.p}>A live shop photo and one proof. Payment for the package you chose opens after FinderB approves the shop.</Text>
+              <Text style={styles.h}>Two live photos</Text>
+              <Text style={styles.p}>First photograph the certificate so the name and number are readable. Then the front camera opens for a selfie. Both stay on the live camera. A saved gallery photo is not used.</Text>
               <View style={styles.statusPill}>
                 <Ionicons name="shield-checkmark-outline" size={14} color={c.primary} />
                 <Text style={styles.statusText}>{statusLabel(desk?.verification.status)}</Text>
@@ -866,12 +1029,12 @@ export default function PromoteScreen() {
           {desk?.verification.rejectionReason ? <Text style={styles.error}>{desk.verification.rejectionReason}</Text> : null}
           {selected ? <Text style={styles.p}>{selected.name} · ₹{selected.priceInr.toLocaleString('en-IN')} stays selected.</Text> : null}
           {waiting ? (
-            <Text style={styles.p}>FinderB is checking this shop. Payment for the package opens after it is approved.</Text>
+            <Btn label="See application status" onPress={() => setStep('track')} />
           ) : approved ? (
-            <Btn label="Continue to payment" onPress={() => setStep('pay')} />
+            <Btn label="Continue" onPress={() => setStep('area')} />
           ) : (
             <>
-              <Text style={styles.stepLabel}>Choose one proof</Text>
+              <Text style={styles.stepLabel}>1. Certificate, then 2. selfie</Text>
               <View style={styles.docGrid}>
                 {PROOFS.map((item) => {
                   const on = documentType === item.id;
@@ -900,33 +1063,77 @@ export default function PromoteScreen() {
                 small
                 busy={busy}
                 label={
-                  phase === 'camera' ? 'Opening camera…'
-                  : phase === 'document' ? 'Choose the proof…'
+                  phase === 'certificate' ? 'Photograph the certificate…'
+                  : phase === 'selfie' ? 'Take the selfie…'
                   : phase === 'location' ? 'Confirming location…'
                   : phase === 'upload' ? 'Sending…'
-                  : 'Take Shop Photo'
+                  : 'Open the camera'
                 }
                 disabled={!agreed || busy}
                 onPress={() => void verify()}
               />
-              <Text style={styles.photoHint}>Live camera only. A gallery photo is not accepted.</Text>
+              <Text style={styles.photoHint}>The back camera opens for the certificate. The front camera then opens for your face. Do not pick a photo from the gallery.</Text>
             </>
           )}
         </View>
+      ) : null}
+      {step === 'track' ? (
+        <Panel>
+          <Text style={styles.h}>Your application</Text>
+          <Text style={styles.p}>{statusLabel(desk?.verification.status)}</Text>
+          {desk?.verification.submittedAt ? <Text style={styles.p}>Sent {whenStamp(desk.verification.submittedAt)}</Text> : null}
+          {desk?.verification.reviewedAt ? <Text style={styles.p}>Updated {whenStamp(desk.verification.reviewedAt)}</Text> : null}
+          <Text style={styles.p}>1. Application sent, with the certificate and selfie.</Text>
+          <Text style={styles.p}>2. FinderB checks both photos and the shop location.</Text>
+          <Text style={styles.p}>{approved ? '3. Approved. The package payment is open.' : waiting ? '3. Waiting for FinderB. Payment stays closed until this is approved.' : '3. FinderB has asked for a change.'}</Text>
+          {desk?.verification.rejectionReason ? <Text style={styles.error}>{desk.verification.rejectionReason}</Text> : null}
+          {waiting ? <Text style={styles.photoHint}>You can leave this screen. Opening Promote your business online brings this status back.</Text> : null}
+          {desk?.verification.status === 'rejected' || desk?.verification.status === 'resubmission_required' ? (
+            <Btn label="Send the photos again" onPress={() => setStep('verify')} />
+          ) : null}
+          {approved ? (
+            <Btn label="Continue" onPress={() => setStep(orderId ? (videoReady ? 'pay' : 'video') : 'area')} />
+          ) : null}
+        </Panel>
+      ) : null}
+      {step === 'area' && selected ? (
+        <Panel>
+          <Text style={styles.h}>{selected.name}</Text>
+          <Text style={styles.p}>₹{selected.priceInr.toLocaleString('en-IN')} · {selected.durationDays} days · {selected.coverage}</Text>
+          {orderId ? <Text style={styles.p}>Order {orderId}</Text> : null}
+          <TextInput value={pincode} onChangeText={setPincode} placeholder="Pincode" placeholderTextColor={c.faint} keyboardType="number-pad" maxLength={6} style={styles.input} editable={!orderId} />
+          <TextInput value={area} onChangeText={setArea} placeholder="Locality" placeholderTextColor={c.faint} style={styles.input} editable={!orderId} />
+          <Btn
+            label="Continue"
+            busy={busy}
+            onPress={() => {
+              if (orderId) setStep(videoReady ? 'pay' : 'video');
+              else void create();
+            }}
+          />
+        </Panel>
+      ) : null}
+      {step === 'video' ? (
+        <Panel>
+          <Text style={styles.h}>Promotional video</Text>
+          {orderId ? <Text style={styles.p}>Order {orderId}</Text> : null}
+          <Text style={styles.p}>Film the shop yourself. Hold the phone upright.</Text>
+          <Text style={styles.photoHint}>MP4 or MOV. Vertical, about 9:16. 15 to 45 seconds. 60 MB or smaller. A wide video, a photo, or a clip outside that length is not accepted.</Text>
+          {uploadProgress > 0 && uploadProgress < 100 ? <Text style={styles.p}>Uploading {uploadProgress}%</Text> : null}
+          <Btn
+            label={busy ? `Uploading ${uploadProgress}%` : 'Choose video'}
+            busy={busy}
+            onPress={() => void video()}
+          />
+        </Panel>
       ) : null}
       {step === 'pay' && selected ? (
         <Panel>
           <Text style={styles.h}>{selected.name}</Text>
           <Text style={styles.p}>₹{selected.priceInr.toLocaleString('en-IN')} · {selected.durationDays} days · {selected.coverage}</Text>
-          <TextInput value={pincode} onChangeText={setPincode} placeholder="Pincode" placeholderTextColor={c.faint} keyboardType="number-pad" maxLength={6} style={styles.input} />
-          <TextInput value={area} onChangeText={setArea} placeholder="Locality" placeholderTextColor={c.faint} style={styles.input} />
-          <Btn label={orderId ? `Order ${orderId}` : 'Save this area'} busy={busy && !orderId} disabled={Boolean(orderId)} onPress={() => void create()} />
-          {orderId ? (
-            <>
-              <Btn tone="outline" label={uploadProgress ? `Uploading ${uploadProgress}%` : videoReady ? 'Video received' : 'Upload 9:16 video'} onPress={() => void video()} />
-              <Btn label="Pay with Razorpay" disabled={!videoReady} onPress={() => void pay()} />
-            </>
-          ) : null}
+          <Text style={styles.p}>Order {orderId}</Text>
+          <Text style={styles.p}>{[area, pincode].filter(Boolean).join(', ')}</Text>
+          <Btn label="Continue" busy={busy} onPress={() => void pay()} />
         </Panel>
       ) : null}
       {step === 'done' && selected ? (
@@ -937,7 +1144,7 @@ export default function PromoteScreen() {
           <Btn label="Open this promotion" onPress={() => router.push(`/business-console/promotion/${orderId}` as Href)} />
         </Panel>
       ) : null}
-      {step !== 'offer' ? <Btn tone="outline" label="My promotions" onPress={() => router.push('/business-console/promotions' as Href)} /> : null}
+      {(desk?.orders?.length || 0) > 0 ? <Btn tone="outline" label="My promotions" onPress={() => router.push('/business-console/promotions' as Href)} /> : null}
       <RazorpayCheckout
         start={checkout}
         description="Promote your business online"
@@ -948,7 +1155,7 @@ export default function PromoteScreen() {
         }}
         onSuccess={(paid) => {
           setCheckout(null);
-          void run('confirmPromotionPay', {
+          void run<{ success: true }>('confirmPromotionPay', {
             orderId,
             razorpayOrderId: paid.razorpay_order_id || checkout?.order?.id || '',
             paymentId: paid.razorpay_payment_id,

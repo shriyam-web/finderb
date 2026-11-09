@@ -19,7 +19,7 @@
         "applinks:www.finderb.com"
       ],
       "infoPlist": {
-        "NSCameraUsageDescription": "Allow FinderB to photograph your shop front for verification.",
+        "NSCameraUsageDescription": "Allow FinderB to photograph your business certificate and a selfie for verification.",
         "NSLocationWhenInUseUsageDescription": "FinderB uses your location to show trusted businesses near you.",
         "UIBackgroundModes": [
           "remote-notification"
@@ -176,7 +176,7 @@
         "expo-image-picker",
         {
           "photosPermission": "Allow FinderB to use a photo from your gallery as your profile picture.",
-          "cameraPermission": "Allow FinderB to photograph your shop front for verification.",
+          "cameraPermission": "Allow FinderB to photograph your business certificate and a selfie for verification.",
           "microphonePermission": false
         }
       ],

@@ -19,6 +19,8 @@ import {
 import {
   destroyPrivateAsset,
   privateDownloadUrl,
+  readPrivateVideo,
+  signPrivateUpload,
   uploadPrivateFile,
   type StoredAsset,
 } from '@/lib/promotions/privateMedia';
@@ -347,19 +349,19 @@ export async function submitVerification(businessId: string, form: FormData): Pr
   const longitude = Number(form.get('longitude'));
   const accuracy = Number(form.get('accuracy'));
   if (!validIndiaCoordinate(latitude, longitude)) {
-    return fail('The shop location could not be confirmed in India. Turn on location and photograph the shop again.');
+    return fail('The shop location could not be confirmed in India. Turn on location and take the photos again.');
   }
   const photo = form.get('shopPhoto');
-  if (!(photo instanceof File) || photo.size < 1) return fail('Photograph the shop front with the camera.');
-  if (photo.size > PHOTO_MAX) return fail('The shop photograph is larger than 8 MB.');
-  if (!/^image\/(jpeg|png|webp)$/.test(photo.type)) return fail('The shop photograph must be a JPG, PNG or WebP from the camera.');
+  if (!(photo instanceof File) || photo.size < 1) return fail('Take a selfie with the live camera. A saved photo is not accepted.');
+  if (photo.size > PHOTO_MAX) return fail('The selfie is larger than 8 MB. Take it again.');
+  if (!/^image\/(jpeg|png|webp)$/.test(photo.type)) return fail('The selfie must come from the live camera.');
   const docs = form.getAll('documents').filter((item): item is File => item instanceof File && item.size > 0);
-  if (!docs.length) return fail('Upload the business or identity document.');
-  if (docs.length > 3) return fail('Upload up to 3 document files.');
+  if (!docs.length) return fail('Photograph the certificate with the live camera. A saved photo is not accepted.');
+  if (docs.length > 3) return fail('Photograph one certificate.');
   for (const doc of docs) {
-    if (doc.size > DOC_MAX) return fail('Each document must be 8 MB or smaller.');
-    if (!/^(image\/(jpeg|png|webp)|application\/pdf)$/.test(doc.type)) {
-      return fail('Documents must be PDF, JPG, PNG or WebP.');
+    if (doc.size > DOC_MAX) return fail('The certificate photo is larger than 8 MB. Take it again.');
+    if (!/^image\/(jpeg|png|webp)$/.test(doc.type)) {
+      return fail('Photograph the certificate with the live camera.');
     }
   }
   const shop = await uploadPrivateFile(photo, 'image', 'finderb-private/verification');
@@ -457,36 +459,134 @@ export async function createPromotionOrder(businessId: string, input: {
   return { success: true, orderId: id };
 }
 
+const VIDEO_RULES = 'Use an MP4 or MOV, hold the phone upright (about 9:16), keep it between 15 and 45 seconds, and stay under 60 MB.';
+const VIDEO_FOLDER = 'finderb-private/promotions';
+
+function describeVideo(input: { duration?: number; width?: number; height?: number; bytes?: number; format?: string }) {
+  const format = String(input.format || '').toLowerCase();
+  if (format && !/^(mp4|mov|qt|quicktime)$/.test(format)) {
+    return `This file is not an MP4 or MOV. ${VIDEO_RULES}`;
+  }
+  if (input.bytes != null && Number.isFinite(input.bytes) && input.bytes > VIDEO_MAX) {
+    return `This video is larger than 60 MB. ${VIDEO_RULES}`;
+  }
+  const duration = Number(input.duration);
+  const width = Number(input.width);
+  const height = Number(input.height);
+  if (!Number.isFinite(duration) || duration <= 0 || !Number.isFinite(width) || width < 1 || !Number.isFinite(height) || height < 1) {
+    return `FinderB could not read the length or shape of this video. ${VIDEO_RULES}`;
+  }
+  if (duration < 15 || duration > 45) {
+    return `This video is ${Math.round(duration)} seconds. It must be between 15 and 45 seconds.`;
+  }
+  const ratio = height / width;
+  if (ratio < 1.5 || ratio > 2.05) {
+    return 'This video is not vertical. Hold the phone upright so the picture is about 9:16.';
+  }
+  return null;
+}
+
+async function ownPromotionOrder(businessId: string, orderId: string) {
+  const supabase = db();
+  if (!supabase) return { error: 'The video could not be saved.' as const, row: null, supabase: null };
+  const { data } = await supabase.from('promotion_orders').select('*').eq('id', orderId).eq('business_id', businessId).maybeSingle();
+  if (!data) return { error: 'That promotion was not found.' as const, row: null, supabase };
+  const row = data as Record<string, unknown>;
+  if (row.payment_status === 'paid') return { error: 'The video is already locked to a paid order.' as const, row: null, supabase };
+  return { error: null, row, supabase };
+}
+
+export async function issuePromotionVideoUpload(businessId: string, orderId: string) {
+  const hidden = await requireEnabled();
+  if (hidden) return hidden;
+  const limited = checkRateLimit(`promo-video:${businessId}`, RATE_LIMITS.write);
+  if (!limited.allowed) return fail('Too many video uploads. Wait and try again.');
+  const owned = await ownPromotionOrder(businessId, orderId);
+  if (owned.error || !owned.row) return fail(owned.error || 'That promotion was not found.');
+  const ticket = signPrivateUpload(VIDEO_FOLDER);
+  if (!ticket) return fail('Video upload is not available right now.');
+  return { success: true as const, orderId, ...ticket, rules: VIDEO_RULES };
+}
+
+export async function commitPromotionVideo(businessId: string, orderId: string, input: {
+  publicId: string;
+  format?: string;
+  duration?: number;
+  width?: number;
+  height?: number;
+  bytes?: number;
+}): Promise<Ok<{ orderId: string }> | Fail> {
+  const hidden = await requireEnabled();
+  if (hidden) return hidden;
+  const publicId = String(input.publicId || '');
+  if (!publicId.startsWith(`${VIDEO_FOLDER}/`) || publicId.includes('..')) {
+    return fail('That video could not be accepted.');
+  }
+  const owned = await ownPromotionOrder(businessId, orderId);
+  if (owned.error || !owned.row || !owned.supabase) return fail(owned.error || 'That promotion was not found.');
+  const looked = await readPrivateVideo(publicId);
+  const meta = looked || {
+    format: String(input.format || ''),
+    duration: Number(input.duration),
+    width: Number(input.width),
+    height: Number(input.height),
+    bytes: Number(input.bytes),
+  };
+  const problem = describeVideo(meta);
+  const asset = { publicId, resource: 'video' as const, format: String(meta.format || input.format || '') };
+  if (problem) {
+    await destroyPrivateAsset(asset);
+    return fail(problem);
+  }
+  const previous = owned.row.video_public_id
+    ? { publicId: String(owned.row.video_public_id), resource: 'video' as const, format: String(owned.row.video_format || '') }
+    : null;
+  const { error } = await owned.supabase.from('promotion_orders').update({
+    video_url: null,
+    video_public_id: publicId,
+    video_format: asset.format,
+    video_duration_sec: meta.duration,
+    video_width: meta.width,
+    video_height: meta.height,
+    updated_at: new Date().toISOString(),
+  }).eq('id', orderId).eq('business_id', businessId);
+  if (error) {
+    await destroyPrivateAsset(asset);
+    return fail('The video could not be saved.');
+  }
+  if (previous && previous.publicId !== publicId) await destroyPrivateAsset(previous);
+  await audit({ orderId, businessId, action: 'video_uploaded' });
+  return { success: true, orderId };
+}
+
 export async function attachPromotionVideo(businessId: string, orderId: string, file: File): Promise<Ok<{ orderId: string }> | Fail> {
   const hidden = await requireEnabled();
   if (hidden) return hidden;
   const limited = checkRateLimit(`promo-video:${businessId}`, RATE_LIMITS.write);
   if (!limited.allowed) return fail('Too many video uploads. Wait and try again.');
-  const supabase = db();
-  if (!supabase) return fail('The video could not be saved.');
-  const { data } = await supabase.from('promotion_orders').select('*').eq('id', orderId).eq('business_id', businessId).maybeSingle();
-  if (!data) return fail('That promotion was not found.');
-  const row = data as Record<string, unknown>;
-  if (row.payment_status === 'paid') return fail('The video is already locked to a paid order.');
-  if (!file || file.size < 1) return fail('Choose a promotional video.');
-  if (file.size > VIDEO_MAX) return fail('The video must be 60 MB or smaller.');
-  if (!/^video\/(mp4|quicktime)$/.test(file.type)) return fail('Use an MP4 or MOV video.');
-  const uploaded = await uploadPrivateFile(file, 'video', 'finderb-private/promotions');
+  const owned = await ownPromotionOrder(businessId, orderId);
+  if (owned.error || !owned.row || !owned.supabase) return fail(owned.error || 'That promotion was not found.');
+  const row = owned.row;
+  const supabase = owned.supabase;
+  if (!file || file.size < 1) return fail(`Choose a promotional video. ${VIDEO_RULES}`);
+  if (file.size > VIDEO_MAX) return fail(`This video is larger than 60 MB. ${VIDEO_RULES}`);
+  if (!/^video\/(mp4|quicktime)$/.test(file.type)) return fail(`This file is not an MP4 or MOV. ${VIDEO_RULES}`);
+  const uploaded = await uploadPrivateFile(file, 'video', VIDEO_FOLDER);
   if (!uploaded.success) return uploaded;
+  const problem = describeVideo({
+    duration: uploaded.duration,
+    width: uploaded.width,
+    height: uploaded.height,
+    bytes: file.size,
+    format: uploaded.asset.format || (file.type === 'video/quicktime' ? 'mov' : 'mp4'),
+  });
+  if (problem) {
+    await destroyPrivateAsset(uploaded.asset);
+    return fail(problem);
+  }
   const duration = Number(uploaded.duration);
   const width = Number(uploaded.width);
   const height = Number(uploaded.height);
-  const rejectVideo = async (error: string) => {
-    await destroyPrivateAsset(uploaded.asset);
-    return fail(error);
-  };
-  if (!Number.isFinite(duration) || duration < 15 || duration > 45) {
-    return rejectVideo('The video must be between 15 and 45 seconds.');
-  }
-  const ratio = width > 0 ? height / width : 0;
-  if (ratio < 1.5 || ratio > 2.05) {
-    return rejectVideo('The video must be a vertical 9:16 clip.');
-  }
   const previous = row.video_public_id
     ? { publicId: String(row.video_public_id), resource: 'video' as const, format: String(row.video_format || '') }
     : null;
