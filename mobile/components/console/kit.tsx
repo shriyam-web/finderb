@@ -23,6 +23,7 @@ import {
 } from 'react-native';
 import { useFocusEffect, usePathname, useRouter, type Href } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
 import { fonts } from '../../constants/typography';
@@ -289,6 +290,55 @@ function ShellSwitch() {
 }
 
 /** Every console screen: the same header (back, title, actions), scroll body and optional sticky footer. */
+function SubscriptionStrip({ onPress }: { onPress: () => void }) {
+  const styles = useKitStyles();
+  const sweep = useRef(new Animated.Value(0)).current;
+  const [width, setWidth] = useState(0);
+
+  useEffect(() => {
+    const shine = Animated.loop(
+      Animated.sequence([
+        Animated.timing(sweep, { toValue: 0, duration: 0, useNativeDriver: true }),
+        Animated.delay(650),
+        Animated.timing(sweep, {
+          toValue: 1,
+          duration: 1200,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: true,
+        }),
+        Animated.delay(800),
+      ]),
+    );
+    shine.start();
+    return () => shine.stop();
+  }, [sweep]);
+
+  const translateX = sweep.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-80, Math.max(width, 80)],
+  });
+
+  return (
+    <Pressable
+      onPress={onPress}
+      onLayout={(event) => setWidth(event.nativeEvent.layout.width)}
+      style={styles.subStrip}
+      accessibilityRole="button"
+      accessibilityLabel="You don't have any active subscription. Open plans."
+    >
+      <Text style={styles.subStripText}>You don't have any active subscription.</Text>
+      <Animated.View pointerEvents="none" style={[styles.subShine, { transform: [{ translateX }] }]}>
+        <LinearGradient
+          colors={['rgba(255,255,255,0)', 'rgba(255,255,255,0.72)', 'rgba(255,255,255,0)']}
+          start={{ x: 0, y: 0.5 }}
+          end={{ x: 1, y: 0.5 }}
+          style={styles.flex}
+        />
+      </Animated.View>
+    </Pressable>
+  );
+}
+
 export function ConsolePage({
   title,
   subtitle,
@@ -419,16 +469,7 @@ export function ConsolePage({
           ) : null}
         </View>
       </View>
-      {showSubStrip ? (
-        <Pressable
-          onPress={() => router.push('/business-console/plan' as Href)}
-          style={styles.subStrip}
-          accessibilityRole="button"
-          accessibilityLabel="You don't have any active subscription. Open plans."
-        >
-          <Text style={styles.subStripText}>You don't have any active subscription.</Text>
-        </Pressable>
-      ) : null}
+      {showSubStrip ? <SubscriptionStrip onPress={() => router.push('/business-console/plan' as Href)} /> : null}
       <View style={[styles.flex, styles.bodyWrap]}>
         {form ? null : <PageGlow />}
         {refreshing && onRefresh ? <RefreshBurst /> : null}
@@ -996,6 +1037,13 @@ const useKitStyles = createConsoleStyles((c) => ({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#FF2A2A',
+    overflow: 'hidden',
+  },
+  subShine: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    width: 72,
   },
   subStripText: {
     fontFamily: fonts.semiBold,
