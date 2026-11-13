@@ -53,11 +53,11 @@ export default function MaintenanceScreen({ runtime }: { runtime: SiteRuntime })
     <main className="maintenance-screen min-h-full flex flex-col items-center justify-center px-6 py-16 bg-[#f7f6f3] text-[#111827]">
       <div className="w-full max-w-lg text-center">
         <img
-          src="/logo1.png"
+          src="/brands/fb-mark-240.png"
           alt="FinderB"
-          width={180}
-          height={48}
-          className="mx-auto mb-8 h-12 w-auto text-only-keep"
+          width={64}
+          height={64}
+          className="mx-auto mb-8 h-16 w-16 object-contain"
         />
         <MaintenanceMark />
         <h1 className="text-3xl font-semibold tracking-tight">

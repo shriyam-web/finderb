@@ -64,10 +64,10 @@ export function sourceLabel(source: string | null): string | null {
 
 export function sourceMeaning(source: string | null): string | null {
   if (source === DIRECT_LEAD_BADGE) {
-    return 'This customer reached you directly from your FinderB listing. They tapped Call, WhatsApp, or the enquiry form on your profile.';
+    return 'This customer reached you directly from your FinderB shop. They tapped Call, WhatsApp, or the enquiry form.';
   }
   if (source === PROFILE_LEAD_BADGE) {
-    return 'This customer sent an enquiry while they were on your FinderB profile.';
+    return 'This customer sent an enquiry while they were on your shop.';
   }
   if (source === CATEGORY_LEAD_BADGE) {
     return 'This customer was looking in your category and area. FinderB sent their enquiry to you along with other matching businesses.';

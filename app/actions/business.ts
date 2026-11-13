@@ -1563,6 +1563,12 @@ export async function updateBusinessProfile(id: string, profileData: any) {
     const locked = await ownershipDetailsLock(id);
     if (locked.locked) return { success: false, error: locked.error };
 
+    const reviewReplyDraft = getReviewReplyDraft(profileData.reviewReply);
+    const reviewReplyError = validateReviewReplyContent(reviewReplyDraft);
+    if (reviewReplyError) {
+      return { success: false, error: reviewReplyError };
+    }
+
     const supabase = await createDataClient();
     const socialFields = ['instagramUrl', 'facebookUrl', 'youtubeUrl'] as const;
     const { data: currentLinks } = await supabase
@@ -1729,11 +1735,6 @@ export async function updateBusinessProfile(id: string, profileData: any) {
       }
     }
 
-    const reviewReplyDraft = getReviewReplyDraft(profileData.reviewReply);
-    const reviewReplyError = validateReviewReplyContent(reviewReplyDraft);
-    if (reviewReplyError) {
-      return { success: false, error: reviewReplyError };
-    }
     const reviewReplyValue = normalizeReviewReplyForStorage(reviewReplyDraft);
 
     // Placeholder-onboarded merchants see an empty email field; never let a

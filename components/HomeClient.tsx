@@ -1111,7 +1111,7 @@ function HomeClientView({
               <div className="absolute -inset-12 bg-secondary/20 rounded-full blur-3xl animate-pulse"></div>
               <div className="absolute -inset-4 bg-gradient-to-tr from-secondary/40 to-transparent rounded-[3rem] animate-spin-slow opacity-30"></div>
               <div className="relative w-36 h-36 bg-white rounded-[2.5rem] flex items-center justify-center shadow-2xl rotate-12 hover:rotate-0 transition-transform duration-500 overflow-hidden group">
-                <Image src="/logo1.png" alt="FinderB AI" width={90} height={90} className="object-contain relative z-10 transition-transform group-hover:scale-110" />
+                <Image src="/brands/fb-mark-240.png" alt="FinderB" width={90} height={90} className="object-contain relative z-10 transition-transform group-hover:scale-110" />
                 {/* Scanning line effect */}
                 <div className="absolute inset-0 bg-gradient-to-b from-transparent via-secondary/40 to-transparent h-1/2 w-full animate-scan z-20"></div>
                 {/* Glowing background inside the logo box */}

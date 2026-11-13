@@ -28,6 +28,36 @@ const ORANGE = '#E8873A';
 const MUTED = '#5E6E80';
 const LINE = '#E7EEF5';
 
+function drawLockup(
+  ctx: CanvasRenderingContext2D,
+  logo: HTMLImageElement | null,
+  y: number,
+  mark: number,
+  wordSize: number,
+) {
+  const label = 'Business';
+  const pipe = '|';
+  ctx.save();
+  ctx.textBaseline = 'middle';
+  ctx.textAlign = 'left';
+  ctx.font = `500 ${Math.round(wordSize * 0.92)}px ${FONT}`;
+  const pipeW = ctx.measureText(pipe).width;
+  ctx.font = `700 ${wordSize}px ${FONT}`;
+  const wordW = ctx.measureText(label).width;
+  const gap = Math.round(mark * 0.14);
+  const logoW = logo ? mark : 0;
+  const x = (CARD_W - (logoW + gap + pipeW + gap + wordW)) / 2;
+  if (logo) ctx.drawImage(logo, x, y, mark, mark);
+  const mid = y + mark / 2;
+  ctx.fillStyle = '#8AA0B5';
+  ctx.font = `500 ${Math.round(wordSize * 0.92)}px ${FONT}`;
+  ctx.fillText(pipe, x + logoW + gap, mid);
+  ctx.fillStyle = BLUE;
+  ctx.font = `700 ${wordSize}px ${FONT}`;
+  ctx.fillText(label, x + logoW + gap + pipeW + gap, mid);
+  ctx.restore();
+}
+
 export default function FinderBQrStudio({
   businessName,
   category,
@@ -73,11 +103,10 @@ export default function FinderBQrStudio({
 
       let logoHeight = 110;
       try {
-        const logo = await loadImage('/businesslogo.png');
+        const logo = await loadImage('/brands/fb-mark-240.png');
         if (cancelled) return;
-        const logoW = 520;
-        logoHeight = (logoW * logo.height) / logo.width;
-        ctx.drawImage(logo, (CARD_W - logoW) / 2, 78, logoW, logoHeight);
+        drawLockup(ctx, logo, 96, 122, 54);
+        logoHeight = 122;
       } catch {
         ctx.fillStyle = BLUE;
         ctx.font = `700 40px ${FONT}`;
@@ -135,16 +164,14 @@ export default function FinderBQrStudio({
       ctx.strokeStyle = LINE;
       ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.moveTo(180, CARD_H - 168);
-      ctx.lineTo(CARD_W - 180, CARD_H - 168);
+      ctx.moveTo(180, CARD_H - 210);
+      ctx.lineTo(CARD_W - 180, CARD_H - 210);
       ctx.stroke();
 
       try {
-        const footerLogo = await loadImage('/businesslogo.png');
+        const footerLogo = await loadImage('/brands/fb-mark-240.png');
         if (cancelled) return;
-        const footerW = 280;
-        const footerH = (footerW * footerLogo.height) / footerLogo.width;
-        ctx.drawImage(footerLogo, (CARD_W - footerW) / 2, CARD_H - 148, footerW, footerH);
+        drawLockup(ctx, footerLogo, CARD_H - 160, 57, 32);
       } catch {
         ctx.fillStyle = BLUE;
         ctx.font = `600 18px ${FONT}`;
@@ -205,7 +232,7 @@ export default function FinderBQrStudio({
         <div className="flex items-start justify-between gap-3 border-b border-zinc-100 px-4 py-3">
           <div>
             <h3 className="text-base font-semibold text-zinc-900">FinderB review card</h3>
-            <p className="mt-0.5 text-xs text-zinc-500">Tall 1080×1920 print card. White field, Inter only, FinderB Business logo.</p>
+            <p className="mt-0.5 text-xs text-zinc-500">Tall 1080×1920 print card. White field, Inter only, FinderB mark.</p>
           </div>
           <button type="button" onClick={onClose} className="rounded-md p-1 text-zinc-400 hover:bg-zinc-100" aria-label="Close">
             <HiOutlineXMark size={18} />

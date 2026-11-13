@@ -39,11 +39,11 @@ export default function BusinessListingInactivePage({ listing }: Props) {
       <div className="relative mx-auto flex max-w-md flex-col items-center px-5 py-14 sm:py-20 text-center">
         <Link href="/" className="mb-8 inline-flex rounded-xl bg-white px-3 py-2 ring-1 ring-[#d9d2c6]">
           <Image
-            src="/businesslogo.png"
+            src="/brands/fb-mark-240.png"
             alt="FinderB"
-            width={128}
-            height={40}
-            className="h-7 w-auto"
+            width={36}
+            height={36}
+            className="h-9 w-9"
             priority
           />
         </Link>

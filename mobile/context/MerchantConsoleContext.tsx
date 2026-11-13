@@ -16,7 +16,8 @@ import {
 } from '../lib/merchantConsoleApi';
 
 export type ToastTone = 'good' | 'bad' | 'info';
-export type Toast = { id: number; message: string; tone: ToastTone };
+export type ToastAction = { label: string; onPress: () => void };
+export type Toast = { id: number; message: string; tone: ToastTone; action?: ToastAction };
 
 type ConsoleContextValue = {
   overview: ConsoleOverview | null;
@@ -27,7 +28,7 @@ type ConsoleContextValue = {
   refresh: () => Promise<void>;
   run: <T>(action: string, payload?: Record<string, unknown>) => Promise<ConsoleResult<T>>;
   toast: Toast | null;
-  notify: (message: string, tone?: ToastTone) => void;
+  notify: (message: string, tone?: ToastTone, action?: ToastAction) => void;
 };
 
 const ConsoleContext = createContext<ConsoleContextValue | null>(null);
@@ -46,10 +47,11 @@ export function MerchantConsoleProvider({ children }: { children: ReactNode }) {
   const [toast, setToast] = useState<Toast | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const notify = useCallback((message: string, tone: ToastTone = 'good') => {
+  const notify = useCallback((message: string, tone: ToastTone = 'good', action?: ToastAction) => {
     if (toastTimer.current) clearTimeout(toastTimer.current);
-    setToast({ id: Date.now(), message, tone });
-    toastTimer.current = setTimeout(() => setToast(null), tone === 'bad' ? 4200 : 2600);
+    setToast({ id: Date.now(), message, tone, action });
+    const hold = action ? 6000 : tone === 'bad' ? 4200 : 2600;
+    toastTimer.current = setTimeout(() => setToast(null), hold);
   }, []);
 
   useEffect(

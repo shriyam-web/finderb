@@ -79,7 +79,7 @@ export const rootSiteMetadata: Metadata = {
     siteName: SITE_NAME,
     images: [
       {
-        url: '/logo1.png',
+        url: '/brands/fb-mark-240.png',
         width: 1200,
         height: 630,
         alt: "FinderB - India's Premier Local Discovery Platform",
@@ -92,7 +92,7 @@ export const rootSiteMetadata: Metadata = {
     card: 'summary_large_image',
     title: HOME_PAGE_TITLE,
     description: HOME_PAGE_DESCRIPTION,
-    images: ['/logo1.png'],
+    images: ['/brands/fb-mark-240.png'],
   },
   robots: {
     index: true,
@@ -132,7 +132,7 @@ export function getRootStructuredData() {
         name: SITE_NAME,
         legalName: LEGAL_COMPANY.name,
         url: SITE_HOME_URL,
-        logo: `${SITE_ORIGIN}/logo1.png`,
+        logo: `${SITE_ORIGIN}/brands/fb-mark-240.png`,
         description:
           "FinderB is India's premium local discovery platform connecting users with verified professionals and top-rated services across 300+ cities.",
         sameAs: FOOTER_SOCIAL_LINKS.map((item) => item.href),

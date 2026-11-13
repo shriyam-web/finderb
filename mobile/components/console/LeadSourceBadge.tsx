@@ -5,10 +5,12 @@ import { leadSourceOf, sourceLabel, sourceMeaning } from './leadStatus';
 export function LeadSourceBadge({
   lead,
   align = 'start',
+  plain = false,
   onMeaning,
 }: {
   lead: { source?: string | null; status?: string | null };
   align?: 'start' | 'end';
+  plain?: boolean;
   onMeaning?: (meaning: { title: string; body: string }) => void;
 }) {
   const source = leadSourceOf(lead);
@@ -17,6 +19,22 @@ export function LeadSourceBadge({
   const meaning = sourceMeaning(source);
   if (!label || !meaning) return null;
   const edge = align === 'end' ? styles.end : null;
+
+  if (plain) {
+    return (
+      <Pressable
+        onPress={(event) => {
+          event.stopPropagation();
+          onMeaning?.({ title: label, body: meaning });
+        }}
+        hitSlop={6}
+        accessibilityRole="button"
+        accessibilityLabel={`${label}. Show what this means`}
+      >
+        <Text style={[styles.word, edge]}>{label}</Text>
+      </Pressable>
+    );
+  }
 
   const badge =
     source === 'Direct Lead' ? (
@@ -53,6 +71,12 @@ export function LeadSourceBadge({
 
 const styles = {
   end: { alignSelf: 'flex-end' as const },
+  word: {
+    alignSelf: 'flex-start' as const,
+    fontFamily: fonts.regular,
+    fontSize: 11,
+    color: '#71717A',
+  },
   direct: {
     alignSelf: 'flex-start' as const,
     flexDirection: 'row' as const,

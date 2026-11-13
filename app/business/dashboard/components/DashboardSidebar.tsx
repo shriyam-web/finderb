@@ -244,14 +244,14 @@ export default function DashboardSidebar({
       <div className={`shrink-0 px-4 ${mobile ? 'pt-3' : 'pt-6'}`}>
         {mobile ? (
           <div className="mb-4 flex items-center justify-between">
-            <Image src="/businesslogo.png" alt="FinderB" width={100} height={30} className="h-7 w-auto" />
+            <Image src="/brands/fb-mark-240.png" alt="FinderB" width={36} height={36} className="h-9 w-9" />
             <button type="button" onClick={onClose} className="rounded-md p-2 text-zinc-500 hover:bg-zinc-100" aria-label="Close">
               <HiOutlineXMark size={20} />
             </button>
           </div>
         ) : (
           <Link href="/business/register" className="mb-6 inline-block">
-            <Image src="/businesslogo.png" alt="FinderB Business" width={120} height={36} className="h-7 w-auto" priority />
+            <Image src="/brands/fb-mark-240.png" alt="FinderB" width={36} height={36} className="h-9 w-9" priority />
           </Link>
         )}
         {profileBlock}

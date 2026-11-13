@@ -48,7 +48,7 @@ export function buildPageMetadata({
   title,
   description,
   canonicalPath,
-  ogImage = '/logo1.png',
+  ogImage = '/brands/fb-mark-240.png',
   keywords,
   robots = INDEX_ROBOTS,
   openGraphTitle,

@@ -258,7 +258,7 @@ function JobsBody({ o }: { o: ConsoleOverview }) {
       },
     });
     setSaving(false);
-    if (after(result, id ? 'Job updated' : 'Job posted on your storefront')) setEditing(null);
+    if (after(result, id ? 'Job updated' : 'Job posted on your shop')) setEditing(null);
   };
 
   const toggle = async (job: ConsoleJob) => {
@@ -272,7 +272,7 @@ function JobsBody({ o }: { o: ConsoleOverview }) {
   };
 
   const remove = (job: ConsoleJob, onDone?: () => void) =>
-    Alert.alert('Delete this job?', `“${job.title}” and its listing will be removed for good.`, [
+    Alert.alert('Delete this job?', `“${job.title}” will be removed for good.`, [
       { text: 'Keep', style: 'cancel' },
       {
         text: 'Delete',
@@ -311,7 +311,7 @@ function JobsBody({ o }: { o: ConsoleOverview }) {
       }
     >
       <Text style={styles.lead}>
-        Open jobs appear on your storefront and in FinderB Jobs. Open a job to read applications. You can keep {max} open at a time.
+        Open jobs appear on your shop and in FinderB Jobs. Open a job to read applications. You can keep {max} open at a time.
       </Text>
       <Pressable onPress={() => setHrOpen(true)} style={styles.hrCard}>
         <Text style={styles.hrTitle}>HR contact</Text>

@@ -8,7 +8,7 @@ import {
 } from '@/app/actions/business';
 import { getBusinessLeads, markLeadRead, updateLeadNote, updateLeadStatus } from '@/app/actions/leads';
 import { isOpenLead } from '@/lib/leadBadges';
-import { isLeadUnread, averageLeadResponseLabel, averageLeadResponseMs } from '@/lib/leadRead';
+import { leadNeedsContact, averageLeadResponseLabel, averageLeadResponseMs } from '@/lib/leadRead';
 import { loadBadgeReports } from '@/lib/businessBadgeState';
 import { loadCompetitorAverageFromClient } from '@/lib/dashboard/competitorInsights';
 import { revalidateBusinessProfilePaths } from '@/lib/businessRevalidation';
@@ -18,6 +18,7 @@ import {
   getBusinessPublicRatingStats,
   getReviewReplyDraft,
   parseBusinessReviews,
+  reviewsNewestFirst,
   REVIEW_REPLY_MAX_LENGTH,
   REVIEW_REPLY_MIN_LENGTH,
   toMerchantReview,
@@ -177,7 +178,7 @@ function reviewsOf(
   business: Business,
   flagState: { flaggedIds: Set<string>; byId: Map<string, { status: string }> }
 ) {
-  const parsed = parseBusinessReviews(business.review);
+  const parsed = reviewsNewestFirst(parseBusinessReviews(business.review));
   const kept = parsed.filter(
     (review) => !review.deleted || flagState.flaggedIds.has(review.id),
   );
@@ -488,7 +489,7 @@ async function overview(businessId: string) {
       views30d: views.viewsLast30Days ?? 0,
       viewsAllTime: views.viewsAllTime ?? 0,
       leadsTotal: leads.length,
-      leadsNew: leads.filter((lead) => isLeadUnread(lead)).length,
+      leadsNew: leads.filter((lead) => leadNeedsContact(lead)).length,
       averageResponse: averageLeadResponseLabel(leads),
       averageResponseMs: averageLeadResponseMs(leads),
       competitorAverage,
@@ -992,6 +993,8 @@ export async function runConsoleAction(userId: string, businessId: string, body:
         audience: String(body.audience || ''),
         content: String(body.content || ''),
       });
+    case 'deletePromotion':
+      return (await import('@/lib/promotions/service')).deleteDraftPromotion(businessId, String(body.orderId || ''));
     case 'promotionVideoTicket':
       return (await import('@/lib/promotions/service')).issuePromotionVideoUpload(businessId, String(body.orderId || ''));
     case 'commitPromotionVideo':

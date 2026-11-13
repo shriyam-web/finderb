@@ -22,7 +22,7 @@ import {
 export const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || 'https://finderb.com';
 const SITE_NAME = 'FinderB';
-const DEFAULT_OG_IMAGE = '/logo1.png';
+const DEFAULT_OG_IMAGE = '/brands/fb-mark-240.png';
 
 export { resolveAbsoluteUrl };
 

@@ -507,6 +507,41 @@ export async function createPromotionOrder(businessId: string, input: {
   return { success: true, orderId: id };
 }
 
+const RUNNING_CAMPAIGNS = ['payment_successful', 'under_review', 'editing', 'video_ready', 'ad_active', 'completed'];
+const CLOSED_CAMPAIGNS = ['rejected', 'cancelled', 'refund_pending', 'refunded'];
+
+export async function deleteDraftPromotion(businessId: string, orderId: string): Promise<Ok<{ orderId: string }> | Fail> {
+  const hidden = await requireEnabled();
+  if (hidden) return hidden;
+  const limited = checkRateLimit(`promo-delete:${businessId}`, RATE_LIMITS.write);
+  if (!limited.allowed) return fail('Too many attempts. Wait and try again.');
+  const supabase = db();
+  if (!supabase || !orderId) return fail('This campaign could not be deleted.');
+  const { data } = await supabase.from('promotion_orders').select('*').eq('id', orderId).eq('business_id', businessId).maybeSingle();
+  if (!data) return fail('That campaign was not found.');
+  const row = data as Record<string, unknown>;
+  const status = String(row.campaign_status || '');
+  if (String(row.payment_status || '') === 'paid' || RUNNING_CAMPAIGNS.includes(status) || CLOSED_CAMPAIGNS.includes(status)) {
+    return fail('Only a draft can be deleted. A running or paid campaign stays.');
+  }
+  if (row.video_public_id) {
+    await destroyPrivateAsset({
+      publicId: String(row.video_public_id),
+      resource: 'video',
+      format: String(row.video_format || ''),
+    });
+  }
+  const { error } = await supabase
+    .from('promotion_orders')
+    .delete()
+    .eq('id', orderId)
+    .eq('business_id', businessId)
+    .neq('payment_status', 'paid');
+  if (error) return fail('This campaign could not be deleted.');
+  await audit({ orderId, businessId, action: 'draft_deleted', from: status, note: 'Draft campaign deleted by the business.' });
+  return { success: true, orderId };
+}
+
 const VIDEO_RULES = 'Choose an MP4 or MOV that is already vertical (about 9:16), between 15 and 45 seconds, and under 60 MB.';
 const VIDEO_FOLDER = 'finderb-private/promotions';
 

@@ -31,6 +31,15 @@ export function merchantNotificationCta(
       label: 'Open leads',
     };
   }
+  if (kind.includes('ad_approved') || kind.includes('ad-approved')) {
+    const orderId = typeof metadata?.orderId === 'string' ? metadata.orderId.trim() : '';
+    return {
+      url: orderId
+        ? `/business/promote?order=${encodeURIComponent(orderId)}`
+        : '/business/promotions',
+      label: 'Pay for this ad',
+    };
+  }
   return {
     url: '/business/dashboard',
     label: 'Open dashboard',

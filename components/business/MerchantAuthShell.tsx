@@ -43,11 +43,11 @@ export function MerchantAuthMarketing({
       <div className="relative z-10">
         <Link href="/" className="inline-flex items-center gap-2 rounded-xl bg-white px-3 py-2 shadow-lg ring-1 ring-white/20">
           <Image
-            src="/businesslogo.png"
-            alt="FinderB Business"
-            width={128}
-            height={40}
-            className="h-7 w-auto sm:h-8"
+            src="/brands/fb-mark-240.png"
+            alt="FinderB"
+            width={36}
+            height={36}
+            className="h-9 w-9"
             priority
           />
         </Link>

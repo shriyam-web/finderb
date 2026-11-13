@@ -206,7 +206,7 @@ function DashboardContent() {
       {/* Mobile top bar */}
       <header className="fixed inset-x-0 top-0 z-[60] flex h-14 items-center justify-between border-b border-zinc-200/80 bg-white px-4 lg:hidden">
         <Link href="/" className="shrink-0">
-          <Image src="/logo1.png" alt="FinderB" width={96} height={32} className="h-6 w-auto" priority />
+          <Image src="/brands/fb-mark-240.png" alt="FinderB" width={32} height={32} className="h-8 w-8" priority />
         </Link>
         <button
           type="button"
@@ -235,7 +235,7 @@ function DashboardContent() {
       >
         <div className="flex h-14 shrink-0 items-center justify-between border-b border-zinc-100 px-5 lg:h-16 lg:px-6">
           <Link href="/" onClick={() => setIsSidebarOpen(false)}>
-            <Image src="/logo1.png" alt="FinderB" width={110} height={36} className="h-7 w-auto" priority />
+            <Image src="/brands/fb-mark-240.png" alt="FinderB" width={36} height={36} className="h-9 w-9" priority />
           </Link>
           <button
             type="button"

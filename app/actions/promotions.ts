@@ -4,6 +4,7 @@ import { getBusinessSession } from '@/app/actions/business';
 import {
   confirmPromotionPayment,
   createPromotionOrder,
+  deleteDraftPromotion,
   merchantDesk,
   submitCustomPromotion,
   merchantOrder,
@@ -49,6 +50,12 @@ export async function placePromotionOrder(packageId: string, pincode: string, ar
   const id = await businessId();
   if (!id) return { success: false as const, error: 'Please log in again.' };
   return createPromotionOrder(id, { packageId, pincode, area });
+}
+
+export async function removeDraftPromotion(orderId: string) {
+  const id = await businessId();
+  if (!id) return { success: false as const, error: 'Please log in again.' };
+  return deleteDraftPromotion(id, orderId);
 }
 
 export async function beginPromotionPayment(orderId: string) {

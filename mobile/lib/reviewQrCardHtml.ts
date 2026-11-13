@@ -111,6 +111,30 @@ export function reviewQrCardHtml(input: {
     }));
   }
 
+  function drawLockup(logo, y, mark, wordSize) {
+    var label = 'FinderB Business';
+    var pipe = '|';
+    ctx.save();
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'left';
+    ctx.font = '500 ' + Math.round(wordSize * 0.92) + 'px ' + font;
+    var pipeW = ctx.measureText(pipe).width;
+    ctx.font = '700 ' + wordSize + 'px ' + font;
+    var wordW = ctx.measureText(label).width;
+    var gap = Math.round(mark * 0.14);
+    var logoW = logo ? mark : 0;
+    var x = (CARD_W - (logoW + gap + pipeW + gap + wordW)) / 2;
+    if (logo) ctx.drawImage(logo, x, y, mark, mark);
+    var mid = y + mark / 2;
+    ctx.fillStyle = '#8AA0B5';
+    ctx.font = '500 ' + Math.round(wordSize * 0.92) + 'px ' + font;
+    ctx.fillText(pipe, x + logoW + gap, mid);
+    ctx.fillStyle = BLUE;
+    ctx.font = '700 ' + wordSize + 'px ' + font;
+    ctx.fillText(label, x + logoW + gap + pipeW + gap, mid);
+    ctx.restore();
+  }
+
   function paint(qr, logo) {
     var wash = ctx.createLinearGradient(0, 0, CARD_W, CARD_H);
     wash.addColorStop(0, '#D7E7F6');
@@ -131,9 +155,8 @@ export function reviewQrCardHtml(input: {
     var logoHeight = 110;
     ctx.textAlign = 'center';
     if (logo) {
-      var logoW = 520;
-      logoHeight = logoW * logo.height / logo.width;
-      ctx.drawImage(logo, (CARD_W - logoW) / 2, 78, logoW, logoHeight);
+      drawLockup(logo, 96, 122, 54);
+      logoHeight = 122;
     } else {
       ctx.fillStyle = BLUE;
       ctx.font = '700 40px ' + font;
@@ -190,14 +213,12 @@ export function reviewQrCardHtml(input: {
     ctx.strokeStyle = LINE;
     ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.moveTo(180, CARD_H - 168);
-    ctx.lineTo(CARD_W - 180, CARD_H - 168);
+    ctx.moveTo(180, CARD_H - 210);
+    ctx.lineTo(CARD_W - 180, CARD_H - 210);
     ctx.stroke();
 
     if (logo) {
-      var footerW = 280;
-      var footerH = footerW * logo.height / logo.width;
-      ctx.drawImage(logo, (CARD_W - footerW) / 2, CARD_H - 148, footerW, footerH);
+      drawLockup(logo, CARD_H - 160, 57, 32);
     }
     ctx.fillStyle = MUTED;
     ctx.font = '500 24px ' + font;

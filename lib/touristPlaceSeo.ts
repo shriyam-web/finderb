@@ -54,7 +54,7 @@ export function buildTouristPlaceMetadata(place: TouristPlaceSeoInput | null): M
     title: `${place.name} — Tourist Place in ${place.location}`,
     description,
     canonicalPath,
-    ogImage: place.image || '/logo1.png',
+    ogImage: place.image || '/brands/fb-mark-240.png',
     keywords: [place.name, place.location, 'tourist place', 'India', 'FinderB'],
   });
 }
@@ -62,7 +62,7 @@ export function buildTouristPlaceMetadata(place: TouristPlaceSeoInput | null): M
 export function buildTouristPlaceJsonLd(place: TouristPlaceSeoInput) {
   const path = getTouristPlaceCanonicalPath(place);
   const url = resolveAbsoluteUrl(path);
-  const image = place.image ? resolveAbsoluteUrl(place.image) : resolveAbsoluteUrl('/logo1.png');
+  const image = place.image ? resolveAbsoluteUrl(place.image) : resolveAbsoluteUrl('/brands/fb-mark-240.png');
 
   return buildJsonLdGraph(
     {

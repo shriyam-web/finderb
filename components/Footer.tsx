@@ -379,15 +379,18 @@ export default function Footer() {
       <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
         <div className="grid gap-12 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] lg:gap-20">
           <div className="space-y-5">
-            <Link href="/" className="inline-block">
+            <Link href="/" className="inline-flex items-center gap-2.5">
               <Image
-                src="/logo1.png"
-                alt="FinderB — local business directory India"
-                width={128}
-                height={36}
-                className="h-8 w-auto object-contain"
+                src="/brands/fb-mark-240.png"
+                alt=""
+                width={30}
+                height={30}
+                className="h-[30px] w-[30px] object-contain"
                 quality={100}
               />
+              <span className="text-[22px] font-semibold leading-none tracking-tight text-[#153551]">
+                FinderB
+              </span>
             </Link>
             <p className="text-sm font-medium text-neutral-800">{FOOTER_TAGLINE}</p>
             <div className="max-w-xl space-y-3 text-sm leading-relaxed text-neutral-600">

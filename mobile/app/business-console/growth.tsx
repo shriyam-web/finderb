@@ -41,7 +41,7 @@ const CARDS: {
     title: 'Verified on FinderB',
     chip: 'Verified',
     eligibility: [
-      'FinderB reviews the business and confirms the identity and listing details.',
+      'FinderB reviews the business and confirms the identity and shop details.',
       'This tick is awarded by FinderB. A business cannot turn it on from the app.',
     ],
     benefits: [
@@ -93,20 +93,20 @@ const CARDS: {
     title: 'Popular this month',
     chip: 'Popular this month',
     eligibility: [
-      'This calendar month, the listing has the most profile views or the most leads among active businesses in the same category and city.',
+      'This calendar month, the shop has the most views or the most leads among active businesses in the same category and city.',
       'Zero views and zero leads do not qualify.',
       'It resets when the month changes or another business moves ahead.',
     ],
     benefits: [
       'The chip appears on the public profile.',
-      'Customers see which nearby listing people are opening and contacting right now.',
+      'Customers see which nearby shop people are opening and contacting right now.',
     ],
   },
   {
     id: 'newOnFinderB',
     title: 'New on FinderB',
     chip: 'New on FinderB',
-    eligibility: ['The listing has been live for fewer than 30 days.'],
+    eligibility: ['The shop has been live for fewer than 30 days.'],
     benefits: [
       'The chip appears on the public profile.',
       'A new business can be noticed before it has the reviews for Highly rated or Best in Category.',
@@ -142,7 +142,7 @@ function cardState(id: BadgeId, o: ConsoleOverview): { on: boolean; detail: stri
   if (id === 'verified') {
     return {
       on: Boolean(o.business.verifiedBadge),
-      detail: o.business.verifiedBadge ? 'FinderB has confirmed this listing.' : 'Waiting for a FinderB review.',
+      detail: o.business.verifiedBadge ? 'FinderB has confirmed this shop.' : 'Waiting for a FinderB review.',
     };
   }
   if (id === 'best') {
@@ -157,7 +157,7 @@ function cardState(id: BadgeId, o: ConsoleOverview): { on: boolean; detail: stri
     };
   }
   const live = (o.badges || []).find((badge) => badge.id === id);
-  if (!live) return { on: false, detail: 'Opens once your listing numbers are in.' };
+  if (!live) return { on: false, detail: 'Opens once your shop numbers are in.' };
   return { on: live.active, detail: live.detail };
 }
 

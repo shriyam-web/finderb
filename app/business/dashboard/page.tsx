@@ -64,11 +64,13 @@ import { broadcastTargetsMerchants } from '@/lib/broadcastAudience';
 import { getMerchantSubscriptionStatus } from '@/lib/subscription/merchantSubscription';
 import {
   businessHasPublicPhoto,
+  getBusinessGalleryImages,
   syncBusinessImagesWithCover,
 } from '@/lib/businessMapping';
 import { createClient } from '@/utils/supabase/client';
 import { buildGoogleMapsUrl } from '@/lib/googleMapsLocation';
 import ListingHiddenNoPhotosBanner from './components/ListingHiddenNoPhotosBanner';
+import MorePhotosBanner from './components/MorePhotosBanner';
 import MerchantContactVerifyGate, {
   isContactGateSkipped,
   markContactGateSkipped,
@@ -847,11 +849,23 @@ function DashboardContent() {
     ),
   });
   }
+  const shopPhotoCount = getBusinessGalleryImages({ profilePictureUrl, images }).length;
   if (!hasPublicPhotos) {
     dashboardBanners.push({
       id: 'listing-hidden',
       label: 'Listing hidden without photos',
       node: <ListingHiddenNoPhotosBanner onAddPhotos={() => openSettingsField('media')} />,
+    });
+  } else if (shopPhotoCount < 5) {
+    dashboardBanners.push({
+      id: 'more-photos',
+      label: 'Add more shop photos',
+      node: (
+        <MorePhotosBanner
+          photoCount={shopPhotoCount}
+          onAddPhotos={() => openSettingsField('media')}
+        />
+      ),
     });
   }
   const bannerMissingFields = profileMissingFields.filter(

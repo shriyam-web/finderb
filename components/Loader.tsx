@@ -75,11 +75,11 @@ const Loader = ({
 
           <div className="finderb-splash-v2-logo-wrap relative">
             <Image
-              src="/logo1.png"
+              src="/brands/fb-mark-240.png"
               alt="FinderB"
-              width={320}
-              height={96}
-              className="relative z-10 h-auto w-[min(260px,78vw)] object-contain drop-shadow-[0_4px_24px_rgba(21,53,81,0.12)]"
+              width={112}
+              height={112}
+              className="relative z-10 h-28 w-28 object-contain drop-shadow-[0_4px_24px_rgba(21,53,81,0.12)]"
               priority
             />
           </div>

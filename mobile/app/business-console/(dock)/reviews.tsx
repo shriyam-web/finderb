@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import { Alert, Pressable, Text, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as Clipboard from 'expo-clipboard';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -11,7 +12,6 @@ import { isFailure, type ConsoleOverview, type ConsoleReview } from '../../../li
 import { reviewFlagOutcomeLabel } from '../../../lib/reviewFlagOutcome';
 import { ConsoleGate } from '../../../components/console/ConsoleGate';
 import { FinderBQrStudio } from '../../../components/console/FinderBQrStudio';
-import { RankBannerArt } from '../../../components/console/ReviewsRankArt';
 import {
   Btn,
   Chip,
@@ -174,6 +174,19 @@ function ReviewCard({
   );
 }
 
+function newestReviews(reviews: ConsoleReview[]) {
+  return [...reviews].sort((a, b) => {
+    const at = Date.parse(a.date || '');
+    const bt = Date.parse(b.date || '');
+    const aOk = Number.isFinite(at);
+    const bOk = Number.isFinite(bt);
+    if (aOk && bOk && at !== bt) return bt - at;
+    if (aOk && !bOk) return -1;
+    if (!aOk && bOk) return 1;
+    return 0;
+  });
+}
+
 function ReviewsBody({ o }: { o: ConsoleOverview }) {
   const styles = useStyles();
   const c = useConsoleColors();
@@ -192,11 +205,14 @@ function ReviewsBody({ o }: { o: ConsoleOverview }) {
   const [qrOpen, setQrOpen] = useState(false);
   const [templateOpen, setTemplateOpen] = useState(false);
   const [template, setTemplate] = useState(o.profile.reviewReply || '');
+  const [templateError, setTemplateError] = useState('');
   const { replyMin, replyMax } = o.limits;
+  const minReply = replyMin > 0 ? replyMin : 10;
+  const maxReply = replyMax > 0 ? replyMax : 500;
 
-  const open = o.reviews.filter((review) => !review.reply && !review.deleted);
+  const open = newestReviews(o.reviews.filter((review) => !review.reply && !review.deleted));
   const list = (() => {
-    const base = filter === 'open' ? open : o.reviews;
+    const base = filter === 'open' ? open : newestReviews(o.reviews);
     if (!focusReviewId) return base;
     const hit = base.find((review) => review.id === focusReviewId);
     if (!hit) return base;
@@ -259,15 +275,20 @@ function ReviewsBody({ o }: { o: ConsoleOverview }) {
 
   const saveTemplate = async () => {
     const value = template.trim();
-    if (value && (value.length < replyMin || value.length > replyMax)) {
-      notify(`Saved reply must be ${replyMin}–${replyMax} characters.`, 'bad');
+    if (value.length > 0 && value.length < minReply) {
+      setTemplateError(`Write at least ${minReply} characters, or leave it empty to remove it.`);
       return;
     }
+    if (value.length > maxReply) {
+      setTemplateError(`Keep it to ${maxReply} characters.`);
+      return;
+    }
+    setTemplateError('');
     setSaving(true);
     const result = await run('saveProfile', { patch: { reviewReply: value } });
     setSaving(false);
     if (isFailure(result)) {
-      notify(result.error, 'bad');
+      setTemplateError(result.error);
       return;
     }
     setTemplateOpen(false);
@@ -305,19 +326,43 @@ function ReviewsBody({ o }: { o: ConsoleOverview }) {
       refreshing={refreshing}
       onRefresh={() => void refresh()}
     >
-      <View style={styles.rankBanner}>
-        <RankBannerArt />
-        <Text style={styles.rankBannerKicker}>Higher visibility</Text>
-        <Text style={styles.rankBannerTitle}>
-          {Math.max(0, 10 - o.stats.reviewCount) > 0
-            ? `${Math.max(0, 10 - o.stats.reviewCount)} more review${Math.max(0, 10 - o.stats.reviewCount) === 1 ? '' : 's'} to unlock a stronger rank`
-            : 'You crossed 10 reviews — keep the momentum'}
-        </Text>
-      </View>
+      <Pressable
+        onPress={() => setQrOpen(true)}
+        style={({ pressed }) => [pressed && styles.pressed]}
+        accessibilityRole="button"
+        accessibilityLabel="Ask for a review"
+      >
+        <LinearGradient
+          colors={['#9A3412', '#EA580C', '#F59E0B']}
+          start={{ x: 0, y: 0.5 }}
+          end={{ x: 1, y: 0.5 }}
+          style={styles.rankBanner}
+        >
+          <View style={styles.rankBannerIcon}>
+            <Ionicons name="qr-code" size={20} color="#9A3412" />
+          </View>
+          <View style={styles.flex}>
+            <Text style={styles.rankBannerKicker}>Your public rank</Text>
+            <Text style={styles.rankBannerTitle}>
+              {Math.max(0, 10 - o.stats.reviewCount) > 0
+                ? `${Math.max(0, 10 - o.stats.reviewCount)} more review${Math.max(0, 10 - o.stats.reviewCount) === 1 ? '' : 's'} and this shop ranks higher`
+                : 'Reviews are in. Keep asking so the shop stays easy to trust.'}
+            </Text>
+          </View>
+          <View style={styles.rankBannerCta}>
+            <Text style={styles.rankBannerCtaText}>Ask</Text>
+            <Ionicons name="arrow-forward" size={13} color="#9A3412" />
+          </View>
+        </LinearGradient>
+      </Pressable>
       <Summary o={o} />
 
       <Pressable
-        onPress={() => setTemplateOpen(true)}
+        onPress={() => {
+          setTemplate(o.profile.reviewReply || '');
+          setTemplateError('');
+          setTemplateOpen(true);
+        }}
         style={({ pressed }) => [styles.template, pressed && styles.pressed]}
         accessibilityRole="button"
       >
@@ -357,8 +402,7 @@ function ReviewsBody({ o }: { o: ConsoleOverview }) {
           )}
           {shown < list.length ? (
             <Btn
-              small
-              tone="text"
+              tone="outline"
               label={`Load more (${list.length - shown} left)`}
               onPress={() => setShown((count) => count + 50)}
             />
@@ -368,7 +412,7 @@ function ReviewsBody({ o }: { o: ConsoleOverview }) {
         <Empty
           icon="star-outline"
           title="No reviews yet"
-          body="Ask happy customers to rate you on FinderB. Sharing your storefront link is the quickest way."
+          body="Ask happy customers to rate you on FinderB. Sharing your shop link is the quickest way."
         />
       )}
 
@@ -445,7 +489,10 @@ function ReviewsBody({ o }: { o: ConsoleOverview }) {
       <Sheet
         visible={templateOpen}
         title="Saved reply"
-        onClose={() => setTemplateOpen(false)}
+        onClose={() => {
+          setTemplateError('');
+          setTemplateOpen(false);
+        }}
         action={{ label: 'Save', busy: saving, onPress: () => void saveTemplate() }}
       >
         <Text style={styles.sheetIntro}>
@@ -455,11 +502,16 @@ function ReviewsBody({ o }: { o: ConsoleOverview }) {
           label="Thank-you note"
           multiline
           value={template}
-          onChangeText={setTemplate}
-          maxLength={replyMax}
+          onChangeText={(text) => {
+            setTemplate(text);
+            const next = text.trim();
+            if (!next || (next.length >= minReply && next.length <= maxReply)) setTemplateError('');
+          }}
+          maxLength={maxReply}
           placeholder="Thank you for visiting us! We’re glad you liked…"
-          counter={`${template.trim().length}/${replyMax}`}
-          hint="Only you see this. Leave it empty to remove it."
+          counter={`${template.trim().length}/${maxReply}`}
+          error={templateError}
+          hint={`At least ${minReply} characters. Leave it empty to remove it.`}
         />
       </Sheet>
     </ConsolePage>
@@ -523,25 +575,47 @@ const useStyles = createConsoleStyles((c) => ({
   templateBody: { marginTop: 2, fontFamily: fonts.regular, fontSize: 12.5, lineHeight: 17, color: c.muted },
   filters: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   rankBanner: {
-    position: 'relative',
-    overflow: 'hidden',
-    paddingVertical: 8,
-    paddingLeft: 12,
-    paddingRight: 88,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    borderRadius: 16,
+  },
+  rankBannerIcon: {
+    width: 40,
+    height: 40,
     borderRadius: 12,
-    backgroundColor: '#F59E0B',
-    gap: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
   },
   rankBannerKicker: {
-    fontFamily: fonts.medium,
+    fontFamily: fonts.semiBold,
     fontSize: 11,
-    color: 'rgba(255,255,255,0.86)',
+    letterSpacing: 0.3,
+    color: 'rgba(255,255,255,0.82)',
   },
   rankBannerTitle: {
-    fontFamily: fonts.medium,
-    fontSize: 13,
-    lineHeight: 17,
+    marginTop: 2,
+    fontFamily: fonts.semiBold,
+    fontSize: 14,
+    lineHeight: 18,
     color: '#FFFFFF',
+  },
+  rankBannerCta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 12,
+    height: 34,
+    borderRadius: 999,
+    backgroundColor: '#FFFFFF',
+  },
+  rankBannerCtaText: {
+    fontFamily: fonts.semiBold,
+    fontSize: 13,
+    color: '#9A3412',
   },
   card: {
     position: 'relative',

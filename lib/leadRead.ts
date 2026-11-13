@@ -2,6 +2,27 @@ export function isLeadUnread(lead: { merchant_read_at?: string | null }): boolea
   return !lead.merchant_read_at;
 }
 
+const SETTLED_LEAD_STATUSES = new Set([
+  'Asked to connect later',
+  'Contacted',
+  'Not interested',
+  'Wrong lead',
+  'Converted',
+  'Closed',
+]);
+
+export function isJobApplicationLead(lead: { category?: string | null }): boolean {
+  return (lead.category || '').trim().toLowerCase() === 'job application';
+}
+
+/** Customer leads that are still "To be contacted", including ones that only have a source badge. */
+export function leadNeedsContact(lead: { status?: string | null; category?: string | null }): boolean {
+  if (isJobApplicationLead(lead)) return false;
+  const status = (lead.status || '').trim();
+  if (status === 'To be contacted') return true;
+  return !SETTLED_LEAD_STATUSES.has(status);
+}
+
 export function formatResponseDuration(ms: number): string {
   const minutes = Math.max(0, Math.round(ms / 60000));
   if (minutes < 1) return 'under a minute';

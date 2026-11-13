@@ -117,11 +117,11 @@ export default function UserAuthShell({ mode, children, footer }: UserAuthShellP
           <div className="relative z-10 p-10 xl:p-12">
             <Link href="/" className="inline-block">
               <Image
-                src="/logo1.png"
+                src="/brands/fb-mark-240.png"
                 alt="FinderB"
-                width={132}
-                height={44}
-                className="h-9 w-auto brightness-0 invert"
+                width={40}
+                height={40}
+                className="h-10 w-10"
                 priority
               />
             </Link>

@@ -119,6 +119,7 @@ export const CONSOLE_ACTION_ACCESS: Record<
   markNotificationsRead: { tab: 'overview', mode: 'view' },
   promotions: { owner: true },
   createPromotion: { owner: true },
+  deletePromotion: { owner: true },
   requestCustomPromotion: { owner: true },
   startPromotionPay: { owner: true },
   confirmPromotionPay: { owner: true },

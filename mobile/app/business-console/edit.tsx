@@ -665,7 +665,7 @@ function EditBody({ o, section }: { o: ConsoleOverview; section: SectionKey }) {
       form={section !== 'hours'}
       docked
       title={meta.title}
-      subtitle="Edit listing"
+      subtitle="Edit your shop"
       footer={
         <Btn
           label={dirty ? 'Save changes' : saved.current ? 'Saved' : 'No changes yet'}
@@ -697,7 +697,7 @@ function EditBody({ o, section }: { o: ConsoleOverview; section: SectionKey }) {
           />
           <TagInput
             label="Services you offer"
-            hint="Shown as chips on your storefront. Tap a suggestion or type your own."
+            hint="Shown as chips on your shop. Tap a suggestion or type your own."
             values={services}
             max={10}
             placeholder="e.g. Home delivery"

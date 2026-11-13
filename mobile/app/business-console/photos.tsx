@@ -115,7 +115,7 @@ function PhotosBody({ o }: { o: ConsoleOverview }) {
     const last = images.length === 1;
     Alert.alert(
       'Delete this photo?',
-      last ? 'This is your only photo. Without one, your listing can’t be shown to customers.' : 'It will be removed from your storefront.',
+      last ? 'This is your only photo. Without one, your shop can’t be shown to customers.' : 'It will be removed from your shop.',
       [
         { text: 'Cancel', style: 'cancel' },
         {

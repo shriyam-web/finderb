@@ -17,10 +17,12 @@ export function ProgressPie({ percent, color }: { percent: number; color: string
   const wedge = shown >= 100
     ? ''
     : `M ${cx} ${cy} L ${cx} ${cy - r} A ${r} ${r} 0 ${large} 1 ${x.toFixed(2)} ${y.toFixed(2)} Z`;
+  const track = c.isDark ? '#44403C' : '#D6D3D1';
+  const edge = c.isDark ? '#A8A29E' : '#57534E';
   return (
     <View style={{ width: 46, alignItems: 'center' }}>
       <Svg width={size} height={size}>
-        <Circle cx={cx} cy={cy} r={r} fill={c.sunken} />
+        <Circle cx={cx} cy={cy} r={r} fill={track} stroke={edge} strokeWidth={1.5} />
         {shown >= 100 ? <Circle cx={cx} cy={cy} r={r} fill={color} /> : shown > 0 ? <Path d={wedge} fill={color} /> : null}
       </Svg>
       <Text style={{ marginTop: 2, fontFamily: fonts.semiBold, fontSize: 10, lineHeight: 12, color: c.ink }}>{shown}%</Text>

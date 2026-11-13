@@ -271,7 +271,7 @@ export default function MerchantPaymentCheckout({
             <div className="rounded-2xl border border-[#e8dfd4]/90 bg-white/90 p-5 shadow-[0_20px_60px_-30px_rgba(21,53,81,0.2)] backdrop-blur-sm sm:p-6">
               <div className="flex items-center gap-3">
                 <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#153551]/10">
-                  <Image src="/businesslogo.png" alt="" width={28} height={28} className="h-7 w-auto" />
+                  <Image src="/brands/fb-mark-240.png" alt="" width={28} height={28} className="h-7 w-7" />
                 </div>
                 <div className="min-w-0">
                   <p className="text-[10px] font-bold uppercase tracking-widest text-[#a89888]">

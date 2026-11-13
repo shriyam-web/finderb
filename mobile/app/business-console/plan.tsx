@@ -41,7 +41,7 @@ function CurrentPlan({ sub }: { sub: SubscriptionStatus }) {
     ? 'Payment received by the bank. Waiting for confirmation.'
     : sub.isActive
       ? `${sub.billingCycle === 'monthly' ? 'Monthly, auto-debit' : 'Yearly, paid once'}${sub.expiresAtDisplay ? ` · valid till ${sub.expiresAtDisplay}` : ''}`
-      : 'Free listing. Lead phone numbers and emails stay hidden.';
+      : 'Free shop. Lead phone numbers and emails stay hidden.';
 
   return (
     <Panel>

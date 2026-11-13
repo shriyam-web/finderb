@@ -523,7 +523,7 @@ function AccountBody({ o }: { o: ConsoleOverview }) {
           </Pressable>
         </Panel>
         <Text style={styles.footnote}>
-          Your login mobile is also the phone customers see on your listing. Changing your email or mobile needs a
+          Your login mobile is also the phone customers see on your shop. Changing your email or mobile needs a
           one-time code sent to the new address.
         </Text>
       </Section> : null}

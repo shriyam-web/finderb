@@ -34,7 +34,7 @@ import { buildReviewInviteUrl } from '../../../lib/reviewInvite';
 import { competitorScoreIsGood, leadResponseIsGood } from '../../../lib/insightTones';
 import { shareMessage } from '../../../lib/shareMessage';
 import { getAppVersionLabel } from '../../../lib/appVersion';
-import { primePromotionDesk } from '../../../lib/promotionDeskCache';
+import { LAUNCH_PACKAGES, peekPromotionDesk, primePromotionDesk, type PromotionPackageCard } from '../../../lib/promotionDeskCache';
 
 type IconName = keyof typeof Ionicons.glyphMap;
 type Go = (href: Href) => void;
@@ -76,10 +76,17 @@ function missingIcon(key: string): IconName {
   return icons[key] ?? 'add-circle-outline';
 }
 
+function shopPhotoCount(photos: ConsoleOverview['photos']) {
+  const gallery = photos.images.filter(Boolean);
+  if (photos.cover && !gallery.includes(photos.cover)) return gallery.length + 1;
+  return gallery.length;
+}
+
 function bannersFor(o: ConsoleOverview, go: Go, openStudio: () => void): AlertSlide[] {
   const slides: AlertSlide[] = [];
   const sub = o.subscription;
   const b = o.business;
+  const photoCount = shopPhotoCount(o.photos);
 
   if (!o.hasPublicPhoto) {
     slides.push({
@@ -88,6 +95,18 @@ function bannersFor(o: ConsoleOverview, go: Go, openStudio: () => void): AlertSl
       kicker: 'Listing hidden',
       title: 'Add a photo to go live',
       body: 'Customers can’t see you until your shop has at least one photo.',
+      cta: 'Add photos',
+      art: BANNER_ART.photos,
+      onPress: () => go('/business-console/photos'),
+    });
+  } else if (photoCount < 5) {
+    const left = 5 - photoCount;
+    slides.push({
+      key: 'more-photos',
+      tone: 'info',
+      kicker: 'Shop photos',
+      title: left === 1 ? 'Add 1 more photo' : `Add ${left} more photos`,
+      body: `You have ${photoCount} of 5. A full set helps people trust the shop before they call.`,
       cta: 'Add photos',
       art: BANNER_ART.photos,
       onPress: () => go('/business-console/photos'),
@@ -185,8 +204,8 @@ function bannersFor(o: ConsoleOverview, go: Go, openStudio: () => void): AlertSl
       key: 'profile',
       tone: 'info',
       kicker: `${o.completion.percent}% complete`,
-      title: 'Finish your profile',
-      body: 'Complete profiles show up in more searches.',
+      title: 'Finish your shop',
+      body: 'A finished shop shows up in more searches.',
       cta: 'Complete now',
       art: BANNER_ART.profile,
       onPress: () => go('/business-console/listing'),
@@ -304,7 +323,7 @@ function ShopCard({ o, go, onQr }: { o: ConsoleOverview; go: Go; onQr: () => voi
           ? { borderColor: liveBorder, shadowColor: '#16A34A', shadowOpacity: liveGlow, shadowRadius: 10, shadowOffset: { width: 0, height: 0 } }
           : { borderColor: '#DC2626' },
       ]}
-      accessibilityLabel={live ? `${business.name}, listing is live` : `${business.name}, listing is not live`}
+      accessibilityLabel={live ? `${business.name}, shop is live` : `${business.name}, shop is not live`}
     >
       <View style={styles.shop}>
       <View style={styles.shopTop}>
@@ -329,15 +348,35 @@ function ShopCard({ o, go, onQr }: { o: ConsoleOverview; go: Go; onQr: () => voi
           ) : null}
           <View style={styles.shopChips}>
             {rating.rated ? (
-              <View style={[styles.shopChip, { backgroundColor: ratingBoxColor(rating.rating) }]}>
+              <Pressable
+                onPress={() => go('/business-console/reviews')}
+                hitSlop={6}
+                style={({ pressed }) => [
+                  styles.shopChip,
+                  { backgroundColor: ratingBoxColor(rating.rating) },
+                  pressed && styles.pressed,
+                ]}
+                accessibilityRole="button"
+                accessibilityLabel={`Rating ${rating.label}. Open reviews.`}
+              >
                 <Ionicons name="star" size={11} color="#FFFFFF" />
                 <Text style={[styles.shopChipText, styles.shopChipOnColor]}>{rating.label}</Text>
-              </View>
+              </Pressable>
             ) : null}
-            <View style={[styles.shopChip, { backgroundColor: plan.background }]}>
+            <Pressable
+              onPress={() => go('/business-console/subscription')}
+              hitSlop={6}
+              style={({ pressed }) => [
+                styles.shopChip,
+                { backgroundColor: plan.background },
+                pressed && styles.pressed,
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel={`${plan.label} plan. Open plan.`}
+            >
               <Ionicons name={plan.icon} size={11} color={plan.color} />
               <Text style={[styles.shopChipText, { color: plan.color }]}>{plan.label}</Text>
-            </View>
+            </Pressable>
           </View>
         </View>
         <Pressable
@@ -620,7 +659,7 @@ function MissingInfo({ o, go }: { o: ConsoleOverview; go: Go }) {
           <Text style={styles.celebrateMark}>🎉</Text>
           <Text style={styles.celebrateTitle}>Well done</Text>
           <Text style={styles.celebrateBody}>
-            Your profile is complete and your plan is active. That helps you rank better in search results.
+            Your shop is complete and your plan is active. That helps you rank better in search results.
           </Text>
         </Panel>
       </Section>
@@ -859,7 +898,7 @@ function ReviewsSnapshot({ o, go }: { o: ConsoleOverview; go: Go }) {
           </Pressable>
         ) : (
           <Text style={[styles.quoteText, styles.quoteEmpty]}>
-            Ask happy customers to rate you — share your listing link after a sale.
+            Ask happy customers to rate you — share your shop link after a sale.
           </Text>
         )}
       </Panel>
@@ -905,7 +944,7 @@ function PlanCard({ o, go }: { o: ConsoleOverview; go: Go }) {
         ? until
           ? `Ended ${until}. Lead numbers are hidden.`
           : 'Lead numbers are hidden until you renew.'
-        : 'Free listing. Upgrade to unlock lead numbers.';
+        : 'Free shop. Upgrade to unlock lead numbers.';
   const status = pending
     ? { label: 'Confirming', tone: 'info' as const, icon: 'time-outline' as const }
     : sub.isActive
@@ -1027,21 +1066,138 @@ function QuickActions({ go, isOwner }: { go: Go; isOwner: boolean }) {
   );
 }
 
-function HomeBody({ o }: { o: ConsoleOverview }) {
+function growthStatus(o: ConsoleOverview) {
+  const reports = o.badges || [];
+  if (!reports.length) return 'See which badges you already have, and what is left to earn.';
+  const on = (o.business.verifiedBadge ? 1 : 0) + reports.filter((badge) => badge.active).length;
+  if (on === 0) return 'None are on your shop yet. See what it takes to earn them.';
+  return `You already have ${on}. See which badges are still left.`;
+}
+
+function shortAdArea(coverage: string) {
+  const radius = coverage.match(/(\d+)\s*[–-]\s*(\d+)\s*km/i);
+  if (radius) return `${radius[1]}–${radius[2]} km`;
+  if (/district|regional/i.test(coverage)) return 'District';
+  return coverage;
+}
+
+function defaultAdPlan(plans: PromotionPackageCard[]) {
+  return plans.find((plan) => plan.popular)?.id || plans[0]?.id || '';
+}
+
+function hoursReady(timings: ConsoleOverview['profile']['timings']) {
+  return Object.values(timings || {}).some((day) => Boolean(day && (day.isClosed || day.is24Hours || (day.open && day.close))));
+}
+
+function shopBasics(o: ConsoleOverview) {
+  const phone = (o.profile.publicPhone || o.business.loginMobile || '').replace(/\D/g, '');
+  return {
+    photo: o.hasPublicPhoto,
+    phone: phone.length >= 10,
+    hours: hoursReady(o.profile.timings),
+  };
+}
+
+function ShopSetup({
+  basics,
+  live,
+  go,
+  onEnter,
+}: {
+  basics: { photo: boolean; phone: boolean; hours: boolean };
+  live: boolean;
+  go: Go;
+  onEnter: () => void;
+}) {
   const styles = useStyles();
   const c = useConsoleColors();
+  const steps = [
+    { done: basics.photo, title: 'Add a photo', body: 'Customers trust a shop they can see.', href: '/business-console/photos' as Href },
+    { done: basics.phone, title: 'Add your phone', body: 'This is the number customers can call.', href: '/business-console/account' as Href },
+    { done: basics.hours, title: 'Set your hours', body: 'Show when the shop is open.', href: editHref('hours') },
+  ];
+  if (live) {
+    return (
+      <Panel>
+        <Text style={styles.setupTitle}>You are live</Text>
+        <Text style={styles.setupBody}>Customers can see this shop.</Text>
+        <Btn label="Open your shop" onPress={onEnter} />
+      </Panel>
+    );
+  }
+  return (
+    <Panel>
+      <Text style={styles.setupTitle}>Set up your shop</Text>
+      <Text style={styles.setupBody}>Add a photo, a phone number, and your hours. Then customers can find you.</Text>
+      {steps.map((step) => (
+        <Pressable
+          key={step.title}
+          onPress={() => go(step.href)}
+          style={({ pressed }) => [styles.setupRow, pressed && styles.rowPressed]}
+          accessibilityRole="button"
+          accessibilityLabel={step.done ? `${step.title}, done` : step.title}
+        >
+          <Ionicons name={step.done ? 'checkmark-circle' : 'ellipse-outline'} size={20} color={step.done ? c.success : c.muted} />
+          <View style={styles.flex}>
+            <Text style={styles.setupStep}>{step.title}</Text>
+            <Text style={styles.setupHint}>{step.body}</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={16} color={c.faint} />
+        </Pressable>
+      ))}
+    </Panel>
+  );
+}
+
+function HomeBody({ o }: { o: ConsoleOverview }) {
+  const styles = useStyles();
   const router = useRouter();
   const { refresh, refreshing, run } = useMerchantConsole();
+  const [adPlans, setAdPlans] = useState<PromotionPackageCard[]>(
+    () => (peekPromotionDesk()?.packages?.length ? peekPromotionDesk()!.packages : LAUNCH_PACKAGES),
+  );
+  const [pickedPlan, setPickedPlan] = useState(() =>
+    defaultAdPlan(peekPromotionDesk()?.packages?.length ? peekPromotionDesk()!.packages : LAUNCH_PACKAGES),
+  );
   useEffect(() => {
     if (!o.promoteOnline) return;
-    void primePromotionDesk(run);
+    const cached = peekPromotionDesk();
+    if (cached?.packages?.length) {
+      setAdPlans(cached.packages);
+      return;
+    }
+    void primePromotionDesk(run)?.then(() => {
+      const next = peekPromotionDesk();
+      if (next?.packages?.length) setAdPlans(next.packages);
+    });
   }, [o.promoteOnline, run]);
+  useEffect(() => {
+    setPickedPlan((current) => (adPlans.some((plan) => plan.id === current) ? current : defaultAdPlan(adPlans)));
+  }, [adPlans]);
   const [qrOpen, setQrOpen] = useState(false);
   const go: Go = (href) => openConsolePath(router, href);
   const slides = bannersFor(o, go, () => setQrOpen(true));
   const firstName = (o.business.ownerName || '').trim().split(/\s+/)[0];
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  const picked = adPlans.find((plan) => plan.id === pickedPlan) || adPlans.find((plan) => plan.id === defaultAdPlan(adPlans));
+  const startPlan = () => {
+    const id = picked?.id;
+    if (!id) return;
+    go(`/business-console/promote?plan=${encodeURIComponent(id)}` as Href);
+  };
+  const basics = shopBasics(o);
+  const shopReady = basics.photo && basics.phone && basics.hours;
+  const wasIncomplete = useRef(!shopReady);
+  const [liveGate, setLiveGate] = useState(false);
+  useEffect(() => {
+    if (!shopReady) {
+      wasIncomplete.current = true;
+      return;
+    }
+    if (wasIncomplete.current) setLiveGate(true);
+  }, [shopReady]);
+  const showSetup = !shopReady || liveGate;
   return (
     <>
     <ConsolePage
@@ -1060,12 +1216,24 @@ function HomeBody({ o }: { o: ConsoleOverview }) {
       refreshing={refreshing}
       onRefresh={() => void refresh()}
     >
+      {showSetup ? (
+        <ShopSetup
+          basics={basics}
+          live={shopReady && liveGate}
+          go={go}
+          onEnter={() => {
+            wasIncomplete.current = false;
+            setLiveGate(false);
+          }}
+        />
+      ) : (
+      <>
       <Text style={styles.greeting}>{`${greeting}${firstName ? `, ${firstName}` : ''}`}</Text>
       {o.detailsLockedUntil ? (
         <View style={styles.lockBanner}>
           <Text style={styles.lockTitle}>Details locked for 15 days</Text>
           <Text style={styles.lockBody}>
-            {`This listing was just transferred. You can change business details after ${new Date(o.detailsLockedUntil).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}.`}
+            {`This shop was just transferred. You can change business details after ${new Date(o.detailsLockedUntil).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}.`}
           </Text>
         </View>
       ) : null}
@@ -1077,28 +1245,75 @@ function HomeBody({ o }: { o: ConsoleOverview }) {
       <MissingInfo o={o} go={go} />
       <RecentLeads o={o} go={go} />
       {o.promoteOnline ? (
-        <Pressable
-          onPress={() => go('/business-console/promote')}
-          style={({ pressed }) => [styles.promoteCard, pressed && styles.pressed]}
-          accessibilityRole="button"
-          accessibilityLabel="Bring nearby customers to your shop. Promote your business online."
-        >
-          <View style={styles.promoteCopy}>
-            <Text style={styles.promoteTitle}>Bring nearby customers to your shop</Text>
-            <Text style={styles.promoteSub} numberOfLines={3}>
-              FinderB runs Facebook and Instagram ads for you. You choose the area.
-            </Text>
-            <View style={styles.promoteCta}>
-              <Text style={styles.promoteCtaText}>Promote your business online</Text>
+        <View style={styles.promoteCard}>
+          <View style={styles.promoteTop}>
+            <View style={styles.promoteCopy}>
+              <Text style={styles.promoteTitle}>Customers live nearby. They still haven't seen you.</Text>
+              <Text style={styles.promoteSub}>
+                They are already scrolling Facebook and Instagram. Pick a plan and FinderB puts this shop in front of them.
+              </Text>
             </View>
+            <Image
+              source={require('../../../assets/indian-businessman-cutout.png')}
+              style={styles.promotePhoto}
+              contentFit="contain"
+              contentPosition={{ right: 0, bottom: 0 }}
+            />
           </View>
-          <Image
-            source={require('../../../assets/indian-businessman-cutout.png')}
-            style={styles.promotePhoto}
-            contentFit="contain"
-            contentPosition={{ right: 0, bottom: 0 }}
-          />
-        </Pressable>
+          <View style={styles.promotePlans}>
+            {adPlans.map((plan) => {
+              const on = plan.id === pickedPlan;
+              return (
+                <Pressable
+                  key={plan.id}
+                  onPress={() => setPickedPlan(plan.id)}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: on }}
+                  accessibilityLabel={`${plan.name}. ${plan.durationDays} days. ${shortAdArea(plan.coverage)}. ₹${plan.priceInr}${plan.popular ? '. Most popular.' : ''}`}
+                  style={({ pressed }) => [styles.promotePlan, on && styles.promotePlanOn, pressed && styles.pressed]}
+                >
+                  <View style={styles.flex}>
+                    <View style={styles.promotePlanHead}>
+                      <Text style={styles.promotePlanName} numberOfLines={1}>{plan.name}</Text>
+                      {plan.popular ? <Text style={styles.promoteHot}>Most popular</Text> : null}
+                    </View>
+                    <Text style={styles.promotePlanMeta}>
+                      {`${plan.durationDays} days · ${shortAdArea(plan.coverage)}`}
+                    </Text>
+                  </View>
+                  <View style={styles.promotePriceCol}>
+                    <Text style={styles.promotePrice}>{`₹${plan.priceInr.toLocaleString('en-IN')}`}</Text>
+                    {plan.referenceInr > plan.priceInr ? (
+                      <Text style={styles.promoteWas}>{`₹${plan.referenceInr.toLocaleString('en-IN')}`}</Text>
+                    ) : null}
+                  </View>
+                  <Ionicons name={on ? 'checkmark-circle' : 'ellipse-outline'} size={18} color={on ? '#F3E6C8' : 'rgba(255,255,255,0.4)'} />
+                </Pressable>
+              );
+            })}
+          </View>
+          <View style={styles.promoteActions}>
+            <Pressable
+              onPress={startPlan}
+              accessibilityRole="button"
+              accessibilityLabel={picked ? `Start ${picked.name} for ₹${picked.priceInr}` : 'Start a plan'}
+              style={({ pressed }) => [styles.promoteCta, pressed && styles.pressed]}
+            >
+              <Text style={styles.promoteCtaText}>
+                {picked ? `Start ${picked.name} · ₹${picked.priceInr.toLocaleString('en-IN')}` : 'Start a plan'}
+              </Text>
+              <Ionicons name="arrow-forward" size={15} color="#10283F" />
+            </Pressable>
+            <Pressable
+              onPress={() => go('/business-console/promotions' as Href)}
+              accessibilityRole="button"
+              accessibilityLabel="Your ads. Running, pending, draft, and past ads."
+              style={({ pressed }) => [styles.promoteSecondary, pressed && styles.pressed]}
+            >
+              <Text style={styles.promoteSecondaryText}>Your ads</Text>
+            </Pressable>
+          </View>
+        </View>
       ) : null}
       <ReviewsSnapshot o={o} go={go} />
       <Section title="Your plan">
@@ -1108,32 +1323,26 @@ function HomeBody({ o }: { o: ConsoleOverview }) {
         onPress={() => go('/business-console/growth')}
         style={({ pressed }) => [styles.growthCard, pressed && styles.pressed]}
         accessibilityRole="button"
-        accessibilityLabel="Growth opportunity"
+        accessibilityLabel="Growth opportunity. Badges on your public profile help customers trust the shop before they call or visit."
       >
-        <View style={styles.growthMarks}>
-          {(
-            [
-              { icon: 'checkmark', color: '#16A34A' },
-              { icon: 'flame', color: '#EA580C' },
-              { icon: 'star', color: '#D97706' },
-              { icon: 'shield-checkmark', color: '#153551' },
-            ] as const
-          ).map((mark, index) => (
-            <View
-              key={mark.icon}
-              style={[styles.growthMark, index === 0 && styles.growthMarkFirst, { backgroundColor: mark.color }]}
-            >
-              <Ionicons name={mark.icon} size={11} color="#FFFFFF" />
-            </View>
-          ))}
-        </View>
-        <View style={styles.flex}>
+        <LinearGradient
+          colors={['#FFF1CC', '#F6C15B', '#E39B2B']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.growthWash}
+        >
           <Text style={styles.growthTitle}>Growth opportunity</Text>
-          <Text style={styles.growthSub} numberOfLines={1}>
-            Badges customers see, and how to earn them
+          <Text style={styles.growthSub}>
+            Badges on your public profile help customers trust the shop before they call or visit.
           </Text>
-        </View>
-        <Ionicons name="chevron-forward" size={16} color={c.faint} />
+          <View style={styles.growthFoot}>
+            <Text style={styles.growthStatus}>{growthStatus(o)}</Text>
+            <View style={styles.growthCta}>
+              <Text style={styles.growthCtaText}>See your badges</Text>
+              <Ionicons name="chevron-forward" size={13} color="#FFF8EC" />
+            </View>
+          </View>
+        </LinearGradient>
       </Pressable>
       <Section title="Manage">
         <QuickActions go={go} isOwner={o.actor?.isOwner !== false} />
@@ -1147,6 +1356,8 @@ function HomeBody({ o }: { o: ConsoleOverview }) {
         </View>
         <Text style={styles.footVersion}>{getAppVersionLabel()}</Text>
       </View>
+      </>
+      )}
     </ConsolePage>
       <FinderBQrStudio
         visible={qrOpen}
@@ -1167,51 +1378,98 @@ export default function HomeScreen() {
 const useStyles = createConsoleStyles((c) => ({
   flex: { flex: 1, minWidth: 0 },
   greeting: { fontFamily: fonts.semiBold, fontSize: 16, color: c.ink, paddingHorizontal: 2, marginBottom: -4 },
-  growthCard: {
+  setupTitle: { fontFamily: fonts.semiBold, fontSize: 20, color: c.ink },
+  setupBody: { marginTop: 6, marginBottom: 8, fontFamily: fonts.regular, fontSize: 14, lineHeight: 20, color: c.body },
+  setupRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 },
+  setupStep: { fontFamily: fonts.semiBold, fontSize: 15, color: c.ink },
+  setupHint: { marginTop: 2, fontFamily: fonts.regular, fontSize: 12.5, lineHeight: 17, color: c.muted },
+  growthCard: { borderRadius: 16, overflow: 'hidden' },
+  growthWash: { padding: 12, overflow: 'hidden' },
+  growthTitle: { fontFamily: fonts.semiBold, fontSize: 15, color: '#1C1408' },
+  growthSub: { marginTop: 3, fontFamily: fonts.regular, fontSize: 12, lineHeight: 16, color: '#4A320C' },
+  growthFoot: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+    marginTop: 10,
+  },
+  growthStatus: { flexGrow: 1, flexShrink: 1, minWidth: 180, fontFamily: fonts.semiBold, fontSize: 12, lineHeight: 16, color: '#1C1408' },
+  growthCta: {
+    alignSelf: 'flex-start',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    borderRadius: 16,
-    backgroundColor: c.card,
-    borderWidth: 1,
-    borderColor: c.line,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    gap: 3,
+    borderRadius: 7,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    backgroundColor: '#1C1408',
   },
-  growthMarks: { flexDirection: 'row', alignItems: 'center' },
-  growthMark: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    marginLeft: -6,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: c.card,
-  },
-  growthMarkFirst: { marginLeft: 0 },
-  growthTitle: { fontFamily: fonts.semiBold, fontSize: 14, color: c.ink },
-  growthSub: { marginTop: 1, fontFamily: fonts.regular, fontSize: 12, color: c.muted },
+  growthCtaText: { fontFamily: fonts.semiBold, fontSize: 12, color: '#FFF8EC' },
   promoteCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
     borderRadius: 18,
     overflow: 'hidden',
     backgroundColor: '#10283F',
+    padding: 12,
+    gap: 10,
   },
-  promoteCopy: { flex: 1, justifyContent: 'center', paddingLeft: 16, paddingRight: 4, paddingVertical: 14 },
+  promoteTop: { flexDirection: 'row', alignItems: 'flex-end' },
+  promoteCopy: { flex: 1, paddingRight: 8 },
   promoteTitle: { fontFamily: fonts.semiBold, fontSize: 16, lineHeight: 21, color: '#FFFFFF' },
-  promoteSub: { marginTop: 6, fontFamily: fonts.regular, fontSize: 12, lineHeight: 17, color: 'rgba(255,255,255,0.78)' },
-  promoteCta: {
-    alignSelf: 'flex-start',
-    marginTop: 12,
-    backgroundColor: '#F3E6C8',
-    borderRadius: 8,
+  promoteSub: { marginTop: 4, fontFamily: fonts.regular, fontSize: 12, lineHeight: 16, color: 'rgba(255,255,255,0.78)' },
+  promotePlans: { gap: 8 },
+  promotePlan: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(243,230,200,0.28)',
+    backgroundColor: 'rgba(255,255,255,0.06)',
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
-  promoteCtaText: { fontFamily: fonts.semiBold, fontSize: 12.5, lineHeight: 16, color: '#10283F' },
-  promotePhoto: { width: 108, height: 124, marginRight: 8, marginVertical: 8 },
+  promotePlanOn: { borderColor: '#F3E6C8', backgroundColor: 'rgba(243,230,200,0.14)' },
+  promotePlanHead: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  promotePlanName: { flexShrink: 1, fontFamily: fonts.semiBold, fontSize: 13, color: '#FFFFFF' },
+  promoteHot: {
+    fontFamily: fonts.semiBold,
+    fontSize: 10,
+    color: '#1A1408',
+    backgroundColor: '#F3E6C8',
+    borderRadius: 999,
+    overflow: 'hidden',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  promotePlanMeta: { marginTop: 2, fontFamily: fonts.medium, fontSize: 11, lineHeight: 14, color: '#F3E6C8' },
+  promotePriceCol: { alignItems: 'flex-end' },
+  promotePrice: { fontFamily: fonts.semiBold, fontSize: 14, color: '#FFFFFF' },
+  promoteWas: { fontFamily: fonts.medium, fontSize: 10, color: 'rgba(243,230,200,0.55)', textDecorationLine: 'line-through' },
+  promoteCta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#F6D58A',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+  },
+  promoteCtaText: { fontFamily: fonts.semiBold, fontSize: 14, lineHeight: 18, color: '#10283F' },
+  promoteActions: { gap: 8 },
+  promoteSecondary: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(243,230,200,0.55)',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  promoteSecondaryText: { fontFamily: fonts.semiBold, fontSize: 13, lineHeight: 18, color: '#F3E6C8' },
+  promotePhoto: { width: 84, height: 96 },
   lockBanner: {
     marginTop: 8,
     borderRadius: 12,

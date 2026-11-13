@@ -155,11 +155,11 @@ export default function BusinessOnboardingLoader({ onComplete }: BusinessOnboard
           <div className="mb-7 scale-[0.92] sm:mb-8 sm:scale-100">
             <SplashOrbitHub variant="consumer" progress={progress}>
               <Image
-                src="/businesslogo.png"
-                alt="FinderB Business"
-                width={140}
-                height={42}
-                className="relative h-auto w-full max-w-[92px] object-contain sm:max-w-[100px]"
+                src="/brands/fb-mark-240.png"
+                alt="FinderB"
+                width={72}
+                height={72}
+                className="relative h-16 w-16 object-contain"
                 priority
               />
             </SplashOrbitHub>

@@ -119,7 +119,7 @@ export function consoleSearchPages(overview: ConsoleOverview): ConsoleSearchHit[
     {
       id: 'page-leads',
       title: 'Leads',
-      subtitle: `${overview.stats.leadsNew} new · ${overview.stats.leadsTotal} total`,
+      subtitle: `${overview.stats.leadsNew} to contact · ${overview.stats.leadsTotal} total`,
       keywords: 'leads enquiries customers calls messages contact pipeline won conversion',
       icon: 'people-outline',
       href: '/business-console/leads',

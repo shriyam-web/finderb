@@ -12,6 +12,7 @@ import {
   loadPromotionDesk,
   loadPromotionOrder,
   placePromotionOrder,
+  removeDraftPromotion,
   requestCustomPromotion,
 } from '@/app/actions/promotions';
 
@@ -64,7 +65,14 @@ const COVERAGE_PRESETS = ['5–8 KM around the shop', '15–20 KM / City', 'Dist
 const DAY_PRESETS = [5, 7, 10, 15, 30];
 const INDIAN_STATES = State.getStatesOfCountry('IN');
 
-export default function PromoteDesk({ mode, orderId }: { mode: 'promote' | 'list' | 'detail' | 'verify'; orderId?: string }) {
+function draftNext(item: OrderCard) {
+  if (item.adReviewStatus === 'denied') return 'Send another video';
+  if (item.adReviewStatus === 'approved') return 'Pay for this ad';
+  if (item.adReviewStatus === 'pending' || item.videoReady) return 'FinderB checks this ad';
+  return 'Add the video';
+}
+
+export default function PromoteDesk({ mode, orderId, initialOrderId }: { mode: 'promote' | 'list' | 'detail' | 'verify'; orderId?: string; initialOrderId?: string }) {
   const [desk, setDesk] = useState<Desk | null>(null);
   const [order, setOrder] = useState<OrderCard | null>(null);
   const [error, setError] = useState('');
@@ -100,7 +108,10 @@ export default function PromoteDesk({ mode, orderId }: { mode: 'promote' | 'list
       }
       setDesk(result);
       const status = result.verification.status;
-      const unpaid = result.orders.find((item) => item.paymentStatus !== 'paid');
+      const wanted = initialOrderId
+        ? result.orders.find((item) => item.id === initialOrderId && item.paymentStatus !== 'paid')
+        : undefined;
+      const unpaid = wanted || result.orders.find((item) => item.paymentStatus !== 'paid');
       if (mode === 'promote' && (status === 'submitted' || status === 'under_review' || status === 'rejected' || status === 'resubmission_required')) {
         setStep(1);
       } else if (mode === 'promote' && status === 'approved' && unpaid) {
@@ -122,7 +133,7 @@ export default function PromoteDesk({ mode, orderId }: { mode: 'promote' | 'list
         else setError(result.error);
       });
     }
-  }, [mode, orderId]);
+  }, [mode, orderId, initialOrderId]);
 
   const refresh = async () => {
     const result = await loadPromotionDesk();
@@ -335,9 +346,28 @@ export default function PromoteDesk({ mode, orderId }: { mode: 'promote' | 'list
       <div className="promo-wrap">
         <p className="promo-kicker">Growth & Marketing</p>
         <h1 className="promo-title">Promote your business online</h1>
-        <p className="promo-lead">
-          They live around this shop. They still don't know it. A person two kilometres away will not walk in if they have never seen you. You pick the area and the days. FinderB makes the ad, puts it in front of them on Facebook and Instagram, and brings the reach, views, and visits back here.
-        </p>
+        <div className="promo-channels">
+          <span className="promo-channel">
+            <span className="promo-mark fb" aria-hidden="true">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="#fff"><path d="M14.5 8.5V6.8c0-.7.5-1 1.1-1H17V3h-2.2C12.2 3 11 4.4 11 6.6v1.9H9v2.7h2V21h3.2v-9.8h2.2l.4-2.7h-2.3z" /></svg>
+            </span>
+            Facebook
+          </span>
+          <span className="promo-channel">
+            <span className="promo-mark ig" aria-hidden="true">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="5" /><circle cx="12" cy="12" r="4" /><circle cx="17.5" cy="6.5" r="1" fill="#fff" stroke="none" /></svg>
+            </span>
+            Instagram
+          </span>
+        </div>
+        <p className="promo-kicker" style={{ marginTop: 14 }}>We run the ads</p>
+        <h2 className="promo-pitch-title">They live around this shop. They still don't know it.</h2>
+        <p className="promo-lead">Someone two kilometres away will not walk in if they have never seen you. They are already scrolling.</p>
+        <ul className="promo-pitch-points">
+          <li>You pick the area and the days.</li>
+          <li>FinderB makes the ad and puts it in front of them.</li>
+          <li>Reach, views, and visits come back here.</li>
+        </ul>
         <div className="promo-row" style={{ marginTop: 16 }}>
           <Link className="promo-btn-ghost" href="/business/promote">Packages</Link>
           <Link className="promo-btn-ghost" href="/business/verification">Verification</Link>
@@ -354,14 +384,51 @@ export default function PromoteDesk({ mode, orderId }: { mode: 'promote' | 'list
                   <tr><th>Order</th><th>Package</th><th>Status</th><th></th></tr>
                 </thead>
                 <tbody>
-                  {desk.orders.map((item) => (
+                  {desk.orders.map((item) => {
+                    const draft = item.paymentStatus !== 'paid' && !['rejected', 'cancelled', 'refund_pending', 'refunded', 'completed', 'payment_successful', 'under_review', 'editing', 'video_ready', 'ad_active'].includes(item.campaignStatus);
+                    return (
                     <tr key={item.id}>
                       <td>{item.id}</td>
                       <td>{item.packageName}</td>
-                      <td><span className="promo-status">{item.campaignLabel}</span></td>
-                      <td><Link href={`/business/promotions/${item.id}`}>Open</Link></td>
+                      <td>
+                        <span className="promo-status">{item.campaignLabel}</span>
+                        {draft ? <div className="promo-next">{draftNext(item)}</div> : null}
+                      </td>
+                      <td>
+                        <Link href={`/business/promotions/${item.id}`}>Open</Link>
+                        {draft ? (
+                          <button
+                            className="promo-icon-btn"
+                            type="button"
+                            aria-label={`Delete ${item.packageName}`}
+                            style={{ marginLeft: 8 }}
+                            onClick={() => {
+                              if (!window.confirm(`Delete ${item.packageName}? This draft will stop. A running or paid campaign stays.`)) return;
+                              setBusy(true);
+                              setError('');
+                              void removeDraftPromotion(item.id).then(async (result) => {
+                                setBusy(false);
+                                if (!result.success) {
+                                  setError(result.error);
+                                  return;
+                                }
+                                await refresh();
+                              });
+                            }}
+                          >
+                            <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M3 6h18" />
+                              <path d="M8 6V4h8v2" />
+                              <path d="M19 6l-1 14H6L5 6" />
+                              <path d="M10 11v6" />
+                              <path d="M14 11v6" />
+                            </svg>
+                          </button>
+                        ) : null}
+                      </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             ) : <p className="promo-meta">No promotions yet.</p>}

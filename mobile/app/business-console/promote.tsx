@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Animated, AppState, Easing, Linking, Platform, Pressable, Text, TextInput, View } from 'react-native';
 import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import * as Location from 'expo-location';
-import { useRouter, type Href } from 'expo-router';
+import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { fonts } from '../../constants/typography';
 import { useConsoleColors } from '../../constants/consoleColors';
@@ -19,6 +20,7 @@ import { LAUNCH_PACKAGES, peekPromotionDesk, storePromotionDesk } from '../../li
 import { RazorpayCheckout } from '../../components/console/RazorpayCheckout';
 import { ProgressPie } from '../../components/console/ProgressPie';
 import { adProgress } from '../../lib/adProgress';
+import { NextAction } from '../../components/console/NextAction';
 import type { CheckoutStart } from '../../lib/merchantConsoleApi';
 
 const COVERAGE_PRESETS = ['5–8 KM around the shop', '15–20 KM / City', 'District / Regional'] as const;
@@ -440,13 +442,20 @@ export default function PromoteScreen() {
   const c = useConsoleColors();
   const placeholderTint = c.isDark ? '#9A938C' : '#C9C9D1';
   const router = useRouter();
+  const params = useLocalSearchParams<{ order?: string | string[]; plan?: string | string[] }>();
+  const requestedOrder = Array.isArray(params.order) ? params.order[0] || '' : params.order || '';
+  const requestedPlan = Array.isArray(params.plan) ? params.plan[0] || '' : params.plan || '';
   const back = useTabBack();
   const { run, notify } = useMerchantConsole();
   const [desk, setDesk] = useState<Desk | null>(() => peekPromotionDesk());
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [packageId, setPackageId] = useState('');
-  const [catalogId, setCatalogId] = useState('');
+  const [catalogId, setCatalogId] = useState(() => {
+    if (!requestedPlan) return '';
+    const known = peekPromotionDesk()?.packages?.length ? peekPromotionDesk()!.packages : LAUNCH_PACKAGES;
+    return known.some((item) => item.id === requestedPlan) ? requestedPlan : '';
+  });
   const [pincode, setPincode] = useState('');
   const [area, setArea] = useState('');
   const [adTargets, setAdTargets] = useState<string[]>([]);
@@ -481,12 +490,18 @@ export default function PromoteScreen() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [phase, setPhase] = useState<'' | 'certificate' | 'selfie' | 'location' | 'upload'>('');
   const [opening, setOpening] = useState(true);
+  const [holdListOpen, setHoldListOpen] = useState(Boolean(requestedOrder));
   const [pulling, setPulling] = useState(false);
   const [anotherAsk, setAnotherAsk] = useState(false);
   const [draftAsk, setDraftAsk] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
   const [adReview, setAdReview] = useState<'none' | 'pending' | 'approved' | 'denied'>('none');
   const [adReviewReason, setAdReviewReason] = useState('');
   const resumed = useRef(false);
+  const openedFromList = useRef('');
+  const listEntry = useRef<'' | 'video' | 'review' | 'pay'>('');
+  const fromPlan = useRef(false);
+  const skippedPlan = useRef(false);
 
   const resumeFrom = (result: Desk) => {
     const status = result.verification.status;
@@ -506,7 +521,7 @@ export default function PromoteScreen() {
     setDesk(result);
     if (initial && !resumed.current) {
       resumed.current = true;
-      resumeFrom(result);
+      if (!requestedOrder) resumeFrom(result);
     }
     return result;
   };
@@ -737,18 +752,23 @@ export default function PromoteScreen() {
 
   const approved = desk?.verification.status === 'approved';
   const packages = desk?.packages?.length ? desk.packages : LAUNCH_PACKAGES;
+  useEffect(() => {
+    if (!requestedPlan || !packages.some((item) => item.id === requestedPlan)) return;
+    setCatalogId((current) => current || requestedPlan);
+  }, [requestedPlan, packages]);
   const selected = packages.find((item) => item.id === packageId);
   const catalog = packages.find((item) => item.id === catalogId);
   const waiting = desk?.verification.status === 'submitted' || desk?.verification.status === 'under_review';
-  const adKind = (order: PromotionOrder): { key: 'draft' | 'review' | 'running' | 'expired' | 'closed'; label: string; percent: number; color: string } => {
+  const adKind = (order: PromotionOrder): { key: 'draft' | 'review' | 'running' | 'expired' | 'closed'; label: string; next: string; percent: number; color: string } => {
     const progress = adProgress(order);
-    if (progress.canContinue) return { key: 'draft', label: progress.step, percent: progress.percent, color: c.brand };
-    if (order.campaignStatus === 'under_review') return { key: 'review', label: progress.step, percent: progress.percent, color: c.brand };
-    if (order.campaignStatus === 'completed') return { key: 'expired', label: progress.step, percent: progress.percent, color: c.muted };
+    const pie = c.isDark ? '#38BDF8' : '#1D4ED8';
+    if (progress.canContinue) return { key: 'draft', label: progress.step, next: progress.next, percent: progress.percent, color: pie };
+    if (order.campaignStatus === 'under_review') return { key: 'review', label: progress.step, next: '', percent: progress.percent, color: pie };
+    if (order.campaignStatus === 'completed') return { key: 'expired', label: progress.step, next: '', percent: progress.percent, color: c.muted };
     if (['payment_successful', 'editing', 'video_ready', 'ad_active'].includes(order.campaignStatus)) {
-      return { key: 'running', label: progress.step, percent: progress.percent, color: c.success };
+      return { key: 'running', label: progress.step, next: '', percent: progress.percent, color: c.success };
     }
-    return { key: 'closed', label: progress.step, percent: progress.percent, color: c.muted };
+    return { key: 'closed', label: progress.step, next: '', percent: progress.percent, color: c.muted };
   };
   const ads = [...(desk?.orders || [])].sort((a, b) => {
     const rank = { draft: 0, review: 1, running: 2, expired: 3, closed: 4 };
@@ -774,6 +794,31 @@ export default function PromoteScreen() {
     fromComposer.current = false;
     setStep(!order.videoReady ? 'video' : review === 'approved' ? 'pay' : 'review');
   };
+  useEffect(() => {
+    if (!requestedOrder) return;
+    if (!desk) {
+      if (!opening) setHoldListOpen(false);
+      return;
+    }
+    if (openedFromList.current === requestedOrder) {
+      setHoldListOpen(false);
+      return;
+    }
+    const order = (desk.orders || []).find((item) => item.id === requestedOrder);
+    if (!order) {
+      if (!opening) setHoldListOpen(false);
+      return;
+    }
+    openedFromList.current = requestedOrder;
+    setHoldListOpen(false);
+    if (!adProgress(order).canContinue) {
+      router.replace(`/business-console/promotion/${requestedOrder}` as Href);
+      return;
+    }
+    const review = order.adReviewStatus || (order.videoReady ? 'pending' : 'none');
+    listEntry.current = !order.videoReady ? 'video' : review === 'approved' ? 'pay' : 'review';
+    openOrder(order);
+  }, [desk, requestedOrder, opening]);
   const openApplication = () => {
     setError('');
     setPickError(false);
@@ -798,6 +843,11 @@ export default function PromoteScreen() {
     setStep('appPlan');
   };
   const goBack = () => {
+    if (listEntry.current && step === listEntry.current) {
+      listEntry.current = '';
+      router.back();
+      return;
+    }
     if (step === 'custom' || step === 'done') setStep('offer');
     else if (step === 'appPlan') setStep('track');
     else if (step === 'track') {
@@ -805,8 +855,18 @@ export default function PromoteScreen() {
       setStep('offer');
     } else if (step === 'pay') setStep('review');
     else if (step === 'review') setStep('video');
-    else if (step === 'video') setStep(fromComposer.current ? 'area' : 'offer');
-    else if (step === 'area') setStep(newAd ? 'offer' : inApplication ? (orderId ? 'track' : 'appPlan') : approved ? 'offer' : 'verify');
+    else if (step === 'video') {
+      if (openedFromList.current) router.back();
+      else setStep(fromComposer.current ? 'area' : 'offer');
+    }
+    else if (step === 'area') {
+      if (fromPlan.current && (newAd || !orderId)) {
+        fromPlan.current = false;
+        router.back();
+        return;
+      }
+      setStep(newAd ? 'offer' : inApplication ? (orderId ? 'track' : 'appPlan') : approved ? 'offer' : 'verify');
+    }
     else if (step === 'verify') setStep('offer');
     else back();
   };
@@ -860,6 +920,26 @@ export default function PromoteScreen() {
     notify('Custom plan sent');
     await load();
   };
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    setBusy(true);
+    setError('');
+    const result = await run<{ success: true }>('deletePromotion', { orderId: deleteTarget.id });
+    setBusy(false);
+    if (!result.success) {
+      setError(result.error);
+      return;
+    }
+    if (orderId === deleteTarget.id) {
+      setOrderId('');
+      setNewAd(false);
+      newAdRef.current = false;
+      setStep('offer');
+    }
+    setDeleteTarget(null);
+    notify('Campaign deleted');
+    await load(false);
+  };
   const startNewAd = () => {
     if (!catalog) return;
     setDraftAsk(false);
@@ -901,7 +981,42 @@ export default function PromoteScreen() {
     setStep('verify');
   };
 
-  if (opening) {
+  useEffect(() => {
+    if (skippedPlan.current || requestedOrder || !requestedPlan || opening || !desk) return;
+    const match = packages.find((item) => item.id === requestedPlan);
+    if (!match) return;
+    skippedPlan.current = true;
+    fromPlan.current = true;
+    setCatalogId(match.id);
+    setPackageId(match.id);
+    setPickError(false);
+    setError('');
+    if (waiting) return;
+    if (approved) {
+      setInApplication(false);
+      newAdRef.current = true;
+      setNewAd(true);
+      setOrderId('');
+      setVideoReady(false);
+      setAdReview('none');
+      setAdReviewReason('');
+      setPincode('');
+      setArea('');
+      setAdTargets([]);
+      setAdContent('');
+      setStep('area');
+      return;
+    }
+    setStep('verify');
+  }, [requestedPlan, requestedOrder, opening, desk, packages, waiting, approved]);
+
+  const draftTotal = ads.filter((order) => adKind(order).key === 'draft').length;
+  const openAds = ads.filter((order) => adKind(order).key !== 'draft');
+  const draftLine = draftTotal
+    ? `You have ${draftTotal} ad${draftTotal === 1 ? '' : 's'} in draft`
+    : '';
+
+  if (opening || holdListOpen) {
     return (
       <ConsolePage title="Promote online" subtitle="Checking your application" onBack={back} docked refreshing={pulling} onRefresh={() => { setPulling(true); void load(false).finally(() => setPulling(false)); }}>
         <View style={styles.opening}>
@@ -951,36 +1066,97 @@ export default function PromoteScreen() {
                   <Ionicons name="chevron-forward" size={16} color={c.muted} />
                 </Pressable>
               ) : null}
-              {ads.map((order) => {
+              {draftLine ? (
+                <Pressable
+                  onPress={() => router.push('/business-console/promotions' as Href)}
+                  accessibilityRole="button"
+                  accessibilityLabel={draftLine}
+                  style={({ pressed }) => [styles.appBanner, pressed && styles.appBannerPressed]}
+                >
+                  <Ionicons name="document-text-outline" size={16} color={c.brand} />
+                  <View style={styles.appBannerCopy}>
+                    <Text style={styles.appBannerTitle}>{draftLine}</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={16} color={c.muted} />
+                </Pressable>
+              ) : null}
+              {openAds.map((order) => {
                 const kind = adKind(order);
                 return (
-                  <Pressable
-                    key={order.id}
-                    onPress={() => kind.key === 'draft' ? openOrder(order) : router.push(`/business-console/promotion/${order.id}` as Href)}
-                    accessibilityRole="button"
-                    accessibilityLabel={`${order.packageName}. ${kind.label}. ${kind.percent}% completed.${kind.key === 'draft' ? ' Tap to continue.' : ''}`}
-                    style={({ pressed }) => [styles.appBanner, pressed && styles.appBannerPressed]}
-                  >
-                    <ProgressPie percent={kind.percent} color={kind.color} />
-                    <View style={styles.appBannerCopy}>
-                      <Text style={styles.appBannerTitle}>{order.packageName}</Text>
-                      <Text style={styles.appBannerMeta} numberOfLines={2}>
-                        {kind.key === 'draft' ? `${kind.label} · Tap to continue` : kind.label}
-                      </Text>
+                  <View key={order.id} style={styles.appCard}>
+                    <View style={styles.appBanner}>
+                      <Pressable
+                        onPress={() => kind.key === 'draft' ? openOrder(order) : router.push(`/business-console/promotion/${order.id}` as Href)}
+                        accessibilityRole="button"
+                        accessibilityLabel={`${order.packageName}. ${kind.percent}% completed.${kind.key === 'draft' ? ` ${kind.next}.` : ` ${kind.label}.`}`}
+                        style={({ pressed }) => [styles.appBannerMain, pressed && styles.appBannerPressed]}
+                      >
+                        <ProgressPie percent={kind.percent} color={kind.color} />
+                        <View style={styles.appBannerCopy}>
+                          <Text style={styles.appBannerTitle}>{order.packageName}</Text>
+                          {kind.key === 'draft' ? <NextAction label={kind.next} /> : (
+                            <Text style={styles.appBannerMeta} numberOfLines={2}>{kind.label}</Text>
+                          )}
+                        </View>
+                        <Ionicons name="chevron-forward" size={16} color={c.muted} />
+                      </Pressable>
+                      {kind.key === 'draft' ? (
+                        <Pressable
+                          onPress={() => setDeleteTarget({ id: order.id, name: order.packageName })}
+                          accessibilityRole="button"
+                          accessibilityLabel={`Delete ${order.packageName}`}
+                          hitSlop={8}
+                          style={({ pressed }) => [styles.deleteIcon, pressed && styles.appBannerPressed]}
+                        >
+                          <Ionicons name="trash-outline" size={18} color={c.danger} />
+                        </Pressable>
+                      ) : null}
                     </View>
-                    <Ionicons name="chevron-forward" size={16} color={c.muted} />
-                  </Pressable>
+                  </View>
                 );
               })}
               <View style={styles.myAdsRule} />
             </View>
           ) : null}
           <View style={styles.intro}>
-            <Text style={styles.introKicker}>Facebook and Instagram. We run the ads.</Text>
+            <View style={styles.channelRow}>
+              <View style={styles.channelChip}>
+                <View style={styles.fbMark}>
+                  <Ionicons name="logo-facebook" size={15} color="#FFFFFF" />
+                </View>
+                <Text style={styles.channelName}>Facebook</Text>
+              </View>
+              <View style={styles.channelChip}>
+                <LinearGradient
+                  colors={['#F9CE34', '#EE2A7B', '#6228D7']}
+                  start={{ x: 0, y: 1 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.igMark}
+                >
+                  <Ionicons name="logo-instagram" size={15} color="#FFFFFF" />
+                </LinearGradient>
+                <Text style={styles.channelName}>Instagram</Text>
+              </View>
+            </View>
+            <Text style={styles.introKicker}>We run the ads</Text>
             <Text style={styles.introTitle}>They live around this shop. They still don't know it.</Text>
             <Text style={styles.introBody}>
-              A person two kilometres away will not walk in if they have never seen you. They are already scrolling. You pick the area and the days. FinderB makes the ad, puts it in front of them, and brings the reach, views, and visits back here.
+              Someone two kilometres away will not walk in if they have never seen you. They are already scrolling.
             </Text>
+            <View style={styles.introPoints}>
+              <View style={styles.introPoint}>
+                <Ionicons name="location-outline" size={16} color={c.ink} />
+                <Text style={styles.introPointText}>You pick the area and the days.</Text>
+              </View>
+              <View style={styles.introPoint}>
+                <Ionicons name="megaphone-outline" size={16} color={c.ink} />
+                <Text style={styles.introPointText}>FinderB makes the ad and puts it in front of them.</Text>
+              </View>
+              <View style={styles.introPoint}>
+                <Ionicons name="stats-chart-outline" size={16} color={c.ink} />
+                <Text style={styles.introPointText}>Reach, views, and visits come back here.</Text>
+              </View>
+            </View>
           </View>
           <View style={styles.planStack}>
             {packages.map((item) => (
@@ -1343,6 +1519,15 @@ export default function PromoteScreen() {
       ) : null}
       {step === 'area' && selected ? (
         <Panel>
+          {draftLine && (newAd || !orderId) ? (
+            <Pressable
+              onPress={() => router.push('/business-console/promotions' as Href)}
+              accessibilityRole="button"
+              accessibilityLabel={draftLine}
+            >
+              <Text style={styles.p}>{draftLine}. Open them any time.</Text>
+            </Pressable>
+          ) : null}
           <Text style={styles.h}>{selected.name}</Text>
           <Text style={styles.p}>₹{selected.priceInr.toLocaleString('en-IN')} · {selected.durationDays} days · {selected.coverage}</Text>
           {!newAd && orderId ? <Text style={styles.p}>Order {orderId}</Text> : null}
@@ -1381,7 +1566,20 @@ export default function PromoteScreen() {
       ) : null}
       {step === 'video' ? (
         <Panel>
-          <Text style={styles.h}>Promotional video</Text>
+          <View style={styles.stepHead}>
+            <Text style={styles.h}>Promotional video</Text>
+            {orderId ? (
+              <Pressable
+                onPress={() => setDeleteTarget({ id: orderId, name: selected?.name || 'This ad' })}
+                accessibilityRole="button"
+                accessibilityLabel="Delete this campaign"
+                hitSlop={8}
+                style={({ pressed }) => [styles.deleteIcon, pressed && styles.appBannerPressed]}
+              >
+                <Ionicons name="trash-outline" size={18} color={c.danger} />
+              </Pressable>
+            ) : null}
+          </View>
           {orderId ? <Text style={styles.p}>Order {orderId}</Text> : null}
           <View style={styles.videoRules}>
             {[
@@ -1411,7 +1609,20 @@ export default function PromoteScreen() {
       ) : null}
       {step === 'review' ? (
         <Panel>
-          <Text style={styles.h}>{adReview === 'denied' ? 'This ad needs a change' : adReview === 'approved' ? 'This ad is approved' : 'This ad is with FinderB'}</Text>
+          <View style={styles.stepHead}>
+            <Text style={[styles.h, styles.stepHeadTitle]}>{adReview === 'denied' ? 'This ad needs a change' : adReview === 'approved' ? 'This ad is approved' : 'This ad is with FinderB'}</Text>
+            {orderId ? (
+              <Pressable
+                onPress={() => setDeleteTarget({ id: orderId, name: selected?.name || 'This ad' })}
+                accessibilityRole="button"
+                accessibilityLabel="Delete this campaign"
+                hitSlop={8}
+                style={({ pressed }) => [styles.deleteIcon, pressed && styles.appBannerPressed]}
+              >
+                <Ionicons name="trash-outline" size={18} color={c.danger} />
+              </Pressable>
+            ) : null}
+          </View>
           {orderId ? <Text style={styles.p}>Order {orderId}</Text> : null}
           {adReview === 'denied' ? (
             <Text style={styles.p}>{adReviewReason || 'FinderB needs a different video or a clearer ad before payment.'}</Text>
@@ -1429,7 +1640,18 @@ export default function PromoteScreen() {
       ) : null}
       {step === 'pay' && selected ? (
         <Panel>
-          <Text style={styles.h}>{selected.name}</Text>
+          <View style={styles.stepHead}>
+            <Text style={styles.h}>{selected.name}</Text>
+            <Pressable
+              onPress={() => setDeleteTarget({ id: orderId, name: selected.name })}
+              accessibilityRole="button"
+              accessibilityLabel="Delete this campaign"
+              hitSlop={8}
+              style={({ pressed }) => [styles.deleteIcon, pressed && styles.appBannerPressed]}
+            >
+              <Ionicons name="trash-outline" size={18} color={c.danger} />
+            </Pressable>
+          </View>
           <Text style={styles.p}>₹{selected.priceInr.toLocaleString('en-IN')} · {selected.durationDays} days · {selected.coverage}</Text>
           <Text style={styles.p}>Order {orderId}</Text>
           <Text style={styles.p}>{[adTargets.join(', '), area, pincode].filter(Boolean).join(' · ')}</Text>
@@ -1445,7 +1667,7 @@ export default function PromoteScreen() {
           <Btn label="Open this promotion" onPress={() => router.push(`/business-console/promotion/${orderId}` as Href)} />
         </Panel>
       ) : null}
-      {(desk?.orders?.length || 0) > 0 ? <Btn tone="outline" label="My promotions" onPress={() => router.push('/business-console/promotions' as Href)} /> : null}
+      {(desk?.orders?.length || 0) > 0 ? <Btn tone="outline" label="Your ads" onPress={() => router.push('/business-console/promotions' as Href)} /> : null}
       <Sheet visible={targetOpen} title="Target of the ad" onClose={() => setTargetOpen(false)}>
         <Text style={styles.p}>Choose up to 3.</Text>
         {AD_TARGETS.map((item) => {
@@ -1478,6 +1700,11 @@ export default function PromoteScreen() {
         })}
         {targetNote ? <Text style={styles.error}>{targetNote}</Text> : null}
         <Btn label="Done" onPress={() => setTargetOpen(false)} />
+      </Sheet>
+      <Sheet visible={deleteTarget != null} title="Delete this campaign?" onClose={() => { if (!busy) setDeleteTarget(null); }}>
+        <Text style={styles.p}>{deleteTarget?.name} is still a draft. Deleting it stops this ad. A running or paid campaign stays.</Text>
+        <Btn tone="danger" label="Delete campaign" busy={busy} onPress={() => void confirmDelete()} />
+        <Btn tone="outline" label="Keep it" onPress={() => setDeleteTarget(null)} />
       </Sheet>
       <Sheet visible={draftAsk} title="You have ads in draft" onClose={() => setDraftAsk(false)}>
         <Text style={styles.p}>
@@ -2040,17 +2267,31 @@ const useStyles = createConsoleStyles((c) => ({
   myAds: { gap: 10 },
   myAdsTitle: { fontFamily: fonts.semiBold, fontSize: 16, color: c.ink },
   myAdsRule: { height: 1, backgroundColor: c.lineStrong, marginTop: 4 },
+  appCard: {
+    borderRadius: 12,
+    backgroundColor: c.brandSoft,
+    borderWidth: 1,
+    borderColor: c.line,
+    overflow: 'hidden',
+  },
   appBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingRight: 4,
+  },
+  appBannerMain: {
+    flex: 1,
+    minWidth: 0,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    borderRadius: 12,
-    backgroundColor: c.brandSoft,
-    borderWidth: 1,
-    borderColor: c.line,
   },
+  deleteIcon: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
+  stepHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  stepHeadTitle: { flex: 1, minWidth: 0 },
   appBannerPressed: { opacity: 0.86 },
   appBannerCopy: { flex: 1, minWidth: 0 },
   appBannerTitle: { fontFamily: fonts.semiBold, fontSize: 14, lineHeight: 18, color: c.ink },
@@ -2086,10 +2327,49 @@ const useStyles = createConsoleStyles((c) => ({
   videoRuleText: { flex: 1, fontFamily: fonts.regular, fontSize: 14, lineHeight: 20, color: c.ink },
   videoBtn: { marginTop: 6 },
   error: { fontFamily: fonts.regular, fontSize: 13, color: c.danger },
-  intro: { gap: 6, paddingHorizontal: 2, paddingBottom: 4 },
-  introKicker: { fontFamily: fonts.regular, fontSize: 13, lineHeight: 18, color: c.muted },
-  introTitle: { fontFamily: fonts.regular, fontSize: 22, lineHeight: 28, color: c.ink },
+  intro: {
+    gap: 10,
+    padding: 14,
+    borderRadius: 16,
+    backgroundColor: c.card,
+    borderWidth: 1,
+    borderColor: c.line,
+  },
+  channelRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  channelChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 5,
+    paddingLeft: 5,
+    paddingRight: 12,
+    borderRadius: 999,
+    backgroundColor: c.sunken,
+    borderWidth: 1,
+    borderColor: c.line,
+  },
+  fbMark: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#1877F2',
+  },
+  igMark: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  channelName: { fontFamily: fonts.semiBold, fontSize: 13, color: c.ink },
+  introKicker: { fontFamily: fonts.semiBold, fontSize: 12, letterSpacing: 0.3, color: c.muted },
+  introTitle: { fontFamily: fonts.semiBold, fontSize: 20, lineHeight: 26, color: c.ink },
   introBody: { fontFamily: fonts.regular, fontSize: 14, lineHeight: 21, color: c.body },
+  introPoints: { gap: 8, marginTop: 2 },
+  introPoint: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
+  introPointText: { flex: 1, fontFamily: fonts.regular, fontSize: 14, lineHeight: 20, color: c.ink },
   continueBtn: {
     minHeight: 48,
     borderRadius: 10,

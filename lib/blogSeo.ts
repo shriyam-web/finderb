@@ -56,14 +56,14 @@ export function buildBlogArticleMetadata(blog: BlogSeoInput | null): Metadata {
     title: blog.title,
     description,
     canonicalPath,
-    ogImage: blog.image || '/logo1.png',
+    ogImage: blog.image || '/brands/fb-mark-240.png',
     keywords: ['FinderB blog', blog.title, 'local business', 'India'],
   });
 }
 
 export function buildBlogArticleJsonLd(blog: BlogSeoInput) {
   const url = resolveAbsoluteUrl(getBlogCanonicalPath(blog));
-  const image = blog.image ? resolveAbsoluteUrl(blog.image) : resolveAbsoluteUrl('/logo1.png');
+  const image = blog.image ? resolveAbsoluteUrl(blog.image) : resolveAbsoluteUrl('/brands/fb-mark-240.png');
   const published = blog.publishedAt || blog.updatedAt || undefined;
   const modified = blog.updatedAt || published;
   const authorName = blog.author?.trim();
@@ -87,7 +87,7 @@ export function buildBlogArticleJsonLd(blog: BlogSeoInput) {
         name: 'FinderB',
         logo: {
           '@type': 'ImageObject',
-          url: resolveAbsoluteUrl('/logo1.png'),
+          url: resolveAbsoluteUrl('/brands/fb-mark-240.png'),
         },
       },
       mainEntityOfPage: { '@type': 'WebPage', '@id': url },

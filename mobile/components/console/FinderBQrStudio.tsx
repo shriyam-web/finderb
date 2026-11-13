@@ -1,14 +1,36 @@
 import { useEffect, useState } from 'react';
-import { Alert, Image, Pressable, Text, View } from 'react-native';
+import { Alert, Image, Platform, Pressable, Text, View } from 'react-native';
+import { Asset } from 'expo-asset';
 import { WebView } from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
+import * as FileSystem from 'expo-file-system/legacy';
 import { fonts } from '../../constants/typography';
 import { useConsoleColors } from '../../constants/consoleColors';
+import { FinderBLogo } from '../BrandMark';
 import { buildReviewInviteUrl } from '../../lib/reviewInvite';
 import { reviewQrCardHtml } from '../../lib/reviewQrCardHtml';
 import { downloadQrSourceBase64, saveReviewQrPng } from '../../lib/saveReviewQrPng';
 import { shareMessage } from '../../lib/shareMessage';
 import { PUBLIC_SITE, Sheet, Btn, createConsoleStyles } from './kit';
+
+const FB_MARK = require('../../assets/fb-glyph-240.png');
+
+async function fbMarkBase64() {
+  const uri = Image.resolveAssetSource(FB_MARK)?.uri;
+  if (!uri) return null;
+  if (Platform.OS === 'web') {
+    const response = await fetch(uri);
+    if (!response.ok) return null;
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    let binary = '';
+    for (let index = 0; index < bytes.length; index += 1) binary += String.fromCharCode(bytes[index]);
+    return btoa(binary);
+  }
+  const asset = Asset.fromModule(FB_MARK);
+  if (!asset.localUri) await asset.downloadAsync();
+  const fileUri = asset.localUri || uri;
+  return FileSystem.readAsStringAsync(fileUri, { encoding: FileSystem.EncodingType.Base64 });
+}
 
 export function FinderBQrStudio({
   visible,
@@ -46,7 +68,7 @@ export function FinderBQrStudio({
     let cancelled = false;
     void Promise.all([
       downloadQrSourceBase64(qrUrl),
-      downloadQrSourceBase64(`${PUBLIC_SITE}/businesslogo.png`).catch(() => null),
+      fbMarkBase64().catch(() => null),
     ])
       .then(([qr, logo]) => {
         if (cancelled) return;
@@ -96,7 +118,11 @@ export function FinderBQrStudio({
     <Sheet visible={visible} title="FinderB review card" onClose={onClose}>
       <View style={styles.card}>
         <View style={styles.topRibbon} />
-        <Image source={{ uri: `${PUBLIC_SITE}/businesslogo.png` }} style={styles.logo} resizeMode="contain" />
+        <View style={styles.brandRow}>
+          <FinderBLogo size={44} />
+          <Text style={styles.brandPipe}>|</Text>
+          <Text style={styles.brandWord}>FinderB Business</Text>
+        </View>
         <Text style={styles.name}>{businessName}</Text>
         {place ? <Text style={styles.place}>{place}</Text> : null}
         <View style={styles.qrPlate}>
@@ -188,10 +214,21 @@ const useStyles = createConsoleStyles((c) => ({
     borderTopWidth: 4,
     borderTopColor: '#E8873A',
   },
-  logo: {
-    width: 196,
-    height: 48,
-    marginTop: 14,
+  brandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 8,
+  },
+  brandPipe: {
+    fontFamily: fonts.medium,
+    fontSize: 18,
+    color: '#8AA0B5',
+  },
+  brandWord: {
+    fontFamily: fonts.semiBold,
+    fontSize: 18,
+    color: '#153551',
   },
   tag: {
     fontFamily: fonts.semiBold,

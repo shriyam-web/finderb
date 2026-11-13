@@ -132,6 +132,17 @@ const DAY_LOOKS: Record<string, SlideLook> = {
     blob: 'rgba(255,255,255,0.3)',
     blobTwo: 'rgba(45,212,191,0.3)',
   },
+  'more-photos': {
+    colors: ['#E8F1FF', '#A9C7F5', '#6B9AE8'],
+    ink: '#1E3A8A',
+    muted: '#1D4ED8',
+    kickerBg: 'rgba(255,255,255,0.62)',
+    kickerInk: '#1D4ED8',
+    cta: '#1E40AF',
+    ctaInk: '#FFFFFF',
+    blob: 'rgba(255,255,255,0.32)',
+    blobTwo: 'rgba(96,165,250,0.32)',
+  },
   'reviews-visibility': {
     colors: ['#EDE4FF', '#C4B0F5', '#A78BFA'],
     ink: '#4C1D95',

@@ -57,7 +57,7 @@ export function ConsoleDock({ state, navigation }: BottomTabBarProps) {
             style={styles.slot}
             accessibilityRole="tab"
             accessibilityState={{ selected: focused }}
-            accessibilityLabel={badge ? `${item.label}, ${badge} new` : item.label}
+            accessibilityLabel={badge ? `${item.label}, ${badge} ${item.name === 'leads' ? 'to contact' : 'new'}` : item.label}
           >
             <View style={[styles.pill, focused && styles.pillOn]}>
               <Ionicons name={focused ? item.activeIcon : item.icon} size={21} color={tint} />
@@ -113,7 +113,7 @@ export function StackConsoleDock() {
             style={styles.slot}
             accessibilityRole="tab"
             accessibilityState={{ selected: focused }}
-            accessibilityLabel={badge ? `${item.label}, ${badge} new` : item.label}
+            accessibilityLabel={badge ? `${item.label}, ${badge} ${item.name === 'leads' ? 'to contact' : 'new'}` : item.label}
           >
             <View style={[styles.pill, focused && styles.pillOn]}>
               <Ionicons name={focused ? item.activeIcon : item.icon} size={21} color={tint} />

@@ -22,9 +22,7 @@ export async function sendEmailOtpEmail(
 
   const userFacing = purposeLabel === 'user';
   const account = userFacing || purposeLabel === 'account';
-  const logoSrc = userFacing
-    ? 'https://finderb.com/logo1.png'
-    : 'https://finderb.com/businesslogo.png';
+  const logoSrc = 'https://finderb.com/brands/fb-mark-240.png';
   const logoAlt = userFacing ? 'FinderB' : 'FinderB Business';
   const headline = account ? 'Confirm your email' : 'Confirm your business email';
   const lead = account
@@ -68,7 +66,7 @@ export async function sendEmailOtpEmail(
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#ffffff;border:1px solid #e2e8f0;border-radius:16px;">
           <tr>
             <td align="center" style="padding:${userFacing ? '22px 32px' : '32px 32px 8px'};font-family:${font};${userFacing ? 'background:#0b1220;border-radius:16px 16px 0 0;' : ''}">
-              <img src="${logoSrc}" width="${userFacing ? '220' : '196'}" alt="${logoAlt}" style="display:block;width:${userFacing ? '220' : '196'}px;max-width:${userFacing ? '220' : '196'}px;height:auto;border:0;outline:none;text-decoration:none;" />
+              <img src="${logoSrc}" width="72" alt="${logoAlt}" style="display:block;width:72px;max-width:72px;height:auto;border:0;outline:none;text-decoration:none;" />
             </td>
           </tr>
           <tr>

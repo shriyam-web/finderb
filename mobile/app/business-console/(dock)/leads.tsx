@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Linking, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { ActivityIndicator, Linking, Pressable, Text, TextInput, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,6 +9,7 @@ import { useMerchantConsole } from '../../../context/MerchantConsoleContext';
 import { isFailure, type ConsoleLead } from '../../../lib/merchantConsoleApi';
 import { ConsoleGate } from '../../../components/console/ConsoleGate';
 import {
+  Btn,
   Chip,
   ConsoleHeaderActions,
   ConsolePage,
@@ -23,12 +23,16 @@ import {
 import {
   LEAD_STATUSES,
   dialable,
-  isOpenPipeline,
   pipelineOf,
   type LeadStatus,
 } from '../../../components/console/leadStatus';
 import { LeadSourceBadge } from '../../../components/console/LeadSourceBadge';
-import { ShiningNew } from '../../../components/console/ShiningNew';
+
+const SYSTEM_LEAD_LINES = new Set([
+  'Clicked Call on business profile',
+  'Clicked WhatsApp on business profile',
+  'Opened enquiry form on business profile',
+]);
 
 type Filter = 'All' | LeadStatus;
 
@@ -68,7 +72,7 @@ function LeadId({ id }: { id: string }) {
       accessibilityLabel={`Copy lead id ${id}`}
       style={styles.leadIdBox}
     >
-      <Text style={styles.leadId}>{copied ? 'Copied' : 'Lead ID'}</Text>
+      <Text style={styles.leadId}>{copied ? 'Copied' : id.replace(/[^a-z0-9]/gi, '').slice(-6).toUpperCase() || 'Lead ID'}</Text>
     </Pressable>
   );
 }
@@ -100,11 +104,13 @@ function LeadCard({
   const waiting = pipeline === 'To be contacted';
   const look = STATUS_LOOK[pipeline];
   const dark = c.isDark;
-  const settledInk = waiting ? '#FFFFFF' : dark ? '#FAFAF9' : look.ink;
-  const statuses = [pipeline, ...LEAD_STATUSES.filter((status) => status !== pipeline)];
+  const settledInk = dark ? '#FAFAF9' : look.ink;
+  const systemLine = SYSTEM_LEAD_LINES.has((lead.message || '').trim());
+  const others = LEAD_STATUSES.filter((status) => status !== pipeline);
   const savedNote = (lead.merchant_note || '').trim();
   const [editing, setEditing] = useState(false);
   const [noteAsk, setNoteAsk] = useState(false);
+  const [statusOpen, setStatusOpen] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState(false);
   const [meaning, setMeaning] = useState<{ title: string; body: string } | null>(null);
   const [draft, setDraft] = useState(savedNote);
@@ -114,45 +120,18 @@ function LeadCard({
   const body = (
       <>
       <View style={styles.cardHead}>
-        <View
-          style={[
-            styles.mark,
-            waiting
-              ? styles.markHot
-              : {
-                  backgroundColor: dark ? 'rgba(255,255,255,0.06)' : look.soft,
-                  borderWidth: 1.5,
-                  borderColor: look.solid,
-                },
-          ]}
-        >
-          <Text style={[styles.markText, waiting ? styles.onHot : { color: settledInk }]}>
+        <View style={[styles.mark, { backgroundColor: dark ? 'rgba(255,255,255,0.06)' : look.soft, borderWidth: 1.5, borderColor: look.solid }]}>
+          <Text style={[styles.markText, { color: settledInk }]}>
             {(lead.name || '?').charAt(0).toUpperCase()}
           </Text>
         </View>
         <View style={styles.flex}>
           <View style={styles.nameLine}>
-            <Text style={[styles.name, waiting && styles.onHot]} numberOfLines={1}>
+            <Text style={styles.name} numberOfLines={1}>
               {lead.name || 'Customer'}
             </Text>
-            {waiting ? (
-              <ShiningNew />
-            ) : (
-              <View
-                style={[
-                  styles.statusMark,
-                  {
-                    backgroundColor: dark ? 'rgba(255,255,255,0.08)' : look.soft,
-                    borderColor: dark ? look.solid : look.line,
-                  },
-                ]}
-              >
-                <Ionicons name={STATUS_ICON[pipeline]} size={10} color={settledInk} />
-                <Text style={[styles.statusMarkText, { color: settledInk }]}>{pipeline}</Text>
-              </View>
-            )}
           </View>
-          <Text style={[styles.meta, waiting && styles.onHotMuted]} numberOfLines={1}>
+          <Text style={styles.meta} numberOfLines={2}>
             {[lead.category, timeAgo(lead.created_at)].filter(Boolean).join(' · ')}
           </Text>
         </View>
@@ -161,17 +140,18 @@ function LeadCard({
           <LeadSourceBadge
             lead={lead}
             align="end"
+            plain={waiting}
             onMeaning={(next) => setMeaning((current) => (current?.title === next.title ? null : next))}
           />
         </View>
       </View>
 
       {meaning ? (
-        <View style={[styles.sourceHelp, waiting && styles.sourceHelpHot]}>
-          <Text style={[styles.sourceHelpTitle, waiting && styles.onHot]}>{meaning.title}</Text>
-          <Text style={[styles.sourceHelpBody, waiting && styles.onHotBody]}>{meaning.body}</Text>
+        <View style={styles.sourceHelp}>
+          <Text style={styles.sourceHelpTitle}>{meaning.title}</Text>
+          <Text style={styles.sourceHelpBody}>{meaning.body}</Text>
           <Pressable onPress={() => setMeaning(null)} hitSlop={6} accessibilityRole="button">
-            <Text style={[styles.sourceHelpClose, waiting && styles.onHot]}>Got it</Text>
+            <Text style={styles.sourceHelpClose}>Got it</Text>
           </Pressable>
         </View>
       ) : null}
@@ -184,13 +164,13 @@ function LeadCard({
               value={draft}
               onChangeText={setDraft}
               placeholder="Private note for your team"
-              placeholderTextColor={waiting ? 'rgba(255,255,255,0.45)' : c.faint}
+              placeholderTextColor={c.faint}
               multiline
               maxLength={500}
               style={[
                 styles.noteInput,
                 waiting
-                  ? { color: '#FFFFFF', backgroundColor: 'rgba(255,255,255,0.08)', borderColor: 'rgba(255,255,255,0.22)' }
+                  ? { color: c.ink, backgroundColor: c.card, borderColor: c.line }
                   : { color: c.ink, backgroundColor: c.card, borderColor: c.line },
               ]}
             />
@@ -203,7 +183,7 @@ function LeadCard({
                 style={styles.noteGhost}
                 accessibilityRole="button"
               >
-                <Text style={[styles.noteGhostText, waiting && styles.onHot]}>Cancel</Text>
+                <Text style={styles.noteGhostText}>Cancel</Text>
               </Pressable>
               <Pressable
                 disabled={busy}
@@ -221,9 +201,9 @@ function LeadCard({
           </View>
         ) : confirmRemove ? (
           <View style={styles.noteActions}>
-            <Text style={[styles.noteGhostText, waiting && styles.onHot]}>Remove this note?</Text>
+            <Text style={styles.noteGhostText}>Remove this note?</Text>
             <Pressable onPress={() => setConfirmRemove(false)} style={styles.noteGhost} accessibilityRole="button">
-              <Text style={[styles.noteGhostText, waiting && styles.onHot]}>Keep</Text>
+              <Text style={styles.noteGhostText}>Keep</Text>
             </Pressable>
             <Pressable
               disabled={busy}
@@ -236,39 +216,31 @@ function LeadCard({
               accessibilityRole="button"
               accessibilityLabel="Confirm remove note"
             >
-              <Text style={[styles.noteGhostText, { color: waiting ? '#FECACA' : c.danger }]}>Remove</Text>
+              <Text style={[styles.noteGhostText, { color: c.danger }]}>Remove</Text>
             </Pressable>
           </View>
         ) : (
           <Pressable
             onPress={() => setEditing(true)}
-            style={[styles.addNote, waiting && styles.addNoteHot]}
+            style={styles.addNote}
             accessibilityRole="button"
             accessibilityLabel="Add note"
           >
-            <Ionicons name="add" size={12} color={waiting ? '#FFFFFF' : c.ink} />
-            <Text style={[styles.addNoteText, waiting && styles.onHot]}>Add note</Text>
+            <Ionicons name="add" size={12} color={c.ink} />
+            <Text style={styles.addNoteText}>Add note</Text>
           </Pressable>
         )}
       </View>
       ) : null}
 
       {lead.message ? (
-        <View
-          style={
-            waiting
-              ? undefined
-              : [
-                  styles.messageWell,
-                  {
-                    backgroundColor: dark ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.72)',
-                    borderColor: dark ? 'rgba(255,255,255,0.1)' : look.line,
-                  },
-                ]
-          }
-        >
-          <Text style={[styles.message, waiting && styles.onHotBody]}>{lead.message}</Text>
-        </View>
+        systemLine ? (
+          <Text style={styles.systemLine}>{lead.message}</Text>
+        ) : (
+          <View style={[styles.messageWell, { backgroundColor: dark ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.72)', borderColor: dark ? 'rgba(255,255,255,0.1)' : look.line }]}>
+            <Text style={styles.message}>{lead.message}</Text>
+          </View>
+        )
       ) : null}
 
       {lead.locked ? (
@@ -279,6 +251,43 @@ function LeadCard({
       ) : (
         <View style={styles.contactRow}>
           {phone || lead.email ? (
+          waiting && phone ? (
+            <View style={styles.loudRow}>
+              <Pressable
+                onPress={() => onOpen(`tel:+${phone}`)}
+                style={styles.loudCall}
+                accessibilityRole="button"
+                accessibilityLabel={`Call ${firstName}`}
+              >
+                <Ionicons name="call" size={16} color="#FFFFFF" />
+                <Text style={styles.loudText}>Call</Text>
+              </Pressable>
+              <Pressable
+                onPress={() =>
+                  onOpen(
+                    `https://wa.me/${phone}?text=${encodeURIComponent(`Hi ${firstName}, thanks for reaching out on FinderB.`)}`,
+                  )
+                }
+                style={styles.loudWhatsapp}
+                accessibilityRole="button"
+                accessibilityLabel={`WhatsApp ${firstName}`}
+              >
+                <Ionicons name="logo-whatsapp" size={16} color="#FFFFFF" />
+                <Text style={styles.loudText}>WhatsApp</Text>
+              </Pressable>
+              {lead.email ? (
+                <Pressable
+                  onPress={() => onOpen(`mailto:${lead.email}`)}
+                  style={styles.loudMail}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Email ${firstName}`}
+                >
+                  <Ionicons name="mail" size={16} color="#FFFFFF" />
+                  <Text style={styles.loudText}>Email</Text>
+                </Pressable>
+              ) : null}
+            </View>
+          ) : (
           <View style={styles.iconRow}>
             {phone ? (
               <Pressable
@@ -286,7 +295,7 @@ function LeadCard({
                 style={[styles.iconBtn, styles.callBtn]}
                 accessibilityLabel={`Call ${firstName}`}
               >
-                <Ionicons name="call" size={16} color="#FFFFFF" />
+                <Ionicons name="call" size={14} color="#FFFFFF" />
               </Pressable>
             ) : null}
             {phone ? (
@@ -299,7 +308,7 @@ function LeadCard({
                 style={[styles.iconBtn, styles.whatsappBtn]}
                 accessibilityLabel={`WhatsApp ${firstName}`}
               >
-                <Ionicons name="logo-whatsapp" size={16} color="#FFFFFF" />
+                <Ionicons name="logo-whatsapp" size={14} color="#FFFFFF" />
               </Pressable>
             ) : null}
             {lead.email ? (
@@ -308,63 +317,49 @@ function LeadCard({
                 style={[styles.iconBtn, styles.mailBtn]}
                 accessibilityLabel={`Email ${firstName}`}
               >
-                <Ionicons name="mail" size={16} color="#FFFFFF" />
+                <Ionicons name="mail" size={14} color="#FFFFFF" />
               </Pressable>
             ) : null}
           </View>
+          )
           ) : (
             <Text style={styles.contactText}>No contact on file</Text>
           )}
         </View>
       )}
 
-      <View>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.track}>
-          {statuses.map((status) => {
-            const active = pipeline === status;
-            const look = STATUS_LOOK[status];
-            const ink = active ? '#FFFFFF' : waiting ? 'rgba(255,255,255,0.92)' : look.ink;
-            return (
-              <Pressable
-                key={status}
-                disabled={busy || active}
-                onPress={() => onStatus(status)}
-                style={[
-                  styles.step,
-                  {
-                    backgroundColor: active ? look.solid : waiting ? 'rgba(255,255,255,0.1)' : look.soft,
-                    borderColor: active ? look.solid : waiting ? 'rgba(255,255,255,0.28)' : look.line,
-                  },
-                ]}
-                accessibilityRole="button"
-                accessibilityState={{ selected: active, disabled: busy }}
-                accessibilityLabel={`Mark as ${status}`}
-              >
-                <Ionicons name={STATUS_ICON[status]} size={11} color={ink} />
-                <Text style={[styles.stepText, { color: ink }]}>{status}</Text>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
-        {busy ? <ActivityIndicator style={styles.trackBusy} size="small" color={waiting ? '#FFFFFF' : c.primary} /> : null}
+      <View style={styles.statusRow}>
+        <View
+          style={[
+            styles.currentStatus,
+            {
+              backgroundColor: dark ? 'rgba(255,255,255,0.08)' : look.soft,
+              borderColor: dark ? look.solid : look.line,
+            },
+          ]}
+        >
+          <Ionicons name={STATUS_ICON[pipeline]} size={12} color={settledInk} />
+          <Text style={[styles.currentStatusText, { color: settledInk }]}>{pipeline}</Text>
+        </View>
+        <Pressable
+          onPress={() => setStatusOpen(true)}
+          disabled={busy}
+          style={[styles.changeStatus, busy && styles.pressed]}
+          accessibilityRole="button"
+          accessibilityLabel={`Change status from ${pipeline}`}
+        >
+          <Text style={styles.changeStatusText}>Change</Text>
+          <Ionicons name="chevron-down" size={12} color={c.ink} />
+        </Pressable>
+        {busy ? <ActivityIndicator style={styles.statusBusy} size="small" color={c.primary} /> : null}
       </View>
       </>
   );
 
-  const card = !waiting ? (
-    <LinearGradient
-      colors={dark ? [`${look.solid}38`, c.card] : [look.soft, c.card]}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={[styles.card, { borderColor: dark ? `${look.solid}66` : look.line }]}
-    >
+  const card = (
+    <View style={[styles.card, { borderColor: dark ? `${look.solid}66` : look.line }]}>
       {body}
-    </LinearGradient>
-  ) : (
-    <LinearGradient colors={['#1C4668', '#0E2438']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.card, styles.cardHot]}>
-      <View style={styles.hotRule} />
-      {body}
-    </LinearGradient>
+    </View>
   );
 
   return (
@@ -386,6 +381,16 @@ function LeadCard({
         </Pressable>
       ) : null}
       {card}
+      <Menu
+        visible={statusOpen}
+        title="Change status"
+        onClose={() => setStatusOpen(false)}
+        items={others.map((status) => ({
+          label: status,
+          icon: STATUS_ICON[status],
+          onPress: () => onStatus(status),
+        }))}
+      />
       <Menu
         visible={noteAsk}
         title="Edit or remove this note?"
@@ -424,11 +429,13 @@ function LeadsBody() {
   const [leads, setLeads] = useState<ConsoleLead[] | null>(null);
   const [unlocked, setUnlocked] = useState(true);
   const [error, setError] = useState('');
-  const [filter, setFilter] = useState<Filter>('All');
+  const [filter, setFilter] = useState<Filter>('To be contacted');
+  const [query, setQuery] = useState('');
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [kind, setKind] = useState<'customers' | 'jobs'>('customers');
   const [busyId, setBusyId] = useState('');
   const [refreshing, setRefreshing] = useState(false);
+  const [shown, setShown] = useState(50);
 
   const load = useCallback(async () => {
     const result = await run<{ success: true; unlocked: boolean; leads: ConsoleLead[] }>('leads');
@@ -448,9 +455,14 @@ function LeadsBody() {
   );
 
   const isJobLead = (lead: ConsoleLead) => (lead.category || '').trim().toLowerCase() === 'job application';
-  const customerLeads = (leads ?? []).filter((lead) => !isJobLead(lead));
-  const jobLeads = (leads ?? []).filter(isJobLead);
-  const scoped = kind === 'jobs' ? jobLeads : customerLeads;
+  const byNewest = (a: ConsoleLead, b: ConsoleLead) =>
+    Date.parse(b.created_at || '') - Date.parse(a.created_at || '');
+  const customerLeads = (leads ?? []).filter((lead) => !isJobLead(lead)).sort(byNewest);
+  const jobLeads = (leads ?? []).filter(isJobLead).sort(byNewest);
+  const showJobs = (overview?.stats.activeJobs ?? 0) > 0;
+  const scoped = kind === 'jobs' && showJobs ? jobLeads : customerLeads;
+  const needle = query.trim().toLowerCase();
+  const needleDigits = needle.replace(/\D/g, '');
 
   const counts = useMemo(() => {
     const out: Record<string, number> = { All: scoped.length };
@@ -461,7 +473,23 @@ function LeadsBody() {
     return out;
   }, [scoped]);
 
-  const visible = scoped.filter((lead) => filter === 'All' || pipelineOf(lead.status) === filter);
+  const visible = scoped.filter((lead) => {
+    if (needle) {
+      const name = (lead.name || '').toLowerCase();
+      const phone = (lead.phone || '').replace(/\D/g, '');
+      return name.includes(needle) || (lead.phone || '').toLowerCase().includes(needle) || (needleDigits.length >= 3 && phone.includes(needleDigits));
+    }
+    return filter === 'All' || pipelineOf(lead.status) === filter;
+  });
+  const page = visible.slice(0, shown);
+
+  useEffect(() => {
+    setShown(50);
+  }, [kind, filter, query]);
+
+  useEffect(() => {
+    if (!showJobs && kind === 'jobs') setKind('customers');
+  }, [showJobs, kind]);
 
   const changeNote = async (lead: ConsoleLead, note: string) => {
     setBusyId(lead.id);
@@ -478,7 +506,8 @@ function LeadsBody() {
     return true;
   };
 
-  const changeStatus = async (lead: ConsoleLead, status: LeadStatus) => {
+  const changeStatus = async (lead: ConsoleLead, status: LeadStatus, undoing = false) => {
+    const previous = pipelineOf(lead.status);
     setBusyId(lead.id);
     const result = await run('setLeadStatus', { leadId: lead.id, status });
     setBusyId('');
@@ -486,13 +515,15 @@ function LeadsBody() {
       notify(result.error, 'bad');
       return;
     }
-    setLeads((current) => (current ?? []).map((item) => (item.id === lead.id ? { ...item, status } : item)));
-    notify(`${lead.name || 'Lead'} marked ${status.toLowerCase()}`);
     setLeads((current) =>
       (current ?? []).map((item) =>
-        item.id === lead.id ? { ...item, merchant_read_at: item.merchant_read_at || new Date().toISOString() } : item,
+        item.id === lead.id
+          ? { ...item, status, merchant_read_at: item.merchant_read_at || new Date().toISOString() }
+          : item,
       ),
     );
+    if (undoing) notify('Status restored');
+    else notify('Status saved', 'good', { label: 'Undo', onPress: () => void changeStatus(lead, previous, true) });
     void refresh();
   };
 
@@ -522,7 +553,7 @@ function LeadsBody() {
       title="Leads"
       subtitle={
         leads
-          ? `${customerLeads.length} customers · ${jobLeads.length} job applications`
+          ? `${customerLeads.filter((lead) => pipelineOf(lead.status) === 'To be contacted').length} to contact`
           : 'Customer enquiries'
       }
       onBack={back}
@@ -558,6 +589,19 @@ function LeadsBody() {
       ) : null}
 
       {leads ? (
+        <TextInput
+          value={query}
+          onChangeText={setQuery}
+          placeholder="Search name or phone"
+          placeholderTextColor={c.faint}
+          autoCorrect={false}
+          autoCapitalize="none"
+          style={styles.search}
+          accessibilityLabel="Search leads by name or phone"
+        />
+      ) : null}
+
+      {leads ? (
         <View style={styles.kindRow}>
           <Chip
             label="Customers"
@@ -565,18 +609,20 @@ function LeadsBody() {
             active={kind === 'customers'}
             onPress={() => {
               setKind('customers');
-              setFilter('All');
+              setFilter('To be contacted');
             }}
           />
-          <Chip
-            label="Job applications"
-            count={jobLeads.length}
-            active={kind === 'jobs'}
-            onPress={() => {
-              setKind('jobs');
-              setFilter('All');
-            }}
-          />
+          {showJobs ? (
+            <Chip
+              label="Job applications"
+              count={jobLeads.length}
+              active={kind === 'jobs'}
+              onPress={() => {
+                setKind('jobs');
+                setFilter('All');
+              }}
+            />
+          ) : null}
           {scoped.length ? (
             <Pressable
               onPress={() => setFiltersOpen((open) => !open)}
@@ -619,7 +665,7 @@ function LeadsBody() {
         <Empty
           icon="people-outline"
           title="No leads yet"
-          body="When a customer contacts your business on FinderB, they show up here instantly. A complete profile with photos brings more."
+          body="When a customer contacts your shop on FinderB, they show up here. A photo and your hours bring more."
         />
       ) : !scoped.length ? (
         <Empty
@@ -628,22 +674,35 @@ function LeadsBody() {
           body={
             kind === 'jobs'
               ? 'Applications to your job posts show up here, separate from customer enquiries.'
-              : 'Customer enquiries stay here. Job applications are on the next tab.'
+              : 'Customer enquiries stay here.'
           }
         />
       ) : !visible.length ? (
-        <Empty icon="filter-outline" title={`No ${filter.toLowerCase()} leads`} body="Pick another filter to see the rest." />
+        <Empty
+          icon={needle ? 'search-outline' : 'filter-outline'}
+          title={needle ? 'No matching leads' : `No ${filter.toLowerCase()} leads`}
+          body={needle ? 'Try another name or phone number.' : 'Pick another filter to see the rest.'}
+        />
       ) : (
-        visible.map((lead) => (
-          <LeadCard
-            key={lead.id}
-            lead={lead}
-            busy={busyId === lead.id}
-            onStatus={(status) => void changeStatus(lead, status)}
-            onOpen={(href) => void openContact(lead, href)}
-            onNote={(note) => changeNote(lead, note)}
-          />
-        ))
+        <>
+          {page.map((lead) => (
+            <LeadCard
+              key={lead.id}
+              lead={lead}
+              busy={busyId === lead.id}
+              onStatus={(status) => void changeStatus(lead, status)}
+              onOpen={(href) => void openContact(lead, href)}
+              onNote={(note) => changeNote(lead, note)}
+            />
+          ))}
+          {shown < visible.length ? (
+            <Btn
+              tone="outline"
+              label={`Load more (${visible.length - shown} left)`}
+              onPress={() => setShown((count) => count + 50)}
+            />
+          ) : null}
+        </>
       )}
     </ConsolePage>
   );
@@ -678,24 +737,24 @@ const useStyles = createConsoleStyles((c) => ({
   unlockTitle: { fontFamily: fonts.semiBold, fontSize: 15, color: c.ink },
   unlockBody: { marginTop: 2, fontFamily: fonts.regular, fontSize: 12.5, lineHeight: 17, color: c.muted },
   leadWrap: { position: 'relative' },
-  leadWrapNoted: { marginTop: 8 },
+  leadWrapNoted: { marginTop: 6 },
   noteFlag: {
     position: 'absolute',
-    top: -10,
-    left: 16,
+    top: -8,
+    left: 12,
     zIndex: 3,
     maxWidth: '78%',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 8,
-    height: 22,
+    gap: 3,
+    paddingHorizontal: 7,
+    height: 18,
     borderRadius: 999,
     backgroundColor: '#FFF4CC',
     borderWidth: 1,
     borderColor: '#E7B15A',
   },
-  noteFlagText: { flexShrink: 1, fontFamily: fonts.semiBold, fontSize: 11, color: '#92400E' },
+  noteFlagText: { flexShrink: 1, fontFamily: fonts.semiBold, fontSize: 10, color: '#92400E' },
   sourceHelp: {
     gap: 4,
     padding: 10,
@@ -740,6 +799,50 @@ const useStyles = createConsoleStyles((c) => ({
   addNoteHot: { backgroundColor: 'rgba(255,255,255,0.12)', borderColor: 'rgba(255,255,255,0.28)' },
   addNoteText: { fontFamily: fonts.semiBold, fontSize: 11, color: c.ink },
   kindRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginBottom: 8 },
+  search: {
+    height: 40,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: c.line,
+    backgroundColor: c.card,
+    paddingHorizontal: 12,
+    fontFamily: fonts.regular,
+    fontSize: 14,
+    color: c.ink,
+  },
+  systemLine: { fontFamily: fonts.regular, fontSize: 12, lineHeight: 16, color: c.faint },
+  loudRow: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  loudCall: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#2563EB',
+  },
+  loudWhatsapp: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#128C7E',
+  },
+  loudMail: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#EA4335',
+  },
+  loudText: { fontFamily: fonts.semiBold, fontSize: 14, color: '#FFFFFF' },
   filterBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -768,26 +871,42 @@ const useStyles = createConsoleStyles((c) => ({
     borderColor: c.line,
   },
   card: {
-    paddingHorizontal: 14,
-    paddingVertical: 13,
-    borderRadius: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 14,
     backgroundColor: c.card,
     borderWidth: 1,
     borderColor: c.line,
-    gap: 10,
+    gap: 6,
     overflow: 'hidden',
   },
-  statusMark: {
+  statusRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6 },
+  currentStatus: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 3,
-    paddingHorizontal: 6,
-    height: 18,
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
     borderRadius: 999,
     borderWidth: 1,
   },
-  statusMarkText: { fontFamily: fonts.semiBold, fontSize: 10, lineHeight: 12 },
-  messageWell: { borderRadius: 10, borderWidth: 1, paddingHorizontal: 10, paddingVertical: 8 },
+  currentStatusText: { fontFamily: fonts.semiBold, fontSize: 11, lineHeight: 14 },
+  changeStatus: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexShrink: 0,
+    gap: 2,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: c.line,
+    backgroundColor: c.card,
+  },
+  changeStatusHot: { borderColor: 'rgba(255,255,255,0.28)', backgroundColor: 'rgba(255,255,255,0.1)' },
+  changeStatusText: { fontFamily: fonts.semiBold, fontSize: 11, lineHeight: 14, color: c.ink },
+  statusBusy: { position: 'absolute', alignSelf: 'center' },
+  messageWell: { borderRadius: 8, borderWidth: 1, paddingHorizontal: 8, paddingVertical: 5 },
   cardHot: {
     overflow: 'hidden',
     borderWidth: 1,
@@ -799,27 +918,27 @@ const useStyles = createConsoleStyles((c) => ({
   onHotMuted: { color: 'rgba(255,255,255,0.72)' },
   onHotBody: { color: 'rgba(255,255,255,0.88)' },
   markHot: { backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderColor: '#E7B15A' },
-  sideCol: { alignItems: 'flex-end', gap: 6 },
+  sideCol: { alignItems: 'flex-end', gap: 4 },
   callBtn: { backgroundColor: '#2563EB' },
   whatsappBtn: { backgroundColor: '#25D366' },
   mailBtn: { backgroundColor: '#EA4335' },
-  cardHead: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
+  cardHead: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
   mark: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: c.primarySoft,
   },
-  markText: { fontFamily: fonts.semiBold, fontSize: 13, color: c.primary },
-  nameLine: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
-  name: { flexShrink: 1, fontFamily: fonts.semiBold, fontSize: 15, color: c.ink },
-  meta: { marginTop: 1, fontFamily: fonts.regular, fontSize: 12, color: c.muted },
+  markText: { fontFamily: fonts.semiBold, fontSize: 12, color: c.primary },
+  nameLine: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6 },
+  name: { flexShrink: 1, fontFamily: fonts.semiBold, fontSize: 14, color: c.ink },
+  meta: { marginTop: 0, fontFamily: fonts.regular, fontSize: 11, color: c.muted },
   message: {
     fontFamily: fonts.regular,
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: 12,
+    lineHeight: 16,
     color: c.body,
   },
   locked: {
@@ -832,8 +951,8 @@ const useStyles = createConsoleStyles((c) => ({
     borderWidth: 1,
     borderColor: c.lineStrong,
     borderRadius: 6,
-    paddingHorizontal: 7,
-    paddingVertical: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
     backgroundColor: c.sunken,
   },
   leadId: {
@@ -841,27 +960,15 @@ const useStyles = createConsoleStyles((c) => ({
     fontSize: 10,
     color: c.body,
   },
-  contactRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  contactText: { flex: 1, fontFamily: fonts.regular, fontSize: 12.5, color: c.muted },
+  contactRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  contactText: { flex: 1, fontFamily: fonts.regular, fontSize: 12, color: c.muted },
   iconRow: { flexDirection: 'row', gap: 6 },
   iconBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: c.sunken,
   },
-  track: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingRight: 4 },
-  step: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 999,
-    borderWidth: 1,
-  },
-  stepText: { fontFamily: fonts.semiBold, fontSize: 10, lineHeight: 13 },
-  trackBusy: { position: 'absolute', alignSelf: 'center', left: 0, right: 0, top: 8 },
 }));

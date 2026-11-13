@@ -11,11 +11,11 @@ export default function BusinessProfileLoading() {
           />
           <div className="m-2 flex h-20 w-20 items-center justify-center rounded-full bg-white">
             <Image
-              src="/logo1.png"
+              src="/brands/fb-mark-240.png"
               alt="FinderB"
-              width={112}
-              height={34}
-              className="h-auto w-16 object-contain"
+              width={48}
+              height={48}
+              className="h-12 w-12 object-contain"
               priority
             />
           </div>

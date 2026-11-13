@@ -50,19 +50,19 @@ function ListingBody({ o }: { o: ConsoleOverview }) {
       url: publicUrl,
       message: `${o.business.name} is on FinderB. See our timings, photos and reviews: ${publicUrl}`,
     }).then((result) => {
-      if (result === 'copied') notify('Listing link copied');
+      if (result === 'copied') notify('Shop link copied');
     });
 
   return (
     <ConsolePage
-      title="My listing"
-      subtitle="What customers see on FinderB"
+      title="Your shop"
+      subtitle="What customers see"
       onBack={back}
       right={
         <ConsoleHeaderActions>
           <HeaderIcon
             icon="eye-outline"
-            label="Preview storefront"
+            label="Preview shop"
             onPress={() => askStorefrontPreview(router, o.business.id)}
           />
         </ConsoleHeaderActions>
@@ -74,7 +74,7 @@ function ListingBody({ o }: { o: ConsoleOverview }) {
       <Panel style={styles.compactPanel}>
         <View style={styles.meterHead}>
           <View style={styles.flex}>
-            <Text style={styles.meterLabel}>Profile completion</Text>
+            <Text style={styles.meterLabel}>Shop completion</Text>
             <Text style={styles.meterValue}>{pct}%</Text>
           </View>
           <Tag
@@ -137,7 +137,7 @@ function ListingBody({ o }: { o: ConsoleOverview }) {
               <Ionicons name="camera-outline" size={22} color={c.danger} />
               <View style={styles.flex}>
                 <Text style={styles.noPhotosTitle}>Add your first photo</Text>
-                <Text style={styles.noPhotosBody}>Your listing stays hidden until it has at least one photo.</Text>
+                <Text style={styles.noPhotosBody}>Your shop stays hidden until it has at least one photo.</Text>
               </View>
             </View>
           )}
@@ -221,7 +221,7 @@ function ListingBody({ o }: { o: ConsoleOverview }) {
           <Row
             icon="briefcase-outline"
             label="Job posts"
-            value={o.stats.activeJobs ? `${o.stats.activeJobs} open on your storefront` : 'Hire through your FinderB page'}
+            value={o.stats.activeJobs ? `${o.stats.activeJobs} open on your shop` : 'Hire through your FinderB page'}
             onPress={() => router.push('/business-console/jobs')}
             last
           />
@@ -274,7 +274,7 @@ function ListingBody({ o }: { o: ConsoleOverview }) {
                         notify(result.error, 'bad');
                         return;
                       }
-                      notify(result.message || 'Deletion cancelled. Your listing can go live again.');
+                      notify(result.message || 'Deletion cancelled. Your shop can go live again.');
                       void refresh();
                     })();
                   }}

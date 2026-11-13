@@ -155,6 +155,7 @@ export default function LeadsSection({
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<LeadTab>('business');
+  const [shown, setShown] = useState(50);
 
   useEffect(() => {
     let cancelled = false;
@@ -386,7 +387,7 @@ export default function LeadsSection({
   const renderLeadList = (
     type: LeadTab,
     items: BusinessLead[],
-    options?: { limit?: number; emptyTitle: string; emptyHint: string }
+    options?: { limit?: number; emptyTitle: string; emptyHint: string; onLoadMore?: () => void }
   ) => {
     const limit = options?.limit;
     const visible = limit ? items.slice(0, limit) : items;
@@ -405,10 +406,19 @@ export default function LeadsSection({
 
     return (
       <div className="space-y-2">
-        {limit && items.length > limit && (
+        {limit && items.length > limit && !options?.onLoadMore ? (
           <p className="text-right text-[11px] text-zinc-400">Showing latest {limit} of {items.length}</p>
-        )}
+        ) : null}
         {visible.map(renderLeadCard)}
+        {options?.onLoadMore && limit && items.length > limit ? (
+          <button
+            type="button"
+            onClick={options.onLoadMore}
+            className="text-sm font-medium text-zinc-700 hover:underline"
+          >
+            Load more ({items.length - limit} left)
+          </button>
+        ) : null}
       </div>
     );
   };
@@ -505,7 +515,10 @@ export default function LeadsSection({
           <div className={dashboard.segmentGroup}>
             <button
               type="button"
-              onClick={() => setActiveTab('business')}
+              onClick={() => {
+                setActiveTab('business');
+                setShown(50);
+              }}
               className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-semibold transition-colors ${
                 activeTab === 'business' ? dashboard.segmentActive : dashboard.segmentInactive
               }`}
@@ -523,7 +536,10 @@ export default function LeadsSection({
             </button>
             <button
               type="button"
-              onClick={() => setActiveTab('jobs')}
+              onClick={() => {
+                setActiveTab('jobs');
+                setShown(50);
+              }}
               className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-semibold transition-colors ${
                 activeTab === 'jobs' ? dashboard.segmentActive : dashboard.segmentInactive
               }`}
@@ -590,11 +606,15 @@ export default function LeadsSection({
         </div>
       ) : activeTab === 'business' ? (
         renderLeadList('business', businessLeads, {
+          limit: shown,
+          onLoadMore: () => setShown((count) => count + 50),
           emptyTitle: 'No business enquiries',
           emptyHint: 'When customers enquire on FinderB, they appear in this list.',
         })
       ) : (
         renderLeadList('jobs', jobLeads, {
+          limit: shown,
+          onLoadMore: () => setShown((count) => count + 50),
           emptyTitle: 'No job applications',
           emptyHint: 'When candidates apply to your postings, they appear here.',
         })

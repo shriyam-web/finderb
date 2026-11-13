@@ -149,9 +149,9 @@ function MoreBody({ o }: { o: ConsoleOverview }) {
         <Row
           compact
           icon="storefront-outline"
-          label="Preview storefront"
+          label="Preview shop"
           onPress={() =>
-            Alert.alert('Preview storefront', 'Choose how this listing should open.', [
+            Alert.alert('Preview shop', 'Choose how this shop should open.', [
               {
                 text: 'As your business',
                 onPress: () =>

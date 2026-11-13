@@ -68,11 +68,11 @@ export default function BusinessWorkspaceLoader() {
         <div className="mb-8">
           <SplashOrbitHub variant="business" progress={progress}>
             <Image
-              src="/businesslogo.png"
-              alt="FinderB Business"
-              width={140}
-              height={42}
-              className="relative h-auto w-full max-w-[96px] object-contain"
+              src="/brands/fb-mark-240.png"
+              alt="FinderB"
+              width={72}
+              height={72}
+              className="relative h-16 w-16 object-contain"
               priority
             />
           </SplashOrbitHub>
@@ -83,7 +83,7 @@ export default function BusinessWorkspaceLoader() {
             className="animate-splash-title-in text-[11px] font-bold uppercase tracking-[0.3em] text-[#f9b864]"
             style={{ animationDelay: '0.1s' }}
           >
-            FinderB Business
+            Business
           </p>
 
           <p

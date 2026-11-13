@@ -510,16 +510,27 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
           {/* Logo - Left aligned */}
           <Link
             href={showBusinessLogo ? '/business/register' : '/'}
-            className={`relative z-[10002] flex items-center shrink-0 ${isOpen ? 'max-lg:hidden' : ''}`}
+            aria-label={showBusinessLogo ? 'FinderB Business' : 'FinderB'}
+            className={`relative z-[10002] flex items-center gap-2 shrink-0 ${isOpen ? 'max-lg:hidden' : ''}`}
           >
             <Image
-              src={showBusinessLogo ? '/businesslogo.png' : '/logo1.png'}
-              alt={showBusinessLogo ? 'FinderB Business' : 'FinderB Logo'}
-              width={160}
-              height={50}
-              className="h-8 sm:h-10 w-auto object-contain"
+              src="/brands/fb-mark-240.png"
+              alt=""
+              width={30}
+              height={30}
+              className="h-[30px] w-[30px] object-contain"
               priority
             />
+            <span className="text-[19px] font-semibold leading-none tracking-tight text-[#153551]">
+              {showBusinessLogo ? (
+                <>
+                  <span className="mr-1.5 font-medium text-[#8AA0B5]" aria-hidden>|</span>
+                  Business
+                </>
+              ) : (
+                'FinderB'
+              )}
+            </span>
           </Link>
 
           {/* Desktop Menu - Right aligned */}

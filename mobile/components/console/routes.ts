@@ -23,6 +23,14 @@ export function consoleRouteFor(url: string): Href | null {
     return '/business-console/reviews';
   }
   if (/job/.test(lower)) return '/business-console/jobs';
+  if (/\/business\/promote\b/.test(lower)) {
+    const orderId = /[?&]order=([^&]+)/i.exec(url)?.[1];
+    if (orderId) {
+      return { pathname: '/business-console/promote', params: { order: decodeURIComponent(orderId) } };
+    }
+    return '/business-console/promote';
+  }
+  if (/\/business\/promotions\b/.test(lower)) return '/business-console/promotions';
   if (/photo|media|gallery/.test(lower)) return '/business-console/photos';
   if (/setting|profile|listing/.test(lower)) return '/business-console/listing';
   if (/notification|alert/.test(lower)) return '/business-console/alerts';

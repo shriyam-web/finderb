@@ -15,6 +15,7 @@ import {
   isAnonymousPublic,
   parseBusinessReviews,
   publicReviewAuthor,
+  reviewsNewestFirst,
   REVIEW_REPLY_MAX_LENGTH,
   REVIEW_REPLY_MIN_LENGTH,
   type BusinessReview,
@@ -179,7 +180,7 @@ export default function ReviewsTab({
   const [flagsLeft, setFlagsLeft] = useState<number | null>(null);
   const flaggedIds = useMemo(() => new Set(Object.keys(flagById)), [flagById]);
   const reviews = useMemo(() => {
-    const parsed = parseBusinessReviews(reviewData);
+    const parsed = reviewsNewestFirst(parseBusinessReviews(reviewData));
     return parsed.filter((review) => !review.deleted || flaggedIds.has(review.id));
   }, [reviewData, flaggedIds]);
 

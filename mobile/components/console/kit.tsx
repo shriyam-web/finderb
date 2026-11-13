@@ -998,7 +998,7 @@ export function ToastHost() {
   const tint = toast.tone === 'bad' ? '#F97066' : toast.tone === 'info' ? '#84ADFF' : '#47CD89';
   return (
     <Animated.View
-      pointerEvents="none"
+      pointerEvents="box-none"
       accessibilityLiveRegion="polite"
       style={[
         styles.toast,
@@ -1011,6 +1011,16 @@ export function ToastHost() {
     >
       <Ionicons name={icon} size={18} color={tint} />
       <Text style={[styles.toastText, c.isDark && { color: c.ink }]}>{toast.message}</Text>
+      {toast.action ? (
+        <Pressable
+          onPress={toast.action.onPress}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel={toast.action.label}
+        >
+          <Text style={styles.toastAction}>{toast.action.label}</Text>
+        </Pressable>
+      ) : null}
     </Animated.View>
   );
 }
@@ -1360,4 +1370,5 @@ const useKitStyles = createConsoleStyles((c) => ({
     backgroundColor: c.isDark ? '#36312D' : '#18181B',
   },
   toastText: { flex: 1, fontFamily: fonts.regular, fontSize: 14, color: '#FFFFFF' },
+  toastAction: { fontFamily: fonts.semiBold, fontSize: 14, color: '#F6D58A' },
 }));

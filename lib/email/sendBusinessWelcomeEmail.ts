@@ -85,7 +85,7 @@ export async function sendBusinessWelcomeEmail(
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#ffffff;border:1px solid #e2e8f0;border-radius:16px;">
           <tr>
             <td align="center" style="padding:32px 32px 4px;">
-              <img src="https://finderb.com/businesslogo.png" width="196" alt="FinderB Business" style="display:block;width:196px;max-width:196px;height:auto;border:0;" />
+              <img src="https://finderb.com/brands/fb-mark-240.png" width="72" alt="FinderB" style="display:block;width:72px;max-width:72px;height:auto;border:0;" />
             </td>
           </tr>
           <tr>
