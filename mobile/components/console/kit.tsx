@@ -1039,6 +1039,21 @@ export function timeAgo(iso: string | null | undefined): string {
   return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
 }
 
+/** Lead cards show the calendar day and the clock time, in India time. */
+export function leadWhen(iso: string | null | undefined): string {
+  if (!iso) return '';
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleString('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+    timeZone: 'Asia/Kolkata',
+  });
+}
+
 export function shortDate(iso: string | null | undefined): string {
   if (!iso) return '';
   const date = new Date(iso);
@@ -1370,5 +1385,4 @@ const useKitStyles = createConsoleStyles((c) => ({
     backgroundColor: c.isDark ? '#36312D' : '#18181B',
   },
   toastText: { flex: 1, fontFamily: fonts.regular, fontSize: 14, color: '#FFFFFF' },
-  toastAction: { fontFamily: fonts.semiBold, fontSize: 14, color: '#F6D58A' },
 }));

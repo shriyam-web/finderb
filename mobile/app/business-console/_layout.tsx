@@ -1,13 +1,38 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { BackHandler, View } from 'react-native';
 import { Stack, useRouter, type Href } from 'expo-router';
 import { useAuth } from '../../context/AuthContext';
-import { MerchantConsoleProvider } from '../../context/MerchantConsoleContext';
+import { MerchantConsoleProvider, useMerchantConsole } from '../../context/MerchantConsoleContext';
 import { useConsoleColors } from '../../constants/consoleColors';
 import { StackConsoleDock } from '../../components/console/ConsoleDock';
+import { BusinessSplash } from '../../components/console/BusinessSplash';
+import { finishConsoleSplash, useConsoleSplash } from '../../components/console/consoleSplash';
 import { ToastHost } from '../../components/console/kit';
 import { useConsoleBackAction } from '../../lib/consoleNav';
 import { setPreferredShell } from '../../lib/preferredShell';
+
+const MIN_SPLASH_MS = 1500;
+
+function ConsoleSplashOverlay() {
+  const splashOn = useConsoleSplash();
+  const { overview, loading, error } = useMerchantConsole();
+  const started = useRef(Date.now());
+
+  useEffect(() => {
+    if (!splashOn) return;
+    if (loading && !overview && !error) return;
+    const wait = Math.max(0, MIN_SPLASH_MS - (Date.now() - started.current));
+    const timer = setTimeout(() => finishConsoleSplash(), wait);
+    return () => clearTimeout(timer);
+  }, [splashOn, loading, overview, error]);
+
+  if (!splashOn) return null;
+  return (
+    <View style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, zIndex: 40, elevation: 40 }}>
+      <BusinessSplash />
+    </View>
+  );
+}
 
 function ConsoleBackLock() {
   const goBack = useConsoleBackAction();
@@ -53,6 +78,7 @@ export default function BusinessConsoleLayout() {
           <Stack.Screen name="plan" options={{ animation: 'slide_from_bottom' }} />
         </Stack>
         <StackConsoleDock />
+        <ConsoleSplashOverlay />
         <ToastHost />
       </View>
     </MerchantConsoleProvider>

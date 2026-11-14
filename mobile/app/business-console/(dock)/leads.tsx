@@ -17,7 +17,7 @@ import {
   HeaderIcon,
   Menu,
   createConsoleStyles,
-  timeAgo,
+  leadWhen,
   useTabBack,
 } from '../../../components/console/kit';
 import {
@@ -27,6 +27,7 @@ import {
   type LeadStatus,
 } from '../../../components/console/leadStatus';
 import { LeadSourceBadge } from '../../../components/console/LeadSourceBadge';
+import { ShiningNew } from '../../../components/console/ShiningNew';
 
 const SYSTEM_LEAD_LINES = new Set([
   'Clicked Call on business profile',
@@ -72,7 +73,8 @@ function LeadId({ id }: { id: string }) {
       accessibilityLabel={`Copy lead id ${id}`}
       style={styles.leadIdBox}
     >
-      <Text style={styles.leadId}>{copied ? 'Copied' : id.replace(/[^a-z0-9]/gi, '').slice(-6).toUpperCase() || 'Lead ID'}</Text>
+      <Text style={styles.leadIdLabel}>ID</Text>
+      <Text style={styles.leadId}>{copied ? 'Copied' : id.replace(/[^a-z0-9]/gi, '').slice(-6).toUpperCase() || '—'}</Text>
     </Pressable>
   );
 }
@@ -101,7 +103,6 @@ function LeadCard({
   const phone = dialable(lead.phone);
   const firstName = (lead.name || '').split(/\s+/)[0] || 'there';
   const pipeline = pipelineOf(lead.status);
-  const waiting = pipeline === 'To be contacted';
   const look = STATUS_LOOK[pipeline];
   const dark = c.isDark;
   const settledInk = dark ? '#FAFAF9' : look.ink;
@@ -130,9 +131,10 @@ function LeadCard({
             <Text style={styles.name} numberOfLines={1}>
               {lead.name || 'Customer'}
             </Text>
+            {pipeline === 'To be contacted' ? <ShiningNew /> : null}
           </View>
           <Text style={styles.meta} numberOfLines={2}>
-            {[lead.category, timeAgo(lead.created_at)].filter(Boolean).join(' · ')}
+            {[lead.category, leadWhen(lead.created_at)].filter(Boolean).join(' · ')}
           </Text>
         </View>
         <View style={styles.sideCol}>
@@ -140,7 +142,6 @@ function LeadCard({
           <LeadSourceBadge
             lead={lead}
             align="end"
-            plain={waiting}
             onMeaning={(next) => setMeaning((current) => (current?.title === next.title ? null : next))}
           />
         </View>
@@ -167,12 +168,7 @@ function LeadCard({
               placeholderTextColor={c.faint}
               multiline
               maxLength={500}
-              style={[
-                styles.noteInput,
-                waiting
-                  ? { color: c.ink, backgroundColor: c.card, borderColor: c.line }
-                  : { color: c.ink, backgroundColor: c.card, borderColor: c.line },
-              ]}
+              style={[styles.noteInput, { color: c.ink, backgroundColor: c.card, borderColor: c.line }]}
             />
             <View style={styles.noteActions}>
               <Pressable
@@ -251,30 +247,33 @@ function LeadCard({
       ) : (
         <View style={styles.contactRow}>
           {phone || lead.email ? (
-          waiting && phone ? (
             <View style={styles.loudRow}>
-              <Pressable
-                onPress={() => onOpen(`tel:+${phone}`)}
-                style={styles.loudCall}
-                accessibilityRole="button"
-                accessibilityLabel={`Call ${firstName}`}
-              >
-                <Ionicons name="call" size={16} color="#FFFFFF" />
-                <Text style={styles.loudText}>Call</Text>
-              </Pressable>
-              <Pressable
-                onPress={() =>
-                  onOpen(
-                    `https://wa.me/${phone}?text=${encodeURIComponent(`Hi ${firstName}, thanks for reaching out on FinderB.`)}`,
-                  )
-                }
-                style={styles.loudWhatsapp}
-                accessibilityRole="button"
-                accessibilityLabel={`WhatsApp ${firstName}`}
-              >
-                <Ionicons name="logo-whatsapp" size={16} color="#FFFFFF" />
-                <Text style={styles.loudText}>WhatsApp</Text>
-              </Pressable>
+              {phone ? (
+                <Pressable
+                  onPress={() => onOpen(`tel:+${phone}`)}
+                  style={styles.loudCall}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Call ${firstName}`}
+                >
+                  <Ionicons name="call" size={16} color="#FFFFFF" />
+                  <Text style={styles.loudText}>Call</Text>
+                </Pressable>
+              ) : null}
+              {phone ? (
+                <Pressable
+                  onPress={() =>
+                    onOpen(
+                      `https://wa.me/${phone}?text=${encodeURIComponent(`Hi ${firstName}, thanks for reaching out on FinderB.`)}`,
+                    )
+                  }
+                  style={styles.loudWhatsapp}
+                  accessibilityRole="button"
+                  accessibilityLabel={`WhatsApp ${firstName}`}
+                >
+                  <Ionicons name="logo-whatsapp" size={16} color="#FFFFFF" />
+                  <Text style={styles.loudText}>WhatsApp</Text>
+                </Pressable>
+              ) : null}
               {lead.email ? (
                 <Pressable
                   onPress={() => onOpen(`mailto:${lead.email}`)}
@@ -287,41 +286,6 @@ function LeadCard({
                 </Pressable>
               ) : null}
             </View>
-          ) : (
-          <View style={styles.iconRow}>
-            {phone ? (
-              <Pressable
-                onPress={() => onOpen(`tel:+${phone}`)}
-                style={[styles.iconBtn, styles.callBtn]}
-                accessibilityLabel={`Call ${firstName}`}
-              >
-                <Ionicons name="call" size={14} color="#FFFFFF" />
-              </Pressable>
-            ) : null}
-            {phone ? (
-              <Pressable
-                onPress={() =>
-                  onOpen(
-                    `https://wa.me/${phone}?text=${encodeURIComponent(`Hi ${firstName}, thanks for reaching out on FinderB.`)}`,
-                  )
-                }
-                style={[styles.iconBtn, styles.whatsappBtn]}
-                accessibilityLabel={`WhatsApp ${firstName}`}
-              >
-                <Ionicons name="logo-whatsapp" size={14} color="#FFFFFF" />
-              </Pressable>
-            ) : null}
-            {lead.email ? (
-              <Pressable
-                onPress={() => onOpen(`mailto:${lead.email}`)}
-                style={[styles.iconBtn, styles.mailBtn]}
-                accessibilityLabel={`Email ${firstName}`}
-              >
-                <Ionicons name="mail" size={14} color="#FFFFFF" />
-              </Pressable>
-            ) : null}
-          </View>
-          )
           ) : (
             <Text style={styles.contactText}>No contact on file</Text>
           )}
@@ -429,7 +393,7 @@ function LeadsBody() {
   const [leads, setLeads] = useState<ConsoleLead[] | null>(null);
   const [unlocked, setUnlocked] = useState(true);
   const [error, setError] = useState('');
-  const [filter, setFilter] = useState<Filter>('To be contacted');
+  const [filter, setFilter] = useState<Filter>('All');
   const [query, setQuery] = useState('');
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [kind, setKind] = useState<'customers' | 'jobs'>('customers');
@@ -457,8 +421,13 @@ function LeadsBody() {
   const isJobLead = (lead: ConsoleLead) => (lead.category || '').trim().toLowerCase() === 'job application';
   const byNewest = (a: ConsoleLead, b: ConsoleLead) =>
     Date.parse(b.created_at || '') - Date.parse(a.created_at || '');
-  const customerLeads = (leads ?? []).filter((lead) => !isJobLead(lead)).sort(byNewest);
-  const jobLeads = (leads ?? []).filter(isJobLead).sort(byNewest);
+  const waitingFirst = (a: ConsoleLead, b: ConsoleLead) => {
+    const rank = (lead: ConsoleLead) => (pipelineOf(lead.status) === 'To be contacted' ? 0 : 1);
+    const diff = rank(a) - rank(b);
+    return diff || byNewest(a, b);
+  };
+  const customerLeads = (leads ?? []).filter((lead) => !isJobLead(lead)).sort(waitingFirst);
+  const jobLeads = (leads ?? []).filter(isJobLead).sort(waitingFirst);
   const showJobs = (overview?.stats.activeJobs ?? 0) > 0;
   const scoped = kind === 'jobs' && showJobs ? jobLeads : customerLeads;
   const needle = query.trim().toLowerCase();
@@ -490,7 +459,6 @@ function LeadsBody() {
   useEffect(() => {
     if (!showJobs && kind === 'jobs') setKind('customers');
   }, [showJobs, kind]);
-
   const changeNote = async (lead: ConsoleLead, note: string) => {
     setBusyId(lead.id);
     const result = await run<{ success: true; note: string }>('setLeadNote', { leadId: lead.id, note });
@@ -540,6 +508,10 @@ function LeadsBody() {
       }
     }
     void Linking.openURL(href);
+    const pipeline = pipelineOf(lead.status);
+    if (pipeline !== 'Contacted' && pipeline !== 'Converted' && pipeline !== 'Closed') {
+      void changeStatus(lead, 'Contacted');
+    }
   };
 
   const onRefresh = async () => {
@@ -607,10 +579,10 @@ function LeadsBody() {
             label="Customers"
             count={customerLeads.length}
             active={kind === 'customers'}
-            onPress={() => {
-              setKind('customers');
-              setFilter('To be contacted');
-            }}
+              onPress={() => {
+                setKind('customers');
+                setFilter('All');
+              }}
           />
           {showJobs ? (
             <Chip
@@ -811,34 +783,34 @@ const useStyles = createConsoleStyles((c) => ({
     color: c.ink,
   },
   systemLine: { fontFamily: fonts.regular, fontSize: 12, lineHeight: 16, color: c.faint },
-  loudRow: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  loudRow: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', flexWrap: 'wrap', gap: 8 },
   loudCall: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
     height: 36,
+    paddingHorizontal: 14,
     borderRadius: 10,
     backgroundColor: '#2563EB',
   },
   loudWhatsapp: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
     height: 36,
+    paddingHorizontal: 14,
     borderRadius: 10,
     backgroundColor: '#128C7E',
   },
   loudMail: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
     height: 36,
+    paddingHorizontal: 14,
     borderRadius: 10,
     backgroundColor: '#EA4335',
   },
@@ -919,9 +891,6 @@ const useStyles = createConsoleStyles((c) => ({
   onHotBody: { color: 'rgba(255,255,255,0.88)' },
   markHot: { backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderColor: '#E7B15A' },
   sideCol: { alignItems: 'flex-end', gap: 4 },
-  callBtn: { backgroundColor: '#2563EB' },
-  whatsappBtn: { backgroundColor: '#25D366' },
-  mailBtn: { backgroundColor: '#EA4335' },
   cardHead: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
   mark: {
     width: 26,
@@ -948,12 +917,21 @@ const useStyles = createConsoleStyles((c) => ({
   },
   lockedText: { flex: 1, fontFamily: fonts.regular, fontSize: 12, color: c.warning },
   leadIdBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     borderWidth: 1,
     borderColor: c.lineStrong,
     borderRadius: 6,
     paddingHorizontal: 6,
     paddingVertical: 2,
     backgroundColor: c.sunken,
+  },
+  leadIdLabel: {
+    fontFamily: fonts.semiBold,
+    fontSize: 10,
+    letterSpacing: 0.3,
+    color: c.faint,
   },
   leadId: {
     fontFamily: fonts.semiBold,
@@ -962,13 +940,5 @@ const useStyles = createConsoleStyles((c) => ({
   },
   contactRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   contactText: { flex: 1, fontFamily: fonts.regular, fontSize: 12, color: c.muted },
-  iconRow: { flexDirection: 'row', gap: 6 },
-  iconBtn: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: c.sunken,
-  },
 }));
+

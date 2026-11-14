@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { Text, View } from 'react-native';
 import { useRouter, type Href } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,28 +7,20 @@ import { useConsoleColors } from '../../constants/consoleColors';
 import { useAuth } from '../../context/AuthContext';
 import { useMerchantConsole } from '../../context/MerchantConsoleContext';
 import type { ConsoleOverview } from '../../lib/merchantConsoleApi';
-import { BusinessSplash } from './BusinessSplash';
+import { useConsoleSplash } from './consoleSplash';
 import { Btn, createConsoleStyles } from './kit';
 
-const MIN_SPLASH_MS = 700;
-
-/** Wraps every console tab: shows the splash, sign-in problems and retry until the overview arrives. */
+/** Wraps every console tab: waits out the one-time splash, then sign-in problems and retry. */
 export function ConsoleGate({ children }: { children: (overview: ConsoleOverview) => ReactNode }) {
   const styles = useStyles();
   const c = useConsoleColors();
   const router = useRouter();
   const { signOut } = useAuth();
   const { overview, loading, error, errorCode, refresh, refreshing } = useMerchantConsole();
-  const [holding, setHolding] = useState(() => !overview);
+  const splashOn = useConsoleSplash();
 
-  useEffect(() => {
-    if (!holding) return;
-    const timer = setTimeout(() => setHolding(false), MIN_SPLASH_MS);
-    return () => clearTimeout(timer);
-  }, [holding]);
-
-  if (overview && !holding) return <>{children(overview)}</>;
-  if (loading || holding) return <BusinessSplash />;
+  if (overview && !splashOn) return <>{children(overview)}</>;
+  if (splashOn || loading) return <View style={styles.hold} />;
 
   const signedOut = errorCode === 'signed_out';
   const notMerchant = errorCode === 'not_merchant';
@@ -87,6 +79,7 @@ export function ConsoleGate({ children }: { children: (overview: ConsoleOverview
 }
 
 const useStyles = createConsoleStyles((c) => ({
+  hold: { flex: 1, backgroundColor: c.card },
   page: { flex: 1, backgroundColor: c.page, paddingHorizontal: 24 },
   center: { alignItems: 'center', justifyContent: 'center' },
   errorMark: {

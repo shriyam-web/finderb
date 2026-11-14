@@ -7,6 +7,7 @@ import { useConsoleColors } from '../../constants/consoleColors';
 import { useMerchantConsole } from '../../context/MerchantConsoleContext';
 import { useBottomInset } from '../../hooks/useAppSafeArea';
 import { dockTabHref, lastDockTab, rememberDockTab } from '../../lib/consoleNav';
+import { useConsoleSplash } from './consoleSplash';
 import { canViewTeamTab, MOBILE_ROUTE_TAB } from '../../lib/teamAccess';
 import { createConsoleStyles, DOCK_HEIGHT } from './kit';
 
@@ -29,7 +30,9 @@ export function ConsoleDock({ state, navigation }: BottomTabBarProps) {
   const styles = useStyles();
   const c = useConsoleColors();
   const bottomInset = useBottomInset();
+  const splashOn = useConsoleSplash();
   const { overview } = useMerchantConsole();
+  if (splashOn) return null;
   const isOwner = overview?.actor?.isOwner !== false;
   const badges: Record<string, number> = {
     leads: overview?.stats.leadsNew ?? 0,
@@ -85,8 +88,9 @@ export function StackConsoleDock() {
   const c = useConsoleColors();
   const bottomInset = useBottomInset();
   const { overview } = useMerchantConsole();
+  const splashOn = useConsoleSplash();
   const onDock = segments[0] === 'business-console' && segments[1] === '(dock)';
-  if (onDock || !overview) return null;
+  if (splashOn || onDock || !overview) return null;
 
   const isOwner = overview.actor?.isOwner !== false;
   const active = lastDockTab();

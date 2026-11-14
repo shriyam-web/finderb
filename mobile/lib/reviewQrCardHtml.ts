@@ -112,7 +112,7 @@ export function reviewQrCardHtml(input: {
   }
 
   function drawLockup(logo, y, mark, wordSize) {
-    var label = 'FinderB Business';
+    var label = 'Business';
     var pipe = '|';
     ctx.save();
     ctx.textBaseline = 'middle';
@@ -136,6 +136,7 @@ export function reviewQrCardHtml(input: {
   }
 
   function paint(qr, logo) {
+    try {
     var wash = ctx.createLinearGradient(0, 0, CARD_W, CARD_H);
     wash.addColorStop(0, '#D7E7F6');
     wash.addColorStop(0.45, '#FFFFFF');
@@ -160,7 +161,7 @@ export function reviewQrCardHtml(input: {
     } else {
       ctx.fillStyle = BLUE;
       ctx.font = '700 40px ' + font;
-      ctx.fillText('FinderB Business', CARD_W / 2, 150);
+      ctx.fillText('Business', CARD_W / 2, 150);
     }
 
     var ruleY = 78 + logoHeight + 38;
@@ -217,13 +218,14 @@ export function reviewQrCardHtml(input: {
     ctx.lineTo(CARD_W - 180, CARD_H - 210);
     ctx.stroke();
 
-    if (logo) {
-      drawLockup(logo, CARD_H - 160, 57, 32);
-    }
+    if (logo) drawLockup(logo, CARD_H - 160, 57, 32);
     ctx.fillStyle = MUTED;
     ctx.font = '500 24px ' + font;
     ctx.fillText('Verified reviews  ·  finderb.com', CARD_W / 2, CARD_H - 48);
     finish();
+    } catch (error) {
+      fail(String(error && error.message ? error.message : error));
+    }
   }
 
   function start() {
@@ -246,10 +248,17 @@ export function reviewQrCardHtml(input: {
     }
   }
 
-  if (document.fonts && document.fonts.ready) {
-    document.fonts.ready.then(start).catch(start);
-  } else {
+  var started = false;
+  function go() {
+    if (started) return;
+    started = true;
     start();
+  }
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(go).catch(go);
+    setTimeout(go, 1500);
+  } else {
+    go();
   }
 })();
 </script>

@@ -24,6 +24,7 @@ import {
   Tag,
   createConsoleStyles,
   timeAgo,
+  leadWhen,
 } from '../../../components/console/kit';
 import { LEAD_STATUS_TONE, pipelineOf } from '../../../components/console/leadStatus';
 import { ShiningNew } from '../../../components/console/ShiningNew';
@@ -787,7 +788,7 @@ function RecentLeadRow({
             </View>
             <Text style={[styles.leadMeta, waiting && styles.leadMetaOnHot]} numberOfLines={1}>
               {lead.locked ? 'Upgrade to see contact' : lead.category || 'Customer enquiry'}
-              {lead.created_at ? ` · ${timeAgo(lead.created_at)}` : ''}
+              {lead.created_at ? ` · ${leadWhen(lead.created_at)}` : ''}
             </Text>
           </View>
         </Pressable>
@@ -1149,6 +1150,37 @@ function ShopSetup({
   );
 }
 
+function RisingArrow() {
+  const rise = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(rise, {
+          toValue: 1,
+          duration: 1100,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(rise, { toValue: 0, duration: 0, useNativeDriver: true }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [rise]);
+  return (
+    <View style={{ width: 16, height: 18, overflow: 'hidden', alignItems: 'center' }}>
+      <Animated.View
+        style={{
+          opacity: rise.interpolate({ inputRange: [0, 0.12, 0.82, 1], outputRange: [0, 1, 1, 0] }),
+          transform: [{ translateY: rise.interpolate({ inputRange: [0, 1], outputRange: [8, -10] }) }],
+        }}
+      >
+        <Ionicons name="arrow-up" size={15} color="#1C1408" />
+      </Animated.View>
+    </View>
+  );
+}
+
 function HomeBody({ o }: { o: ConsoleOverview }) {
   const styles = useStyles();
   const router = useRouter();
@@ -1331,7 +1363,10 @@ function HomeBody({ o }: { o: ConsoleOverview }) {
           end={{ x: 1, y: 1 }}
           style={styles.growthWash}
         >
-          <Text style={styles.growthTitle}>Growth opportunity</Text>
+          <View style={styles.growthTitleRow}>
+            <Text style={styles.growthTitle}>Growth opportunity</Text>
+            <RisingArrow />
+          </View>
           <Text style={styles.growthSub}>
             Badges on your public profile help customers trust the shop before they call or visit.
           </Text>
@@ -1385,6 +1420,7 @@ const useStyles = createConsoleStyles((c) => ({
   setupHint: { marginTop: 2, fontFamily: fonts.regular, fontSize: 12.5, lineHeight: 17, color: c.muted },
   growthCard: { borderRadius: 16, overflow: 'hidden' },
   growthWash: { padding: 12, overflow: 'hidden' },
+  growthTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   growthTitle: { fontFamily: fonts.semiBold, fontSize: 15, color: '#1C1408' },
   growthSub: { marginTop: 3, fontFamily: fonts.regular, fontSize: 12, lineHeight: 16, color: '#4A320C' },
   growthFoot: {

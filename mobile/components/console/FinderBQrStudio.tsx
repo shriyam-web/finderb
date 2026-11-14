@@ -121,7 +121,7 @@ export function FinderBQrStudio({
         <View style={styles.brandRow}>
           <FinderBLogo size={44} />
           <Text style={styles.brandPipe}>|</Text>
-          <Text style={styles.brandWord}>FinderB Business</Text>
+          <Text style={styles.brandWord}>Business</Text>
         </View>
         <Text style={styles.name}>{businessName}</Text>
         {place ? <Text style={styles.place}>{place}</Text> : null}
