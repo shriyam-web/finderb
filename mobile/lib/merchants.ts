@@ -144,9 +144,17 @@ function forceCloudinaryJpeg(url: string): string {
   return `${url.slice(0, idx + marker.length)}${chain}${rest ? `/${rest}` : ''}`;
 }
 
+function storedVariant(url: string, width: number): string | null {
+  if (!/\/w(?:360|720|1600)\.webp(?:$|[?#])/.test(url)) return null;
+  const target = width <= 480 ? 360 : width <= 1000 ? 720 : 1600;
+  return url.replace(/\/w(?:360|720|1600)\.webp/, `/w${target}.webp`);
+}
+
 /** Smaller JPEG for list cards so photos appear with the business, not after it. */
 export function listingThumbUrl(url: string | null | undefined): string | null {
   if (!url) return null;
+  const sized = storedVariant(url, 360);
+  if (sized) return sized;
   if (!url.includes('res.cloudinary.com') || !url.includes('/upload/')) return url;
   return url.replace(/w_\d+/, 'w_360').replace('c_limit', 'c_fill');
 }
@@ -158,6 +166,8 @@ export function cloudinarySized(
   quality: 'auto:low' | 'auto:good' | 'auto:best',
 ): string | null {
   if (!url) return null;
+  const sized = storedVariant(url, width);
+  if (sized) return sized;
   if (!url.includes('res.cloudinary.com') || !url.includes('/upload/')) return url;
   const marker = '/upload/';
   const idx = url.indexOf(marker);

@@ -205,19 +205,70 @@ export default function PromoteDesk({ mode, orderId, initialOrderId }: { mode: '
     const ticketResponse = await fetch('/api/business/promotions/video', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify({ intent: 'ticket', orderId: draftId }),
+      body: JSON.stringify({
+        intent: 'ticket',
+        orderId: draftId,
+        format: /\.mov$/i.test(file.name) ? 'mov' : 'mp4',
+      }),
     }).catch(() => null);
     const ticket = (ticketResponse ? await ticketResponse.json().catch(() => null) : null) as {
       success?: boolean;
       error?: string;
-      mode?: 'signed' | 'preset';
+      mode?: 'signed' | 'preset' | 's3';
       cloudName?: string;
       uploadPreset?: string;
       apiKey?: string;
       timestamp?: string;
       signature?: string;
       folder?: string;
+      uploadUrl?: string;
+      key?: string;
+      contentType?: string;
     } | null;
+    if (ticket?.success && ticket.mode === 's3' && ticket.uploadUrl && ticket.key && ticket.contentType) {
+      const put = await new Promise<boolean>((resolve) => {
+        const xhr = new XMLHttpRequest();
+        uploadRequest.current = xhr;
+        xhr.open('PUT', ticket.uploadUrl || '');
+        xhr.setRequestHeader('Content-Type', ticket.contentType || 'video/mp4');
+        xhr.upload.onprogress = (event) => {
+          if (!event.lengthComputable || event.total <= 0) return;
+          setUploadProgress(Math.min(100, Math.max(0, Math.round((event.loaded / event.total) * 100))));
+        };
+        xhr.onerror = () => resolve(false);
+        xhr.onabort = () => resolve(false);
+        xhr.onload = () => resolve(xhr.status >= 200 && xhr.status < 300);
+        xhr.send(file);
+      });
+      if (!put) {
+        setBusy(false);
+        setUploadProgress(0);
+        setError(`The video could not be uploaded. ${rules}`);
+        return;
+      }
+      setUploadProgress(100);
+      const saved = await fetch('/api/business/promotions/video', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({
+          orderId: draftId,
+          publicId: ticket.key,
+          format: ticket.contentType.includes('quicktime') ? 'mov' : 'mp4',
+          bytes: file.size,
+        }),
+      }).catch(() => null);
+      const savedBody = (saved ? await saved.json().catch(() => null) : null) as { success?: boolean; error?: string } | null;
+      setBusy(false);
+      if (!savedBody?.success) {
+        setUploadProgress(0);
+        setError(savedBody?.error || `The video could not be uploaded. ${rules}`);
+        return;
+      }
+      setAdReview('pending');
+      setReviewReason('');
+      setStep(5);
+      return;
+    }
     const preset = Boolean(ticket?.success && (ticket.mode === 'preset' || ticket.uploadPreset));
     const signed = Boolean(ticket?.success && ticket.mode !== 'preset' && ticket.apiKey && ticket.timestamp && ticket.signature && ticket.folder);
     if (!ticket?.success || !ticket.cloudName || (!preset && !signed)) {

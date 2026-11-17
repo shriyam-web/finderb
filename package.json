@@ -20,6 +20,8 @@
     "backfill:payment-trails": "node scripts/backfill-merchant-payment-trails.mjs"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1169.0",
+    "@aws-sdk/s3-request-presigner": "^3.1171.0",
     "@prisma/adapter-pg": "^7.6.0",
     "@prisma/client": "^7.6.0",
     "@supabase/ssr": "^0.10.0",
@@ -34,7 +36,8 @@
     "react-dom": "19.2.4",
     "react-icons": "^5.6.0",
     "recharts": "^3.9.1",
-    "rss-parser": "^3.13.0"
+    "rss-parser": "^3.13.0",
+    "sharp": "^0.35.5"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

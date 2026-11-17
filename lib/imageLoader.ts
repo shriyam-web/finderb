@@ -1,3 +1,5 @@
+import { rewriteStoredVariant } from '@/lib/media/variantUrl';
+
 type ImageLoaderProps = {
   src: string;
   width: number;
@@ -20,6 +22,9 @@ export default function imageLoader({ src, width, quality }: ImageLoaderProps): 
   if (src.startsWith('/') || src.startsWith('data:') || src.startsWith('blob:')) {
     return markWidth(src, width);
   }
+
+  const stored = rewriteStoredVariant(src, width);
+  if (stored) return stored;
 
   const q = quality ?? 75;
 

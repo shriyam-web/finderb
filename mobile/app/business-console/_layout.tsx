@@ -11,7 +11,7 @@ import { ToastHost } from '../../components/console/kit';
 import { useConsoleBackAction } from '../../lib/consoleNav';
 import { setPreferredShell } from '../../lib/preferredShell';
 
-const MIN_SPLASH_MS = 1500;
+const MIN_SPLASH_MS = 2200;
 
 function ConsoleSplashOverlay() {
   const splashOn = useConsoleSplash();

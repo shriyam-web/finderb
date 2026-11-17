@@ -30,7 +30,8 @@ function TextWipe({ ready, children }: { ready: boolean; children: ReactNode }) 
     const hiddenLeft = -width;
     const hiddenRight = width;
     x.setValue(hiddenLeft);
-    const wipeIn = () => Animated.timing(x, { toValue: 0, duration: 720, easing: EASE, useNativeDriver: true });
+    const wipeIn = () =>
+      Animated.timing(x, { toValue: 0, duration: 1600, easing: Easing.inOut(Easing.cubic), useNativeDriver: true });
     const wipeOn = () =>
       Animated.timing(x, {
         toValue: hiddenRight,

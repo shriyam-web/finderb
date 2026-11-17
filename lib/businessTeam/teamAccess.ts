@@ -115,6 +115,7 @@ export const CONSOLE_ACTION_ACCESS: Record<
   sendOwnerMobileCode: { owner: true },
   confirmOwnerMobile: { owner: true },
   changePassword: { owner: true },
+  verifyKyb: { owner: true },
   respondOwnership: { owner: true },
   markNotificationsRead: { tab: 'overview', mode: 'view' },
   promotions: { owner: true },

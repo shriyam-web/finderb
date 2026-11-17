@@ -16,7 +16,9 @@ import {
   validIndiaCoordinate,
   validPincode,
 } from '@/lib/promotions/model';
-import { readRemoteMp4Facts } from '@/lib/promotions/mp4Facts';
+import { readMp4Facts, readRemoteMp4Facts } from '@/lib/promotions/mp4Facts';
+import { effectiveMediaProvider } from '@/lib/media/runtime';
+import { deletePublicPromotion, mediaStorage, presignPut, readPublicObject } from '@/lib/media/s3';
 import {
   destroyPrivateAsset,
   privateDownloadUrl,
@@ -579,13 +581,24 @@ async function ownPromotionOrder(businessId: string, orderId: string) {
   return { error: null, row, supabase };
 }
 
-export async function issuePromotionVideoUpload(businessId: string, orderId: string) {
+export async function issuePromotionVideoUpload(businessId: string, orderId: string, formatHint?: string) {
   const hidden = await requireEnabled();
   if (hidden) return hidden;
   const limited = checkRateLimit(`promo-video:${businessId}`, RATE_LIMITS.write);
   if (!limited.allowed) return fail('Too many video uploads. Wait and try again.');
   const owned = await ownPromotionOrder(businessId, orderId);
   if (owned.error || !owned.row) return fail(owned.error || 'That promotion was not found.');
+  if ((await effectiveMediaProvider()) === 's3') {
+    const store = mediaStorage();
+    const mov = /mov|qt|quicktime/i.test(String(formatHint || ''));
+    const ext = mov ? 'mov' : 'mp4';
+    const contentType = mov ? 'video/quicktime' : 'video/mp4';
+    const now = new Date();
+    const key = `public/promotions/${now.getUTCFullYear()}/${String(now.getUTCMonth() + 1).padStart(2, '0')}/${crypto.randomBytes(16).toString('hex')}.${ext}`;
+    const signed = store ? await presignPut(store.env.publicBucket, key, contentType) : null;
+    if (!signed) return fail('Video upload is not available right now.');
+    return { success: true as const, mode: 's3' as const, orderId, uploadUrl: signed.uploadUrl, key, contentType, rules: VIDEO_RULES };
+  }
   const ticket = signPrivateUpload(VIDEO_FOLDER);
   if (ticket) return { success: true as const, mode: 'signed' as const, orderId, ...ticket, rules: VIDEO_RULES };
   const preset = publicVideoPreset();
@@ -644,6 +657,41 @@ export async function commitPromotionVideo(businessId: string, orderId: string, 
   }
   const owned = await ownPromotionOrder(businessId, orderId);
   if (owned.error || !owned.row || !owned.supabase) return fail(owned.error || 'That promotion was not found.');
+  if (publicId.startsWith('public/promotions/')) {
+    const loaded = await readPublicObject(publicId);
+    const facts = loaded ? readMp4Facts(loaded.bytes) : null;
+    if (!loaded || !facts) {
+      await deletePublicPromotion(publicId);
+      return fail(`FinderB could not read the length or shape of this video. ${VIDEO_RULES}`);
+    }
+    const format = publicId.endsWith('.mov') ? 'mov' : 'mp4';
+    const problem = describeVideo({ ...facts, bytes: loaded.contentLength, format });
+    if (problem) {
+      await deletePublicPromotion(publicId);
+      return fail(problem);
+    }
+    const store = mediaStorage();
+    const previousId = String(owned.row.video_public_id || '');
+    const { error } = await owned.supabase.from('promotion_orders').update({
+      video_url: store ? `https://${store.env.cdnHost}/${publicId}` : null,
+      video_public_id: publicId,
+      video_format: format,
+      video_duration_sec: facts.duration,
+      video_width: facts.width,
+      video_height: facts.height,
+      ad_review_status: 'pending',
+      ad_review_reason: null,
+      ad_reviewed_at: null,
+      updated_at: new Date().toISOString(),
+    }).eq('id', orderId).eq('business_id', businessId);
+    if (error) {
+      await deletePublicPromotion(publicId);
+      return fail('The video could not be saved.');
+    }
+    if (previousId.startsWith('public/promotions/') && previousId !== publicId) await deletePublicPromotion(previousId);
+    await audit({ orderId, businessId, action: 'ad_sent_for_review', to: 'pending' });
+    return { success: true, orderId };
+  }
   const checked = await hostedVideoFacts(publicId, String(input.format || ''));
   if (!checked.ok) return fail(checked.error);
   const problem = describeVideo(checked.meta);
@@ -708,7 +756,7 @@ export async function attachPromotionVideo(businessId: string, orderId: string, 
     ? { publicId: String(row.video_public_id), resource: 'video' as const, format: String(row.video_format || '') }
     : null;
   const { error } = await supabase.from('promotion_orders').update({
-    video_url: null,
+    video_url: uploaded.asset.publicId.startsWith('public/promotions/') ? uploaded.deliveryUrl : null,
     video_public_id: uploaded.asset.publicId,
     video_format: uploaded.asset.format,
     video_duration_sec: duration,

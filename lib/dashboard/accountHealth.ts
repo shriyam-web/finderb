@@ -70,17 +70,17 @@ export function getAccountHealth(input: {
   const kyc = (input.kycStatus || 'pending').toLowerCase();
   let kycStatus: HealthItemStatus = 'attention';
   let kycDetail =
-    'Identity verification is handled by FinderB’s verification partner. Listing approval and KYC are separate steps.';
+    'Verify with the owner PAN or Udyam number. The name must match this listing. GSTIN can be added later.';
 
   if (kyc === 'approved' || kyc === 'verified') {
     kycStatus = 'complete';
-    kycDetail = 'Your business identity (KYC) is verified on FinderB.';
+    kycDetail = 'Your business identity is verified. The FinderB tick is on this listing.';
   } else if (kyc === 'submitted') {
     kycStatus = 'review';
-    kycDetail = 'KYC documents are with our verification partner — we will update you when complete.';
-  } else if (kyc === 'rejected') {
+    kycDetail = 'A verification check is in progress.';
+  } else if (kyc === 'rejected' || kyc === 'revoked') {
     kycStatus = 'blocked';
-    kycDetail = 'KYC could not be verified. Our team will contact you with next steps.';
+    kycDetail = 'The last check did not match this listing. Submit the owner PAN or Udyam number again.';
   }
 
   items.push({

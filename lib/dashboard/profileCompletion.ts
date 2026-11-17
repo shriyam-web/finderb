@@ -57,7 +57,7 @@ export function getKycMissingField(kycStatus?: string | null): MissingProfileFie
 
   return {
     key: 'kyc',
-    label: 'Identity verification (KYC)',
+    label: 'Business verification (PAN or Udyam)',
     settingsKey: null,
     action: 'kyc',
   };

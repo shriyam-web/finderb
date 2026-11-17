@@ -105,8 +105,8 @@ export default function DashboardActionCenter({
                 <div>
                   <h3 className="font-bold text-slate-900">Identity verification (KYC)</h3>
                   <p className="mt-1 text-sm text-slate-700">
-                    KYC is handled by FinderB&apos;s verification partner — not in this dashboard.
-                    Listing approval and KYC are separate; approving your listing does not complete KYC.
+                    Verify with the owner PAN or the business Udyam number. The name has to match this
+                    listing. GSTIN is optional and can be added later.
                   </p>
                 </div>
                 <button
@@ -114,7 +114,7 @@ export default function DashboardActionCenter({
                   onClick={onOpenKyc}
                   className="inline-flex items-center gap-1 rounded-xl border border-violet-200 bg-white px-5 py-2.5 text-sm font-bold text-violet-900 hover:bg-violet-50"
                 >
-                  Learn more
+                  Verify business
                   <HiOutlineArrowRight size={14} />
                 </button>
               </div>

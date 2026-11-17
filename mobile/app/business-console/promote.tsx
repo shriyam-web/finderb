@@ -665,14 +665,62 @@ export default function PromoteScreen() {
     setUploadProgress(0);
     const ticket = await run<{
       success: true;
-      mode?: 'signed' | 'preset';
+      mode?: 'signed' | 'preset' | 's3';
       cloudName?: string;
       uploadPreset?: string;
       apiKey?: string;
       timestamp?: string;
       signature?: string;
       folder?: string;
-    }>('promotionVideoTicket', { orderId });
+      uploadUrl?: string;
+      key?: string;
+      contentType?: string;
+    }>('promotionVideoTicket', { orderId, format: mime === 'video/quicktime' ? 'mov' : 'mp4' });
+    if (ticket.success && ticket.mode === 's3' && ticket.uploadUrl && ticket.key && ticket.contentType) {
+      let blob: Blob;
+      try {
+        const local = await fetch(asset.uri);
+        blob = await local.blob();
+      } catch {
+        setBusy(false);
+        setUploadProgress(0);
+        setError(`The video could not be uploaded. ${VIDEO_HINT}`);
+        return;
+      }
+      const put = await new Promise<boolean>((resolve) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('PUT', ticket.uploadUrl || '');
+        xhr.setRequestHeader('Content-Type', ticket.contentType || mime);
+        xhr.upload.onprogress = (event) => setUploadProgress(uploadPercent(event.loaded, event.total));
+        xhr.onerror = () => resolve(false);
+        xhr.onload = () => resolve(xhr.status >= 200 && xhr.status < 300);
+        xhr.send(blob);
+      });
+      if (!put) {
+        setBusy(false);
+        setUploadProgress(0);
+        setError(`The video could not be uploaded. ${VIDEO_HINT}`);
+        return;
+      }
+      setUploadProgress(100);
+      const saved = await run<{ success: true }>('commitPromotionVideo', {
+        orderId,
+        publicId: ticket.key,
+        format: mime === 'video/quicktime' ? 'mov' : 'mp4',
+      });
+      setBusy(false);
+      if (!saved.success) {
+        setUploadProgress(0);
+        setError(saved.error || `The video could not be uploaded. ${VIDEO_HINT}`);
+        return;
+      }
+      setVideoReady(true);
+      setAdReview('pending');
+      setAdReviewReason('');
+      notify('Sent to FinderB');
+      setStep('review');
+      return;
+    }
     const preset = ticket.success && (ticket.mode === 'preset' || Boolean(ticket.uploadPreset));
     const signed = ticket.success && ticket.mode !== 'preset' && ticket.apiKey && ticket.timestamp && ticket.signature && ticket.folder;
     if (!ticket.success || !ticket.cloudName || (!preset && !signed)) {

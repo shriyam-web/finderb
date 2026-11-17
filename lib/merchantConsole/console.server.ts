@@ -1,5 +1,8 @@
 import 'server-only';
 
+import { effectiveMediaProvider } from '@/lib/media/runtime';
+import { storePublicImage } from '@/lib/media/store';
+
 import {
   changeBusinessPassword,
   getOwnedBusiness,
@@ -57,7 +60,6 @@ import {
   getListingStatusLabel,
   hasPublicTrustBadge,
   isListingLive,
-  KYC_OUTSOURCED_MESSAGE,
 } from '@/lib/businessVerification';
 import { PROFILE_LINK_FIELDS, validateProfileLink } from '@/lib/validateProfileUrl';
 import { isValidEstablishmentYear, minEstablishmentYear } from '@/lib/establishmentYear';
@@ -96,6 +98,7 @@ import {
   scheduleBusinessDeletion,
 } from '@/lib/accountDeletion.server';
 import { escapeIlikePattern } from '@/lib/searchMatch';
+import { verifyBusinessKyb } from '@/lib/kyb/verifyBusiness.server';
 
 type Business = Record<string, unknown>;
 type Fail = { success: false; error: string };
@@ -397,6 +400,21 @@ async function viewTrend(businessId: string) {
   return { today: counts.get(istDayKey(now)) ?? 0, last7, uniqueVisitors30d: visitors.size, daily };
 }
 
+function kycMessageFor(business: Business): string {
+  const status = String(business.kycStatus || 'pending').toLowerCase();
+  const legal = text(business.kycLegalName);
+  if (status === 'verified' || status === 'approved') {
+    const via = business.kycMethod === 'udyam' ? 'Udyam' : business.kycMethod === 'pan' ? 'PAN' : 'FinderB';
+    return legal
+      ? `Verified with ${via} as ${legal}. You can add a GSTIN later.`
+      : `Verified with ${via}. You can add a GSTIN later.`;
+  }
+  if (status === 'rejected' || status === 'revoked') {
+    return 'The last check did not match this listing. Enter the owner PAN or the business Udyam number again.';
+  }
+  return 'Enter the owner PAN or the business Udyam number. The name must match this listing. GSTIN is optional and can be added later.';
+}
+
 async function overview(businessId: string) {
   const actor = await resolveBusinessActor(businessId);
   if (!actor.ok) return fail(actor.error);
@@ -452,6 +470,12 @@ async function overview(businessId: string) {
       statusLabel: getListingStatusLabel(status),
       isLive: isListingLive(status),
       kycStatus: String(business.kycStatus || 'pending'),
+      kycMethod: text(business.kycMethod) || null,
+      kycLegalName: text(business.kycLegalName) || null,
+      panMasked: text(business.panMasked) || null,
+      udyamNumber: text(business.udyamNumber) || null,
+      gstin: text(business.gstin) || null,
+      gstStatus: text(business.gstStatus) || null,
       verifiedBadge: hasPublicTrustBadge({
         isFinderBVerified: business.isFinderBVerified as boolean,
         hasVerifiedBadge: business.hasVerifiedBadge as boolean,
@@ -521,7 +545,7 @@ async function overview(businessId: string) {
       replyMax: REVIEW_REPLY_MAX_LENGTH,
       maxActiveJobs: 3,
     },
-    kycMessage: KYC_OUTSOURCED_MESSAGE,
+    kycMessage: kycMessageFor(business),
     detailsLockedUntil: detailsLock.locked ? detailsLock.until : null,
     badges,
     promoteOnline: await (await import('@/lib/siteConfig')).isPromoteBusinessOnlineEnabled(),
@@ -598,13 +622,22 @@ async function uploadPhoto(businessId: string, image: unknown) {
   if (Math.floor((match[2].length * 3) / 4) > MAX_UPLOAD_BYTES) {
     return fail('This photo is too large. Choose a smaller one.');
   }
-  const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-  const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
-  if (!cloudName || !uploadPreset) return fail('Photo upload is not available right now.');
-
   const business = await loadBusiness(businessId);
   if ('success' in business) return business;
   const current = photosOf(business);
+
+  if ((await effectiveMediaProvider()) === 's3') {
+    const stored = await storePublicImage(Buffer.from(match[2], 'base64'), 'business');
+    if (!stored.ok) return fail(stored.error);
+    const images = [...current.images, stored.url];
+    const result = await updateBusinessImages(businessId, images, current.cover || stored.url);
+    if (!result.success) return fail(result.error || 'Could not save the photo.');
+    return overview(businessId);
+  }
+
+  const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+  const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
+  if (!cloudName || !uploadPreset) return fail('Photo upload is not available right now.');
 
   let secureUrl = '';
   try {
@@ -996,7 +1029,7 @@ export async function runConsoleAction(userId: string, businessId: string, body:
     case 'deletePromotion':
       return (await import('@/lib/promotions/service')).deleteDraftPromotion(businessId, String(body.orderId || ''));
     case 'promotionVideoTicket':
-      return (await import('@/lib/promotions/service')).issuePromotionVideoUpload(businessId, String(body.orderId || ''));
+      return (await import('@/lib/promotions/service')).issuePromotionVideoUpload(businessId, String(body.orderId || ''), String(body.format || ''));
     case 'commitPromotionVideo':
       return (await import('@/lib/promotions/service')).commitPromotionVideo(businessId, String(body.orderId || ''), {
         publicId: String(body.publicId || ''),
@@ -1108,6 +1141,13 @@ export async function runConsoleAction(userId: string, businessId: string, body:
       return confirmMerchantOwnerMobileCode(body.value, String(body.code || '').trim());
     case 'changePassword':
       return changePassword(businessId, body);
+    case 'verifyKyb': {
+      const method = body.method;
+      if (method !== 'pan' && method !== 'udyam' && method !== 'gstin') {
+        return fail('Choose PAN, Udyam, or GSTIN.');
+      }
+      return verifyBusinessKyb(businessId, method, String(body.value || ''));
+    }
     case 'respondOwnership':
       return recordOwnerOwnershipDecision({
         businessId,

@@ -35,6 +35,15 @@ model Business {
   razorpayFundAccountId                                   String?
   bankName                                               String?
   kycStatus                                              String       @default("pending")
+  kycMethod                                              String?
+  kycLegalName                                           String?
+  kycVerifiedAt                                          DateTime?
+  kycReferenceId                                         String?
+  panMasked                                              String?
+  udyamNumber                                            String?
+  gstin                                                  String?
+  gstLegalName                                           String?
+  gstStatus                                              String?
   hasVerifiedBadge                                       Boolean      @default(false)
   paymentStatus                                          String       @default("pending")
   paymentId                                              String?

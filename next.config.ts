@@ -68,6 +68,18 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'res.cloudinary.com',
       },
+      {
+        protocol: 'https',
+        hostname: '**.cloudfront.net',
+      },
+      ...(process.env.FINDERB_MEDIA_CDN_HOST
+        ? [
+            {
+              protocol: 'https' as const,
+              hostname: process.env.FINDERB_MEDIA_CDN_HOST.replace(/^https?:\/\//, '').replace(/\/.*$/, ''),
+            },
+          ]
+        : []),
       ...(supabaseHostname
         ? [
             {

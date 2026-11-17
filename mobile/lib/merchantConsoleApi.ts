@@ -137,6 +137,12 @@ export type ConsoleBusiness = {
   statusLabel: string;
   isLive: boolean;
   kycStatus: string;
+  kycMethod?: string | null;
+  kycLegalName?: string | null;
+  panMasked?: string | null;
+  udyamNumber?: string | null;
+  gstin?: string | null;
+  gstStatus?: string | null;
   verifiedBadge: boolean;
   registrationNumber: string | null;
   deletionScheduledAt: string | null;

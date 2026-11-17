@@ -12,7 +12,7 @@ export function getListingStatusLabel(status?: string | null): string {
   return status || 'Pending admin review';
 }
 
-/** Identity KYC — separate from listing approval; set only by verification partner / admin KYC action. */
+/** Identity KYC — separate from listing approval. Set by a matching PAN or Udyam check. */
 export function isKycVerified(kycStatus?: string | null): boolean {
   const status = (kycStatus || 'pending').toLowerCase();
   return status === 'approved' || status === 'verified';
@@ -34,4 +34,4 @@ export function hasPublicTrustBadge(business: {
 }
 
 export const KYC_OUTSOURCED_MESSAGE =
-  'Business identity verification (KYC) is handled by FinderB’s verification partner. Our team will reach out when verification is required — you do not need to upload PAN/GST documents in the dashboard.';
+  'Verify this business with the owner PAN or the Udyam registration number. The name must match the listing. GSTIN is optional and can be added later.';

@@ -24,7 +24,7 @@ export async function POST(request: Request) {
     } | null;
     const orderId = String(body?.orderId || '');
     const result = body?.intent === 'ticket'
-      ? await issuePromotionVideoUpload(businessId, orderId)
+      ? await issuePromotionVideoUpload(businessId, orderId, body?.format)
       : await commitPromotionVideo(businessId, orderId, {
           publicId: String(body?.publicId || ''),
           format: body?.format,

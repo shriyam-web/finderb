@@ -1,6 +1,7 @@
 import { unstable_noStore as noStore } from 'next/cache';
 import { createServiceClient } from '@/lib/supabase/service';
 import { getPublicSupabase } from '@/lib/supabase/public';
+import { s3Env } from '@/lib/media/env';
 import {
   DEFAULT_SITE_CONFIG,
   SITE_CONFIG_ID,
@@ -15,10 +16,12 @@ export {
   publicSiteConfig,
 } from '@/lib/siteConfigShared';
 export type {
+  MediaProvider,
   SiteBilling,
   SiteConfig,
   SiteContact,
   SiteFeatures,
+  SiteMedia,
   SitePricing,
 } from '@/lib/siteConfigShared';
 
@@ -29,8 +32,18 @@ export function clearSiteConfigCache() {
   cache = null;
 }
 
+function withStorageReady(config: SiteConfig): SiteConfig {
+  return {
+    ...config,
+    media: {
+      provider: config.media.provider,
+      ready: s3Env().ready,
+    },
+  };
+}
+
 export async function getSiteConfig(): Promise<SiteConfig> {
-  if (cache && Date.now() - cache.at < CACHE_MS) return cache.config;
+  if (cache && Date.now() - cache.at < CACHE_MS) return withStorageReady(cache.config);
   noStore();
   try {
     const client = createServiceClient() ?? getPublicSupabase();
@@ -39,12 +52,12 @@ export async function getSiteConfig(): Promise<SiteConfig> {
       .select('config')
       .eq('id', SITE_CONFIG_ID)
       .maybeSingle();
-    if (error || !data) return DEFAULT_SITE_CONFIG;
+    if (error || !data) return withStorageReady(DEFAULT_SITE_CONFIG);
     const config = parseSiteConfig((data as { config?: unknown }).config);
     cache = { at: Date.now(), config };
-    return config;
+    return withStorageReady(config);
   } catch {
-    return DEFAULT_SITE_CONFIG;
+    return withStorageReady(DEFAULT_SITE_CONFIG);
   }
 }
 

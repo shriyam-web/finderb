@@ -222,7 +222,7 @@ export function consoleSearchPages(overview: ConsoleOverview): ConsoleSearchHit[
       id: 'page-kyc',
       title: 'Identity check (KYC)',
       subtitle: 'Login and security',
-      keywords: 'kyc identity verification aadhaar pan documents account',
+      keywords: 'kyc identity verification pan udyam gstin gst business verify account',
       icon: 'shield-outline',
       href: '/business-console/account',
       group: 'Pages',

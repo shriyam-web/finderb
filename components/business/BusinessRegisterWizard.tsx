@@ -811,7 +811,7 @@ export default function BusinessRegisterWizard({
                   </div>
                 </div>
                 <p className="text-sm text-[#64748b]">
-                  You can complete identity verification (KYC) later — handled by FinderB&apos;s verification partner, not in this form.
+                  You can verify this business later from the dashboard with PAN or Udyam. GSTIN can be added after that.
                 </p>
                 {selectedPlan === 'pro' && registeredBusiness?.id ? (
                   <div className="mx-auto max-w-sm rounded-2xl border-2 border-[#dfe6ee] bg-[#f8fafc] px-5 py-5 text-left">

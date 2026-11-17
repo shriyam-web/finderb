@@ -418,7 +418,7 @@ export async function updateBusinessKYC(id: string, _kycData: unknown) {
     return {
       success: false,
       error:
-        'In-dashboard KYC uploads are no longer accepted. FinderB verifies businesses through a separate verification partner — our team will contact you when documents are needed.',
+        'Enter the PAN, Udyam number, or GSTIN on the Business verification page.',
     };
   } catch (error: unknown) {
     const errorMessage = handleError(error, 'KYC Update');

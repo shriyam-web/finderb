@@ -39,6 +39,14 @@ export type SiteFeatures = {
   promoteBusinessOnline: boolean;
 };
 
+export type MediaProvider = 'cloudinary' | 's3';
+
+/** `ready` is calculated on the server. Saved JSON cannot turn it on. */
+export type SiteMedia = {
+  provider: MediaProvider;
+  ready: boolean;
+};
+
 export type SiteBilling = {
   razorpayMonthlyPlanId: string | null;
 };
@@ -47,6 +55,7 @@ export type SiteConfig = {
   pricing: SitePricing;
   contact: SiteContact;
   features: SiteFeatures;
+  media: SiteMedia;
   billing: SiteBilling;
 };
 
@@ -79,6 +88,10 @@ export const DEFAULT_SITE_CONFIG: SiteConfig = {
   features: {
     promoteBusinessOnline: false,
   },
+  media: {
+    provider: 'cloudinary',
+    ready: false,
+  },
   billing: {
     razorpayMonthlyPlanId: null,
   },
@@ -103,11 +116,16 @@ function flag(value: unknown, fallback: boolean): boolean {
   return fallback;
 }
 
+export function mediaProviderOf(value: unknown): MediaProvider {
+  return value === 's3' ? 's3' : 'cloudinary';
+}
+
 export function parseSiteConfig(raw: unknown): SiteConfig {
   const row = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
   const pricing = (row.pricing && typeof row.pricing === 'object' ? row.pricing : {}) as Record<string, unknown>;
   const contact = (row.contact && typeof row.contact === 'object' ? row.contact : {}) as Record<string, unknown>;
   const features = (row.features && typeof row.features === 'object' ? row.features : {}) as Record<string, unknown>;
+  const media = (row.media && typeof row.media === 'object' ? row.media : {}) as Record<string, unknown>;
   const billing = (row.billing && typeof row.billing === 'object' ? row.billing : {}) as Record<string, unknown>;
   const base = DEFAULT_SITE_CONFIG;
   const planId = String(billing.razorpayMonthlyPlanId || '').trim();
@@ -140,6 +158,10 @@ export function parseSiteConfig(raw: unknown): SiteConfig {
     features: {
       promoteBusinessOnline: flag(features.promoteBusinessOnline, false),
     },
+    media: {
+      provider: mediaProviderOf(media.provider),
+      ready: false,
+    },
     billing: {
       razorpayMonthlyPlanId: planId || null,
     },
@@ -151,6 +173,10 @@ export function publicSiteConfig(config: SiteConfig) {
     pricing: config.pricing,
     contact: config.contact,
     features: config.features,
+    media: {
+      provider: config.media.provider,
+      ready: config.media.provider === 's3' && config.media.ready === true,
+    },
   };
 }
 

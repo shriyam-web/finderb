@@ -16,6 +16,7 @@ import {
   verifyPassword,
 } from '@/lib/security/password';
 import { createMobileSessionToken } from '@/lib/auth/mobileToken';
+import { effectiveMediaProvider, s3Env } from '@/lib/media/runtime';
 import {
   extractIndianMobileDigits,
   indianMobileValidationError,
@@ -546,10 +547,13 @@ export async function mobileAuthSuccessForUserId(
   };
 }
 
-function isCloudinaryImageUrl(url: unknown) {
+async function isAllowedAvatarUrl(url: unknown) {
   try {
     const parsed = new URL(String(url));
-    return parsed.protocol === 'https:' && parsed.hostname === 'res.cloudinary.com';
+    if (parsed.protocol !== 'https:') return false;
+    if (parsed.hostname === 'res.cloudinary.com') return true;
+    const host = s3Env().cdnHost;
+    return (await effectiveMediaProvider()) === 's3' && host !== '' && parsed.hostname === host;
   } catch {
     return false;
   }
@@ -677,7 +681,7 @@ export async function mobileUpdateProfile(
   }
 
   if (patch.avatarUrl !== undefined) {
-    if (patch.avatarUrl !== null && !isCloudinaryImageUrl(patch.avatarUrl)) {
+    if (patch.avatarUrl !== null && !(await isAllowedAvatarUrl(patch.avatarUrl))) {
       return { success: false, error: 'Upload the photo again.' };
     }
     updates.avatarUrl = patch.avatarUrl;

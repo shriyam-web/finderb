@@ -24,6 +24,8 @@ export const RATE_LIMITS = {
   geocode: { limit: 40, windowMs: 60 * 1000 },
   /** Razorpay order + verify */
   payment: { limit: 15, windowMs: 60 * 60 * 1000 },
+  /** Cashfree PAN / Udyam / GSTIN checks per IP */
+  kyb: { limit: 12, windowMs: 60 * 60 * 1000 },
   /** Resend a business team invite to one person */
   teamInvite: { limit: 1, windowMs: 2 * 60 * 1000 },
   /** Team invites from one business per hour */

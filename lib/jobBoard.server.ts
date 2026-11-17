@@ -3,6 +3,8 @@ import 'server-only';
 import { randomUUID } from 'crypto';
 import { createServiceClient } from '@/lib/supabase/service';
 import { inspectCv, type CvKind } from '@/lib/cvFile';
+import { effectiveMediaProvider } from '@/lib/media/runtime';
+import { presignPrivateGet, putPrivateBytes } from '@/lib/media/s3';
 import { sendOwnershipEmail } from '@/lib/email/sendOwnershipEmail';
 import { recordMerchantNotification } from '@/lib/merchantAlert.server';
 import { queueBusinessPush, recordDirectUserNotification } from '@/lib/userNotifications.server';
@@ -78,6 +80,16 @@ export async function requireHrContact(businessId: string) {
 }
 
 async function storeCv(businessId: string, file: { bytes: Buffer; kind: CvKind; contentType: string }) {
+  if ((await effectiveMediaProvider()) === 's3') {
+    const key = `private/cvs/${businessId}/${randomUUID()}.${file.kind}`;
+    try {
+      const saved = await putPrivateBytes(key, file.bytes, file.contentType);
+      if (!saved) return { ok: false as const, error: 'CV storage is not available.' };
+      return { ok: true as const, path: `s3:${key}` };
+    } catch {
+      return { ok: false as const, error: 'CV could not be stored.' };
+    }
+  }
   const supabase = createServiceClient();
   if (!supabase) return { ok: false as const, error: 'CV storage is not available.' };
   const path = `${businessId}/${randomUUID()}.${file.kind}`;
@@ -204,6 +216,17 @@ export async function applicationDownload(businessId: string, applicationId: str
     .maybeSingle();
   if (error || !data || data.business_id !== businessId || !data.cv_path) {
     return { success: false as const, error: 'No CV on this application.' };
+  }
+  if (String(data.cv_path).startsWith('s3:')) {
+    const key = String(data.cv_path).slice(3);
+    const url = await presignPrivateGet(key);
+    if (!url) return { success: false as const, error: 'Could not open this CV.' };
+    return {
+      success: true as const,
+      url,
+      name: String(data.cv_name || 'cv'),
+      kind: String(data.cv_kind || ''),
+    };
   }
   const signed = await supabase.storage.from(BUCKET).createSignedUrl(String(data.cv_path), 60 * 10);
   if (signed.error || !signed.data?.signedUrl) {

@@ -141,7 +141,7 @@ export default function AccountHealthPanel({
             action={
               kyc.status === 'attention' || kyc.status === 'blocked' ? (
                 <button type="button" onClick={onOpenKyc} className={dashboard.btnPrimary}>
-                  About KYC
+                  Verify business
                 </button>
               ) : undefined
             }

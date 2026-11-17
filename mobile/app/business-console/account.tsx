@@ -10,6 +10,7 @@ import { fetchAllCategories, type HomeCategory } from '../../lib/api';
 import { mobileInputDigits } from '../../lib/phoneInput';
 import { isFailure, type ChangeRequest, type ConsoleOverview } from '../../lib/merchantConsoleApi';
 import { OtpCodeBoxes } from '../../components/OtpCodeBoxes';
+import { BusinessKybCard } from '../../components/console/BusinessKybCard';
 import { ConsoleGate } from '../../components/console/ConsoleGate';
 import { TeamAccess } from '../../components/console/TeamAccess';
 import { canEditTeamTab } from '../../lib/teamAccess';
@@ -427,8 +428,6 @@ function AccountBody({ o }: { o: ConsoleOverview }) {
     }, [run]),
   );
 
-  const kycDone = /verified|approved/i.test(b.kycStatus || '');
-  const kycReview = /review|pending|submitted/i.test(b.kycStatus || '');
   const isOwner = o.actor?.isOwner !== false;
   const canEditSettings = canEditTeamTab(o.actor?.access, 'settings', isOwner);
 
@@ -566,17 +565,7 @@ function AccountBody({ o }: { o: ConsoleOverview }) {
       </Section>
 
       <Section title="Verification">
-        <Panel style={styles.kyc}>
-          <View style={styles.kycHead}>
-            <Ionicons name={kycDone ? 'shield-checkmark' : 'shield-outline'} size={20} color={iconTint} />
-            <Text style={styles.kycTitle}>Identity check (KYC)</Text>
-            <Tag
-              label={kycDone ? 'Verified' : kycReview ? 'In review' : 'Not started'}
-              tone={kycDone ? 'success' : kycReview ? 'warning' : 'neutral'}
-            />
-          </View>
-          <Text style={styles.kycBody}>{o.kycMessage}</Text>
-        </Panel>
+        <BusinessKybCard o={o} />
       </Section>
 
       <Panel flush>
@@ -663,9 +652,4 @@ const useStyles = createConsoleStyles((c) => ({
   option: { paddingVertical: 13, borderBottomWidth: 0.5, borderBottomColor: c.line },
   optionPressed: { backgroundColor: c.sunken },
   optionText: { fontFamily: fonts.regular, fontSize: 15, color: c.ink },
-  kyc: { gap: 8 },
-  kycHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  kycTitle: { flex: 1, fontFamily: fonts.semiBold, fontSize: 15, color: c.ink },
-  kycBody: { fontFamily: fonts.regular, fontSize: 13, lineHeight: 19, color: c.muted },
-  kycBtn: { alignSelf: 'flex-start' },
 }));

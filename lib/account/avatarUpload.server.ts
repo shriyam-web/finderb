@@ -1,6 +1,8 @@
 import 'server-only';
 
 import { businessProfileLockError, mobileUpdateProfile } from '@/lib/auth/mobileAuth.server';
+import { effectiveMediaProvider } from '@/lib/media/runtime';
+import { storePublicImage } from '@/lib/media/store';
 
 const MAX_BYTES = 3_000_000;
 const DATA_URI = /^data:image\/(jpeg|png|webp);base64,([A-Za-z0-9+/=]+)$/;
@@ -14,6 +16,12 @@ export async function uploadUserAvatar(userId: string, dataUri: unknown) {
   }
   const locked = await businessProfileLockError(userId);
   if (locked) return { success: false as const, error: locked };
+
+  if ((await effectiveMediaProvider()) === 's3') {
+    const stored = await storePublicImage(Buffer.from(match[2], 'base64'), 'avatar');
+    if (!stored.ok) return { success: false as const, error: stored.error };
+    return mobileUpdateProfile(userId, { avatarUrl: stored.url });
+  }
 
   const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
   const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;

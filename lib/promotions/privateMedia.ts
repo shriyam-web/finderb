@@ -1,4 +1,8 @@
 import crypto from 'crypto';
+import { PutObjectCommand } from '@aws-sdk/client-s3';
+import { effectiveMediaProvider } from '@/lib/media/runtime';
+import { deletePrivateObject, deletePublicPromotion, mediaStorage, putPrivateBytes } from '@/lib/media/s3';
+import { readMp4Facts } from '@/lib/promotions/mp4Facts';
 
 export type PrivateResource = 'image' | 'video' | 'raw';
 
@@ -97,7 +101,70 @@ async function uploadWithPreset(file: File, resource: PrivateResource) {
   };
 }
 
+async function storeSwitchedFile(file: File, resource: PrivateResource) {
+  const store = mediaStorage();
+  if (!store) return { success: false as const, error: 'The file could not be stored. Try again.' };
+  const bytes = Buffer.from(await file.arrayBuffer());
+  const mov = file.type === 'video/quicktime';
+  const ext = resource === 'video'
+    ? (mov ? 'mov' : 'mp4')
+    : file.type === 'image/png'
+      ? 'png'
+      : file.type === 'image/webp'
+        ? 'webp'
+        : file.type === 'application/pdf'
+          ? 'pdf'
+          : 'jpg';
+  const contentType = resource === 'video'
+    ? (mov ? 'video/quicktime' : 'video/mp4')
+    : file.type || 'application/octet-stream';
+  if (resource === 'video') {
+    const facts = readMp4Facts(bytes);
+    if (!facts?.width || !facts.height) {
+      return { success: false as const, error: 'FinderB could not read this video. Use an MP4 or MOV.' };
+    }
+    const now = new Date();
+    const key = `public/promotions/${now.getUTCFullYear()}/${String(now.getUTCMonth() + 1).padStart(2, '0')}/${crypto.randomBytes(16).toString('hex')}.${ext}`;
+    try {
+      await store.client.send(new PutObjectCommand({
+        Bucket: store.env.publicBucket,
+        Key: key,
+        Body: bytes,
+        ContentType: contentType,
+        CacheControl: 'public, max-age=31536000, immutable',
+        ServerSideEncryption: 'AES256',
+      }));
+    } catch {
+      return { success: false as const, error: 'The file could not be stored. Try again.' };
+    }
+    return {
+      success: true as const,
+      asset: { publicId: key, resource, format: ext } satisfies StoredAsset,
+      deliveryUrl: `https://${store.env.cdnHost}/${key}`,
+      duration: facts.duration,
+      width: facts.width,
+      height: facts.height,
+    };
+  }
+  const key = `private/verification/${crypto.randomBytes(16).toString('hex')}.${ext}`;
+  try {
+    const saved = await putPrivateBytes(key, bytes, contentType);
+    if (!saved) return { success: false as const, error: 'The file could not be stored. Try again.' };
+  } catch {
+    return { success: false as const, error: 'The file could not be stored. Try again.' };
+  }
+  return {
+    success: true as const,
+    asset: { publicId: key, resource, format: ext } satisfies StoredAsset,
+    deliveryUrl: null as string | null,
+    duration: undefined,
+    width: undefined,
+    height: undefined,
+  };
+}
+
 export async function uploadPrivateFile(file: File, resource: PrivateResource, folder: string) {
+  if ((await effectiveMediaProvider()) === 's3') return storeSwitchedFile(file, resource);
   const auth = creds();
   if (!auth) return uploadWithPreset(file, resource);
   const timestamp = String(Math.floor(Date.now() / 1000));
@@ -180,6 +247,14 @@ export async function readPrivateVideo(publicId: string) {
 }
 
 export async function destroyPrivateAsset(asset: StoredAsset) {
+  if (asset.publicId.startsWith('private/')) {
+    await deletePrivateObject(asset.publicId);
+    return;
+  }
+  if (asset.publicId.startsWith('public/promotions/')) {
+    await deletePublicPromotion(asset.publicId);
+    return;
+  }
   const auth = creds();
   if (!auth || !asset.publicId) return;
   const timestamp = String(Math.floor(Date.now() / 1000));

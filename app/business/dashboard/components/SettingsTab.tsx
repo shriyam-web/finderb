@@ -28,6 +28,7 @@ import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import Image from 'next/image';
 import { CldUploadWidget } from 'next-cloudinary';
+import { uploadOwnedBusinessPhoto } from '@/app/actions/businessPhoto';
 import GoogleMapsLocationEditor from './GoogleMapsLocationEditor';
 import { validateMapPinAgainstAddress } from '@/app/actions/location';
 import KeywordTagInput from './KeywordTagInput';
@@ -270,6 +271,23 @@ export default function SettingsTab({
   isOwner = true,
   canEdit = true,
 }: SettingsTabProps) {
+  const [photoStore, setPhotoStore] = useState<'checking' | 's3' | 'cloudinary' | 'unavailable'>('checking');
+  const [photoError, setPhotoError] = useState('');
+  const [photoBusy, setPhotoBusy] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/site-config')
+      .then((response) => response.json())
+      .then((body) => {
+        if (!cancelled) setPhotoStore(body?.media?.effective === 's3' ? 's3' : 'cloudinary');
+      })
+      .catch(() => {
+        if (!cancelled) setPhotoStore('unavailable');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   const loginEmail = pickPublicBusinessEmail(business?.workEmail, business?.email) || '';
   const loginMobile = extractIndianMobileDigits(business?.mobile);
   const editedOwnerMobile = extractIndianMobileDigits(String(profileData.ownerMobile ?? ''));
@@ -728,7 +746,47 @@ export default function SettingsTab({
                           </div>
                         </div>
                       ))}
-                      {mediaImages.length < 5 && (
+                      {mediaImages.length < 5 && photoStore === 's3' ? (
+                        <label className="flex aspect-square cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-zinc-300 text-zinc-400 hover:border-[#3F3F46] hover:text-[#3F3F46]">
+                          <HiOutlinePlus size={22} />
+                          <span className="text-[10px] font-medium">{photoBusy ? 'Uploading' : 'Add photo'}</span>
+                          <input
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp"
+                            className="sr-only"
+                            disabled={photoBusy}
+                            onChange={(event) => {
+                              const file = event.target.files?.[0];
+                              event.target.value = '';
+                              if (!file || !business?.id) return;
+                              if (file.size > 5_000_000) {
+                                setPhotoError('This photo is too large. Choose a smaller one.');
+                                return;
+                              }
+                              setPhotoError('');
+                              setPhotoBusy(true);
+                              const reader = new FileReader();
+                              reader.onload = () => {
+                                void uploadOwnedBusinessPhoto(String(business.id), String(reader.result || ''))
+                                  .then(async (saved) => {
+                                    if (!saved.success) {
+                                      setPhotoError(saved.error);
+                                      return;
+                                    }
+                                    await handleUploadSuccess({
+                                      event: 'success',
+                                      info: { secure_url: saved.url },
+                                    });
+                                  })
+                                  .catch(() => setPhotoError('Could not upload the photo. Please try again.'))
+                                  .finally(() => setPhotoBusy(false));
+                              };
+                              reader.readAsDataURL(file);
+                            }}
+                          />
+                        </label>
+                      ) : null}
+                      {mediaImages.length < 5 && photoStore === 'cloudinary' ? (
                         <CldUploadWidget
                           uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET}
                           onSuccess={handleUploadSuccess}
@@ -752,7 +810,13 @@ export default function SettingsTab({
                             </button>
                           )}
                         </CldUploadWidget>
-                      )}
+                      ) : null}
+                      {mediaImages.length < 5 && photoStore === 'unavailable' ? (
+                        <p className="col-span-full text-xs text-rose-600">Photo upload is not available right now. Refresh and try again.</p>
+                      ) : null}
+                      {photoError ? (
+                        <p className="col-span-full text-xs text-rose-600">{photoError}</p>
+                      ) : null}
                     </div>
                       );
                     })()
