@@ -1,4 +1,4 @@
 body.txt
 tmp-signals-check.mjs
 scripts/verify-fcm.mjs
-mobile
+/mobile
