@@ -1,4 +1,4 @@
-const CACHE_NAME = 'finderb-v3';
+const CACHE_NAME = 'finderb-v4';
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -20,6 +20,15 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
+  // Photos are served by the media CDN. Leave that connection to the browser
+  // so a service-worker hop does not delay the image.
+  let requestUrl;
+  try {
+    requestUrl = new URL(event.request.url);
+  } catch {
+    return;
+  }
+  if (requestUrl.origin !== self.location.origin) return;
 
   event.respondWith(
     fetch(event.request)

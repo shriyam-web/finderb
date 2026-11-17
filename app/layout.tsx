@@ -68,6 +68,10 @@ export default async function RootLayout({
   const jsonLd = siteJsonLd(siteConfig);
   const mode = effectiveSiteMode(runtime);
   const splashSeen = (await cookies()).get("finderb_splash")?.value === "1";
+  const mediaCdnHost = (process.env.FINDERB_MEDIA_CDN_HOST || "")
+    .trim()
+    .replace(/^https?:\/\//, "")
+    .replace(/\/.*$/, "");
   const htmlClass = [
     inter.variable,
     outfit.variable,
@@ -80,6 +84,12 @@ export default async function RootLayout({
   return (
     <html lang="en" className={htmlClass}>
       <head>
+        {mediaCdnHost ? (
+          <>
+            <link rel="preconnect" href={`https://${mediaCdnHost}`} />
+            <link rel="dns-prefetch" href={`https://${mediaCdnHost}`} />
+          </>
+        ) : null}
         {mode !== "maintenance" && (
           <script
             type="application/ld+json"
