@@ -62,7 +62,7 @@ export function BrandedSplash({
           },
         ]}
       >
-        <FinderBLogo size={96} />
+        <FinderBLogo size={77} />
         <Text style={styles.word}>{'FinderB '}</Text>
         <Text style={styles.tag}>{'Trusted locals near you '}</Text>
       </Animated.View>
@@ -95,11 +95,11 @@ const useStyles = createThemedStyles((colors) => ({
     marginTop: -36,
   },
   word: {
-    marginTop: 18,
+    marginTop: 14,
     fontFamily: fonts.extraBold,
-    fontSize: 40,
-    lineHeight: 48,
-    letterSpacing: -1.2,
+    fontSize: 32,
+    lineHeight: 38,
+    letterSpacing: -1,
     paddingHorizontal: 6,
     color: colors.heading,
   },
