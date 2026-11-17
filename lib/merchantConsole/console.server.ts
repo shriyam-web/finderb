@@ -1,7 +1,6 @@
 import 'server-only';
 
 import { effectiveMediaProvider } from '@/lib/media/runtime';
-import { storePublicImage } from '@/lib/media/store';
 
 import {
   changeBusinessPassword,
@@ -627,6 +626,7 @@ async function uploadPhoto(businessId: string, image: unknown) {
   const current = photosOf(business);
 
   if ((await effectiveMediaProvider()) === 's3') {
+    const { storePublicImage } = await import('@/lib/media/store');
     const stored = await storePublicImage(Buffer.from(match[2], 'base64'), 'business');
     if (!stored.ok) return fail(stored.error);
     const images = [...current.images, stored.url];

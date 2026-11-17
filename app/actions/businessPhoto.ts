@@ -2,7 +2,6 @@
 
 import { assertBusinessTab } from '@/lib/businessTeam/teamActor.server';
 import { effectiveMediaProvider } from '@/lib/media/runtime';
-import { storePublicImage } from '@/lib/media/store';
 import { ownershipDetailsLock } from '@/lib/ownershipRequest.server';
 
 const DATA_URI = /^data:image\/(jpeg|png|webp);base64,([A-Za-z0-9+/=]+)$/;
@@ -22,7 +21,7 @@ export async function uploadOwnedBusinessPhoto(businessId: string, dataUri: stri
   if (!auth.ok) return { success: false as const, error: auth.error };
   const locked = await ownershipDetailsLock(businessId);
   if (locked.locked) return { success: false as const, error: locked.error };
-  const stored = await storePublicImage(Buffer.from(match[2], 'base64'), 'business');
+  const stored = await (await import('@/lib/media/store')).storePublicImage(Buffer.from(match[2], 'base64'), 'business');
   if (!stored.ok) return { success: false as const, error: stored.error };
   return { success: true as const, url: stored.url };
 }
