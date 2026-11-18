@@ -20,7 +20,7 @@ import { buildFeaturedCategoryGroups } from '@/lib/featuredCategoryGroups';
 import { getTrendingThisWeek } from '@/app/actions/analytics';
 import type { TrendingWeekItem } from '@/lib/trendingThisWeek';
 
-export const HOME_PAGE_REVALIDATE_SECONDS = 300;
+export const HOME_PAGE_REVALIDATE_SECONDS = 900;
 export const HOME_PAGE_CACHE_TAG = 'homepage';
 
 export type HomePageData = {

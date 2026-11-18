@@ -20,8 +20,8 @@ import {
   getCachedTopCategoriesForLinks,
 } from '@/lib/businessPublicPageData';
 
-/** Public profiles: ISR ~10 min. Updates call revalidateBusinessProfilePaths. */
-export const revalidate = 600;
+/** Public profiles refresh every 15 minutes. Updates call revalidateBusinessProfilePaths. */
+export const revalidate = 900;
 
 type PageProps = {
   params: Promise<{ id: string }>;

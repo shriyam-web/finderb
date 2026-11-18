@@ -1,5 +1,4 @@
-import { unstable_noStore as noStore } from 'next/cache';
-import { connection } from 'next/server';
+import { unstable_cache } from 'next/cache';
 import { createServiceClient } from '@/lib/supabase/service';
 import { getPublicSupabase } from '@/lib/supabase/public';
 
@@ -48,18 +47,25 @@ const FALLBACK: SiteRuntime = {
   updatedAt: null,
 };
 
+async function readSiteRuntime(): Promise<SiteRuntime> {
+  const client = createServiceClient() ?? getPublicSupabase();
+  const { data, error } = await client
+    .from('site_runtime')
+    .select('mode, message, until, started_at, updated_at')
+    .eq('id', SITE_RUNTIME_ID)
+    .maybeSingle();
+  if (error || !data) throw new Error(error?.message || 'Site runtime is missing');
+  return parseSiteRuntime(data as Record<string, unknown>);
+}
+
+const readCachedSiteRuntime = unstable_cache(readSiteRuntime, ['site-runtime-v1'], {
+  revalidate: 15 * 60,
+  tags: ['site-runtime'],
+});
+
 export async function getSiteRuntime(): Promise<SiteRuntime> {
-  noStore();
-  await connection();
   try {
-    const client = createServiceClient() ?? getPublicSupabase();
-    const { data, error } = await client
-      .from('site_runtime')
-      .select('mode, message, until, started_at, updated_at')
-      .eq('id', SITE_RUNTIME_ID)
-      .maybeSingle();
-    if (error || !data) return FALLBACK;
-    return parseSiteRuntime(data as Record<string, unknown>);
+    return await readCachedSiteRuntime();
   } catch {
     return FALLBACK;
   }

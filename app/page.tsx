@@ -9,7 +9,7 @@ import {
 } from '@/lib/siteSeo';
 import HomeStructuredData from '@/components/HomeStructuredData';
 
-export const revalidate = 300;
+export const revalidate = 900;
 
 export const metadata: Metadata = {
   title: HOME_PAGE_TITLE,

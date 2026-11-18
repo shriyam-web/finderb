@@ -75,13 +75,19 @@ function rememberSplash() {
   }
 }
 
+function splashAlreadySeen() {
+  try {
+    return document.cookie.split(';').some((part) => part.trim().startsWith('finderb_splash='));
+  } catch {
+    return true;
+  }
+}
+
 export default function LayoutClient({
   children,
-  splashSeen = false,
   siteConfig = DEFAULT_SITE_CONFIG,
 }: {
   children: React.ReactNode;
-  splashSeen?: boolean;
   siteConfig?: SiteConfig;
 }) {
   const pathname = usePathname();
@@ -103,10 +109,10 @@ export default function LayoutClient({
     userDashboardRoute ||
     pathname === VERIFY_MOBILE_PATH ||
     isBusinessOnboardingPreview(pathname);
-  const playSplash = !splashSeen && !skipSplash;
-  const [loading, setLoading] = useState(playSplash);
-  const playOnEntry = useRef(playSplash);
+  const [loading, setLoading] = useState(false);
+  const playOnEntry = useRef(false);
   const entryPath = useRef(pathname);
+  const skipSplashOnEntry = useRef(skipSplash);
   const hideTopNavFooter =
     merchantAppShell ||
     isCategoriesBrowse ||
@@ -122,11 +128,11 @@ export default function LayoutClient({
     !isBusinessOnboardingPreview(pathname);
 
   useEffect(() => {
+    const shouldPlay = !splashAlreadySeen() && !skipSplashOnEntry.current;
+    playOnEntry.current = shouldPlay;
     rememberSplash();
-    if (!playOnEntry.current) {
-      setLoading(false);
-      return;
-    }
+    if (!shouldPlay) return;
+    setLoading(true);
     const timer = setTimeout(() => setLoading(false), 3000);
     return () => clearTimeout(timer);
   }, []);

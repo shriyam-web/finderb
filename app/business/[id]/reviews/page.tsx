@@ -11,7 +11,7 @@ import {
 import { getCachedPublicBusiness } from '@/lib/businessPublicPageData';
 import { buildPageMetadata } from '@/lib/seoUtils';
 
-export const revalidate = 600;
+export const revalidate = 900;
 
 type PageProps = {
   params: Promise<{ id: string }>;

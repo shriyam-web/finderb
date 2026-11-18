@@ -1,6 +1,6 @@
 /**
  * Public business profile reads — no cookies(), so pages can use ISR.
- * Cached for ~10 minutes; merchant updates call revalidateBusinessProfilePaths.
+ * Cached for 15 minutes; merchant updates call revalidateBusinessProfilePaths.
  */
 import { unstable_cache } from 'next/cache';
 import { getPublicSupabase } from '@/lib/supabase/public';
@@ -15,7 +15,7 @@ import { escapeIlikePattern } from '@/lib/searchMatch';
 import { categoryHref } from '@/lib/categoryDisplay';
 import { loadPublicBusinessSignals } from '@/lib/publicBusinessSignals';
 
-export const BUSINESS_PAGE_REVALIDATE_SECONDS = 600;
+export const BUSINESS_PAGE_REVALIDATE_SECONDS = 900;
 
 type PublicBusinessResult =
   | { success: true; business: ReturnType<typeof mapBusinessRecord>; reason: 'active' }

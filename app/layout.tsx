@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { cookies } from "next/headers";
 import "./globals.css";
 import LayoutClient from "@/components/LayoutClient";
 import MaintenanceScreen from "@/components/MaintenanceScreen";
@@ -12,6 +11,9 @@ import { getRootStructuredData, rootSiteMetadata } from "@/lib/siteSeo";
 import { serializeJsonLd } from "@/components/JsonLd";
 
 const googleSiteVerification = process.env.GOOGLE_SITE_VERIFICATION?.trim();
+
+/** Home, business profiles, and the shared layout all refresh within 15 minutes. */
+export const revalidate = 900;
 
 export const metadata: Metadata = {
   ...rootSiteMetadata,
@@ -67,7 +69,6 @@ export default async function RootLayout({
   } satisfies SiteConfig;
   const jsonLd = siteJsonLd(siteConfig);
   const mode = effectiveSiteMode(runtime);
-  const splashSeen = (await cookies()).get("finderb_splash")?.value === "1";
   const mediaCdnHost = (process.env.FINDERB_MEDIA_CDN_HOST || "")
     .trim()
     .replace(/^https?:\/\//, "")
@@ -101,7 +102,7 @@ export default async function RootLayout({
         {mode === "maintenance" ? (
           <MaintenanceScreen runtime={runtime} />
         ) : (
-          <LayoutClient splashSeen={splashSeen} siteConfig={publicConfig}>{children}</LayoutClient>
+          <LayoutClient siteConfig={publicConfig}>{children}</LayoutClient>
         )}
         {mode !== "maintenance" && <ServiceWorkerRegister />}
       </body>

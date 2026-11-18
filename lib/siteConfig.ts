@@ -1,4 +1,4 @@
-import { unstable_noStore as noStore } from 'next/cache';
+import { revalidateTag, unstable_cache } from 'next/cache';
 import { createServiceClient } from '@/lib/supabase/service';
 import { getPublicSupabase } from '@/lib/supabase/public';
 import { s3Env } from '@/lib/media/env';
@@ -25,11 +25,11 @@ export type {
   SitePricing,
 } from '@/lib/siteConfigShared';
 
-let cache: { at: number; config: SiteConfig } | null = null;
-const CACHE_MS = 15_000;
+const SITE_CONFIG_CACHE_SECONDS = 15 * 60;
+const SITE_CONFIG_CACHE_TAG = 'site-config';
 
 export function clearSiteConfigCache() {
-  cache = null;
+  revalidateTag(SITE_CONFIG_CACHE_TAG, 'max');
 }
 
 function withStorageReady(config: SiteConfig): SiteConfig {
@@ -42,20 +42,25 @@ function withStorageReady(config: SiteConfig): SiteConfig {
   };
 }
 
+async function readSiteConfig(): Promise<SiteConfig> {
+  const client = createServiceClient() ?? getPublicSupabase();
+  const { data, error } = await client
+    .from('site_config')
+    .select('config')
+    .eq('id', SITE_CONFIG_ID)
+    .maybeSingle();
+  if (error || !data) throw new Error(error?.message || 'Site config is missing');
+  return parseSiteConfig((data as { config?: unknown }).config);
+}
+
+const readCachedSiteConfig = unstable_cache(readSiteConfig, ['site-config-v1'], {
+  revalidate: SITE_CONFIG_CACHE_SECONDS,
+  tags: [SITE_CONFIG_CACHE_TAG],
+});
+
 export async function getSiteConfig(): Promise<SiteConfig> {
-  if (cache && Date.now() - cache.at < CACHE_MS) return withStorageReady(cache.config);
-  noStore();
   try {
-    const client = createServiceClient() ?? getPublicSupabase();
-    const { data, error } = await client
-      .from('site_config')
-      .select('config')
-      .eq('id', SITE_CONFIG_ID)
-      .maybeSingle();
-    if (error || !data) return withStorageReady(DEFAULT_SITE_CONFIG);
-    const config = parseSiteConfig((data as { config?: unknown }).config);
-    cache = { at: Date.now(), config };
-    return withStorageReady(config);
+    return withStorageReady(await readCachedSiteConfig());
   } catch {
     return withStorageReady(DEFAULT_SITE_CONFIG);
   }
@@ -74,7 +79,7 @@ export async function saveSiteConfig(config: SiteConfig): Promise<{ ok: true } |
     { onConflict: 'id' },
   );
   if (error) return { ok: false, error: error.message };
-  cache = { at: Date.now(), config: next };
+  clearSiteConfigCache();
   return { ok: true };
 }
 
