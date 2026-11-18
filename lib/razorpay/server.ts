@@ -1,9 +1,6 @@
 import crypto from 'crypto';
-import {
-  type BillingCycle,
-  type MerchantPlan,
-  getPlanAmountInPaise,
-} from '@/lib/razorpay/plans';
+import { type BillingCycle, type MerchantPlan } from '@/lib/razorpay/plans';
+import { getPlanAmountInPaise } from '@/lib/razorpay/planAmount';
 
 export type RazorpayOrderResponse = {
   id: string;

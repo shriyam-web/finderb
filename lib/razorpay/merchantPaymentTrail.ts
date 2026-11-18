@@ -3,7 +3,7 @@ import 'server-only';
 import { createServiceClient } from '@/lib/supabase/service';
 import { getRazorpayPayment, listRazorpayPaymentsPage } from '@/lib/razorpay/server';
 import { listRazorpaySubscriptionInvoices } from '@/lib/razorpay/subscriptions';
-import { getPlanAmountInPaise } from '@/lib/razorpay/plans';
+import { getPlanAmountInPaise } from '@/lib/razorpay/planAmount';
 
 export type MerchantPaymentTrailInput = {
   businessId: string;

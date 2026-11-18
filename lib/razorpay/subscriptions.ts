@@ -4,11 +4,11 @@ import crypto from 'crypto';
 import {
   type BillingCycle,
   type MerchantPlan,
-  getPlanAmountInPaise,
   getRazorpayPlanId,
   isMonthlyMandateBilling,
   MANDATE_TOTAL_MONTHLY_CYCLES,
 } from '@/lib/razorpay/plans';
+import { getPlanAmountInPaise } from '@/lib/razorpay/planAmount';
 
 export type RazorpaySubscriptionEntity = {
   id: string;

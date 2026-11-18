@@ -6,11 +6,11 @@ import { createServiceClient } from '@/lib/supabase/service';
 import {
   type BillingCycle,
   type MerchantPlan,
-  getPlanAmountInPaise,
   isMonthlyMandateBilling,
   isValidBillingCycle,
   isValidMerchantPlan,
 } from '@/lib/razorpay/plans';
+import { getPlanAmountInPaise } from '@/lib/razorpay/planAmount';
 import {
   createRazorpayOrder,
   isRazorpayConfigured,

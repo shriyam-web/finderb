@@ -6,10 +6,10 @@ import { createServiceClient } from '@/lib/supabase/service';
 import {
   type BillingCycle,
   type MerchantPlan,
-  getPlanAmountInPaise,
   isValidBillingCycle,
   isValidMerchantPlan,
 } from '@/lib/razorpay/plans';
+import { getPlanAmountInPaise } from '@/lib/razorpay/planAmount';
 import type { RazorpaySubscriptionEntity } from '@/lib/razorpay/subscriptions';
 import {
   ACTIVE_RAZORPAY_SUBSCRIPTION_STATUSES,
