@@ -1,225 +1,174 @@
-'use client';
-
-import { Megaphone, Target, BarChart3, Users, Zap, CheckCircle2, ArrowRight, ShieldCheck, Trophy, Rocket, Globe } from 'lucide-react';
 import Link from 'next/link';
 
-export default function AdvertisePage() {
-  const adTypes = [
-    {
-      title: 'Premium Listing',
-      desc: 'Get featured at the top of your category and search results with a verified badge.',
-      icon: Trophy,
-      color: 'text-orange-500',
-      bg: 'bg-orange-50',
-      features: ['Top of Search', 'Verified Badge', 'Priority Support']
-    },
-    {
-      title: 'Banner Ads',
-      desc: 'High-visibility visual ads on the home page and search pages to build brand awareness.',
-      icon: Megaphone,
-      color: 'text-blue-600',
-      bg: 'bg-blue-50',
-      features: ['Multi-page reach', 'Custom Creatives', 'Impression Tracking']
-    },
-    {
-      title: 'Category Takeover',
-      desc: 'Dominate your industry with exclusive ad spots and category-specific branding.',
-      icon: Zap,
-      color: 'text-secondary',
-      bg: 'bg-secondary/10',
-      features: ['100% Share of Voice', 'Exclusive Placement', 'Deep Insights']
-    }
-  ];
+const formats = [
+  {
+    title: 'Premium listing',
+    text: 'Your business stays near the top of its category and in search, with a verified badge and priority support.',
+    points: ['Higher placement in search', 'Verified badge on the listing', 'Priority support'],
+  },
+  {
+    title: 'Banner ads',
+    text: 'A visual ad on the home page and search pages, for people who are already browsing local businesses.',
+    points: ['Home and search placement', 'Your own creative', 'Impression tracking'],
+  },
+  {
+    title: 'Category placement',
+    text: 'A dedicated spot inside one category, so you are the business people see when they browse that trade.',
+    points: ['Shown inside one category', 'Exclusive placement', 'Reporting on views'],
+  },
+] as const;
 
-  const stats = [
-    { label: 'Monthly Active Users', value: '10M+', icon: Users },
-    { label: 'Cities Covered', value: '500+', icon: Globe },
-    { label: 'Daily Search Volume', value: '2M+', icon: Rocket },
-    { label: 'Avg. Conversion Rate', value: '18%', icon: BarChart3 }
-  ];
+const reasons = [
+  {
+    title: 'People are already looking',
+    text: 'Ads sit next to search and category pages, when someone is choosing a local business.',
+  },
+  {
+    title: 'You choose the area',
+    text: 'A campaign can focus on the cities and categories where your customers actually are.',
+  },
+  {
+    title: 'The budget stays flexible',
+    text: 'Start with a listing boost or a banner. You can change the plan as the response comes in.',
+  },
+  {
+    title: 'Listings are real businesses',
+    text: 'FinderB is a directory of shops and services, so the audience is looking for a provider, not a random click.',
+  },
+] as const;
+
+const reach = [
+  { value: '10M+', label: 'Monthly active users' },
+  { value: '500+', label: 'Cities covered' },
+  { value: '2M+', label: 'Daily searches' },
+  { value: '18%', label: 'Average conversion' },
+] as const;
+
+export default function AdvertisePage() {
+  const schema = {
+    '@context': 'https://schema.org',
+    '@type': 'WebPage',
+    name: 'Advertise on FinderB',
+    url: 'https://finderb.com/advertisements',
+    description:
+      'Promote a local business on FinderB with a premium listing, banner ads, or a category placement across India.',
+    about: {
+      '@type': 'Service',
+      name: 'FinderB advertising',
+      areaServed: 'IN',
+      provider: { '@type': 'Organization', name: 'FinderB', url: 'https://finderb.com' },
+    },
+  };
 
   return (
-    <div className="min-h-screen flex flex-col bg-white">
-      <main className="flex-1 pt-24 lg:pt-32 pb-24">
-        {/* Hero Section */}
-        <section className="px-4 mb-24 relative overflow-hidden">
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-secondary/5 rounded-full blur-[120px] -z-10"></div>
-          
-          <div className="max-w-7xl mx-auto text-center space-y-10 relative z-10">
-            <div className="inline-flex items-center gap-2 bg-secondary/10 text-secondary px-6 py-2 rounded-full font-black text-xs uppercase tracking-[0.2em] shadow-sm">
-              <Rocket size={14} className="animate-bounce" />
-              Grow Your Brand
-            </div>
-            <h1 className="text-5xl md:text-8xl font-black text-primary tracking-tight leading-[0.95] max-w-5xl mx-auto">
-              Advertise with <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-secondary via-orange-500 to-secondary bg-[length:200%_auto] animate-gradient">Precision</span>
-            </h1>
-            <p className="text-gray-500 text-xl md:text-2xl font-medium leading-relaxed max-w-3xl mx-auto">
-              Connect with your local audience at the exact moment they're looking for your services. FinderB's ad platform is built for maximum ROI.
-            </p>
-            <div className="flex flex-wrap justify-center gap-6 pt-4">
-              <Link href="/business/register" className="bg-primary text-white px-10 py-5 rounded-2xl font-black text-lg hover:bg-secondary transition-all shadow-2xl shadow-primary/20 active:scale-95">
-                Start Your Campaign
-              </Link>
-              <button className="bg-white text-primary px-10 py-5 rounded-2xl font-black text-lg hover:bg-gray-50 transition-all border border-gray-100 shadow-sm active:scale-95">
-                Download Media Kit
-              </button>
-            </div>
+    <div className="finderb-single-font min-h-[calc(100dvh-6.75rem)] bg-[#fafaf9] lg:min-h-screen">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }} />
+      <main className="mx-auto max-w-5xl px-5 pt-28 pb-20 sm:px-6 lg:pt-32">
+        <header className="max-w-3xl border-b border-neutral-200 pb-8">
+          <p className="text-sm font-medium text-[#215481]">Advertising</p>
+          <h1 className="mt-2 text-3xl font-semibold tracking-tight text-neutral-900 sm:text-4xl">
+            Advertise on FinderB
+          </h1>
+          <p className="mt-4 text-base leading-7 text-neutral-600">
+            Put your business in front of people who are already searching for a local service in India.
+            Choose a premium listing, a banner, or a place inside one category.
+          </p>
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+            <Link
+              href="/business/register"
+              className="inline-flex items-center justify-center rounded-lg bg-[#153551] px-5 py-3 text-sm font-semibold text-white hover:bg-[#215481]"
+            >
+              Start with a listing
+            </Link>
+            <Link
+              href="/contact"
+              className="inline-flex items-center justify-center rounded-lg border border-neutral-300 bg-white px-5 py-3 text-sm font-semibold text-neutral-900 hover:bg-neutral-50"
+            >
+              Talk to FinderB
+            </Link>
           </div>
-        </section>
+        </header>
 
-        {/* Stats Section */}
-        <section className="max-w-7xl mx-auto px-4 mb-32">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
-            {stats.map((stat, i) => (
-              <div key={i} className="bg-white p-8 md:p-10 rounded-[40px] border border-gray-100 shadow-sm hover:shadow-premium transition-all text-center space-y-4 group">
-                <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center text-secondary mx-auto group-hover:scale-110 transition-transform">
-                  <stat.icon size={32} />
-                </div>
-                <div className="space-y-1">
-                  <div className="text-4xl md:text-5xl font-black text-primary tracking-tighter">{stat.value}</div>
-                  <div className="text-gray-400 text-xs font-black uppercase tracking-widest">{stat.label}</div>
-                </div>
+        <section className="mt-10" aria-label="FinderB reach">
+          <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-neutral-200 bg-neutral-200 sm:grid-cols-4">
+            {reach.map((item) => (
+              <div key={item.label} className="bg-white px-4 py-5">
+                <dt className="text-sm text-neutral-500">{item.label}</dt>
+                <dd className="mt-1 text-2xl font-semibold tracking-tight text-neutral-900">{item.value}</dd>
               </div>
             ))}
-          </div>
+          </dl>
         </section>
 
-        {/* Ad Types Grid */}
-        <section className="max-w-7xl mx-auto px-4 mb-32">
-          <div className="flex flex-col md:flex-row justify-between items-end gap-8 mb-16">
-            <div className="space-y-4 text-center md:text-left">
-              <h2 className="text-5xl font-black text-primary tracking-tight">Ad Solutions</h2>
-              <p className="text-gray-500 text-xl font-medium max-w-xl">Choose the right format to reach your customers and drive results.</p>
-            </div>
-            <div className="hidden md:block">
-              <div className="flex bg-gray-50 p-2 rounded-2xl border border-gray-100">
-                <button className="px-6 py-3 bg-white shadow-sm rounded-xl font-black text-sm text-primary">Self-Serve</button>
-                <button className="px-6 py-3 rounded-xl font-black text-sm text-gray-400 hover:text-primary transition-colors">Managed</button>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {adTypes.map((type, i) => (
-              <div key={i} className="group bg-white p-10 md:p-12 rounded-[50px] border border-gray-100 shadow-sm hover:border-secondary/20 hover:shadow-premium transition-all duration-500 flex flex-col">
-                <div className={`w-20 h-20 ${type.bg} ${type.color} rounded-[32px] flex items-center justify-center mb-10 group-hover:scale-110 group-hover:rotate-3 transition-all duration-500`}>
-                  <type.icon size={40} />
-                </div>
-                <h3 className="text-3xl font-black text-primary mb-4 tracking-tight">{type.title}</h3>
-                <p className="text-gray-500 text-lg font-medium leading-relaxed mb-8">{type.desc}</p>
-                
-                <ul className="space-y-4 mb-10 mt-auto">
-                  {type.features.map((feature, j) => (
-                    <li key={j} className="flex items-center gap-3 text-primary font-bold">
-                      <CheckCircle2 size={20} className="text-secondary" />
-                      {feature}
-                    </li>
+        <section className="mt-12">
+          <h2 className="text-xl font-semibold tracking-tight text-neutral-900">Ways to advertise</h2>
+          <p className="mt-3 max-w-3xl text-[15px] leading-7 text-neutral-700">
+            Each format is meant for a different job: being found in search, being seen on the home page, or owning a category.
+          </p>
+          <div className="mt-6 grid gap-4 md:grid-cols-3">
+            {formats.map((item) => (
+              <article key={item.title} className="rounded-xl border border-neutral-200 bg-white p-5">
+                <h3 className="text-base font-semibold text-neutral-900">{item.title}</h3>
+                <p className="mt-2 text-sm leading-6 text-neutral-600">{item.text}</p>
+                <ul className="mt-4 space-y-2 text-sm leading-6 text-neutral-700">
+                  {item.points.map((point) => (
+                    <li key={point}>{point}</li>
                   ))}
                 </ul>
-
-                <button className="w-full flex items-center justify-center gap-3 px-8 py-5 bg-gray-50 text-primary group-hover:bg-primary group-hover:text-white rounded-2xl font-black text-base transition-all active:scale-95">
-                  Get Started <ArrowRight size={20} />
-                </button>
-              </div>
+              </article>
             ))}
           </div>
         </section>
 
-        {/* Why Advertise with Us? */}
-        <section className="max-w-7xl mx-auto px-4 mb-32">
-          <div className="bg-primary py-24 px-8 md:px-20 rounded-[60px] overflow-hidden relative shadow-2xl shadow-primary/20">
-            <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-secondary/10 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/2"></div>
-            
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center relative z-10">
-              <div className="space-y-12">
-                <div className="space-y-4">
-                  <span className="text-secondary font-black uppercase tracking-[0.3em] text-xs">Why FinderB Ads?</span>
-                  <h2 className="text-5xl md:text-6xl font-black text-white tracking-tight">Results you can <br />actually see</h2>
-                </div>
-                
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
-                  {[
-                    { title: 'Highly Targeted', desc: 'Reach customers based on intent.', icon: Target },
-                    { title: 'Data Insights', desc: 'Detailed real-time reporting.', icon: BarChart3 },
-                    { title: 'Cost Effective', desc: 'Flexible budgets, high ROI.', icon: Rocket },
-                    { title: 'Verified Only', desc: 'Quality leads from real users.', icon: ShieldCheck }
-                  ].map((benefit, i) => (
-                    <div key={i} className="space-y-4 p-6 rounded-3xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
-                      <div className="w-12 h-12 bg-secondary text-white rounded-2xl flex items-center justify-center shadow-lg shadow-secondary/20">
-                        <benefit.icon size={24} />
-                      </div>
-                      <div className="space-y-1">
-                        <h4 className="text-xl font-black text-white tracking-tight">{benefit.title}</h4>
-                        <p className="text-blue-100/60 text-sm font-medium leading-relaxed">{benefit.desc}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="relative">
-                {/* Mockup Ad */}
-                <div className="bg-white p-8 md:p-10 rounded-[50px] shadow-2xl relative z-10 space-y-8 max-w-md mx-auto transform hover:-rotate-2 transition-transform duration-700">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-gray-100 rounded-full"></div>
-                      <div className="space-y-2">
-                        <div className="h-3 w-24 bg-gray-100 rounded-full"></div>
-                        <div className="h-2 w-16 bg-gray-50 rounded-full"></div>
-                      </div>
-                    </div>
-                    <span className="bg-secondary/10 text-secondary text-[10px] font-black px-2 py-1 rounded">SPONSORED</span>
-                  </div>
-                  
-                  <div className="aspect-[4/3] bg-gray-50 rounded-3xl flex items-center justify-center overflow-hidden border border-gray-100">
-                    <Megaphone size={80} className="text-secondary opacity-20" />
-                  </div>
-
-                  <div className="space-y-4">
-                    <div className="h-4 w-full bg-gray-100 rounded-full"></div>
-                    <div className="h-4 w-2/3 bg-gray-100 rounded-full"></div>
-                  </div>
-
-                  <div className="flex items-center justify-between pt-4 border-t border-gray-50">
-                    <div className="flex gap-1">
-                      {[1, 2, 3, 4, 5].map((s) => (
-                        <div key={s} className="w-3 h-3 bg-secondary rounded-full opacity-20"></div>
-                      ))}
-                    </div>
-                    <div className="h-10 w-32 bg-primary rounded-xl"></div>
-                  </div>
-                </div>
-
-                {/* Decorative circles */}
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[140%] h-[140%] bg-white/5 rounded-full blur-[100px] -z-10"></div>
-              </div>
-            </div>
+        <section className="mt-12">
+          <h2 className="text-xl font-semibold tracking-tight text-neutral-900">Why businesses use it</h2>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            {reasons.map((item) => (
+              <article key={item.title} className="rounded-xl border border-neutral-200 bg-white p-5">
+                <h3 className="text-base font-semibold text-neutral-900">{item.title}</h3>
+                <p className="mt-2 text-sm leading-6 text-neutral-600">{item.text}</p>
+              </article>
+            ))}
           </div>
         </section>
 
-        {/* CTA Section */}
-        <section className="max-w-7xl mx-auto px-4">
-          <div className="bg-secondary rounded-[60px] p-12 md:p-24 text-center space-y-10 relative overflow-hidden text-white shadow-2xl shadow-secondary/30">
-            <div className="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
-            
-            <div className="relative z-10 max-w-4xl mx-auto space-y-10">
-              <h2 className="text-5xl md:text-7xl font-black tracking-tight leading-[1] text-white">
-                Ready to scale your <br />
-                <span className="text-primary-foreground underline decoration-white/30 underline-offset-8">local presence?</span>
-              </h2>
-              <p className="text-blue-50 text-xl md:text-2xl font-medium max-w-2xl mx-auto leading-relaxed">
-                Join thousands of businesses growing with FinderB. Our experts are ready to help you launch.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-6 justify-center pt-6">
-                <Link href="/business/register" className="bg-white text-secondary px-12 py-6 rounded-2xl font-black text-xl hover:bg-primary hover:text-white transition-all shadow-2xl active:scale-95">
-                  Launch Your Ad
-                </Link>
-                <Link href="/contact" className="bg-transparent border-2 border-white/30 text-white px-12 py-6 rounded-2xl font-black text-xl hover:bg-white/10 transition-all active:scale-95">
-                  Talk to an Expert
-                </Link>
-              </div>
-            </div>
+        <section className="mt-12">
+          <h2 className="text-xl font-semibold tracking-tight text-neutral-900">How to start</h2>
+          <ol className="mt-4 space-y-4 text-[15px] leading-7 text-neutral-700">
+            <li>
+              <span className="font-medium text-neutral-900">1. Publish the business.</span> Create a FinderB listing with the category, city, photos, and hours customers expect to see.
+            </li>
+            <li>
+              <span className="font-medium text-neutral-900">2. Pick a placement.</span> A premium listing, a banner, or a category spot. Pricing for plans is on the{' '}
+              <Link href="/pricing" className="font-medium text-[#215481] underline underline-offset-2">
+                pricing page
+              </Link>
+              .
+            </li>
+            <li>
+              <span className="font-medium text-neutral-900">3. Watch the response.</span> Views and enquiries come back to the business, so you can see which placement is working.
+            </li>
+          </ol>
+        </section>
+
+        <section className="mt-12 rounded-xl border border-neutral-200 bg-white p-6 sm:p-8">
+          <h2 className="text-xl font-semibold tracking-tight text-neutral-900">Ready to run an ad?</h2>
+          <p className="mt-3 max-w-2xl text-[15px] leading-7 text-neutral-700">
+            List the business first if it is not on FinderB yet. If you already have a listing and want help choosing a placement, write to the team.
+          </p>
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+            <Link
+              href="/business/register"
+              className="inline-flex items-center justify-center rounded-lg bg-[#153551] px-5 py-3 text-sm font-semibold text-white hover:bg-[#215481]"
+            >
+              List your business
+            </Link>
+            <Link
+              href="/contact"
+              className="inline-flex items-center justify-center rounded-lg border border-neutral-300 bg-white px-5 py-3 text-sm font-semibold text-neutral-900 hover:bg-neutral-50"
+            >
+              Contact FinderB
+            </Link>
           </div>
         </section>
       </main>

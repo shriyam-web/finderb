@@ -385,6 +385,12 @@ h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-inter), Inter, system-ui, -apple-system, sans-serif !important;
 }
 
+/* Public info pages that should not mix heading and body fonts. */
+.finderb-single-font,
+.finderb-single-font :is(h1, h2, h3, h4, h5, h6, p, span, a, button, label, li) {
+  font-family: var(--font-inter), Inter, system-ui, -apple-system, sans-serif !important;
+}
+
 .shadow-premium {
   box-shadow: 0 10px 40px -10px rgba(33, 84, 129, 0.15);
 }
