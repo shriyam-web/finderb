@@ -2,7 +2,8 @@ import { getAllJobs } from '@/app/actions/job';
 import JobPortalClient from './JobPortalClient';
 import { buildPageMetadata } from '@/lib/seoUtils';
 
-export const dynamic = 'force-dynamic';
+/** Public job list refreshes within 15 minutes. A business posting from the site still updates it immediately. */
+export const revalidate = 900;
 
 export const metadata = buildPageMetadata({
   title: 'Jobs',

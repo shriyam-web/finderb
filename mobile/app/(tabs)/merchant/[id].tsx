@@ -333,22 +333,29 @@ export default function MerchantProfileScreen() {
         merchantRef.current = key;
         setMerchant(result.merchant);
         setError('');
-        const [jobResult, relatedResult] = await Promise.all([
-          fetchJobsByBusinessId(result.merchant.id),
-          result.merchant.category
-            ? fetchBusinessesByCategory(splitMappedCategories(result.merchant.category)[0] || result.merchant.category, {
-                page: 1,
-                pageSize: 8,
-              })
-            : Promise.resolve({ merchants: [] as Merchant[] }),
-        ]);
-        if (!cancelled) {
-          setJobs(jobResult.jobs);
-          setRelated(
-            relatedResult.merchants
-              .filter((item) => item.id !== result.merchant!.id)
-              .slice(0, 6),
-          );
+        setLoading(false);
+        setRefreshing(false);
+        const loaded = result.merchant;
+        try {
+          const [jobResult, relatedResult] = await Promise.all([
+            fetchJobsByBusinessId(loaded.id),
+            loaded.category
+              ? fetchBusinessesByCategory(splitMappedCategories(loaded.category)[0] || loaded.category, {
+                  page: 1,
+                  pageSize: 8,
+                })
+              : Promise.resolve({ merchants: [] as Merchant[] }),
+          ]);
+          if (!cancelled) {
+            setJobs(jobResult.jobs);
+            setRelated(
+              relatedResult.merchants
+                .filter((item) => item.id !== loaded.id)
+                .slice(0, 6),
+            );
+          }
+        } catch {
+          // The profile is already on screen. Jobs and similar businesses can stay empty.
         }
       } else {
         merchantRef.current = null;
@@ -356,9 +363,9 @@ export default function MerchantProfileScreen() {
         setJobs([]);
         setRelated([]);
         setError(result.error || 'Merchant not found');
+        setLoading(false);
+        setRefreshing(false);
       }
-      setLoading(false);
-      setRefreshing(false);
     })();
     return () => {
       cancelled = true;

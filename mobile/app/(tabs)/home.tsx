@@ -37,7 +37,8 @@ import { usePreferredShell } from '../../hooks/usePreferredShell';
 import { getClimateTheme } from '../../lib/climateThemes';
 import type { LocalWeather } from '../../lib/weather';
 import type { HomeCategory } from '../../lib/api';
-import { peekBusinessesByCategory, subscribeCategoryCatalog } from '../../lib/api';
+import { peekHomeShelf, subscribeCategoryCatalog } from '../../lib/api';
+import { publishHomeScroll } from '../../lib/homeScroll';
 import {
   clearHomeSessionCaches,
   getHomeBootstrapCache,
@@ -264,10 +265,7 @@ export default function HomeScreen() {
     () =>
       homeCategories.filter((group) => {
         if (emptySectionIds.has(group.id)) return false;
-        const page = peekBusinessesByCategory(group.queryName || group.name, {
-          page: 1,
-          pageSize: 24,
-        });
+        const page = peekHomeShelf(group.queryName || group.name);
         return !page || page.merchants.length > 0;
       }),
     [emptySectionIds, homeCategories],
@@ -424,6 +422,7 @@ export default function HomeScreen() {
             onScroll={(e) => {
               const y = e.nativeEvent.contentOffset.y;
               scrollY.current = y;
+              publishHomeScroll();
               // Same climate wash only after the blue header scrolls away
               const solid = y > stickyBarH;
               if (solid !== stickySolid) setStickySolid(solid);
@@ -499,7 +498,7 @@ export default function HomeScreen() {
                     city={city}
                     userCoords={location.coords}
                     reloadToken={reloadToken}
-                    eager
+                    eager={index < 5}
                     muted={index % 2 === 1}
                     onEmptyAll={hideEmptySection}
                     onOpenCategory={(category) =>

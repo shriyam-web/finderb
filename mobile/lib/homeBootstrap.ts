@@ -2,7 +2,7 @@ import { categories as fallbackCategories } from '../constants/categories';
 import {
   clearApiSessionCaches,
   fetchAllCategories,
-  fetchBusinessesByCategory,
+  fetchHomeCategoryPreview,
   fetchFeaturedHomeCategories,
   subscribeCategoryCatalog,
   type HomeCategory,
@@ -142,19 +142,19 @@ async function mapPool<T>(
   await Promise.all(workers);
 }
 
-/** Prefetch every parent shelf (All tab) so home does not fetch on scroll. */
+const HOME_EAGER_ROWS = 5;
+
+/** Prefetch the first five home rows. Later rows load when the user scrolls to them. */
 async function warmupHomeShelves(categories: HomeCategory[]) {
   const queries = [
     ...new Set(categories.map(listingQueryOf).filter(Boolean)),
-  ];
+  ].slice(0, HOME_EAGER_ROWS);
   await mapPool(queries, 3, async (query) => {
-    await fetchBusinessesByCategory(query, { page: 1, pageSize: 24 }).catch(
-      () => undefined,
-    );
+    await fetchHomeCategoryPreview(query).catch(() => undefined);
   });
 }
 
-/** Categories + all home merchant shelves — run under the splash. */
+/** Categories and the first five home rows — run under the splash. */
 export async function warmupHomeSession(): Promise<HomeBootstrapData> {
   if (warmupInflight) return warmupInflight;
 

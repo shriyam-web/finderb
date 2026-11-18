@@ -1,6 +1,7 @@
 'use server';
 
 import { createDataClient } from '@/utils/supabase/server';
+import { getPublicSupabase } from '@/lib/supabase/public';
 import { revalidatePath } from 'next/cache';
 import { buildJobApplicationMessage } from '@/lib/jobLeadMessage';
 import { recordJobApplication, requireHrContact, unseenApplicationCounts } from '@/lib/jobBoard.server';
@@ -186,7 +187,7 @@ export async function updateJob(jobId: string, data: {
 
 export async function getAllJobs() {
   try {
-    const supabase = await createDataClient();
+    const supabase = getPublicSupabase();
 
     const { data: jobs, error } = await supabase
       .from('jobs')

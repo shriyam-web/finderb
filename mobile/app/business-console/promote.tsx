@@ -539,7 +539,7 @@ export default function PromoteScreen() {
   useEffect(() => {
     const status = desk?.verification.status;
     if (status !== 'submitted' && status !== 'under_review') return;
-    const timer = setInterval(() => { void load(false); }, 15000);
+    const timer = setInterval(() => { void load(false); }, 60_000);
     return () => clearInterval(timer);
   }, [desk?.verification.status]);
 

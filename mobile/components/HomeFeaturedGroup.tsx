@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Dimensions,
   Platform,
   Pressable,
   ScrollView,
@@ -17,12 +18,13 @@ import {
 } from './MerchantFilterSheet';
 import { applyFixedSlotOrder } from '../lib/categoryFixedSlots';
 import {
-  fetchBusinessesByCategory,
-  getCategoryMerchantPool,
-  getCategorySlotIds,
-  peekBusinessesByCategory,
+  fetchHomeCategoryPreview,
+  getHomeShelfPool,
+  getHomeShelfSlotIds,
+  peekHomeShelf,
   type HomeCategory,
 } from '../lib/api';
+import { subscribeHomeScroll } from '../lib/homeScroll';
 import { getBusinessOpenStatus } from '../lib/businessHours';
 import { sortByUserLocation, type Coords } from '../lib/geo';
 import { useDrivingDistanceLabel, useRoadDistanceOrder } from '../lib/drivingDistance';
@@ -514,21 +516,21 @@ export function HomeFeaturedGroup({
   const [nestedId, setNestedId] = useState<string | null>(null);
   const initialQuery =
     pickDefaultCategory(group).queryName || group.queryName || group.name;
-  const initialPool = getCategoryMerchantPool(initialQuery);
-  const initialCached = peekBusinessesByCategory(initialQuery, {
-    page: 1,
-    pageSize: 24,
-  });
+  const initialPool = getHomeShelfPool(initialQuery);
+  const initialCached = peekHomeShelf(initialQuery);
   const [merchants, setMerchants] = useState<Merchant[]>(
     () => initialPool ?? initialCached?.merchants ?? [],
   );
   const [slotIds, setSlotIds] = useState<Array<string | null>>(() =>
-    getCategorySlotIds(initialQuery),
+    getHomeShelfSlotIds(initialQuery),
   );
   const [loading, setLoading] = useState(!initialPool && !initialCached);
   const [orderSeed, setOrderSeed] = useState(() => Math.floor(Math.random() * 1e9) || 1);
   const skipSeedReset = useRef(true);
   const [active, setActive] = useState(eager);
+  const rootRef = useRef<View>(null);
+  const activeRef = useRef(active);
+  activeRef.current = active;
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const [filterOpen, setFilterOpen] = useState(false);
   const readySent = useRef(false);
@@ -600,6 +602,29 @@ export function HomeFeaturedGroup({
     if (eager) setActive(true);
   }, [eager]);
 
+  const revealIfNear = () => {
+    if (eager || activeRef.current) return;
+    rootRef.current?.measureInWindow((_x, top, _w, height) => {
+      if (height < 1) return;
+      if (top < Dimensions.get('window').height + 640) setActive(true);
+    });
+  };
+
+  useEffect(() => {
+    if (eager || active) return;
+    let alive = true;
+    const reveal = () => {
+      if (!alive) return;
+      revealIfNear();
+    };
+    reveal();
+    const unsubscribe = subscribeHomeScroll(reveal);
+    return () => {
+      alive = false;
+      unsubscribe();
+    };
+  }, [active, eager]);
+
   useEffect(() => {
     if (!active || !listingQuery) return;
 
@@ -609,9 +634,9 @@ export function HomeFeaturedGroup({
       query: string,
       confirmedEmpty: boolean,
     ) => {
-      const pool = getCategoryMerchantPool(query);
+      const pool = getHomeShelfPool(query);
       setMerchants(pool ? [...pool] : list);
-      setSlotIds(getCategorySlotIds(query));
+      setSlotIds(getHomeShelfSlotIds(query));
       setLoading(false);
       if (!readySent.current) {
         readySent.current = true;
@@ -626,10 +651,7 @@ export function HomeFeaturedGroup({
       }
     };
 
-    const cached = peekBusinessesByCategory(listingQuery, {
-      page: 1,
-      pageSize: 24,
-    });
+    const cached = peekHomeShelf(listingQuery);
     if (cached) {
       applyList(cached.merchants, listingQuery, true);
       return;
@@ -637,10 +659,7 @@ export function HomeFeaturedGroup({
 
     const requested = listingQuery;
     setLoading(true);
-    void fetchBusinessesByCategory(requested, {
-      page: 1,
-      pageSize: 24,
-    })
+    void fetchHomeCategoryPreview(requested)
       .then((result) => {
         if (listingQueryRef.current !== requested) return;
         applyList(result.merchants, requested, !result.error);
@@ -680,7 +699,11 @@ export function HomeFeaturedGroup({
   );
 
   return (
-    <View style={[styles.section, muted && styles.sectionMuted]}>
+    <View
+      ref={rootRef}
+      onLayout={revealIfNear}
+      style={[styles.section, muted && styles.sectionMuted]}
+    >
       <View style={styles.head}>
         <View style={styles.titleRow}>
           <Text style={styles.title} numberOfLines={1}>

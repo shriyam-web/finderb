@@ -152,7 +152,7 @@ export function NotificationInboxProvider({ children }: { children: ReactNode })
       if (AppState.currentState === 'active') {
         void refresh({ silent: true });
       }
-    }, 20000);
+    }, 60_000);
     return () => clearInterval(timer);
   }, [refresh]);
 

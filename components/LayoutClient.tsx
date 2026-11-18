@@ -157,8 +157,17 @@ export default function LayoutClient({
           {businessDashboardRoute ? <BusinessWorkspaceLoader /> : <Loader />}
         </div>
       )}
+      {/*
+        Navbar, page, and footer stay in one boundary. The fallback fills the
+        screen, so a slow page cannot paint the footer before the content.
+      */}
+      <Suspense
+        fallback={
+          businessDashboardRoute ? <BusinessWorkspaceLoader /> : <Loader />
+        }
+      >
       <div
-        className={`flex flex-col min-h-screen ${showBottomNavPadding ? 'pb-[6.75rem] lg:pb-0' : ''}`}
+        className={`flex flex-col min-h-svh ${showBottomNavPadding ? 'pb-[6.75rem] lg:pb-0' : ''}`}
         aria-busy={loading || undefined}
         inert={loading ? true : undefined}
       >
@@ -169,11 +178,9 @@ export default function LayoutClient({
           <LoginRoleToast />
         </Suspense>
         {!hideTopNavFooter && <Navbar />}
-        <Suspense fallback={<div className="flex-grow bg-white" />}>
-          <main className="min-w-0 flex-grow overflow-x-hidden">
-            {children}
-          </main>
-        </Suspense>
+        <main className="min-w-0 flex-1 overflow-x-hidden">
+          {children}
+        </main>
         {!hideTopNavFooter && <Footer />}
         {showBottomNav && <BottomNavbar />}
         {showLocationPrompt && <LocationPermissionPrompt appReady={!loading} />}
@@ -181,6 +188,7 @@ export default function LayoutClient({
           <ScrollToTopButton showBottomNav={showBottomNav} />
         )}
       </div>
+      </Suspense>
     </UserLocationProvider>
     </SiteConfigProvider>
   );

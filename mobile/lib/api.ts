@@ -29,6 +29,10 @@ const EXCLUDED_HOME_CATEGORY_SLUGS = new Set(['job']);
 const MERCHANT_SELECT =
   'id, slug, businessName, displayName, category, location, city, state, about, profilePictureUrl, images, publicPhone, mobile, email, workEmail, website, whatsappNumber, instagramUrl, facebookUrl, youtubeUrl, review, isFinderBVerified, hasVerifiedBadge, discountRange, status, latitude, longitude, timings, serviceCategory, keywords, paymentModes, businessAddress, yearsInBusiness, createdAt';
 
+/** Home cards never show the description, so the shelf query skips that long column. */
+const MERCHANT_PREVIEW_SELECT = MERCHANT_SELECT.replace('about, ', '');
+const HOME_CATEGORY_PREVIEW_LIMIT = 24;
+
 const MERCHANT_SELECT_WITH_FLAGS = `${MERCHANT_SELECT}, emailVerified, mobileVerified, whatsappVerified`;
 
 const CATEGORY_SELECT =
@@ -517,8 +521,9 @@ export function clearApiSessionCaches() {
   clearMerchantSessionCache();
 }
 
-function merchantListKey(categoryQuery: string) {
-  return categoryQuery.trim().toLowerCase();
+function merchantListKey(categoryQuery: string, scope: 'full' | 'preview' = 'full') {
+  const base = categoryQuery.trim().toLowerCase();
+  return scope === 'preview' ? `preview:${base}` : base;
 }
 
 let listingOrigin: { coords: Coords | null; city: string | null } = {
@@ -565,11 +570,40 @@ function paginateMerchants(
   };
 }
 
+function storedMerchantList(categoryQuery: string, scope: 'full' | 'preview') {
+  const hit = merchantListMemo.peek(merchantListKey(categoryQuery, scope));
+  if (!hit || hit.error) return null;
+  return hit;
+}
+
 /** Full category pool, before nearest-page slicing. Home shuffles this when no filter is on. */
 export function getCategoryMerchantPool(categoryQuery: string): Merchant[] | null {
-  const hit = merchantListMemo.peek(merchantListKey(categoryQuery));
-  if (!hit || hit.error) return null;
-  return hit.merchants;
+  return storedMerchantList(categoryQuery, 'full')?.merchants ?? null;
+}
+
+/** Home shelf pool: the short preview, or a full list already loaded for the category page. */
+export function getHomeShelfPool(categoryQuery: string): Merchant[] | null {
+  return (
+    storedMerchantList(categoryQuery, 'preview')?.merchants ??
+    storedMerchantList(categoryQuery, 'full')?.merchants ??
+    null
+  );
+}
+
+export function getHomeShelfSlotIds(categoryQuery: string): Array<string | null> {
+  return (
+    storedMerchantList(categoryQuery, 'preview')?.slotIds ??
+    storedMerchantList(categoryQuery, 'full')?.slotIds ??
+    []
+  );
+}
+
+export function peekHomeShelf(categoryQuery: string): BusinessPage | null {
+  const hit =
+    storedMerchantList(categoryQuery, 'preview') ??
+    storedMerchantList(categoryQuery, 'full');
+  if (!hit) return null;
+  return paginateMerchants(hit.merchants, 1, HOME_CATEGORY_PREVIEW_LIMIT, hit.error);
 }
 
 /** Paid category slots. Home puts these back after a fair shuffle. */
@@ -751,6 +785,7 @@ export async function fetchSubCategories(
 
 async function loadMerchantList(
   categoryQuery: string,
+  options?: { limit?: number; columns?: string },
 ): Promise<MerchantListResult> {
   if (!isSupabaseConfigured || !supabase) {
     return { merchants: [], error: 'Supabase is not configured' };
@@ -789,12 +824,15 @@ async function loadMerchantList(
     slotIds = getCategoryFixedSlotIds(row);
   }
 
+  const preview = options?.columns === MERCHANT_PREVIEW_SELECT;
+  const columns = preview ? MERCHANT_PREVIEW_SELECT : MERCHANT_SELECT;
+  const limit = options?.limit ?? 400;
   let query = supabase
     .from('Business')
-    .select(MERCHANT_SELECT)
+    .select(columns)
     .eq('status', 'Active')
     .order('createdAt', { ascending: false })
-    .range(0, 399);
+    .range(0, Math.max(0, limit - 1));
 
   if (needles.length === 1) {
     query = query.ilike('category', `%${escapeIlikePattern(needles[0])}%`);
@@ -813,15 +851,55 @@ async function loadMerchantList(
     return { merchants: [], error: safeUserError(error, 'Could not load this.') };
   }
 
+  let rows = (data ?? []) as unknown as Record<string, unknown>[];
+  const pinned = slotIds.filter((id): id is string => Boolean(id));
+  if (limit < 400 && pinned.length) {
+    const have = new Set(rows.map((row) => String(row.id || '')));
+    const missing = pinned.filter((id) => !have.has(id));
+    if (missing.length) {
+      const extra = await supabase
+        .from('Business')
+        .select(columns)
+        .in('id', missing)
+        .eq('status', 'Active');
+      if (extra.data?.length) {
+        rows = [...rows, ...((extra.data ?? []) as unknown as Record<string, unknown>[])];
+      }
+    }
+  }
+
   return {
     merchants: applyFixedSlotOrder(
-      (data ?? [])
-        .map((row) => mapMerchantRow(row as Record<string, unknown>))
+      rows
+        .map((row) => mapMerchantRow(row))
         .filter(merchantHasPublicPhoto),
       slotIds,
     ),
     slotIds,
   };
+}
+
+/** Short home-row list. The category page still loads the full set through fetchBusinessesByCategory. */
+export async function fetchHomeCategoryPreview(
+  categoryQuery: string,
+  options?: { force?: boolean },
+): Promise<BusinessPage> {
+  const key = merchantListKey(categoryQuery, 'preview');
+  if (!isSupabaseConfigured || !supabase) {
+    return paginateMerchants([], 1, HOME_CATEGORY_PREVIEW_LIMIT, 'Supabase is not configured');
+  }
+
+  const result = await merchantListMemo.get(
+    key,
+    () =>
+      loadMerchantList(categoryQuery, {
+        limit: HOME_CATEGORY_PREVIEW_LIMIT,
+        columns: MERCHANT_PREVIEW_SELECT,
+      }),
+    Boolean(options?.force),
+  );
+  if (result.error) merchantListMemo.delete(key);
+  return paginateMerchants(result.merchants, 1, HOME_CATEGORY_PREVIEW_LIMIT, result.error);
 }
 
 export async function fetchBusinessesByCategory(

@@ -24,10 +24,10 @@ import {
 } from '@/lib/newsFeeds';
 import { decodeHtmlEntities } from '@/lib/stripHtml';
 
-/** List responses cached ~10 min — no HTML scrape on the list path. */
-export const revalidate = 600;
+/** List responses cached 15 min — no HTML scrape on the list path. */
+export const revalidate = 900;
 
-const NEWS_LIST_REVALIDATE_SECONDS = 600;
+const NEWS_LIST_REVALIDATE_SECONDS = 900;
 
 /** Allow FinderB mobile (Expo web / native fetch) to read homepage news. */
 const NEWS_CORS_HEADERS = {
@@ -36,7 +36,7 @@ const NEWS_CORS_HEADERS = {
   'Access-Control-Allow-Headers': 'Content-Type, Accept',
   'Access-Control-Max-Age': '86400',
   'Cache-Control':
-    'public, s-maxage=600, stale-while-revalidate=300, max-age=60',
+    'public, s-maxage=900, stale-while-revalidate=300, max-age=60',
 } as const;
 
 function newsJson(body: unknown, init?: { status?: number }) {
