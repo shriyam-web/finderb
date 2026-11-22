@@ -112,8 +112,12 @@ export const rootSiteMetadata: Metadata = {
     statusBarStyle: 'default',
   },
   icons: {
-    icon: '/icon-192.png',
-    apple: '/icon-192.png',
+    icon: [
+      { url: '/favicon.ico', sizes: '48x48', type: 'image/x-icon' },
+      { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+    ],
+    shortcut: [{ url: '/favicon.ico', sizes: '48x48', type: 'image/x-icon' }],
+    apple: [{ url: '/icon-192.png', sizes: '192x192', type: 'image/png' }],
   },
   ...(facebookMetadata ? { facebook: facebookMetadata } : {}),
 };
