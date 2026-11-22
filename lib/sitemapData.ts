@@ -2,7 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import type { MetadataRoute } from 'next';
 import { revalidatePath } from 'next/cache';
 import { revalidateHomePage } from '@/lib/homePageData';
-import { SITE_ORIGIN } from '@/lib/siteSeo';
+import { FINDERB_LOGO_PATH, SITE_ORIGIN } from '@/lib/siteSeo';
 import { slugifyCity } from '@/lib/categoryCity';
 import { getBusinessProfilePath } from '@/lib/businessSlug';
 import { businessHasPublicPhoto } from '@/lib/businessMapping';
@@ -121,9 +121,11 @@ function dedupeSitemapEntries(entries: SitemapEntry[]): SitemapEntry[] {
 }
 
 function getStaticEntries(): SitemapEntry[] {
-  return STATIC_PAGES.map(({ path, changeFrequency, priority }) =>
-    toEntry(path, { changeFrequency, priority })
-  );
+  return STATIC_PAGES.map(({ path, changeFrequency, priority }) => {
+    const entry = toEntry(path, { changeFrequency, priority });
+    if (path === '/') entry.images = [`${SITEMAP_BASE_URL}${FINDERB_LOGO_PATH}`];
+    return entry;
+  });
 }
 
 async function fetchActiveBusinesses() {

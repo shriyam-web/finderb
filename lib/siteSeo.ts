@@ -3,6 +3,9 @@ import { LEGAL_COMPANY, SHOW_COMPANY_PHONE } from '@/lib/legalContent';
 import { FOOTER_SOCIAL_LINKS } from '@/lib/footerData';
 
 export const SITE_NAME = 'FinderB';
+/** Crawlable logo file. The filename and alt text are what Google Images can match for “FinderB logo”. */
+export const FINDERB_LOGO_PATH = '/brands/finderb-logo.png';
+export const FINDERB_LOGO_SIZE = 512;
 export const SITE_ORIGIN =
   process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || 'https://finderb.com';
 
@@ -136,7 +139,17 @@ export function getRootStructuredData() {
         name: SITE_NAME,
         legalName: LEGAL_COMPANY.name,
         url: SITE_HOME_URL,
-        logo: `${SITE_ORIGIN}/brands/fb-mark-240.png`,
+        logo: {
+          '@type': 'ImageObject',
+          '@id': `${SITE_ORIGIN}/#logo`,
+          url: `${SITE_ORIGIN}${FINDERB_LOGO_PATH}`,
+          contentUrl: `${SITE_ORIGIN}${FINDERB_LOGO_PATH}`,
+          width: FINDERB_LOGO_SIZE,
+          height: FINDERB_LOGO_SIZE,
+          caption: 'FinderB logo',
+          name: 'FinderB logo',
+        },
+        image: `${SITE_ORIGIN}${FINDERB_LOGO_PATH}`,
         description:
           "FinderB is India's premium local discovery platform connecting users with verified professionals and top-rated services across 300+ cities.",
         sameAs: FOOTER_SOCIAL_LINKS.map((item) => item.href),

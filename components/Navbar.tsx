@@ -514,12 +514,13 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
             className={`relative z-[10002] flex items-center gap-2 shrink-0 ${isOpen ? 'max-lg:hidden' : ''}`}
           >
             <Image
-              src="/brands/fb-mark-240.png"
-              alt=""
+              src="/brands/finderb-logo.png"
+              alt="FinderB logo"
               width={30}
               height={30}
               className="h-[30px] w-[30px] object-contain"
               priority
+              unoptimized
             />
             <span className="text-[19px] font-semibold leading-none tracking-tight text-[#153551]">
               {showBusinessLogo ? (
