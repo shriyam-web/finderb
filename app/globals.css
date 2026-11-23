@@ -400,6 +400,17 @@ h1, h2, h3, h4, h5, h6 {
   color: var(--color-primary-800);
 }
 
+/* Public business profile: same warm stone type as the app, not the site-wide navy headings. */
+.business-profile {
+  color: #1c1917;
+}
+
+.business-profile :is(h1, h2, h3, h4, h5, h6) {
+  font-family: var(--font-outfit), 'Outfit', 'Inter', sans-serif;
+  color: #0c0a09;
+  letter-spacing: -0.03em;
+}
+
 /* Merchant dashboard: single font stack everywhere (matches Total Views stat cards) */
 .merchant-dashboard,
 .merchant-dashboard :is(h1, h2, h3, h4, h5, h6, p, span, a, button, label, li, td, th, input, textarea, select) {

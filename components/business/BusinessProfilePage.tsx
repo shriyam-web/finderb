@@ -67,6 +67,7 @@ import { formatYearsInBusinessShort } from '@/lib/establishmentYear';
 import { extraCategoryLeaves, primaryCategoryLabel } from '@/lib/alsoServes';
 import OwnThisBusiness from '@/components/business/OwnThisBusiness';
 import { getBusinessGalleryImages } from '@/lib/businessMapping';
+import ReportBusinessMenu from '@/components/business/ReportBusinessMenu';
 import { buildLoginHref } from '@/lib/authRedirect';
 import {
   buildProfileIntentPath,
@@ -684,7 +685,7 @@ export default function BusinessProfilePage({
   const avatarSrc = galleryImages[0];
 
   return (
-    <div className="relative min-h-screen bg-[#fafaf9] pt-[4.25rem] sm:pt-24">
+    <div className="business-profile relative min-h-screen bg-[#f6f5f3] pt-[4.25rem] pb-8 sm:pt-24">
       <OpenInAppPrefer slug={slugOrId} />
 
       <div
@@ -692,7 +693,7 @@ export default function BusinessProfilePage({
           compactVisible ? 'opacity-100' : 'pointer-events-none opacity-0'
         }`}
       >
-        <div className="mx-auto flex max-w-4xl items-center gap-2.5 px-3 py-2.5">
+        <div className="mx-auto flex max-w-6xl items-center gap-2.5 px-3 py-2.5 lg:px-6">
           <button
             type="button"
             onClick={handleBack}
@@ -724,10 +725,18 @@ export default function BusinessProfilePage({
           >
             <Share2 size={16} />
           </button>
+          {managesThisProfile ? null : (
+            <ReportBusinessMenu
+              businessId={business.id}
+              signedIn={Boolean(sessionUser)}
+              loginHref={buildLoginHref(profileRedirectPath)}
+              tone="bar"
+            />
+          )}
         </div>
       </div>
 
-      <div className="mx-auto max-w-3xl lg:max-w-4xl">
+      <div className="mx-auto max-w-6xl lg:px-6 lg:pb-8">
         {managesThisProfile ? (
           <div className="border-b border-emerald-200 bg-emerald-50 px-4 py-2.5" role="status">
             <p className="text-center text-sm font-semibold text-emerald-800">
@@ -735,7 +744,8 @@ export default function BusinessProfilePage({
             </p>
           </div>
         ) : null}
-        <div ref={heroRef}>
+        <div ref={heroRef} className="lg:pt-5">
+          <div className="overflow-hidden lg:rounded-[28px] lg:shadow-[0_28px_70px_-40px_rgba(28,25,23,0.7)]">
           <BusinessProfileHeroGallery
             ref={galleryRef}
             images={galleryImages}
@@ -744,17 +754,29 @@ export default function BusinessProfilePage({
             onBack={handleBack}
             onShare={() => void handleShare()}
             onSave={() => void handleSave()}
+            menu={
+              managesThisProfile ? null : (
+                <ReportBusinessMenu
+                  businessId={business.id}
+                  signedIn={Boolean(sessionUser)}
+                  loginHref={buildLoginHref(profileRedirectPath)}
+                />
+              )
+            }
           />
+          </div>
         </div>
 
-        <div className="relative z-10 -mt-[18px] rounded-t-[22px] bg-[#fafaf9] pt-[18px]">
-          <div className="relative px-4">
+        <div className="relative z-10 -mt-[18px] rounded-t-[22px] bg-[#f6f5f3] pt-[18px] lg:-mt-12 lg:rounded-none lg:bg-transparent lg:pt-0">
+          <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_22.5rem] lg:items-start lg:gap-x-8 lg:gap-y-8">
+          <div className="lg:col-start-1 lg:row-start-1 lg:rounded-[28px] lg:border lg:border-[#e7e5e4] lg:bg-white lg:px-6 lg:pb-6 lg:pt-2 lg:shadow-[0_18px_50px_-32px_rgba(28,25,23,0.35)]">
+          <div className="relative px-4 lg:px-0">
             <div className="flex items-start gap-3">
               <button
                 type="button"
                 disabled={!avatarSrc}
                 onClick={() => galleryRef.current?.openPhoto(0)}
-                className="relative -mt-8 h-[72px] w-[72px] shrink-0 overflow-hidden rounded-[20px] border-2 border-[#fafaf9] bg-stone-200 shadow-[0_4px_10px_rgba(0,0,0,0.12)]"
+                className="relative -mt-8 h-[72px] w-[72px] shrink-0 overflow-hidden rounded-[20px] border-2 border-[#f6f5f3] bg-[#1c1917] shadow-[0_8px_18px_rgba(28,25,23,0.16)] lg:border-white"
                 aria-label="View profile photo"
               >
                 {avatarSrc ? (
@@ -767,7 +789,7 @@ export default function BusinessProfilePage({
               </button>
 
               <div className="min-w-0 flex-1 pr-[108px]">
-                <h1 className="text-[22px] font-extrabold leading-7 tracking-tight text-[#153551]">
+                <h1 className="text-[22px] font-extrabold leading-7 tracking-tight text-[#0c0a09] lg:text-[28px] lg:leading-8">
                   {business.name}
                   {isVerified ? (
                     <VerifiedNameTick size={18} className="ml-1 inline-flex translate-y-[1px] align-text-bottom" />
@@ -952,7 +974,7 @@ export default function BusinessProfilePage({
           </div>
 
           {jobs.length > 0 ? (
-            <div className="mx-4 mt-3 flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5">
+            <div className="mx-4 mt-3 flex items-center gap-2 rounded-xl border border-[#f3d5a8] bg-[#fff4e5] px-3 py-2.5 lg:mx-0">
               <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-white text-amber-800">
                 <Briefcase size={14} />
               </span>
@@ -970,13 +992,16 @@ export default function BusinessProfilePage({
           ) : null}
 
           {business.services?.length ? (
-            <section id="services" className="scroll-mt-40 px-4 pt-6">
-              <h2 className="text-[20px] font-extrabold tracking-tight text-[#153551]">Services</h2>
+            <section id="services" className="scroll-mt-40 px-4 pt-6 lg:px-0">
+              <h2 className="text-[20px] font-extrabold tracking-tight">Services</h2>
               <BusinessProfileServicesSection services={business.services} />
             </section>
           ) : null}
+          </div>
 
+          <aside className="lg:col-start-2 lg:row-start-1 lg:row-span-3 lg:sticky lg:top-28">
           <BusinessProfileContactAside
+            className="lg:px-5 lg:pt-5"
             contactRevealed={contactRevealed}
             profileRedirectPath={profileRedirectPath}
             phoneLink={phoneLink}
@@ -1004,7 +1029,9 @@ export default function BusinessProfilePage({
               else handleRequestContact('enquire');
             }}
           />
+          </aside>
 
+          <div className="lg:col-start-1 lg:row-start-2">
           <BusinessProfileAboutSection
             description={business.description || business.about || ''}
             keywords={business.keywords}
@@ -1013,7 +1040,7 @@ export default function BusinessProfilePage({
           {weeklyHours.length > 0 ? (
             <section id="hours" className="scroll-mt-40 px-4 pt-6">
               <div className="flex items-end justify-between gap-3">
-                <h2 className="text-[20px] font-extrabold tracking-tight text-[#153551]">Hours</h2>
+                <h2 className="text-[20px] font-extrabold tracking-tight">Hours</h2>
                 <button
                   type="button"
                   onClick={() => setHoursExpanded((open) => !open)}
@@ -1022,7 +1049,7 @@ export default function BusinessProfilePage({
                   {hoursExpanded ? 'Less' : 'Full week'}
                 </button>
               </div>
-              <div className="mt-3 overflow-hidden rounded-2xl border border-stone-200/90 bg-white">
+              <div className="mt-3 overflow-hidden rounded-2xl border border-[#e7e5e4] bg-white shadow-[0_10px_30px_-24px_rgba(28,25,23,0.45)]">
                 <div className="flex items-center justify-between gap-3 bg-stone-50 p-3.5">
                   <div>
                     <p className="text-[11px] font-medium text-stone-400">Today</p>
@@ -1062,14 +1089,14 @@ export default function BusinessProfilePage({
 
           <section id="reviews" className="scroll-mt-40 px-4 pt-6">
             <div className="flex items-baseline gap-2">
-              <h2 className="text-[20px] font-extrabold tracking-tight text-[#153551]">Reviews</h2>
+              <h2 className="text-[20px] font-extrabold tracking-tight">Reviews</h2>
               {displayRating != null ? (
                 <span className="text-xs font-medium text-stone-400">{displayRating.toFixed(1)} avg</span>
               ) : null}
             </div>
 
             {reviews.length > 0 ? (
-              <div className="mt-3 flex gap-3.5 rounded-2xl border border-stone-200/90 bg-stone-50 p-3.5">
+              <div className="mt-3 flex gap-3.5 rounded-2xl border border-[#e7e5e4] bg-white p-4 shadow-[0_10px_30px_-24px_rgba(28,25,23,0.45)]">
                 <div className="flex w-[92px] shrink-0 flex-col items-center justify-center gap-1">
                   <p className="text-[34px] font-extrabold leading-none tracking-tight text-[#153551]">
                     {displayRating != null ? displayRating.toFixed(1) : '—'}
@@ -1237,8 +1264,10 @@ export default function BusinessProfilePage({
             <OwnThisBusiness businessId={business.id} businessName={business.name} />
           ) : null}
 
-          <div className="border-t border-stone-200/80 px-4 pb-8 pt-4">
+          <div className="border-t border-[#e7e5e4] px-4 pb-8 pt-4">
             <BusinessProfileBreadcrumb business={business} categoryBreadcrumb={categoryBreadcrumb} />
+          </div>
+          </div>
           </div>
         </div>
       </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { forwardRef, useEffect, useImperativeHandle, useRef, useState, type Ref } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState, type ReactNode, type Ref } from 'react';
 import Image from 'next/image';
 import { ChevronLeft, Heart, Images, Share2 } from 'lucide-react';
 import { BUSINESS_IMAGE_FALLBACK } from '@/lib/businessMapping';
@@ -13,6 +13,7 @@ type BusinessProfileHeroGalleryProps = {
   onBack: () => void;
   onShare: () => void;
   onSave: () => void;
+  menu?: ReactNode;
 };
 
 export type BusinessProfileHeroGalleryHandle = {
@@ -20,7 +21,7 @@ export type BusinessProfileHeroGalleryHandle = {
 };
 
 const BusinessProfileHeroGallery = forwardRef(function BusinessProfileHeroGallery(
-  { images, alt, saved, onBack, onShare, onSave }: BusinessProfileHeroGalleryProps,
+  { images, alt, saved, onBack, onShare, onSave, menu }: BusinessProfileHeroGalleryProps,
   ref: Ref<BusinessProfileHeroGalleryHandle>
 ) {
   const scrollerRef = useRef<HTMLDivElement>(null);
@@ -65,7 +66,7 @@ const BusinessProfileHeroGallery = forwardRef(function BusinessProfileHeroGaller
   };
 
   return (
-    <div className="relative h-[min(63.8vw,26rem)] w-full overflow-hidden bg-[#0c0a09] lg:h-[min(38vw,28rem)]">
+    <div className="relative h-[min(72vw,26rem)] w-full overflow-hidden bg-[#1c1917] sm:h-[22rem] lg:h-[28rem]">
       {photos.length ? (
         <div
           ref={scrollerRef}
@@ -129,6 +130,7 @@ const BusinessProfileHeroGallery = forwardRef(function BusinessProfileHeroGaller
           >
             <Share2 size={17} />
           </button>
+          {menu}
         </div>
       </div>
 

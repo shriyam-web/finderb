@@ -230,7 +230,7 @@ export default function BusinessProfileReviewItem({
 
   return (
     <>
-      <article className="border-b border-stone-100 pb-5 last:border-0">
+      <article className="rounded-[14px] border border-[#e7e5e4] bg-white p-3.5">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-1.5">

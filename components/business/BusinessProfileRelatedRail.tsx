@@ -19,7 +19,7 @@ export default function BusinessProfileRelatedRail({
   return (
     <section className="px-4 pt-6">
       <h2 className="text-[20px] font-extrabold tracking-tight text-[#153551]">Similar nearby</h2>
-      <div className="mt-3 flex gap-3 overflow-x-auto pb-1 scrollbar-hide">
+      <div className="mt-3 flex gap-3 overflow-x-auto pb-1 scrollbar-hide lg:grid lg:grid-cols-3 lg:overflow-visible">
         {businesses.map((item) => {
           const cover = getBusinessListingImage(item) || BUSINESS_IMAGE_FALLBACK;
           const dist = formatDistanceFromUser(userCoords, item.latitude, item.longitude);
@@ -27,7 +27,7 @@ export default function BusinessProfileRelatedRail({
             <Link
               key={item.id}
               href={getBusinessProfilePath(item)}
-              className="w-[min(220px,58vw)] shrink-0"
+              className="w-[min(220px,58vw)] shrink-0 lg:w-auto"
             >
               <div className="relative h-[150px] overflow-hidden rounded-2xl bg-stone-200">
                 <Image

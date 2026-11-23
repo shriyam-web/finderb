@@ -37,6 +37,7 @@ type BusinessProfileContactAsideProps = {
   socialLinks: SocialLink[];
   onCall: () => void;
   onEnquire: () => void;
+  className?: string;
   onEmail?: () => void;
   onWhatsApp?: () => void;
   phoneVerified?: boolean;
@@ -116,6 +117,7 @@ export default function BusinessProfileContactAside({
   onCall,
   onEmail,
   onWhatsApp,
+  className = '',
   phoneVerified = true,
   emailVerified = true,
   whatsappVerified = true,
@@ -126,7 +128,7 @@ export default function BusinessProfileContactAside({
   const hasContact = Boolean(phoneLink || email || whatsappNumber || website || address);
 
   return (
-    <section id="contact" className="scroll-mt-40 px-4 pt-6">
+    <section id="contact" className={`scroll-mt-40 px-4 pt-6 lg:rounded-[28px] lg:border lg:border-[#e7e5e4] lg:bg-white lg:p-5 lg:shadow-[0_18px_50px_-32px_rgba(28,25,23,0.28)] ${className}`}>
       <h2 className="text-[20px] font-extrabold tracking-tight text-[#153551]">Contact</h2>
 
       {!contactRevealed ? (
@@ -147,7 +149,7 @@ export default function BusinessProfileContactAside({
         </Link>
       ) : null}
 
-      <div className="mt-3 overflow-hidden rounded-2xl border border-stone-200/90 bg-white">
+      <div className="mt-3 overflow-hidden rounded-2xl border border-[#e7e5e4] bg-white lg:mt-4">
         {hasContact ? (
           <div className="divide-y divide-stone-100">
             {phoneLink ? (
