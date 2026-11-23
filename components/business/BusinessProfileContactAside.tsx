@@ -7,7 +7,7 @@ import {
   MapPin,
   Phone,
 } from 'lucide-react';
-import { FaFacebook, FaInstagram, FaYoutube } from 'react-icons/fa6';
+import { FaFacebook, FaInstagram, FaWhatsapp, FaYoutube } from 'react-icons/fa6';
 import type { IconType } from 'react-icons';
 import { buildLoginHref } from '@/lib/authRedirect';
 import { getPaymentModeIcon } from '@/lib/paymentModeIcon';
@@ -30,6 +30,7 @@ type BusinessProfileContactAsideProps = {
   phoneLink: string | null | undefined;
   phone: string;
   email?: string;
+  whatsapp?: string;
   website?: string;
   address?: string;
   paymentModes: string[];
@@ -37,8 +38,10 @@ type BusinessProfileContactAsideProps = {
   onCall: () => void;
   onEnquire: () => void;
   onEmail?: () => void;
+  onWhatsApp?: () => void;
   phoneVerified?: boolean;
   emailVerified?: boolean;
+  whatsappVerified?: boolean;
 };
 
 function getMaskedPhoneNumber(value: string): string {
@@ -61,11 +64,13 @@ function ContactRow({
   icon,
   label,
   value,
+  note,
   onClick,
 }: {
   icon: React.ReactNode;
   label: string;
   value: string;
+  note?: string;
   onClick?: () => void;
 }) {
   const content = (
@@ -76,6 +81,7 @@ function ContactRow({
       <span className="min-w-0 flex-1">
         <span className="block text-[11px] font-medium text-stone-400">{label}</span>
         <span className="block truncate text-sm font-semibold text-[#153551]">{value}</span>
+        {note ? <span className="mt-0.5 block text-[11px] leading-4 text-[#9a3412]">{note}</span> : null}
       </span>
       {onClick ? <ChevronRight size={16} className="shrink-0 text-stone-300" /> : null}
     </>
@@ -102,18 +108,22 @@ export default function BusinessProfileContactAside({
   phoneLink,
   phone,
   email,
+  whatsapp,
   website,
   address,
   paymentModes,
   socialLinks,
   onCall,
   onEmail,
+  onWhatsApp,
   phoneVerified = true,
   emailVerified = true,
+  whatsappVerified = true,
 }: BusinessProfileContactAsideProps) {
   const loginHref = buildLoginHref(profileRedirectPath);
   const websiteHref = website ? normalizeExternalHref(website) : null;
-  const hasContact = Boolean(phoneLink || email || website || address);
+  const whatsappNumber = whatsapp?.trim() || '';
+  const hasContact = Boolean(phoneLink || email || whatsappNumber || website || address);
 
   return (
     <section id="contact" className="scroll-mt-40 px-4 pt-6">
@@ -130,7 +140,7 @@ export default function BusinessProfileContactAside({
           <span className="min-w-0 flex-1">
             <span className="block text-sm font-semibold text-[#153551]">Sign in to reveal contact</span>
             <span className="block text-xs text-stone-500">
-              Phone and email stay private until you sign in.
+              Phone, email, and WhatsApp stay private until you sign in.
             </span>
           </span>
           <ChevronRight size={16} className="text-[#153551]" />
@@ -144,7 +154,8 @@ export default function BusinessProfileContactAside({
               <ContactRow
                 icon={<Phone size={16} />}
                 label="Phone"
-                value={!phoneVerified ? 'Not shown' : contactRevealed ? phone : getMaskedPhoneNumber(phone)}
+                value={contactRevealed ? phone : getMaskedPhoneNumber(phone)}
+                note={phoneVerified ? undefined : 'Unverified number'}
                 onClick={onCall}
               />
             ) : null}
@@ -152,7 +163,8 @@ export default function BusinessProfileContactAside({
               <ContactRow
                 icon={<Mail size={16} />}
                 label="Email"
-                value={!emailVerified ? 'Not shown' : contactRevealed ? email : getMaskedEmail(email)}
+                value={contactRevealed ? email : getMaskedEmail(email)}
+                note={emailVerified ? undefined : 'Unverified email'}
                 onClick={() => {
                   if (onEmail) {
                     onEmail();
@@ -164,6 +176,15 @@ export default function BusinessProfileContactAside({
                   }
                   window.location.href = loginHref;
                 }}
+              />
+            ) : null}
+            {whatsappNumber ? (
+              <ContactRow
+                icon={<FaWhatsapp size={16} />}
+                label="WhatsApp"
+                value={contactRevealed ? whatsappNumber : getMaskedPhoneNumber(whatsappNumber)}
+                note={whatsappVerified ? undefined : 'Unverified WhatsApp'}
+                onClick={onWhatsApp}
               />
             ) : null}
             {websiteHref ? (

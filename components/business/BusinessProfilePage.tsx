@@ -510,20 +510,6 @@ export default function BusinessProfilePage({
   const handleContactAction = useCallback(
     async (intent: ContactIntent) => {
       if (!business) return;
-      const flags = business as Business & {
-        phoneVerified?: boolean;
-        emailVerified?: boolean;
-        whatsappVerified?: boolean;
-        hasMapPin?: boolean;
-      };
-      if (intent === 'call' && !flags.phoneVerified && !managesThisProfile) {
-        setUnverifiedKind('phone');
-        return;
-      }
-      if (intent === 'whatsapp' && !flags.whatsappVerified && !managesThisProfile) {
-        setUnverifiedKind('whatsapp');
-        return;
-      }
       if (!sessionUser && !sessionBusiness) {
         handleRequestContact(intent);
         return;
@@ -544,7 +530,7 @@ export default function BusinessProfilePage({
         setConnectModalOpen(true);
       }
     },
-    [business, sessionUser, sessionBusiness, phoneLink, whatsappLink, handleRequestContact, managesThisProfile],
+    [business, sessionUser, sessionBusiness, phoneLink, whatsappLink, handleRequestContact],
   );
 
   useEffect(() => {
@@ -993,25 +979,23 @@ export default function BusinessProfilePage({
             phoneLink={phoneLink}
             phone={business.contact}
             email={business.email}
+            whatsapp={business.whatsappNumber}
             website={business.website}
             address={business.businessAddress}
             paymentModes={business.paymentModes ?? []}
             socialLinks={socialLinks}
             onCall={() => void handleContactAction('call')}
             onEmail={() => {
-              const flags = business as Business & { emailVerified?: boolean };
-              if (!flags.emailVerified && !managesThisProfile) {
-                setUnverifiedKind('email');
-                return;
-              }
               if (!contactRevealed) {
                 handleRequestContact('enquire');
                 return;
               }
               if (business.email) window.location.href = `mailto:${business.email}`;
             }}
+            onWhatsApp={() => void handleContactAction('whatsapp')}
             phoneVerified={Boolean((business as Business & { phoneVerified?: boolean }).phoneVerified) || managesThisProfile}
             emailVerified={Boolean((business as Business & { emailVerified?: boolean }).emailVerified) || managesThisProfile}
+            whatsappVerified={Boolean((business as Business & { whatsappVerified?: boolean }).whatsappVerified) || managesThisProfile}
             onEnquire={() => {
               if (contactRevealed) void handleContactAction('enquire');
               else handleRequestContact('enquire');

@@ -450,7 +450,7 @@ function HomeClientView({
     >
       {/* AI Search View */}
       {isAiSearchOpen && (
-        <div className="fixed inset-0 z-[80] flex flex-col overflow-hidden pt-[4.25rem] sm:pt-24 lg:hidden">
+        <div className="fixed inset-0 z-[80] flex flex-col overflow-hidden bg-[#f7f9fc] pt-[4.25rem] sm:pt-24">
           <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
             <div className="absolute top-0 left-0 h-full w-full bg-[radial-gradient(circle_at_50%_20%,rgba(37,99,235,0.06),transparent_55%)]" />
             <div className="absolute top-1/4 -left-20 h-64 w-64 animate-pulse rounded-full bg-[#2563eb]/5 blur-[100px]" />
@@ -460,7 +460,7 @@ function HomeClientView({
             />
           </div>
 
-          <div className="relative mx-auto flex min-h-0 w-full max-w-md flex-1 flex-col px-5">
+          <div className="relative mx-auto flex min-h-0 w-full max-w-md flex-1 flex-col px-5 lg:max-w-3xl lg:px-8">
             <div className="flex shrink-0 justify-end py-2">
               <button
                 type="button"
@@ -472,7 +472,7 @@ function HomeClientView({
               </button>
             </div>
 
-            <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain pb-[6.75rem] scrollbar-hide">
+            <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain pb-[6.75rem] scrollbar-hide lg:pb-16">
               <div className="space-y-8">
                 <div className="space-y-2">
                   <h1 className="text-[1.75rem] font-bold leading-tight tracking-tight text-[#0f172a]">
@@ -564,7 +564,7 @@ function HomeClientView({
                         Suggested searches
                       </span>
                     </div>
-                    <div className="grid grid-cols-2 gap-2.5">
+                    <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
                       {aiSmartQueries.map((item) => (
                         <button
                           key={item.id}

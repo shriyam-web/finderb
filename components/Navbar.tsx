@@ -4,7 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useEffect, useCallback, Suspense } from 'react';
 import { createPortal } from 'react-dom';
-import { usePathname, useSearchParams } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { Menu, X, User, Briefcase, Globe, ChevronDown, Home, ArrowRight, Settings, LogIn, LogOut, LayoutDashboard, Newspaper, BookOpen, ClipboardList, CreditCard, MessageSquare, ExternalLink, Users, Star } from 'lucide-react';
 import { getSession, logoutUser } from '@/app/actions/user';
 import { getBusinessSession, logoutBusiness } from '@/app/actions/business';
@@ -25,14 +25,12 @@ function NavbarContent({ whiteText: initialWhiteText = false }: { whiteText?: bo
   const [isBusinessLoggedIn, setIsBusinessLoggedIn] = useState(false);
   const [business, setBusiness] = useState<any>(null);
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const router = useRouter();
-  const isAiTab = searchParams.get('tab') === 'ai';
   const isOnLoginPage = pathname === '/login';
   const loginHref = isOnLoginPage ? '/business/login' : '/login';
   const loginLabel = isOnLoginPage ? 'Business Login' : 'Login / Sign Up';
 
-  const whiteText = initialWhiteText || isAiTab;
+  const whiteText = initialWhiteText;
   const isLight = !scrolled && whiteText;
 
   const businessDashboardHref = business?.id

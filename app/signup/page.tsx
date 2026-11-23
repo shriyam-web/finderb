@@ -6,6 +6,7 @@ import { AlertCircle } from 'lucide-react';
 import { getSafeRedirectPath } from '@/lib/authRedirect';
 import { useSearchParams } from 'next/navigation';
 import UserAuthShell, { UserAuthTrustRow } from '@/components/auth/UserAuthShell';
+import AuthIntentModal from '@/components/auth/AuthIntentModal';
 import SocialAuthButtons from '@/components/auth/SocialAuthButtons';
 import AuthRedirectScreen from '@/components/auth/AuthRedirectScreen';
 import { useAlreadyLoggedInRedirect } from '@/hooks/useAlreadyLoggedInRedirect';
@@ -29,6 +30,8 @@ function SignupContent() {
   }
 
   return (
+    <>
+    <AuthIntentModal mode="signup" />
     <UserAuthShell
       mode="signup"
       footer={
@@ -91,6 +94,7 @@ function SignupContent() {
         .
       </p>
     </UserAuthShell>
+    </>
   );
 }
 

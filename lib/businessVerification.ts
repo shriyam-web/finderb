@@ -6,7 +6,7 @@ export function isListingLive(status?: string | null): boolean {
 export function getListingStatusLabel(status?: string | null): string {
   const normalized = (status || 'Pending').trim().toLowerCase();
   if (normalized === 'active') return 'Live on FinderB';
-  if (normalized === 'pending') return 'Pending admin review';
+  if (normalized === 'pending' || normalized === 'ignored') return 'Pending admin review';
   if (normalized === 'rejected') return 'Listing rejected';
   if (normalized === 'inactive') return 'Listing inactive';
   return status || 'Pending admin review';

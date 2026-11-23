@@ -12,7 +12,7 @@ type LocationPermissionPromptProps = {
 };
 
 export default function LocationPermissionPrompt({ appReady }: LocationPermissionPromptProps) {
-  const { userCoords, isLocating, permissionState, requestLocation } = useUserLocationState();
+  const { isLocating, showLocationHelp, requestLocation } = useUserLocationState();
   // Defer browser-only checks until after mount so SSR HTML matches the first client render.
   const [mounted, setMounted] = useState(false);
   const [dismissed, setDismissed] = useState(false);
@@ -22,11 +22,7 @@ export default function LocationPermissionPrompt({ appReady }: LocationPermissio
     setDismissed(sessionStorage.getItem(DISMISS_KEY) === '1');
   }, []);
 
-  if (!mounted || !appReady || dismissed) return null;
-
-  if (userCoords || permissionState === 'denied' || permissionState === 'unsupported') {
-    return null;
-  }
+  if (!mounted || !appReady || dismissed || !showLocationHelp) return null;
 
   const handleDismiss = () => {
     sessionStorage.setItem(DISMISS_KEY, '1');
@@ -41,10 +37,9 @@ export default function LocationPermissionPrompt({ appReady }: LocationPermissio
             <MapPin size={18} />
           </span>
           <div className="min-w-0 pr-6 sm:pr-0">
-            <p className="text-sm font-semibold text-slate-900">Show accurate distances</p>
+            <p className="text-sm font-semibold text-slate-900">Location is blocked</p>
             <p className="mt-0.5 text-xs leading-relaxed text-slate-500">
-              Allow location in your browser for precise distances on desktop and mobile. We never
-              use approximate IP location.
+              Turn location on for this site in the browser, then try again for exact distances.
             </p>
           </div>
         </div>

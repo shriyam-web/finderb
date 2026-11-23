@@ -19,6 +19,7 @@ type UserLocationContextValue = {
   isResolvingCity: boolean;
   permissionState: LocationPermissionState;
   requestLocation: () => void;
+  showLocationHelp: boolean;
   setSearchLocation: (location: string | null) => void;
 };
 
@@ -33,6 +34,7 @@ const UserLocationContext = createContext<UserLocationContextValue>({
   isResolvingCity: false,
   permissionState: 'unknown',
   requestLocation: () => {},
+  showLocationHelp: false,
   setSearchLocation: () => {},
 });
 
@@ -217,6 +219,7 @@ export function UserLocationProvider({ children }: { children: ReactNode }) {
   const [isLocating, setIsLocating] = useState(true);
   const [isResolvingCity, setIsResolvingCity] = useState(false);
   const [permissionState, setPermissionState] = useState<LocationPermissionState>('unknown');
+  const [showLocationHelp, setShowLocationHelp] = useState(false);
   const permissionStatusRef = useRef<PermissionStatus | null>(null);
   const hasAutoRequestedRef = useRef(false);
   const cityRequestRef = useRef(0);
@@ -253,7 +256,7 @@ export function UserLocationProvider({ children }: { children: ReactNode }) {
     });
   }, [userCoords]);
 
-  const resolveLocation = useCallback(async () => {
+  const resolveLocation = useCallback(async (ask: boolean) => {
     setIsLocating(true);
 
     const permission = await readPermissionState();
@@ -270,8 +273,9 @@ export function UserLocationProvider({ children }: { children: ReactNode }) {
     }
 
     let browserDenied = false;
+    const mayAskBrowser = permission === 'granted' || (ask && permission !== 'denied');
 
-    if (permission !== 'denied') {
+    if (mayAskBrowser) {
       const browserResult = await tryBrowserGeolocation();
 
       if (browserResult.coords) {
@@ -281,7 +285,7 @@ export function UserLocationProvider({ children }: { children: ReactNode }) {
       }
 
       browserDenied = browserResult.denied;
-    } else {
+    } else if (permission === 'denied') {
       browserDenied = true;
     }
 
@@ -301,13 +305,19 @@ export function UserLocationProvider({ children }: { children: ReactNode }) {
   }, [applyCoords]);
 
   const requestLocation = useCallback(() => {
-    void resolveLocation();
+    void (async () => {
+      const permission = await readPermissionState();
+      setShowLocationHelp(permission === 'denied');
+      await resolveLocation(true);
+      const after = await readPermissionState();
+      setShowLocationHelp(after === 'denied');
+    })();
   }, [resolveLocation]);
 
   useEffect(() => {
     if (hasAutoRequestedRef.current) return;
     hasAutoRequestedRef.current = true;
-    void resolveLocation();
+    void resolveLocation(false);
   }, [resolveLocation]);
 
   useEffect(() => {
@@ -358,6 +368,7 @@ export function UserLocationProvider({ children }: { children: ReactNode }) {
         isResolvingCity,
         permissionState,
         requestLocation,
+        showLocationHelp,
         setSearchLocation,
       }}
     >

@@ -20,7 +20,7 @@ export default function BusinessProfileLoading() {
             />
           </div>
         </div>
-        <p className="mt-5 text-sm font-medium text-zinc-600">Opening profile...</p>
+        <p className="mt-5 text-sm font-medium text-zinc-600">Opening storefront…</p>
       </div>
     </div>
   );

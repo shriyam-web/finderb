@@ -6,6 +6,7 @@ import { AlertCircle, CheckCircle2 } from 'lucide-react';
 import { getSafeRedirectPath } from '@/lib/authRedirect';
 import { useSearchParams } from 'next/navigation';
 import UserAuthShell, { UserAuthTrustRow } from '@/components/auth/UserAuthShell';
+import AuthIntentModal from '@/components/auth/AuthIntentModal';
 import SocialAuthButtons from '@/components/auth/SocialAuthButtons';
 import AuthRedirectScreen from '@/components/auth/AuthRedirectScreen';
 import { useAlreadyLoggedInRedirect } from '@/hooks/useAlreadyLoggedInRedirect';
@@ -40,6 +41,8 @@ function LoginContent() {
   }
 
   return (
+    <>
+    <AuthIntentModal mode="login" />
     <UserAuthShell
       mode="login"
       footer={
@@ -111,6 +114,7 @@ function LoginContent() {
         .
       </p>
     </UserAuthShell>
+    </>
   );
 }
 
