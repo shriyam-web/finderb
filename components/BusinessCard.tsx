@@ -66,19 +66,15 @@ export default function BusinessCard({
             className="object-cover transition-transform duration-300 group-hover:scale-[1.02]"
             sizes="(max-width: 640px) 100vw, 50vw"
           />
-          <div className="absolute right-2 top-2 flex items-center gap-0.5 rounded-md border border-stone-200/80 bg-white/95 px-1.5 py-0.5 text-[10px] font-semibold text-[#153551]">
-            {ratingDisplay.rated ? (
-              <>
-                <Star size={10} className="fill-amber-500 text-amber-500" />
-                {ratingDisplay.label}
-                {ratingDisplay.showCount ? (
-                  <span className="font-medium text-stone-400">({ratingDisplay.reviewCount})</span>
-                ) : null}
-              </>
-            ) : (
-              'New'
-            )}
-          </div>
+          {ratingDisplay.rated ? (
+            <div className="absolute right-2 top-2 flex items-center gap-0.5 rounded-md border border-stone-200/80 bg-white/95 px-1.5 py-0.5 text-[10px] font-semibold text-[#153551]">
+              <Star size={10} className="fill-amber-500 text-amber-500" />
+              {ratingDisplay.label}
+              {ratingDisplay.showCount ? (
+                <span className="font-medium text-stone-400">({ratingDisplay.reviewCount})</span>
+              ) : null}
+            </div>
+          ) : null}
         </div>
 
         <div className="flex flex-col p-3">
@@ -140,19 +136,19 @@ export default function BusinessCard({
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-80 group-hover:opacity-60 transition-opacity" />
 
-        <div
-          className={`absolute ${compact ? 'top-2 right-2' : 'top-3 right-3'} z-10 flex items-center gap-1 rounded-lg border border-white/20 bg-white/95 px-2 py-0.5 shadow-md backdrop-blur-md`}
-        >
-          {ratingDisplay.rated ? (
+        {ratingDisplay.rated ? (
+          <div
+            className={`absolute ${compact ? 'top-2 right-2' : 'top-3 right-3'} z-10 flex items-center gap-1 rounded-lg border border-white/20 bg-white/95 px-2 py-0.5 shadow-md backdrop-blur-md`}
+          >
             <Star className="fill-secondary text-secondary" size={compact || uniform ? 10 : 12} />
-          ) : null}
-          <span className={`font-bold text-primary ${uniform ? 'text-[10px]' : compact ? 'text-[10px]' : 'text-xs'}`}>
-            {ratingDisplay.rated ? ratingDisplay.label : 'New'}
-            {ratingDisplay.rated && ratingDisplay.showCount ? (
-              <span className="font-medium text-stone-400"> ({ratingDisplay.reviewCount})</span>
-            ) : null}
-          </span>
-        </div>
+            <span className={`font-bold text-primary ${uniform ? 'text-[10px]' : compact ? 'text-[10px]' : 'text-xs'}`}>
+              {ratingDisplay.label}
+              {ratingDisplay.showCount ? (
+                <span className="font-medium text-stone-400"> ({ratingDisplay.reviewCount})</span>
+              ) : null}
+            </span>
+          </div>
+        ) : null}
       </div>
 
       {/* Content Section */}

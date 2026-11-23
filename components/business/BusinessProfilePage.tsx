@@ -56,7 +56,7 @@ import {
   type BusinessReview,
 } from '@/lib/businessReviews';
 import { getDiscountOfferDisplay } from '@/lib/discountOffer';
-import { getRatingDisplay, UNRATED_LABEL } from '@/lib/ratingDisplay';
+import { getRatingDisplay } from '@/lib/ratingDisplay';
 import {
   directionsHref,
   phoneHref,
@@ -787,12 +787,9 @@ export default function BusinessProfilePage({
                       ) : null}
                     </>
                   ) : (
-                    <>
-                      <span className="rounded-[5px] bg-[#215481] px-1.5 py-0.5 text-[11px] font-semibold text-white">
-                        New
-                      </span>
-                      <span className="text-[11px] font-medium text-stone-400">{UNRATED_LABEL}</span>
-                    </>
+                    <span className="rounded-[5px] bg-[#215481] px-1.5 py-0.5 text-[11px] font-semibold text-white">
+                      New
+                    </span>
                   )}
                 </div>
               </div>

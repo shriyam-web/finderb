@@ -30,7 +30,7 @@ import { getBusinessProfilePath } from '@/lib/businessSlug';
 import { getBusinessOpenStatus } from '@/lib/businessHours';
 import { shufflePreservingFixedSlots } from '@/lib/categoryFixedSlots';
 import { getDiscountOfferCardLabel } from '@/lib/discountOffer';
-import { getRatingDisplay, UNRATED_LABEL } from '@/lib/ratingDisplay';
+import { getRatingDisplay } from '@/lib/ratingDisplay';
 import { formatDistanceFromUser, getDistanceKm } from '@/lib/geo';
 import { useUserCoords } from '@/hooks/useUserCoords';
 
@@ -576,9 +576,7 @@ function MerchantPortraitCard({
                 <span className="font-medium text-slate-400">({ratingDisplay.reviewCount})</span>
               ) : null}
             </span>
-          ) : (
-            <span className="text-[10px] font-medium text-slate-400">{UNRATED_LABEL}</span>
-          )}
+          ) : null}
 
           {hoursLabel ? (
             <>

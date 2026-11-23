@@ -1,5 +1,5 @@
 import { Star } from 'lucide-react';
-import { getRatingDisplay, UNRATED_LABEL } from '@/lib/ratingDisplay';
+import { getRatingDisplay } from '@/lib/ratingDisplay';
 
 type MerchantListingRatingProps = {
   rating: number | null | undefined;
@@ -14,13 +14,10 @@ export default function MerchantListingRating({
   reviewCount,
   starSize = 11,
   textClassName = 'text-[12px] font-medium text-[#475569]',
-  emptyClassName = 'text-[12px] text-[#94a3b8]',
 }: MerchantListingRatingProps) {
   const display = getRatingDisplay(rating, reviewCount);
 
-  if (!display.rated) {
-    return <span className={emptyClassName}>{UNRATED_LABEL}</span>;
-  }
+  if (!display.rated) return null;
 
   return (
     <div className="flex items-center gap-1">
