@@ -767,6 +767,7 @@ function HomeClientView({
                             <p className="line-clamp-1 text-[12px] text-[#94a3b8]">{biz.category}</p>
                             {openStatus && (
                               <p
+                                suppressHydrationWarning
                                 className={`line-clamp-1 text-[11px] font-semibold ${
                                   openStatus.status === 'Open' ? 'text-emerald-700' : 'text-rose-600'
                                 }`}

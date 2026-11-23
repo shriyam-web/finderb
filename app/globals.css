@@ -374,6 +374,27 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+.finderb-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.45s ease, visibility 0.45s ease;
+}
+
+html.finderb-splash-on .finderb-splash,
+.finderb-splash--show {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
 h1, h2, h3, h4, h5, h6 {
   font-family: 'Google Sans', 'Poppins', 'Inter', sans-serif;
   color: var(--color-primary-800);

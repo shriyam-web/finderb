@@ -584,6 +584,7 @@ function MerchantPortraitCard({
             <>
               <span className="h-1 w-1 rounded-full bg-slate-300" />
               <span
+                suppressHydrationWarning
                 className={`truncate text-[10px] font-semibold ${
                   isOpen ? 'text-emerald-600' : 'text-rose-600'
                 }`}

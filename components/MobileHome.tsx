@@ -320,6 +320,7 @@ export default function MobileHome({
                     <p className="line-clamp-1 text-[11px] text-[#94a3b8]">{biz.category}</p>
                     {openStatus && (
                       <p
+                        suppressHydrationWarning
                         className={`line-clamp-1 text-[10px] font-semibold ${
                           openStatus.status === 'Open' ? 'text-emerald-700' : 'text-rose-600'
                         }`}

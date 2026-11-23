@@ -915,13 +915,13 @@ export default function BusinessProfilePage({
               {showHoursStatus ? (
                 <p className="flex flex-wrap items-center gap-1.5 text-[13px]">
                   <span className={`h-[7px] w-[7px] rounded-full ${openStatus?.dotClass}`} />
-                  <span className={`font-semibold ${openStatus?.colorClass}`}>
+                  <span suppressHydrationWarning className={`font-semibold ${openStatus?.colorClass}`}>
                     {openStatus?.status === 'Open' ? 'Open now' : 'Closed'}
                   </span>
                   {todayHours?.hours || openStatus?.label ? (
                     <>
                       <span className="text-stone-300">·</span>
-                      <span className="font-medium text-stone-500">
+                      <span suppressHydrationWarning className="font-medium text-stone-500">
                         {todayHours?.hours || openStatus?.label}
                       </span>
                     </>

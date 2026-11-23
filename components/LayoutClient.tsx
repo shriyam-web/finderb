@@ -128,13 +128,22 @@ export default function LayoutClient({
     !isBusinessOnboardingPreview(pathname);
 
   useEffect(() => {
+    const root = document.documentElement;
+    if (root.classList.contains('finderb-splash-on')) {
+      const hide = window.setTimeout(() => {
+        root.classList.remove('finderb-splash-on');
+        rememberSplash();
+      }, 1100);
+      return () => window.clearTimeout(hide);
+    }
+
     const shouldPlay = !splashAlreadySeen() && !skipSplashOnEntry.current;
     playOnEntry.current = shouldPlay;
-    rememberSplash();
     if (!shouldPlay) return;
+    rememberSplash();
     setLoading(true);
-    const timer = setTimeout(() => setLoading(false), 3000);
-    return () => clearTimeout(timer);
+    const timer = window.setTimeout(() => setLoading(false), 1100);
+    return () => window.clearTimeout(timer);
   }, []);
 
   useEffect(() => {
@@ -152,18 +161,19 @@ export default function LayoutClient({
         loading — that made SSR/HTML for crawlers (ChatGPT, Claude, etc.)
         contain only the splash text and look "uncrawlable".
       */}
-      {loading && (
+      <Loader />
+      {loading && businessDashboardRoute ? (
         <div aria-hidden="true">
-          {businessDashboardRoute ? <BusinessWorkspaceLoader /> : <Loader />}
+          <BusinessWorkspaceLoader />
         </div>
-      )}
+      ) : null}
       {/*
         Navbar, page, and footer stay in one boundary. The fallback fills the
         screen, so a slow page cannot paint the footer before the content.
       */}
       <Suspense
         fallback={
-          businessDashboardRoute ? <BusinessWorkspaceLoader /> : <Loader />
+          businessDashboardRoute ? <BusinessWorkspaceLoader /> : <Loader active />
         }
       >
       <div

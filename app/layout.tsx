@@ -83,8 +83,13 @@ export default async function RootLayout({
     .join(" ");
 
   return (
-    <html lang="en" className={htmlClass}>
+    <html lang="en" className={htmlClass} suppressHydrationWarning>
       <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{if(document.cookie.indexOf('finderb_splash=')!==-1)return;var p=location.pathname;if(p==='/'||p==='/verify-phone'||p==='/business/onboarding-preview'||p==='/dashboard'||p.indexOf('/dashboard/')===0||p==='/business/dashboard'||p.indexOf('/business/dashboard/')===0||p.indexOf('/business/list')===0||p.indexOf('/business/kyc/')===0)return;if(p==='/categories'||(p.indexOf('/categories/')===0&&p.indexOf('/categories/job')!==0))return;if(p.indexOf('/business/')===0){var slug=p.slice('/business/'.length).split('/')[0];if(slug&&['login','register','dashboard','list','payment','kyc'].indexOf(slug)===-1&&p.split('/').length===3)return;}document.documentElement.classList.add('finderb-splash-on');}catch(e){}})();`,
+          }}
+        />
         {mediaCdnHost ? (
           <>
             <link rel="preconnect" href={`https://${mediaCdnHost}`} />
