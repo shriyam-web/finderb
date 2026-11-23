@@ -70,10 +70,10 @@ const Loader = ({
       aria-live="polite"
       aria-label="Loading FinderB"
     >
-      <div className="flex flex-col items-center">
-        <BrandLockup />
+      <BrandLockup />
+      <div className="absolute inset-x-0 bottom-[max(2.75rem,env(safe-area-inset-bottom))] flex flex-col items-center">
         <span
-          className="mt-7 h-5 w-5 animate-spin rounded-full border-2 border-[#d5e2ee] border-t-[#215481]"
+          className="h-5 w-5 animate-spin rounded-full border-2 border-[#d5e2ee] border-t-[#215481]"
           aria-hidden
         />
         {status ? (
