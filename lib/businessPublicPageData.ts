@@ -13,6 +13,7 @@ import { isLegacyBusinessId, resolveBusinessSlug } from '@/lib/businessSlug';
 import { redactPublicBusinessFields } from '@/lib/security/businessFields';
 import { escapeIlikePattern } from '@/lib/searchMatch';
 import { categoryHref } from '@/lib/categoryDisplay';
+import { categoryLeaf, primaryCategoryLabel } from '@/lib/alsoServes';
 import { loadPublicBusinessSignals } from '@/lib/publicBusinessSignals';
 
 export const BUSINESS_PAGE_REVALIDATE_SECONDS = 900;
@@ -249,24 +250,37 @@ export function getCachedCategoryBreadcrumb(categoryName: string) {
   )();
 }
 
-async function fetchTopCategoriesForLinks() {
+async function fetchRelatedCategoriesForBusiness(categoryName: string) {
+  const leaf = categoryLeaf(primaryCategoryLabel(categoryName) || categoryName);
+  const crumb = await fetchCategoryBreadcrumb(leaf);
+  const category = crumb.category;
+  if (!category?.id) return [] as { name: string; href: string }[];
+
   const supabase = getPublicSupabase();
   const { data, error } = await supabase
     .from('categories')
-    .select('id, name, slug')
+    .select('name, slug')
     .eq('status', 'Active')
-    .is('parent_id', null)
+    .eq('parent_id', category.parentId || category.id)
     .order('position', { ascending: true })
     .limit(12);
 
-  if (error) throw error;
-  return data ?? [];
+  if (error || !data) return [] as { name: string; href: string }[];
+
+  return data
+    .filter((row) => row.name && row.slug && row.name.toLowerCase() !== leaf.toLowerCase())
+    .slice(0, 6)
+    .map((row) => ({
+      name: row.name,
+      href: categoryHref(row.slug, row.name),
+    }));
 }
 
-export function getCachedTopCategoriesForLinks() {
+export function getCachedRelatedCategoriesForBusiness(categoryName: string) {
+  const cacheKey = categoryName.trim().toLowerCase();
   return unstable_cache(
-    async () => fetchTopCategoriesForLinks(),
-    ['public-top-categories-links-v1'],
-    { revalidate: BUSINESS_PAGE_REVALIDATE_SECONDS }
+    async () => fetchRelatedCategoriesForBusiness(categoryName),
+    ['public-related-categories-v1', cacheKey],
+    { revalidate: BUSINESS_PAGE_REVALIDATE_SECONDS },
   )();
 }

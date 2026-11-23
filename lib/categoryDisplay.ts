@@ -85,3 +85,28 @@ export function categoryBrowseHref(
   }
   return base;
 }
+
+type RelatedCategorySource = {
+  id?: string;
+  name: string;
+  slug?: string | null;
+  parent_id?: string | null;
+};
+
+/** Same family only: sibling subcategories, or the children of a top-level category. */
+export function pickRelatedCategories<T extends RelatedCategorySource>(
+  categories: T[],
+  currentSlug: string,
+  limit = 8,
+): T[] {
+  const current = categories.find((category) => category.slug === currentSlug);
+  if (!current) return [];
+  const family = current.parent_id
+    ? categories.filter(
+        (category) => category.parent_id === current.parent_id && category.slug !== currentSlug,
+      )
+    : current.id
+      ? categories.filter((category) => category.parent_id === current.id)
+      : [];
+  return family.filter((category) => category.slug && category.name).slice(0, limit);
+}

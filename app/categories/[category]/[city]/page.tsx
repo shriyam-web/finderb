@@ -7,7 +7,7 @@ import JsonLd from '@/components/JsonLd';
 import RelatedCategoryLinks from '@/components/seo/RelatedCategoryLinks';
 import { CATEGORY_LISTINGS_PAGE_SIZE } from '@/lib/categoryListings';
 import { formatCityFromSlug } from '@/lib/categoryCity';
-import { categoryHref } from '@/lib/categoryDisplay';
+import { categoryHref, pickRelatedCategories } from '@/lib/categoryDisplay';
 import {
   buildCategoryCityCollectionJsonLd,
   buildCategoryCityMetadata,
@@ -66,13 +66,10 @@ export default async function CategoryCityPage({ params }: PageProps) {
     total
   );
 
-  const relatedCategories = allCategories
-    .filter((c: { slug?: string }) => c.slug && c.slug !== categorySlug)
-    .slice(0, 8)
-    .map((c: { name: string; slug?: string }) => ({
-      name: c.name,
-      href: categoryHref(c.slug, c.name),
-    }));
+  const relatedCategories = pickRelatedCategories(allCategories, categorySlug).map((category) => ({
+    name: category.name,
+    href: categoryHref(category.slug, category.name),
+  }));
 
   return (
     <div className="min-h-[calc(100dvh-6.75rem)] bg-slate-50 pb-12 pt-6 lg:min-h-screen lg:pt-10">

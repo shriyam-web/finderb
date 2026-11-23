@@ -10,7 +10,7 @@ import {
   buildCategoryCollectionJsonLd,
   buildCategorySlugMetadata,
 } from '@/lib/categorySeo';
-import { categoryHref } from '@/lib/categoryDisplay';
+import { categoryHref, pickRelatedCategories } from '@/lib/categoryDisplay';
 
 type PageProps = {
   params: Promise<{ category: string }>;
@@ -63,13 +63,10 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
     total
   );
 
-  const relatedCategories = allCategories
-    .filter((c: { slug?: string }) => c.slug && c.slug !== categorySlug)
-    .slice(0, 8)
-    .map((c: { name: string; slug?: string }) => ({
-      name: c.name,
-      href: categoryHref(c.slug, c.name),
-    }));
+  const relatedCategories = pickRelatedCategories(allCategories, categorySlug).map((category) => ({
+    name: category.name,
+    href: categoryHref(category.slug, category.name),
+  }));
 
   return (
     <>

@@ -206,6 +206,10 @@ export default function BusinessProfilePage({
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
   const userCoords = useUserCoords();
+  const [distanceReady, setDistanceReady] = useState(false);
+  useEffect(() => {
+    setDistanceReady(true);
+  }, []);
   const businessId = business?.id ?? slugOrId;
 
   useEffect(() => {
@@ -663,11 +667,13 @@ export default function BusinessProfilePage({
     address: business.businessAddress,
     location: business.location,
   });
-  const distanceLabel = formatDistanceFromUser(
-    userCoords,
-    business.latitude,
-    business.longitude
-  );
+  const distanceLabel = distanceReady
+    ? formatDistanceFromUser(
+        userCoords,
+        business.latitude,
+        business.longitude
+      )
+    : null;
   const socialLinks = [
     { label: 'Instagram', href: business.instagramUrl },
     { label: 'Facebook', href: business.facebookUrl },

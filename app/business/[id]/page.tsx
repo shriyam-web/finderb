@@ -7,7 +7,6 @@ import BusinessSeoContent from '@/components/business/BusinessSeoContent';
 import JsonLd from '@/components/JsonLd';
 import { buildBusinessJsonLd, buildBusinessMetadata } from '@/lib/businessSeo';
 import { buildPageMetadata, NO_INDEX_ROBOTS } from '@/lib/seoUtils';
-import { categoryHref } from '@/lib/categoryDisplay';
 import {
   getBusinessProfilePath,
   resolveBusinessSlug,
@@ -17,7 +16,7 @@ import {
   getCachedCategoryBreadcrumb,
   getCachedPublicBusiness,
   getCachedRelatedBusinesses,
-  getCachedTopCategoriesForLinks,
+  getCachedRelatedCategoriesForBusiness,
 } from '@/lib/businessPublicPageData';
 
 /** Public profiles refresh every 15 minutes. Updates call revalidateBusinessProfilePaths. */
@@ -73,15 +72,9 @@ export default async function BusinessDetailPage({ params }: PageProps) {
   const jsonLd = buildBusinessJsonLd(business, categorySlug);
 
   const relatedResult = await getCachedRelatedBusinesses(business);
-  const topCategories = await getCachedTopCategoriesForLinks();
-
-  const relatedCategories = topCategories
-    .filter((cat) => cat.name !== business.category)
-    .slice(0, 6)
-    .map((cat) => ({
-      name: cat.name,
-      href: categoryHref(cat.slug, cat.name),
-    }));
+  const relatedCategories = business.category
+    ? await getCachedRelatedCategoriesForBusiness(business.category)
+    : [];
 
   return (
     <>

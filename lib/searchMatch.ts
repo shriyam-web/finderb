@@ -238,14 +238,25 @@ export function businessNameSuggestionScore(name: string, rawQuery: string): num
   return Math.max(64, 86 - fuzzy * 6);
 }
 
+function searchTokens(text: string): string[] {
+  return normalizeSearchQuery(text).split(/[^a-z0-9]+/).filter((token) => token.length >= 2);
+}
+
 export function textMatchesSearchTerm(
   text: string | null | undefined,
   term: string
 ): boolean {
   if (!term) return true;
   if (!text) return false;
-  const hay = normalizeSearchQuery(text);
-  return termVariants(term).some((v) => hay.includes(v));
+  const tokens = searchTokens(text);
+  if (tokens.length === 0) return false;
+  return termVariants(term).some((variant) => {
+    if (variant.length < 2) return false;
+    return tokens.some((token) => {
+      if (token === variant) return true;
+      return variant.length >= 4 && token.startsWith(variant);
+    });
+  });
 }
 
 export function textMatchesSearchTerms(
@@ -289,12 +300,18 @@ function scoreFieldAgainstQuery(
   if (!hasPrimary) {
     if (terms.length === 1) return 0;
     let weak = 0;
+    let specific = false;
     for (let i = 1; i < terms.length; i++) {
       const term = terms[i];
       if (!textMatchesSearchTerm(text, term)) continue;
-      weak += GENERIC_SEARCH_TERMS.has(term) ? 4 : 14;
+      if (GENERIC_SEARCH_TERMS.has(term)) {
+        weak += 4;
+      } else {
+        weak += 14;
+        specific = true;
+      }
     }
-    return weak > 0 ? weak * fieldMultiplier * 0.4 : 0;
+    return specific ? weak * fieldMultiplier * 0.4 : 0;
   }
 
   let score = 50;
