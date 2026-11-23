@@ -28,6 +28,7 @@ import { MerchantOfferBanner } from '../../../components/MerchantOfferBanner';
 import { MerchantReviewComposer } from '../../../components/MerchantReviewComposer';
 import { PhotoLightbox } from '../../../components/PhotoLightbox';
 import { PublicBadgeRow } from '../../../components/PublicBadgeRow';
+import { ReportBusinessMenu } from '../../../components/ReportBusinessMenu';
 import { useBusinessSignals } from '../../../components/ListSignalChips';
 import { BadgeInfoModal } from '../../../components/BadgeInfoModal';
 import { BestInCategoryMark, ReplyPace } from '../../../components/ProfileSignalMarks';
@@ -718,6 +719,15 @@ export default function MerchantProfileScreen() {
             <Pressable style={styles.chromeBtnLight} onPress={shareProfile}>
               <Ionicons name="share-outline" size={16} color={colors.ink} />
             </Pressable>
+            {isOwnBusiness ? null : (
+              <ReportBusinessMenu
+                businessId={merchant.id}
+                signedIn={Boolean(user)}
+                onNeedLogin={requestLogin}
+                iconColor={colors.ink}
+                buttonStyle={styles.chromeBtnLight}
+              />
+            )}
           </View>
         </View>
       </Animated.View>
@@ -859,6 +869,15 @@ export default function MerchantProfileScreen() {
               <Pressable style={styles.chromeBtn} onPress={shareProfile}>
                 <HeroGlyph name="share-outline" size={20} color="#FFFFFF" onLight={iconOnLight.right} />
               </Pressable>
+              {isOwnBusiness ? null : (
+                <ReportBusinessMenu
+                  businessId={merchant.id}
+                  signedIn={Boolean(user)}
+                  onNeedLogin={requestLogin}
+                  iconColor={iconOnLight.right ? '#0C0A09' : '#FFFFFF'}
+                  buttonStyle={styles.chromeBtn}
+                />
+              )}
             </View>
           </SafeAreaView>
 
