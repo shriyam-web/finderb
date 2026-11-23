@@ -1,7 +1,7 @@
 /** Below this many reviews the average is shown without a count. */
 export const REVIEW_COUNT_VISIBLE_FROM = 5;
 
-export const UNRATED_LABEL = 'Not rated yet';
+export const UNRATED_LABEL = 'New';
 
 export type RatingDisplay =
   | { rated: false }
@@ -16,7 +16,7 @@ export type RatingDisplay =
     };
 
 /**
- * Public rating rules: no reviews → "New / Not rated yet"; 1–4 reviews → average only;
+ * Public rating rules: no reviews → "New"; 1–4 reviews → average only;
  * 5+ reviews → average with the review count. Never invent a rating for unreviewed businesses.
  */
 export function getRatingDisplay(rating: unknown, reviewCount: unknown): RatingDisplay {
