@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import {
+  Check,
   ChevronRight,
   Globe,
   Lock,
@@ -43,6 +44,7 @@ type BusinessProfileContactAsideProps = {
   phoneVerified?: boolean;
   emailVerified?: boolean;
   whatsappVerified?: boolean;
+  onAddress?: () => void;
 };
 
 function getMaskedPhoneNumber(value: string): string {
@@ -61,28 +63,45 @@ function getMaskedEmail(value: string): string {
   return `${localPart.slice(0, 2)}${'•'.repeat(Math.max(2, localPart.length - 2))}@${domainPart}`;
 }
 
+const CONTACT_TONE = {
+  phone: { row: 'bg-blue-50', icon: 'bg-blue-100 text-blue-700', hint: 'Tap to call' },
+  email: { row: 'bg-red-50', icon: 'bg-red-100 text-red-600', hint: 'Tap to email' },
+  whatsapp: { row: 'bg-green-50', icon: 'bg-green-100 text-green-700', hint: 'Tap to chat' },
+  address: { row: 'bg-yellow-50', icon: 'bg-yellow-100 text-yellow-700', hint: 'Tap for directions' },
+  website: { row: 'bg-white', icon: 'bg-stone-50 text-[#153551]', hint: 'Tap to open' },
+} as const;
+
 function ContactRow({
   icon,
   label,
   value,
   note,
   onClick,
+  tone,
+  verified,
 }: {
   icon: React.ReactNode;
   label: string;
   value: string;
   note?: string;
   onClick?: () => void;
+  tone: keyof typeof CONTACT_TONE;
+  verified?: boolean;
 }) {
+  const look = CONTACT_TONE[tone];
   const content = (
     <>
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-stone-50 text-[#153551]">
+      <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${look.icon}`}>
         {icon}
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block text-[11px] font-medium text-stone-400">{label}</span>
-        <span className="block truncate text-sm font-semibold text-[#153551]">{value}</span>
+        <span className="block text-[11px] font-medium text-stone-500">{label}</span>
+        <span className="flex items-center gap-1.5">
+          <span className="block truncate text-sm font-semibold text-[#153551]">{value}</span>
+          {verified ? <Check size={14} className="shrink-0 text-green-600" aria-label="Verified" /> : null}
+        </span>
         {note ? <span className="mt-0.5 block text-[11px] leading-4 text-[#9a3412]">{note}</span> : null}
+        {onClick ? <span className="mt-0.5 block text-[11px] font-medium text-stone-500">• {look.hint}</span> : null}
       </span>
       {onClick ? <ChevronRight size={16} className="shrink-0 text-stone-300" /> : null}
     </>
@@ -93,14 +112,14 @@ function ContactRow({
       <button
         type="button"
         onClick={onClick}
-        className="flex w-full items-center gap-3 px-3 py-3 text-left"
+        className={`flex w-full items-center gap-3 px-3 py-3 text-left ${look.row}`}
       >
         {content}
       </button>
     );
   }
 
-  return <div className="flex items-center gap-3 px-3 py-3">{content}</div>;
+  return <div className={`flex items-center gap-3 px-3 py-3 ${look.row}`}>{content}</div>;
 }
 
 export default function BusinessProfileContactAside({
@@ -121,6 +140,7 @@ export default function BusinessProfileContactAside({
   phoneVerified = true,
   emailVerified = true,
   whatsappVerified = true,
+  onAddress,
 }: BusinessProfileContactAsideProps) {
   const loginHref = buildLoginHref(profileRedirectPath);
   const websiteHref = website ? normalizeExternalHref(website) : null;
@@ -156,8 +176,10 @@ export default function BusinessProfileContactAside({
               <ContactRow
                 icon={<Phone size={16} />}
                 label="Phone"
+                tone="phone"
                 value={contactRevealed ? phone : getMaskedPhoneNumber(phone)}
-                note={phoneVerified ? undefined : 'Unverified number'}
+                note={contactRevealed && !phoneVerified ? 'Unverified number' : undefined}
+                verified={contactRevealed && phoneVerified}
                 onClick={onCall}
               />
             ) : null}
@@ -165,8 +187,10 @@ export default function BusinessProfileContactAside({
               <ContactRow
                 icon={<Mail size={16} />}
                 label="Email"
+                tone="email"
                 value={contactRevealed ? email : getMaskedEmail(email)}
-                note={emailVerified ? undefined : 'Unverified email'}
+                note={contactRevealed && !emailVerified ? 'Unverified email' : undefined}
+                verified={contactRevealed && emailVerified}
                 onClick={() => {
                   if (onEmail) {
                     onEmail();
@@ -184,8 +208,10 @@ export default function BusinessProfileContactAside({
               <ContactRow
                 icon={<FaWhatsapp size={16} />}
                 label="WhatsApp"
+                tone="whatsapp"
                 value={contactRevealed ? whatsappNumber : getMaskedPhoneNumber(whatsappNumber)}
-                note={whatsappVerified ? undefined : 'Unverified WhatsApp'}
+                note={contactRevealed && !whatsappVerified ? 'Unverified WhatsApp' : undefined}
+                verified={contactRevealed && whatsappVerified}
                 onClick={onWhatsApp}
               />
             ) : null}
@@ -193,6 +219,7 @@ export default function BusinessProfileContactAside({
               <ContactRow
                 icon={<Globe size={16} />}
                 label="Website"
+                tone="website"
                 value={websiteHref.replace(/^https?:\/\//, '')}
                 onClick={() => {
                   window.open(websiteHref, '_blank', 'noopener,noreferrer');
@@ -200,7 +227,13 @@ export default function BusinessProfileContactAside({
               />
             ) : null}
             {address ? (
-              <ContactRow icon={<MapPin size={16} />} label="Address" value={address} />
+              <ContactRow
+                icon={<MapPin size={16} />}
+                label="Address"
+                tone="address"
+                value={address}
+                onClick={onAddress}
+              />
             ) : null}
           </div>
         ) : (

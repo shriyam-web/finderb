@@ -571,7 +571,12 @@ function DashboardContent() {
     console.log('Upload result:', result);
     if (result.event === 'success') {
       const newImageUrl = result.info.secure_url;
-      const updatedImages = [...images, newImageUrl].slice(0, 5);
+      const photoCap = isPlanActive ? null : 3;
+      if (photoCap != null && images.length >= photoCap) {
+        alert(`Free listings can have up to ${photoCap} photos. Upgrade to Growth or Pro for an unlimited gallery.`);
+        return;
+      }
+      const updatedImages = [...images, newImageUrl];
       setImages(updatedImages);
       
       // Auto set first uploaded photo as profile if none exists
@@ -1265,6 +1270,7 @@ function DashboardContent() {
               setTimeout(() => setSuccessMessage(null), 3000);
             }}
             onLoginContactVerified={handleContactVerified}
+            photoLimit={isPlanActive ? null : 3}
           />
           </DashboardTabShell>
         )}

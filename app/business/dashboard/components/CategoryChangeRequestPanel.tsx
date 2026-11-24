@@ -5,20 +5,21 @@ import { HiOutlineTag } from 'react-icons/hi2';
 import { Briefcase } from 'lucide-react';
 import CategoryIcon from '@/components/CategoryIcon';
 import { SearchableSelect, type SelectOption } from '@/components/SearchableSelect';
-import { getCategories, getSubCategories } from '@/app/actions/category';
+import { getCategories } from '@/app/actions/category';
 import {
   getPendingChangeRequest,
   submitCategoryChangeRequest,
 } from '@/app/actions/businessChangeRequests';
 import { CATEGORY_CHANGE_FIELD } from '@/lib/businessChangeRequest';
 import type { BusinessChangeRequest } from '@/lib/businessChangeRequest';
+import { categoryBelongsTo } from '@/lib/alsoServes';
 import {
   joinBusinessCategories,
   splitBusinessCategories,
 } from '@/lib/categoryTree';
 import { dashboard } from './dashboard-ui';
 
-type LiveCategory = { id: string; name: string; icon?: string | null };
+type LiveCategory = { id: string; name: string; icon?: string | null; level?: number | null };
 
 type CategoryChangeRequestPanelProps = {
   businessId: string;
@@ -26,24 +27,17 @@ type CategoryChangeRequestPanelProps = {
   onPendingChange?: (request: BusinessChangeRequest | null) => void;
 };
 
-function buildCategoryLabel(parentName: string, subName?: string) {
-  return subName ? `${parentName} › ${subName}` : parentName;
-}
-
 export default function CategoryChangeRequestPanel({
   businessId,
   currentCategory,
   onPendingChange,
 }: CategoryChangeRequestPanelProps) {
   const [categories, setCategories] = useState<LiveCategory[]>([]);
-  const [subCategories, setSubCategories] = useState<LiveCategory[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(true);
-  const [loadingSubcategories, setLoadingSubcategories] = useState(false);
   const [loadingPending, setLoadingPending] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [pendingRequest, setPendingRequest] = useState<BusinessChangeRequest | null>(null);
   const [categoryId, setCategoryId] = useState('');
-  const [subcategoryId, setSubcategoryId] = useState('');
   const [requestedLabels, setRequestedLabels] = useState<string[]>([]);
   const [merchantNote, setMerchantNote] = useState('');
   const [error, setError] = useState('');
@@ -57,14 +51,15 @@ export default function CategoryChangeRequestPanel({
       setLoadingPending(true);
 
       const [categoriesResult, pendingResult] = await Promise.all([
-        getCategories(true),
+        getCategories(false),
         getPendingChangeRequest(businessId, CATEGORY_CHANGE_FIELD),
       ]);
 
       if (cancelled) return;
 
       if (categoriesResult.success && categoriesResult.categories) {
-        setCategories(categoriesResult.categories as LiveCategory[]);
+        const rows = categoriesResult.categories as LiveCategory[];
+        setCategories(rows.filter((category) => category.level === 1));
       } else {
         setCategories([]);
       }
@@ -84,81 +79,41 @@ export default function CategoryChangeRequestPanel({
     };
   }, [businessId]);
 
-  useEffect(() => {
-    if (!categoryId) {
-      setSubCategories([]);
-      setSubcategoryId('');
-      return;
-    }
-
-    let cancelled = false;
-    setLoadingSubcategories(true);
-
-    getSubCategories(categoryId).then((result) => {
-      if (cancelled) return;
-      if (result.success && result.subCategories) {
-        setSubCategories(result.subCategories as LiveCategory[]);
-      } else {
-        setSubCategories([]);
-      }
-      setSubcategoryId('');
-      setLoadingSubcategories(false);
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [categoryId]);
-
   const categoryOptions: SelectOption[] = useMemo(
     () =>
-      categories.map((category) => ({
-        label: category.name,
-        value: category.id,
-        prefix: <CategoryIcon name={category.name} icon={category.icon} size={18} />,
-      })),
-    [categories],
-  );
-
-  const subcategoryOptions: SelectOption[] = useMemo(
-    () =>
-      subCategories.map((category) => ({
-        label: category.name,
-        value: category.id,
-        prefix: <CategoryIcon name={category.name} icon={category.icon} size={18} />,
-      })),
-    [subCategories],
+      categories
+        .filter((category) => !categoryBelongsTo(currentCategory, category.name))
+        .map((category) => ({
+          label: category.name,
+          value: category.id,
+          prefix: <CategoryIcon name={category.name} icon={category.icon} size={18} />,
+        })),
+    [categories, currentCategory],
   );
 
   const selectedParent = categories.find((item) => item.id === categoryId);
-  const selectedSub = subCategories.find((item) => item.id === subcategoryId);
-  const showSubcategory = Boolean(categoryId && subCategories.length > 0);
-  const draftCategory = selectedParent
-    ? buildCategoryLabel(selectedParent.name, selectedSub?.name)
-    : '';
+  const draftCategory =
+    selectedParent && !categoryBelongsTo(currentCategory, selectedParent.name) ? selectedParent.name : '';
   const requestedCategory = joinBusinessCategories([
     ...requestedLabels,
-    ...(draftCategory &&
-    (!showSubcategory || subcategoryId) &&
-    !requestedLabels.some((l) => l.toLowerCase() === draftCategory.toLowerCase())
+    ...(draftCategory && !requestedLabels.some((label) => label.toLowerCase() === draftCategory.toLowerCase())
       ? [draftCategory]
       : []),
   ]);
 
   const addDraftCategory = () => {
     if (!draftCategory) {
-      setError('Please select a category.');
-      return;
-    }
-    if (showSubcategory && !subcategoryId) {
-      setError('Please select a subcategory.');
+      setError(
+        selectedParent
+          ? 'This business is already listed in that category.'
+          : 'Please select a category.',
+      );
       return;
     }
     setRequestedLabels((prev) =>
       splitBusinessCategories(joinBusinessCategories([...prev, draftCategory])),
     );
     setCategoryId('');
-    setSubcategoryId('');
     setError('');
   };
 
@@ -169,9 +124,7 @@ export default function CategoryChangeRequestPanel({
 
     const finalRequested = joinBusinessCategories([
       ...requestedLabels,
-      ...(draftCategory && (!showSubcategory || subcategoryId)
-        ? [draftCategory]
-        : []),
+      ...(draftCategory ? [draftCategory] : []),
     ]);
 
     if (!finalRequested) {
@@ -179,8 +132,8 @@ export default function CategoryChangeRequestPanel({
       return;
     }
 
-    if (draftCategory && showSubcategory && !subcategoryId && requestedLabels.length === 0) {
-      setError('Please select a subcategory.');
+    if (splitBusinessCategories(finalRequested).some((label) => categoryBelongsTo(currentCategory, label))) {
+      setError('This business is already listed in that category. Choose a different one.');
       return;
     }
 
@@ -200,7 +153,6 @@ export default function CategoryChangeRequestPanel({
     setPendingRequest(result.request);
     onPendingChange?.(result.request);
     setCategoryId('');
-    setSubcategoryId('');
     setRequestedLabels([]);
     setMerchantNote('');
     setSuccess('Your category change request was submitted. We will review it shortly.');
@@ -238,7 +190,7 @@ export default function CategoryChangeRequestPanel({
           )}
         </div>
         <p className="mt-2 text-xs leading-relaxed text-zinc-500">
-          Your categories cannot be changed directly. Submit a request and our team will review it from the admin panel. You can request multiple categories.
+          Category change is reviewed by FinderB. Pick a different category from the one you are already in. Subcategories are added separately.
         </p>
       </div>
 
@@ -246,7 +198,10 @@ export default function CategoryChangeRequestPanel({
         <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-950">
           <p className="font-semibold">Change request pending review</p>
           <p className="mt-1 text-xs leading-relaxed">
-            Requested: <span className="font-medium">{pendingRequest.requested_value}</span>
+            Requested:{' '}
+            <span className="font-medium">
+              {splitBusinessCategories(pendingRequest.requested_value).join(' · ')}
+            </span>
           </p>
           <p className="mt-1 text-xs text-amber-800/90">
             Submitted {new Date(pendingRequest.created_at).toLocaleString()}. You can submit a new request after this one is reviewed.
@@ -264,19 +219,6 @@ export default function CategoryChangeRequestPanel({
             disabled={loadingCategories}
             loading={loadingCategories}
           />
-
-          {showSubcategory && (
-            <SearchableSelect
-              label="Subcategory"
-              options={subcategoryOptions}
-              value={subcategoryId}
-              onChange={setSubcategoryId}
-              placeholder={loadingSubcategories ? 'Loading subcategories…' : 'Select subcategory'}
-              icon={<Briefcase size={17} />}
-              disabled={!categoryId || loadingSubcategories}
-              loading={loadingSubcategories}
-            />
-          )}
 
           {requestedLabels.length > 0 && (
             <div className="flex flex-wrap gap-1.5">

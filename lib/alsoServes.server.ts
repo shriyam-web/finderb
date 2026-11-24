@@ -7,6 +7,7 @@ import {
   categoryLeaf,
   composeStoredCategory,
   extraCategoryLeaves,
+  MAX_SUBCATEGORIES_PER_CATEGORY,
   primaryCategoryLabel,
 } from '@/lib/alsoServes';
 
@@ -90,6 +91,13 @@ export async function writeAlsoServes(
     if (seen.has(key)) continue;
     seen.add(key);
     picked.push(name);
+  }
+
+  if (picked.length + 1 > MAX_SUBCATEGORIES_PER_CATEGORY) {
+    return {
+      success: false,
+      error: `A business can be in up to ${MAX_SUBCATEGORIES_PER_CATEGORY} subcategories in one category.`,
+    };
   }
 
   const category = composeStoredCategory(current.state.primary, picked);

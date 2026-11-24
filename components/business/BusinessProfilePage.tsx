@@ -662,12 +662,15 @@ export default function BusinessProfilePage({
 
   const locationLabel = business.businessAddress?.trim() || getBusinessLocationLabel(business);
   const isVerified = Boolean(business.isFinderBVerified || business.hasVerifiedBadge);
-  const directionsLink = directionsHref({
-    latitude: business.latitude,
-    longitude: business.longitude,
-    address: business.businessAddress,
-    location: business.location,
-  });
+  const mapReady = hasBusinessMapPin(business);
+  const directionsLink = mapReady
+    ? directionsHref({
+        latitude: business.latitude,
+        longitude: business.longitude,
+        address: business.businessAddress,
+        location: business.location,
+      })
+    : null;
   const distanceLabel = distanceReady
     ? formatDistanceFromUser(
         userCoords,
@@ -919,11 +922,6 @@ export default function BusinessProfilePage({
                         <button
                           type="button"
                           onClick={() => {
-                            const flags = business as Business & { hasMapPin?: boolean };
-                            if (!flags.hasMapPin && !hasBusinessMapPin(business) && !managesThisProfile) {
-                              setUnverifiedKind('map');
-                              return;
-                            }
                             window.open(directionsLink, '_blank', 'noopener,noreferrer');
                           }}
                           className="inline-flex items-center gap-1 font-semibold text-blue-700"
@@ -1024,6 +1022,11 @@ export default function BusinessProfilePage({
             phoneVerified={Boolean((business as Business & { phoneVerified?: boolean }).phoneVerified) || managesThisProfile}
             emailVerified={Boolean((business as Business & { emailVerified?: boolean }).emailVerified) || managesThisProfile}
             whatsappVerified={Boolean((business as Business & { whatsappVerified?: boolean }).whatsappVerified) || managesThisProfile}
+            onAddress={
+              directionsLink
+                ? () => window.open(directionsLink, '_blank', 'noopener,noreferrer')
+                : undefined
+            }
             onEnquire={() => {
               if (contactRevealed) void handleContactAction('enquire');
               else handleRequestContact('enquire');
@@ -1252,17 +1255,27 @@ export default function BusinessProfilePage({
             <BusinessProfileJobsSection jobs={jobs} />
           </div>
 
-          <BusinessProfileRelatedRail businesses={related} userCoords={userCoords} />
-
           {extraCategoryLeaves(business.category).length ? (
-            <p className="px-4 pt-2 text-sm text-stone-600">
-              This business also serves in: {extraCategoryLeaves(business.category).join(', ')}
-            </p>
+            <section className="px-4 pt-6">
+              <h2 className="text-[20px] font-extrabold tracking-tight text-[#153551]">This business also serves in</h2>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {extraCategoryLeaves(business.category).map((tag) => (
+                  <span
+                    key={tag}
+                    className="rounded-full border border-[#e7e5e4] bg-stone-50 px-3 py-1 text-sm font-semibold text-[#153551]"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            </section>
           ) : null}
 
           {!managesThisProfile ? (
             <OwnThisBusiness businessId={business.id} businessName={business.name} />
           ) : null}
+
+          <BusinessProfileRelatedRail businesses={related} userCoords={userCoords} />
 
           <div className="border-t border-[#e7e5e4] px-4 pb-8 pt-4">
             <BusinessProfileBreadcrumb business={business} categoryBreadcrumb={categoryBreadcrumb} />

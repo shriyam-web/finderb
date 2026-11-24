@@ -45,7 +45,12 @@ function PhotosBody({ o }: { o: ConsoleOverview }) {
       quality: 1,
     });
     if (picked.canceled || !picked.assets?.length) return;
-    const assets = picked.assets.slice(0, BATCH_LIMIT);
+    const room = o.limits.maxPhotos > 0 ? o.limits.maxPhotos - images.length : BATCH_LIMIT;
+    if (room <= 0) {
+      notify(`Free listings can have up to ${o.limits.maxPhotos} photos. Upgrade to Growth or Pro for more.`, 'bad');
+      return;
+    }
+    const assets = picked.assets.slice(0, Math.min(BATCH_LIMIT, room));
     let added = 0;
     let lastError = '';
     setUploading({ done: 0, total: assets.length });
@@ -141,8 +146,9 @@ function PhotosBody({ o }: { o: ConsoleOverview }) {
       footer={
         <Btn
           icon="add"
-          label={uploading ? `Uploading ${Math.min(uploading.done + 1, uploading.total)} of ${uploading.total}…` : 'Add photos'}
+          label={uploading ? `Uploading ${Math.min(uploading.done + 1, uploading.total)} of ${uploading.total}…` : o.limits.maxPhotos > 0 && images.length >= o.limits.maxPhotos ? `Free plan · ${o.limits.maxPhotos} photos` : 'Add photos'}
           busy={Boolean(uploading)}
+          disabled={o.limits.maxPhotos > 0 && images.length >= o.limits.maxPhotos}
           onPress={() => void pick(false)}
         />
       }
@@ -151,6 +157,7 @@ function PhotosBody({ o }: { o: ConsoleOverview }) {
         <Ionicons name="information-circle-outline" size={18} color={c.accent} />
         <Text style={styles.noteText}>
           Your profile picture is the cover customers see first. Tap a photo to crop a square, reorder or delete it.
+          {o.limits.maxPhotos > 0 ? ` Free listings can have up to ${o.limits.maxPhotos} photos.` : ''}
         </Text>
       </View>
       {images.length ? (

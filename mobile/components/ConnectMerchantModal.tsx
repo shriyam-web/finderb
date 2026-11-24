@@ -65,6 +65,12 @@ export function ConnectMerchantModal({
   const [lookingFor, setLookingFor] = useState('');
 
   const area = (merchant.city || merchant.location || '').trim();
+  const categoryTags = (merchant.category || '')
+    .split(/\s*\|\|\|\s*/)
+    .map((part) => (part.split('›').pop() || part).trim())
+    .filter(Boolean)
+    .filter((tag, index, all) => all.findIndex((item) => item.toLowerCase() === tag.toLowerCase()) === index);
+  const enquiryCategory = categoryTags[0] || 'General';
   const areaUnavailable =
     !area || /not specified|unknown/i.test(area);
 
@@ -107,7 +113,7 @@ export function ConnectMerchantModal({
     setError('');
     const result = await submitBroadcastEnquiry({
       sourceBusinessId: merchant.id,
-      category: merchant.category,
+      category: enquiryCategory,
       area,
       name: name.trim(),
       email: email.trim(),
@@ -227,9 +233,16 @@ export function ConnectMerchantModal({
                   onPress={() => setStep('form')}
                 >
                   <Ionicons name="mail-outline" size={18} color={colors.ink} />
-                  <Text style={styles.optionText}>
-                    Send enquiry to merchants in {merchant.category || 'this category'}
-                  </Text>
+                  <View style={{ flex: 1, gap: 6 }}>
+                    <Text style={styles.optionText}>Send enquiry to merchants in</Text>
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                      {(categoryTags.length ? categoryTags : ['this category']).map((tag) => (
+                        <View key={tag} style={{ borderRadius: 999, backgroundColor: colors.surfaceSoft, paddingHorizontal: 8, paddingVertical: 3 }}>
+                          <Text style={{ fontFamily: fonts.semiBold, fontSize: 12, color: colors.ink }}>{tag}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
                 </Pressable>
               </View>
             ) : null}
@@ -283,7 +296,7 @@ export function ConnectMerchantModal({
                 <Text style={styles.doneBody}>
                   Your enquiry was shared with{' '}
                   {merchantCount > 1 ? `${merchantCount} merchants` : 'the merchant'} in{' '}
-                  {merchant.category || 'this category'}.
+                  these categories.
                 </Text>
                 <Pressable style={styles.submit} onPress={onClose}>
                   <Text style={styles.submitText}>Done</Text>

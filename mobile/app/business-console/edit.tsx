@@ -428,79 +428,6 @@ function PhoneVerifySheet({
   );
 }
 
-function AlsoServesEditor({
-  run,
-  notify,
-}: {
-  run: ReturnType<typeof useMerchantConsole>['run'];
-  notify: ReturnType<typeof useMerchantConsole>['notify'];
-}) {
-  const c = useConsoleColors();
-  const [primary, setPrimary] = useState('');
-  const [options, setOptions] = useState<string[]>([]);
-  const [selected, setSelected] = useState<string[]>([]);
-  const [busy, setBusy] = useState(false);
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    void run<{ success: true; state: { primary: string; selected: string[]; options: string[] } }>('alsoServes').then((result) => {
-      if (!isFailure(result) && 'state' in result) {
-        setPrimary(result.state.primary);
-        setOptions(result.state.options);
-        setSelected(result.state.selected);
-      }
-      setReady(true);
-    });
-  }, [run]);
-
-  const toggle = async (leaf: string) => {
-    const has = selected.some((item) => item.toLowerCase() === leaf.toLowerCase());
-    const next = has ? selected.filter((item) => item.toLowerCase() !== leaf.toLowerCase()) : [...selected, leaf];
-    setBusy(true);
-    const result = await run('saveAlsoServes', { leaves: next });
-    setBusy(false);
-    if (isFailure(result)) {
-      notify(result.error, 'bad');
-      return;
-    }
-    setSelected(next);
-    notify('Extra categories saved');
-  };
-
-  return (
-    <Section title="Add more subcategories">
-      <Text style={{ fontFamily: fonts.regular, fontSize: 13, lineHeight: 18, color: c.muted }}>
-        {!ready
-          ? 'Loading the other subcategories in your category group.'
-          : primary
-            ? `${primary} stays your main category. Tap any extra subcategory in the same group. These show on your public page right away.`
-            : 'Extra subcategories could not be loaded. Pull to refresh and open this screen again.'}
-      </Text>
-      {!ready || !primary ? null : options.length || selected.length ? null : (
-        <Text style={{ fontFamily: fonts.regular, fontSize: 13, lineHeight: 18, color: c.muted }}>
-          This category group has no extra subcategories to add.
-        </Text>
-      )}
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-        {options.map((leaf) => {
-          const active = selected.some((item) => item.toLowerCase() === leaf.toLowerCase());
-          return (
-            <Chip
-              key={leaf}
-              label={leaf}
-              active={active}
-              icon={active ? 'checkmark' : undefined}
-              onPress={() => {
-                if (!busy) void toggle(leaf);
-              }}
-            />
-          );
-        })}
-      </View>
-    </Section>
-  );
-}
-
 function EditBody({ o, section }: { o: ConsoleOverview; section: SectionKey }) {
   const styles = useStyles();
   const c = useConsoleColors();
@@ -677,7 +604,6 @@ function EditBody({ o, section }: { o: ConsoleOverview; section: SectionKey }) {
     >
       {section === 'basics' ? (
         <>
-          <AlsoServesEditor run={run} notify={notify} />
           <Field
             label="Name customers see"
             value={form.displayName}

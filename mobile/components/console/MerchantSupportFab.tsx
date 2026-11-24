@@ -75,7 +75,7 @@ const FAQS = [
   },
   {
     q: 'How do I update hours, photos, or the map pin?',
-    a: 'My Business is for the public listing. Photos need at least one image or the listing stays hidden. Hours, about, services, and the map pin save without admin review. Category, legal name, and display name need a change request. Extra sibling categories can be added as “also serves” without waiting for approval.',
+    a: 'My Business is for the public listing. Photos need at least one image or the listing stays hidden. Hours, about, services, and the map pin save without admin review. Category, legal name, and display name need a change request. Extra subcategories in the same category are added from Needs FinderB approval, with the button “Business works in more categories? Add it here.” You can list up to 5 subcategories in one category.',
   },
   {
     q: 'My WhatsApp number is different from my mobile. How do I verify it?',
@@ -127,7 +127,7 @@ const FAQS = [
   },
   {
     q: 'Can I list more than one category?',
-    a: 'The main category is what customers search. Replacing it needs a change request from Login and security, so a restaurant cannot quietly become a clinic. Extra work you really do can be added as “also serves”. Those sibling categories go on the listing without waiting for approval. Do not add a category you do not offer.',
+    a: 'The main category is what customers search. Replacing it needs a change request, and you cannot request the category you are already in. Extra subcategories in that same category are added from Needs FinderB approval. Do not add a category you do not offer.',
   },
 ];
 

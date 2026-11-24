@@ -18,6 +18,8 @@ export type MerchantSubscriptionInput = {
   mandateStatus?: string | null;
   subscriptionStatus?: string | null;
   razorpaySubscriptionId?: string | null;
+  /** Set only after a payment id is stored. A blank payment status is unpaid, not “bank confirming”. */
+  paymentId?: string | null;
 };
 
 export type MerchantSubscriptionStatus = {
@@ -135,8 +137,13 @@ export function getMerchantSubscriptionStatus(
   const startedAt = toDate(input.planStartedAt);
   const expiresAt = toDate(input.planExpiresAt) ?? resolveLegacyExpiry(input);
   const daysRemaining = getDaysRemaining(expiresAt, now);
-  const isPendingPayment = input.paymentStatus === 'pending' || !input.paymentStatus;
-  const paidCompleted = input.paymentStatus === 'completed';
+  const paymentState = String(input.paymentStatus || '').trim().toLowerCase();
+  const paidCompleted = paymentState === 'completed';
+  // New businesses default to paymentStatus "pending" before any checkout.
+  // Bank confirmation is only a captured payment that has not activated the plan yet.
+  const bankConfirming = new Set(['authorized', 'captured', 'processing', 'confirming']).has(paymentState);
+  const paymentRecorded = Boolean(String(input.paymentId || '').trim());
+  const isPendingPayment = !paidCompleted && (bankConfirming || (paymentRecorded && paymentState === 'pending'));
   const isExpired = paidCompleted && daysRemaining !== null && daysRemaining <= 0;
   const isActive = paidCompleted && !isExpired;
   const alertLevel = paidCompleted ? getSubscriptionAlertLevel(daysRemaining) : 'none';

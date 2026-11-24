@@ -498,12 +498,33 @@ export async function updateBusinessImages(id: string, images: string[], profile
     console.log('Updating images for business:', id);
 
     const supabase = await createDataClient();
+    const { data: planRow } = await supabase
+      .from('Business')
+      .select('selectedPlan, paymentStatus, billingCycle, planStartedAt, planExpiresAt, updatedAt, createdAt, images, profilePictureUrl')
+      .eq('id', id)
+      .maybeSingle();
     const cleanImages = normalizeBusinessImages(images);
     const explicitProfile =
       typeof profilePictureUrl === 'string' ? profilePictureUrl.trim() : '';
     // Always keep a profile pic when gallery photos exist, and keep cover in images[].
     const resolvedProfile = explicitProfile || cleanImages[0] || null;
     const syncedImages = syncBusinessImagesWithCover(cleanImages, resolvedProfile);
+    const { FREE_LISTING_PHOTO_LIMIT } = await import('@/lib/pricing/growthPro');
+    const { getEffectivePlanKey } = await import('@/lib/subscription/merchantSubscription');
+    const photoLimit =
+      planRow && getEffectivePlanKey(planRow) === 'free' ? FREE_LISTING_PHOTO_LIMIT : null;
+    const currentCount = planRow
+      ? syncBusinessImagesWithCover(
+          normalizeBusinessImages(planRow.images),
+          typeof planRow.profilePictureUrl === 'string' ? planRow.profilePictureUrl : null,
+        ).length
+      : 0;
+    if (photoLimit != null && syncedImages.length > photoLimit && syncedImages.length > currentCount) {
+      return {
+        success: false,
+        error: `Free listings can have up to ${photoLimit} photos. Upgrade to Growth or Pro for an unlimited gallery.`,
+      };
+    }
 
     const { data: business, error } = await supabase
       .from('Business')

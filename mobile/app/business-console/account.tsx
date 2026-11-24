@@ -13,6 +13,7 @@ import { OtpCodeBoxes } from '../../components/OtpCodeBoxes';
 import { BusinessKybCard } from '../../components/console/BusinessKybCard';
 import { ConsoleGate } from '../../components/console/ConsoleGate';
 import { TeamAccess } from '../../components/console/TeamAccess';
+import { AlsoServesPicker } from '../../components/console/AlsoServesPicker';
 import { canEditTeamTab } from '../../lib/teamAccess';
 import { mixedNameLanguageError, NAME_SINGLE_LANGUAGE_HINT } from '../../lib/aboutFormat';
 import {
@@ -39,18 +40,32 @@ type Requests = {
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
-/** Same stored label as the website and registration: the two deepest levels, never a bare group root. */
-function categoryLabel(item: HomeCategory, byId: Map<string, HomeCategory>): string {
-  const chain: HomeCategory[] = [item];
-  let cursor = item.parentId ? byId.get(item.parentId) : undefined;
-  while (cursor && chain.length < 4) {
-    chain.unshift(cursor);
-    cursor = cursor.parentId ? byId.get(cursor.parentId) : undefined;
+function isCategoryChoice(item: HomeCategory, byId: Map<string, HomeCategory>) {
+  if (item.level === 0 || item.level === 2) return false;
+  const parent = item.parentId ? byId.get(item.parentId) : undefined;
+  if (!parent) return true;
+  return parent.level === 0;
+}
+
+function alreadyListed(stored: string, name: string) {
+  const target = name.trim().toLowerCase();
+  if (!target) return false;
+  return stored.split(/\s*\|\|\|\s*/).some((part) =>
+    part.split('›').some((bit) => bit.trim().toLowerCase() === target),
+  );
+}
+
+function categoryTags(value?: string | null) {
+  const tags: string[] = [];
+  const seen = new Set<string>();
+  for (const part of (value || '').split(/\s*\|\|\|\s*/)) {
+    const leaf = (part.split('›').pop() || part).trim();
+    const key = leaf.toLowerCase();
+    if (!leaf || seen.has(key)) continue;
+    seen.add(key);
+    tags.push(leaf);
   }
-  const [parent, sub, leaf] = chain;
-  if (leaf && sub) return `${sub.name} › ${leaf.name}`;
-  if (sub && parent) return parent.level === 0 ? sub.name : `${parent.name} › ${sub.name}`;
-  return parent?.name || item.name;
+  return tags;
 }
 
 function ContactSheet({
@@ -270,10 +285,15 @@ function RequestSheet({
     const q = query.trim().toLowerCase();
     if (!catalog || !q) return [];
     return catalog
-      .filter((item) => item.name.toLowerCase().includes(q) && item.level !== 0)
+      .filter(
+        (item) =>
+          isCategoryChoice(item, byId) &&
+          item.name.toLowerCase().includes(q) &&
+          !alreadyListed(o.business.category, item.name),
+      )
       .slice(0, 12)
-      .map((item) => categoryLabel(item, byId));
-  }, [catalog, query, byId]);
+      .map((item) => item.name);
+  }, [catalog, query, byId, o.business.category]);
 
   const nameMixed = field === 'displayName' ? mixedNameLanguageError(value) : null;
 
@@ -324,6 +344,9 @@ function RequestSheet({
             <>
               <Field label="Search categories" value={query} onChangeText={setQuery} placeholder="e.g. Bakery" autoFocus />
               {!catalog ? <ActivityIndicator color={c.primary} /> : null}
+              <Text style={styles.footnote}>
+                Categories only. The category you are already in is not listed. Subcategories are added separately.
+              </Text>
               {matches.map((label) => (
                 <Pressable
                   key={label}
@@ -378,6 +401,7 @@ function RequestRow({
   onPress,
   last,
   allowChange = true,
+  tags,
 }: {
   label: string;
   current: string;
@@ -385,18 +409,29 @@ function RequestRow({
   onPress: () => void;
   last?: boolean;
   allowChange?: boolean;
+  tags?: string[];
 }) {
   const styles = useStyles();
   return (
     <View style={[styles.requestRow, !last && styles.line]}>
       <View style={styles.flex}>
         <Text style={styles.requestLabel}>{label}</Text>
-        <Text style={styles.requestValue}>{current || 'Not set'}</Text>
+        {tags?.length ? (
+          <View style={styles.tagRow}>
+            {tags.map((tag) => (
+              <View key={tag} style={styles.miniTag}>
+                <Text style={styles.miniTagText}>{tag}</Text>
+              </View>
+            ))}
+          </View>
+        ) : (
+          <Text style={styles.requestValue}>{current || 'Not set'}</Text>
+        )}
         {request ? (
           <View style={styles.pending}>
             <Tag label="Waiting for approval" tone="warning" icon="time-outline" />
             <Text style={styles.pendingText}>
-              Requested: {request.requested_value} · {shortDate(request.created_at)}
+              Requested: {categoryTags(request.requested_value).join(' · ') || request.requested_value} · {shortDate(request.created_at)}
             </Text>
           </View>
         ) : null}
@@ -410,7 +445,7 @@ function AccountBody({ o }: { o: ConsoleOverview }) {
   const styles = useStyles();
   const c = useConsoleColors();
   const iconTint = c.accent;
-  const { run, refresh } = useMerchantConsole();
+  const { run, refresh, notify } = useMerchantConsole();
   const { scrollTo } = useConsoleScroll();
   const { focus } = useLocalSearchParams<{ focus?: string }>();
   const [contact, setContact] = useState<ContactKind | null>(null);
@@ -418,6 +453,7 @@ function AccountBody({ o }: { o: ConsoleOverview }) {
   const [requestField, setRequestField] = useState<'category' | 'legalName' | 'displayName' | null>(null);
   const [requests, setRequests] = useState<Requests | null>(null);
   const [pulling, setPulling] = useState(false);
+  const [alsoOpen, setAlsoOpen] = useState(false);
   const b = o.business;
 
   useFocusEffect(
@@ -545,7 +581,22 @@ function AccountBody({ o }: { o: ConsoleOverview }) {
 
       <Section title="Needs FinderB approval">
         <Panel flush>
-          <RequestRow label="Category" current={b.category} request={requests?.category ?? null} onPress={() => setRequestField('category')} allowChange={canEditSettings} />
+          <RequestRow
+            label="Category"
+            current={b.category}
+            tags={categoryTags(b.category)}
+            request={requests?.category ?? null}
+            onPress={() => setRequestField('category')}
+            allowChange={canEditSettings}
+          />
+          <View style={styles.alsoBtnWrap}>
+            <Btn
+              small
+              tone="outline"
+              label="Business works in more categories? Add it here."
+              onPress={() => setAlsoOpen(true)}
+            />
+          </View>
           <RequestRow
             label="Legal business name"
             current={b.legalName}
@@ -582,6 +633,9 @@ function AccountBody({ o }: { o: ConsoleOverview }) {
         />
       ) : null}
       {passwordOpen ? <PasswordSheet visible onClose={() => setPasswordOpen(false)} /> : null}
+      <Sheet visible={alsoOpen} title="More categories" onClose={() => setAlsoOpen(false)}>
+        <AlsoServesPicker run={run} notify={notify} />
+      </Sheet>
       {requestField ? (
         <RequestSheet
           key={requestField}
@@ -652,4 +706,8 @@ const useStyles = createConsoleStyles((c) => ({
   option: { paddingVertical: 13, borderBottomWidth: 0.5, borderBottomColor: c.line },
   optionPressed: { backgroundColor: c.sunken },
   optionText: { fontFamily: fonts.regular, fontSize: 15, color: c.ink },
+  tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 6 },
+  miniTag: { borderRadius: 999, backgroundColor: c.sunken, paddingHorizontal: 8, paddingVertical: 3 },
+  miniTagText: { fontFamily: fonts.semiBold, fontSize: 12, color: c.ink },
+  alsoBtnWrap: { paddingHorizontal: 16, paddingBottom: 14 },
 }));

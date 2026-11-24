@@ -18,6 +18,7 @@ import {
   Panel,
   Row,
   Section,
+  Sheet,
   Tag,
   createConsoleStyles,
   useTabBack,
@@ -26,6 +27,20 @@ import { listingDetailGaps, listingDetailRows } from '../../../components/consol
 import { askStorefrontPreview } from '../../../lib/consoleNav';
 import { shareMessage } from '../../../lib/shareMessage';
 import { isFailure } from '../../../lib/merchantConsoleApi';
+import { AlsoServesPicker } from '../../../components/console/AlsoServesPicker';
+
+function categoryTags(value?: string | null) {
+  const tags: string[] = [];
+  const seen = new Set<string>();
+  for (const part of (value || '').split(/\s*\|\|\|\s*/)) {
+    const leaf = (part.split('›').pop() || part).trim();
+    const key = leaf.toLowerCase();
+    if (!leaf || seen.has(key)) continue;
+    seen.add(key);
+    tags.push(leaf);
+  }
+  return tags;
+}
 
 function ListingBody({ o }: { o: ConsoleOverview }) {
   const styles = useStyles();
@@ -36,6 +51,7 @@ function ListingBody({ o }: { o: ConsoleOverview }) {
   const [copiedId, setCopiedId] = useState(false);
   const [hideStep, setHideStep] = useState<0 | 1 | 2>(0);
   const [hideBusy, setHideBusy] = useState(false);
+  const [alsoOpen, setAlsoOpen] = useState(false);
   const isOwner = o.actor?.isOwner !== false;
   const merchantId = o.business.registrationNumber || '';
   const deletionAt = o.business.deletionScheduledAt;
@@ -233,9 +249,25 @@ function ListingBody({ o }: { o: ConsoleOverview }) {
           <Row
             icon="pricetag-outline"
             label="Category"
-            value={o.business.category || 'Not set'}
             onPress={() => router.push('/business-console/account')}
+            right={
+              <View style={styles.categoryTagWrap}>
+                {(categoryTags(o.business.category).length ? categoryTags(o.business.category) : ['Not set']).map((tag) => (
+                  <View key={tag} style={styles.miniTag}>
+                    <Text style={styles.miniTagText}>{tag}</Text>
+                  </View>
+                ))}
+              </View>
+            }
           />
+          <View style={styles.alsoBtnWrap}>
+            <Btn
+              small
+              tone="outline"
+              label="Business works in more categories? Add it here."
+              onPress={() => setAlsoOpen(true)}
+            />
+          </View>
           <Row
             icon="document-text-outline"
             label="Legal business name"
@@ -291,6 +323,10 @@ function ListingBody({ o }: { o: ConsoleOverview }) {
           </Panel>
         </Section>
       ) : null}
+
+      <Sheet visible={alsoOpen} title="More categories" onClose={() => setAlsoOpen(false)}>
+        <AlsoServesPicker run={run} notify={notify} />
+      </Sheet>
 
       <Modal visible={hideStep > 0} transparent animationType="fade" onRequestClose={() => !hideBusy && setHideStep(0)}>
         <Pressable style={styles.hideScrim} onPress={() => !hideBusy && setHideStep(0)}>
@@ -369,6 +405,15 @@ const useStyles = createConsoleStyles((c) => ({
     backgroundColor: c.sunken,
   },
   copyText: { fontFamily: fonts.semiBold, fontSize: 12.5, color: c.ink },
+  categoryTagWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, maxWidth: 180, justifyContent: 'flex-end' },
+  miniTag: {
+    borderRadius: 999,
+    backgroundColor: c.sunken,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  miniTagText: { fontFamily: fonts.semiBold, fontSize: 11, color: c.ink },
+  alsoBtnWrap: { paddingHorizontal: 14, paddingBottom: 12 },
   actions: { flexDirection: 'row', gap: 8, marginTop: 8 },
   photos: {
     padding: 8,

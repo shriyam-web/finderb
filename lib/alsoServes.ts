@@ -29,6 +29,36 @@ export function extraCategoryLeaves(stored: string | null | undefined): string[]
   return extraCategoryLabels(stored).map(categoryLeaf);
 }
 
+/** Short labels for chips. Drops the " ||| " storage separator. */
+export function categoryDisplayTags(stored: string | null | undefined): string[] {
+  const tags: string[] = [];
+  const seen = new Set<string>();
+  for (const part of splitBusinessCategories(stored)) {
+    const leaf = categoryLeaf(part);
+    const key = leaf.toLowerCase();
+    if (!leaf || seen.has(key)) continue;
+    seen.add(key);
+    tags.push(leaf);
+  }
+  return tags;
+}
+
+/** True when this business is already listed under that category or subcategory name. */
+export function categoryBelongsTo(stored: string | null | undefined, name: string): boolean {
+  const target = name.trim().toLowerCase();
+  if (!target) return false;
+  for (const part of splitBusinessCategories(stored)) {
+    if (part.trim().toLowerCase() === target) return true;
+    for (const bit of part.split('›')) {
+      if (bit.trim().toLowerCase() === target) return true;
+    }
+  }
+  return false;
+}
+
+/** Primary subcategory plus extras in the same category. */
+export const MAX_SUBCATEGORIES_PER_CATEGORY = 5;
+
 export function composeStoredCategory(primary: string, extraLeaves: string[]): string {
   const head = categoryHead(primary);
   const extras = extraLeaves

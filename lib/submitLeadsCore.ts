@@ -14,7 +14,8 @@ import { escapeIlikePattern } from '@/lib/searchMatch';
 import { recordMerchantNotification } from '@/lib/merchantAlert.server';
 import { queueBusinessPush } from '@/lib/userNotifications.server';
 import { pickPublicBusinessEmail } from '@/lib/placeholderEmail';
-import { sendNewLeadEmail } from '@/lib/email/sendNewLeadEmail';
+import { sendLeadUnlockEmail, sendNewLeadEmail } from '@/lib/email/sendNewLeadEmail';
+import { getMerchantSubscriptionStatus } from '@/lib/subscription/merchantSubscription';
 
 const LEADS_URL = '/business/dashboard?tab=leads';
 
@@ -57,7 +58,7 @@ export async function recordDirectLeadForActor(params: {
     const supabase = dbClient() ?? createClient(await cookies());
     const { data: business, error: businessError } = await supabase
       .from('Business')
-      .select('category, businessName, displayName, email, workEmail, emailVerified')
+      .select('category, businessName, displayName, email, workEmail, emailVerified, selectedPlan, paymentStatus, billingCycle, planStartedAt, planExpiresAt, updatedAt, createdAt')
       .eq('id', businessId)
       .maybeSingle();
 
@@ -234,6 +235,13 @@ type LeadMailBusiness = {
   email?: string | null;
   workEmail?: string | null;
   emailVerified?: boolean | null;
+  selectedPlan?: string | null;
+  paymentStatus?: string | null;
+  billingCycle?: string | null;
+  planStartedAt?: string | null;
+  planExpiresAt?: string | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
 };
 
 async function emailVerifiedLead(
@@ -244,10 +252,16 @@ async function emailVerifiedLead(
   if (!business.emailVerified) return;
   const to = pickPublicBusinessEmail(business.workEmail, business.email);
   if (!to) return;
+  const businessName = business.displayName || business.businessName || 'your business';
+  const unlocked = getMerchantSubscriptionStatus(business).isActive;
   try {
+    if (!unlocked) {
+      await sendLeadUnlockEmail({ to, businessName });
+      return;
+    }
     await sendNewLeadEmail({
       to,
-      businessName: business.displayName || business.businessName || 'your business',
+      businessName,
       title,
       body,
     });
@@ -262,7 +276,7 @@ async function emailVerifiedLeads(businessIds: string[], title: string, body: st
   if (!supabase) return;
   const { data } = await supabase
     .from('Business')
-    .select('businessName, displayName, email, workEmail, emailVerified')
+    .select('businessName, displayName, email, workEmail, emailVerified, selectedPlan, paymentStatus, billingCycle, planStartedAt, planExpiresAt, updatedAt, createdAt')
     .in('id', businessIds);
   for (const row of data || []) {
     await emailVerifiedLead(row, title, body);

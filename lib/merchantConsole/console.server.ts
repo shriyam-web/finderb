@@ -129,6 +129,7 @@ function subscriptionOf(business: Business) {
     mandateStatus: business.mandateStatus as string,
     subscriptionStatus: business.subscriptionStatus as string,
     razorpaySubscriptionId: business.razorpaySubscriptionId as string,
+    paymentId: business.paymentId as string,
   });
 }
 
@@ -543,6 +544,7 @@ async function overview(businessId: string) {
       replyMin: REVIEW_REPLY_MIN_LENGTH,
       replyMax: REVIEW_REPLY_MAX_LENGTH,
       maxActiveJobs: 3,
+      maxPhotos: subscription.isActive ? 0 : 3,
     },
     kycMessage: kycMessageFor(business),
     detailsLockedUntil: detailsLock.locked ? detailsLock.until : null,

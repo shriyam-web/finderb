@@ -12,6 +12,8 @@ import { assertBusinessSession } from '@/lib/security/session';
 import { assertBusinessTab } from '@/lib/businessTeam/teamActor.server';
 import { enforceRateLimit } from '@/lib/security/enforceRateLimit.server';
 import { mixedNameLanguageError } from '@/lib/businessAbout';
+import { categoryBelongsTo, categoryLeaf } from '@/lib/alsoServes';
+import { splitBusinessCategories } from '@/lib/categoryTree';
 import { ownershipDetailsLock } from '@/lib/ownershipRequest.server';
 
 async function loadCurrentValue(
@@ -117,6 +119,19 @@ export async function submitChangeRequest(params: {
         success: false as const,
         error: 'Choose a value that is different from your current one.',
       };
+    }
+
+    if (params.field === CATEGORY_CHANGE_FIELD) {
+      const alreadyListed = splitBusinessCategories(requestedValue).some((part) => {
+        const leaf = categoryLeaf(part);
+        return categoryBelongsTo(currentValue, part) || categoryBelongsTo(currentValue, leaf);
+      });
+      if (alreadyListed) {
+        return {
+          success: false as const,
+          error: 'This business is already listed in that category. Choose a different one.',
+        };
+      }
     }
 
     const { data: existing } = await supabase

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { submitBroadcastEnquiry } from '@/app/actions/leads';
 import type { ContactIntent } from '@/lib/directLead';
 import { buildLoginHref, buildSignupHref } from '@/lib/authRedirect';
+import { categoryDisplayTags, categoryLeaf, primaryCategoryLabel } from '@/lib/alsoServes';
 
 export type ConnectMerchantBusiness = {
   id: string;
@@ -52,6 +53,8 @@ export default function ConnectMerchantModal({
   const [lookingFor, setLookingFor] = useState(initialLookingFor);
 
   const area = (business.city || business.location || '').trim();
+  const categoryTags = categoryDisplayTags(business.category);
+  const enquiryCategory = categoryLeaf(primaryCategoryLabel(business.category)) || categoryTags[0] || 'this category';
   const areaUnavailable =
     !area || /not specified|unknown/i.test(area) || (!business.city && !business.location);
   const loginHref = buildLoginHref(profileRedirectPath);
@@ -90,7 +93,7 @@ export default function ConnectMerchantModal({
     const formData = new FormData(e.currentTarget);
     const result = await submitBroadcastEnquiry({
       sourceBusinessId: business.id,
-      category: business.category,
+      category: enquiryCategory,
       area,
       name: formData.get('name') as string,
       email: formData.get('email') as string,
@@ -197,8 +200,14 @@ export default function ConnectMerchantModal({
                   }}
                   className="block w-full border border-gray-300 px-3 py-2.5 text-left text-gray-900 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  Send enquiry to merchants in {business.category}
-                  {area ? ` (${area})` : ''}
+                  <span>Send enquiry to merchants in{area ? ` ${area}` : ''}</span>
+                  <span className="mt-2 flex flex-wrap gap-1.5">
+                    {(categoryTags.length ? categoryTags : [enquiryCategory]).map((tag) => (
+                      <span key={tag} className="rounded-full bg-stone-100 px-2 py-0.5 text-xs font-semibold text-stone-800">
+                        {tag}
+                      </span>
+                    ))}
+                  </span>
                 </button>
               </li>
             </ul>
@@ -207,8 +216,14 @@ export default function ConnectMerchantModal({
           {step === 'form' && (
             <>
               <p className="text-sm text-gray-600 mb-4">
-                Your details go to {business.name} and other {business.category} merchants in this
-                area.
+                Your details go to {business.name} and other merchants in these categories.
+                <span className="mt-2 flex flex-wrap gap-1.5">
+                  {(categoryTags.length ? categoryTags : [enquiryCategory]).map((tag) => (
+                    <span key={tag} className="rounded-full bg-stone-100 px-2 py-0.5 text-xs font-semibold text-stone-800">
+                      {tag}
+                    </span>
+                  ))}
+                </span>
               </p>
 
               <form key={`${userName}-${userEmail}-${userPhone}`} onSubmit={handleSubmit} className="space-y-3">

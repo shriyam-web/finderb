@@ -49,6 +49,8 @@ export const GROWTH_PRO_FEATURES = [
   '24/7 priority merchant support',
 ] as const;
 
+export const FREE_LISTING_PHOTO_LIMIT = 3;
+
 export const FREE_LISTING_INCLUDED = [
   'Basic business listing & profile',
   'Business name, address & phone',

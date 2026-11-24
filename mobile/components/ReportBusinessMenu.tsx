@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Dimensions,
   Modal,
   Pressable,
   StyleSheet,
@@ -38,6 +39,18 @@ export function ReportBusinessMenu({
   const [note, setNote] = useState('');
   const [error, setError] = useState('');
   const [sending, setSending] = useState(false);
+  const buttonRef = useRef<View>(null);
+  const [anchor, setAnchor] = useState<{ top: number; left: number } | null>(null);
+
+  const openMenu = () => {
+    buttonRef.current?.measureInWindow((x, y, width, height) => {
+      const screen = Dimensions.get('window');
+      const menuWidth = 220;
+      const left = Math.max(12, Math.min(x + width - menuWidth, screen.width - menuWidth - 12));
+      setAnchor({ top: y + height + 6, left });
+      setMenuOpen(true);
+    });
+  };
 
   const openReport = () => {
     setMenuOpen(false);
@@ -90,8 +103,9 @@ export function ReportBusinessMenu({
   return (
     <>
       <Pressable
+        ref={buttonRef}
         style={buttonStyle}
-        onPress={() => setMenuOpen(true)}
+        onPress={openMenu}
         accessibilityLabel="More"
         accessibilityRole="button"
       >
@@ -100,7 +114,17 @@ export function ReportBusinessMenu({
 
       <Modal visible={menuOpen} transparent animationType="fade" onRequestClose={() => setMenuOpen(false)}>
         <Pressable style={styles.backdrop} onPress={() => setMenuOpen(false)}>
-          <View style={[styles.menu, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <View
+            style={[
+              styles.menu,
+              {
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
+                top: anchor?.top ?? 72,
+                left: anchor?.left ?? 16,
+              },
+            ]}
+          >
             <Pressable onPress={openReport} style={styles.menuItem}>
               <Text style={[styles.menuText, { color: colors.ink }]}>Report this business</Text>
             </Pressable>
@@ -150,14 +174,18 @@ export function ReportBusinessMenu({
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(12,10,9,0.35)',
-    justifyContent: 'flex-end',
-    padding: 16,
   },
   menu: {
+    position: 'absolute',
+    width: 220,
     borderRadius: 16,
     borderWidth: StyleSheet.hairlineWidth,
     overflow: 'hidden',
+    shadowColor: '#0C0A09',
+    shadowOpacity: 0.16,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 8,
   },
   menuItem: {
     paddingHorizontal: 16,

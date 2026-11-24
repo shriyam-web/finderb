@@ -194,6 +194,8 @@ export type ConsoleOverview = {
     replyMin: number;
     replyMax: number;
     maxActiveJobs: number;
+    /** 0 means unlimited (Growth and Pro). */
+    maxPhotos: number;
   };
   kycMessage: string;
   detailsLockedUntil?: string | null;

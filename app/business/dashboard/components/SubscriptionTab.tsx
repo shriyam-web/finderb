@@ -202,14 +202,18 @@ export default function SubscriptionTab({
   const showRenewCta = !subscription.isActive || subscription.canRenew;
   const statusLabel = subscription.isActive
     ? 'Active'
-    : subscription.isExpired
-      ? 'Expired'
-      : 'Payment due';
+    : subscription.isPendingPayment
+      ? 'Confirming payment'
+      : subscription.isExpired
+        ? 'Expired'
+        : 'Free';
   const statusClass = subscription.isActive
     ? 'text-emerald-700'
-    : subscription.isExpired
-      ? 'text-rose-700'
-      : 'text-amber-700';
+    : subscription.isPendingPayment
+      ? 'text-sky-700'
+      : subscription.isExpired
+        ? 'text-rose-700'
+        : 'text-zinc-600';
   const daysLow =
     subscription.daysRemaining !== null && subscription.daysRemaining <= 7 && subscription.isActive;
 
@@ -255,9 +259,16 @@ export default function SubscriptionTab({
       )}
 
       {!subscription.isActive && subscription.isPendingPayment && (
+        <div className="flex gap-3 rounded-lg border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-950">
+          <HiOutlineCreditCard className="mt-0.5 shrink-0" size={18} />
+          <p>Payment received by the bank. Waiting for confirmation.</p>
+        </div>
+      )}
+
+      {!subscription.isActive && !subscription.isExpired && !subscription.isPendingPayment && (
         <div className="flex gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
           <HiOutlineCreditCard className="mt-0.5 shrink-0" size={18} />
-          <p>Upgrade to {getPaidPlansLabel()} to view enquiry contact details.</p>
+          <p>You’re on the free plan. Upgrade to {getPaidPlansLabel()} to view enquiry contact details.</p>
         </div>
       )}
 

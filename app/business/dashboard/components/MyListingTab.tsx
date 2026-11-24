@@ -17,7 +17,6 @@ import {
 import { FaFacebook, FaInstagram, FaWhatsapp, FaYoutube } from 'react-icons/fa';
 import { Navigation, Tag } from 'lucide-react';
 import FormattedAbout from '@/components/business/FormattedAbout';
-import AlsoServesEditor from './AlsoServesEditor';
 import StackedPhotoGallery from '@/components/business/StackedPhotoGallery';
 import BusinessProfileOfferBanner from '@/components/business/BusinessProfileOfferBanner';
 import { getBusinessLocationLabel } from '@/lib/businessBreadcrumb';
@@ -482,12 +481,6 @@ export default function MyListingTab({
                 </button>
               )}
             </section>
-
-            {businessId ? (
-              <section className="scroll-mt-24 border-t border-zinc-100 py-6">
-                <AlsoServesEditor businessId={businessId} />
-              </section>
-            ) : null}
 
             {/* Location & hours */}
             <section

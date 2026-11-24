@@ -50,6 +50,7 @@ import {
   resolveMerchantSlug,
   reviewsNewestFirst,
   whatsAppHref,
+  peekMerchant,
   type Merchant,
 } from '../../../lib/merchants';
 import { getDiscountOfferDisplay } from '../../../lib/discountOffer';
@@ -63,7 +64,8 @@ import { reportBusinessReview } from '../../../lib/reviewsApi';
 import { goBackOrHome } from '../../../lib/navigation';
 import { formatYearsInBusinessShort } from '../../../lib/establishmentYear';
 import { SITE_URL } from '../../../lib/supabase';
-import { getRatingDisplay, ratingBoxColor, UNRATED_LABEL } from '../../../lib/ratingDisplay';
+import { getRatingDisplay, UNRATED_LABEL } from '../../../lib/ratingDisplay';
+import { RatingBadge } from '../../../components/RatingBadge';
 import { useTabScrollPadding } from '../../../hooks/useAppSafeArea';
 import { createThemedStyles } from '../../../hooks/useThemedStyles';
 import { useUserLocation } from '../../../hooks/useUserLocation';
@@ -222,7 +224,7 @@ function RelatedMeta({ item }: { item: Merchant }) {
   const label = useDrivingDistanceLabel(item.latitude, item.longitude);
   return (
     <Text style={styles.relatedMeta} numberOfLines={1}>
-      {item.category}
+      {categoryLeafLabel(splitMappedCategories(item.category)[0] || item.category)}
       {label ? ` · ${label}` : ''}
     </Text>
   );
@@ -267,10 +269,10 @@ export default function MerchantProfileScreen() {
   const galleryRef = useRef<ScrollView>(null);
   const scrollY = useRef(new Animated.Value(0)).current;
 
-  const [merchant, setMerchant] = useState<Merchant | null>(null);
+  const [merchant, setMerchant] = useState<Merchant | null>(() => (id ? peekMerchant(String(id)) : null));
   const [jobs, setJobs] = useState<JobListing[]>([]);
   const [related, setRelated] = useState<Merchant[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => !(id && peekMerchant(String(id))));
   const [error, setError] = useState('');
   const [galleryIndex, setGalleryIndex] = useState(0);
   const [verifiedNote, setVerifiedNote] = useState(false);
@@ -292,6 +294,9 @@ export default function MerchantProfileScreen() {
   const linkCopiedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const contactRevealed = Boolean(user);
+  const allowUnlisted =
+    Boolean(user?.isBusinessAccount) &&
+    (ownerPreview || user?.businessId === id || user?.businessSlug === id);
 
   useEffect(() => {
     let cancelled = false;
@@ -322,12 +327,17 @@ export default function MerchantProfileScreen() {
         return;
       }
       const key = String(id);
-      if (merchantRef.current !== key) setLoading(true);
-      const ownsKey =
-        Boolean(user?.isBusinessAccount) &&
-        (ownerPreview || user?.businessId === key || user?.businessSlug === key);
+      const cached = peekMerchant(key);
+      if (merchantRef.current !== key) {
+        merchantRef.current = cached ? key : null;
+        setMerchant(cached);
+        setJobs([]);
+        setRelated([]);
+        setError('');
+        setLoading(!cached);
+      }
       const result = await fetchMerchantBySlugOrId(key, {
-        allowUnlisted: ownsKey,
+        allowUnlisted,
       });
       if (cancelled) return;
       if (result.merchant) {
@@ -358,7 +368,7 @@ export default function MerchantProfileScreen() {
         } catch {
           // The profile is already on screen. Jobs and similar businesses can stay empty.
         }
-      } else {
+      } else if (!cached) {
         merchantRef.current = null;
         setMerchant(null);
         setJobs([]);
@@ -366,12 +376,15 @@ export default function MerchantProfileScreen() {
         setError(result.error || 'Merchant not found');
         setLoading(false);
         setRefreshing(false);
+      } else {
+        setLoading(false);
+        setRefreshing(false);
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [id, ownerPreview, reloadKey, user?.isBusinessAccount, user?.businessId, user?.businessSlug]);
+  }, [allowUnlisted, id, reloadKey]);
 
   const openStatus = useMemo(
     () => getBusinessOpenStatus(merchant?.timings),
@@ -572,16 +585,6 @@ export default function MerchantProfileScreen() {
 
   const handleContactAction = (intent: 'call' | 'whatsapp' | 'enquire') => {
     if (!merchant) return;
-    if (!isOwnBusiness) {
-      if (intent === 'call' && !merchant.phoneVerified) {
-        showUnverified('phone');
-        return;
-      }
-      if (intent === 'whatsapp' && !merchant.whatsappVerified) {
-        showUnverified('whatsapp');
-        return;
-      }
-    }
     if (!contactRevealed) {
       if (intent === 'call' || intent === 'whatsapp') {
         requestLogin();
@@ -950,15 +953,7 @@ export default function MerchantProfileScreen() {
                   <View style={styles.ratingUnderName}>
                     {headerRating.rated ? (
                       <>
-                        <View
-                          style={[
-                            styles.ratingBox,
-                            { backgroundColor: ratingBoxColor(headerRating.rating) },
-                          ]}
-                        >
-                          <Ionicons name="star" size={11} color="#FFFFFF" />
-                          <Text style={styles.ratingBoxText}>{headerRating.label}</Text>
-                        </View>
+                        <RatingBadge rating={headerRating.rating} label={headerRating.label} size="md" />
                         {headerRating.showCount ? (
                           <Text style={styles.metaMuted}>({headerRating.reviewCount} reviews)</Text>
                         ) : null}
@@ -1058,16 +1053,12 @@ export default function MerchantProfileScreen() {
                         {distanceLabel.replace(/\s*away$/i, '')}
                       </Text>
                     ) : null}
-                    {distanceLabel && mapsUrl ? (
+                    {distanceLabel && merchant.hasMapPin && mapsUrl ? (
                       <Text style={styles.placeMetaDot}>·</Text>
                     ) : null}
-                    {mapsUrl ? (
+                    {merchant.hasMapPin && mapsUrl ? (
                       <Pressable
                         onPress={() => {
-                          if (!merchant.hasMapPin && !isOwnBusiness) {
-                            showUnverified('map');
-                            return;
-                          }
                           void Linking.openURL(mapsUrl);
                         }}
                         style={({ pressed }) => [
@@ -1213,27 +1204,33 @@ export default function MerchantProfileScreen() {
             <View style={styles.contactCard}>
               {merchant.contact ? (
                 <Pressable
-                  style={styles.contactRow}
+                  style={[styles.contactRow, { backgroundColor: '#EFF6FF' }]}
                   onPress={() => {
-                    if (!merchant.phoneVerified && !isOwnBusiness) {
-                      showUnverified('phone');
+                    if (!contactRevealed) {
+                      requestLogin();
                       return;
                     }
                     handleContactAction('call');
                   }}
                 >
-                  <View style={styles.contactIcon}>
-                    <Ionicons name="call-outline" size={16} color={colors.ink} />
+                  <View style={[styles.contactIcon, { backgroundColor: '#DBEAFE' }]}>
+                    <Ionicons name="call-outline" size={16} color="#1D4ED8" />
                   </View>
                   <View style={styles.contactCopy}>
                     <Text style={styles.contactLabel}>Phone</Text>
-                    <Text style={styles.contactValue}>
-                      {!merchant.phoneVerified && !isOwnBusiness
-                        ? 'Not shown'
-                        : contactRevealed
-                          ? merchant.contact
-                          : maskPhone(merchant.contact)}
-                    </Text>
+                    <View style={styles.contactValueRow}>
+                      <Text style={styles.contactValue}>
+                        {contactRevealed ? merchant.contact : maskPhone(merchant.contact)}
+                      </Text>
+                      {contactRevealed && (merchant.phoneVerified || isOwnBusiness) ? (
+                        <Ionicons name="checkmark-circle" size={15} color="#16A34A" />
+                      ) : null}
+                    </View>
+                    {contactRevealed && !merchant.phoneVerified && !isOwnBusiness ? (
+                      <Text style={styles.contactWarning}>Unverified number</Text>
+                    ) : (
+                      <Text style={styles.contactHint}>• Tap to call</Text>
+                    )}
                   </View>
                   <Ionicons
                     name="chevron-forward"
@@ -1245,12 +1242,8 @@ export default function MerchantProfileScreen() {
 
               {merchant.email ? (
                 <Pressable
-                  style={styles.contactRow}
+                  style={[styles.contactRow, { backgroundColor: '#FEF2F2' }]}
                   onPress={() => {
-                    if (!merchant.emailVerified && !isOwnBusiness) {
-                      showUnverified('email');
-                      return;
-                    }
                     if (!contactRevealed) {
                       requestLogin();
                       return;
@@ -1258,18 +1251,64 @@ export default function MerchantProfileScreen() {
                     void Linking.openURL(`mailto:${merchant.email}`);
                   }}
                 >
-                  <View style={styles.contactIcon}>
-                    <Ionicons name="mail-outline" size={16} color={colors.ink} />
+                  <View style={[styles.contactIcon, { backgroundColor: '#FECACA' }]}>
+                    <Ionicons name="mail-outline" size={16} color="#DC2626" />
                   </View>
                   <View style={styles.contactCopy}>
                     <Text style={styles.contactLabel}>Email</Text>
-                    <Text style={styles.contactValue}>
-                      {!merchant.emailVerified && !isOwnBusiness
-                        ? 'Not shown'
-                        : contactRevealed
-                          ? merchant.email
-                          : maskEmail(merchant.email)}
-                    </Text>
+                    <View style={styles.contactValueRow}>
+                      <Text style={styles.contactValue}>
+                        {contactRevealed ? merchant.email : maskEmail(merchant.email)}
+                      </Text>
+                      {contactRevealed && (merchant.emailVerified || isOwnBusiness) ? (
+                        <Ionicons name="checkmark-circle" size={15} color="#16A34A" />
+                      ) : null}
+                    </View>
+                    {contactRevealed && !merchant.emailVerified && !isOwnBusiness ? (
+                      <Text style={styles.contactWarning}>Unverified email</Text>
+                    ) : (
+                      <Text style={styles.contactHint}>• Tap to email</Text>
+                    )}
+                  </View>
+                  <Ionicons
+                    name="chevron-forward"
+                    size={16}
+                    color={colors.textSoft}
+                  />
+                </Pressable>
+              ) : null}
+
+              {merchant.whatsappNumber ? (
+                <Pressable
+                  style={[styles.contactRow, { backgroundColor: '#F0FDF4' }]}
+                  onPress={() => {
+                    if (!contactRevealed) {
+                      requestLogin();
+                      return;
+                    }
+                    handleContactAction('whatsapp');
+                  }}
+                >
+                  <View style={[styles.contactIcon, { backgroundColor: '#BBF7D0' }]}>
+                    <Ionicons name="logo-whatsapp" size={16} color="#15803D" />
+                  </View>
+                  <View style={styles.contactCopy}>
+                    <Text style={styles.contactLabel}>WhatsApp</Text>
+                    <View style={styles.contactValueRow}>
+                      <Text style={styles.contactValue}>
+                        {contactRevealed
+                          ? merchant.whatsappNumber
+                          : maskPhone(merchant.whatsappNumber)}
+                      </Text>
+                      {contactRevealed && (merchant.whatsappVerified || isOwnBusiness) ? (
+                        <Ionicons name="checkmark-circle" size={15} color="#16A34A" />
+                      ) : null}
+                    </View>
+                    {contactRevealed && !merchant.whatsappVerified && !isOwnBusiness ? (
+                      <Text style={styles.contactWarning}>Unverified WhatsApp</Text>
+                    ) : (
+                      <Text style={styles.contactHint}>• Tap to chat</Text>
+                    )}
                   </View>
                   <Ionicons
                     name="chevron-forward"
@@ -1306,12 +1345,18 @@ export default function MerchantProfileScreen() {
               ) : null}
 
               {merchant.businessAddress ? (
-                <View style={styles.contactRow}>
-                  <View style={styles.contactIcon}>
+                <Pressable
+                  style={[styles.contactRow, { backgroundColor: '#FEFCE8' }]}
+                  disabled={!merchant.hasMapPin || !mapsUrl}
+                  onPress={() => {
+                    if (merchant.hasMapPin && mapsUrl) void Linking.openURL(mapsUrl);
+                  }}
+                >
+                  <View style={[styles.contactIcon, { backgroundColor: '#FDE68A' }]}>
                     <Ionicons
                       name="home-outline"
                       size={16}
-                      color={colors.ink}
+                      color="#A16207"
                     />
                   </View>
                   <View style={styles.contactCopy}>
@@ -1319,12 +1364,16 @@ export default function MerchantProfileScreen() {
                     <Text style={styles.contactValue}>
                       {merchant.businessAddress}
                     </Text>
+                    {merchant.hasMapPin && mapsUrl ? (
+                      <Text style={styles.contactHint}>• Tap for directions</Text>
+                    ) : null}
                   </View>
-                </View>
+                </Pressable>
               ) : null}
 
               {!merchant.contact &&
               !merchant.email &&
+              !merchant.whatsappNumber &&
               !merchant.website &&
               !merchant.businessAddress ? (
                 <Text style={styles.emptySoft}>
@@ -1700,6 +1749,31 @@ export default function MerchantProfileScreen() {
             </View>
           ) : null}
 
+          {splitMappedCategories(merchant.category).length > 1 ? (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>This business also serves in</Text>
+              <View style={styles.serveTags}>
+                {splitMappedCategories(merchant.category).slice(1).map(categoryLeafLabel).map((tag) => (
+                  <View key={tag} style={styles.serveTag}>
+                    <Text style={styles.serveTagText}>{tag}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          ) : null}
+
+          {!isOwnBusiness ? (
+            <View style={styles.section}>
+              <OwnThisBusiness
+                businessId={merchant.id}
+                businessName={merchant.name}
+                defaultName={user?.fullName}
+                defaultEmail={user?.email}
+                defaultPhone={user?.phone || ''}
+              />
+            </View>
+          ) : null}
+
           {related.length > 0 ? (
             <View style={styles.section}>
               <SectionHead title="Similar nearby" />
@@ -1753,27 +1827,6 @@ export default function MerchantProfileScreen() {
                   );
                 })}
               </ScrollView>
-            </View>
-          ) : null}
-
-          {splitMappedCategories(merchant.category).length > 1 ? (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>This business also serves in</Text>
-              <Text style={{ marginTop: 6, fontFamily: fonts.regular, fontSize: 14, lineHeight: 20, color: colors.textSoft }}>
-                {splitMappedCategories(merchant.category).slice(1).map(categoryLeafLabel).join(', ')}
-              </Text>
-            </View>
-          ) : null}
-
-          {!isOwnBusiness ? (
-            <View style={styles.section}>
-              <OwnThisBusiness
-                businessId={merchant.id}
-                businessName={merchant.name}
-                defaultName={user?.fullName}
-                defaultEmail={user?.email}
-                defaultPhone={user?.phone || ''}
-              />
             </View>
           ) : null}
         </View>
@@ -1833,8 +1886,11 @@ const useStyles = createThemedStyles((colors, gradients) => ({
   },
   loadingText: {
     fontFamily: fonts.medium,
+    fontSize: 15,
+    lineHeight: 22,
     color: colors.textMuted,
     marginTop: 10,
+    textAlign: 'center',
   },
   errorTitle: {
     fontFamily: fonts.bold,
@@ -2512,10 +2568,45 @@ const useStyles = createThemedStyles((colors, gradients) => ({
     fontSize: 11,
     color: colors.textSoft,
   },
+  contactValueRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
   contactValue: {
     fontFamily: fonts.semiBold,
     fontSize: 14,
     color: colors.ink,
+    flexShrink: 1,
+  },
+  contactHint: {
+    fontFamily: fonts.medium,
+    fontSize: 11,
+    color: colors.textMuted,
+  },
+  serveTags: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 10,
+  },
+  serveTag: {
+    borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+    backgroundColor: colors.surfaceSoft,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  serveTagText: {
+    fontFamily: fonts.semiBold,
+    fontSize: 13,
+    color: colors.ink,
+  },
+  contactWarning: {
+    fontFamily: fonts.medium,
+    fontSize: 11,
+    color: colors.accentDeep,
   },
   extraBlock: { gap: 10, marginTop: 4 },
   socialRow: { flexDirection: 'row', gap: 10 },

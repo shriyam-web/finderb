@@ -88,6 +88,7 @@ import {
 import ChangePasswordPanel from './ChangePasswordPanel';
 import TeamAccessPanel from './TeamAccessPanel';
 import AlsoServesEditor from './AlsoServesEditor';
+import { categoryDisplayTags } from '@/lib/alsoServes';
 
 const discountOptions = [
   '5% - 10% OFF',
@@ -218,7 +219,8 @@ const SETTINGS_FIELDS: FieldDef[] = [
 const LOGIN_CONTACT_FOCUS = new Set(['email', 'mobile', 'loginContact', 'publicPhone']);
 
 const FIELD_SECTIONS = [
-  { id: 'brand', title: 'Brand & discovery', keys: ['media', 'businessName', 'displayName', 'category', 'about', 'serviceCategory', 'keywords'] },
+  { id: 'brand', title: 'Brand & discovery', keys: ['media', 'about', 'serviceCategory', 'keywords'] },
+  { id: 'approval', title: 'Changes here need FinderB approval', keys: ['category', 'businessName', 'displayName'] },
   { id: 'contact', title: 'Contact', keys: ['ownerInfo', 'publicPhone', 'whatsappNumber', 'website'] },
   { id: 'location', title: 'Location', keys: ['businessAddress', 'city', 'state', 'country', 'mapLocation'] },
   { id: 'social', title: 'Social media', keys: ['instagramUrl', 'facebookUrl', 'youtubeUrl'] },
@@ -247,6 +249,8 @@ interface SettingsTabProps {
   onLoginContactVerified?: (contact: VerifiedContact) => void;
   isOwner?: boolean;
   canEdit?: boolean;
+  /** Null means Growth or Pro, so the gallery is not capped. */
+  photoLimit?: number | null;
 }
 
 export default function SettingsTab({
@@ -270,6 +274,7 @@ export default function SettingsTab({
   onLoginContactVerified,
   isOwner = true,
   canEdit = true,
+  photoLimit = null,
 }: SettingsTabProps) {
   const [photoStore, setPhotoStore] = useState<'checking' | 's3' | 'cloudinary' | 'unavailable'>('checking');
   const [photoError, setPhotoError] = useState('');
@@ -405,10 +410,7 @@ export default function SettingsTab({
       return keywords.length ? keywords.join(', ') : 'Not set';
     }
     if (field.key === 'category') {
-      const labels = (profileData.category || '')
-        .split(/\s*\|\|\|\s*/)
-        .map((part: string) => part.trim())
-        .filter(Boolean);
+      const labels = categoryDisplayTags(profileData.category);
       const base = labels.length ? labels.join(' · ') : 'Not set';
       return pendingCategoryRequest ? `${base} · change pending` : base;
     }
@@ -746,7 +748,7 @@ export default function SettingsTab({
                           </div>
                         </div>
                       ))}
-                      {mediaImages.length < 5 && photoStore === 's3' ? (
+                      {(photoLimit == null || mediaImages.length < photoLimit) && photoStore === 's3' ? (
                         <label className="flex aspect-square cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-zinc-300 text-zinc-400 hover:border-[#3F3F46] hover:text-[#3F3F46]">
                           <HiOutlinePlus size={22} />
                           <span className="text-[10px] font-medium">{photoBusy ? 'Uploading' : 'Add photo'}</span>
@@ -786,12 +788,12 @@ export default function SettingsTab({
                           />
                         </label>
                       ) : null}
-                      {mediaImages.length < 5 && photoStore === 'cloudinary' ? (
+                      {(photoLimit == null || mediaImages.length < photoLimit) && photoStore === 'cloudinary' ? (
                         <CldUploadWidget
                           uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET}
                           onSuccess={handleUploadSuccess}
                           options={{
-                            maxFiles: 5 - mediaImages.length,
+                            maxFiles: photoLimit == null ? 10 : Math.max(1, photoLimit - mediaImages.length),
                             cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
                             cropping: true,
                             showSkipCropButton: true,
@@ -811,8 +813,13 @@ export default function SettingsTab({
                           )}
                         </CldUploadWidget>
                       ) : null}
-                      {mediaImages.length < 5 && photoStore === 'unavailable' ? (
+                      {(photoLimit == null || mediaImages.length < photoLimit) && photoStore === 'unavailable' ? (
                         <p className="col-span-full text-xs text-rose-600">Photo upload is not available right now. Refresh and try again.</p>
+                      ) : null}
+                      {photoLimit != null && mediaImages.length >= photoLimit ? (
+                        <p className="col-span-full text-xs text-zinc-500">
+                          Free listings can have up to {photoLimit} photos. Upgrade to Growth or Pro for more.
+                        </p>
                       ) : null}
                       {photoError ? (
                         <p className="col-span-full text-xs text-rose-600">{photoError}</p>
